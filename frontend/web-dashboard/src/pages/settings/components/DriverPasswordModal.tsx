@@ -110,9 +110,7 @@ export default function DriverPasswordModal({
         {/* Header Bar */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 text-white relative">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center text-indigo-300 shrink-0">
-              <KeyRound className="w-5 h-5" />
-            </div>
+            <KeyRound className="w-5 h-5 text-indigo-300 shrink-0" />
             <div>
               <DialogTitle className="text-base font-bold text-white tracking-tight">
                 {driver.hasAccountPassword ? 'Update Driver Password' : 'Set Mobile App Password'}

@@ -338,9 +338,7 @@ export default function CustomerQuotationsTab({
             </div>
           ) : filteredQuotations.length === 0 ? (
             <div className="p-8 text-center space-y-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center mx-auto">
-                <Receipt className="w-6 h-6" />
-              </div>
+              <Receipt className="w-7 h-7 text-indigo-600 shrink-0" />
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">No Active Commercial Quotations</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">

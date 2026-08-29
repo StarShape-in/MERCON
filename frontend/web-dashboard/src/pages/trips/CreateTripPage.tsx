@@ -1770,9 +1770,7 @@ export default function CreateTripPage() {
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 grid place-items-center mb-4 border border-emerald-200/60 shadow-sm">
-                <CheckCircle2 className="h-7 w-7" />
-              </div>
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
               <h3 className="text-xl font-bold text-[#111111]">
                 {submissionResult.imported} {submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
               </h3>

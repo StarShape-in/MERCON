@@ -51,9 +51,7 @@ export default function InvoiceDetailsPage() {
     return (
       <DashboardLayout active="Invoices" title="Invoice Record">
         <div className="px-4 sm:px-6 pb-6 flex flex-col items-center justify-center h-[60vh] gap-3 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center">
-            <AlertTriangle size={28} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Invoice Not Found</h2>
           <p className="text-xs text-slate-500">This invoice record does not exist or has been archived.</p>
           <Button onClick={() => navigate('/invoices')} size="sm" className="mt-2 text-xs font-bold bg-brand text-white">

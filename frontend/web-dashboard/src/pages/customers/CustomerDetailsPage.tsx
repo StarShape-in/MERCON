@@ -163,9 +163,7 @@ export default function CustomerDetailsPage() {
     return (
       <DashboardLayout active="Customers" title="Customer Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-600 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Customer Account Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
             The requested corporate customer account does not exist or may have been archived from the MERCON roster.
@@ -456,9 +454,7 @@ export default function CustomerDetailsPage() {
         {creditPct >= 80 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/60 text-amber-600">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
               <div>
                 <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
                   High Credit Limit Utilization ({creditPct}%)
@@ -488,9 +484,7 @@ export default function CustomerDetailsPage() {
               {/* Box Header */}
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-                    <Building2 className="w-4 h-4" />
-                  </div>
+                  <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
                       Corporate Profile & Governance
@@ -630,9 +624,7 @@ export default function CustomerDetailsPage() {
               {/* Box Header */}
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-2xs">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
+                  <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
                       Operational Contact Hub

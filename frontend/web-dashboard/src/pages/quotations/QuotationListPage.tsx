@@ -867,9 +867,7 @@ export default function QuotationListPage() {
                     {filteredWorkspaceRoutes.length === 0 ? (
                       /* Empty State */
                       <div className="p-12 text-center flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                          <RouteIcon className="w-5 h-5" />
-                        </div>
+                        <RouteIcon className="w-5 h-5 text-slate-400 shrink-0" />
                         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">No Commercial Routes Yet</h3>
                         <p className="text-xs text-slate-400">
                           {isFiltersActive ? 'No routes match your current active filters.' : 'This customer does not have any agreed commercial routes.'}

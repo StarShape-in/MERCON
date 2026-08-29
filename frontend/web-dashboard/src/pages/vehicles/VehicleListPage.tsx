@@ -712,9 +712,7 @@ export default function VehicleListPage() {
       header: 'Plate & Spec',
       accessor: (row: Vehicle) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
-            <Truck size={15} />
-          </div>
+          <Truck className="w-4 h-4 text-slate-600 shrink-0" />
           <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
             <span>{row.plate_number}</span>
             <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">

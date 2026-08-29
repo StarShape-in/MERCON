@@ -556,9 +556,7 @@ export default function EditTripPage() {
 
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-200 dark:border-indigo-900/50">
-                    <Truck className="w-5 h-5" />
-                  </div>
+                  <Truck className="w-5 h-5 text-indigo-600 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100 truncate">
                       {trip.ref_id || 'TRIP-MANIFEST'}

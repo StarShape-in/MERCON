@@ -190,9 +190,7 @@ export default function DriverTripOperations({ driverId, driverName, trips = [] 
         {/* Module Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4" />
-            </div>
+            <MapPin className="w-4 h-4 text-brand shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight">
@@ -242,9 +240,7 @@ export default function DriverTripOperations({ driverId, driverName, trips = [] 
         <TabsContent value="active" className="mt-0 p-4 space-y-3">
           {activeUpcomingTrips.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3 border border-slate-200/80 dark:border-slate-700">
-                <Calendar className="w-6 h-6 text-slate-400" />
-              </div>
+              <Calendar className="w-7 h-7 text-slate-400 shrink-0" />
               <h4 className="text-sm font-black text-slate-900 dark:text-slate-100">No Active or Scheduled Trips</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
                 {driverName} is currently clear with no active dispatches or upcoming assigned trips.

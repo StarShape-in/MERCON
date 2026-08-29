@@ -239,9 +239,7 @@ export default function Step5Review({
       {contractSlots.some((s) => s.saveAsQuotation && Number(s.billingAmount) > 0) && (
         <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-300 dark:bg-emerald-950/30 dark:border-emerald-800 flex items-center justify-between flex-wrap gap-2 shadow-2xs">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              <TrendingUp className="w-4 h-4" />
-            </div>
+            <TrendingUp className="w-4 h-4 text-white shrink-0" />
             <div>
               <span className="text-xs font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
                 New Quotations Will Be Saved ({contractSlots.filter((s) => s.saveAsQuotation && Number(s.billingAmount) > 0).length} Lane Rate)

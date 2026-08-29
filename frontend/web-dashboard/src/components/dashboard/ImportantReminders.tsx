@@ -506,9 +506,7 @@ export default function ImportantReminders({
                       {/* Group Header Row */}
                       <div className="flex items-center justify-between gap-1.5">
                         <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                          <div className="w-5 h-5 rounded-full bg-[#EEF1F6] dark:bg-slate-800 flex items-center justify-center text-[#3E3C3D] dark:text-slate-200 shrink-0">
-                            <OwnerIcon className="w-3 h-3" />
-                          </div>
+                          <OwnerIcon className="w-5 h-5 text-slate-200 shrink-0" />
                           <div className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
                             <span className="font-extrabold text-[11.5px] text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight truncate max-w-[110px] shrink-0" title={group.ownerName}>
                               {group.ownerName}

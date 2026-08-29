@@ -541,9 +541,7 @@ export default function DriverListPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
-              <Truck size={14} />
-            </div>
+            <Truck className="w-4 h-4 text-slate-600 shrink-0" />
             <div className="flex flex-col">
               <span
                 className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer"
@@ -1567,9 +1565,7 @@ export default function DriverListPage() {
         <Dialog open={showMotModal} onOpenChange={setShowMotModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
                 Saudi MOT & MOMRAH Compliance Status
               </DialogTitle>

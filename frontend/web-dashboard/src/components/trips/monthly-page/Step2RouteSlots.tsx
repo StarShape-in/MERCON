@@ -188,9 +188,7 @@ export default function Step2RouteSlots({
                   {/* Round Trip Curved Loop Banner */}
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-indigo-50 border border-emerald-200/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 shadow-2xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                        <RotateCcw className="w-4 h-4" />
-                      </div>
+                      <RotateCcw className="w-4 h-4 text-white shrink-0" />
                       <div>
                         <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider block">
                           Round-Trip Loop Journey

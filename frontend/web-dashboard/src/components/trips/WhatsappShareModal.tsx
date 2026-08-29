@@ -384,9 +384,7 @@ export default function WhatsappShareModal({
         <DialogHeader className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <WhatsAppIcon className="w-4 h-4 fill-emerald-600 dark:fill-emerald-400" />
-              </div>
+              <WhatsAppIcon className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
                 <DialogTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   Share Trip via WhatsApp

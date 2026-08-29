@@ -991,9 +991,7 @@ export default function CreateMonthlyTripPage() {
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {submissionResult ? (
               <div className="max-w-xl mx-auto py-8 text-center space-y-5 animate-fade-in">
-                <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950/60 rounded-full grid place-items-center mx-auto text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-9 w-9" />
-                </div>
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
                 <div className="space-y-1">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     Trips Successfully Added!

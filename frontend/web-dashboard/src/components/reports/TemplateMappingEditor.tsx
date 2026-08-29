@@ -44,9 +44,7 @@ export default function TemplateMappingEditor({ inspection, layout, onChange }: 
   if (!sheet) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto py-10 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-          <FileSearch size={28} className="stroke-[1.5]" />
-        </div>
+        <FileSearch className="w-8 h-8 text-slate-400 shrink-0" />
         <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-2">No header row detected</p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Could not find a row with at least 2 recognizable columns. Try a different sheet or file.

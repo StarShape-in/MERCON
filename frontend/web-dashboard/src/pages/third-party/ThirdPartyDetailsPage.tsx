@@ -98,9 +98,7 @@ export default function ThirdPartyDetailsPage() {
     return (
       <DashboardLayout active="/third-party" title="Provider Details">
         <div className="px-6 py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mb-4">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-600 shrink-0" />
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-1">
             Third-Party Provider Not Found
           </h2>

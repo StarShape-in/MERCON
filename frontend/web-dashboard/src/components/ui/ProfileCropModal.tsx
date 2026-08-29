@@ -189,9 +189,7 @@ export default function ProfileCropModal({
       <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center">
-              <Crop className="w-4 h-4" />
-            </div>
+            <Crop className="w-4 h-4 text-brand shrink-0" />
             <div>
               <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
                 Adjust & Crop Profile Photo

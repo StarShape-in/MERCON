@@ -1148,9 +1148,7 @@ export default function BulkAddTripsModal({
         <div className="px-5 py-3 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-brand/10 grid place-items-center shrink-0">
-                <Layers className="h-4.5 w-4.5 text-brand" />
-              </div>
+              <Layers className="w-5 h-5 text-slate-600 shrink-0" />
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-base font-bold text-[#111111]">Bulk Add Trips</DialogTitle>
@@ -1256,9 +1254,7 @@ export default function BulkAddTripsModal({
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
-              <div className="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 grid place-items-center mb-4 border border-emerald-200/60 shadow-sm">
-                <CheckCircle2 className="h-7 w-7" />
-              </div>
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
               <h3 className="text-xl font-bold text-[#111111]">
                 {submissionResult.imported} {submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
               </h3>

@@ -164,9 +164,7 @@ export default function ExpenseDetailsPage() {
     return (
       <DashboardLayout active="Expenses" title="Expense Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Expense Record Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
             This expense record does not exist or may have been deleted.

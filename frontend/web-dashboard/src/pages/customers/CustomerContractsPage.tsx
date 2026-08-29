@@ -196,9 +196,7 @@ export default function CustomerContractsPage() {
                       <div key={doc.id} className="border border-black/[0.06] rounded-lg p-4 hover:shadow-sm transition-shadow relative bg-[#F9F9FB]">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-white border border-black/[0.06] flex items-center justify-center">
-                              <FileText size={14} className="text-brand" />
-                            </div>
+                            <FileText className="w-4 h-4 text-slate-600 shrink-0" />
                             <div>
                               <p className="text-sm font-bold text-[#111]">{doc.doc_type}</p>
                               {getStatusBadge(doc)}

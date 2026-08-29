@@ -55,9 +55,7 @@ export default function LogDelayReasonModal({ isOpen, onClose, stop, onSuccess }
         {/* Header */}
         <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/10 flex items-center justify-between bg-gray-50 dark:bg-slate-800/60">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <Clock size={18} />
-            </div>
+            <Clock className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
               <h3 className="text-base font-bold text-[#111] dark:text-slate-100">Log Delay Reason</h3>
               <p className="text-xs text-[#6E6E80] dark:text-slate-400 font-mono">Trip #{stop.trip_ref || stop.trip_id.substring(0, 8)}</p>

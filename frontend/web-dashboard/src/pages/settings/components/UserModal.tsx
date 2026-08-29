@@ -93,9 +93,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-6 py-5 flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/40 flex items-center justify-center text-brand font-bold shadow-inner">
-              <UserPlus className="w-5 h-5 text-indigo-400" />
-            </div>
+            <UserPlus className="w-5 h-5 text-brand shrink-0" />
             <div>
               <DialogTitle className="text-lg font-bold text-white tracking-tight">
                 {initialData ? 'Edit User Profile' : 'Add New User'}

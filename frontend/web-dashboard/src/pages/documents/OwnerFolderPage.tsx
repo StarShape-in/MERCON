@@ -103,9 +103,11 @@ export default function OwnerFolderPage() {
         {/* ── Top Header Bar with Big Title & Action Group ─────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="w-13 h-13 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/80 shadow-2xs shrink-0">
-              {normalizedType === 'Driver' ? <User className="w-6 h-6" /> : <Truck className="w-6 h-6" />}
-            </div>
+{normalizedType === 'Driver' ? (
+              <User className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            ) : (
+              <Truck className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            )}
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -225,9 +227,7 @@ export default function OwnerFolderPage() {
               assignedDriver?.id || normalizedType === 'Driver' ? "cursor-pointer hover:border-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/60" : ""
             )}
           >
-            <div className="w-7.5 h-7.5 rounded-lg bg-blue-100 dark:bg-blue-900/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <User className="w-3.5 h-3.5" />
-            </div>
+            <User className="w-4 h-4 text-blue-600 shrink-0" />
             <div className="min-w-0 flex-1 overflow-hidden">
               <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">
                 Driver
@@ -240,9 +240,7 @@ export default function OwnerFolderPage() {
 
           {/* Box 2: Spec / Type */}
           <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
-            <div className="w-7.5 h-7.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <Layers className="w-3.5 h-3.5" />
-            </div>
+            <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
             <div className="min-w-0">
               <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Spec</span>
               <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">
@@ -282,9 +280,7 @@ export default function OwnerFolderPage() {
 
           {/* Box 4: Telematics / Verification */}
           <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
-            <div className="w-7.5 h-7.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
-            </div>
+            <Radio className="w-4 h-4 text-emerald-600 shrink-0" />
             <div className="min-w-0">
               <span className="text-[9px] font-black uppercase text-emerald-700/80 dark:text-emerald-400/80 tracking-wider block leading-none">Integrations</span>
               <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">

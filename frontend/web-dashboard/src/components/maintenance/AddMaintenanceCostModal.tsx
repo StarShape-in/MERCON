@@ -123,9 +123,7 @@ export default function AddMaintenanceCostModal({
         {/* Header */}
         <DialogHeader className="px-6 py-4 bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5 text-brand">
-            <div className="w-8 h-8 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
-              <Banknote className="w-4 h-4" />
-            </div>
+            <Banknote className="w-4 h-4 text-slate-600 shrink-0" />
             <div>
               <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                 Add / Update Maintenance Cost

@@ -225,9 +225,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
 
           {/* Notifications trigger */}
           <Link to="/notifications" className="relative group shrink-0">
-            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <Bell size={18} className="text-slate-600 dark:text-slate-300" />
-            </div>
+            <Bell className="w-5 h-5 text-slate-600 shrink-0" />
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
               8
             </span>

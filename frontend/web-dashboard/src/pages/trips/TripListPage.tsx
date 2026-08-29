@@ -2119,9 +2119,7 @@ export default function TripListPage() {
                   onClick={() => navigate('/trips/new')}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-orange-100/80 text-brand grid place-items-center shrink-0">
-                    <Plus className="h-4 w-4" />
-                  </div>
+                  <Plus className="w-4 h-4 text-brand shrink-0" />
                   <div>
                     <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
                     <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
@@ -2132,9 +2130,7 @@ export default function TripListPage() {
                   onClick={() => navigate('/trips/monthly?bulk=true')}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 grid place-items-center shrink-0">
-                    <Layers className="h-4 w-4" />
-                  </div>
+                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
                   <div>
                     <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
                     <div className="text-[10px] text-slate-500">Batch contract generator & import</div>

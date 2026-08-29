@@ -210,9 +210,7 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
         {/* Header Bar */}
         <DialogHeader className="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-center text-amber-600 shrink-0">
-              <Sparkles className="w-5 h-5 fill-amber-500/20" />
-            </div>
+            <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
             <div>
               <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <span>Interactive AI Auto-Assigner</span>

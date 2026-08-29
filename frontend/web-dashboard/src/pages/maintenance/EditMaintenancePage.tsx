@@ -647,9 +647,7 @@ export default function EditMaintenancePage() {
 
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 flex items-center justify-center font-bold text-xs shrink-0 border border-rose-200 dark:border-rose-900/50">
-                    <Wrench className="w-5 h-5" />
-                  </div>
+                  <Wrench className="w-5 h-5 text-rose-600 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
                       {formData.maintenance_type} Service Order

@@ -154,9 +154,7 @@ export default function DocumentDetailPage() {
     return (
       <DashboardLayout active="Documents" title="Document Not Found">
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-            <XCircle className="w-8 h-8" />
-          </div>
+          <XCircle className="w-7 h-7 text-rose-600 shrink-0" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Document Not Found</h2>
           <p className="text-xs text-slate-500 max-w-sm">The document you are trying to view does not exist or has been removed.</p>
           <Button onClick={() => navigate('/documents')} variant="outline" className="gap-2">
@@ -403,9 +401,11 @@ export default function DocumentDetailPage() {
               </div>
 
               <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0">
-                  {document.entity_type === 'Vehicle' ? <Truck className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                </div>
+{document.entity_type === 'Vehicle' ? (
+                    <Truck className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  ) : (
+                    <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  )}
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">{ownerDisplayName}</h4>
                   <p className="text-xs text-slate-400">

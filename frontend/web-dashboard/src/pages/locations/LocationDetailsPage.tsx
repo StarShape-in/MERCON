@@ -383,9 +383,7 @@ export default function LocationDetailsPage() {
     return (
       <DashboardLayout active="Locations" title="Location Details">
         <div className="max-w-xl mx-auto my-12 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/50 flex items-center justify-center mx-auto">
-            <AlertTriangle size={24} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-600 shrink-0" />
           <div>
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Location Not Found</h2>
             <p className="text-xs text-slate-500 mt-1">

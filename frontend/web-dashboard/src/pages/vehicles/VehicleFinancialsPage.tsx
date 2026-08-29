@@ -638,9 +638,7 @@ export default function VehicleFinancialsPage() {
       header: 'Vehicle',
       accessor: (r) => (
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/40 dark:to-slate-900 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100/30 dark:border-indigo-900/30 shadow-3xs">
-            <Truck className="w-3.5 h-3.5" />
-          </div>
+          <Truck className="w-4 h-4 text-indigo-600 shrink-0" />
           <div className="min-w-0">
             <div className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">{r.plate_number}</div>
             <div className="text-[10px] text-slate-400 font-mono">{r.ref_id || '—'}</div>
@@ -1098,9 +1096,7 @@ export default function VehicleFinancialsPage() {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/30 shrink-0">
-                        <Activity className="w-3.5 h-3.5" />
-                      </div>
+                      <Activity className="w-4 h-4 text-white shrink-0" />
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                           Vehicle Revenue vs Operational Cost

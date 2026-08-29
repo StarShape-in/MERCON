@@ -5,9 +5,7 @@ export default function IccesStatusHeader() {
   return (
     <div className="bg-[#EEF1F6] dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 rounded-xl px-3.5 py-2 flex items-center justify-between text-xs mb-3">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="w-3.5 h-3.5" />
-        </div>
+        <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
         <div>
           <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11.5px]">
             WASL &amp; ICCES GPS Gateway Status

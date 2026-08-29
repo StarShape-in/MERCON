@@ -292,9 +292,7 @@ export default function WorkshopField({
                       </span>
                     )}
                     {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-orange-500/10 text-brand flex items-center justify-center shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                      </div>
+                      <Check className="w-5 h-5 text-brand shrink-0" />
                     )}
                   </div>
                 </div>
@@ -357,9 +355,7 @@ export default function WorkshopField({
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <div className="flex items-center gap-2.5 text-brand mb-1">
-              <div className="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center">
-                <Wrench className="w-4 h-4" />
-              </div>
+              <Wrench className="w-4 h-4 text-slate-600 shrink-0" />
               <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
                 Save New Workshop / Service Center
               </DialogTitle>

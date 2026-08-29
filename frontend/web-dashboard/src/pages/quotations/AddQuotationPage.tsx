@@ -962,9 +962,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#FA634E]/10 text-[#FA634E] flex items-center justify-center font-bold">
-                      <Coins className="w-4 h-4" />
-                    </div>
+                    <Coins className="w-4 h-4 text-slate-600 shrink-0" />
                     <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                       03 · Commercial Surcharges &amp; Additional Services
                     </h3>

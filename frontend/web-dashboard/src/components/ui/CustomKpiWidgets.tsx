@@ -88,15 +88,9 @@ export function DriverRosterKpi({ count, onlineCount, safetyScore }: { count: nu
       {/* Avatar Stack */}
       <div className="flex items-center">
         <div className="flex -space-x-2 overflow-hidden">
-          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-slate-900 bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
-            <User className="w-3.5 h-3.5" />
-          </div>
-          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-slate-900 bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">
-            <User className="w-3.5 h-3.5" />
-          </div>
-          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
-            <User className="w-3.5 h-3.5" />
-          </div>
+          <User className="w-4 h-4 text-white shrink-0" />
+          <User className="w-4 h-4 text-white shrink-0" />
+          <User className="w-4 h-4 text-white shrink-0" />
         </div>
         <span className="ml-2 text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">
           +{Math.max(0, count - 3)}

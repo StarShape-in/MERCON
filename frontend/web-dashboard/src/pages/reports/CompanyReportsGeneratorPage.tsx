@@ -555,9 +555,7 @@ export default function CompanyReportsGeneratorPage() {
             {!selectedTemplateId ? (
               /* Premium Empty State when no format selected */
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-12 text-center shadow-2xs flex flex-col items-center justify-center min-h-[500px]">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-brand mb-4 shrink-0 shadow-2xs animate-pulse">
-                  <FileSpreadsheet size={32} />
-                </div>
+                <FileSpreadsheet className="w-8 h-8 text-brand shrink-0" />
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   No Active Format Selected
                 </h3>

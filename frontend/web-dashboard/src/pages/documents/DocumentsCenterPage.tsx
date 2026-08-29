@@ -977,9 +977,11 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header & Top Level Hub Switcher ─────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-              {mainTab === 'vault' ? <FolderOpen className="w-5 h-5" /> : <FileCog className="w-5 h-5" />}
-            </div>
+{mainTab === 'vault' ? (
+              <FolderOpen className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            ) : (
+              <FileCog className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            )}
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -1273,9 +1275,7 @@ export default function DocumentsCenterPage() {
         ) : viewMode === 'folders' ? (
           !hasFolderResults ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-              </div>
+              <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
               <div className="text-center">
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                   {search ? `No compliance folders matching "${search}"` : 'No compliance folders found'}
@@ -1525,9 +1525,7 @@ export default function DocumentsCenterPage() {
           )
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-            </div>
+            <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
             <div className="text-center">
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 {search ? `No documents matching "${search}"` : 'No documents found'}
@@ -1826,9 +1824,7 @@ export default function DocumentsCenterPage() {
           {/* Pinned Header */}
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-                <FileText className="w-5 h-5" />
-              </div>
+              <FileText className="w-5 h-5 text-indigo-600 shrink-0" />
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
@@ -1910,9 +1906,7 @@ export default function DocumentsCenterPage() {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                          <FileText className="w-8 h-8" />
-                        </div>
+                        <FileText className="w-7 h-7 text-indigo-600 shrink-0" />
                         <div>
                           <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                             {documentDisplayName(previewDoc)}

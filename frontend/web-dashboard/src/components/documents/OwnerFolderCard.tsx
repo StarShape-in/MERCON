@@ -165,9 +165,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
       <div className="flex items-center justify-between gap-3">
         {/* Last Updated */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/60 shrink-0">
-            <Calendar className="w-4 h-4 stroke-[1.8]" />
-          </div>
+          <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
           <div className="flex flex-col leading-tight">
             <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider block">
               Last Updated

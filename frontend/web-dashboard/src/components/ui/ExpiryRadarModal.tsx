@@ -381,9 +381,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
+            <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0" />
             <div className="text-center">
               <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                 {activeFilter === 'all' ? 'All monitored documents are compliant and valid' : `No ${activeFilter} documents found`}

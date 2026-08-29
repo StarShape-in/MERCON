@@ -531,9 +531,7 @@ export default function AprodacDocumentsPage() {
           {/* Clean Honest Empty State */}
           {filteredDocuments.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
-              <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-3">
-                <FolderGit2 className="w-7 h-7 text-slate-400" />
-              </div>
+              <FolderGit2 className="w-7 h-7 text-slate-400 shrink-0" />
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No developer documents found</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 {searchTerm || categoryFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
@@ -1116,9 +1114,7 @@ export default function AprodacDocumentsPage() {
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center mx-auto">
-              <Trash2 size={24} />
-            </div>
+            <Trash2 className="w-8 h-8 text-rose-600 shrink-0" />
             <div>
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Delete Document?</h3>
               <p className="text-xs text-slate-500 mt-1">

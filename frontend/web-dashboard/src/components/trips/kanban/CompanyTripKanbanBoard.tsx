@@ -295,9 +295,7 @@ export default function CompanyTripKanbanBoard({
           </div>
         ) : isError ? (
           <div className="w-full flex-1 flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-rose-200 dark:border-rose-900/50 rounded-2xl my-2">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50 flex items-center justify-center mb-3">
-              <AlertTriangle className="w-6 h-6 text-rose-500" />
-            </div>
+            <AlertTriangle className="w-7 h-7 text-rose-500 shrink-0" />
             <h3 className="text-sm font-extrabold text-rose-700 dark:text-rose-400">Failed to load trips</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm">
               This can happen on a slow or unstable connection.
@@ -310,9 +308,7 @@ export default function CompanyTripKanbanBoard({
           </div>
         ) : companyGroups.length === 0 ? (
           <div className="w-full flex-1 flex flex-col items-center justify-center p-12 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl my-2">
-            <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center mb-3">
-              <Building2 className="w-6 h-6 text-brand" />
-            </div>
+            <Building2 className="w-7 h-7 text-brand shrink-0" />
             <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-300">No active trips found</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm">
               There are no dispatches matching the current date, company, or status filter.
@@ -365,9 +361,7 @@ export default function CompanyTripKanbanBoard({
                 <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2.5 min-h-0 custom-scrollbar">
                   {displayedColTrips.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 dark:text-slate-600 border-2 border-dashed border-slate-200/70 dark:border-slate-800/70 rounded-xl my-1 bg-white/40 dark:bg-slate-900/30">
-                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center mb-2 shadow-3xs">
-                        <Package size={16} className="text-slate-400" />
-                      </div>
+                      <Package className="w-5 h-5 text-slate-600 shrink-0" />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">No Trips</span>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                         No trips for this company and status

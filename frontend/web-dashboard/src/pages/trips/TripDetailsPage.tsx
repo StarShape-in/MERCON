@@ -376,9 +376,7 @@ export default function TripDetailsPage() {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center border border-rose-200 dark:border-rose-900/50 shadow-sm">
-            <AlertTriangle size={32} />
-          </div>
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
             {isError ? 'Failed to Load Trip' : 'Trip Not Found'}
           </h2>
@@ -619,9 +617,7 @@ export default function TripDetailsPage() {
         {!isClosed && (
           <div className="bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
-                <CheckCircle2 size={16} />
-              </div>
+              <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 block">
                   Next Required Operator Action
@@ -659,9 +655,7 @@ export default function TripDetailsPage() {
             <Card className="rounded-xl border border-black/[0.12] bg-white p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                    <Truck size={20} />
-                  </div>
+                  <Truck className="w-5 h-5 text-brand shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Trip ID</p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -727,9 +721,7 @@ export default function TripDetailsPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <Building2 size={15} />
-                  </div>
+                  <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Customer</p>
                     <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
@@ -750,9 +742,7 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                    <UserIcon size={15} />
-                  </div>
+                  <UserIcon className="w-4 h-4 text-violet-600 shrink-0" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
@@ -806,9 +796,7 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Truck size={15} />
-                  </div>
+                  <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
                       {trip.is_third_party ? 'Rented Vehicle' : 'Vehicle'}
@@ -830,9 +818,7 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <ReceiptText size={15} />
-                  </div>
+                  <ReceiptText className="w-4 h-4 text-amber-600 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Rate & Price</p>
                     <p className="text-sm font-bold text-[#111] font-mono truncate mt-0.5">
@@ -849,9 +835,7 @@ export default function TripDetailsPage() {
                 {isClosed ? (
                   /* ── Labour Charge Quick-Action (Completed / Invoiced trips) ── */
                   <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/70">
-                      <Coins size={15} />
-                    </div>
+                    <Coins className="w-4 h-4 text-amber-600 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Extra Charges</p>
                       {chargesTotal > 0 ? (
@@ -891,9 +875,7 @@ export default function TripDetailsPage() {
                 ) : (
                   /* ── ETA (active / draft trips) ── */
                   <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
-                      <Calendar size={15} />
-                    </div>
+                    <Calendar className="w-4 h-4 text-slate-600 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
                       <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
@@ -930,9 +912,7 @@ export default function TripDetailsPage() {
               <Card className="rounded-xl border border-black/[0.12] bg-white dark:bg-slate-900 p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center border border-orange-100 dark:border-orange-900/50 shrink-0">
-                      <Camera size={18} />
-                    </div>
+                    <Camera className="w-5 h-5 text-brand shrink-0" />
                     <div>
                       <h3 className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
                         Uploaded Photos & Proof of Delivery
@@ -1124,9 +1104,7 @@ export default function TripDetailsPage() {
                       </div>
                     ) : documents.length === 0 ? (
                       <div className="text-center py-10 px-4 border-2 border-dashed border-black/[0.08] dark:border-slate-800/80 rounded-2xl bg-black/[0.02] dark:bg-slate-900/20">
-                        <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-slate-800 text-[#9898A4] flex items-center justify-center mx-auto mb-3">
-                          <FileText size={24} />
-                        </div>
+                        <FileText className="w-8 h-8 text-slate-600 shrink-0" />
                         <p className="text-sm font-bold text-[#111] dark:text-slate-200">No documents uploaded yet</p>
                         <p className="text-xs text-[#6E6E80] max-w-md mx-auto mt-1 mb-4">
                           Most PODs and delivery receipts will be uploaded automatically by drivers via the MERCON Mobile App upon arrival.
@@ -1161,9 +1139,7 @@ export default function TripDetailsPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
-                                  <FileText size={18} />
-                                </div>
+                                <FileText className="w-5 h-5 text-brand shrink-0" />
                               )}
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
@@ -1591,9 +1567,7 @@ export default function TripDetailsPage() {
             <Card className="rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8.5 h-8.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-900/60">
-                    <Coins size={16} />
-                  </div>
+                  <Coins className="w-4 h-4 text-amber-600 shrink-0" />
                   <div>
                     <h3 className="text-sm font-bold text-[#111] dark:text-slate-100">Labour & Extra Charges</h3>
                     <p className="text-[11px] text-[#6E6E80] dark:text-slate-400">Waiting, detention & helper fees</p>
@@ -1724,9 +1698,7 @@ export default function TripDetailsPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/20 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900/50 shrink-0">
-                  <Coins size={18} />
-                </div>
+                <Coins className="w-5 h-5 text-amber-600 shrink-0" />
                 <div className="min-w-0">
                   <h3 className="text-base font-bold text-[#111] dark:text-slate-100">Extra Charges</h3>
                   <p className="text-xs text-[#6E6E80] dark:text-slate-400 font-mono truncate">
@@ -1843,16 +1815,12 @@ export default function TripDetailsPage() {
 function StepCircle({ status, useTruckForDone }: { status: StepStatus; useTruckForDone?: boolean }) {
   if (status === 'done' && useTruckForDone) {
     return (
-      <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-        <Truck size={12} />
-      </span>
+      <Truck className="w-4 h-4 text-blue-500 shrink-0" />
     );
   }
   if (status === 'done') {
     return (
-      <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-        <Check size={13} strokeWidth={3} />
-      </span>
+      <Check className="w-4 h-4 text-white shrink-0" />
     );
   }
   if (status === 'active') {

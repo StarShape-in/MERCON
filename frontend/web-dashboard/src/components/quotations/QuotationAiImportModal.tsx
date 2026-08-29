@@ -433,9 +433,7 @@ export default function QuotationAiImportModal({
           <DialogHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-black shadow-md">
-                  <Sparkles className="w-4 h-4" />
-                </div>
+                <Sparkles className="w-4 h-4 text-white shrink-0" />
                 <DialogTitle className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   AI Commercial Quotation Import
                   <Badge className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-extrabold text-[10px]">
@@ -460,13 +458,11 @@ export default function QuotationAiImportModal({
           {/* Upload Dropzone */}
           <div className="p-4 bg-gradient-to-br from-slate-50 via-amber-50/20 to-slate-50 dark:from-slate-800/40 dark:to-slate-900 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-900/60 space-y-2">
             <div className="flex flex-col items-center justify-center text-center space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                {isAnalyzing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+              {isAnalyzing ? (
+                  <Loader2 className="w-6 h-6 text-amber-600 animate-spin shrink-0" />
                 ) : (
-                  <UploadCloud className="w-5 h-5" />
+                  <Sparkles className="w-6 h-6 text-amber-600 shrink-0" />
                 )}
-              </div>
               <div>
                 <h4 className="text-xs font-black text-slate-900 dark:text-slate-100">
                   {selectedFile ? selectedFile.name : 'Upload Quotation Document (PDF, Excel, Image)'}

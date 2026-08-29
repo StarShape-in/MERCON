@@ -71,9 +71,7 @@ export default function VehiclePreviewModal({
         {/* Header Strip */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50">
-              <Truck className="w-5 h-5" />
-            </div>
+            <Truck className="w-5 h-5 text-indigo-600 shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate">
@@ -106,9 +104,7 @@ export default function VehiclePreviewModal({
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
-            <div className="w-16 h-16 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center text-xl font-black font-mono shrink-0 shadow-md border border-slate-700">
-              <Truck className="w-8 h-8 text-indigo-400" />
-            </div>
+            <Truck className="w-7 h-7 text-white shrink-0" />
 
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">

@@ -656,9 +656,11 @@ export default function OperatorProfilePage() {
                 {sessions.map((sess) => (
                   <div key={sess.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
-                        {sess.type === 'mobile' ? <Smartphone className="w-4 h-4 text-slate-600" /> : <Laptop className="w-4 h-4 text-slate-600" />}
-                      </div>
+{sess.type === 'mobile' ? (
+                        <Smartphone className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0" />
+                      ) : (
+                        <Laptop className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0" />
+                      )}
 
                       <div>
                         <div className="flex items-center gap-2">

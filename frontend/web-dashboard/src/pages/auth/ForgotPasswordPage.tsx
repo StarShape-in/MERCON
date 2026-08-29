@@ -77,9 +77,7 @@ export default function ForgotPasswordPage() {
             </form>
           ) : (
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-[#F0FDF4] text-[#16A34A] rounded-full flex items-center justify-center mx-auto mb-5">
-                <CheckCircle2 size={26} />
-              </div>
+              <CheckCircle2 className="w-8 h-8 text-slate-600 shrink-0" />
               <h3 className="text-xl font-bold text-[#111] mb-3">Request sent</h3>
               <p className="text-sm text-[#6E6E80] font-medium leading-relaxed">
                 Your operator and administrator have been notified. They'll reset your
