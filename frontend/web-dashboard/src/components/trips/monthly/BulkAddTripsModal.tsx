@@ -1460,10 +1460,10 @@ export default function BulkAddTripsModal({
                           </p>
                         </div>
 
-                        {/* Rate Category Selector */}
+                        {/* Vehicle Class Selector */}
                         <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
                           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                            Rate Category:
+                            Vehicle Class:
                           </span>
                           <RateCategorySelect
                             value={contractRateCategory}

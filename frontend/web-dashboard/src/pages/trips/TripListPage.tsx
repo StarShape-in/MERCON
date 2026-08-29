@@ -48,6 +48,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -143,7 +144,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Payload Capacity', 'Rate Category', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Payload Capacity', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
   'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
@@ -187,7 +188,7 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
       : (t.vehicle?.plate_number || 'Unassigned')
   },
   { id: 'capacity', label: 'Payload Capacity', accessor: (t) => getTripPayloadCapacity(t) },
-  { id: 'category', label: 'Rate Category', accessor: (t) => getTripRateCategory(t) },
+  { id: 'category', label: 'Vehicle Class', accessor: (t) => getTripRateCategory(t) },
   { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
   { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
@@ -1617,24 +1618,12 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Rate Category',
+      header: 'Vehicle Class',
       className: 'w-[130px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cat = getTripRateCategory(row);
-        return (
-          <span
-            className={cn(
-              'inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[125px]',
-              cat !== '—'
-                ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/60'
-                : 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-800'
-            )}
-            title={cat}
-          >
-            {cat}
-          </span>
-        );
+        const cat = row.quotation_vehicle_class || row.vehicle_type || getTripRateCategory(row);
+        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} />;
       },
     },
     {

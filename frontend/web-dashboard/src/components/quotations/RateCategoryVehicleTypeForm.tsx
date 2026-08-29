@@ -110,7 +110,7 @@ export function RateCategoryVehicleTypeForm({
             <div className="flex items-center justify-between gap-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
-                  Rate Category
+                  Vehicle Class
                 </Label>
                 {!required && (
                   <span className="text-[10px] text-slate-400 shrink-0 font-normal">(opt)</span>
