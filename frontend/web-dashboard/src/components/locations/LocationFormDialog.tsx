@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Search, Building2, Check, AlertTriangle, Info, CheckCircle2, Sparkles } from 'lucide-react';
+import { MapPin, Search, Building2, Check, AlertTriangle, Info, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
