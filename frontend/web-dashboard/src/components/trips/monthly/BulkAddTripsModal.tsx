@@ -2521,19 +2521,22 @@ export default function BulkAddTripsModal({
                                     Slot #{idx + 1}: {s.origin || 'Origin'} ➔ {s.destination || 'Destination'}
                                   </span>
                                   {matchedRateCard ? (
-                                    <div className="space-y-0.5">
-                                      <span className="text-[9px] text-emerald-600 font-semibold block">
-                                        Quotation matched: SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0).toLocaleString()}
+                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-md shadow-2xs">
+                                        <CheckCircle2 className="w-3 h-3" /> QUOTATION MATCHED
                                       </span>
-                                      {matchedRateCard.driver_payout && (
-                                        <span className="text-[9px] text-indigo-600 font-semibold block">
-                                          Driver Charge matched: SAR {Number(matchedRateCard.driver_payout).toLocaleString()}
+                                      <span className="text-[9px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                                        Rate: SAR {Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0).toLocaleString()}
+                                      </span>
+                                      {matchedRateCard.driver_payout != null && (
+                                        <span className="text-[9px] font-extrabold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                                          Driver: SAR {Number(matchedRateCard.driver_payout).toLocaleString()}
                                         </span>
                                       )}
                                     </div>
                                   ) : (
-                                    <span className="text-[9px] text-amber-600 font-semibold block">
-                                      ⚠️ No rate card matched for this route
+                                    <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3 text-amber-600" /> No quotation matched
                                     </span>
                                   )}
                                 </div>

@@ -1,4 +1,4 @@
-import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, ArrowRight, Sparkles, Truck, Moon, RotateCcw, AlertCircle } from 'lucide-react';
+import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, CheckCircle2, ArrowRight, Sparkles, Truck, Moon, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
@@ -362,10 +362,35 @@ export default function Step2RouteSlots({
                 </div>
               )}
 
-              {/* Quotation Match Banner & Save as Quotation Button */}
-              <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-0.5 w-full">
+              {/* Quotation Match Banner & Save as Quotation Option */}
+              <div className="pt-1 w-full">
                 {matchedRateCard ? (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="w-full p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/40 to-slate-50 border border-emerald-300 dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900 dark:border-emerald-800 shadow-2xs space-y-2.5">
+                    {/* Header line: Match Badge + Quotation Title + Validity */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-600 text-white shadow-2xs shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          QUOTATION MATCHED
+                        </span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-md truncate max-w-lg">
+                          {matchedRateCard.name || matchedRateCard.agreement_ref || matchedRateCard.source_reference || 'Active Customer Agreement'}
+                        </span>
+                      </div>
+
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+                        📅 {(() => {
+                          const fromStr = matchedRateCard.valid_from ? new Date(matchedRateCard.valid_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                          const toStr = matchedRateCard.valid_to ? new Date(matchedRateCard.valid_to).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+                          if (fromStr && toStr) return `Valid: ${fromStr} → ${toStr}`;
+                          if (fromStr) return `Valid from ${fromStr}`;
+                          if (toStr) return `Valid until ${toStr}`;
+                          return 'Always Valid';
+                        })()}
+                      </span>
+                    </div>
+
+                    {/* Financial & Spec Metrics Grid */}
                     {(() => {
                       const rawRate = Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0);
                       const isMonthly = matchedRateCard.pricing_basis === 'PER_TRIP'
@@ -373,55 +398,85 @@ export default function Step2RouteSlots({
                         : matchedRateCard.pricing_basis === 'PER_MONTH'
                         ? true
                         : (matchedRateCard.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
-                      const driverPayoutVal = Number(matchedRateCard.driver_payout ?? 0);
-
-                      if (isMonthly && rawRate > 0) {
-                        const dailyEq = rawRate / 30;
-                        return (
-                          <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5 flex-wrap">
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            QUOTATION MATCHED: Monthly Contract SAR {rawRate.toLocaleString()} / mo
-                            <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                              (≈ SAR {dailyEq.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day)
-                            </span>
-                            • Driver Charge SAR {driverPayoutVal.toLocaleString()} / trip
-                          </span>
-                        );
-                      }
+                      const driverPayoutVal = matchedRateCard.driver_payout != null ? Number(matchedRateCard.driver_payout) : null;
+                      const dailyEq = isMonthly && rawRate > 0 ? rawRate / 30 : null;
 
                       return (
-                        <span className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          QUOTATION MATCHED: Customer Rate SAR {rawRate.toLocaleString()} / trip • Driver Charge SAR {driverPayoutVal.toLocaleString()} / trip
-                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-emerald-200/60 dark:border-emerald-900/60">
+                          {/* 1. Customer Billing Rate */}
+                          <div className="flex flex-col bg-white dark:bg-slate-900 p-2.5 px-3 rounded-lg border border-emerald-200/80 dark:border-emerald-900/40 shadow-2xs">
+                            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                              Customer Billing Rate
+                            </span>
+                            <div className="flex items-baseline gap-1 mt-0.5">
+                              <span className="text-sm font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                                SAR {rawRate.toLocaleString()}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-slate-500">
+                                / {isMonthly ? 'month' : 'trip'}
+                              </span>
+                            </div>
+                            {dailyEq != null && (
+                              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                ≈ SAR {dailyEq.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                              </span>
+                            )}
+                          </div>
+
+                          {/* 2. Driver Charge (Payout) */}
+                          <div className="flex flex-col bg-white dark:bg-slate-900 p-2.5 px-3 rounded-lg border border-emerald-200/80 dark:border-emerald-900/40 shadow-2xs">
+                            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                              Driver Charge (Payout)
+                            </span>
+                            <div className="flex items-baseline gap-1 mt-0.5">
+                              <span className="text-sm font-black text-slate-900 dark:text-slate-100 font-mono">
+                                {driverPayoutVal != null && !isNaN(driverPayoutVal)
+                                  ? `SAR ${driverPayoutVal.toLocaleString()}`
+                                  : '—'}
+                              </span>
+                              {driverPayoutVal != null && <span className="text-[10px] font-extrabold text-slate-500">/ trip</span>}
+                            </div>
+                            <span className="text-[10px] font-medium text-slate-400 mt-0.5">
+                              {driverPayoutVal != null ? 'Pre-set in quotation' : 'Unspecified'}
+                            </span>
+                          </div>
+
+                          {/* 3. Quotation Specs */}
+                          <div className="flex flex-col justify-center bg-white dark:bg-slate-900 p-2.5 px-3 rounded-lg border border-emerald-200/80 dark:border-emerald-900/40 shadow-2xs">
+                            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1">
+                              Quotation Terms
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-brand/10 text-brand border border-brand/20">
+                                {matchedRateCard.vehicle_class || matchedRateCard.vehicle_type || contractVehicleType}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                {matchedRateCard.line_type || contractRateCategory}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                {matchedRateCard.billing_type || contractBillingType}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })()}
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                      📅 {(() => {
-                        const fromStr = matchedRateCard.valid_from ? new Date(matchedRateCard.valid_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-                        const toStr = matchedRateCard.valid_to ? new Date(matchedRateCard.valid_to).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-                        if (fromStr && toStr) return `Valid: ${fromStr} → ${toStr}`;
-                        if (fromStr) return `From ${fromStr}`;
-                        if (toStr) return `Until ${toStr}`;
-                        return 'Always Valid';
-                      })()}
-                    </span>
                   </div>
                 ) : (
                   slot.origin && slot.destination && (
-                    <div className="flex items-center justify-between flex-wrap gap-2 w-full">
-                      <span className="text-[11px] font-extrabold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> MANUAL RATE: Custom Lane Rate
+                    <div className="flex items-center justify-between flex-wrap gap-2 w-full p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60">
+                      <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-600" /> MANUAL RATE: Custom Lane Rate
                       </span>
-                      <label className="flex items-center gap-2 cursor-pointer bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-xl shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all">
+                      <label className="flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-2xs transition-all">
                         <input
                           type="checkbox"
                           checked={Boolean(slot.saveAsQuotation)}
                           onChange={(e) => onUpdateSlot(slot.id, { saveAsQuotation: e.target.checked })}
-                          className="rounded border-slate-300 text-brand focus:ring-brand h-4 w-4"
+                          className="rounded border-white text-emerald-800 focus:ring-emerald-400 h-4 w-4"
                         />
-                        <span className="text-xs font-black text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
-                          <Plus className="w-3.5 h-3.5 text-emerald-600" /> Save as Quotation for Future Trips
+                        <span className="text-xs font-black flex items-center gap-1">
+                          <Plus className="w-3.5 h-3.5" /> Save as Quotation for Future Trips
                         </span>
                       </label>
                     </div>
