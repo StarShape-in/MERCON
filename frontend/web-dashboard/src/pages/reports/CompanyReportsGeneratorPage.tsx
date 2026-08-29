@@ -593,54 +593,26 @@ export default function CompanyReportsGeneratorPage() {
     <DashboardLayout active="Company Reports" title="Company Reports Studio">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
 
-        {/* ─── Studio Top Header Bar ─── */}
-        <div className="flex flex-wrap items-center justify-end gap-2.5 shrink-0 pt-4 pb-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsUploadModalOpen(true)}
-            className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
-          >
-            <Upload className="w-4 h-4 text-slate-500" /> Import New Format
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const formatsCard = document.getElementById('your-formats-card');
-              if (formatsCard) formatsCard.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
-          >
-            <FolderOpen className="w-4 h-4 text-slate-500" /> Manage Formats
-          </Button>
-
-          <Button
-            onClick={() => {
-              setCurrentStep(1);
-              const genCard = document.getElementById('generate-report-card');
-              if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
-            }}
-            size="sm"
-            className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs px-4"
-          >
-            <Plus className="w-4 h-4" /> Create Report
-          </Button>
-        </div>
-
         {/* ─── Card 1: Generate Company Report ─── */}
-        <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6">
+        <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
               <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="h-8 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+            >
+              <Upload className="w-3.5 h-3.5 text-slate-500" /> Import New Format
+            </Button>
           </div>
 
           {/* Form Rows Grid */}
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[200px] space-y-1.5">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
               <Select value={selectedCustomerId} onValueChange={(val: string) => {
                 setSelectedCustomerId(val);
@@ -648,20 +620,20 @@ export default function CompanyReportsGeneratorPage() {
                 if (firstTpl) setSelectedTemplateId(firstTpl.id);
                 else if (val === 'all' && templates.length > 0) setSelectedTemplateId(templates[0].id);
               }}>
-                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                   <SelectValue placeholder="Choose Customer..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
                     <span className="flex items-center gap-2">
-                      <span className="h-5 w-5 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold">GL</span>
+                      <span className="h-4 w-4 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-[8px] font-bold">GL</span>
                       <span>Shared / All Customer Accounts</span>
                     </span>
                   </SelectItem>
                   {customers.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
-                        <span className="h-5 w-5 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[9px] font-bold uppercase">
+                        <span className="h-4 w-4 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[8px] font-bold uppercase">
                           {(c.name || 'CO').slice(0, 2)}
                         </span>
                         <span>{c.name || c.company_name}</span>
@@ -672,10 +644,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="flex-1 min-w-[200px] space-y-1.5">
+            <div className="flex-1 min-w-[180px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                   <SelectValue placeholder="Choose Template..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -696,10 +668,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="w-[180px] space-y-1.5">
+            <div className="w-[150px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
               <Select value={selectedDataType} onValueChange={setSelectedDataType}>
-                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                   <SelectValue placeholder="Select Data Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -710,10 +682,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            <div className="flex-1 min-w-[200px] space-y-1.5">
+            <div className="flex-1 min-w-[180px] space-y-1">
               <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
               <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
-                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                   <SelectValue placeholder="Choose Horizon..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -740,10 +712,19 @@ export default function CompanyReportsGeneratorPage() {
             </div>
 
             <Button
-              onClick={handleNextStep}
-              className="h-10 px-6 rounded-xl bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-orange-500/10"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="h-8 px-5 rounded-lg bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
             >
-              {currentStep === 3 ? 'Generate' : 'Next'} <ArrowRight className="w-4 h-4" />
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" /> Generate
+                </>
+              )}
             </Button>
           </div>
 
