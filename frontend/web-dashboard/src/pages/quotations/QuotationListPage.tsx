@@ -836,7 +836,12 @@ export default function QuotationListPage() {
                                 <td className="py-3 px-3.5 font-mono text-xs whitespace-nowrap">
                                   {(() => {
                                     const rawRate = Number(row.rate ?? row.base_price ?? 0);
-                                    const isMonthly = (row.billing_type || '').toLowerCase().includes('monthly');
+                                    const isMonthly = row.pricing_basis === 'PER_TRIP'
+                                      ? false
+                                      : row.pricing_basis === 'PER_MONTH'
+                                      ? true
+                                      : (row.billing_type || '').toLowerCase().includes('monthly');
+
                                     if (isMonthly && rawRate > 0) {
                                       const dailyEq = rawRate / 30;
                                       return (

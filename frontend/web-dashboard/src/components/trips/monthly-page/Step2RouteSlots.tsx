@@ -366,7 +366,11 @@ export default function Step2RouteSlots({
                   <div className="flex items-center gap-2 flex-wrap">
                     {(() => {
                       const rawRate = Number(matchedRateCard.rate ?? matchedRateCard.base_price ?? 0);
-                      const isMonthly = (matchedRateCard.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
+                      const isMonthly = matchedRateCard.pricing_basis === 'PER_TRIP'
+                        ? false
+                        : matchedRateCard.pricing_basis === 'PER_MONTH'
+                        ? true
+                        : (matchedRateCard.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
                       const driverPayoutVal = Number(matchedRateCard.driver_payout ?? 0);
 
                       if (isMonthly && rawRate > 0) {
