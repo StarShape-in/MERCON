@@ -317,7 +317,40 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     const avgRate = lineItems.length > 0 ? totalRate / lineItems.length : 0;
 
     return { totalRate, totalPayout, netMargin, avgRate, validLinesCount };
-  }, [lineItems]);
+  // Commercial Agreement Setup Metrics
+  const agreementSummaryMetrics = useMemo(() => {
+    const lineTypeLabels: Record<string, string> = {
+      SINGLE_TRIP: 'Single Trip',
+      ROUND_TRIP: 'Round Trip',
+      SHIFT_10H: '10h Shift',
+      SHIFT_12H: '12h Shift',
+    };
+
+    const vehicleClassesList = Array.from(new Set(lineItems.map((l) => l.vehicleClass).filter(Boolean)));
+    const lineTypesList = Array.from(new Set(lineItems.map((l) => lineTypeLabels[l.lineType] || l.lineType).filter(Boolean)));
+
+    let validityText = 'Immediate / Open';
+    if (validFrom && validTo) {
+      const d1 = new Date(validFrom);
+      const d2 = new Date(validTo);
+      const diffDays = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24));
+      if (diffDays > 0) validityText = `${diffDays} Days Term`;
+      else validityText = 'Custom Dates';
+    } else if (validFrom) {
+      validityText = `From ${validFrom}`;
+    } else if (validTo) {
+      validityText = `Until ${validTo}`;
+    }
+
+    return {
+      routesCount: lineItems.length,
+      vehicleClassesCount: vehicleClassesList.length,
+      vehicleClassesLabel: vehicleClassesList.length > 0 ? vehicleClassesList.join(', ') : 'None selected',
+      lineTypesCount: lineTypesList.length,
+      lineTypesLabel: lineTypesList.length > 0 ? lineTypesList.join(', ') : 'Single Trip',
+      validityText,
+    };
+  }, [lineItems, validFrom, validTo]);
 
   // Form Validation
   const validateForm = () => {
@@ -585,34 +618,44 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       {/* 1. Routes Defined */}
                       <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Routes Defined</div>
-                        <div className="text-base font-mono font-black text-[#3E3C3D] dark:text-white">
-                          {lineItems.length} {lineItems.length === 1 ? 'Route' : 'Routes'}
+                        <div className="text-sm font-extrabold text-[#3E3C3D] dark:text-white">
+                          {agreementSummaryMetrics.routesCount} {agreementSummaryMetrics.routesCount === 1 ? 'Route' : 'Routes'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium truncate">
+                          Active commercial lanes
                         </div>
                       </div>
 
-                      {/* 2. Total Agreed Value */}
+                      {/* 2. Vehicle Classes */}
                       <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
-                        <div className="text-base font-mono font-black text-[#FA634E]">
-                          SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Classes</div>
+                        <div className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400 truncate">
+                          {agreementSummaryMetrics.vehicleClassesLabel}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium truncate">
+                          {agreementSummaryMetrics.vehicleClassesCount} {agreementSummaryMetrics.vehicleClassesCount === 1 ? 'type included' : 'types included'}
                         </div>
                       </div>
 
-                      {/* 3. Driver Charge */}
+                      {/* 3. Line Types */}
                       <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Driver Charge</div>
-                        <div className="text-base font-mono font-bold text-slate-700 dark:text-slate-200">
-                          {financialTotals.totalPayout > 0
-                            ? `SAR ${financialTotals.totalPayout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                            : 'SAR —'}
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Line Types</div>
+                        <div className="text-sm font-extrabold text-blue-600 dark:text-blue-400 truncate">
+                          {agreementSummaryMetrics.lineTypesLabel}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium truncate">
+                          {agreementSummaryMetrics.lineTypesCount} {agreementSummaryMetrics.lineTypesCount === 1 ? 'service mode' : 'service modes'}
                         </div>
                       </div>
 
-                      {/* 4. Avg Rate / Route */}
+                      {/* 4. Contract Term / Validity */}
                       <div className="p-2.5 bg-white dark:bg-[#2D2B2C] rounded-lg border border-slate-200/60 dark:border-slate-800 space-y-1">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Rate / Route</div>
-                        <div className="text-base font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          SAR {financialTotals.avgRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">Agreement Term</div>
+                        <div className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 truncate">
+                          {agreementSummaryMetrics.validityText}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium truncate">
+                          {validFrom || validTo ? 'Fixed validity range' : 'Open-ended contract'}
                         </div>
                       </div>
                     </div>
@@ -1103,9 +1146,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               </div>
 
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Total Agreed Value</div>
-                <div className="font-mono font-black text-[#FA634E] text-sm">
-                  SAR {financialTotals.totalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Classes</div>
+                <div className="font-extrabold text-[#FA634E] text-xs truncate">
+                  {agreementSummaryMetrics.vehicleClassesLabel}
                 </div>
               </div>
             </div>
