@@ -98,6 +98,7 @@ export const getVehicles = async (req: Request, res: Response) => {
             id: true,
             plate_number: true,
             ref_id: true,
+            image_url: true,
             trailer_number: true,
             trailer_type: true,
             asset_type: true,
@@ -570,7 +571,8 @@ export const createVehicle = async (req: Request, res: Response) => {
       trailer_type,
       trailer_capacity_kg,
       gps_device_id,
-      icces_device_id
+      icces_device_id,
+      image_url
     } = req.body;
 
     const ref_id = await generateRefId('TRK', () =>
@@ -587,10 +589,7 @@ export const createVehicle = async (req: Request, res: Response) => {
         trailer_capacity_kg,
         gps_device_id,
         icces_device_id,
-        // A newly added truck's odometer is inherently "just confirmed" —
-        // without this, no odometer_updated_at means "never verified",
-        // which the fleet list reads as maximally stale and flags with the
-        // warning icon the moment the truck is created.
+        image_url,
         odometer_updated_at: new Date(),
         created_by: (req as any).user?.id
       }

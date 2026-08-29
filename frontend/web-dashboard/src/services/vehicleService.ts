@@ -48,6 +48,7 @@ export interface Vehicle {
   trips?: any[];
   assignedDriver?: any;
   active_maintenance?: ActiveMaintenance | null;
+  image_url?: string | null;
 }
 
 export interface CreateVehiclePayload {
@@ -59,6 +60,7 @@ export interface CreateVehiclePayload {
   trailer_capacity_kg?: number;
   gps_device_id?: string;
   icces_device_id?: string;
+  image_url?: string | null;
 }
 
 export interface VehicleFilters {

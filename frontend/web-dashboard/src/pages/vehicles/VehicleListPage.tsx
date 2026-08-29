@@ -93,6 +93,8 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import EditVehicleModal from '@/components/fleet/EditVehicleModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import { driverService, Driver } from '@/services/driverService';
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -236,6 +238,7 @@ export default function VehicleListPage() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [selectedVehiclesForExport, setSelectedVehiclesForExport] = useState<Vehicle[]>([]);
   const [previewVehicle, setPreviewVehicle] = useState<Vehicle | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);
 
@@ -694,8 +697,12 @@ export default function VehicleListPage() {
     {
       header: 'Vehicle ID',
       accessor: (row: Vehicle) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs font-extrabold text-brand block">
+        <div 
+          className="flex flex-col gap-0.5 cursor-pointer group"
+          onClick={() => setPreviewVehicle(row)}
+          title="Click to view truck profile"
+        >
+          <span className="font-mono text-xs font-extrabold text-brand group-hover:underline block">
             {row.ref_id || `VEH-${row.id.slice(0, 6).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
@@ -711,9 +718,17 @@ export default function VehicleListPage() {
     {
       header: 'Plate & Spec',
       accessor: (row: Vehicle) => (
-        <div className="flex items-center gap-2">
-          <Truck className="w-4 h-4 text-slate-600 shrink-0" />
-          <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+        <div 
+          className="flex items-center gap-2 cursor-pointer group"
+          onClick={() => setPreviewVehicle(row)}
+          title="Click to view truck profile"
+        >
+          {row.image_url ? (
+            <img src={row.image_url} alt={row.plate_number} className="w-6 h-6 rounded-md object-cover border border-slate-200 dark:border-slate-800 shrink-0" />
+          ) : (
+            <Truck className="w-4 h-4 text-slate-600 shrink-0 group-hover:text-brand transition-colors" />
+          )}
+          <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5 group-hover:text-brand transition-colors">
             <span>{row.plate_number}</span>
             <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
               KSA
@@ -751,14 +766,18 @@ export default function VehicleListPage() {
 
         return (
           <div className="flex items-center gap-1.5 min-w-0 max-w-[130px]">
-            <div className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 flex items-center justify-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+            <div 
+              className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 flex items-center justify-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0 cursor-pointer hover:scale-110 transition-transform"
+              onClick={() => setPreviewDriver(driver)}
+              title={`View ${driverName} Profile`}
+            >
               {initials}
             </div>
             <div className="flex flex-col min-w-0">
               <span 
                 className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer truncate"
-                onClick={() => navigate(`/drivers/${driver.id}`)}
-                title={driverName}
+                onClick={() => setPreviewDriver(driver)}
+                title={`View ${driverName} Profile`}
               >
                 {driverName}
               </span>
@@ -1326,10 +1345,10 @@ export default function VehicleListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => navigate('/vehicles/new')}
+              onClick={() => setIsCreateVehicleOpen(true)}
             >
               <Plus className="h-4 w-4" />
-              Add Vehicle
+              Add Vehicle Profile
             </Button>
           </div>
         </div>
@@ -2137,6 +2156,14 @@ export default function VehicleListPage() {
           onClose={() => setPreviewVehicle(null)}
           onSendToWorkshop={(v) => setWorkshopVehicles([v])}
           onEdit={(v) => setEditVehicle(v)}
+          onSelectDriver={(driver) => setPreviewDriver(driver)}
+        />
+
+        <DriverPreviewModal
+          driver={previewDriver}
+          isOpen={!!previewDriver}
+          onClose={() => setPreviewDriver(null)}
+          onSelectVehicle={(v) => setPreviewVehicle(v)}
         />
 
         <EditVehicleModal

@@ -261,6 +261,7 @@ model Vehicle {
   // ask the operator to update it" prompt. Null means never recorded.
   odometer_updated_at DateTime?   @db.Timestamptz
   gps_device_id       String?
+  image_url           String?
   last_lat            Float?
   last_lng            Float?
 

@@ -28,6 +28,8 @@ import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
 import { getGpsHealthInfo, formatTimeAgo } from '@/utils/gpsHealth';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import { Driver } from '@/services/driverService';
 
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -98,6 +100,7 @@ export default function VehicleDetailsPage() {
 
   // Document Viewer Modal State & Vault View Mode
   const [viewingDoc, setViewingDoc] = useState<MerconDocument | null>(null);
+  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
 
   // Active Tab Mode: Overview, Maintenance, Financials, Documents
   const [activeTab, setActiveTab] = useState<'overview' | 'maintenance' | 'financials' | 'documents'>('overview');
@@ -292,7 +295,13 @@ export default function VehicleDetailsPage() {
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-4 min-w-0">
-            <Truck className="w-7 h-7 text-blue-600 shrink-0" />
+            {vehicle.image_url ? (
+              <div className="w-14 h-14 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 shadow-md">
+                <img src={vehicle.image_url} alt={vehicle.plate_number} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <Truck className="w-7 h-7 text-blue-600 shrink-0" />
+            )}
             <div className="flex flex-col gap-1.5 min-w-0">
               {/* Big Truck Number */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -442,7 +451,7 @@ export default function VehicleDetailsPage() {
 
             {/* 1. Assigned Driver (Blue Theme - Same size as other boxes, clickable to profile) */}
             <div
-              onClick={() => assignedDriver?.id && navigate(`/drivers/${assignedDriver.id}`)}
+              onClick={() => assignedDriver && setPreviewDriver(assignedDriver)}
               className={cn(
                 "bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 transition-all shadow-2xs group",
                 assignedDriver?.id ? "cursor-pointer hover:border-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/60" : "opacity-85"
@@ -1307,6 +1316,12 @@ export default function VehicleDetailsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DriverPreviewModal
+        driver={previewDriver}
+        isOpen={!!previewDriver}
+        onClose={() => setPreviewDriver(null)}
+      />
     </DashboardLayout>
   );
 }

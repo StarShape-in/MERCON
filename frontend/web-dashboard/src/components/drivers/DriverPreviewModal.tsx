@@ -20,9 +20,10 @@ interface DriverPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit?: (driver: Driver) => void;
+  onSelectVehicle?: (vehicle: any) => void;
 }
 
-export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: DriverPreviewModalProps) {
+export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, onSelectVehicle }: DriverPreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
   const [photoZoom, setPhotoZoom] = useState(false);
@@ -225,7 +226,18 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-indigo-500" /> Assigned Vehicle
               </span>
-              <div className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 pt-0.5">
+              <div 
+                className={cn(
+                  "font-mono text-xs font-bold text-slate-800 dark:text-slate-200 pt-0.5",
+                  assignedVehicle && "hover:text-brand cursor-pointer transition-colors underline"
+                )}
+                onClick={() => {
+                  if (assignedVehicle) {
+                    if (onSelectVehicle) onSelectVehicle(assignedVehicle);
+                    else navigate(`/vehicles/${assignedVehicle.id}`);
+                  }
+                }}
+              >
                 {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
               </div>
             </div>

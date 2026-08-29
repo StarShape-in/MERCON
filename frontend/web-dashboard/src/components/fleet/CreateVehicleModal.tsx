@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Truck, Gauge, Layers, Radio, FileText, Loader2, X } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Truck, Gauge, Layers, Radio, FileText, Loader2, UserRound } from 'lucide-react';
 import { vehicleService, Vehicle, AssetType } from '@/services/vehicleService';
+import { driverService } from '@/services/driverService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import VehicleImageUploader from '@/components/ui/VehicleImageUploader';
 
 interface CreateVehicleModalProps {
   isOpen: boolean;
@@ -24,12 +27,35 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
   const [capacityTon, setCapacityTon] = useState<string>('20');
   const [trailerNumber, setTrailerNumber] = useState('');
   const [iccesDeviceId, setIccesDeviceId] = useState('');
+  const [gpsDeviceId, setGpsDeviceId] = useState('');
+  const [assignedDriverId, setAssignedDriverId] = useState<string>('unassigned');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const { data: driversRes } = useQuery({
+    queryKey: ['drivers-lookup'],
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+    enabled: isOpen,
+  });
+
+  const drivers = driversRes?.data || [];
+
   const createMutation = useMutation({
-    mutationFn: vehicleService.create,
+    mutationFn: async (payload: any) => {
+      const vehicle = await vehicleService.create(payload);
+      if (assignedDriverId && assignedDriverId !== 'unassigned') {
+        try {
+          await driverService.update(assignedDriverId, { assigned_vehicle_id: vehicle.id });
+        } catch (e) {
+          console.error('Driver assignment failed:', e);
+        }
+      }
+      return vehicle;
+    },
     onSuccess: (vehicle) => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      toast.success(`Vehicle profile ${vehicle.plate_number} created successfully`);
       resetForm();
       if (vehicle) {
         onSuccess?.(vehicle);
@@ -47,6 +73,9 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
     setCapacityTon('20');
     setTrailerNumber('');
     setIccesDeviceId('');
+    setGpsDeviceId('');
+    setAssignedDriverId('unassigned');
+    setImageUrl(null);
     setError(null);
   };
 
@@ -65,12 +94,14 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
       capacity_kg: capacityKg,
       trailer_number: trailerNumber.trim() || undefined,
       icces_device_id: iccesDeviceId.trim() || undefined,
+      gps_device_id: gpsDeviceId.trim() || undefined,
+      image_url: imageUrl || undefined,
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[580px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
             <Truck className="w-5 h-5 text-brand" />
@@ -84,6 +115,12 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
               {error}
             </div>
           )}
+
+          <VehicleImageUploader
+            value={imageUrl}
+            onChange={(url) => setImageUrl(url)}
+            plateNumber={plateNumber}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -129,7 +166,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
                 id="capacity"
                 type="number"
                 step="0.5"
-                placeholder="e.g. 25"
+                placeholder="e.g. 20"
                 value={capacityTon}
                 onChange={(e) => setCapacityTon(e.target.value)}
                 className="h-9 text-xs font-mono"
@@ -150,17 +187,53 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-slate-500" /> Saudi ICCES ID
+              </Label>
+              <Input
+                id="icces_device_id"
+                placeholder="e.g. ICCES-4401"
+                value={iccesDeviceId}
+                onChange={(e) => setIccesDeviceId(e.target.value)}
+                className="h-9 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="gps_device_id" className="text-xs font-semibold flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-slate-500" /> GPS Device ID
+              </Label>
+              <Input
+                id="gps_device_id"
+                placeholder="e.g. GPS-9920"
+                value={gpsDeviceId}
+                onChange={(e) => setGpsDeviceId(e.target.value)}
+                className="h-9 text-xs font-mono"
+              />
+            </div>
+          </div>
+
           <div className="space-y-1.5">
-            <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-slate-500" /> Saudi ICCES ID (GPS Tracker)
+            <Label htmlFor="assigned_driver" className="text-xs font-semibold flex items-center gap-1.5">
+              <UserRound className="w-3.5 h-3.5 text-slate-500" /> Assign Driver (Optional)
             </Label>
-            <Input
-              id="icces_device_id"
-              placeholder="e.g. ICCES-4401"
-              value={iccesDeviceId}
-              onChange={(e) => setIccesDeviceId(e.target.value)}
-              className="h-9 text-xs font-mono"
-            />
+            <Select value={assignedDriverId} onValueChange={(val) => setAssignedDriverId(val)}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Select driver" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned" className="text-xs italic text-slate-400">
+                  Unassigned
+                </SelectItem>
+                {drivers.map((d) => (
+                  <SelectItem key={d.id} value={d.id} className="text-xs">
+                    {d.first_name} {d.last_name} ({d.phone_primary || d.ref_id || 'No Phone'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter className="pt-2">
@@ -178,7 +251,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
                   <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving...
                 </>
               ) : (
-                'Save Vehicle'
+                'Save Vehicle Profile'
               )}
             </Button>
           </DialogFooter>
@@ -187,3 +260,4 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
     </Dialog>
   );
 }
+
