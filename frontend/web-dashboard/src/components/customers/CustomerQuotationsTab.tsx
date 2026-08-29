@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import DataTable from '@/components/ui/DataTable';
 import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 
+import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
+
 interface CustomerQuotationsTabProps {
   customerId: string;
   customerName: string;
@@ -387,29 +389,19 @@ export default function CustomerQuotationsTab({
                 {
                   header: 'Vehicle Class',
                   accessor: (q: Quotation) => {
-                    const label = q.source_vehicle_label || q.vehicle_class || q.vehicle_type || 'General Fleet';
-                    return (
-                      <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 font-semibold text-[10px]">
-                        {label}
-                      </Badge>
-                    );
+                    const vc = q.vehicle_class || q.source_vehicle_label || q.vehicle_type;
+                    return <TaxonomyBadge category="VEHICLE_CLASS" value={vc} fallbackText="General Fleet" />;
                   },
                 },
                 {
                   header: 'Terms & Basis',
                   accessor: (q: Quotation) => {
-                    const lt = getLineTypeLabel(q.line_type || q.rate_category);
-                    const bt = getBillingTypeLabel(q.billing_type);
                     const pb = getPricingBasisLabel(q.pricing_basis);
                     return (
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
-                          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold px-1.5 py-0">
-                            {lt}
-                          </Badge>
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0">
-                            {bt}
-                          </Badge>
+                          <TaxonomyBadge category="LINE_TYPE" value={q.line_type || q.rate_category} size="sm" />
+                          <TaxonomyBadge category="OPERATION_TYPE" value={q.billing_type} size="sm" />
                         </div>
                         <span className="text-[10px] text-slate-500 font-medium">Basis: {pb}</span>
                       </div>

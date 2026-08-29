@@ -714,8 +714,8 @@ export default function QuotationListPage() {
                       <div className="w-[140px]">
                         <TaxonomySelect
                           category="OPERATION_TYPE"
-                          value={operationTypeFilter === 'ALL' ? '' : operationTypeFilter}
-                          onValueChange={(val) => { setOperationTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          value={billingTypeFilter === 'ALL' ? '' : billingTypeFilter}
+                          onValueChange={(val: string) => { setBillingTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
                           placeholder="All Operations"
                           size="sm"
                         />
@@ -726,7 +726,7 @@ export default function QuotationListPage() {
                         <TaxonomySelect
                           category="VEHICLE_CLASS"
                           value={vehicleClassFilter === 'ALL' ? '' : vehicleClassFilter}
-                          onValueChange={(val) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          onValueChange={(val: string) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
                           placeholder="All Vehicles"
                           size="sm"
                         />
@@ -737,7 +737,7 @@ export default function QuotationListPage() {
                         <TaxonomySelect
                           category="LINE_TYPE"
                           value={lineTypeFilter === 'ALL' ? '' : lineTypeFilter}
-                          onValueChange={(val) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                          onValueChange={(val: string) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
                           placeholder="All Line Types"
                           size="sm"
                         />

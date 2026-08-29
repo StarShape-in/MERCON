@@ -572,7 +572,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                   <TaxonomySelect
                     category="OPERATION_TYPE"
                     value={operationType}
-                    onValueChange={(val) => setOperationType(val as any)}
+                    onValueChange={(val: string) => setOperationType(val as any)}
                     placeholder="Select Operation Type"
                   />
                 </div>
@@ -784,7 +784,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       <TaxonomySelect
                         category="VEHICLE_CLASS"
                         value={line.vehicleClass}
-                        onValueChange={(val) => handleUpdateLine(index, 'vehicleClass', val)}
+                        onValueChange={(val: string) => handleUpdateLine(index, 'vehicleClass', val)}
                         size="sm"
                         placeholder="Select Vehicle Class"
                       />
@@ -796,7 +796,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       <TaxonomySelect
                         category="LINE_TYPE"
                         value={line.lineType}
-                        onValueChange={(val) => handleUpdateLine(index, 'lineType', val)}
+                        onValueChange={(val: string) => handleUpdateLine(index, 'lineType', val)}
                         size="sm"
                         placeholder="Select Line Type"
                       />
