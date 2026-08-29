@@ -502,7 +502,7 @@ export default function CreateTripPage() {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
                   const driverPayout = card.driver_payout;
                   if (cardRate > 0) {
-                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly') || (card.rate_category || card.line_type || '').toLowerCase().includes('monthly');
+                    const isMonthlyCard = (card.billing_type || '').toLowerCase().includes('monthly');
                     const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
                     return {
                       ...slot,
