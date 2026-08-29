@@ -154,6 +154,7 @@ export default function CompanyReportsGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedReportForPreview, setSelectedReportForPreview] = useState<GeneratedReportItem | null>(null);
+  const [selectedReportForDetails, setSelectedReportForDetails] = useState<GeneratedReportItem | null>(null);
   const [reportSearchQuery, setReportSearchQuery] = useState<string>('');
 
   // Custom search and view switcher states
@@ -856,7 +857,11 @@ export default function CompanyReportsGeneratorPage() {
                     const colorClass = logoBgColors[report.companyLogo] || 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
 
                     return (
-                      <tr key={report.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                      <tr 
+                        key={report.id} 
+                        onClick={() => setSelectedReportForDetails(report)}
+                        className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors cursor-pointer"
+                      >
                         <td className="py-3 px-2 font-bold text-slate-900 dark:text-slate-100">
                           <span className="flex items-center gap-2">
                             <span className={cn("h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-black uppercase shrink-0", colorClass)}>
@@ -903,14 +908,20 @@ export default function CompanyReportsGeneratorPage() {
                             {report.status === 'Ready' ? (
                               <>
                                 <button
-                                  onClick={() => handleDownloadReportById(report)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadReportById(report);
+                                  }}
                                   className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
                                   title="Download Report"
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => setSelectedReportForPreview(report)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedReportForPreview(report);
+                                  }}
                                   className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
                                   title="View Report Preview"
                                 >
@@ -921,7 +932,8 @@ export default function CompanyReportsGeneratorPage() {
                               <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400" />
                             ) : (
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setGeneratedReports(prev => 
                                     prev.map(r => r.id === report.id ? { ...r, status: 'Processing' } : r)
                                   );
@@ -940,7 +952,10 @@ export default function CompanyReportsGeneratorPage() {
                             )}
 
                             <button 
-                              onClick={() => handleDeleteGeneratedReport(report.id)}
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteGeneratedReport(report.id);
+                              }}
                               className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600"
                               title="Delete Run Entry"
                             >
@@ -1048,6 +1063,151 @@ export default function CompanyReportsGeneratorPage() {
         </div>
 
 
+
+
+        {/* ─── Report Run Details Modal ─── */}
+        <Dialog open={!!selectedReportForDetails} onOpenChange={() => setSelectedReportForDetails(null)}>
+          <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
+                <FileText className="w-5 h-5 text-[#FA634E]" /> Report Run Details
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Comprehensive run parameters and schema configuration metadata
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Top Summary Info Card */}
+              {selectedReportForDetails && (
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200/50 dark:border-slate-800 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0",
+                      selectedReportForDetails.companyLogo === 'iM' && "bg-violet-100 text-violet-850 dark:bg-violet-950/45 dark:text-violet-300",
+                      selectedReportForDetails.companyLogo === 'Ax' && "bg-rose-100 text-rose-850 dark:bg-rose-950/45 dark:text-rose-300",
+                      selectedReportForDetails.companyLogo === 'DL' && "bg-amber-100 text-amber-900 dark:bg-amber-950/45 dark:text-amber-300",
+                      selectedReportForDetails.companyLogo === 'Tb' && "bg-orange-100 text-orange-850 dark:bg-orange-950/45 dark:text-orange-300",
+                      selectedReportForDetails.companyLogo === 'Nn' && "bg-yellow-100 text-yellow-900 dark:bg-yellow-950/45 dark:text-yellow-300"
+                    )}>
+                      {selectedReportForDetails.companyLogo}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{selectedReportForDetails.companyName}</h4>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">{selectedReportForDetails.formatName}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge className={cn(
+                      "font-black text-[10px] shadow-none rounded-md px-2 py-0.5 border",
+                      selectedReportForDetails.status === 'Ready' && "bg-emerald-50 text-emerald-800 border-emerald-200",
+                      selectedReportForDetails.status === 'Processing' && "bg-amber-50 text-amber-800 border-amber-200 animate-pulse",
+                      selectedReportForDetails.status === 'Failed' && "bg-rose-50 text-rose-800 border-rose-200"
+                    )}>
+                      {selectedReportForDetails.status}
+                    </Badge>
+                    <p className="text-[10px] text-slate-400 font-mono mt-1">ID: {selectedReportForDetails.id}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Grid Specifications */}
+              {selectedReportForDetails && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Data Type / Category</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-slate-500" />
+                      {selectedReportForDetails.dataType} Ledger
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Data Horizon / Period</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      {selectedReportForDetails.period}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Total Rows Extracted</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-mono">
+                      <PackageCheck className="w-3.5 h-3.5 text-slate-500" />
+                      {selectedReportForDetails.recordsCount} Rows
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Run Generation Stamp</span>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex flex-col gap-0.5">
+                      <span>{selectedReportForDetails.generatedOn}</span>
+                      <span className="text-[10px] text-slate-500">Generated by: {selectedReportForDetails.generatedBy}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Static Audit Parameters */}
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-3">
+                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400">System Execution Parameters</h4>
+                <div className="bg-slate-50/50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-100 dark:border-slate-800 text-[11px] space-y-2 font-mono">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pipeline Engine</span>
+                    <span className="text-slate-800 dark:text-slate-300">Mercon Report-Studio v1.1.2</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Timezone</span>
+                    <span className="text-slate-800 dark:text-slate-300">Deployment Local Time</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Format Scheme Mapping</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% Normalized Mapping (Active)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Output Target</span>
+                    <span className="text-slate-800 dark:text-slate-300">Vite-Rolldown ExcelJS-Bundle</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 flex justify-between gap-3 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedReportForDetails(null)}
+                className="h-9 rounded-lg text-xs font-bold bg-white"
+              >
+                Close Details
+              </Button>
+              <div className="flex gap-2">
+                {selectedReportForDetails && selectedReportForDetails.status === 'Ready' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedReportForPreview(selectedReportForDetails);
+                        setSelectedReportForDetails(null);
+                      }}
+                      className="h-9 rounded-lg text-xs font-bold gap-1 bg-white hover:bg-slate-50"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Preview Data
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        handleDownloadReportById(selectedReportForDetails);
+                        setSelectedReportForDetails(null);
+                      }}
+                      className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 rounded-lg font-bold text-xs gap-1.5 shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download (.xlsx)
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ─── Live Data Preview Dialog Modal ─── */}
         <Dialog open={!!selectedReportForPreview} onOpenChange={() => setSelectedReportForPreview(null)}>
