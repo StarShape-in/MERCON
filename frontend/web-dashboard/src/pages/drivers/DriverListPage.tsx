@@ -1083,7 +1083,7 @@ export default function DriverListPage() {
             </div>
           </div>
 
-          {/* Card 2: Available Standby (Emerald Operations Ready Theme with Real-Time Shift Timeline) */}
+          {/* Card 2: Available Standby (Emerald Operations Theme - Real-Time Standby Capacity & Duty Shift Telemetry) */}
           <div 
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
@@ -1113,92 +1113,61 @@ export default function DriverListPage() {
                 <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
                   {availableCount}
                 </span>
-                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready</span>
+                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready Drivers</span>
               </div>
             </div>
 
-            {/* Custom Footer: Real-Time Driver Shift Timeline & Wave Area Graph */}
-            <div className="relative h-[78px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex flex-col justify-between pt-1.5 pb-1">
-              {/* 1. Time Labels Header (Calculated dynamically for 06 AM, 12 PM, 06 PM, 12 AM with real-time active highlight) */}
+            {/* Data-Driven Footer: Real-Time Standby Capacity & 24h Shift Load Telemetry */}
+            <div className="relative h-[82px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 p-2.5 flex flex-col justify-between">
               {(() => {
                 const currentHour = new Date().getHours();
-                const shiftTimeSlots = [
-                  { label: '06 AM', isCurrent: currentHour >= 6 && currentHour < 12 },
-                  { label: '12 PM', isCurrent: currentHour >= 12 && currentHour < 18 },
-                  { label: '06 PM', isCurrent: currentHour >= 18 || currentHour < 0 },
-                  { label: '12 AM', isCurrent: currentHour >= 0 && currentHour < 6 },
+                const availabilityRate = totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 100;
+                
+                // Real 24h duty shift windows
+                const dutyShifts = [
+                  { name: 'Shift 1', time: '06AM–12PM', active: currentHour >= 6 && currentHour < 12 },
+                  { name: 'Shift 2', time: '12PM–06PM', active: currentHour >= 12 && currentHour < 18 },
+                  { name: 'Shift 3', time: '06PM–12AM', active: currentHour >= 18 || currentHour < 0 },
+                  { name: 'Shift 4', time: '12AM–06AM', active: currentHour >= 0 && currentHour < 6 },
                 ];
+
                 return (
                   <>
-                    <div className="flex justify-between items-center px-4 relative z-20">
-                      {shiftTimeSlots.map((slot) => (
-                        <span 
-                          key={slot.label}
+                    {/* Header: Real-Time Capacity Status */}
+                    <div className="flex items-center justify-between text-[10px] font-bold">
+                      <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Pool Utilization</span>
+                      </span>
+                      <span className="font-mono font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                        {availableCount} / {totalCount} Standby ({availabilityRate}%)
+                      </span>
+                    </div>
+
+                    {/* Progress Bar for Total Driver Availability */}
+                    <div className="h-2 w-full rounded-full bg-emerald-200/60 dark:bg-emerald-950 overflow-hidden my-1">
+                      <div 
+                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-2xs"
+                        style={{ width: `${Math.min(100, Math.max(5, availabilityRate))}%` }}
+                      />
+                    </div>
+
+                    {/* Duty Shift Windows (Highlighting current active shift block with exact real-time hour indicators) */}
+                    <div className="grid grid-cols-4 gap-1 text-[9px] font-mono">
+                      {dutyShifts.map((s) => (
+                        <div 
+                          key={s.name}
                           className={cn(
-                            "text-[9px] font-mono font-extrabold transition-colors",
-                            slot.isCurrent 
-                              ? "text-emerald-700 dark:text-emerald-300 underline underline-offset-2" 
-                              : "text-slate-500 dark:text-slate-400 opacity-80"
+                            "px-1 py-0.5 rounded text-center truncate transition-colors",
+                            s.active 
+                              ? "bg-emerald-600 text-white font-extrabold shadow-xs" 
+                              : "bg-white/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 border border-emerald-100/80 dark:border-emerald-900/40"
                           )}
+                          title={`${s.name} (${s.time}) ${s.active ? '— Active Shift Window' : ''}`}
                         >
-                          {slot.label}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* 2. Dotted Connector Line & Nodes */}
-                    <div className="relative w-full h-3 px-4 flex items-center justify-between z-20 my-0.5">
-                      <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 border-b-2 border-dashed border-emerald-400/60 dark:border-emerald-600/60 pointer-events-none" />
-                      {shiftTimeSlots.map((slot, idx) => (
-                        <div key={idx} className="relative z-20 flex items-center justify-center">
-                          <div 
-                            className={cn(
-                              "rounded-full transition-all",
-                              slot.isCurrent
-                                ? "w-3 h-3 bg-emerald-500 ring-4 ring-emerald-500/30 dark:ring-emerald-400/30 animate-pulse"
-                                : "w-2.5 h-2.5 bg-emerald-600 dark:bg-emerald-400"
-                            )} 
-                          />
+                          <span className="block leading-none font-bold">{s.time}</span>
                         </div>
                       ))}
-                    </div>
-
-                    {/* 3. Smooth Sine Wave Area Graph & Floating Driver Avatars */}
-                    <div className="relative w-full h-8 overflow-hidden">
-                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 32" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="driverWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
-                            <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
-                          </linearGradient>
-                        </defs>
-                        {/* Wave Area Fill */}
-                        <path
-                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14 L 280 32 L 0 32 Z"
-                          fill="url(#driverWaveGrad)"
-                        />
-                        {/* Wave Stroke */}
-                        <path
-                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14"
-                          fill="none"
-                          stroke="#10B981"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-
-                      {/* Driver Avatar Nodes Positioned on Wave Peaks */}
-                      <div className="absolute inset-0 px-4 flex items-center justify-around pointer-events-none z-20">
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-2">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-4">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-3">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                      </div>
                     </div>
                   </>
                 );
