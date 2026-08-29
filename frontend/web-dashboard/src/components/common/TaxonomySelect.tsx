@@ -170,7 +170,7 @@ export function TaxonomySelect({
           >
             <div className="flex items-center gap-1.5">
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>+ Create New {categoryTitle}</span>
+              <span>Create New {categoryTitle}</span>
             </div>
           </SelectItem>
         </SelectContent>

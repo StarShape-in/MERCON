@@ -573,7 +573,7 @@ export default function QuotationAiImportModal({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="z-[9999]">
-                        <SelectItem value="create_new">+ Create New Location</SelectItem>
+                        <SelectItem value="create_new">Create New Location</SelectItem>
                         {masterLocations.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
                             📍 {m.name} ({m.code})
