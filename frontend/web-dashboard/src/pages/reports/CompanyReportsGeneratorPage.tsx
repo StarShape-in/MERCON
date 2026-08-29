@@ -992,13 +992,16 @@ export default function CompanyReportsGeneratorPage() {
                     onClick={() => {
                       setSelectedTemplateId(tpl.id);
                       if (tpl.customerId) setSelectedCustomerId(tpl.customerId);
+                      const genCard = document.getElementById('generate-report-card');
+                      if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className={cn(
                       "p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group relative",
                       selectedTemplateId === tpl.id
-                        ? "bg-orange-50/40 border-[#FA634E]/30 dark:bg-slate-850/40"
-                        : "bg-white border-slate-100 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800"
+                        ? "bg-orange-50/30 border-[#FA634E]/40 dark:bg-slate-800/40 shadow-xs ring-1 ring-[#FA634E]/20"
+                        : "bg-white border-slate-100 hover:bg-slate-50 hover:border-[#FA634E]/25 dark:bg-slate-900 dark:border-slate-800"
                     )}
+                    title="Click to select this format template"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 shrink-0">
