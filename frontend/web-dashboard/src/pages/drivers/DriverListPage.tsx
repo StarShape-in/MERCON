@@ -1042,7 +1042,7 @@ export default function DriverListPage() {
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'All' && activeKpiModal !== 'expired'
                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
@@ -1051,37 +1051,40 @@ export default function DriverListPage() {
             {/* Ambient Background Glow */}
             <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
             
-            <div className="flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-755 dark:text-emerald-400">
-                Total Roster
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Badge className="bg-white/85 dark:bg-slate-800/80 text-emerald-750 dark:text-emerald-300 border-emerald-200/80 text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
-                  Workforce
-                </Badge>
+            <div>
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-755 dark:text-emerald-400">
+                  TOTAL REGISTERED
+                </span>
                 <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/30 transition-transform group-hover:scale-110">
                   <DriverBadge className="w-4 h-4" />
                 </div>
               </div>
+
+              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
+                  {totalCount}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Roster</span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-baseline gap-2 relative z-10">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                {totalCount}
-              </span>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Drivers</span>
-            </div>
-
-            {/* Live Roster Distribution Pills */}
-            <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold relative z-10">
-              <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/50 shadow-2xs">
+            {/* Innovative Footer: Stylized ECG Waveform */}
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/30 dark:bg-emerald-950/10 border-t border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
+              <span className="flex items-center gap-1 relative z-10">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {availableCount} Ready
+                Roster Vitality
               </span>
-              <span className="inline-flex items-center gap-1.5 text-teal-700 dark:text-teal-450 bg-teal-50 dark:bg-teal-950/40 px-2.5 py-0.5 rounded-full border border-teal-200 dark:border-teal-800/50 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-                {onTripCount} En-route
-              </span>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-24 opacity-60" viewBox="0 0 100 20" preserveAspectRatio="none">
+                <path
+                  d="M 0 10 H 20 L 25 10 L 30 2 L 35 18 L 40 10 L 45 10 L 60 10 L 65 2 L 70 18 L 75 10 H 100"
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
           </div>
 
@@ -1092,7 +1095,7 @@ export default function DriverListPage() {
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'Available'
                 ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
@@ -1101,42 +1104,35 @@ export default function DriverListPage() {
             {/* Ambient Background Glow */}
             <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
-            <div className="flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                Available Now
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Badge className="bg-white/85 dark:bg-slate-800/80 text-emerald-750 dark:text-emerald-300 border-emerald-200/80 text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
-                  Standby Pool
-                </Badge>
+            <div>
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  AVAILABLE STANDBY
+                </span>
                 <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/30 transition-transform group-hover:scale-110">
                   <CheckBadge className="w-4 h-4" />
                 </div>
               </div>
-            </div>
 
-            <div className="mt-2 flex items-baseline gap-2 relative z-10">
-              <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                {availableCount}
-              </span>
-              <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Ready for Dispatch</span>
-            </div>
-
-            {/* Capacity Meter Bar */}
-            <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5 relative z-10">
-              <div className="flex items-center justify-between text-[11px] font-bold">
-                <span className="text-slate-650 dark:text-slate-350 flex items-center gap-1">
-                  ⚡ {availableCount} Standby Drivers
+              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+                <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
+                  {availableCount}
                 </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-mono">
-                  {Math.round((availableCount / (totalCount || 1)) * 100)}%
-                </span>
+                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Drivers Ready</span>
               </div>
-              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-2xs"
-                  style={{ width: `${Math.round((availableCount / (totalCount || 1)) * 100)}%` }}
-                />
+            </div>
+
+            {/* Innovative Footer: Standby Capacity Meter */}
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/30 dark:bg-emerald-950/10 border-t border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-emerald-800 dark:text-emerald-400">
+              <span className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                Standby Capacity
+              </span>
+              <div className="flex gap-1 relative z-10">
+                <div className="w-3.5 h-2 rounded-xs bg-emerald-500/90" />
+                <div className="w-3.5 h-2 rounded-xs bg-emerald-500/70" />
+                <div className="w-3.5 h-2 rounded-xs bg-emerald-500/40" />
+                <div className="w-3.5 h-2 rounded-xs bg-emerald-500/10" />
               </div>
             </div>
           </div>
@@ -1148,7 +1144,7 @@ export default function DriverListPage() {
               setCurrentPage(1);
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               selectedStatus === 'OnTrip'
                 ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/40 dark:from-teal-950/40 dark:via-slate-900 dark:to-emerald-950/20 shadow-md ring-1 ring-teal-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-teal-300 dark:hover:border-teal-700 shadow-2xs hover:shadow-md'
@@ -1157,36 +1153,40 @@ export default function DriverListPage() {
             {/* Ambient Background Glow */}
             <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-teal-500/10 dark:bg-teal-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
-            <div className="flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400">
-                Active On Road
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Badge className="bg-white/85 dark:bg-slate-800/80 text-teal-750 dark:text-teal-300 border-teal-200/80 text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs">
-                  En-Route
-                </Badge>
+            <div>
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400">
+                  ACTIVE EN-ROUTE
+                </span>
                 <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-teal-500/30 transition-transform group-hover:scale-110">
                   <TruckMotion className="w-4 h-4" />
                 </div>
               </div>
+
+              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
+                  {onTripCount}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Transit</span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-baseline gap-2 relative z-10">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                {onTripCount}
-              </span>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">On Trip</span>
-            </div>
-
-            {/* GPS Telemetry Indicator */}
-            <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold relative z-10">
-              <span className="inline-flex items-center gap-1.5 text-teal-750 dark:text-teal-350 bg-teal-50 dark:bg-teal-950/40 px-2.5 py-0.5 rounded-full border border-teal-200 dark:border-teal-800/50 shadow-2xs">
+            {/* Innovative Footer: Dynamic route waveform */}
+            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-teal-50/30 dark:bg-teal-950/10 border-t border-teal-100/50 dark:border-teal-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-teal-800 dark:text-teal-400">
+              <span className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-ping" />
-                GPS ACTIVE
+                GPS Telemetry
               </span>
-              <span className="text-slate-500 dark:text-slate-400">
-                {onTripCount > 0 ? 'Live En-Route' : '0 Active'}
-              </span>
+              <svg className="w-20 h-4 opacity-75 relative z-10" viewBox="0 0 80 16">
+                <path
+                  d="M 0 8 Q 20 2, 40 8 T 80 8"
+                  fill="none"
+                  stroke="#0D9488"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  className="animate-[dash_2s_linear_infinite]"
+                />
+              </svg>
             </div>
           </div>
 
@@ -1196,7 +1196,7 @@ export default function DriverListPage() {
               openKpiModal(e, 'expired');
             }}
             className={cn(
-              "group relative rounded-2xl border p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5",
+              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
               activeKpiModal === 'expired'
                 ? 'border-rose-500 bg-gradient-to-br from-rose-50/90 via-white to-amber-50/40 dark:from-rose-950/40 dark:via-slate-900 dark:to-amber-950/20 shadow-md ring-1 ring-rose-500/30'
                 : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-rose-300 dark:hover:border-rose-700 shadow-2xs hover:shadow-md'
@@ -1205,35 +1205,35 @@ export default function DriverListPage() {
             {/* Ambient Background Glow */}
             <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-rose-500/10 dark:bg-rose-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
 
-            <div className="flex items-center justify-between gap-2 relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
-                Expired Licenses
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Badge className={cn("bg-white/85 dark:bg-slate-800/80 border text-[9px] font-extrabold px-1.5 py-0.2 shadow-2xs", expiredLicenseCount > 0 ? 'text-rose-700 border-rose-200 animate-pulse' : 'text-emerald-750 border-emerald-200')}>
-                  {expiredLicenseCount > 0 ? 'Action Needed' : 'Compliant'}
-                </Badge>
+            <div>
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                  EXPIRED LICENSES
+                </span>
                 <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-rose-600 shadow-rose-500/30' : 'bg-emerald-600 shadow-emerald-500/30')}>
                   <RiskAlert className="w-4 h-4" />
                 </div>
               </div>
+
+              <div className="mt-2 flex items-baseline gap-2 relative z-10">
+                <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100')}>
+                  {expiredLicenseCount}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Expired Permits</span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-baseline gap-2 relative z-10">
-              <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100')}>
-                {expiredLicenseCount}
-              </span>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Expired Permits</span>
-            </div>
-
-            {/* Compliance Audit Pill */}
-            <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold relative z-10">
-              <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-2xs", expiredLicenseCount > 0 ? 'bg-rose-50 text-rose-750 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800')}>
+            {/* Innovative Footer: Compliance Health Status */}
+            <div className={cn(
+              "relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl border-t flex items-center justify-between px-3 text-[10px] font-bold",
+              expiredLicenseCount > 0
+                ? 'bg-rose-50/40 dark:bg-rose-950/10 border-rose-100/50 dark:border-rose-900/30 text-rose-800 dark:text-rose-455'
+                : 'bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-100/50 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400'
+            )}>
+              <span>Compliance Health</span>
+              <span className="flex items-center gap-1">
                 <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500')} />
-                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Needed` : '✓ 100% Valid Permits'}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 text-[10px]">
-                {clearDriversCount} Clear
+                {expiredLicenseCount > 0 ? 'Action Needed' : '100% Compliant'}
               </span>
             </div>
           </div>
