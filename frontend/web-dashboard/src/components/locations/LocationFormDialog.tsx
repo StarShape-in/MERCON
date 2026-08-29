@@ -93,6 +93,7 @@ export default function LocationFormDialog({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
+  const searchRequestIdRef = useRef(0);
   const paste = usePastedLocation();
 
   const isEditing = !!location;
@@ -178,13 +179,17 @@ export default function LocationFormDialog({
 
   const handleSearchGoogle = async (val: string) => {
     setSearch(val);
-    if (!val.trim()) {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      searchRequestIdRef.current++;
       setGoogleSuggestions([]);
+      setIsSearchingGoogle(false);
       return;
     }
 
-    if (isGoogleMapsUrl(val.trim())) {
-      const place = await paste.resolve(val.trim());
+    if (isGoogleMapsUrl(trimmed)) {
+      searchRequestIdRef.current++;
+      const place = await paste.resolve(trimmed);
       if (place) {
         if (!name) setName(place.name);
         setAddress(place.address || '');
@@ -195,18 +200,30 @@ export default function LocationFormDialog({
         setPrecision('EXACT');
         setGoogleSuggestions([]);
       }
+      setIsSearchingGoogle(false);
       return;
     }
 
+    const currentRequestId = ++searchRequestIdRef.current;
     setIsSearchingGoogle(true);
     try {
       if (!searchSessionRef.current) searchSessionRef.current = createAddressSearchSession();
-      const suggestions = await searchSessionRef.current.search(val);
-      setGoogleSuggestions(suggestions);
+      let suggestions = await searchSessionRef.current.search(trimmed);
+
+      // Smart fallback: retry with regional context if 0 results
+      if (suggestions.length === 0 && !trimmed.toLowerCase().includes('saudi') && !trimmed.toLowerCase().includes('arabia')) {
+        suggestions = await searchSessionRef.current.search(`${trimmed}, Saudi Arabia`);
+      }
+
+      if (currentRequestId === searchRequestIdRef.current) {
+        setGoogleSuggestions(suggestions);
+      }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsSearchingGoogle(false);
+      if (currentRequestId === searchRequestIdRef.current) {
+        setIsSearchingGoogle(false);
+      }
     }
   };
 
@@ -397,14 +414,31 @@ export default function LocationFormDialog({
               <span>Google Maps Pin Resolution</span>
               <span className="text-[10px] text-slate-400 font-normal">Optional</span>
             </Label>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <Input
-                value={search}
-                onChange={(e) => handleSearchGoogle(e.target.value)}
-                placeholder="Paste Google Maps link or search place..."
-                className="h-9 pl-9 text-xs truncate"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Input
+                  value={search}
+                  onChange={(e) => handleSearchGoogle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleSearchGoogle(search);
+                    }
+                  }}
+                  placeholder="Paste Google Maps link or search place..."
+                  className="h-9 pl-9 text-xs truncate"
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={() => void handleSearchGoogle(search)}
+                disabled={isSearchingGoogle}
+                className="h-9 px-3 text-xs font-bold bg-[#FA634E] hover:bg-[#E04F3A] text-white rounded-xl gap-1 shrink-0 shadow-xs"
+              >
+                {isSearchingGoogle ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Search className="w-3.5 h-3.5" />}
+                <span>Search</span>
+              </Button>
             </div>
             {googleSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-[9999] border border-slate-200 dark:border-slate-800 rounded-xl p-1 bg-white dark:bg-slate-900 shadow-2xl max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">

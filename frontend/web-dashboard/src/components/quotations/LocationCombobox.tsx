@@ -58,6 +58,7 @@ export default function LocationCombobox({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
+  const searchRequestIdRef = useRef(0);
   const paste = usePastedLocation();
 
   const { data: locationsRes, isLoading } = useQuery({
@@ -100,36 +101,57 @@ export default function LocationCombobox({
     ? value 
     : '';
 
-
-  useEffect(() => {
-    if (!open) return;
-    if (isGoogleMapsUrl(search)) {
+  const performAddressSearch = async (queryText: string) => {
+    const q = queryText.trim();
+    if (isGoogleMapsUrl(q)) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setIsSearchingGoogle(true);
-      try {
-        if (!searchSessionRef.current) {
-          searchSessionRef.current = createAddressSearchSession();
-        }
-        if (trimmedSearch.length >= 2) {
-          const results = await searchSessionRef.current.search(trimmedSearch);
-          setGoogleSuggestions(results);
-        } else {
-          setGoogleSuggestions([
-            { id: 'g-riyadh', label: 'Riyadh, Saudi Arabia' },
-            { id: 'g-jeddah', label: 'Jeddah, Saudi Arabia' },
-            { id: 'g-dammam', label: 'Dammam, Saudi Arabia' },
-          ]);
-        }
-      } catch (e) {
-        console.error('Google Maps search error', e);
-      } finally {
+    if (q.length < 2) {
+      searchRequestIdRef.current++;
+      setGoogleSuggestions([
+        { id: 'g-riyadh', label: 'Riyadh, Saudi Arabia' },
+        { id: 'g-jeddah', label: 'Jeddah, Saudi Arabia' },
+        { id: 'g-dammam', label: 'Dammam, Saudi Arabia' },
+      ]);
+      setIsSearchingGoogle(false);
+      return;
+    }
+
+    const currentRequestId = ++searchRequestIdRef.current;
+    setIsSearchingGoogle(true);
+
+    try {
+      if (!searchSessionRef.current) {
+        searchSessionRef.current = createAddressSearchSession();
+      }
+
+      let results = await searchSessionRef.current.search(q);
+
+      // Smart fallback: If initial query returned 0 results, retry with region context
+      if (results.length === 0 && !q.toLowerCase().includes('saudi') && !q.toLowerCase().includes('arabia')) {
+        results = await searchSessionRef.current.search(`${q}, Saudi Arabia`);
+      }
+
+      if (currentRequestId === searchRequestIdRef.current) {
+        setGoogleSuggestions(results);
+      }
+    } catch (e) {
+      console.error('Google Maps search error', e);
+    } finally {
+      if (currentRequestId === searchRequestIdRef.current) {
         setIsSearchingGoogle(false);
       }
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = setTimeout(() => {
+      void performAddressSearch(search);
     }, 250);
 
     return () => clearTimeout(timer);
