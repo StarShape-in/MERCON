@@ -5,6 +5,7 @@ import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
+import { compressUploadedImage } from '../services/imageCompressor';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
