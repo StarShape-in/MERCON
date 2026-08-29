@@ -98,21 +98,14 @@ export const resolveLocation = async (
   };
   const aliasVariants = knownAliases[upperName] || [];
 
-  // 1. Search for existing location by ID, Code, Slug, Case-insensitive Name, City or Known Alias (including soft-deleted)
+  // 1. Search for existing location strictly by exact Code, Slug, or exact Name for this customer
   let found = await tx.location.findFirst({
     where: {
       customerId: customerIdToUse,
       OR: [
         { slug },
-        { code: { equals: upperName, mode: 'insensitive' as const } },
-        ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
         { name: { equals: name, mode: 'insensitive' as const } },
-        { city: { equals: name, mode: 'insensitive' as const } },
-        ...aliasVariants.flatMap((alt) => [
-          { name: { equals: alt, mode: 'insensitive' as const } },
-          { code: { equals: alt, mode: 'insensitive' as const } },
-          { city: { equals: alt, mode: 'insensitive' as const } },
-        ]),
+        ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
       ],
     },
   });
