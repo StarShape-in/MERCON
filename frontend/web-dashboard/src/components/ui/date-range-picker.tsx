@@ -18,6 +18,8 @@ export interface DateRangePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  buttonClassName?: string;
+  iconOnly?: boolean;
   id?: string;
   align?: 'start' | 'center' | 'end';
 }
@@ -28,6 +30,8 @@ export function DateRangePicker({
   placeholder = 'Select date range...',
   disabled = false,
   className,
+  buttonClassName,
+  iconOnly = false,
   id,
   align = 'start',
 }: DateRangePickerProps) {
@@ -65,7 +69,7 @@ export function DateRangePicker({
   }, [value, placeholder]);
 
   return (
-    <div className={cn('relative inline-block w-full', className)}>
+    <div className={cn('relative inline-block', iconOnly ? 'w-auto' : 'w-full', className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -74,17 +78,19 @@ export function DateRangePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              'w-full justify-between text-left font-normal h-9 px-3 rounded-xl border-input bg-background transition-all hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary/30',
+              'justify-center border-input bg-background transition-all hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary/30',
+              iconOnly ? 'w-8 h-8 p-0 rounded-lg' : 'w-full justify-between text-left font-normal px-3',
               !value?.from && 'text-muted-foreground',
-              disabled && 'opacity-50 cursor-not-allowed'
+              disabled && 'opacity-50 cursor-not-allowed',
+              buttonClassName || (iconOnly ? '' : 'h-9 rounded-xl')
             )}
           >
-            <div className="flex items-center gap-2 truncate">
-              <CalendarIcon className="w-4 h-4 text-primary shrink-0 opacity-80" />
-              <span className="truncate text-xs font-mono">{displayText}</span>
+            <div className={cn('flex items-center gap-2 truncate', iconOnly && 'justify-center')}>
+              <CalendarIcon className="w-3.5 h-3.5 text-primary shrink-0 opacity-85" />
+              {!iconOnly && <span className="truncate text-xs font-mono">{displayText}</span>}
             </div>
 
-            {value?.from && !disabled && (
+            {!iconOnly && value?.from && !disabled && (
               <div
                 role="button"
                 tabIndex={0}

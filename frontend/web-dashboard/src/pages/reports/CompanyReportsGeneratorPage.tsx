@@ -17,6 +17,8 @@ import DataTable from '@/components/ui/DataTable';
 import TemplateMappingEditor from '@/components/reports/TemplateMappingEditor';
 import { cn } from '@/lib/utils';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   Select,
   SelectContent,
@@ -676,7 +678,7 @@ export default function CompanyReportsGeneratorPage() {
                 </Select>
               </div>
 
-              <div className="w-[140px] space-y-1">
+              <div className="w-[160px] space-y-1">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
                 <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
                   <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
@@ -704,6 +706,24 @@ export default function CompanyReportsGeneratorPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {preset === 'custom' && (
+                <div className="space-y-1 animate-fade-in shrink-0">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Range</label>
+                  <DateRangePicker
+                    value={{
+                      from: customStart ? new Date(customStart) : undefined,
+                      to: customEnd ? new Date(customEnd) : undefined
+                    }}
+                    onChange={(range) => {
+                      if (range?.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
+                      if (range?.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
+                    }}
+                    iconOnly={true}
+                    buttonClassName="h-8 w-8 rounded-lg bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center justify-center shadow-2xs"
+                  />
+                </div>
+              )}
             </div>
 
             <Button
@@ -722,30 +742,6 @@ export default function CompanyReportsGeneratorPage() {
               )}
             </Button>
           </div>
-
-          {preset === 'custom' && (
-            <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/50 dark:border-slate-800 mt-2 animate-fade-in w-fit">
-              <div className="space-y-1">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-500">Start Date</label>
-                <input
-                  type="date"
-                  value={customStart}
-                  onChange={(e) => setCustomStart(e.target.value)}
-                  className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
-                />
-              </div>
-              <div className="text-slate-400 font-bold text-xs mt-4">to</div>
-              <div className="space-y-1">
-                <label className="block text-[9px] font-black uppercase tracking-wider text-slate-500">End Date</label>
-                <input
-                  type="date"
-                  value={customEnd}
-                  onChange={(e) => setCustomEnd(e.target.value)}
-                  className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
-                />
-              </div>
-            </div>
-          )}
 
           {/* Info Status Strip underneath */}
           {selectedTemplate && (
