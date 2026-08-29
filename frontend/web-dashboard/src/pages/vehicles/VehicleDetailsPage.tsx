@@ -297,21 +297,17 @@ export default function VehicleDetailsPage() {
         {/* ── Top Header Bar with Big Truck Number & Positioned Small Details ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
           <div className="flex items-center gap-4 min-w-0">
-            <div
-              onClick={() => setIsTruckProfileOpen(true)}
-              className="cursor-pointer group relative shrink-0"
-              title="Click to view full truck profile"
-            >
-              {vehicle.image_url ? (
+            {vehicle.image_url && (
+              <div
+                onClick={() => setIsTruckProfileOpen(true)}
+                className="cursor-pointer group relative shrink-0"
+                title="Click to view full truck profile"
+              >
                 <div className="w-16 h-16 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 shadow-md group-hover:border-indigo-400 transition-colors">
                   <img src={vehicle.image_url} alt={vehicle.plate_number} className="w-full h-full object-cover" />
                 </div>
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-900 flex items-center justify-center shrink-0 shadow-sm group-hover:border-indigo-400 transition-colors">
-                  <Truck className="w-7 h-7" />
-                </div>
-              )}
-            </div>
+              </div>
+            )}
             <div className="flex flex-col gap-1.5 min-w-0">
               {/* Big Truck Number */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
