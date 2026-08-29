@@ -598,9 +598,12 @@ export default function CompanyReportsGeneratorPage() {
         {/* ─── Card 1: Generate Company Report ─── */}
         <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div>
-              <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 rounded-full bg-[#FA634E] shrink-0" />
+              <div>
+                <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -680,50 +683,53 @@ export default function CompanyReportsGeneratorPage() {
 
               <div className="w-[160px] space-y-1">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
-                <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
-                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                    <SelectValue placeholder="Choose Horizon..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="this_month">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>This Month</span>
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="this_week">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                        <span>This Week</span>
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="custom">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-purple-500" />
-                        <span>Custom Range</span>
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {preset === 'custom' && (
-                <div className="space-y-1 animate-fade-in shrink-0">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Range</label>
+                {preset === 'custom' ? (
                   <DateRangePicker
                     value={{
                       from: customStart ? new Date(customStart) : undefined,
                       to: customEnd ? new Date(customEnd) : undefined
                     }}
                     onChange={(range) => {
-                      if (range?.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
-                      if (range?.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
+                      if (!range) {
+                        setPreset('this_month');
+                        setCustomStart('');
+                        setCustomEnd('');
+                      } else {
+                        if (range.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
+                        if (range.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
+                      }
                     }}
-                    iconOnly={true}
-                    buttonClassName="h-8 w-8 rounded-lg bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center justify-center shadow-2xs"
+                    customLabel="Custom Range"
+                    buttonClassName="h-8 w-full bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg"
                   />
-                </div>
-              )}
+                ) : (
+                  <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
+                    <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                      <SelectValue placeholder="Choose Horizon..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="this_month">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>This Month</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="this_week">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                          <span>This Week</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="custom">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                          <span>Custom Range</span>
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
 
             <Button

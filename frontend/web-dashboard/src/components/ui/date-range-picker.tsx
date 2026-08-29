@@ -20,6 +20,7 @@ export interface DateRangePickerProps {
   className?: string;
   buttonClassName?: string;
   iconOnly?: boolean;
+  customLabel?: string;
   id?: string;
   align?: 'start' | 'center' | 'end';
 }
@@ -32,6 +33,7 @@ export function DateRangePicker({
   className,
   buttonClassName,
   iconOnly = false,
+  customLabel,
   id,
   align = 'start',
 }: DateRangePickerProps) {
@@ -63,10 +65,11 @@ export function DateRangePicker({
   };
 
   const displayText = React.useMemo(() => {
+    if (customLabel) return customLabel;
     if (!value?.from) return placeholder;
     if (value.from && !value.to) return `${format(value.from, 'MMM d, yyyy')} - ...`;
     return `${format(value.from, 'MMM d, yyyy')} - ${format(value.to!, 'MMM d, yyyy')}`;
-  }, [value, placeholder]);
+  }, [value, placeholder, customLabel]);
 
   return (
     <div className={cn('relative inline-block', iconOnly ? 'w-auto' : 'w-full', className)}>
@@ -140,7 +143,7 @@ export function DateRangePicker({
               mode="range"
               selected={value}
               onSelect={handleSelect}
-              numberOfMonths={2}
+              numberOfMonths={1}
               autoFocus
             />
           </div>
