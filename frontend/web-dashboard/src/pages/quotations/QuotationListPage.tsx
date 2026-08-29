@@ -15,7 +15,7 @@ import {
   MapPin,
   X,
   Truck,
-  Receipt,
+  Calculator,
   Calendar,
   CheckCircle2,
   Zap,

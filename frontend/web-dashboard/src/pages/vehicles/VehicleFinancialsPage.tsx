@@ -760,7 +760,7 @@ export default function VehicleFinancialsPage() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <DollarSign className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <TrendingUp className="w-7 h-7 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Vehicle Profit &amp; Loss</h1>
             <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
               Fleet Financials

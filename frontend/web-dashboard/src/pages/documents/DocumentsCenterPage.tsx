@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { 
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
+  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive, Files,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown, ArrowRight,
   Hash, Building2, Calendar, Search, Lock, Globe, FileCog
 } from 'lucide-react';
@@ -978,7 +978,7 @@ export default function DocumentsCenterPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3 min-w-0">
 {mainTab === 'vault' ? (
-              <FolderOpen className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <Files className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
             ) : (
               <FileCog className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
             )}

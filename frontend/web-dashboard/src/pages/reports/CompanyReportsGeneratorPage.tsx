@@ -4,7 +4,7 @@ import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
   FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
-  Settings2,
+  Settings2, FileBarChart,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -418,6 +418,7 @@ export default function CompanyReportsGeneratorPage() {
         {/* ─── Studio Top Header Bar ─── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
+            <FileBarChart className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
             <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-850 font-bold text-[10px] uppercase tracking-wider px-2.5 py-0.5 shadow-none rounded-md">
               Operations Module

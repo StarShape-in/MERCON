@@ -6,7 +6,7 @@ import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
   ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
-  ArrowDownUp, ArrowDown, ArrowUp, Check, Filter
+  ArrowDownUp, ArrowDown, ArrowUp, Check, Filter, ReceiptText,
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -1476,13 +1476,16 @@ export default function InvoiceListPage() {
         
         {/* 1. Page Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
-              COMPANY BILLING LEDGER
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-              Customer invoices, trip statements, and billing status.
-            </p>
+          <div className="flex items-center gap-3">
+            <ReceiptText className="w-7 h-7 text-[#FA634E] shrink-0" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
+                COMPANY BILLING LEDGER
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                Customer invoices, trip statements, and billing status.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">

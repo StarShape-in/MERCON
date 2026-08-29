@@ -4,7 +4,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  FolderGit2, FileText, Image as ImageIcon, Upload, Search, Download, Eye,
+  FolderArchive, FileText, Image as ImageIcon, Upload, Search, Download, Eye,
   Trash2, Edit2, RotateCw, FileCode, X, LayoutGrid, List, AlertCircle, FilePlus,
   ChevronDown, HardDrive, Tag, CheckCircle2
 } from 'lucide-react';
@@ -320,7 +320,7 @@ export default function AprodacDocumentsPage() {
         {/* Top Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <FolderGit2 className="w-6 h-6 text-brand shrink-0" />
+            <FolderArchive className="w-6 h-6 text-brand shrink-0" />
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Aprodac Vault
@@ -385,7 +385,7 @@ export default function AprodacDocumentsPage() {
             title="Total Documents"
             label="DEV VAULT COUNT"
             value={totalDocs}
-            icon={FolderGit2}
+            icon={FolderArchive}
             variant="brand"
             description="Total documents in developer vault"
             isActive={typeFilter === 'All'}
@@ -531,7 +531,7 @@ export default function AprodacDocumentsPage() {
           {/* Clean Honest Empty State */}
           {filteredDocuments.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
-              <FolderGit2 className="w-7 h-7 text-slate-400 shrink-0" />
+              <FolderArchive className="w-7 h-7 text-slate-400 shrink-0" />
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No developer documents found</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 {searchTerm || categoryFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
