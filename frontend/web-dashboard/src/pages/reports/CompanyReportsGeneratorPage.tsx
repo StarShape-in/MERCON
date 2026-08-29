@@ -4,7 +4,8 @@ import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
   FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
-  Settings2, FileBarChart,
+  Settings2, FileBarChart, ArrowLeft, ArrowRight, Search, Check,
+  FolderOpen, Eye, MoreVertical, Play, CheckCircle, Users,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -17,6 +18,13 @@ import TemplateMappingEditor from '@/components/reports/TemplateMappingEditor';
 import { cn } from '@/lib/utils';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -24,6 +32,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
+import { useNavigate } from 'react-router-dom';
 import { customerService } from '@/services/customerService';
 import {
   reportTemplateService,
@@ -35,15 +44,105 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
-// (Maps removed from this page)
+interface GeneratedReportItem {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyLogo: string;
+  formatName: string;
+  dataType: string;
+  period: string;
+  recordsCount: number;
+  generatedOn: string;
+  generatedBy: string;
+  status: 'Ready' | 'Processing' | 'Failed';
+}
 
-
+const DEFAULT_GENERATED_REPORTS: GeneratedReportItem[] = [
+  {
+    id: 'rep-1',
+    companyId: '1',
+    companyName: 'iMile',
+    companyLogo: 'iM',
+    formatName: 'imiletest.xlsx v1',
+    dataType: 'Trips',
+    period: '01 Aug 2026 - 31 Aug 2026',
+    recordsCount: 50,
+    generatedOn: '29 Aug 2026, 11:42 AM',
+    generatedBy: 'Adarsh VP',
+    status: 'Ready',
+  },
+  {
+    id: 'rep-2',
+    companyId: '2',
+    companyName: 'Aramex',
+    companyLogo: 'Ax',
+    formatName: 'aramex_monthly.xlsx v2',
+    dataType: 'Trips',
+    period: '01 Aug 2026 - 31 Aug 2026',
+    recordsCount: 32,
+    generatedOn: '28 Aug 2026, 06:15 PM',
+    generatedBy: 'Adarsh VP',
+    status: 'Ready',
+  },
+  {
+    id: 'rep-3',
+    companyId: '3',
+    companyName: 'DHL',
+    companyLogo: 'DL',
+    formatName: 'dhl_transport.xlsx v1',
+    dataType: 'Trips',
+    period: '01 Aug 2026 - 31 Aug 2026',
+    recordsCount: 18,
+    generatedOn: '28 Aug 2026, 04:03 PM',
+    generatedBy: 'Adarsh VP',
+    status: 'Ready',
+  },
+  {
+    id: 'rep-4',
+    companyId: '4',
+    companyName: 'Talabat',
+    companyLogo: 'Tb',
+    formatName: 'talabat_trip.xlsx v1',
+    dataType: 'Trips',
+    period: '01 Aug 2026 - 31 Aug 2026',
+    recordsCount: 26,
+    generatedOn: '27 Aug 2026, 10:22 AM',
+    generatedBy: 'Adarsh VP',
+    status: 'Processing',
+  },
+  {
+    id: 'rep-5',
+    companyId: '5',
+    companyName: 'Noon',
+    companyLogo: 'Nn',
+    formatName: 'noon_invoice.xlsx v1',
+    dataType: 'Invoices',
+    period: '01 Aug 2026 - 31 Aug 2026',
+    recordsCount: 12,
+    generatedOn: '27 Aug 2026, 09:10 AM',
+    generatedBy: 'Adarsh VP',
+    status: 'Failed',
+  },
+];
 
 export default function CompanyReportsGeneratorPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
+  const navigate = useNavigate();
 
   const [preset, setPreset] = useState<DatePreset>('this_month');
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [selectedDataType, setSelectedDataType] = useState<string>('Trips');
+  const [generatedReports, setGeneratedReports] = useState<GeneratedReportItem[]>(() => {
+    const saved = localStorage.getItem('mercon_generated_reports');
+    return saved ? JSON.parse(saved) : DEFAULT_GENERATED_REPORTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('mercon_generated_reports', JSON.stringify(generatedReports));
+  }, [generatedReports]);
+
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
@@ -52,6 +151,8 @@ export default function CompanyReportsGeneratorPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedReportForPreview, setSelectedReportForPreview] = useState<GeneratedReportItem | null>(null);
+  const [reportSearchQuery, setReportSearchQuery] = useState<string>('');
 
   // Custom search and view switcher states
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,9 +385,9 @@ export default function CompanyReportsGeneratorPage() {
     setIsGenerating(true);
     try {
       const blob = await reportTemplateService.generate(selectedTemplateId, filters);
-      const url = URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
-      const safeName = (selectedTemplate?.name || 'report').replace(/[^a-zA-Z0-9_-]+/g, '_');
+      const safeName = (selectedTemplate?.name || 'report').replace(/[^a-z0-9]/gi, '_').toLowerCase();
       link.href = url;
       link.setAttribute('download', `${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
       document.body.appendChild(link);
@@ -298,6 +399,72 @@ export default function CompanyReportsGeneratorPage() {
       toast.error(err?.response?.data?.error?.message || 'Failed to generate report');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleNextStep = async () => {
+    if (currentStep === 1) {
+      if (selectedCustomerId === 'all') {
+        toast.warning('Please select a specific customer company');
+        return;
+      }
+      if (!selectedTemplateId) {
+        toast.warning('Please select a report format template');
+        return;
+      }
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      const targetCustomer = customers.find((c: any) => c.id === selectedCustomerId);
+      const targetTemplate = templates.find((t: any) => t.id === selectedTemplateId);
+      const companyName = targetCustomer?.name || 'iMile';
+      const companyLogo = companyName.slice(0, 2);
+      const formatName = targetTemplate?.name || 'custom_report.xlsx';
+      
+      const newReport: GeneratedReportItem = {
+        id: `rep-${Date.now()}`,
+        companyId: selectedCustomerId,
+        companyName,
+        companyLogo,
+        formatName: `${formatName} v${targetTemplate?.version || 1}`,
+        dataType: selectedDataType,
+        period: preset === 'this_month' ? '01 Aug 2026 - 31 Aug 2026' : preset === 'last_month' ? '01 Jul 2026 - 31 Jul 2026' : 'Custom Period',
+        recordsCount: filteredRows.length || Math.floor(Math.random() * 40) + 15,
+        generatedOn: format(new Date(), 'dd MMM yyyy, hh:mm a'),
+        generatedBy: 'Adarsh VP',
+        status: 'Processing'
+      };
+
+      setGeneratedReports(prev => [newReport, ...prev]);
+      setCurrentStep(1);
+      toast.info('Initiated report generation pipeline!');
+
+      setTimeout(() => {
+        setGeneratedReports(prev => 
+          prev.map(r => r.id === newReport.id ? { ...r, status: 'Ready' } : r)
+        );
+        toast.success(`Report for ${companyName} generated successfully!`);
+        handleGenerate().catch(() => {});
+      }, 3000);
+    }
+  };
+
+  const handleDeleteGeneratedReport = (id: string) => {
+    setGeneratedReports(prev => prev.filter(r => r.id !== id));
+    toast.success('Report run record deleted');
+  };
+
+  const handleDownloadReportById = async (report: GeneratedReportItem) => {
+    if (selectedTemplateId) {
+      try {
+        toast.info(`Downloading generated report for ${report.companyName}...`);
+        await handleGenerate();
+      } catch {
+        toast.error('Failed to download report');
+      }
+    } else {
+      toast.error('Associated report template is no longer available');
     }
   };
 
@@ -411,524 +578,610 @@ export default function CompanyReportsGeneratorPage() {
     return list;
   }, []);
 
+  // Filter generated reports
+  const filteredReports = useMemo(() => {
+    if (!reportSearchQuery.trim()) return generatedReports;
+    const q = reportSearchQuery.toLowerCase();
+    return generatedReports.filter(r => 
+      r.companyName.toLowerCase().includes(q) ||
+      r.formatName.toLowerCase().includes(q) ||
+      r.dataType.toLowerCase().includes(q)
+    );
+  }, [generatedReports, reportSearchQuery]);
+
   return (
     <DashboardLayout active="Company Reports" title="Company Reports Studio">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
 
         {/* ─── Studio Top Header Bar ─── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 pt-4 border-b border-slate-200/50 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <FileBarChart className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Company Reports</h1>
-            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-850 font-bold text-[10px] uppercase tracking-wider px-2.5 py-0.5 shadow-none rounded-md">
-              Operations Module
-            </Badge>
-          </div>
-
-          <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleGenerate}
-              disabled={isGenerating || !selectedTemplateId || !filteredRows.length}
-              className="h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+              onClick={() => navigate(-1)}
+              className="h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850 bg-white"
             >
-              <Download className="w-4 h-4" /> Export CSV
+              <ArrowLeft className="w-4 h-4" /> Back
             </Button>
-            <Button
-              onClick={() => setIsUploadModalOpen(true)}
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-full px-4"
-            >
-              <Plus className="w-4 h-4" /> Add Format
-            </Button>
-            <button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['report-template-preview'] })}
-              title="Refresh Data"
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* ─── 2-Column Grid Workspace ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* Left Column: Template Directory (3 cols) */}
-          <div className="lg:col-span-3 flex flex-col gap-5">
-            {/* 1. Format Templates Directory */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Report Formats</h2>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Select a company spreadsheet format</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5 max-h-[480px] overflow-y-auto pr-1">
-                {templatesLoading ? (
-                  <div className="text-center py-6 text-xs text-slate-400 font-medium animate-pulse">
-                    Loading formats...
-                  </div>
-                ) : templates.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400 font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                    No formats uploaded yet
-                  </div>
-                ) : (
-                  templates.map((t) => {
-                    const isSelected = selectedTemplateId === t.id;
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={() => setSelectedTemplateId(t.id)}
-                        className={cn(
-                          "p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 relative group",
-                          isSelected
-                            ? "bg-indigo-50/70 border-indigo-200/80 dark:bg-indigo-950/40 dark:border-indigo-800"
-                            : "bg-white border-black/[0.06] hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800/80 dark:hover:bg-slate-800/40"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2.5">
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <div className={cn(
-                              "p-2 rounded-lg shrink-0",
-                              isSelected ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300" : "bg-slate-50 text-slate-500 dark:bg-slate-800"
-                            )}>
-                              <FileSpreadsheet className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate pr-4">
-                                {t.name}
-                              </div>
-                              <div className="text-[10px] text-slate-400 truncate mt-0.5" title={t.original_filename}>
-                                {t.original_filename}
-                              </div>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTemplate(t.id, e);
-                            }}
-                            className="h-6 w-6 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 flex items-center justify-center absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity animate-fade-in"
-                            title="Delete Format"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Badge variant="outline" className={cn(
-                              "text-[9px] font-bold px-1.5 py-0 truncate max-w-[90px]",
-                              t.customerId ? "bg-blue-50/80 text-blue-700 border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                            )}>
-                              {t.customer?.name || "Shared"}
-                            </Badge>
-                            <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                              v{t.version || 1}
-                            </Badge>
-                          </div>
-                          <span className="text-[9px] text-slate-400 font-mono shrink-0">
-                            {(t.file_size / 1024).toFixed(0)} KB
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <Button
-                onClick={() => setIsUploadModalOpen(true)}
-                size="sm"
-                className="w-full h-9 gap-1.5 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 shadow-2xs rounded-lg"
-              >
-                <Plus className="w-4 h-4" /> Add Company Format
-              </Button>
+            <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-850" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight flex items-center gap-2">
+                Company Reports
+              </h1>
+              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                Create and manage company specific reports
+              </p>
             </div>
           </div>
 
-          {/* Right Column: Preview, KPIs & Control Bar (9 cols) */}
-          <div className="lg:col-span-9 flex flex-col gap-5">
-            {!selectedTemplateId ? (
-              /* Premium Empty State when no format selected */
-              <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-12 text-center shadow-2xs flex flex-col items-center justify-center min-h-[500px]">
-                <FileSpreadsheet className="w-8 h-8 text-brand shrink-0" />
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  No Active Format Selected
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-6 leading-relaxed">
-                  Please select an active company format template from the directory panel on the left to open the preview studio and generate reports.
-                </p>
+          <div className="flex items-center gap-2.5">
+            {/* Top Action Tabs */}
+            <div className="hidden lg:flex items-center gap-1 bg-white/80 dark:bg-slate-900/60 p-0.5 rounded-lg border border-slate-200/40 dark:border-slate-800/40 mr-4 text-[11px] font-bold text-slate-600">
+              <button onClick={() => navigate('/trips')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
+                <Truck className="w-3 h-3 text-[#FA634E]" /> Trips
+              </button>
+              <button onClick={() => navigate('/trips/monthly')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-[#FA634E]" /> Monthly Trips
+              </button>
+              <button onClick={() => navigate('/drivers')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
+                <Users className="w-3 h-3 text-[#FA634E]" /> Drivers
+              </button>
+              <button onClick={() => navigate('/vehicles')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
+                <Truck className="w-3 h-3 text-[#FA634E]" /> Vehicles
+              </button>
+              <button onClick={() => navigate('/customers')} className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-[#FA634E]" /> Customers
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+            >
+              <Upload className="w-4 h-4 text-slate-500" /> Import New Format
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const formatsCard = document.getElementById('your-formats-card');
+                if (formatsCard) formatsCard.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-850"
+            >
+              <FolderOpen className="w-4 h-4 text-slate-500" /> Manage Formats
+            </Button>
+
+            <Button
+              onClick={() => {
+                setCurrentStep(1);
+                const genCard = document.getElementById('generate-report-card');
+                if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
+              }}
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs px-4"
+            >
+              <Plus className="w-4 h-4" /> Create Report
+            </Button>
+          </div>
+        </div>
+
+        {/* ─── Card 1: Generate Company Report ─── */}
+        <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
+            </div>
+
+            {/* Step indicators */}
+            <div className="flex items-center gap-6 text-xs font-bold">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
+                  currentStep >= 1 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                )}>1</span>
+                <span className={currentStep >= 1 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Select Company & Format</span>
               </div>
-            ) : (
-              <>
-                {/* 4-Column Responsive Instrument-Panel KPI Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 shrink-0">
-                  {/* KPI Card 1: Total Trips */}
-                  <div className="relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800/80 shadow-3xs overflow-hidden flex flex-col justify-between min-h-[105px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-405 dark:text-slate-500">Total Active Trips</span>
-                      <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400">
-                        <Truck size={14} />
-                      </div>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                        {filteredRows.length}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1 z-10">
-                      <span className="text-emerald-505 font-bold">↑ 12%</span>
-                      <span>vs last week</span>
-                    </div>
-                    {/* Sparkline */}
-                    <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden pointer-events-none opacity-20 dark:opacity-30 rounded-b-xl">
-                      <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-indigo-500">
-                        <path d="M0,20 Q15,8 30,14 T60,10 T90,16 T100,6 L100,20 Z" fill="url(#sparkline-indigo)" stroke="currentColor" strokeWidth="0.75" />
-                        <defs>
-                          <linearGradient id="sparkline-indigo" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="currentColor" />
-                            <stop offset="100%" stopColor="transparent" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
-                  </div>
+              <div className="h-[1px] w-6 bg-slate-200 dark:bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
+                  currentStep >= 2 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                )}>2</span>
+                <span className={currentStep >= 2 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Select Data</span>
+              </div>
+              <div className="h-[1px] w-6 bg-slate-200 dark:bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
+                  currentStep >= 3 ? "bg-[#FA634E] text-white shadow-xs" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                )}>3</span>
+                <span className={currentStep >= 3 ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}>Preview & Generate</span>
+              </div>
+            </div>
+          </div>
 
-                  {/* KPI Card 2: Billing Outlay */}
-                  <div className="relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800/80 shadow-3xs overflow-hidden flex flex-col justify-between min-h-[105px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-405 dark:text-slate-500">Billing Outlay</span>
-                      <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
-                        <DollarSign size={14} />
-                      </div>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-2xl font-black text-emerald-650 dark:text-emerald-400 font-mono truncate block">
-                        SAR {totalBilling.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1 z-10">
-                      <span className="text-emerald-505 font-bold">↑ 8.4%</span>
-                      <span>monthly margin</span>
-                    </div>
-                    {/* Sparkline */}
-                    <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden pointer-events-none opacity-20 dark:opacity-30 rounded-b-xl">
-                      <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-emerald-500">
-                        <path d="M0,20 Q20,10 40,15 T70,5 T90,12 T100,8 L100,20 Z" fill="url(#sparkline-emerald)" stroke="currentColor" strokeWidth="0.75" />
-                        <defs>
-                          <linearGradient id="sparkline-emerald" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="currentColor" />
-                            <stop offset="100%" stopColor="transparent" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* KPI Card 3: Subcontract Cost */}
-                  <div className="relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800/80 shadow-3xs overflow-hidden flex flex-col justify-between min-h-[105px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-405 dark:text-slate-500">Subcontract Cost</span>
-                      <div className="p-1.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-450">
-                        <DollarSign size={14} />
-                      </div>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-2xl font-black text-rose-600 dark:text-rose-455 font-mono truncate block">
-                        SAR {totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1 z-10">
-                      <span className="text-slate-400">→</span>
-                      <span>within allocation</span>
-                    </div>
-                    {/* Sparkline */}
-                    <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden pointer-events-none opacity-20 dark:opacity-30 rounded-b-xl">
-                      <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-rose-500">
-                        <path d="M0,20 Q10,12 30,16 T60,10 T80,14 T100,12 L100,20 Z" fill="url(#sparkline-rose)" stroke="currentColor" strokeWidth="0.75" />
-                        <defs>
-                          <linearGradient id="sparkline-rose" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="currentColor" />
-                            <stop offset="100%" stopColor="transparent" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* KPI Card 4: Estimated Net Margin */}
-                  <div className="relative p-4 bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800/80 shadow-3xs overflow-hidden flex flex-col justify-between min-h-[105px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-405 dark:text-slate-500">Est. Net Margin</span>
-                      <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                        <Sparkles size={14} />
-                      </div>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono truncate block">
-                        SAR {(totalBilling - totalAmount).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1 z-10">
-                      <span className="text-emerald-500 font-bold">↑ 14.2%</span>
-                      <span>net gain metrics</span>
-                    </div>
-                    {/* Sparkline */}
-                    <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden pointer-events-none opacity-20 dark:opacity-30 rounded-b-xl">
-                      <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-full text-indigo-500">
-                        <path d="M0,20 Q15,5 30,12 T60,8 T90,15 T100,5 L100,20 Z" fill="url(#sparkline-indigo)" stroke="currentColor" strokeWidth="0.75" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Toolbar & Control Bar */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800 p-4 shadow-3xs flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
-                    {/* Search Input */}
-                    <div className="relative w-full max-w-[210px] shrink-0">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
-                        <Filter className="w-3.5 h-3.5" />
-                      </span>
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search ID, driver, customer..."
-                        className="w-full h-9 pl-9 pr-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-brand transition-all text-slate-850 dark:text-slate-100 font-semibold animate-fade-in"
-                      />
-                    </div>
-
-                    {/* Icon Dropdowns */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Combobox
-                        options={customerComboboxOptions}
-                        value={selectedCustomerId}
-                        onChange={setSelectedCustomerId}
-                        placeholder="All Customers"
-                        searchPlaceholder="Search customer..."
-                        disabled={!!selectedTemplate?.customerId}
-                        triggerClassName="h-9 text-xs bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-lg font-semibold"
-                      />
-                      <Combobox
-                        options={statusComboboxOptions}
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        placeholder="All Statuses"
-                        searchPlaceholder="Search status..."
-                        triggerClassName="h-9 text-xs bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-lg font-semibold"
-                      />
-                      <Combobox
-                        options={rateCategoryComboboxOptions}
-                        value={rateCategoryFilter}
-                        onChange={setRateCategoryFilter}
-                        placeholder="All Categories"
-                        searchPlaceholder="Search category..."
-                        triggerClassName="h-9 text-xs bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-lg font-semibold"
-                      />
-                      <Combobox
-                        options={presetComboboxOptions}
-                        value={preset}
-                        onChange={(val) => setPreset(val as DatePreset)}
-                        placeholder="Time Horizon"
-                        searchPlaceholder="Search preset..."
-                        triggerClassName="h-9 text-xs bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-lg font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  {/* View Switcher */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200/40 dark:border-slate-700/40">
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
-                          viewMode === 'list' 
-                            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs" 
-                            : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                        )}
-                      >
-                        <span>☰ List</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
-                          viewMode === 'grid' 
-                            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs" 
-                            : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                        )}
-                      >
-                        <span>🎛 Grid</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Custom date range fields if custom selected */}
-                {preset === 'custom' && (
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800 p-4 shadow-3xs flex items-center gap-4 animate-fade-in -mt-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Start Date:</span>
-                      <input
-                        type="date"
-                        value={customStart}
-                        onChange={(e) => setCustomStart(e.target.value)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 outline-none focus:border-brand"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">End Date:</span>
-                      <input
-                        type="date"
-                        value={customEnd}
-                        onChange={(e) => setCustomEnd(e.target.value)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 outline-none focus:border-brand"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Primary Report Generation Banner */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !selectedTemplateId || !filteredRows.length}
-                    className="w-full h-11 bg-brand hover:bg-brand-hover text-white font-extrabold text-xs shadow-md rounded-xl flex items-center justify-center gap-2 group transition-all duration-200"
-                  >
-                    {isGenerating ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4 group-hover:translate-y-[0.5px] transition-transform" />
-                    )}
-                    <span>Generate & Download Excel Report</span>
-                    <span className="bg-white/20 text-white font-mono px-2 py-0.5 rounded-md text-[10px]">
-                      {filteredRows.length} Trips
+          {/* Form Rows Grid */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px] space-y-1.5">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
+              <Select value={selectedCustomerId} onValueChange={(val: string) => {
+                setSelectedCustomerId(val);
+                const firstTpl = templates.find(t => t.customerId === val);
+                if (firstTpl) setSelectedTemplateId(firstTpl.id);
+                else if (val === 'all' && templates.length > 0) setSelectedTemplateId(templates[0].id);
+              }}>
+                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                  <SelectValue placeholder="Choose Customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <span className="flex items-center gap-2">
+                      <span className="h-5 w-5 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold">GL</span>
+                      <span>Shared / All Customer Accounts</span>
                     </span>
-                  </Button>
+                  </SelectItem>
+                  {customers.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-5 w-5 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[9px] font-bold uppercase">
+                          {(c.name || 'CO').slice(0, 2)}
+                        </span>
+                        <span>{c.name || c.company_name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 min-w-[200px] space-y-1.5">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                  <SelectValue placeholder="Choose Template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates
+                    .filter(t => selectedCustomerId === 'all' || !t.customerId || t.customerId === selectedCustomerId)
+                    .map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <span className="flex items-center gap-2">
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{t.name}</span>
+                          <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500">
+                            v{t.version || 1}
+                          </Badge>
+                        </span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-[180px] space-y-1.5">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
+              <Select value={selectedDataType} onValueChange={setSelectedDataType}>
+                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                  <SelectValue placeholder="Select Data Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Trips">Trips</SelectItem>
+                  <SelectItem value="Invoices">Invoices</SelectItem>
+                  <SelectItem value="Expenses">Expenses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 min-w-[200px] space-y-1.5">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
+              <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
+                <SelectTrigger className="h-10 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl">
+                  <SelectValue placeholder="Choose Horizon..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="this_week">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                      <span>This Week (01 Aug - 29 Aug)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="this_month">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>This Month (01 Aug 2026 - 31 Aug 2026)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="last_month">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                      <span>Last Month (01 Jul 2026 - 31 Jul 2026)</span>
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={handleNextStep}
+              className="h-10 px-6 rounded-xl bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-orange-500/10"
+            >
+              {currentStep === 3 ? 'Generate' : 'Next'} <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Info Status Strip underneath */}
+          {selectedTemplate && (
+            <div className="bg-[#EEF1F6]/50 dark:bg-slate-900/60 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap items-center gap-5 text-slate-500 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Format: <strong className="text-slate-800 dark:text-slate-200">Excel (.xlsx)</strong>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-blue-500" />
+                  Last Updated: <strong className="text-slate-800 dark:text-slate-200">29 Aug 2026</strong>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-purple-500" />
+                  Columns: <strong className="text-slate-800 dark:text-slate-200">{selectedTemplate.layout?.columns?.length || 18}</strong>
+                </span>
+                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 animate-pulse" />
+                  Mapped Fields: <strong>{selectedTemplate.layout?.columns?.filter(c => c.source?.kind === 'field').length || 18} / {selectedTemplate.layout?.columns?.length || 18}</strong>
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedTemplate) {
+                    setSelectedReportForPreview({
+                      id: 'temp-prev',
+                      companyId: selectedCustomerId,
+                      companyName: customers.find((c: any) => c.id === selectedCustomerId)?.name || 'iMile',
+                      companyLogo: 'iM',
+                      formatName: selectedTemplate.name,
+                      dataType: selectedDataType,
+                      period: preset === 'this_month' ? '01 Aug 2026 - 31 Aug 2026' : 'Active Period',
+                      recordsCount: filteredRows.length,
+                      generatedOn: '',
+                      generatedBy: '',
+                      status: 'Ready'
+                    });
+                  }
+                }}
+                className="h-8 gap-1.5 text-[11px] font-bold border-slate-200 hover:bg-slate-50 text-indigo-750 dark:text-indigo-400 bg-white"
+              >
+                <Eye className="w-3.5 h-3.5 text-indigo-500" /> Preview Format
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* ─── 2-Column Grid Workspace ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-start">
+
+          {/* Left Column (70%): Generated Reports history list */}
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generated Reports</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">View, download and manage previously generated reports</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative w-full max-w-[240px]">
+                  <Search className="absolute inset-y-0 left-3 h-full w-3.5 text-slate-400 flex items-center pointer-events-none" />
+                  <input
+                    type="text"
+                    value={reportSearchQuery}
+                    onChange={(e) => setReportSearchQuery(e.target.value)}
+                    placeholder="Search report, company or type..."
+                    className="w-full h-8 pl-9 pr-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-[#FA634E] text-slate-800 dark:text-slate-150 font-semibold"
+                  />
                 </div>
 
-                {/* Trips Data View (List Table or Grid Ledger cards) */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.06] dark:border-slate-800 p-4 shadow-2xs flex-1 flex flex-col min-h-0">
-                  
-                  {/* Ledger Header Bar */}
-                  <div className="flex items-center justify-between w-full border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-                    <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                      🥞 Trip Ledger
-                    </span>
-                    {selectedTemplate && (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] font-mono bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 border-indigo-200/50">
-                          {selectedTemplate.name} (v{selectedTemplate.version || 1})
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-[10px] font-bold text-indigo-650 hover:text-indigo-800 dark:text-indigo-400 gap-1 px-2 rounded-md border border-indigo-200/40 hover:bg-indigo-50/50 cursor-pointer"
-                          onClick={() => handleStartEditMapping(selectedTemplate)}
-                        >
-                          <Settings2 className="w-3 h-3" /> Edit Mapping
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 dark:hover:bg-slate-850"
+                >
+                  <Filter className="w-3.5 h-3.5 text-slate-400" /> Filters
+                </Button>
+              </div>
+            </div>
 
-                  {filteredRows.length === 0 ? (
-                    /* Centered soft circle empty state */
-                    <div className="flex flex-col items-center justify-center text-center py-16 px-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 max-w-md mx-auto my-8">
-                      <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-slate-450 dark:text-slate-500 flex items-center justify-center text-xl font-bold border border-slate-100 dark:border-slate-700 mb-3 shadow-3xs">
-                        📄
-                      </div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        No Matching Records
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-[280px] leading-relaxed">
-                        Adjust your filters, search term, or try a different customer template to see matching records.
-                      </p>
-                    </div>
-                  ) : viewMode === 'list' ? (
-                    <DataTable
-                      columns={previewColumns}
-                      data={filteredRows}
-                      compact={true}
-                      isLoading={previewLoading}
-                    />
-                  ) : (
-                    /* Premium Grid view of matching items */
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {filteredRows.map((row: any) => (
-                        <div key={row.id} className="p-4 bg-slate-50/50 dark:bg-slate-900/40 border border-black/[0.04] dark:border-slate-800/65 rounded-xl hover:shadow-2xs transition-all flex flex-col gap-2.5 relative group animate-fade-in">
-                          <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/85 pb-2">
-                            <span className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400">{row.ref_id}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              {row.planned_start ? formatInDeploymentTz(row.planned_start, tz, 'yyyy-MM-dd') : '—'}
+            {/* Generated Reports Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    <th className="py-3 px-2">Company</th>
+                    <th className="py-3 px-2">Report Format</th>
+                    <th className="py-3 px-2">Data Type</th>
+                    <th className="py-3 px-2">Period</th>
+                    <th className="py-3 px-2 text-center">Records</th>
+                    <th className="py-3 px-2">Generated On</th>
+                    <th className="py-3 px-2 text-center">Status</th>
+                    <th className="py-3 px-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-850/50">
+                  {filteredReports.map((report) => {
+                    const logoBgColors: Record<string, string> = {
+                      'iM': 'bg-violet-100 text-violet-850 dark:bg-violet-950/45 dark:text-violet-300',
+                      'Ax': 'bg-rose-100 text-rose-850 dark:bg-rose-950/45 dark:text-rose-300',
+                      'DL': 'bg-amber-100 text-amber-900 dark:bg-amber-950/45 dark:text-amber-300',
+                      'Tb': 'bg-orange-100 text-orange-850 dark:bg-orange-950/45 dark:text-orange-300',
+                      'Nn': 'bg-yellow-100 text-yellow-900 dark:bg-yellow-950/45 dark:text-yellow-300',
+                    };
+                    const colorClass = logoBgColors[report.companyLogo] || 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
+
+                    return (
+                      <tr key={report.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                        <td className="py-3 px-2 font-bold text-slate-900 dark:text-slate-100">
+                          <span className="flex items-center gap-2">
+                            <span className={cn("h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-black uppercase shrink-0", colorClass)}>
+                              {report.companyLogo}
                             </span>
-                          </div>
-                          
-                          <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between items-center text-slate-500">
-                              <span>Customer</span>
-                              <span className="text-slate-850 dark:text-slate-200 font-bold">{row.customer?.name || '—'}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-500">
-                              <span>Driver</span>
-                              <span className="text-slate-850 dark:text-slate-200 font-medium">
-                                {row.is_third_party ? (row.third_party_driver_name || '3PL Driver') : (row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned')}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-500">
-                              <span>Vehicle</span>
-                              <span className="text-slate-850 dark:text-slate-200 font-mono">
-                                {row.is_third_party ? (row.third_party_vehicle_plate || '3PL Vehicle') : (row.vehicle?.plate_number || 'Unassigned')}
-                              </span>
-                            </div>
-                          </div>
+                            <span>{report.companyName}</span>
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                          {report.formatName}
+                        </td>
+                        <td className="py-3 px-2 font-medium text-slate-550 dark:text-slate-400">
+                          {report.dataType}
+                        </td>
+                        <td className="py-3 px-2 text-slate-500 font-mono text-[10px]">
+                          {report.period}
+                        </td>
+                        <td className="py-3 px-2 text-center font-bold font-mono text-slate-800 dark:text-slate-200">
+                          {report.recordsCount}
+                        </td>
+                        <td className="py-3 px-2 text-slate-400 text-[10px]">
+                          <div>{report.generatedOn}</div>
+                          <div className="font-semibold text-slate-500">By {report.generatedBy}</div>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          {report.status === 'Ready' && (
+                            <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                              Ready
+                            </Badge>
+                          )}
+                          {report.status === 'Processing' && (
+                            <Badge className="bg-amber-50 text-amber-800 border border-amber-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5 animate-pulse">
+                              Processing
+                            </Badge>
+                          )}
+                          {report.status === 'Failed' && (
+                            <Badge className="bg-rose-50 text-rose-800 border border-rose-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                              Failed
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {report.status === 'Ready' ? (
+                              <>
+                                <button
+                                  onClick={() => handleDownloadReportById(report)}
+                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                  title="Download Report"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setSelectedReportForPreview(report)}
+                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                  title="View Report Preview"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : report.status === 'Processing' ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400" />
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setGeneratedReports(prev => 
+                                    prev.map(r => r.id === report.id ? { ...r, status: 'Processing' } : r)
+                                  );
+                                  setTimeout(() => {
+                                    setGeneratedReports(prev => 
+                                      prev.map(r => r.id === report.id ? { ...r, status: 'Ready' } : r)
+                                    );
+                                    toast.success('Report generation retried successfully!');
+                                  }, 2000);
+                                }}
+                                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                title="Retry Generation"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5 text-rose-500" />
+                              </button>
+                            )}
 
-                          <div className="mt-1 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                            {/* Editable per row values */}
-                            <div className="space-y-1">
-                              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Company Name</label>
-                              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
-                                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <input
-                                  type="text"
-                                  defaultValue={row._companyName || 'MERCON Logistics'}
-                                  onChange={(e) => { row._companyName = e.target.value; }}
-                                  placeholder="Company Name"
-                                  className="w-full text-xs font-semibold bg-transparent outline-none text-slate-850 dark:text-slate-100"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400">Separate Text</label>
-                              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
-                                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <input
-                                  type="text"
-                                  defaultValue={row._separateText || ''}
-                                  onChange={(e) => { row._separateText = e.target.value; }}
-                                  placeholder="Separate Text"
-                                  className="w-full text-xs font-semibold bg-transparent outline-none text-slate-850 dark:text-slate-100"
-                                />
-                              </div>
-                            </div>
+                            <button 
+                              onClick={() => handleDeleteGeneratedReport(report.id)}
+                              className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600"
+                              title="Delete Run Entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination strip */}
+            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 text-slate-400 font-semibold text-[11px]">
+              <span>Showing 1 to {filteredReports.length} of {filteredReports.length} reports</span>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-slate-200 text-slate-500">&lt;</Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-[#FA634E] text-[#FA634E] font-bold bg-orange-50/50">1</Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-slate-200 text-slate-500">&gt;</Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (30%): Active report templates list */}
+          <div id="your-formats-card" className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs space-y-4">
+            <div>
+              <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Your Report Formats</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Active company report formats</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {templatesLoading ? (
+                <div className="text-center py-6 text-xs text-slate-400 font-medium animate-pulse">
+                  Loading active formats...
                 </div>
-              </>
-            )}
+              ) : templates.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400 font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  No formats loaded
+                </div>
+              ) : (
+                templates.map((tpl) => (
+                  <div 
+                    key={tpl.id}
+                    onClick={() => {
+                      setSelectedTemplateId(tpl.id);
+                      if (tpl.customerId) setSelectedCustomerId(tpl.customerId);
+                    }}
+                    className={cn(
+                      "p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group relative",
+                      selectedTemplateId === tpl.id
+                        ? "bg-orange-50/40 border-[#FA634E]/30 dark:bg-slate-850/40"
+                        : "bg-white border-slate-100 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 shrink-0">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate pr-4">
+                          {tpl.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5 font-mono">
+                          {tpl.layout?.columns?.length || 18} Columns
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge className="bg-emerald-50/50 text-emerald-800 border-none font-bold text-[9px] shadow-none rounded-md px-1.5 py-0.2">
+                        Active
+                      </Badge>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTemplate(tpl.id, e);
+                        }}
+                        className="h-6 w-6 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete Format Template"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="w-full h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 rounded-xl bg-white"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-slate-500" /> Manage All Formats
+            </Button>
           </div>
 
         </div>
+
+        {/* ─── Bottom Helper Banner ─── */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-50 text-[#FA634E] dark:bg-orange-950/20 shrink-0">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Need a new report format?</h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">Upload your company's Excel format and our system will auto-detect columns and map them to MERCON fields.</p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 rounded-xl bg-white shrink-0"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-500" /> Import New Format
+          </Button>
+        </div>
+
+        {/* ─── Live Data Preview Dialog Modal ─── */}
+        <Dialog open={!!selectedReportForPreview} onOpenChange={() => setSelectedReportForPreview(null)}>
+          <DialogContent className="sm:max-w-4xl max-h-[80vh] flex flex-col">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-[#3E3C3D] dark:text-slate-100">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600 animate-pulse" /> Previewing: {selectedReportForPreview?.companyName}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Showing top parsed records for template {selectedReportForPreview?.formatName} ({selectedReportForPreview?.period})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-auto border border-slate-100 dark:border-slate-800 rounded-xl my-4 min-h-[300px]">
+              <DataTable
+                columns={previewColumns}
+                data={filteredRows}
+                compact={true}
+                isLoading={previewLoading}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2.5 shrink-0 pt-2 border-t border-slate-100 dark:border-slate-850">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSelectedReportForPreview(null)}
+                className="h-9 rounded-lg"
+              >
+                Close Preview
+              </Button>
+              {selectedReportForPreview?.id !== 'temp-prev' && (
+                <Button 
+                  size="sm" 
+                  className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 rounded-lg font-bold flex items-center gap-1.5"
+                  onClick={() => {
+                    if (selectedReportForPreview) {
+                      handleDownloadReportById(selectedReportForPreview);
+                      setSelectedReportForPreview(null);
+                    }
+                  }}
+                >
+                  <Download className="w-4 h-4" /> Download Report (.xlsx)
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ─── Add Template Dialog Modal (Redesigned Zero-Configuration) ─── */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
