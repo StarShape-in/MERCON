@@ -79,24 +79,20 @@ export const resolveLocation = async (
   const slug = toSlug(name);
   const inputCode = input.code ? String(input.code).trim().toUpperCase() : null;
 
-  const upperName = name.toUpperCase();
-  const knownAliases: Record<string, string[]> = {
-    'DMM': ['DAMMAM', 'DAMAM'],
-    'DAMMAM': ['DMM', 'DAMAM'],
-    'RUH': ['RIYADH', 'RIYAD'],
-    'RYD': ['RIYADH', 'RIYAD'],
-    'RIYADH': ['RUH', 'RYD', 'RIYAD'],
-    'JED': ['JEDDAH', 'JIDDAH'],
-    'JEDDAH': ['JED', 'JIDDAH'],
-    'JUB': ['JUBAIL', 'AL JUBAIL', 'AL-JUBAIL'],
-    'JUBAIL': ['JUB', 'AL JUBAIL', 'AL-JUBAIL'],
-    'HAS': ['AL HASA', 'HASA', 'AL-HASA', 'HOFUF', 'EL HASA'],
-    'AL HASA': ['HAS', 'HASA', 'AL-HASA', 'HOFUF', 'EL HASA'],
-    'HOFUF': ['AL HASA', 'HASA', 'HAS', 'AL-HASA'],
-    'YAN': ['YANBU', 'YANBU AL BAHR'],
-    'YANBU': ['YAN', 'YANBU AL BAHR'],
-  };
-  const aliasVariants = knownAliases[upperName] || [];
+  if (inputCode) {
+    const codeClash = await tx.location.findFirst({
+      where: {
+        customerId: customerIdToUse,
+        code: { equals: inputCode, mode: 'insensitive' as const },
+        ...(idToUse ? { id: { not: idToUse } } : {}),
+        deletedAt: null,
+      },
+    });
+
+    if (codeClash && codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
+      throw new Error(`LOCATION_CODE_DUPLICATE: Code "${inputCode}" is already in use for location "${codeClash.name}". Please choose a different code.`);
+    }
+  }
 
   // 1. Search for existing location strictly by exact Code, Slug, or exact Name for this customer
   let found = await tx.location.findFirst({
@@ -323,7 +319,14 @@ export const createLocation = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: location });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create location' } });
+    const isDuplicate = error.message?.startsWith('LOCATION_CODE_DUPLICATE');
+    res.status(isDuplicate ? 409 : 500).json({
+      success: false,
+      error: {
+        code: isDuplicate ? 'DUPLICATE' : 'SERVER_ERROR',
+        message: error.message ? error.message.replace('LOCATION_CODE_DUPLICATE: ', '') : 'Failed to create location',
+      },
+    });
   }
 };
 
