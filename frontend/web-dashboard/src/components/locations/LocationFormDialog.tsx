@@ -130,8 +130,7 @@ export default function LocationFormDialog({
       const cleanAddress = addressIsUrl ? '' : rawAddress;
       const cleanCity = cityIsUrl ? '' : (rawCity || extractCityFromAddress(cleanAddress, cleanName));
 
-      const generatedCode = initialData.code || generateSmartLocationCode(cleanName, cleanCity);
-      setCode(generatedCode.toUpperCase());
+      setCode(initialData.code ? initialData.code.toUpperCase() : '');
       setName(cleanName);
       setAddress(cleanAddress);
       setCity(cleanCity);
@@ -148,7 +147,7 @@ export default function LocationFormDialog({
       }
     } else {
       setCustomerId(defaultCustomerId || '');
-      setCode(generateSmartLocationCode());
+      setCode('');
       setName('');
       setCity('');
       setPostalCode('');
@@ -352,7 +351,7 @@ export default function LocationFormDialog({
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="e.g. LOC-01"
+                placeholder="Enter code (e.g. RUH, BAH)..."
                 maxLength={10}
                 className="h-9 text-xs font-mono font-bold uppercase truncate"
               />
