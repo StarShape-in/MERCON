@@ -108,57 +108,18 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-border bg-popover z-[9999] overflow-hidden" align={align}>
-          {/* Quick Presets Toolbar */}
-          <div className="p-2 border-b bg-muted/20 flex flex-wrap items-center gap-1">
-            {presets.map((p) => {
-              const isSelected =
-                value?.from &&
-                value?.to &&
-                format(value.from, 'yyyy-MM-dd') === format(p.range.from, 'yyyy-MM-dd') &&
-                format(value.to, 'yyyy-MM-dd') === format(p.range.to, 'yyyy-MM-dd');
-              return (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => {
-                    handleSelect(p.range);
-                  }}
-                  className={cn(
-                    'text-[11px] px-2 py-1 rounded-lg font-medium transition-all flex items-center gap-1',
-                    isSelected
-                      ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
-                      : 'bg-background hover:bg-muted text-foreground border border-border/60'
-                  )}
-                >
-                  {isSelected && <Check className="w-3 h-3" />}
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="p-2">
-            <Calendar
-              mode="range"
-              selected={value}
-              onSelect={handleSelect}
-              numberOfMonths={1}
-              autoFocus
-            />
-          </div>
-
-          <div className="p-2.5 border-t bg-muted/20 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-mono">{displayText}</span>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setOpen(false)}
-              className="h-7 text-xs px-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-            >
-              Done
-            </Button>
-          </div>
+        <PopoverContent className="w-auto p-3 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden" align={align}>
+          <Calendar
+            mode="range"
+            selected={value}
+            onSelect={handleSelect}
+            numberOfMonths={1}
+            captionLayout="label"
+            classNames={{
+              caption_label: "text-xs font-extrabold text-slate-800 dark:text-slate-200 tracking-wider uppercase",
+            }}
+            autoFocus
+          />
         </PopoverContent>
       </Popover>
     </div>
