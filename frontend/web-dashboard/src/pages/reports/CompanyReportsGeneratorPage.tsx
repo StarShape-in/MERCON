@@ -598,12 +598,9 @@ export default function CompanyReportsGeneratorPage() {
         {/* ─── Card 1: Generate Company Report ─── */}
         <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-8 rounded-full bg-[#FA634E] shrink-0" />
-              <div>
-                <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generate Company Report</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
-              </div>
+            <div>
+              <h2 className="text-base font-black text-[#FA634E] tracking-tight">Generate Company Report</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Define constraints and format template mapping parameters</p>
             </div>
             <Button
               variant="outline"
