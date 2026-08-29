@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders
+  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -360,6 +360,7 @@ export default function SettingsPage() {
               🏢 MERCON Logistics <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
             <div className="flex items-center gap-2 mt-1 sm:mt-0">
+              <Settings className="w-6 h-6 text-slate-700 dark:text-slate-300 shrink-0" />
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Settings
               </h1>

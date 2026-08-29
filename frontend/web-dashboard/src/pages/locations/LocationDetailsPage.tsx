@@ -414,7 +414,8 @@ export default function LocationDetailsPage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Locations
             </Button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
+              <MapPin className="w-6 h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
                 {location.code}
               </span>

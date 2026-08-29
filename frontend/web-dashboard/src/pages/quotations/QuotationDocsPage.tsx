@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  Calculator,
   FileText,
   FileSpreadsheet,
   Building2,
@@ -127,6 +128,7 @@ export default function QuotationDocsPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Calculator className="w-6 h-6 text-[#FA634E] shrink-0" />
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Quotation Documents
               </h1>

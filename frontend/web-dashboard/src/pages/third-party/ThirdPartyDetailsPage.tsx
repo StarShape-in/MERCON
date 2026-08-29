@@ -232,10 +232,11 @@ export default function ThirdPartyDetailsPage() {
             {/* Company Name + Badges & Details Directly Under Name */}
             <div className="flex flex-col min-w-0 flex-1">
               <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
                 title={provider.name}
               >
-                {provider.name}
+                <Building2 className="w-7 h-7 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span>{provider.name}</span>
               </h1>
 
               {/* Badges & Tags Under the Name */}

@@ -99,8 +99,9 @@ export default function TaxonomyManagementPage() {
                 Master Data Module
               </Badge>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Taxonomy & Universal Colors
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <SlidersHorizontal className="w-7 h-7 text-[#FA634E] shrink-0" />
+              <span>Taxonomy & Universal Colors</span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Manage universal color codes, vehicle tonnage classes, service line types, and operation categories across MERCON.

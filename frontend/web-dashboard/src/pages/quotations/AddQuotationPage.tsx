@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Building2,
+  Calculator,
   MapPin,
   Plus,
   Trash2,
@@ -484,7 +485,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              {isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}
+              <Calculator className="w-6 h-6 text-[#FA634E] shrink-0" />
+              <span>{isEdit ? 'Edit Commercial Quotation' : 'Create Commercial Agreement'}</span>
             </h1>
 
             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[#2D2B2C] text-white dark:bg-slate-100 dark:text-slate-900 rounded-lg font-mono font-black text-xs shadow-2xs">

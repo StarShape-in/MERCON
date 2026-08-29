@@ -306,8 +306,9 @@ export default function CustomerDetailsPage() {
 
             {/* Company Name + Tags Directly Under Name */}
             <div className="flex flex-col min-w-0">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                {customer.name}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none flex items-center gap-3">
+                <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>{customer.name}</span>
               </h1>
 
               {/* Badges & Tags Under the Name */}

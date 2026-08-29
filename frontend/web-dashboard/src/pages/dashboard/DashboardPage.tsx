@@ -7,6 +7,7 @@ import {
   FileText,
   RotateCw,
   Maximize2,
+  Activity,
   Truck,
   Building2,
   X,
@@ -1067,8 +1068,9 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.04]">
             {/* Left: Greeting & Module Badge */}
             <div className="flex items-center gap-2.5">
-              <h1 className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                {greeting}, <span className="text-slate-900 dark:text-slate-100">{userName}</span>
+              <h1 className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>{greeting}, <span className="text-slate-900 dark:text-slate-100">{userName}</span></span>
               </h1>
               {isAdmin ? (
                 <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">

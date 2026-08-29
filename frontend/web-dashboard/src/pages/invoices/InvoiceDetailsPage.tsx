@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, FileText, Building2, Calendar, DollarSign,
-  Truck, Hash, StickyNote, CheckCircle2, Clock, MapPin, AlertTriangle
+  Truck, Hash, StickyNote, CheckCircle2, Clock, MapPin, AlertTriangle, ReceiptText,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -105,7 +105,10 @@ export default function InvoiceDetailsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">MERCON Invoice Record</p>
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">{inv.ref_id || 'INV-DRAFT'}</h1>
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono flex items-center gap-2">
+                <ReceiptText className="w-6 h-6 text-[#FA634E] shrink-0" />
+                <span>{inv.ref_id || 'INV-DRAFT'}</span>
+              </h1>
             </div>
             <Badge variant="outline" className={`text-xs font-bold px-3 py-1 uppercase tracking-wider ${statusBadge(inv.status)}`}>
               {inv.status}

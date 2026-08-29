@@ -57,6 +57,7 @@ export default function VehicleDocumentsPage() {
               </div>
             ) : (
               <div className="flex items-center gap-3">
+                <Truck className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
                   Vehicle Compliance Vault: <span className="text-indigo-600 dark:text-indigo-400">{plateOrRef}</span>
                 </h1>

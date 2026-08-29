@@ -209,10 +209,11 @@ export default function DriverDetailsPage() {
             {/* Driver Name + Badges & Details Directly Under Name */}
             <div className="flex flex-col min-w-0 flex-1">
               <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full"
+                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
                 title={`${driver.first_name} ${driver.last_name}`}
               >
-                {driver.first_name} {driver.last_name}
+                <User className="w-7 h-7 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{driver.first_name} {driver.last_name}</span>
               </h1>
 
               {/* Badges & Tags Under the Name */}
