@@ -111,7 +111,14 @@ const DeliveryVerificationScreen = () => {
     try {
       const photo = await choosePhoto();
       if (photo) {
-        setPhotos((prev) => [...prev, photo].slice(0, 3));
+        setPhotos((prev) => {
+          const next = [...prev, photo].slice(0, 3);
+          if (trip?.id) {
+            SecureStore.setItemAsync(`delivery_draft_photos_${trip.id}`, JSON.stringify(next));
+            SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(next));
+          }
+          return next;
+        });
       }
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
@@ -119,13 +126,23 @@ const DeliveryVerificationScreen = () => {
   };
 
   const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, idx) => idx !== index));
+    setPhotos((prev) => {
+      const next = prev.filter((_, idx) => idx !== index);
+      if (trip?.id) {
+        SecureStore.setItemAsync(`delivery_draft_photos_${trip.id}`, JSON.stringify(next));
+        SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleCompleteDelivery = async () => {
     if (!trip || submitting) return;
     setSubmitting(true);
     try {
+      if (trip?.id) {
+        await SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(photos));
+      }
       // Upload POD photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {

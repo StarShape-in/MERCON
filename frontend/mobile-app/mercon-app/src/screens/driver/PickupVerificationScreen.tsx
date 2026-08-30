@@ -113,7 +113,14 @@ const PickupVerificationScreen = () => {
     try {
       const photo = await choosePhoto();
       if (photo) {
-        setPhotos((prev) => [...prev, photo].slice(0, 3));
+        setPhotos((prev) => {
+          const next = [...prev, photo].slice(0, 3);
+          if (trip?.id) {
+            SecureStore.setItemAsync(`pickup_draft_photos_${trip.id}`, JSON.stringify(next));
+            SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(next));
+          }
+          return next;
+        });
       }
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
@@ -121,7 +128,14 @@ const PickupVerificationScreen = () => {
   };
 
   const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, idx) => idx !== index));
+    setPhotos((prev) => {
+      const next = prev.filter((_, idx) => idx !== index);
+      if (trip?.id) {
+        SecureStore.setItemAsync(`pickup_draft_photos_${trip.id}`, JSON.stringify(next));
+        SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleStartLoading = async () => {
@@ -146,6 +160,9 @@ const PickupVerificationScreen = () => {
     }
     setSubmitting(true);
     try {
+      if (trip?.id) {
+        await SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(photos));
+      }
       // Upload photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {

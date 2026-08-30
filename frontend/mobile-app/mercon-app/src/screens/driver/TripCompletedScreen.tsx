@@ -11,26 +11,25 @@ import { API_URL } from '../../lib/api';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useCargoPodPhotos } from '../../lib/documents';
 
+import { safeSecureStore as SecureStore } from '../../lib/secure-store';
+
 const FILE_BASE = API_URL ? API_URL.replace(/\/api\/?$/, '') : '';
 
-const SAMPLE_CARGO_PHOTOS = [
-  'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=600&auto=format&fit=crop&q=80',
-];
-
-const SAMPLE_POD_PHOTOS = [
-  'https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&auto=format&fit=crop&q=80',
-];
-
-const getPhotoUri = (item: any, defaultUrl: string) => {
-  if (typeof item === 'object' && item?.file_url) {
-    const url = item.file_url;
-    return url.startsWith('http') ? url : `${FILE_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+const getPhotoUri = (item: any): string | null => {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    return item.startsWith('http') || item.startsWith('file:') || item.startsWith('data:')
+      ? item
+      : `${FILE_BASE}${item.startsWith('/') ? '' : '/'}${item}`;
   }
-  return defaultUrl;
+  if (typeof item === 'object') {
+    const url = item.file_url || item.uri;
+    if (!url) return null;
+    return url.startsWith('http') || url.startsWith('file:') || url.startsWith('data:')
+      ? url
+      : `${FILE_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+  return null;
 };
 
 // Vibrant Green Success Checkmark Badge with Spring Entrance, Dual Glow Rings & Rich Confetti
@@ -103,12 +102,45 @@ const TripCompletedScreen = () => {
     refetch();
   }, []);
 
+  const [localPickupPhotos, setLocalPickupPhotos] = useState<any[]>([]);
+  const [localDeliveryPhotos, setLocalDeliveryPhotos] = useState<any[]>([]);
+
+  useEffect(() => {
+    refetch();
+    if (!trip?.id) return;
+    const loadLocal = async () => {
+      try {
+        const pComp = await SecureStore.getItemAsync(`pickup_completed_photos_${trip.id}`);
+        const pDraft = await SecureStore.getItemAsync(`pickup_draft_photos_${trip.id}`);
+        const pSaved = pComp || pDraft;
+        if (pSaved) {
+          const p = JSON.parse(pSaved);
+          if (Array.isArray(p)) setLocalPickupPhotos(p);
+        }
+
+        const dComp = await SecureStore.getItemAsync(`delivery_completed_photos_${trip.id}`);
+        const dDraft = await SecureStore.getItemAsync(`delivery_draft_photos_${trip.id}`);
+        const dSaved = dComp || dDraft;
+        if (dSaved) {
+          const d = JSON.parse(dSaved);
+          if (Array.isArray(d)) setLocalDeliveryPhotos(d);
+        }
+      } catch (e) {
+        console.error('Error loading local photos:', e);
+      }
+    };
+    loadLocal();
+  }, [trip?.id]);
+
   const tripDocs = trip?.id
     ? documents.filter((d) => d.entity_id === trip.id || d.trip_ref_id === trip.ref_id)
     : documents;
 
-  const cargoPhotos = tripDocs.filter((d) => d.doc_type === 'Waybill' || d.doc_type === 'CARGO_PHOTO' || d.doc_type === 'CustomsClearance');
-  const podPhotos = tripDocs.filter((d) => d.doc_type === 'POD');
+  const apiCargo = tripDocs.filter((d) => d.doc_type === 'Waybill' || d.doc_type === 'CARGO_PHOTO' || d.doc_type === 'CustomsClearance');
+  const apiPod = tripDocs.filter((d) => d.doc_type === 'POD');
+
+  const polList = apiCargo.length > 0 ? apiCargo : localPickupPhotos;
+  const podList = apiPod.length > 0 ? apiPod : localDeliveryPhotos;
 
   const handleShare = async () => {
     try {
@@ -247,30 +279,40 @@ const TripCompletedScreen = () => {
               <PackageCheck size={18} color="#10B981" strokeWidth={2.2} />
               <Text style={styles.mediaSectionTitle}>Proof of Loading (POL)</Text>
             </View>
-            <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7}>
-              <Text style={styles.viewAllText}>View all ›</Text>
-            </TouchableOpacity>
+            {polList.length > 0 && (
+              <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
+                <Text style={styles.viewAllText}>View all ›</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={styles.mediaGrid}>
-            {(cargoPhotos.length > 0 ? cargoPhotos : SAMPLE_CARGO_PHOTOS.map((u, i) => ({ id: i, file_url: u }))).slice(0, 3).map((item, idx) => {
-              const photoUri = getPhotoUri(item, SAMPLE_CARGO_PHOTOS[idx % SAMPLE_CARGO_PHOTOS.length]);
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.mediaThumbFrame}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Loading (POL) #${idx + 1}` })}
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={styles.mediaThumbImg}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {polList.length === 0 ? (
+            <View style={styles.emptyPhotoBox}>
+              <PackageCheck size={18} color="#94A3B8" />
+              <Text style={styles.emptyPhotoText}>No loading photo attached</Text>
+            </View>
+          ) : (
+            <View style={styles.mediaGrid}>
+              {polList.slice(0, 3).map((item, idx) => {
+                const photoUri = getPhotoUri(item);
+                if (!photoUri) return null;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.mediaThumbFrame}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Loading (POL) #${idx + 1}` })}
+                  >
+                    <Image
+                      source={{ uri: photoUri }}
+                      style={styles.mediaThumbImg}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           <View style={styles.cardDivider} />
 
@@ -280,30 +322,40 @@ const TripCompletedScreen = () => {
               <CheckCircle2 size={18} color="#10B981" strokeWidth={2.2} />
               <Text style={styles.mediaSectionTitle}>Proof of Delivery (POD)</Text>
             </View>
-            <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7}>
-              <Text style={styles.viewAllText}>View all ›</Text>
-            </TouchableOpacity>
+            {podList.length > 0 && (
+              <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
+                <Text style={styles.viewAllText}>View all ›</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={styles.mediaGrid}>
-            {(podPhotos.length > 0 ? podPhotos : SAMPLE_POD_PHOTOS.map((u, i) => ({ id: i, file_url: u }))).slice(0, 3).map((item, idx) => {
-              const photoUri = getPhotoUri(item, SAMPLE_POD_PHOTOS[idx % SAMPLE_POD_PHOTOS.length]);
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.mediaThumbFrame}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Delivery (POD) #${idx + 1}` })}
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={styles.mediaThumbImg}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {podList.length === 0 ? (
+            <View style={styles.emptyPhotoBox}>
+              <CheckCircle2 size={18} color="#94A3B8" />
+              <Text style={styles.emptyPhotoText}>No delivery photo attached</Text>
+            </View>
+          ) : (
+            <View style={styles.mediaGrid}>
+              {podList.slice(0, 3).map((item, idx) => {
+                const photoUri = getPhotoUri(item);
+                if (!photoUri) return null;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.mediaThumbFrame}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Delivery (POD) #${idx + 1}` })}
+                  >
+                    <Image
+                      source={{ uri: photoUri }}
+                      style={styles.mediaThumbImg}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* 3. Bottom Action Buttons */}
@@ -551,6 +603,22 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F1F5F9',
     marginVertical: 14,
+  },
+  emptyPhotoBox: {
+    height: 72,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  emptyPhotoText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#64748B',
   },
 
   actionButtonsRow: {
