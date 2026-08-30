@@ -57,6 +57,59 @@ export function QuotationRouteDrawer({
     return [origin, dest];
   }, [stops, quotation]);
 
+  // Fetch trips consuming this specific rate / quotation (Always called unconditionally at top level)
+  const { data: tripsRes, isLoading: isLoadingTrips } = useQuery({
+    queryKey: ['trips-using-rate', quotation?.id],
+    queryFn: async () => {
+      if (!quotation?.id) return [];
+      try {
+        const res = await tripService.getAll({
+          quotation_id: quotation.id,
+          quotationId: quotation.id,
+          rate_card_id: quotation.id,
+          per_page: 50,
+        } as any);
+
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          return res.data;
+        }
+
+        // Fallback search by customer to match quotation reference
+        const custId = quotation.customerId || (quotation as any).customer_id;
+        if (custId) {
+          const custRes = await tripService.getAll({ customer_id: custId, per_page: 100 });
+          if (custRes?.data && Array.isArray(custRes.data)) {
+            return custRes.data.filter(
+              (t: any) =>
+                t.quotationId === quotation.id ||
+                t.quotation_id === quotation.id ||
+                t.rateCardId === quotation.id ||
+                t.rate_card_id === quotation.id
+            );
+          }
+        }
+        return [];
+      } catch {
+        return [];
+      }
+    },
+    enabled: open && !!quotation?.id,
+  });
+
+  const matchedTrips = tripsRes || [];
+  const totalTripsCount = matchedTrips.length;
+
+  // Filter latest 3-5 trips sorted by date
+  const recentTrips = useMemo(() => {
+    return [...matchedTrips]
+      .sort((a: any, b: any) => {
+        const dA = new Date(a.planned_start || a.createdAt || 0).getTime();
+        const dB = new Date(b.planned_start || b.createdAt || 0).getTime();
+        return dB - dA;
+      })
+      .slice(0, 4);
+  }, [matchedTrips]);
+
   if (!quotation) return null;
 
   const firstStop = stopNames[0] || 'Origin';
@@ -113,59 +166,6 @@ export function QuotationRouteDrawer({
 
   const quotationRefId =
     (quotation as any).agreement_ref || `QT-${quotation.id.substring(0, 8).toUpperCase()}`;
-
-  // Fetch trips consuming this specific rate / quotation
-  const { data: tripsRes, isLoading: isLoadingTrips } = useQuery({
-    queryKey: ['trips-using-rate', quotation?.id],
-    queryFn: async () => {
-      if (!quotation?.id) return [];
-      try {
-        const res = await tripService.getAll({
-          quotation_id: quotation.id,
-          quotationId: quotation.id,
-          rate_card_id: quotation.id,
-          per_page: 50,
-        } as any);
-
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          return res.data;
-        }
-
-        // Fallback search by customer to match quotation reference
-        const custId = quotation.customerId || (quotation as any).customer_id;
-        if (custId) {
-          const custRes = await tripService.getAll({ customer_id: custId, per_page: 100 });
-          if (custRes?.data && Array.isArray(custRes.data)) {
-            return custRes.data.filter(
-              (t: any) =>
-                t.quotationId === quotation.id ||
-                t.quotation_id === quotation.id ||
-                t.rateCardId === quotation.id ||
-                t.rate_card_id === quotation.id
-            );
-          }
-        }
-        return [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: open && !!quotation?.id,
-  });
-
-  const matchedTrips = tripsRes || [];
-  const totalTripsCount = matchedTrips.length;
-
-  // Filter latest 3-5 trips sorted by date
-  const recentTrips = useMemo(() => {
-    return [...matchedTrips]
-      .sort((a: any, b: any) => {
-        const dA = new Date(a.planned_start || a.createdAt || 0).getTime();
-        const dB = new Date(b.planned_start || b.createdAt || 0).getTime();
-        return dB - dA;
-      })
-      .slice(0, 4);
-  }, [matchedTrips]);
 
   const handleViewAllTrips = () => {
     onOpenChange(false);
