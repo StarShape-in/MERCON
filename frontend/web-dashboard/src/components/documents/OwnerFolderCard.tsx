@@ -43,15 +43,42 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
       ? { iconBg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-600', hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700' }
       : { iconBg: 'bg-rose-50 dark:bg-rose-950/60 border-rose-205 dark:border-rose-805 text-rose-500', hoverBorder: 'hover:border-rose-300 dark:hover:border-rose-700' };
 
+  const folderTheme = (() => {
+    const hasExpired = mandatorySlots.some((s) => s.status === 'EXPIRED');
+    const hasExpiring = mandatorySlots.some((s) => s.status === 'EXPIRING_SOON');
+    const hasMissing = mandatorySlots.some((s) => s.status === 'MISSING');
+
+    if (hasExpired) {
+      return {
+        tabBg: "bg-rose-50/90 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-800/80 group-hover:border-rose-450 dark:group-hover:border-rose-600",
+        cardHoverBorder: "group-hover:border-rose-350 dark:group-hover:border-rose-600"
+      };
+    }
+    if (hasExpiring) {
+      return {
+        tabBg: "bg-amber-50/90 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-800/80 group-hover:border-amber-450 dark:group-hover:border-amber-600",
+        cardHoverBorder: "group-hover:border-amber-350 dark:group-hover:border-amber-600"
+      };
+    }
+    if (hasMissing) {
+      return {
+        tabBg: "bg-slate-100/90 dark:bg-slate-800/30 border-slate-200/80 dark:border-slate-700/80 group-hover:border-slate-350 dark:group-hover:border-slate-500",
+        cardHoverBorder: "group-hover:border-slate-300 dark:group-hover:border-slate-650"
+      };
+    }
+    return {
+      tabBg: "bg-emerald-50/90 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/80 group-hover:border-emerald-450 dark:group-hover:border-emerald-600",
+      cardHoverBorder: "group-hover:border-emerald-350 dark:group-hover:border-emerald-600"
+    };
+  })();
+
   return (
     <div className="relative mt-3 group">
       {/* Folder Tab Shape */}
       <div
         className={cn(
           "absolute -top-[13px] left-0 h-[14px] w-24 rounded-t-lg border-t border-x z-0 transition-all duration-300",
-          cardSummary.isCompliant
-            ? "bg-emerald-50/90 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/80 group-hover:border-emerald-450 dark:group-hover:border-emerald-600"
-            : "bg-rose-50/90 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-800/80 group-hover:border-rose-450 dark:group-hover:border-rose-600"
+          folderTheme.tabBg
         )}
       />
 
@@ -59,9 +86,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
         onClick={onOpen}
         className={cn(
           'border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl rounded-tl-none p-4 shadow-2xs transition-all duration-300 flex flex-col justify-between cursor-pointer group-hover:shadow-xs relative z-10',
-          cardSummary.isCompliant
-            ? "group-hover:border-emerald-350 dark:group-hover:border-emerald-600"
-            : "group-hover:border-rose-350 dark:group-hover:border-rose-600"
+          folderTheme.cardHoverBorder
         )}
       >
         <div className="space-y-3">
