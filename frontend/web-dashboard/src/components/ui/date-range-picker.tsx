@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, startOfWeek } from 'date-fns';
 import { Calendar as CalendarIcon, X, Check } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 
@@ -42,21 +42,19 @@ export function DateRangePicker({
   const presets = React.useMemo(() => {
     const today = new Date();
     return [
-      { label: 'Today', range: { from: today, to: today } },
-      { label: 'Yesterday', range: { from: subDays(today, 1), to: subDays(today, 1) } },
+      { label: 'This Week', range: { from: startOfWeek(today, { weekStartsOn: 1 }), to: today } },
+      { label: 'This Month', range: { from: startOfMonth(today), to: endOfMonth(today) } },
+      { label: 'Last Month', range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) } },
       { label: 'Last 7 Days', range: { from: subDays(today, 6), to: today } },
       { label: 'Last 30 Days', range: { from: subDays(today, 29), to: today } },
-      { label: 'This Month', range: { from: startOfMonth(today), to: endOfMonth(today) } },
-      {
-        label: 'Last Month',
-        range: { from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) },
-      },
-      { label: 'Year to Date', range: { from: startOfYear(today), to: today } },
     ];
   }, []);
 
   const handleSelect = (range: DateRange | undefined) => {
     onChange?.(range);
+    if (range?.from && range?.to) {
+      setOpen(false);
+    }
   };
 
   const handleClear = (e: React.MouseEvent) => {
@@ -67,8 +65,8 @@ export function DateRangePicker({
   const displayText = React.useMemo(() => {
     if (customLabel) return customLabel;
     if (!value?.from) return placeholder;
-    if (value.from && !value.to) return `${format(value.from, 'MMM d, yyyy')} - ...`;
-    return `${format(value.from, 'MMM d, yyyy')} - ${format(value.to!, 'MMM d, yyyy')}`;
+    if (value.from && !value.to) return `${format(value.from, 'dd/MM/yyyy')} - ...`;
+    return `${format(value.from, 'dd/MM/yyyy')} - ${format(value.to!, 'dd/MM/yyyy')}`;
   }, [value, placeholder, customLabel]);
 
   return (
@@ -89,8 +87,8 @@ export function DateRangePicker({
             )}
           >
             <div className={cn('flex items-center gap-2 truncate', iconOnly && 'justify-center')}>
-              <CalendarIcon className="w-3.5 h-3.5 text-primary shrink-0 opacity-85" />
-              {!iconOnly && <span className="truncate text-xs font-mono">{displayText}</span>}
+              <CalendarIcon className="w-3.5 h-3.5 text-[#FA634E] shrink-0 opacity-90" />
+              {!iconOnly && <span className="truncate text-xs font-mono font-bold">{displayText}</span>}
             </div>
 
             {!iconOnly && value?.from && !disabled && (
@@ -108,7 +106,24 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-3 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden" align={align}>
+        <PopoverContent className="w-auto p-3.5 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden space-y-3" align={align}>
+          {/* Quick Preset Shortcut Buttons Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+            {presets.map((p, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onChange?.(p.range);
+                  setOpen(false);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E] hover:text-white text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <Calendar
             mode="range"
             selected={value}

@@ -682,29 +682,20 @@ export default function CompanyReportsGeneratorPage() {
           {/* Form Rows Grid */}
           <div className="flex flex-wrap items-end justify-between gap-4 w-full">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="w-[220px] space-y-1">
+              <div className="w-[240px] space-y-1">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
-                <Select value={selectedCustomerId} onValueChange={(val: string) => {
-                  setSelectedCustomerId(val);
-                  const firstTpl = templates.find(t => t.customerId === val);
-                  if (firstTpl) setSelectedTemplateId(firstTpl.id);
-                }}>
-                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                    <SelectValue placeholder="Choose Customer..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[8px] font-bold uppercase">
-                            {(c.name || 'CO').slice(0, 2)}
-                          </span>
-                          <span>{c.name || c.company_name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={customerComboboxOptions}
+                  value={selectedCustomerId || 'all'}
+                  onChange={(val: string) => {
+                    setSelectedCustomerId(val);
+                    const firstTpl = templates.find(t => t.customerId === val);
+                    if (firstTpl) setSelectedTemplateId(firstTpl.id);
+                  }}
+                  placeholder="Search Customer..."
+                  searchPlaceholder="Search company name..."
+                  className="h-8 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                />
               </div>
 
               <div className="w-[200px] space-y-1">
@@ -745,54 +736,27 @@ export default function CompanyReportsGeneratorPage() {
                 </Select>
               </div>
 
-              <div className="w-[160px] space-y-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period</label>
-                {preset === 'custom' ? (
-                  <DateRangePicker
-                    value={{
-                      from: customStart ? new Date(customStart) : undefined,
-                      to: customEnd ? new Date(customEnd) : undefined
-                    }}
-                    onChange={(range) => {
-                      if (!range) {
-                        setPreset('this_month');
-                        setCustomStart('');
-                        setCustomEnd('');
-                      } else {
-                        if (range.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
-                        if (range.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
-                      }
-                    }}
-                    customLabel="Custom Range"
-                    buttonClassName="h-8 w-full bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg"
-                  />
-                ) : (
-                  <Select value={preset} onValueChange={(val: string) => setPreset(val as DatePreset)}>
-                    <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                      <SelectValue placeholder="Choose Horizon..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="this_month">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>This Month</span>
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="this_week">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                          <span>This Week</span>
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="custom">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-purple-500" />
-                          <span>Custom Range</span>
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+              <div className="w-[220px] space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Date Horizon / Period</label>
+                <DateRangePicker
+                  value={{
+                    from: startDate ? new Date(startDate) : undefined,
+                    to: endDate ? new Date(endDate) : undefined
+                  }}
+                  onChange={(range) => {
+                    if (!range || (!range.from && !range.to)) {
+                      setPreset('this_month');
+                      setCustomStart('');
+                      setCustomEnd('');
+                    } else {
+                      setPreset('custom');
+                      if (range.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
+                      if (range.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
+                    }
+                  }}
+                  placeholder="Select Date Range or Preset..."
+                  buttonClassName="h-8 w-full bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg"
+                />
               </div>
             </div>
 
