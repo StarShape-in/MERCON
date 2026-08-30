@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  CheckCircle2, XCircle, AlertCircle, MinusCircle, ChevronRight, ChevronLeft, 
+  CheckCircle2, XCircle, AlertCircle, MinusCircle, ChevronRight, 
   Search, UploadCloud, Eye, FileText, Truck, User as UserIcon, Shield, SlidersHorizontal
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { OwnerFoldersSummaryRow, OwnerFoldersSummarySlot, DocComplianceStatus } from '@/services/documentService';
+import type { OwnerFoldersSummaryRow, OwnerFoldersSummarySlot } from '@/services/documentService';
 import { formatDocDate } from '@/lib/documents';
 
 interface DocumentsLedgerMatrixViewProps {
@@ -47,12 +47,8 @@ export default function DocumentsLedgerMatrixView({
   // Status Filter Pill selection
   const [statusPill, setStatusPill] = useState<string>(expiryFilter || 'all');
 
-  // Pagination
-  const [page, setPage] = useState<number>(1);
-  const pageSize = 10;
-
   // Active dataset selection based on ledgerTab
-  const currentCategory = activeCategory === 'All' ? ledgerTab : activeCategory;
+  const currentCategory = activeCategory === 'All' ? ledgerTab : activeCategory === 'Unassigned' ? 'Vehicles' : activeCategory;
 
   // Slot matching helper
   const findSlot = (row: OwnerFoldersSummaryRow, targetKeywords: string[]) => {
@@ -123,10 +119,6 @@ export default function DocumentsLedgerMatrixView({
   const activeDataset = currentCategory === 'Vehicles' ? filteredVehicles : currentCategory === 'Drivers' ? filteredDrivers : [];
   const rawDataset = currentCategory === 'Vehicles' ? vehicleFolders : currentCategory === 'Drivers' ? driverFolders : [];
 
-  const needAttentionTotal = useMemo(() => {
-    return rawDataset.filter((r) => getRowStatusSummary(r).issues > 0 || getRowStatusSummary(r).expiringCount > 0).length;
-  }, [rawDataset]);
-
   const pillCounts = useMemo(() => {
     let compliant = 0;
     let expiring = 0;
@@ -144,20 +136,12 @@ export default function DocumentsLedgerMatrixView({
     return { all: rawDataset.length, compliant, expiring, issues, missing };
   }, [rawDataset]);
 
-  // Pagination for active table
-  const totalItems = currentCategory === 'Other' ? otherDocs.length : activeDataset.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
-  const startIdx = (page - 1) * pageSize;
-  const paginatedVehicles = filteredVehicles.slice(startIdx, startIdx + pageSize);
-  const paginatedDrivers = filteredDrivers.slice(startIdx, startIdx + pageSize);
-  const paginatedOtherDocs = otherDocs.slice(startIdx, startIdx + pageSize);
-
-  // Render Slot Cell (Exact style matching screenshot)
+  // Render Slot Cell with Perfect Icon + Text Alignment
   const renderSlotCell = (slot: OwnerFoldersSummarySlot | null) => {
     if (!slot) {
       return (
-        <div className="flex items-center gap-1.5 text-slate-350 dark:text-slate-600">
-          <MinusCircle className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-1.5 text-slate-350 dark:text-slate-600 py-0.5">
+          <MinusCircle className="w-3.5 h-3.5 shrink-0" />
           <span className="text-xs font-medium">N/A</span>
         </div>
       );
@@ -165,55 +149,55 @@ export default function DocumentsLedgerMatrixView({
 
     if (slot.status === 'VALID') {
       return (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+        <div className="flex items-start gap-1.5 py-0.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+          <div className="flex flex-col leading-tight">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Valid</span>
+            {slot.expiry_date && (
+              <span className="text-[10px] font-mono text-slate-400 font-medium mt-0.5">
+                {formatDocDate(slot.expiry_date)}
+              </span>
+            )}
           </div>
-          {slot.expiry_date && (
-            <span className="text-[10px] font-mono text-slate-400 pl-5">
-              {formatDocDate(slot.expiry_date)}
-            </span>
-          )}
         </div>
       );
     }
 
     if (slot.status === 'EXPIRED') {
       return (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+        <div className="flex items-start gap-1.5 py-0.5">
+          <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="flex flex-col leading-tight">
             <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Expired</span>
+            {slot.expiry_date && (
+              <span className="text-[10px] font-mono text-slate-400 font-medium mt-0.5">
+                {formatDocDate(slot.expiry_date)}
+              </span>
+            )}
           </div>
-          {slot.expiry_date && (
-            <span className="text-[10px] font-mono text-slate-400 pl-5">
-              {formatDocDate(slot.expiry_date)}
-            </span>
-          )}
         </div>
       );
     }
 
     if (slot.status === 'EXPIRING_SOON') {
       return (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        <div className="flex items-start gap-1.5 py-0.5">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex flex-col leading-tight">
             <span className="text-xs font-bold text-amber-600 dark:text-amber-400">Expiring</span>
+            {slot.expiry_date && (
+              <span className="text-[10px] font-mono text-slate-400 font-medium mt-0.5">
+                {formatDocDate(slot.expiry_date)}
+              </span>
+            )}
           </div>
-          {slot.expiry_date && (
-            <span className="text-[10px] font-mono text-slate-400 pl-5">
-              {formatDocDate(slot.expiry_date)}
-            </span>
-          )}
         </div>
       );
     }
 
     // MISSING
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 py-0.5">
         <MinusCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         <span className="text-xs font-semibold text-slate-400">Missing</span>
       </div>
@@ -319,7 +303,7 @@ export default function DocumentsLedgerMatrixView({
         </button>
       </div>
 
-      {/* ── Matrix Table Container ── */}
+      {/* ── Matrix Table Container (Full Table Layout as in Vehicles Ledger) ── */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           {currentCategory === 'Vehicles' && (
@@ -338,7 +322,7 @@ export default function DocumentsLedgerMatrixView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
-                {paginatedVehicles.length === 0 ? (
+                {filteredVehicles.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-4 py-16 text-center text-slate-400">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
@@ -347,7 +331,7 @@ export default function DocumentsLedgerMatrixView({
                     </td>
                   </tr>
                 ) : (
-                  paginatedVehicles.map((row) => {
+                  filteredVehicles.map((row) => {
                     const isthimara = findSlot(row, ['isthimara', 'registration']);
                     const insurance = findSlot(row, ['insurance']);
                     const opCard = findSlot(row, ['operation', 'card']);
@@ -429,7 +413,7 @@ export default function DocumentsLedgerMatrixView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-350">
-                {paginatedDrivers.length === 0 ? (
+                {filteredDrivers.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
@@ -438,7 +422,7 @@ export default function DocumentsLedgerMatrixView({
                     </td>
                   </tr>
                 ) : (
-                  paginatedDrivers.map((row) => {
+                  filteredDrivers.map((row) => {
                     const license = findSlot(row, ['license']);
                     const passport = findSlot(row, ['passport']);
                     const iqama = findSlot(row, ['iqama', 'residency']);
@@ -506,7 +490,7 @@ export default function DocumentsLedgerMatrixView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
-                {paginatedOtherDocs.length === 0 ? (
+                {otherDocs.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-16 text-center text-slate-400">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
@@ -514,7 +498,7 @@ export default function DocumentsLedgerMatrixView({
                     </td>
                   </tr>
                 ) : (
-                  paginatedOtherDocs.map((doc: any) => (
+                  otherDocs.map((doc: any) => (
                     <tr
                       key={doc.id}
                       onClick={() => onPreviewDoc?.(doc.id)}
@@ -540,47 +524,11 @@ export default function DocumentsLedgerMatrixView({
           )}
         </div>
 
-        {/* ── Table Footer / Pagination (Exact screenshot styling) ── */}
-        <div className="p-3.5 px-5 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs font-mono text-slate-500 gap-3">
+        {/* ── Table Footer / Total Count Summary ── */}
+        <div className="p-3.5 px-5 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-mono text-slate-500">
           <span>
-            Showing {totalItems === 0 ? 0 : startIdx + 1} to {Math.min(startIdx + pageSize, totalItems)} of {totalItems} {currentCategory.toLowerCase()}
+            Showing {currentCategory === 'Other' ? otherDocs.length : activeDataset.length} {currentCategory.toLowerCase()}
           </span>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 5).map((pNum) => (
-              <button
-                key={pNum}
-                type="button"
-                onClick={() => setPage(pNum)}
-                className={cn(
-                  "w-7 h-7 rounded-lg text-xs font-bold cursor-pointer transition-all",
-                  pNum === page
-                    ? "bg-[#FA634E] text-white shadow-2xs"
-                    : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300"
-                )}
-              >
-                {pNum}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
     </div>
