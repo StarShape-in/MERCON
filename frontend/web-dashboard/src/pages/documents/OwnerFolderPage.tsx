@@ -117,66 +117,6 @@ export default function OwnerFolderPage() {
             </div>
           </div>
 
-          {/* Right Action Hierarchy: Primary Upload ▾ | Secondary + Add Custom Document | More ⋮ */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Single Primary Action: + Upload Document */}
-            <Button
-              size="sm"
-              onClick={() => setIsBatchOpen(true)}
-              className="h-8.5 px-3.5 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
-            >
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>Upload Document</span>
-            </Button>
-
-            {/* Secondary Action: + Add Custom Document */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsCustomDocOpen(true)}
-              className="h-8.5 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
-            >
-              <FilePlus className="w-3.5 h-3.5 text-brand" />
-              <span>+ Add Custom Document</span>
-            </Button>
-
-            {/* More ⋮ Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8.5 w-8.5 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl cursor-pointer"
-                  title="More Actions"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                <DropdownMenuItem
-                  onClick={() => setIsBatchOpen(true)}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <Folder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Import Folder / Batch</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportSummary}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <Download className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <span>Export Summary CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleRefresh}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <RotateCw className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Refresh Vault Data</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
 
         {/* Viewport Fills: Main Master/Detail Workspace */}
