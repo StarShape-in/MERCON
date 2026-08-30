@@ -45,11 +45,7 @@ export interface ActiveMaintenance {
   maintenance_type: string;
   workshop_name: string;
   start_date: string;
-<<<<<<< HEAD
   end_date?: string | null;
-=======
-  end_date: string | null;
->>>>>>> origin/dev
 }
 
 export interface Vehicle {
