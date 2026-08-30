@@ -414,7 +414,13 @@ export default function BulkAddTripsModal({
 
         const rateVal = match.rate ?? match.base_price;
         const driverVal = match.driver_payout ?? (match as any).driver_charge;
-        const isMonthly = (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
+        const isMonthly = match.pricing_basis === 'PER_TRIP'
+          ? false
+          : match.pricing_basis === 'PER_MONTH'
+          ? true
+          : (match.line_type || match.rate_category || '').toLowerCase().includes('single') || (match.line_type || match.rate_category || '').toLowerCase().includes('extra')
+          ? false
+          : (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
 
         const dailyBillingRate = isMonthly && rateVal != null && !isNaN(Number(rateVal))
           ? String(Math.round((Number(rateVal) / 30) * 100) / 100)

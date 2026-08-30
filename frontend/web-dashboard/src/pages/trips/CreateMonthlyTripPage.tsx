@@ -292,6 +292,8 @@ export default function CreateMonthlyTripPage() {
           ? false
           : match.pricing_basis === 'PER_MONTH'
           ? true
+          : (match.line_type || match.rate_category || '').toLowerCase().includes('single') || (match.line_type || match.rate_category || '').toLowerCase().includes('extra')
+          ? false
           : (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly');
 
         const dailyBillingRate = isMonthly && rateVal != null && !isNaN(Number(rateVal))
@@ -357,7 +359,15 @@ export default function CreateMonthlyTripPage() {
           );
           const rateVal = match ? (match.rate ?? match.base_price) : null;
           const driverVal = match ? (match.driver_payout ?? (match as any).driver_charge) : null;
-          const isMonthly = match ? (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly') : false;
+          const isMonthly = match
+            ? (match.pricing_basis === 'PER_TRIP'
+                ? false
+                : match.pricing_basis === 'PER_MONTH'
+                ? true
+                : (match.line_type || match.rate_category || '').toLowerCase().includes('single') || (match.line_type || match.rate_category || '').toLowerCase().includes('extra')
+                ? false
+                : (match.billing_type || contractBillingType || '').toLowerCase().includes('monthly'))
+            : false;
 
           const dailyBillingRate = isMonthly && rateVal != null && !isNaN(Number(rateVal))
             ? String(Math.round((Number(rateVal) / 30) * 100) / 100)
