@@ -609,7 +609,15 @@ function CompanyBoardTripCard({
       {/* Bottom Row: Driver Name & Vehicle Plate */}
       <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100 dark:border-slate-800 gap-2">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          {trip.driver?.avatar_url ? (
+            <img
+              src={trip.driver.avatar_url}
+              alt={trip.driver.name}
+              className="h-4 w-4 shrink-0 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-3xs"
+            />
+          ) : (
+            <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          )}
           <span
             className={`truncate font-semibold ${
               trip.driver ? 'text-slate-800 dark:text-slate-200' : 'text-amber-700 dark:text-amber-400 font-bold'

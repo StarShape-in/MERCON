@@ -242,7 +242,7 @@ export interface MonthlyBoardTrip {
   actual_end: string | null;
   /** The day came from createdAt because the trip was never scheduled. */
   date_is_inferred: boolean;
-  driver: { id: string; ref_id: string | null; name: string; phone_primary: string | null } | null;
+  driver: { id: string; ref_id: string | null; name: string; phone_primary: string | null; avatar_url?: string | null } | null;
   vehicle: { id: string; ref_id: string | null; plate_number: string; asset_type: string } | null;
   /** Tonnage tier — the trip's own, else the rate card it was booked from. */
   vehicle_type: string | null;
