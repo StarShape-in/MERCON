@@ -54,6 +54,16 @@ export default function OwnerFolderPage() {
     enabled: !!ownerId && normalizedType === 'Vehicle',
   });
 
+  const targetDriverId = normalizedType === 'Driver'
+    ? ownerId
+    : ((vehicle as any)?.assigned_driver_id || (vehicle as any)?.driver_id || vehicle?.assignedDriver?.id);
+
+  const { data: fullTargetDriver } = useQuery({
+    queryKey: ['driver', targetDriverId],
+    queryFn: () => driverService.getById(targetDriverId!),
+    enabled: !!targetDriverId,
+  });
+
   const { data: folder } = useQuery({
     queryKey: ['documents', 'owner', normalizedType, ownerId],
     queryFn: () => documentService.getOwnerFolder(normalizedType!, ownerId!),
@@ -61,17 +71,18 @@ export default function OwnerFolderPage() {
   });
 
   const ownerName = normalizedType === 'Driver'
-    ? (driver ? `${driver.first_name} ${driver.last_name}` : 'Driver')
+    ? (fullTargetDriver ? `${fullTargetDriver.first_name} ${fullTargetDriver.last_name}` : (driver ? `${driver.first_name} ${driver.last_name}` : 'Driver'))
     : normalizedType === 'Vehicle'
       ? (vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Vehicle') : 'Vehicle')
       : 'Documents';
 
-  const assignedDriver = vehicle?.assignedDriver || (vehicle as any)?.driver;
+  const assignedDriver = fullTargetDriver || vehicle?.assignedDriver || (vehicle as any)?.driver;
   const driverName = assignedDriver
     ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim()
     : 'Saleem Taha Khan';
 
   const activeDriverObj = useMemo(() => {
+    if (fullTargetDriver) return fullTargetDriver;
     if (normalizedType === 'Driver') {
       return driver || driversList.find((d: Driver) => d.id === ownerId) || null;
     }
@@ -83,7 +94,7 @@ export default function OwnerFolderPage() {
       return driversList.find((d: Driver) => d.first_name === vehicle.assignedDriver?.first_name) || vehicle.assignedDriver;
     }
     return driversList[0] || null;
-  }, [normalizedType, driver, vehicle, driversList, ownerId]);
+  }, [fullTargetDriver, normalizedType, driver, vehicle, driversList, ownerId]);
 
   const cardSummary = getOwnerCardSummary(folder?.slots || []);
 
@@ -146,9 +157,7 @@ export default function OwnerFolderPage() {
               const fName = activeDriverObj?.first_name || fullDName.split(' ')[0] || 'Kashif';
               const lName = activeDriverObj?.last_name || fullDName.split(' ').slice(1).join(' ') || 'Ali';
               const photoUrl = activeDriverObj?.avatar_url || (activeDriverObj as any)?.photo_url || (activeDriverObj as any)?.image_url;
-              const resolvedPhoto = photoUrl
-                ? resolveFileUrl(photoUrl)
-                : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80';
+              const resolvedPhoto = photoUrl ? resolveFileUrl(photoUrl) : undefined;
               const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
 
               return (
