@@ -637,31 +637,29 @@ export default function CreateTripPage() {
 
                 if (card) {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
-                  const driverPayout = card.driver_payout;
+                  const driverPayout = card.driver_payout ?? (card as any).driver_charge;
                   if (cardRate > 0) {
-                    const isMonthlyCard = card.pricing_basis === 'PER_TRIP'
+                    const isMonthlyRate = card.pricing_basis === 'PER_TRIP'
                       ? false
                       : card.pricing_basis === 'PER_MONTH'
                       ? true
+                      : (card.line_type || card.rate_category || '').toLowerCase().includes('single') || (card.line_type || card.rate_category || '').toLowerCase().includes('extra')
+                      ? false
                       : (card.billing_type || '').toLowerCase().includes('monthly');
 
-                    const targetIsMonthly = (bType || 'Extra').toLowerCase().includes('monthly');
-
-                    if (isMonthlyCard === targetIsMonthly) {
-                      const perTripAmount = isMonthlyCard ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
-                      return {
-                        ...slot,
-                        billingAmount: String(perTripAmount),
-                        tripCharges: driverPayout != null ? String(driverPayout) : '',
-                        rateMatched: true,
-                        rateCardId: card.id,
-                        rateCardName: card.name,
-                        rateCardBasePrice: perTripAmount,
-                        rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
-                        saveAsQuotation: false,
-                        saveAsRateCard: false,
-                      };
-                    }
+                    const perTripAmount = isMonthlyRate ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
+                    return {
+                      ...slot,
+                      billingAmount: String(perTripAmount),
+                      tripCharges: driverPayout != null ? String(driverPayout) : '',
+                      rateMatched: true,
+                      rateCardId: card.id,
+                      rateCardName: card.name,
+                      rateCardBasePrice: perTripAmount,
+                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
+                      saveAsQuotation: false,
+                      saveAsRateCard: false,
+                    };
                   }
                 }
               } catch (err) {
