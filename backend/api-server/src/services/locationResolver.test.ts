@@ -160,4 +160,16 @@ describe('Location Resolver Unit Test Suite (Scenarios A through K)', () => {
     assert.strictEqual(res.source, 'PHYSICAL_GPS');
     assert.strictEqual(res.latitude, mockVehicle.last_lat);
   });
+
+  test('L. Scheduled trip with GOING_TO_PICKUP workflow state + fresh Driver GPS -> DRIVER_GPS / CURRENT', async () => {
+    const activeTrip = { id: 'trip-start', vehicleId: 'veh-101', driverId: 'drv-1', status: TripStatus.Scheduled, driver_workflow_state: 'GOING_TO_PICKUP' };
+    const driverLoc = { tripId: 'trip-start', lat: 24.7136, lng: 46.6753, recordedAt: freshTime };
+    const db = createMockDb({ activeTrip, driverLocations: [driverLoc] });
+
+    const res = await resolveVehicleLocation(mockVehicle, db);
+    assert.strictEqual(res.source, 'DRIVER_GPS');
+    assert.strictEqual(res.display_state, 'CURRENT');
+    assert.strictEqual(res.latitude, 24.7136);
+    assert.strictEqual(res.longitude, 46.6753);
+  });
 });

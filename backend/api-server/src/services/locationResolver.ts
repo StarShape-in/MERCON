@@ -25,6 +25,8 @@ const PHYSICAL_GPS_FRESH_MS = 180_000; // 3 minutes
 
 /** Active trip statuses where driver GPS is permitted to represent the vehicle */
 const OPERATIONAL_TRIP_STATUSES: TripStatus[] = [
+  TripStatus.Scheduled,
+  TripStatus.Draft,
   TripStatus.Loading,
   TripStatus.InTransit,
   TripStatus.Delayed,

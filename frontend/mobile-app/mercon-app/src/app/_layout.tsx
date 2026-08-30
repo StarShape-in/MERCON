@@ -12,6 +12,7 @@ import { DriverBottomNav } from '@/navigation/DriverBottomNav';
 import { OperatorBottomNav } from '@/navigation/OperatorBottomNav';
 
 import { LanguageProvider } from '@/lib/language-context';
+import { DriverLiveTracking } from '@/lib/DriverLiveTracking';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -80,6 +81,8 @@ function RootNavigator() {
 
         {!isLoggedIn && <Stack.Screen name="login" />}
       </Stack>
+
+      {isLoggedIn && role === 'Driver' && <DriverLiveTracking />}
 
       {showBottomNav && (
         <View style={styles.floatingNavOverlay} pointerEvents="box-none">

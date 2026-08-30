@@ -405,8 +405,8 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
       });
     }
 
-    const activeStatuses: TripStatus[] = [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed];
-    if (!activeStatuses.includes(trip.status)) {
+    const terminalStatuses: TripStatus[] = [TripStatus.Completed, TripStatus.Invoiced, TripStatus.Cancelled];
+    if (terminalStatuses.includes(trip.status)) {
       return res.status(400).json({
         success: false,
         error: { message: `Cannot record location for trip in state ${trip.status}` },
