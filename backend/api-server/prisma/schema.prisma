@@ -367,7 +367,7 @@ model Trip {
   // What MERCON pays out for this trip (own driver, or the subcontractor when
   // is_third_party). A cost, not revenue — deliberately excluded from the
   // customer invoice total.
-  driver_charge           Decimal @default(0.0) @db.Decimal(12, 2)
+  driver_charge           Decimal @default(0.0) @map("trip_charges") @db.Decimal(12, 2)
   billing_amount          Decimal? @db.Decimal(12, 2)
   // No DB-level default — set from Settings.companyLegalName at create time
   // (see tripController.ts / getCompanyLegalName), since a hardcoded literal
