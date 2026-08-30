@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OwnerFoldersSummaryRow, OwnerFoldersSummarySlot } from '@/services/documentService';
-import { formatDocDate } from '@/lib/documents';
+import { formatDocDate, sortFoldersByAttentionFirst } from '@/lib/documents';
 
 interface DocumentsLedgerMatrixViewProps {
   activeCategory: 'Vehicles' | 'Drivers' | 'Other' | 'All' | 'Unassigned';
@@ -81,7 +81,7 @@ export default function DocumentsLedgerMatrixView({
 
   // Filter Vehicle Rows
   const filteredVehicles = useMemo(() => {
-    return vehicleFolders.filter((row) => {
+    const list = vehicleFolders.filter((row) => {
       // 1. Search
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -98,11 +98,12 @@ export default function DocumentsLedgerMatrixView({
       if (statusPill === 'missing') return missingCount > 0;
       return true;
     });
+    return sortFoldersByAttentionFirst(list);
   }, [vehicleFolders, search, statusPill]);
 
   // Filter Driver Rows
   const filteredDrivers = useMemo(() => {
-    return driverFolders.filter((row) => {
+    const list = driverFolders.filter((row) => {
       if (search.trim()) {
         const q = search.toLowerCase();
         const matchName = row.ownerName.toLowerCase().includes(q);
@@ -117,6 +118,7 @@ export default function DocumentsLedgerMatrixView({
       if (statusPill === 'missing') return missingCount > 0;
       return true;
     });
+    return sortFoldersByAttentionFirst(list);
   }, [driverFolders, search, statusPill]);
 
   // Counts for Top Subtitle & Pills

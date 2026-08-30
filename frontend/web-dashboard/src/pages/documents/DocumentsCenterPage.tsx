@@ -23,7 +23,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate, getOwnerCardSummary } from '@/lib/documents';
+import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate, getOwnerCardSummary, sortFoldersByAttentionFirst } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
@@ -328,23 +328,23 @@ export default function DocumentsCenterPage() {
     queryFn: () => documentService.getOwnerFolders('Vehicle'),
   });
   const filteredDriverFolders = useMemo(
-    () => driverFolders.filter((r) => matchesSearch(search, [
+    () => sortFoldersByAttentionFirst(driverFolders.filter((r) => matchesSearch(search, [
       r.ownerName,
       r.ownerRef || '',
       r.relatedName || '',
       ...r.slots.map((s) => s.name),
       ...r.slots.map((s) => s.code),
-    ])),
+    ]))),
     [driverFolders, search],
   );
   const filteredVehicleFolders = useMemo(
-    () => vehicleFolders.filter((r) => matchesSearch(search, [
+    () => sortFoldersByAttentionFirst(vehicleFolders.filter((r) => matchesSearch(search, [
       r.ownerName,
       r.ownerRef || '',
       r.relatedName || '',
       ...r.slots.map((s) => s.name),
       ...r.slots.map((s) => s.code),
-    ])),
+    ]))),
     [vehicleFolders, search]
   );
 

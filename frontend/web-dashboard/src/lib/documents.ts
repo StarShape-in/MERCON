@@ -325,4 +325,39 @@ export function formatBilingualAuthority(raw: string | null | undefined): string
   return text;
 }
 
+/**
+ * Sorts folder summary rows so that folders needing attention
+ * (EXPIRED slots first, EXPIRING_SOON slots second, MISSING slots third)
+ * appear at the top of the list by default!
+ */
+export function sortFoldersByAttentionFirst<T extends { slots: Array<{ status: string }>; ownerName: string }>(folders: T[]): T[] {
+  return [...folders].sort((a, b) => {
+    const getScore = (row: T) => {
+      let expiredCount = 0;
+      let expiringCount = 0;
+      let missingCount = 0;
+
+      row.slots.forEach((s) => {
+        if (s.status === 'EXPIRED') expiredCount++;
+        else if (s.status === 'EXPIRING_SOON') expiringCount++;
+        else if (s.status === 'MISSING') missingCount++;
+      });
+
+      if (expiredCount > 0) return 3000 + expiredCount;
+      if (expiringCount > 0) return 2000 + expiringCount;
+      if (missingCount > 0) return 1000 + missingCount;
+      return 0;
+    };
+
+    const scoreA = getScore(a);
+    const scoreB = getScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA; // Higher urgency score first
+    }
+
+    return a.ownerName.localeCompare(b.ownerName);
+  });
+}
+
 
