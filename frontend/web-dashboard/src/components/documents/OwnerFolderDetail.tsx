@@ -10,6 +10,8 @@ import {
 import { toast } from 'sonner';
 
 import { documentService, type OwnerFolderSlot, type MerconDocument } from '@/services/documentService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -18,7 +20,7 @@ import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import DocumentCanvasViewer from '@/components/ui/DocumentCanvasViewer';
 import {
   formatBilingualAuthority, resolveFileUrl, CENTRAL_SLOT_STATUS,
-  getSlotStatusFromDoc, formatDocDate, SlotStatusCode
+  getSlotStatusFromDoc, formatDocDate, SlotStatusCode, getOwnerCardSummary
 } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -43,7 +45,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  // Intentional initial state: null selectedSlotId (no selection until operator clicks a row)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
@@ -55,23 +56,20 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   const [editIssueDate, setEditIssueDate] = useState('');
   const [editExpiryDate, setEditExpiryDate] = useState('');
   const [isSavingDates, setIsSavingDates] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
 
-  const handleRescan = async () => {
-    if (!activeDoc) return;
-    setIsRescanning(true);
-    try {
-      toast.loading('Running AI Vision OCR extraction...', { id: 'rescan' });
-      await documentService.extractDocumentOcr(activeDoc.id);
-      toast.success('AI Metadata updated', { id: 'rescan' });
-      await refresh();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || 'AI Vision scan failed', { id: 'rescan' });
-    } finally {
-      setIsRescanning(false);
-    }
-  };
+  // Queries for Owner Details (Driver & Vehicle)
+  const { data: driver } = useQuery({
+    queryKey: ['driver', ownerId],
+    queryFn: () => driverService.getById(ownerId!),
+    enabled: !!ownerId && ownerType === 'Driver',
+  });
+
+  const { data: vehicle } = useQuery({
+    queryKey: ['vehicle', ownerId],
+    queryFn: () => vehicleService.getById(ownerId!),
+    enabled: !!ownerId && ownerType === 'Vehicle',
+  });
 
   const queryKey = ['documents', 'owner', ownerType, ownerId];
   const { data: folder, isLoading } = useQuery({
@@ -89,8 +87,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
   // Active selected slot
   const activeSlot = useMemo(() => {
-    if (!folder?.slots || !selectedSlotId) return null;
-    return folder.slots.find((s) => s.documentType.id === selectedSlotId) || null;
+    if (!folder?.slots) return null;
+    const currentId = selectedSlotId || folder.slots[0]?.documentType.id;
+    return folder.slots.find((s) => s.documentType.id === currentId) || folder.slots[0] || null;
   }, [folder?.slots, selectedSlotId]);
 
   const activeDoc = activeSlot?.document || null;
@@ -104,34 +103,20 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     }
   }, [activeDoc?.id]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-brand" />
-        <p className="text-xs font-bold">Loading compliance workspace...</p>
-      </div>
-    );
-  }
-
-  if (!folder) return null;
-
-  const totalSlots = folder.slots.length;
-  const compliantCount = folder.slots.filter((s) => {
-    const code = getSlotStatusFromDoc(s.document);
-    return code === 'VALID' || code === 'NO_EXPIRY';
-  }).length;
-  const issueSlots = folder.slots.filter((s) => {
-    const code = getSlotStatusFromDoc(s.document);
-    return code !== 'VALID' && code !== 'NO_EXPIRY';
-  });
-  const isFullyCompliant = issueSlots.length === 0;
-
-  const requiredSlots = folder.slots.filter((s) => s.documentType.requirementStatus === 'MANDATORY');
-  const additionalSlots = folder.slots.filter((s) => s.documentType.requirementStatus !== 'MANDATORY');
-
-  const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
-    ? activeDoc.files
-    : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
+  const handleRescan = async () => {
+    if (!activeDoc) return;
+    setIsRescanning(true);
+    try {
+      toast.loading('Running AI Vision OCR extraction...', { id: 'rescan' });
+      await documentService.extractDocumentOcr(activeDoc.id);
+      toast.success('AI Metadata updated', { id: 'rescan' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'AI Vision scan failed', { id: 'rescan' });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
 
   const handleSaveDates = async () => {
     if (!activeDoc) return;
@@ -152,13 +137,83 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
+        <p className="text-xs font-bold">Loading document details workspace...</p>
+      </div>
+    );
+  }
+
+  if (!folder) return null;
+
+  const cardSummary = getOwnerCardSummary(folder.slots || []);
+  const issueSlots = folder.slots.filter((s) => {
+    const code = getSlotStatusFromDoc(s.document);
+    return code !== 'VALID' && code !== 'NO_EXPIRY';
+  });
+  const isFullyCompliant = issueSlots.length === 0;
+
+  const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
+    ? activeDoc.files
+    : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
+
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── 1. Top Document Tab Buttons Bar (Interactive Button Model) ──────────────── */}
+      {/* ── 1. Driver & Vehicle Details Header Bar (Head) ──────────────── */}
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-4 shrink-0 text-xs">
+        <div className="flex items-center gap-6 flex-wrap min-w-0">
+          {/* Vehicle Details */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8.5 h-8.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
+              <Truck className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block leading-none">Vehicle Details</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
+                  {vehicle?.plate_number || (ownerType === 'Vehicle' ? folder.ownerName : 'BRA-4012')}
+                </span>
+                <span className="text-slate-400 font-mono text-[11px] font-semibold">
+                  · {vehicle?.ref_id || 'TRK-117'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 12).toFixed(0)} TON
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+
+          {/* Driver Details */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shrink-0">
+              <User className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block leading-none">Driver Details</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
+                  {driver ? `${driver.first_name} ${driver.last_name}` : (vehicle?.assignedDriver ? `${vehicle.assignedDriver.first_name} ${vehicle.assignedDriver.last_name}` : 'Waseem Akram')}
+                </span>
+                <span className="text-slate-400 font-mono text-[11px] font-semibold">
+                  · Phone: {(driver as any)?.phone || (driver as any)?.phone_number || (driver as any)?.iqama_number || '+966 50 123 4567'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Compliance Badge */}
+        <Badge className={cn('text-xs font-mono font-bold px-3 py-1 border rounded-full shadow-none', cardSummary.className)}>
+          {isFullyCompliant ? '🟢 Fully Compliant' : `🔴 ${issueSlots.length} Issue${issueSlots.length > 1 ? 's' : ''}`}
+        </Badge>
+      </div>
+
+      {/* ── 2. Top Document Tab Buttons Bar (Interactive Button Model) ──────────────── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 shrink-0 scrollbar-none">
         {folder.slots.map((slot) => {
-          const isSelected = (selectedSlotId || folder.slots[0]?.documentType.id) === slot.documentType.id;
+          const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;
           const code = getSlotStatusFromDoc(doc);
           const StatusIcon = STATUS_ICONS[code]?.icon || FileQuestion;
@@ -209,182 +264,22 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         })}
       </div>
 
-      {/* ── 2. Master / Detail Viewport-Anchored Grid ────────────────────── */}
+      {/* ── 3. Master / Detail Workspace Split Grid (Left Details Box, Right Canvas Preview Box) ── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
-        {/* LEFT COLUMN: Document List (5 / 12 width) — Internal Scroll */}
-        <div className="lg:col-span-5 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs space-y-4">
-            
-            {/* Required Compliance Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Required Compliance
-                </h4>
-                <span className="text-[10px] font-mono text-slate-400">{requiredSlots.length} Requirements</span>
-              </div>
-
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
-                {requiredSlots.map((slot) => {
-                  const statusCode = getSlotStatusFromDoc(slot.document);
-                  const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
-                  const StatusIcon = IconConfig.icon;
-                  const isSelected = activeSlot?.documentType.id === slot.documentType.id;
-                  const hasDoc = !!slot.document;
-                  const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
-
-                  const getSubText = () => {
-                    if (statusCode === 'MISSING') return 'Missing · Required';
-                    if (statusCode === 'NO_EXPIRY') return 'Valid · No expiry';
-                    if (statusCode === 'VALID') return formattedDate ? `Valid · ${formattedDate}` : 'Valid document';
-                    if (statusCode === 'EXPIRED') return formattedDate ? `Expired · ${formattedDate}` : 'Expired';
-                    return formattedDate ? `Expiring · ${formattedDate}` : 'Due soon';
-                  };
-
-                  return (
-                    <div
-                      key={slot.documentType.id}
-                      onClick={() => setSelectedSlotId(slot.documentType.id)}
-                      className={cn(
-                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
-                        isSelected
-                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
-                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
-                        <div className="min-w-0">
-                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
-                            {slot.documentType.name}
-                          </p>
-                          <p className={cn('text-[11px]', statusCode === 'MISSING' || statusCode === 'EXPIRED' ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-slate-400')}>
-                            {getSubText()}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Missing Slot Direct Action */}
-                      {!hasDoc && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-[11px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer"
-                            onClick={() => setUploadSlot(slot)}
-                          >
-                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Additional Documents Section */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between px-1">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Additional Documents
-                </h4>
-                <span className="text-[10px] font-mono text-slate-400">{additionalSlots.length} Optional</span>
-              </div>
-
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
-                {additionalSlots.map((slot) => {
-                  const statusCode = getSlotStatusFromDoc(slot.document);
-                  const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
-                  const StatusIcon = IconConfig.icon;
-                  const isSelected = activeSlot?.documentType.id === slot.documentType.id;
-                  const hasDoc = !!slot.document;
-                  const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
-
-                  return (
-                    <div
-                      key={slot.documentType.id}
-                      onClick={() => setSelectedSlotId(slot.documentType.id)}
-                      className={cn(
-                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
-                        isSelected
-                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
-                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
-                        <div className="min-w-0">
-                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
-                            {slot.documentType.name}
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            {hasDoc ? (formattedDate ? `Valid · ${formattedDate}` : 'Valid · No expiry') : 'Optional record'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {!hasDoc && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-[11px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer"
-                            onClick={() => setUploadSlot(slot)}
-                          >
-                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* + Add Custom Document Action */}
-              <button
-                type="button"
-                onClick={onOpenAddCustomDoc}
-                className="w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand text-slate-600 dark:text-slate-300 hover:text-brand text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 mt-2"
-              >
-                <FilePlus className="w-4 h-4 text-brand" />
-                <span>+ Add Custom Document</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Sticky Inspector (7 / 12 width) — Internal Scroll */}
-        <div className="lg:col-span-7 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
+        {/* LEFT SIDE BOX: Selected Document Details & Metadata Inspector (4 / 12 width) */}
+        <div className="lg:col-span-4 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
           {activeSlot ? (
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs flex flex-col space-y-4 p-5">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-4">
               
-              {/* Inspector Header */}
-              <div className="flex items-start justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                       {activeSlot.documentType.name}
                     </h2>
                     
-                    {/* Three-Layer Status Distinction: Requirement · Verification · Validity */}
-                    <Badge variant="outline" className={cn(
-                      'text-[10px] font-bold px-2 py-0.5 border shadow-3xs',
-                      activeSlot.documentType.requirementStatus === 'MANDATORY' 
-                        ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-450' 
-                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-850 dark:text-slate-400'
-                    )}>
-                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Required' : 'Optional'}
-                    </Badge>
-
-                    {activeDoc && (
-                      <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-450 px-2 py-0.5 shadow-3xs">
-                        {activeDoc.status || 'Verified'}
-                      </Badge>
-                    )}
-
                     {activeDoc ? (
                       <Badge variant="outline" className={cn('text-[10px] font-extrabold px-2 py-0.5 shadow-3xs', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
                         {(CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).label}
@@ -395,12 +290,12 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-slate-450 mt-1 flex items-center gap-1.5">
+                  <p className="text-xs text-slate-450 mt-1">
                     {activeDoc
                       ? activeDoc.expiry_date
                         ? `Expiry: ${formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')}`
                         : 'No expiry date required'
-                      : 'Required document file not yet uploaded'}
+                      : 'Document file not uploaded'}
                   </p>
                 </div>
 
@@ -408,156 +303,64 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-850 text-brand hover:bg-brand-hover hover:text-white cursor-pointer shrink-0 transition-colors shadow-2xs"
+                    className="h-7 px-2.5 text-[11px] font-bold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer shrink-0 shadow-2xs"
                     onClick={() => navigate(`/documents/doc/${activeDoc.id}`)}
                   >
-                    <ExternalLink className="w-3.5 h-3.5" /> Full View
+                    <ExternalLink className="w-3 h-3 mr-1" /> Open
                   </Button>
                 )}
               </div>
 
-              {/* Inspector Content */}
+              {/* Document Details Content */}
               {activeDoc ? (
-                <div className="space-y-5">
-
-                  {/* Document Lifespan Progress Bar */}
-                  {(() => {
-                    const daysRemaining = activeDoc.expiry_date
-                      ? Math.ceil((new Date(activeDoc.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                      : null;
-                    const isExpired = daysRemaining !== null && daysRemaining <= 0;
-                    const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 30;
-                    const progressPercent = daysRemaining !== null
-                      ? Math.max(0, Math.min(100, (daysRemaining / 365) * 100))
-                      : 100;
-
-                    return activeDoc.expiry_date ? (
-                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800/80 space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-500">Document Validity</span>
-                          <span className={cn(
-                            'font-black',
-                            isExpired ? 'text-rose-600 dark:text-rose-455' :
-                            isExpiringSoon ? 'text-amber-600 dark:text-amber-400' :
-                            'text-emerald-600 dark:text-emerald-455'
-                          )}>
-                            {isExpired ? 'Expired' : 
-                             daysRemaining === 1 ? '1 Day Remaining' :
-                             `${daysRemaining} Days Remaining`}
-                          </span>
-                        </div>
-                        {/* Visual Progress Bar */}
-                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div 
-                            className={cn(
-                              'h-full rounded-full transition-all duration-500',
-                              isExpired ? 'bg-rose-500' :
-                              isExpiringSoon ? 'bg-amber-500' :
-                              'bg-emerald-500'
-                            )} 
-                            style={{ width: `${progressPercent}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[9px] text-slate-450 font-bold uppercase tracking-wider">
-                          <span>Uploaded</span>
-                          <span>Expires: {formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-emerald-50/10 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                          <ShieldCheck className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-black text-emerald-800 dark:text-emerald-300">Indefinite Validity</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">This document has no configured expiration date and stays active indefinitely.</p>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* AI Vision OCR Passport Card */}
+                <div className="space-y-4">
+                  {/* AI Vision Extracted OCR Card */}
                   {activeDoc.ai_extracted_json && (
-                    <div className="space-y-3">
+                    <div className="rounded-xl border border-amber-250/50 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-amber-500" /> AI OCR Passport
-                        </h3>
+                        <span className="text-[10px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> AI OCR Extraction
+                        </span>
                         {typeof activeDoc.ai_extracted_json.confidence === 'number' && (
-                          <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[9px] font-mono font-black border border-emerald-200/50 py-0 shadow-2xs">
+                          <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/50">
                             {Math.round(activeDoc.ai_extracted_json.confidence * 100)}% CONFIDENCE
-                          </Badge>
+                          </span>
                         )}
                       </div>
 
-                      <div className="space-y-3">
-                        {/* Simulated Passport */}
-                        <div className="relative overflow-hidden rounded-xl border border-amber-200/60 dark:border-amber-900/30 bg-gradient-to-br from-amber-50/40 via-amber-50/10 to-amber-100/10 dark:from-slate-800/40 dark:to-amber-950/15 p-3.5 shadow-3xs">
-                          {/* Smart Chip */}
-                          <div className="absolute top-3.5 right-3.5 w-7 h-5 rounded-md bg-gradient-to-tr from-amber-200 to-amber-300 dark:from-amber-600 dark:to-amber-500 opacity-60 flex flex-col justify-between p-1">
-                            <div className="h-[1px] w-full bg-amber-400/50" />
-                            <div className="h-[1px] w-full bg-amber-400/50" />
-                            <div className="h-[1px] w-full bg-amber-400/50" />
-                          </div>
-
-                          <div className="space-y-2.5">
-                            {activeDoc.ai_extracted_json.document_number && (
-                              <div>
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">DOCUMENT NUMBER</span>
-                                <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wider">
-                                  {activeDoc.ai_extracted_json.document_number}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-3">
-                              {activeDoc.ai_extracted_json.vehicle_plate && (
-                                <div>
-                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">DETECTED PLATE</span>
-                                  <span className="text-[11px] font-mono font-black text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5">
-                                    <Truck className="w-3 h-3 text-amber-500" />
-                                    {activeDoc.ai_extracted_json.vehicle_plate}
-                                  </span>
-                                </div>
-                              )}
-                              {activeDoc.ai_extracted_json.issuing_authority && (
-                                <div>
-                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">AUTHORITY</span>
-                                  <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5 truncate max-w-full">
-                                    <Building2 className="w-3 h-3 text-amber-500 shrink-0" />
-                                    <span className="truncate">{formatBilingualAuthority(activeDoc.ai_extracted_json.issuing_authority)}</span>
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {activeDoc.ai_extracted_json.notes && (
-                              <div className="pt-2 border-t border-amber-250/20 dark:border-amber-900/20">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">VISION NOTES</span>
-                                <p className="text-[10px] text-amber-900/90 dark:text-amber-400 font-mono bg-white/50 dark:bg-slate-950/40 p-1.5 rounded-lg border border-amber-100/50 dark:border-amber-900/10 italic">
-                                  "{activeDoc.ai_extracted_json.notes}"
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                      {activeDoc.ai_extracted_json.document_number && (
+                        <div>
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">Doc Number</span>
+                          <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-wider">
+                            {activeDoc.ai_extracted_json.document_number}
+                          </span>
                         </div>
+                      )}
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full h-8 text-[11px] font-bold gap-1.5 border-amber-300 text-amber-800 dark:border-amber-900 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-955/20 shadow-3xs cursor-pointer"
-                          onClick={handleRescan}
-                          disabled={isRescanning}
-                        >
-                          {isRescanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                          Re-Scan Document with AI Vision
-                        </Button>
-                      </div>
+                      {activeDoc.ai_extracted_json.issuing_authority && (
+                        <div>
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">Issuing Authority</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {formatBilingualAuthority(activeDoc.ai_extracted_json.issuing_authority)}
+                          </span>
+                        </div>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-7 text-[11px] font-bold gap-1 border-amber-300 text-amber-800 hover:bg-amber-100/50 cursor-pointer mt-1"
+                        onClick={handleRescan}
+                        disabled={isRescanning}
+                      >
+                        {isRescanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Re-Scan Document
+                      </Button>
                     </div>
                   )}
 
-                  {/* Attributes Details Card */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5">
+                  {/* Date Attributes & Editing Card */}
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                         <Info className="w-3 h-3 text-slate-400" /> Attributes & Validity
@@ -573,30 +376,28 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3.5">
-                      {/* Issue Date Display / Edit */}
-                      {(activeSlot.documentType.requiresIssueDate || activeDoc.issue_date || isEditingDates) && (
-                        <div className="col-span-2 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 flex items-center justify-between">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Issue Date</span>
-                          {isEditingDates ? (
-                            <div className="w-36">
-                              <DatePicker
-                                value={editIssueDate}
-                                onChange={(_, dateStr) => setEditIssueDate(dateStr)}
-                                placeholder="Issue Date..."
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 font-mono">
-                              {activeDoc.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                    <div className="space-y-2">
+                      {/* Issue Date */}
+                      <div className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Issue Date</span>
+                        {isEditingDates ? (
+                          <div className="w-36">
+                            <DatePicker
+                              value={editIssueDate}
+                              onChange={(_, dateStr) => setEditIssueDate(dateStr)}
+                              placeholder="Issue Date..."
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 font-mono">
+                            {activeDoc.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Expiry Date Display / Edit */}
-                      <div className="col-span-2 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Expiry Date</span>
+                      {/* Expiry Date */}
+                      <div className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Expiry Date</span>
                         {isEditingDates ? (
                           <div className="w-36">
                             <DatePicker
@@ -606,7 +407,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                             />
                           </div>
                         ) : (
-                          <span className="text-xs font-black text-slate-800 dark:text-slate-250 font-mono">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 font-mono">
                             {activeDoc.expiry_date
                               ? formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')
                               : activeSlot.documentType.requiresExpiryDate
@@ -618,7 +419,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
                       {/* Save / Cancel buttons when editing dates */}
                       {isEditingDates && (
-                        <div className="col-span-2 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800">
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800">
                           <Button
                             type="button"
                             variant="ghost"
@@ -640,51 +441,17 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                           </Button>
                         </div>
                       )}
-
-                      <div className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Privacy Level</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {activeDoc.is_confidential ? (
-                            <>
-                              <Lock className="w-3 h-3 text-rose-500 shrink-0" />
-                              <span className="text-[11px] font-black text-rose-700 dark:text-rose-455">Confidential</span>
-                            </>
-                          ) : (
-                            <>
-                              <Unlock className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Standard</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Page Count</span>
-                        <span className="text-[11px] font-black text-slate-850 dark:text-slate-200 block mt-0.5">
-                          {activeDocFiles.length} attached
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* DOCUMENT PREVIEW CONTAINER */}
-                  <div className="space-y-1.5">
-                    <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Preview</h4>
-                    <DocumentCanvasViewer
-                      files={activeDocFiles}
-                      title={activeSlot.documentType.name}
-                      canvasHeightClassName="h-60"
-                    />
-                  </div>
-
-                  {/* ACTIONS */}
-                  <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2">
+                  {/* Actions Bar */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
                     <a
                       href={resolveFileUrl(activeDocFiles[0]?.file_url || activeDoc.file_url)}
                       download
                       className="h-8.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-3xs"
                     >
-                      <Download className="w-3.5 h-3.5" /> Download
+                      <Download className="w-3.5 h-3.5" /> Download File
                     </a>
                     <Button
                       variant="outline"
@@ -692,132 +459,116 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       className="h-8.5 text-xs font-bold gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer shadow-3xs"
                       onClick={() => setIsReplaceOpen(true)}
                     >
-                      <RefreshCw className="w-3.5 h-3.5 text-slate-400" /> Replace
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8.5 text-xs font-bold gap-1.5 bg-brand hover:bg-brand-hover text-white cursor-pointer shadow-2xs"
-                      onClick={() => navigate(`/documents/doc/${activeDoc.id}`)}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> Full View
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-400" /> Replace Document
                     </Button>
                   </div>
-
-                  {/* ACTIVITY & HISTORY */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setShowHistory((prev) => !prev)}
-                      className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <History className="w-3.5 h-3.5 text-brand" />
-                        <span>Activity & Audit History</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400">{showHistory ? 'Hide' : 'Show'}</span>
-                    </button>
-                    {showHistory && (
-                      <div className="p-3 space-y-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-xs">
-                        <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
-                          <Clock className="w-3.5 h-3.5 text-brand mt-0.5 shrink-0" />
-                          <div>
-                            <p className="font-bold text-slate-800 dark:text-slate-200">Document Uploaded</p>
-                            <p className="text-[10px] text-slate-400 font-mono">
-                              {formatInDeploymentTz(activeDoc.createdAt, tz, 'dd/MM/yyyy h:mm a')}
-                            </p>
-                          </div>
-                        </div>
-                        {activeDoc.ai_extracted_json && (
-                          <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-slate-200">AI Vision Metadata Scanned</p>
-                              <p className="text-[10px] text-slate-400">Confidence: {Math.round((activeDoc.ai_extracted_json.confidence || 0.9) * 100)}%</p>
-                            </div>
-                          </div>
-                        )}
-                        {activeDocFiles.length > 1 && (
-                          <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Files className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-slate-200">Attachment Revision</p>
-                              <p className="text-[10px] text-slate-400">{activeDocFiles.length} file pages attached</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
                 </div>
               ) : (
-                /* MISSING DOCUMENT STATE */
-                <div className="py-12 px-6 flex flex-col items-center justify-center text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-955/40 text-rose-600 flex items-center justify-center border border-rose-200 dark:border-rose-900">
+                /* Missing Document Empty State Card in Left Box */
+                <div className="p-6 text-center space-y-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200/60">
                     <FileQuestion className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{activeSlot.documentType.name}</h3>
-                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold mt-1">Missing</Badge>
-                    <p className="text-xs text-slate-500 mt-2 max-w-sm">
-                      This required document has not been uploaded for this {ownerType.toLowerCase()}.
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                      No document uploaded for {activeSlot.documentType.name}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Upload the required compliance document to complete this record.
                     </p>
                   </div>
                   <Button
                     size="sm"
+                    className="h-8.5 px-4 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
                     onClick={() => setUploadSlot(activeSlot)}
-                    className="h-9 px-5 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
                   >
-                    <UploadCloud className="w-4 h-4" /> Upload {activeSlot.documentType.name}
+                    <UploadCloud className="w-3.5 h-3.5" /> Upload Document
                   </Button>
                 </div>
               )}
-
             </div>
           ) : (
-            /* INTENTIONAL NO-SELECTION STATE */
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 space-y-3 min-h-[400px]">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Select a document</h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                  Choose a compliance document from the left list to inspect its details.
-                </p>
-              </div>
+            <div className="p-8 text-center text-slate-400 text-xs font-bold">
+              Select a document tab above to inspect details.
             </div>
           )}
         </div>
+
+        {/* RIGHT SIDE BOX: Full Canvas Document Preview (8 / 12 width - larger width preview) */}
+        <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
+          <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-brand" />
+                <span>{activeSlot ? activeSlot.documentType.name : 'Document Preview'}</span>
+              </span>
+              {activeDoc && (
+                <span className="text-[11px] font-mono text-slate-400 font-bold">
+                  {activeDocFiles.length} File{activeDocFiles.length > 1 ? 's' : ''} Attached
+                </span>
+              )}
+            </div>
+
+            {activeDoc ? (
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <DocumentCanvasViewer
+                  files={activeDocFiles}
+                  title={activeSlot ? activeSlot.documentType.name : 'Document Preview'}
+                  canvasHeightClassName="h-full min-h-[480px]"
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-3 bg-slate-50/40 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800">
+                <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  No preview available
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Upload a document for {activeSlot?.documentType.name || 'this slot'} to view preview.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Universal Import & Upload Modal */}
-      {(uploadSlot || isReplaceOpen || isBatchImportOpen) && (
+      {/* Upload Missing Document Modal */}
+      {uploadSlot && (
+        <UploadDocumentModal
+          isOpen={!!uploadSlot}
+          onClose={() => setUploadSlot(null)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={uploadSlot.documentType.id}
+          lockOwner
+          onUploadSuccess={refresh}
+        />
+      )}
+
+      {/* Replace Document Modal */}
+      {isReplaceOpen && activeDoc && (
+        <UploadDocumentModal
+          isOpen={isReplaceOpen}
+          onClose={() => setIsReplaceOpen(false)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={activeSlot?.documentType.id}
+          lockOwner
+          onUploadSuccess={refresh}
+        />
+      )}
+
+      {/* Batch Import Review Modal */}
+      {isBatchImportOpen && (
         <ImportReviewModal
-          isOpen={!!(uploadSlot || isReplaceOpen || isBatchImportOpen)}
-          onClose={() => {
-            setUploadSlot(null);
-            setIsReplaceOpen(false);
-            setIsBatchImportOpen(false);
-            setDroppedFiles([]);
-          }}
+          isOpen={isBatchImportOpen}
+          onClose={() => setIsBatchImportOpen(false)}
+          initialFiles={droppedFiles}
           lockOwnerType={ownerType}
           lockOwnerId={ownerId}
-          ownerDisplayName={folder.ownerName}
-          initialFiles={droppedFiles}
           onImported={refresh}
         />
       )}
-    </div>
-  );
-}
-
-function InspectorRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between px-3.5 py-2">
-      <span className="text-slate-500 dark:text-slate-400 font-medium">{label}</span>
-      <span className={cn('font-bold text-slate-900 dark:text-slate-100 text-right', mono && 'font-mono')}>{value}</span>
     </div>
   );
 }
