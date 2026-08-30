@@ -4,7 +4,7 @@ import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
   FileText, ExternalLink, Navigation, CheckCircle2, Truck, MapPin, Tag,
-  Settings2, FileBarChart, ArrowLeft, ArrowRight, Search, Check,
+  Settings2, FileBarChart, ArrowLeft, ArrowRight, Search, Check, Copy,
   FolderOpen, Eye, MoreVertical, Play, CheckCircle, Users,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
@@ -1075,120 +1075,172 @@ export default function CompanyReportsGeneratorPage() {
 
 
 
-        {/* ─── Report Run Details Modal ─── */}
+        {/* ─── Report Run Details Modal (Redesigned Executive Audit View) ─── */}
         <Dialog open={!!selectedReportForDetails} onOpenChange={() => setSelectedReportForDetails(null)}>
-          <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
-            <DialogHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                <FileText className="w-5 h-5 text-[#FA634E]" /> Report Run Details
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Comprehensive run parameters and schema configuration metadata
-              </DialogDescription>
+          <DialogContent className="sm:max-w-3xl max-h-[88vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
+            {/* Modal Header */}
+            <DialogHeader className="p-6 pb-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shrink-0 relative">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-white/10 text-[#FA634E] border border-white/10 backdrop-blur-xs shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-black tracking-tight text-white flex items-center gap-2">
+                      Report Run Audit Details
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-300 mt-0.5">
+                      Execution parameters, record count, and schema mapping overview
+                    </DialogDescription>
+                  </div>
+                </div>
+
+                {selectedReportForDetails && (
+                  <Badge className={cn(
+                    "font-extrabold text-xs shadow-none rounded-lg px-3 py-1 border shrink-0",
+                    selectedReportForDetails.status === 'Ready' && "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                    selectedReportForDetails.status === 'Processing' && "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse",
+                    selectedReportForDetails.status === 'Failed' && "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                  )}>
+                    {selectedReportForDetails.status === 'Ready' ? '✓ Ready (100% Exported)' : selectedReportForDetails.status}
+                  </Badge>
+                )}
+              </div>
             </DialogHeader>
 
-            <div className="flex-1 overflow-auto p-6 space-y-6">
-              {/* Top Summary Info Card */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950">
               {selectedReportForDetails && (
-                <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-4 border border-slate-200/50 dark:border-slate-800 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className={cn(
-                      "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0",
-                      selectedReportForDetails.companyLogo === 'iM' && "bg-violet-100 text-violet-850 dark:bg-violet-950/45 dark:text-violet-300",
-                      selectedReportForDetails.companyLogo === 'Ax' && "bg-rose-100 text-rose-850 dark:bg-rose-950/45 dark:text-rose-300",
-                      selectedReportForDetails.companyLogo === 'DL' && "bg-amber-100 text-amber-900 dark:bg-amber-950/45 dark:text-amber-300",
-                      selectedReportForDetails.companyLogo === 'Tb' && "bg-orange-100 text-orange-850 dark:bg-orange-950/45 dark:text-orange-300",
-                      selectedReportForDetails.companyLogo === 'Nn' && "bg-yellow-100 text-yellow-900 dark:bg-yellow-950/45 dark:text-yellow-300"
-                    )}>
-                      {selectedReportForDetails.companyLogo}
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{selectedReportForDetails.companyName}</h4>
-                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">{selectedReportForDetails.formatName}</p>
+                <>
+                  {/* Top Company & Format Banner Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <span className={cn(
+                        "h-11 w-11 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0 shadow-2xs border border-black/5",
+                        selectedReportForDetails.companyLogo === 'iM' && "bg-violet-100 text-violet-850 dark:bg-violet-950/60 dark:text-violet-300",
+                        selectedReportForDetails.companyLogo === 'Ax' && "bg-rose-100 text-rose-850 dark:bg-rose-950/60 dark:text-rose-300",
+                        selectedReportForDetails.companyLogo === 'DL' && "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300",
+                        selectedReportForDetails.companyLogo === 'Tb' && "bg-orange-100 text-orange-850 dark:bg-orange-950/60 dark:text-orange-300",
+                        selectedReportForDetails.companyLogo === 'Nn' && "bg-yellow-100 text-yellow-900 dark:bg-yellow-950/60 dark:text-yellow-300",
+                        !['iM','Ax','DL','Tb','Nn'].includes(selectedReportForDetails.companyLogo) && "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      )}>
+                        {selectedReportForDetails.companyLogo}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                          {selectedReportForDetails.companyName}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
+                          <span>Format: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-700 font-mono text-xs">
+                      <span className="text-slate-400">Run ID:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{selectedReportForDetails.id}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedReportForDetails.id);
+                          toast.success('Run ID copied to clipboard');
+                        }}
+                        className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700"
+                        title="Copy Run ID"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <Badge className={cn(
-                      "font-black text-[10px] shadow-none rounded-md px-2 py-0.5 border",
-                      selectedReportForDetails.status === 'Ready' && "bg-emerald-50 text-emerald-800 border-emerald-200",
-                      selectedReportForDetails.status === 'Processing' && "bg-amber-50 text-amber-800 border-amber-200 animate-pulse",
-                      selectedReportForDetails.status === 'Failed' && "bg-rose-50 text-rose-800 border-rose-200"
-                    )}>
-                      {selectedReportForDetails.status}
-                    </Badge>
-                    <p className="text-[10px] text-slate-400 font-mono mt-1">ID: {selectedReportForDetails.id}</p>
-                  </div>
-                </div>
-              )}
 
-              {/* Grid Specifications */}
-              {selectedReportForDetails && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Data Type / Category</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-slate-500" />
-                      {selectedReportForDetails.dataType} Ledger
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Data Horizon / Period</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                      {selectedReportForDetails.period}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Total Rows Extracted</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-mono">
-                      <PackageCheck className="w-3.5 h-3.5 text-slate-500" />
-                      {selectedReportForDetails.recordsCount} Rows
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Run Generation Stamp</span>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex flex-col gap-0.5">
-                      <span>{selectedReportForDetails.generatedOn}</span>
-                      <span className="text-[10px] text-slate-500">Generated by: {selectedReportForDetails.generatedBy}</span>
-                    </span>
-                  </div>
-                </div>
-              )}
+                  {/* 4 Metric Specification Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        {selectedReportForDetails.dataType} Ledger
+                      </div>
+                    </div>
 
-              {/* Static Audit Parameters */}
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-3">
-                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400">System Execution Parameters</h4>
-                <div className="bg-slate-50/50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-100 dark:border-slate-800 text-[11px] space-y-2 font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Pipeline Engine</span>
-                    <span className="text-slate-800 dark:text-slate-300">Mercon Report-Studio v1.1.2</span>
+                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Horizon / Period</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
+                        <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                        {selectedReportForDetails.period}
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Rows Exported</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
+                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        {selectedReportForDetails.recordsCount} Rows
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Stamp</span>
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono truncate" title={selectedReportForDetails.generatedOn}>
+                        {selectedReportForDetails.generatedOn}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">By: {selectedReportForDetails.generatedBy}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Timezone</span>
-                    <span className="text-slate-800 dark:text-slate-300">Deployment Local Time</span>
+
+                  {/* Included Columns Mapping Summary Section */}
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Exported Schema Columns & Mapping Breakdown
+                      </h4>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 border-emerald-200 text-[10px] font-bold font-mono">
+                        100% Normalized
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                      {[
+                        { col: 'C', header: 'VENDOR NAME', field: 'Carrier / 3rd Party' },
+                        { col: 'D', header: 'DATE', field: 'Trip Date' },
+                        { col: 'E', header: 'FROM', field: 'Pickup Location (Origin)' },
+                        { col: 'F', header: 'DESTINATION', field: 'Dropoff Location (Destination)' },
+                        { col: 'G', header: 'Rental Method', field: 'Rate Category' },
+                        { col: 'H', header: 'VEHCILE TYPE', field: 'Vehicle Class / Asset Type' },
+                        { col: 'I', header: 'Vehcile Number', field: 'Vehicle Plate Number' },
+                        { col: 'J', header: 'UUID NUMBER', field: 'Trip / Job Ref ID' },
+                        { col: 'K', header: 'CHARGES', field: 'Billing Amount (Base Rate)' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-[10px] font-extrabold text-emerald-700 bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.5 rounded shrink-0 border border-emerald-200">
+                              {item.col}
+                            </span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={item.header}>
+                              {item.header}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate text-right">
+                            {item.field}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Format Scheme Mapping</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% Normalized Mapping (Active)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Output Target</span>
-                    <span className="text-slate-800 dark:text-slate-300">Vite-Rolldown ExcelJS-Bundle</span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
-            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 flex justify-between gap-3 shrink-0">
+            {/* Modal Footer Actions */}
+            <div className="p-4 px-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedReportForDetails(null)}
-                className="h-9 rounded-lg text-xs font-bold bg-white"
+                className="h-9 px-4 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
               >
                 Close Details
               </Button>
-              <div className="flex gap-2">
+
+              <div className="flex items-center gap-2">
                 {selectedReportForDetails && selectedReportForDetails.status === 'Ready' && (
                   <Button
                     size="sm"
@@ -1196,9 +1248,9 @@ export default function CompanyReportsGeneratorPage() {
                       handleDownloadReportById(selectedReportForDetails);
                       setSelectedReportForDetails(null);
                     }}
-                    className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 rounded-lg font-bold text-xs gap-1.5 shadow-xs"
+                    className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download (.xlsx)
+                    <Download className="w-4 h-4" /> Download Report (.xlsx)
                   </Button>
                 )}
               </div>
