@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, UploadCloud, Truck, User, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
+import { Download, UploadCloud, Truck, User, ArrowLeft, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -97,57 +97,59 @@ export default function OwnerFolderPage() {
       {/* Anchored Viewport Container: No outer page scroll */}
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-3">
         
-        {/* ── Single Prominent MERCON Header: Highlighted Truck & Driver Cards ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+        {/* ── Executive MERCON Operating System Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 pb-3 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
           
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Highlighted Truck Badge Card */}
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-2xs border border-slate-800">
-              <Truck className="w-4.5 h-4.5 text-[#FA634E] shrink-0" />
-              <div className="flex items-center gap-2">
-                <span className="font-black font-mono text-sm tracking-wide text-white">
-                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'BRA-4012')}
+          <div className="flex items-center gap-3.5 min-w-0">
+            {/* Back Button */}
+            <button
+              type="button"
+              onClick={() => navigate('/documents')}
+              className="w-9 h-9 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
+              title="Back to Documents Vault"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+
+            {/* Vehicle Identity & Driver Metadata Stack */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
+                </h1>
+                
+                {/* Vehicle Ref Code Tag */}
+                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200/60 dark:border-slate-700">
+                  {vehicle?.ref_id || 'TRK-110'}
                 </span>
-                <span className="text-[11px] font-mono text-slate-300 font-bold">
-                  ({vehicle?.ref_id || 'TRK-117'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 12).toFixed(0)} TON)
+
+                {/* Capacity Tag */}
+                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono text-xs font-bold border border-slate-200/60 dark:border-slate-700">
+                  {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
                 </span>
               </div>
-            </div>
 
-            {/* Separator Dot */}
-            <span className="text-slate-300 dark:text-slate-700 font-bold hidden sm:inline">•</span>
-
-            {/* Highlighted Driver Badge Card */}
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 text-indigo-950 dark:text-indigo-200 shadow-2xs">
-              <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-500">Driver:</span>
-                <span className="text-indigo-950 dark:text-indigo-100 font-black">
+              {/* Driver Details Subtitle Row */}
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 flex-wrap">
+                <span className="text-slate-400 font-medium">Assigned Driver:</span>
+                <strong className="text-slate-800 dark:text-slate-200 font-extrabold flex items-center gap-1">
+                  <User className="w-3.5 h-3.5 text-[#FA634E]" />
                   {normalizedType === 'Driver' ? ownerName : driverName}
-                </span>
+                </strong>
                 {((driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567') && (
-                  <span className="text-[11px] font-mono font-semibold text-indigo-600/80 dark:text-indigo-300/80">
-                    · Phone: {(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'}
+                  <span className="text-slate-400 font-mono">
+                    ({(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'})
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Action & Compliance Badge */}
-          <div className="flex items-center gap-3 shrink-0">
-            <Badge className={cn('text-xs font-mono font-extrabold px-3 py-1 border rounded-full shadow-none', cardSummary.className)}>
+          {/* Right Side: Compliance Status Badge */}
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+            <Badge className={cn('text-xs font-mono font-black px-3.5 py-1.5 border rounded-xl shadow-2xs', cardSummary.className)}>
               {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
             </Badge>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/documents')}
-              className="h-8.5 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
-            >
-              Back to Vault
-            </Button>
           </div>
 
         </div>
