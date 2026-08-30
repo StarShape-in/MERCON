@@ -20,7 +20,7 @@ import {
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { MonthlyBoardCompany, MonthlyBoardTrip } from '@/services/tripService';
-import { formatDayHeading, formatMoney, formatTime, initialsOf, isUnassigned } from './monthlyBoardUtils';
+import { formatDayHeading, formatMoney, formatTime, initialsOf, isUnassigned, formatLocationClean } from './monthlyBoardUtils';
 import { computeMonthlyTripSearchRelevance } from './MonthlyCompanyCard';
 
 interface MonthlyCompanyBoardProps {
@@ -309,8 +309,8 @@ function CompanyColumn({
     for (const trip of allCompanyTrips) {
       const lineType = trip.rate_category || trip.billing_type || 'Single Trip';
       const vehicleClass = trip.vehicle_type || 'Standard Truck';
-      const origin = trip.origin ?? '—';
-      const destination = (trip.destination ?? '—').replace(/🔁\s*/g, '').trim();
+      const origin = formatLocationClean(trip.origin);
+      const destination = formatLocationClean(trip.destination);
       const rateStr = trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—';
       const key = `${lineType}||${vehicleClass}||${origin}→${destination}||${rateStr}`;
 

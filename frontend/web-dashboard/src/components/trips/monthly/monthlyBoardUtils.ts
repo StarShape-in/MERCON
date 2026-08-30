@@ -67,5 +67,23 @@ export const initialsOf = (name: string): string =>
 export const formatMoney = (value: number, currency = 'SAR'): string =>
   `${currency} ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
+/** Clean location display by stripping redundant code prefix ("BAHA — AL BAHA" -> "AL BAHA") */
+export function formatLocationClean(loc: string | null | undefined): string {
+  if (!loc || !loc.trim()) return '—';
+  const str = loc.replace(/🔁\s*/g, '').trim();
+
+  // Handle "CODE — NAME" or "CODE - NAME"
+  if (str.includes(' — ')) {
+    const parts = str.split(' — ').map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[1];
+  }
+  if (str.includes(' - ')) {
+    const parts = str.split(' - ').map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[1];
+  }
+
+  return str;
+}
+
 /** A trip is only covered when both a driver and a truck are on it. */
 export const isUnassigned = (trip: MonthlyBoardTrip): boolean => !trip.driver || !trip.vehicle;
