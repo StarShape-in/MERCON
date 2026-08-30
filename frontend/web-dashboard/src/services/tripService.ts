@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { ResolvedLocation } from './vehicleService';
 
 export type TripStatus = 'Draft' | 'Scheduled' | 'Loading' | 'Dispatched' | 'AtPickup' | 'InTransit' | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled' | 'Delayed' | 'Emergency' | (string & {});
 
@@ -75,7 +76,7 @@ export interface Trip {
   customer_id?: string;
   customer?: { id: string; name: string; company_name?: string | null; avatar_url?: string | null; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; ai_risk_score?: number; deletedAt?: string | null } | null;
-  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null } | null;
+  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null; resolved_location?: ResolvedLocation } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
   vehicle_type?: string | null;

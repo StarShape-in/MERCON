@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, Maximize2, X } from 'lucide-react';
+import { Navigation, Gauge, Maximize2, X, MapPin } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
@@ -12,12 +12,14 @@ import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
+import type { ResolvedLocation } from '@/services/vehicleService';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+
 // High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
 const pickupMarkerIcon = L.divIcon({
   html: `
@@ -50,6 +52,28 @@ function createLiveTruckIcon(heading: number) {
       <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
         <div class="animate-ping" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.25);"></div>
         <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #0F1017; border: 2px solid #FF5500; box-shadow: 0 0 20px rgba(255, 85, 0, 0.8);"></div>
+        <div style="width: 30px; height: 30px; z-index: 2; display: flex; align-items: center; justify-content: center; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
+          <img src="/truck_3d_orange_transparent.png" style="width: 30px; height: 30px; object-fit: contain;" />
+        </div>
+      </div>
+    `,
+    className: '',
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+  });
+}
+
+function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 'LAST_KNOWN' = 'CURRENT') {
+  const isCurrent = displayState === 'CURRENT';
+  const glowColor = isCurrent ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)';
+  const borderColor = isCurrent ? '#10B981' : '#F59E0B';
+  const pingClass = isCurrent ? 'animate-ping' : '';
+
+  return L.divIcon({
+    html: `
+      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+        ${isCurrent ? `<div class="${pingClass}" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: ${glowColor};"></div>` : ''}
+        <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #0F1017; border: 2px solid ${borderColor}; box-shadow: 0 0 16px ${glowColor};"></div>
         <div style="width: 30px; height: 30px; z-index: 2; display: flex; align-items: center; justify-content: center; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
           <img src="/truck_3d_orange_transparent.png" style="width: 30px; height: 30px; object-fit: contain;" />
         </div>
@@ -100,6 +124,7 @@ interface TripLiveMapCardProps {
   dropoffLng?: number;
   pickupLabel?: string;
   dropoffLabel?: string;
+  resolvedLocation?: ResolvedLocation;
   /** Show the title/theme-selector/"Full Radar" header row. Default true. */
   showHeader?: boolean;
   /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
@@ -121,6 +146,7 @@ export default function TripLiveMapCard({
   dropoffLng,
   pickupLabel,
   dropoffLabel,
+  resolvedLocation,
   showHeader = true,
   showTelemetryBar = true,
   className,
@@ -133,14 +159,19 @@ export default function TripLiveMapCard({
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
-  // A trip only has a "live truck" to show if it matches one of the canned
-  // demo fleet entries — falling back to fleet[0] regardless of the trip's
-  // real coordinates used to draw a Riyadh↔Jeddah truck on top of an
-  // unrelated real route. Real trips outside the demo set just show pickup/
-  // dropoff pins on their real route, no fabricated live position.
+  const resLat = resolvedLocation?.latitude;
+  const resLng = resolvedLocation?.longitude;
+  const displayState = resolvedLocation?.display_state;
+  const hasResolvedCoords =
+    typeof resLat === 'number' &&
+    typeof resLng === 'number' &&
+    Number.isFinite(resLat) &&
+    Number.isFinite(resLng) &&
+    (displayState === 'CURRENT' || displayState === 'LAST_KNOWN');
+
   const hasRealCoords = pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null;
   const matchedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId);
-  const simulatedTruck = matchedTruck || (hasRealCoords ? undefined : fleet[0]);
+  const simulatedTruck = hasResolvedCoords ? undefined : (matchedTruck || (hasRealCoords ? undefined : fleet[0]));
 
   const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
   const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
@@ -152,12 +183,13 @@ export default function TripLiveMapCard({
       ? demoRoute.waypoints.map((w) => [w.lat, w.lng])
       : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]];
 
-  const currentLat = simulatedTruck ? simulatedTruck.currentCoords.lat : pickupPoint.lat;
-  const currentLng = simulatedTruck ? simulatedTruck.currentCoords.lng : pickupPoint.lng;
-  const speed = simulatedTruck ? simulatedTruck.speedKmH : 0;
-  const heading = simulatedTruck ? simulatedTruck.heading : 0;
+  const activeTruckLat = hasResolvedCoords ? resLat! : (simulatedTruck ? simulatedTruck.currentCoords.lat : pickupPoint.lat);
+  const activeTruckLng = hasResolvedCoords ? resLng! : (simulatedTruck ? simulatedTruck.currentCoords.lng : pickupPoint.lng);
+  const activeSpeed = hasResolvedCoords ? (resolvedLocation?.speed_kph ?? 0) : (simulatedTruck ? simulatedTruck.speedKmH : 0);
+  const activeHeading = hasResolvedCoords ? (resolvedLocation?.heading_deg ?? 0) : (simulatedTruck ? simulatedTruck.heading : 0);
   const progress = simulatedTruck ? simulatedTruck.progressPercentage : 0;
   const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 0;
+  const sourceText = resolvedLocation?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLocation?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
 
   return (
     <Card className={cn('border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden p-0 gap-0', className)}>
@@ -234,7 +266,7 @@ export default function TripLiveMapCard({
           </button>
 
           <MapContainer
-            center={[currentLat, currentLng]}
+            center={[activeTruckLat, activeTruckLng]}
             zoom={8}
             minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
             maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
@@ -254,8 +286,10 @@ export default function TripLiveMapCard({
               url={currentTheme.url}
             />
 
-            {simulatedTruck ? (
-              <MapFlyTo lat={currentLat} lng={currentLng} />
+            {hasResolvedCoords ? (
+              <MapFlyTo lat={resLat!} lng={resLng!} />
+            ) : simulatedTruck ? (
+              <MapFlyTo lat={simulatedTruck.currentCoords.lat} lng={simulatedTruck.currentCoords.lng} />
             ) : (
               <FitBounds aLat={pickupPoint.lat} aLng={pickupPoint.lng} bLat={dropoffPoint.lat} bLng={dropoffPoint.lng} />
             )}
@@ -283,47 +317,104 @@ export default function TripLiveMapCard({
               </Popup>
             </Marker>
 
-            {simulatedTruck && (
-              <Marker position={[currentLat, currentLng]} icon={createLiveTruckIcon(heading)}>
+            {hasResolvedCoords ? (
+              <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
-                    <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+                  <div className="text-xs font-sans p-1 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <span className={cn("w-2 h-2 rounded-full", displayState === 'CURRENT' ? "bg-emerald-500" : "bg-amber-500")} />
+                      <span className="text-[#111] dark:text-white">
+                        {displayState === 'CURRENT' ? 'Current location' : 'Last known location'}
+                      </span>
+                    </div>
+                    {resolvedLocation?.plate_number && (
+                      <p className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {resolvedLocation.plate_number}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-500">
+                      {resLat!.toFixed(4)}, {resLng!.toFixed(4)}
+                      {resolvedLocation?.formatted_time_ago && ` · ${resolvedLocation.formatted_time_ago}`}
+                    </p>
+                    {sourceText && (
+                      <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                        Source: {sourceText}
+                      </p>
+                    )}
                   </div>
                 </Popup>
               </Marker>
-            )}
+            ) : simulatedTruck ? (
+              <Marker position={[simulatedTruck.currentCoords.lat, simulatedTruck.currentCoords.lng]} icon={createLiveTruckIcon(simulatedTruck.heading)}>
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1">
+                    <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
+                    <p className="text-[10px] text-gray-500">Speed: {simulatedTruck.speedKmH} km/h</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ) : null}
           </MapContainer>
 
           {/* Bottom Telemetry Bar */}
           {showTelemetryBar && (
-          <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3.5 rounded-xl shadow-xl border text-xs space-y-2 ${
+          <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3 rounded-xl shadow-xl border text-xs space-y-2 ${
             currentTheme.isDark 
               ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' 
               : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
           }`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="bg-[#FF5500]/20 p-2 rounded-lg text-[#FF5500] border border-[#FF5500]/30">
-                  <Gauge size={18} />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={cn(
+                  "p-2 rounded-lg border shrink-0",
+                  hasResolvedCoords && displayState === 'CURRENT'
+                    ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
+                    : hasResolvedCoords && displayState === 'LAST_KNOWN'
+                    ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
+                    : "bg-[#FF5500]/20 text-[#FF5500] border-[#FF5500]/30"
+                )}>
+                  {hasResolvedCoords ? <Navigation size={18} /> : <Gauge size={18} />}
                 </div>
-                <div>
-                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Telemetry Stream</p>
-                  <p className="text-xs font-bold">
-                    {speed} km/h • <span className="font-mono text-[11px] text-orange-500">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
+                <div className="min-w-0">
+                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider truncate">
+                    {hasResolvedCoords
+                      ? (displayState === 'CURRENT' ? 'Current location' : 'Last known location')
+                      : resolvedLocation?.display_state === 'UNAVAILABLE'
+                      ? 'Location unavailable'
+                      : 'Telemetry Stream'}
+                  </p>
+                  <p className="text-xs font-bold truncate">
+                    {hasResolvedCoords ? (
+                      <>
+                        <span className="font-mono text-[11px] text-emerald-500 dark:text-emerald-400">
+                          {resLat!.toFixed(4)}, {resLng!.toFixed(4)}
+                        </span>
+                        {activeSpeed > 0 && ` • ${activeSpeed} km/h`}
+                        {sourceText && ` • ${sourceText}`}
+                        {resolvedLocation?.formatted_time_ago && ` (${resolvedLocation.formatted_time_ago})`}
+                      </>
+                    ) : resolvedLocation?.display_state === 'UNAVAILABLE' ? (
+                      <span className="text-slate-400 dark:text-slate-500 italic">No GPS telemetry available</span>
+                    ) : (
+                      <>
+                        {activeSpeed} km/h • <span className="font-mono text-[11px] text-orange-500">{activeTruckLat.toFixed(4)}, {activeTruckLng.toFixed(4)}</span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
-                <p className="text-xs font-bold text-[#FF5500]">
-                  {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
-                </p>
-              </div>
+              {!hasResolvedCoords && (
+                <div className="text-right shrink-0">
+                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
+                  <p className="text-xs font-bold text-[#FF5500]">
+                    {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
+                  </p>
+                </div>
+              )}
             </div>
 
-            <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />
+            {!hasResolvedCoords && <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />}
           </div>
           )}
         </div>

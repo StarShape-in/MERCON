@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MoreHorizontal,
@@ -10,12 +10,14 @@ import {
   Trash2,
   Edit2,
   Navigation,
+  MapPin,
 } from 'lucide-react';
 import { Trip, TripStop, TripStatus, getTripPayloadCapacity } from '@/services/tripService';
 import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { reverseGeocode } from '@/services/addressSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,6 +100,35 @@ export default function TripKanbanCard({
   const tripType = getTripTypeLabel(trip);
   const routeText = `${pickupName}  →  ${dropoffName}`;
   const routeTitle = `${stopFullLabel(pickup)} → ${stopFullLabel(dropoff)}`;
+
+  const resolvedLoc = trip.vehicle?.resolved_location;
+  const lat = resolvedLoc?.latitude;
+  const lng = resolvedLoc?.longitude;
+  const displayState = resolvedLoc?.display_state;
+  const hasCoords = typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
+  const isUnavailable = !resolvedLoc || displayState === 'UNAVAILABLE' || !hasCoords;
+
+  const [placeName, setPlaceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasCoords || isUnavailable) {
+      setPlaceName(null);
+      return;
+    }
+
+    let isMounted = true;
+    reverseGeocode(lat!, lng!)
+      .then((res) => {
+        if (isMounted) setPlaceName(res);
+      })
+      .catch(() => {
+        if (isMounted) setPlaceName(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lat, lng, isUnavailable, hasCoords]);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', trip.id);
@@ -284,6 +315,44 @@ export default function TripKanbanCard({
           <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ring-1 ring-rose-200 dark:ring-rose-900" />
         </div>
       </div>
+
+      {/* ── ROW 3.5: Resolved Physical Location Row ──────────────────────────── */}
+      {(() => {
+        if (isUnavailable) {
+          return (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium italic text-slate-400 dark:text-slate-500 py-0.5 px-1">
+              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+              <span className="truncate">Location unavailable</span>
+            </div>
+          );
+        }
+
+        const isCurrent = displayState === 'CURRENT';
+        const coordsText = `${lat!.toFixed(4)}, ${lng!.toFixed(4)}`;
+        const locationLabel = placeName || coordsText;
+        const sourceLabel = resolvedLoc?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLoc?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
+        const timeAgoText = resolvedLoc?.formatted_time_ago;
+        const statePrefix = isCurrent ? 'Current location' : 'Last known location';
+
+        return (
+          <div className="flex flex-col gap-0.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-lg px-2 py-1 min-w-0" title={`${statePrefix}: ${locationLabel}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Navigation className={cn("w-3 h-3 shrink-0", isCurrent ? "text-emerald-500" : "text-amber-500")} />
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                {locationLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[9.5px] font-medium text-slate-500 dark:text-slate-400 pl-4 truncate">
+              {timeAgoText && (
+                <span>
+                  {isCurrent ? `Updated ${timeAgoText}` : `Last known · ${timeAgoText}`}
+                </span>
+              )}
+              {sourceLabel && <span>· {sourceLabel}</span>}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── ROW 4: Driver name (left) + Tonnage (right) — no icons ─────────── */}
       <div className="flex items-center justify-between gap-2 overflow-hidden">

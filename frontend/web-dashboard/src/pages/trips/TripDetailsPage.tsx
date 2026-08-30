@@ -228,6 +228,7 @@ export default function TripDetailsPage() {
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
     enabled: !!id,
+    refetchInterval: 10000,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 404) return false;
       return failureCount < 1;
@@ -1111,6 +1112,7 @@ export default function TripDetailsPage() {
                       dropoffLng={dropoff?.location_lng}
                       pickupLabel={pickup?.location_name || undefined}
                       dropoffLabel={dropoff?.location_name || undefined}
+                      resolvedLocation={trip.vehicle?.resolved_location}
                       showHeader={false}
                       showTelemetryBar={false}
                       className="rounded-none border-none"
