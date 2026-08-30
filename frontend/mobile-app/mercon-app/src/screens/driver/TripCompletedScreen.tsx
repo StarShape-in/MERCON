@@ -511,8 +511,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cleanLogoImage: {
-    width: 160,
-    height: 60,
+    width: 115,
+    height: 40,
     alignSelf: 'center',
   },
   cleanActionBar: {
