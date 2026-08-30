@@ -421,7 +421,7 @@ export default function DocumentsLedgerMatrixView({
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Driver License</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Passport</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Iqama / Residency</th>
-                  <th className="px-4 py-3.5 text-left whitespace-nowrap">Medical Check</th>
+                  <th className="px-4 py-3.5 text-left whitespace-nowrap">Driver Card</th>
                   <th className="px-4 py-3.5 text-center whitespace-nowrap">Status</th>
                   <th className="px-4 py-3.5 text-right whitespace-nowrap">Action</th>
                 </tr>
@@ -440,7 +440,7 @@ export default function DocumentsLedgerMatrixView({
                     const license = findSlot(row, ['license']);
                     const passport = findSlot(row, ['passport']);
                     const iqama = findSlot(row, ['iqama', 'residency']);
-                    const medical = findSlot(row, ['medical', 'check']);
+                    const driverCard = findSlot(row, ['driver card', 'card', 'driver_card', 'operating card']);
 
                     const matchedDriver = drivers.find((d) => d.id === row.ownerId);
                     const assignedVehId = matchedDriver?.assignedVehicleId || matchedDriver?.assigned_vehicle_id;
@@ -484,7 +484,7 @@ export default function DocumentsLedgerMatrixView({
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(license)}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(passport)}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(iqama)}</td>
-                        <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(medical)}</td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(driverCard)}</td>
  
                         {/* Status */}
                         <td className="px-4 py-3.5 text-center whitespace-nowrap">{renderRowStatusBadge(row)}</td>
