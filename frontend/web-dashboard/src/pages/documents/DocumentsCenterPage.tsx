@@ -23,7 +23,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate } from '@/lib/documents';
+import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate, getOwnerCardSummary } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
@@ -171,7 +171,8 @@ export default function DocumentsCenterPage() {
 
   // State
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(8);
+  const [folderSubFilter, setFolderSubFilter] = useState<'all' | 'compliant' | 'expiring' | 'issues' | 'missing'>('all');
   const [activeCategory, setActiveCategory] = useState<PillCategory>(initialCategory);
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
@@ -351,8 +352,59 @@ export default function DocumentsCenterPage() {
     return vehicleFolders.filter((r) => r.slots.some((s) => s.status === 'EXPIRED' || s.status === 'MISSING' || s.status === 'EXPIRING_SOON')).length;
   }, [vehicleFolders]);
 
+  const folderStats = useMemo(() => {
+    const foldersList = activeCategory === 'Vehicles' ? filteredVehicleFolders : filteredDriverFolders;
+    
+    let all = foldersList.length;
+    let compliant = 0;
+    let expiring = 0;
+    let issues = 0;
+    let missing = 0;
+
+    foldersList.forEach((row) => {
+      const summary = getOwnerCardSummary(row.slots);
+      if (summary.isCompliant) {
+        compliant++;
+      }
+      
+      const hasIssues = row.slots.some(s => s.status === 'EXPIRED');
+      const hasExpiring = row.slots.some(s => s.status === 'EXPIRING_SOON');
+      const hasMissing = row.slots.some(s => s.status === 'MISSING');
+
+      if (hasIssues) issues++;
+      if (hasExpiring) expiring++;
+      if (hasMissing) missing++;
+    });
+
+    return { all, compliant, expiring, issues, missing };
+  }, [activeCategory, filteredVehicleFolders, filteredDriverFolders]);
+
+  const finalFolders = useMemo(() => {
+    const foldersList = activeCategory === 'Vehicles' ? filteredVehicleFolders : filteredDriverFolders;
+    
+    if (folderSubFilter === 'all') return foldersList;
+    
+    return foldersList.filter((row) => {
+      const summary = getOwnerCardSummary(row.slots);
+      if (folderSubFilter === 'compliant') return summary.isCompliant;
+      if (folderSubFilter === 'issues') return row.slots.some(s => s.status === 'EXPIRED');
+      if (folderSubFilter === 'expiring') return row.slots.some(s => s.status === 'EXPIRING_SOON');
+      if (folderSubFilter === 'missing') return row.slots.some(s => s.status === 'MISSING');
+      return true;
+    });
+  }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, folderSubFilter]);
+
+  const totalCount = finalFolders.length;
+  const folderTotalPages = Math.ceil(totalCount / pageSize) || 1;
+  const paginatedFolders = useMemo(() => {
+    const from = (currentPage - 1) * pageSize;
+    return finalFolders.slice(from, from + pageSize);
+  }, [finalFolders, currentPage, pageSize]);
+
   const handleSelectCategory = (cat: PillCategory) => {
     setActiveCategory(cat);
+    setCurrentPage(1);
+    setFolderSubFilter('all');
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (cat === 'All') {
@@ -739,16 +791,15 @@ export default function DocumentsCenterPage() {
     <DashboardLayout active="Documents" title="Documents Center">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── Page Header (Matching uploaded mockup) ─────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Documents Center
             </h1>
-            <p className="text-xs text-[#FA634E] font-bold mt-0.5 flex items-center gap-1.5">
-              <span>{filteredVehicleFolders.length} vehicles</span>
-              <span className="text-slate-300 dark:text-slate-700">·</span>
-              <span className="text-rose-600 font-bold">{needAttentionTotal} need attention</span>
+            <p className="text-xs text-slate-505 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 font-medium">
+              <span>{vehicleFolders.length} vehicles</span>
+              <span className="text-slate-300 dark:text-slate-700 font-black">•</span>
+              <span className="text-[#FA634E] font-bold">{needAttentionTotal} need attention</span>
             </p>
           </div>
 
@@ -844,9 +895,9 @@ export default function DocumentsCenterPage() {
                   : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
               )}
             >
-              <Truck className="w-4 h-4" />
+              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-[#FA634E]" : "text-slate-450")} />
               <span>Vehicle Documents</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {vehicleFolders.length}
               </span>
             </button>
@@ -861,9 +912,9 @@ export default function DocumentsCenterPage() {
                   : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
               )}
             >
-              <UserIcon className="w-4 h-4" />
+              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-[#FA634E]" : "text-slate-450")} />
               <span>Driver Documents</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {driverFolders.length}
               </span>
             </button>
@@ -878,9 +929,9 @@ export default function DocumentsCenterPage() {
                   : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
               )}
             >
-              <Briefcase className="w-4 h-4" />
+              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-[#FA634E]" : "text-slate-450")} />
               <span>Company & Operations</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {foldersByCategory.Operations.count + foldersByCategory.Company.count}
               </span>
             </button>
@@ -917,6 +968,96 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
+        {/* Filter Pills row */}
+        {viewMode === 'folders' && (activeCategory === 'Vehicles' || activeCategory === 'Drivers') && (
+          <div className="flex flex-wrap items-center gap-2 pb-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setFolderSubFilter('all');
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                folderSubFilter === 'all'
+                  ? "bg-[#FA634E]/10 border-[#FA634E]/25 text-[#FA634E]"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+              )}
+            >
+              <span>All</span>
+              <span className="opacity-60 font-mono text-[10px]">{folderStats.all}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFolderSubFilter('compliant');
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                folderSubFilter === 'compliant'
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+              )}
+            >
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Compliant</span>
+              <span className="opacity-60 font-mono text-[10px]">{folderStats.compliant}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFolderSubFilter('expiring');
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                folderSubFilter === 'expiring'
+                  ? "bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-950/40 dark:text-amber-300"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+              )}
+            >
+              <span className="text-amber-600 dark:text-amber-400 font-bold">Expiring Soon</span>
+              <span className="opacity-60 font-mono text-[10px]">{folderStats.expiring}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFolderSubFilter('issues');
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                folderSubFilter === 'issues'
+                  ? "bg-rose-50 text-rose-700 border-rose-250 dark:bg-rose-950/40 dark:text-rose-300"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+              )}
+            >
+              <span className="text-rose-600 dark:text-rose-400 font-bold">Issues</span>
+              <span className="opacity-60 font-mono text-[10px]">{folderStats.issues}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFolderSubFilter('missing');
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                folderSubFilter === 'missing'
+                  ? "bg-slate-100 border-slate-300 text-slate-700 dark:bg-slate-800 dark:border-slate-750 dark:text-slate-300"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+              )}
+            >
+              <span>Missing</span>
+              <span className="opacity-60 font-mono text-[10px]">{folderStats.missing}</span>
+            </button>
+          </div>
+        )}
+
         {/* ── Document Vault Area (Grouped Folders vs Ledger Matrix View) ────────── */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -942,14 +1083,14 @@ export default function DocumentsCenterPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* 1. Vehicles Group Section */}
               {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
                 <FolderCardSection
                   title="Vehicle Compliance Folders"
                   icon={<Truck className="w-4 h-4 text-emerald-600" />}
                   noun="Vehicles"
-                  rows={filteredVehicleFolders}
+                  rows={activeCategory === 'All' ? filteredVehicleFolders : paginatedFolders}
                   onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
                   onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
@@ -964,7 +1105,7 @@ export default function DocumentsCenterPage() {
                   title="Driver Compliance Folders"
                   icon={<UserIcon className="w-4 h-4 text-blue-600" />}
                   noun="Drivers"
-                  rows={filteredDriverFolders}
+                  rows={activeCategory === 'All' ? filteredDriverFolders : paginatedFolders}
                   onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
                   onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
@@ -1032,6 +1173,55 @@ export default function DocumentsCenterPage() {
                         </Card>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Pagination footer */}
+              {activeCategory !== 'All' && folderTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    Showing {Math.min(totalCount, (currentPage - 1) * pageSize + 1)} to {Math.min(totalCount, currentPage * pageSize)} of {totalCount} {activeCategory === 'Vehicles' ? 'vehicles' : 'drivers'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg cursor-pointer border-slate-200 dark:border-slate-700 bg-white"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4 text-slate-500" />
+                    </Button>
+                    {Array.from({ length: folderTotalPages }).map((_, idx) => {
+                      const pageNum = idx + 1;
+                      const isCurrent = currentPage === pageNum;
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={isCurrent ? 'default' : 'outline'}
+                          size="sm"
+                          className={cn(
+                            "h-8 w-8 p-0 rounded-lg text-xs font-bold transition-all cursor-pointer border-slate-200 dark:border-slate-700",
+                            isCurrent
+                              ? "bg-[#FA634E] hover:bg-[#FA634E]/90 text-white border-[#FA634E]"
+                              : "bg-white hover:bg-slate-50 text-slate-650"
+                          )}
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg cursor-pointer border-slate-200 dark:border-slate-700 bg-white"
+                      disabled={currentPage === folderTotalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(folderTotalPages, p + 1))}
+                    >
+                      <ChevronRight className="h-4 w-4 text-slate-500" />
+                    </Button>
                   </div>
                 </div>
               )}

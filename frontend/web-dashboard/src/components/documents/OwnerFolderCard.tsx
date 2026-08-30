@@ -37,9 +37,11 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
   const subtitle = row.ownerType === 'Driver'
     ? [row.ownerRef, row.relatedName ? `Truck: ${row.relatedName}` : null].filter(Boolean).join(' · ') || 'No ref'
     : [row.ownerRef, row.relatedName ? `Driver: ${row.relatedName}` : null].filter(Boolean).join(' · ') || 'No ref';
-  const accent = accentColor === 'emerald'
-    ? { iconBg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-600', hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700' }
-    : { iconBg: 'bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600', hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-700' };
+  const accent = row.ownerType === 'Driver'
+    ? { iconBg: 'bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600', hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-700' }
+    : cardSummary.isCompliant
+      ? { iconBg: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-600', hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700' }
+      : { iconBg: 'bg-rose-50 dark:bg-rose-950/60 border-rose-205 dark:border-rose-805 text-rose-500', hoverBorder: 'hover:border-rose-300 dark:hover:border-rose-700' };
 
   return (
     <Card
@@ -84,8 +86,8 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
             const getStatusText = () => {
               if (slot.status === 'MISSING') return 'Missing';
               if (slot.status === 'VALID') return 'Valid';
-              if (slot.status === 'EXPIRING_SOON') return formattedDate || 'Soon';
-              if (slot.status === 'EXPIRED') return formattedDate || 'Expired';
+              if (slot.status === 'EXPIRING_SOON') return formattedDate ? `Expiring ${formattedDate}` : 'Soon';
+              if (slot.status === 'EXPIRED') return formattedDate ? `Expired ${formattedDate}` : 'Expired';
               return 'Valid';
             };
 
