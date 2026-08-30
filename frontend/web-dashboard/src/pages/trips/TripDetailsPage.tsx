@@ -6,8 +6,8 @@ import {
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
-  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
-  Coins, Pencil, Plus, DollarSign, HardHat, X, Camera, Eye, Maximize2, Trash2, ShieldCheck,
+  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, ArrowDown, SquarePen, MessageCircle, UserCheck, History,
+  Coins, Pencil, Plus, PlusCircle, Minus, Wallet, DollarSign, HardHat, X, Camera, Eye, Maximize2, Trash2, ShieldCheck,
 } from 'lucide-react';
 
 function resolveFileUrl(url?: string | null): string {
@@ -95,6 +95,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -529,242 +530,213 @@ export default function TripDetailsPage() {
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-8 space-y-3 animate-fade-in text-[#3E3C3D]">
+      <div className="bg-[#EEF1F6] min-h-screen -mt-3 sm:-mt-4 -mb-8 p-4 sm:p-6 space-y-4 text-[#3E3C3D] animate-fade-in">
+        <div className="max-w-[1600px] mx-auto space-y-4">
 
-        {/* ── Sticky Context Bar (Active on Scroll) ── */}
-        {isSticky && (
-          <div className="fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-black/[0.08] dark:border-slate-800 py-2 px-4 sm:px-8 shadow-sm flex items-center justify-between transition-all animate-fade-in">
-            <div className="flex items-center gap-3 min-w-0">
-              <Link to="/trips" className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0">
-                <ChevronRight className="rotate-180" size={16} />
-              </Link>
-              <span className="font-bold font-mono text-sm text-[#3E3C3D] dark:text-slate-100 shrink-0">
-                {trip.ref_id || trip.id}
-              </span>
-              <span className="text-[#9898A4] shrink-0">•</span>
-              <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 truncate max-w-[180px] sm:max-w-[240px]">
-                {custPersonName}
-              </span>
-              <span className="text-[#9898A4] hidden md:inline shrink-0">•</span>
-              <span className="text-xs text-[#6E6E80] truncate hidden md:inline font-medium max-w-[280px]">
-                {routeLabel}
-              </span>
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                style={{ color: tone.color, backgroundColor: tone.bg }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
-                {statusLabel(trip.status)}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/trips/${trip.id}/edit`)}
-                className="h-7.5 px-2.5 text-xs font-semibold text-[#3E3C3D] border-black/[0.12] hover:bg-black/[0.03] cursor-pointer"
-              >
-                <SquarePen size={12} className="mr-1 text-[#6E6E80]" /> Edit
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="h-7.5 px-3 bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-bold gap-1 shadow-2xs cursor-pointer">
-                    Actions <ChevronDown size={12} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={handleShareWhatsApp}>
-                    <WhatsAppIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Share WhatsApp
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
-                    <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
-                    <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
-                  </DropdownMenuItem>
-                  {nextStatusOption && (
-                    <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
-                      <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
-                    </DropdownMenuItem>
-                  )}
-                  {canCancel && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600">
-                        <XCircle size={14} className="mr-2" /> Cancel Trip
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        )}
-
-        {/* ── 5. ACTION REQUIRED BANNER (TOPMOST PLACEMENT - DARK SIDEBAR COLOR) ── */}
-        {!isClosed && (
-          <div className="bg-[#3E3C3D] dark:bg-slate-950 text-white rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-[#4E4C4D] dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FA634E]/20 text-[#FA634E] flex items-center justify-center shrink-0 border border-[#FA634E]/30">
-                <CheckCircle2 className="w-4.5 h-4.5 text-[#FA634E]" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FA634E] bg-[#FA634E]/15 px-2 py-0.5 rounded border border-[#FA634E]/30">
-                    ACTION REQUIRED
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-white dark:text-slate-100 mt-1 block">
-                  {needsAssignment && 'Assign driver and vehicle to dispatch this trip.'}
-                  {trip.status === 'Draft' && !needsAssignment && 'Trip ready to dispatch. Advance status to Dispatched.'}
-                  {trip.status === 'Dispatched' && 'Trip dispatched. Monitor driver arrival at origin facility.'}
-                  {trip.status === 'AtPickup' && 'Vehicle arrived at pickup. Await cargo loading and departure.'}
-                  {trip.status === 'InTransit' && 'Cargo in transit. Monitor live navigation progress to destination.'}
-                  {trip.status === 'AtDelivery' && 'Vehicle at delivery location. Complete trip and verify POD receipt.'}
-                  {trip.status === 'Completed' && 'Trip execution completed. Review POD documents and customer invoice.'}
-                </span>
-              </div>
-            </div>
-
-            {needsAssignment ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="sm" className="text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-xs cursor-pointer border-none">
-                    Assign Resources →
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-4 space-y-3 bg-white text-[#3E3C3D]">
-                  <p className="text-xs font-bold text-[#3E3C3D]">Assign Driver & Vehicle</p>
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-[#6E6E80]">Driver</label>
-                    <Combobox
-                      value={pendingDriverId}
-                      onChange={setPendingDriverId}
-                      options={driverOptions}
-                      placeholder="Select driver..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-[#6E6E80]">Vehicle</label>
-                    <Combobox
-                      value={pendingVehicleId}
-                      onChange={setPendingVehicleId}
-                      options={vehicleOptions}
-                      placeholder="Select vehicle..."
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white"
-                    disabled={(!pendingDriverId && !pendingVehicleId) || assignMutation.isPending}
-                    onClick={() => assignMutation.mutate({ driver_id: pendingDriverId || undefined, vehicle_id: pendingVehicleId || undefined })}
-                  >
-                    {assignMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              nextStatusOption && (
-                <Button
-                  size="sm"
-                  onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}
-                  className="text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-xs cursor-pointer border-none px-4 py-2"
-                >
-                  Advance to {nextStatusOption} →
-                </Button>
-              )
-            )}
-          </div>
-        )}
-
-        {/* ── 3. CLEAN COMPACT HEADER ── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            
-            {/* Left Header Info */}
-            <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-2 text-xs font-medium text-[#6E6E80]">
-                <Link to="/trips" className="hover:text-[#3E3C3D] transition-colors flex items-center gap-1 font-semibold">
-                  Trips
+          {/* ── Sticky Context Bar (Active on Scroll) ── */}
+          {isSticky && (
+            <div className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] py-2 px-4 sm:px-8 shadow-xs flex items-center justify-between transition-all animate-fade-in">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link to="/trips" className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0">
+                  <ChevronRight className="rotate-180" size={16} />
                 </Link>
-                <ChevronRight size={13} className="text-[#9898A4] shrink-0" />
-                <span className="text-[#3E3C3D] font-bold">Trip Details</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
-                <h1 className="text-xl font-bold font-mono tracking-tight text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
+                <span className="font-bold font-mono text-sm text-[#3E3C3D] shrink-0">
                   {trip.ref_id || trip.id}
-                  <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#FA634E] transition-colors">
-                    {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                  </button>
-                </h1>
-                
-                <span className="text-[#9898A4]">•</span>
-                <div className="flex items-center gap-1.5">
-                  <Avatar className="w-5 h-5 shrink-0 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-                    {custAvatarUrl && (
-                      <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
-                    )}
-                    <AvatarFallback className="text-[9px] font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900">
-                      {getInitials(custPersonName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-bold text-[#3E3C3D] dark:text-slate-200 truncate">
-                    {custPersonName}
-                  </span>
-                </div>
-
-                <span className="text-[#9898A4]">•</span>
-                <span className="text-xs font-semibold text-[#6E6E80] dark:text-slate-300 truncate">
+                </span>
+                <span className="text-[#9898A4] shrink-0">•</span>
+                <span className="text-xs text-[#6E6E80] truncate font-medium max-w-[280px]">
                   {routeLabel}
                 </span>
-
                 <span
-                  className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold ml-1 shrink-0"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
                   style={{ color: tone.color, backgroundColor: tone.bg }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
                   {statusLabel(trip.status)}
                 </span>
               </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/trips/${trip.id}/edit`)}
+                  className="h-7.5 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 cursor-pointer bg-white"
+                >
+                  <SquarePen size={12} className="mr-1 text-[#6E6E80]" /> Edit
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="h-7.5 px-3 bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1 shadow-none cursor-pointer">
+                      Actions <ChevronDown size={12} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={handleShareWhatsApp}>
+                      <WhatsAppIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Share WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
+                      <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
+                      <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
+                    </DropdownMenuItem>
+                    {nextStatusOption && (
+                      <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
+                        <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
+                      </DropdownMenuItem>
+                    )}
+                    {canCancel && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600">
+                          <XCircle size={14} className="mr-2" /> Cancel Trip
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          )}
+
+          {/* ── 1. ACTION REQUIRED BANNER (OPERATIONAL & MINIMAL) ── */}
+          {!isClosed && (
+            <div className="bg-[#FA634E]/5 border border-[#FA634E]/20 text-[#3E3C3D] rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-[#FA634E]/15 text-[#FA634E] flex items-center justify-center shrink-0 border border-[#FA634E]/30">
+                  <CheckCircle2 className="w-4 h-4 text-[#FA634E]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#FA634E] bg-[#FA634E]/15 px-2 py-0.5 rounded border border-[#FA634E]/30">
+                      ACTION REQUIRED
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-[#3E3C3D] mt-0.5 block">
+                    {needsAssignment && 'Resources assigned. Dispatch trip to begin pickup.'}
+                    {trip.status === 'Draft' && !needsAssignment && 'Trip ready to dispatch. Advance status to Dispatched.'}
+                    {trip.status === 'Dispatched' && 'Trip dispatched. Monitor driver arrival at origin facility.'}
+                    {trip.status === 'AtPickup' && 'Vehicle arrived at pickup. Await cargo loading and departure.'}
+                    {trip.status === 'InTransit' && 'Cargo in transit. Monitor live navigation progress to destination.'}
+                    {trip.status === 'AtDelivery' && 'Vehicle at delivery location. Complete trip and verify POD receipt.'}
+                    {trip.status === 'Completed' && 'Trip execution completed. Review POD documents and customer invoice.'}
+                  </span>
+                </div>
+              </div>
+
+              {needsAssignment ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" className="text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-none cursor-pointer border-none px-3.5 py-1.5 rounded-lg">
+                      Dispatch Trip →
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 p-4 space-y-3 bg-white text-[#3E3C3D] border-[#E5E7EB] shadow-lg rounded-2xl">
+                    <p className="text-xs font-semibold text-[#3E3C3D]">Assign Driver & Vehicle</p>
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium text-[#6E6E80]">Driver</label>
+                      <Combobox
+                        value={pendingDriverId}
+                        onChange={setPendingDriverId}
+                        options={driverOptions}
+                        placeholder="Select driver..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium text-[#6E6E80]">Vehicle</label>
+                      <Combobox
+                        value={pendingVehicleId}
+                        onChange={setPendingVehicleId}
+                        options={vehicleOptions}
+                        placeholder="Select vehicle..."
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-lg"
+                      disabled={(!pendingDriverId && !pendingVehicleId) || assignMutation.isPending}
+                      onClick={() => assignMutation.mutate({ driver_id: pendingDriverId || undefined, vehicle_id: pendingVehicleId || undefined })}
+                    >
+                      {assignMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                nextStatusOption && (
+                  <Button
+                    size="sm"
+                    onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}
+                    className="text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-none cursor-pointer border-none px-3.5 py-1.5 rounded-lg"
+                  >
+                    Advance to {nextStatusOption} →
+                  </Button>
+                )
+              )}
+            </div>
+          )}
+
+          {/* ── 2. TOP TRIP HEADER BAR ── */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-4">
+            {/* Left Title, Route, Status & Metadata */}
+            <div className="space-y-1 min-w-0">
+              {/* Row 1: Trip ID, Route, Compact Status Badge */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-[22px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1.5">
+                  {trip.ref_id || trip.id}
+                  <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#FA634E] transition-colors p-0.5">
+                    {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  </button>
+                </h1>
+
+                <span className="text-[#9898A4]">•</span>
+
+                <span className="text-[15px] font-semibold text-[#3E3C3D] truncate">
+                  {routeLabel}
+                </span>
+
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ml-0.5 shrink-0"
+                  style={{ color: tone.color, backgroundColor: tone.bg }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+                  {statusLabel(trip.status)}
+                </span>
+              </div>
+
+              {/* Row 2: Created / Updated Metadata Underneath */}
+              <p className="text-xs font-normal text-[#6E6E80] pt-0.5">
+                Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')} · Updated {formatInDeploymentTz(trip.updatedAt, tz, 'MMM dd')}
+              </p>
             </div>
 
-            {/* Right Header Actions */}
+            {/* Right Action Bar (Hierarchy: Primary = More Actions, Secondary = Share WhatsApp, Tertiary = Edit / Reassign) */}
             <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {/* TERTIARY */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/trips/${trip.id}/edit`)}
-                className="h-8.5 px-3 rounded-lg text-xs font-semibold text-[#3E3C3D] dark:text-slate-200 border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] gap-1.5 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 rounded-xl text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
               >
                 <SquarePen className="w-3.5 h-3.5 text-[#6E6E80]" />
                 Edit Trip
               </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShareWhatsApp}
-                className="h-8.5 px-3 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 gap-1.5 cursor-pointer shadow-2xs"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Share to WhatsApp
-              </Button>
 
+              {/* TERTIARY */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8.5 px-3 rounded-lg text-xs font-semibold text-[#3E3C3D] dark:text-slate-200 border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] gap-1.5 cursor-pointer shadow-2xs"
+                    className="h-8.5 px-3 rounded-xl text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
                   >
                     <RefreshCcw className="w-3.5 h-3.5 text-[#6E6E80]" />
                     Reassign
-                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                    <ChevronDown className="w-3.5 h-3.5 opacity-60" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-52 border-[#E5E7EB]">
                   <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
                     <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
                   </DropdownMenuItem>
@@ -778,14 +750,26 @@ export default function TripDetailsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* SECONDARY */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareWhatsApp}
+                className="h-8.5 px-3 rounded-xl text-xs font-medium text-emerald-700 border-emerald-600 bg-white hover:bg-emerald-50 gap-1.5 cursor-pointer shadow-none"
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
+                Share to WhatsApp
+              </Button>
+
+              {/* PRIMARY */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="h-8.5 px-3.5 rounded-lg bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-bold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all">
+                  <Button className="h-8.5 px-3.5 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
                     More Actions
                     <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuContent align="end" className="w-60 border-[#E5E7EB]">
                   {trip.status === 'InTransit' && (
                     <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
                       <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live Map
@@ -811,633 +795,686 @@ export default function TripDetailsPage() {
               </DropdownMenu>
             </div>
           </div>
-        </div>
 
-        {/* ── 4. TRIP SUMMARY (CLEAN HORIZONTAL BAR - 4 COLUMNS WITH FULL PROFILES) ── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06] dark:divide-slate-800">
-            
-            {/* Customer Profile */}
-            <div className="space-y-0.5 min-w-0 pr-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] block">Customer</span>
-              <div className="flex items-center gap-2 pt-0.5">
-                <Avatar
-                  className="w-8 h-8 shrink-0 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                >
-                  {custAvatarUrl && (
-                    <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
-                  )}
-                  <AvatarFallback className="text-xs font-extrabold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900">
-                    {getInitials(custPersonName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p
-                      onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                      className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate cursor-pointer hover:text-blue-600 transition-colors"
-                    >
-                      {custPersonName}
-                    </p>
-                    {trip.customer?.id && (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/customers/${trip.customer!.id}`)}
-                        className="text-[10px] text-indigo-600 hover:underline shrink-0"
-                        title="View Customer Profile"
+          {/* ── 3. TOP ROW BENTO GRID: OPERATIONAL HUB & FINANCIAL HUB ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+            {/* Left Panel (7 Cols): Resource Summary + Route & Stop Sequence + Live Route Map */}
+            <Card className="lg:col-span-7 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+              <div>
+                {/* Horizontal Resource Information Strip (Clean 5-Col Grid without cards) */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pb-5 border-b border-[#E5E7EB]">
+                  
+                  {/* Customer */}
+                  <div className="space-y-0.5 min-w-0 pr-2">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">CUSTOMER</span>
+                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
+                      <Avatar
+                        className="w-7 h-7 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
                       >
-                        <ExternalLink className="w-3 h-3" />
-                      </button>
-                    )}
+                        {custAvatarUrl && (
+                          <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                        )}
+                        <AvatarFallback className="text-[10px] font-bold text-slate-700 bg-slate-100">
+                          {getInitials(custPersonName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <p
+                            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                            className="text-[14px] font-semibold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
+                          >
+                            {custPersonName}
+                          </p>
+                          {trip.customer?.id && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                              className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
+                              title="View Customer Profile"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[12px] font-normal text-[#6E6E80] truncate">
+                          {custCompanyName || trip.customer?.contact_phone || '—'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  {custCompanyName ? (
-                    <p className="text-[11px] text-[#6E6E80] truncate font-medium">{custCompanyName}</p>
-                  ) : trip.customer?.contact_phone ? (
-                    <p className="text-[11px] text-[#6E6E80] font-mono truncate">{trip.customer.contact_phone}</p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
 
-            {/* Driver Profile */}
-            <div className="space-y-0.5 min-w-0 pt-2 sm:pt-0 sm:px-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Driver</span>
-                {trip.driver && !isClosed && !trip.is_third_party && (
-                  <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
-                    <PopoverTrigger asChild>
-                      <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-[#FA634E] transition-colors">
-                        <RefreshCcw size={11} />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-72 p-3 space-y-2">
-                      <p className="text-xs font-semibold text-[#3E3C3D]">Swap assigned driver</p>
-                      <Combobox
-                        value={replaceDriverId}
-                        onChange={setReplaceDriverId}
-                        options={driverOptions}
-                        placeholder="Choose replacement driver..."
-                        searchPlaceholder="Search drivers..."
-                        emptyText="No available drivers found."
-                      />
-                      <Btn
-                        label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
-                        size="sm"
-                        className="w-full bg-[#FA634E] text-white"
-                        disabled={!replaceDriverId || replaceDriverMutation.isPending}
-                        onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-              <div className="flex items-center gap-2 pt-0.5">
-                <Avatar
-                  className="w-8 h-8 shrink-0 border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950 cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                >
-                  {driverAvatarUrl && (
-                    <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
-                  )}
-                  <AvatarFallback className="text-xs font-extrabold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900">
-                    {getInitials(driverFullName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p
-                      onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                      className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate cursor-pointer hover:text-violet-600 transition-colors"
-                    >
-                      {driverFullName}
-                    </p>
-                    {trip.driver?.id && (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
-                        className="text-[10px] text-indigo-600 hover:underline shrink-0"
-                        title="View Driver Profile"
+                  {/* Driver */}
+                  <div className="space-y-0.5 min-w-0 px-2 sm:border-l border-[#E5E7EB]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
+                      {trip.driver && !isClosed && !trip.is_third_party && (
+                        <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
+                          <PopoverTrigger asChild>
+                            <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5">
+                              <RefreshCcw size={11} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
+                            <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
+                            <Combobox
+                              value={replaceDriverId}
+                              onChange={setReplaceDriverId}
+                              options={driverOptions}
+                              placeholder="Choose replacement driver..."
+                              searchPlaceholder="Search drivers..."
+                              emptyText="No available drivers found."
+                            />
+                            <Btn
+                              label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
+                              size="sm"
+                              className="w-full bg-[#FA634E] text-white rounded-lg"
+                              disabled={!replaceDriverId || replaceDriverMutation.isPending}
+                              onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
+                      <Avatar
+                        className="w-7 h-7 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
                       >
-                        <ExternalLink className="w-3 h-3" />
-                      </button>
-                    )}
+                        {driverAvatarUrl && (
+                          <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
+                        )}
+                        <AvatarFallback className="text-[10px] font-bold text-slate-700 bg-slate-100">
+                          {getInitials(driverFullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <p
+                            onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
+                            className="text-[14px] font-semibold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
+                          >
+                            {driverFullName}
+                          </p>
+                          {trip.driver?.id && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
+                              className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
+                              title="View Driver Profile"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[12px] font-normal text-[#6E6E80] font-mono truncate">
+                          {trip.driver?.phone_primary || 'Internal Fleet'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  {trip.driver?.phone_primary ? (
-                    <p className="text-[11px] text-[#6E6E80] font-mono truncate">{trip.driver.phone_primary}</p>
-                  ) : (
-                    <p className="text-[11px] text-[#6E6E80] truncate font-medium">Internal Operator</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Vehicle */}
-            <div className="space-y-0.5 min-w-0 pt-2 sm:pt-0 sm:px-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] block">Vehicle</span>
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
-                    {trip.is_third_party
-                      ? trip.third_party_vehicle_plate || 'Rented Truck'
-                      : trip.vehicle?.plate_number || 'Unassigned'}
-                  </p>
-                  {trip.vehicle?.asset_type && (
-                    <p className="text-[11px] text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Summary */}
-            <div className="space-y-0.5 min-w-0 pt-2 sm:pt-0 sm:pl-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] block">Financial Summary</span>
-              <div className="flex items-center gap-2 pt-0.5">
-                <ReceiptText className="w-4 h-4 text-emerald-600 shrink-0" />
-                <div className="min-w-0 space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-xs font-mono">
-                    <span className="text-[10px] font-bold text-slate-500">TOTAL:</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100">
-                      SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                  {/* Vehicle */}
+                  <div className="space-y-0.5 min-w-0 px-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
+                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
+                        <Truck className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-semibold text-[#3E3C3D] truncate">
+                          {trip.is_third_party
+                            ? trip.third_party_vehicle_plate || 'Rented Truck'
+                            : trip.vehicle?.plate_number || 'Unassigned'}
+                        </p>
+                        <p className="text-[12px] font-normal text-[#6E6E80] truncate">
+                          {trip.vehicle?.asset_type || 'Fleet Truck'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-mono">
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">BALANCE:</span>
-                    <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
-                      SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+
+                  {/* Rate */}
+                  <div className="space-y-0.5 min-w-0 px-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">RATE</span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-[14px] font-semibold text-[#3E3C3D] font-mono">
+                        SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[12px] font-normal text-[#6E6E80] truncate">Base Contract</p>
+                    </div>
                   </div>
+
+                  {/* ETA */}
+                  <div className="space-y-0.5 min-w-0 pl-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">ETA</span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-[14px] font-semibold text-[#3E3C3D]">
+                        {trip.planned_end ? formatInDeploymentTz(trip.planned_end, tz, 'hh:mm a') : '—'}
+                      </p>
+                      <p className="text-[12px] font-normal text-[#6E6E80] truncate">Planned Arrival</p>
+                    </div>
+                  </div>
+
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* ── 6. MAIN OPERATIONAL WORKSPACE (2-COLUMN LAYOUT) ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-
-          {/* ───────────────────────── LEFT: Route & Map Split Panel ───────────────────────── */}
-          <div className="space-y-4 min-w-0">
-
-            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-4 gap-0 shadow-2xs">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                
-                {/* Left Sub-Column: Route & Stop Sequence */}
-                <div className="space-y-3 min-w-0">
-                  <div className="flex items-center justify-between pb-2 border-b border-black/[0.06] dark:border-slate-800">
-                    <div className="flex items-center gap-1.5">
-                      <RouteIcon className="w-4 h-4 text-[#FA634E]" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100">
+                {/* Sub Grid Split: Route & Stop Sequence (~40% Left) | Live Route Map (~60% Right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-5">
+                  
+                  {/* Left Column (~40%): Route & Stop Sequence Timeline */}
+                  <div className="lg:col-span-5 space-y-4 min-w-0">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
+                      <h3 className="text-base font-semibold text-[#3E3C3D]">
                         Route & Stop Sequence
                       </h3>
+                      <span className="text-xs font-normal text-[#6E6E80]">
+                        {(trip.stops || []).length} { (trip.stops || []).length === 1 ? 'Stop' : 'Stops' }
+                      </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-[#6E6E80] bg-black/[0.03] px-2 py-0.5 rounded-md">
-                      {(trip.stops || []).length} { (trip.stops || []).length === 1 ? 'Stop' : 'Stops' }
-                    </span>
-                  </div>
 
-                  <div className="space-y-3 pt-0.5">
-                    {(trip.stops || []).map((stop, sIdx) => {
-                      const totalStops = (trip.stops || []).length;
-                      const isFirst = sIdx === 0;
-                      const isLast = sIdx === totalStops - 1;
-                      const stType = String(stop.stop_type || '');
+                    <ScrollArea className="max-h-[230px] pr-1 pt-1">
+                      <div className="space-y-1.5">
+                        {(trip.stops || []).map((stop, sIdx) => {
+                          const totalStops = (trip.stops || []).length;
+                          const isFirst = sIdx === 0;
+                          const isLast = sIdx === totalStops - 1;
+                          const stType = String(stop.stop_type || '');
 
-                      // Precise taxonomy rule: Only label Pickup / Drop-off if explicitly defined or at ends
-                      let stopCategoryLabel = 'Stop';
-                      if (stType === 'Pickup' || (isFirst && stType !== 'Dropoff')) {
-                        stopCategoryLabel = 'Pickup';
-                      } else if (stType === 'Dropoff' || (isLast && stType !== 'Pickup')) {
-                        stopCategoryLabel = 'Destination';
-                      } else {
-                        stopCategoryLabel = `Stop ${sIdx}`;
-                      }
+                          let stopCategoryLabel = 'STOP';
+                          if (stType === 'Pickup' || (isFirst && stType !== 'Dropoff')) {
+                            stopCategoryLabel = 'PICKUP';
+                          } else if (stType === 'Dropoff' || (isLast && stType !== 'Pickup')) {
+                            stopCategoryLabel = 'DESTINATION';
+                          } else {
+                            stopCategoryLabel = `STOP ${sIdx}`;
+                          }
 
-                      const defaultFallback = stopCategoryLabel === 'Pickup' ? 'Pickup Location' : stopCategoryLabel === 'Destination' ? 'Destination' : 'Intermediate Stop';
-                      const nameStr = resolveStopName(stop, defaultFallback);
-                      const cleanAddress = cleanAddressStr(stop.location_address || stop.location?.address);
-                      const locCity = stop.location?.city || (!isUuidVal(stop.location?.name) ? stop.location?.name : null);
+                          const defaultFallback = stopCategoryLabel === 'PICKUP' ? 'Pickup Location' : stopCategoryLabel === 'DESTINATION' ? 'Destination' : 'Intermediate Stop';
+                          const nameStr = resolveStopName(stop, defaultFallback);
+                          const cleanAddress = cleanAddressStr(stop.location_address || stop.location?.address);
 
-                      const isCompleted = !!stop.actual_arrival;
-                      const isCurrent = !isCompleted && (!isFirst ? !!trip.stops![sIdx - 1]?.actual_departure : true);
+                          const isCompleted = !!stop.actual_arrival;
+                          const isCurrent = !isCompleted && (!isFirst ? !!trip.stops![sIdx - 1]?.actual_departure : true);
 
-                      return (
-                        <React.Fragment key={stop.id || sIdx}>
-                          <div className="flex items-start gap-2.5">
-                            {/* Dot indicator */}
-                            <div className={cn(
-                              "w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold shadow-2xs",
-                              isCompleted ? "bg-emerald-600 text-white" : isCurrent ? "bg-[#FA634E] text-white animate-pulse" : "bg-slate-200 text-slate-600"
-                            )}>
-                              {isCompleted ? <Check size={12} /> : <MapPin size={11} />}
-                            </div>
+                          return (
+                            <React.Fragment key={stop.id || sIdx}>
+                              {/* Compact Stop Row */}
+                              <div className={cn(
+                                "p-2 rounded-lg border transition-all flex items-center justify-between gap-3 text-xs",
+                                isCompleted
+                                  ? "bg-emerald-50/40 border-emerald-200/60"
+                                  : isCurrent
+                                  ? "bg-rose-50/30 border-rose-200/50"
+                                  : "bg-slate-50/50 border-[#E5E7EB]"
+                              )}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className={cn(
+                                    "w-2 h-2 rounded-full shrink-0",
+                                    isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
+                                  )} />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn(
+                                        "text-[10px] font-bold uppercase tracking-wider shrink-0",
+                                        isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
+                                      )}>
+                                        {stopCategoryLabel}
+                                      </span>
+                                      <span className="text-xs font-semibold text-[#3E3C3D] truncate">
+                                        {nameStr}
+                                      </span>
+                                    </div>
+                                    {cleanAddress && (
+                                      <p className="text-[11px] font-normal text-[#6E6E80] truncate max-w-[200px]">
+                                        {cleanAddress}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
 
-                            {/* Details */}
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className={cn(
-                                  "text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border",
-                                  stopCategoryLabel === 'Pickup' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                  stopCategoryLabel === 'Destination' ? "bg-rose-50 text-rose-700 border-rose-200" :
-                                  "bg-blue-50 text-blue-700 border-blue-200"
-                                )}>
-                                  {stopCategoryLabel} {locCity ? `· ${locCity}` : ''}
-                                </span>
                                 {stop.actual_arrival ? (
-                                  <span className="text-[9px] font-bold text-emerald-600 font-mono">
-                                    Arrived {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                  <span className="text-[11px] text-emerald-700 font-mono font-semibold shrink-0">
+                                    {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
                                   </span>
                                 ) : stop.planned_arrival ? (
-                                  <span className="text-[9px] font-medium text-slate-500 font-mono">
-                                    Expected {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
+                                  <span className="text-[11px] text-[#6E6E80] font-mono shrink-0">
+                                    {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
                                   </span>
                                 ) : null}
                               </div>
 
-                              <p className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate pt-0.5">
-                                {nameStr}
-                              </p>
-
-                              {cleanAddress ? (
-                                <p className="text-[10px] text-[#6E6E80] break-words line-clamp-1">
-                                  {cleanAddress}
-                                </p>
-                              ) : (
-                                <p className="text-[10px] text-amber-600 italic">
-                                  No written address
-                                </p>
+                              {/* Down Arrow Connector between stops */}
+                              {!isLast && (
+                                <div className="flex items-center justify-center py-0.5">
+                                  <div className="w-4 h-4 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center text-slate-400">
+                                    <ArrowDown size={10} />
+                                  </div>
+                                </div>
                               )}
-                            </div>
-                          </div>
-
-                          {!isLast && (
-                            <div className="pl-3 -my-2 py-0.5">
-                              <div className="w-0.5 h-4 bg-black/[0.1] dark:bg-slate-700 ml-px" />
-                            </div>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
                   </div>
-                </div>
 
-                {/* Right Sub-Column: Live Route Map (Half height: ~200px) */}
-                <div className="space-y-2 min-w-0">
-                  <div className="flex items-center justify-between pb-2 border-b border-black/[0.06] dark:border-slate-800">
-                    <div className="flex items-center gap-1.5">
-                      <Navigation className="w-4 h-4 text-[#FA634E]" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100">
+                  {/* Right Column (~60%): Live Route Map with Subtle Vertical Divider */}
+                  <div className="lg:col-span-7 space-y-3 min-w-0 lg:border-l border-[#E5E7EB] lg:pl-6">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
+                      <h3 className="text-base font-semibold text-[#3E3C3D]">
                         Live Route Map
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsExpandMapOpen(true)}
-                      className="h-6 px-2 text-[10px] font-semibold text-[#3E3C3D] border-black/[0.12] hover:bg-black/[0.04] gap-1 cursor-pointer"
-                    >
-                      <Maximize2 size={11} className="text-[#6E6E80]" />
-                      Expand Map
-                    </Button>
-                  </div>
-
-                  <div className="rounded-lg overflow-hidden border border-black/[0.08] dark:border-slate-800">
-                    <TripLiveMapCard
-                      tripId={trip.id}
-                      refId={trip.ref_id || trip.id}
-                      pickupLat={pickup?.location_lat}
-                      pickupLng={pickup?.location_lng}
-                      dropoffLat={dropoff?.location_lat}
-                      dropoffLng={dropoff?.location_lng}
-                      pickupLabel={pickup?.location_name || undefined}
-                      dropoffLabel={dropoff?.location_name || undefined}
-                      resolvedLocation={trip.vehicle?.resolved_location}
-                      showHeader={false}
-                      showTelemetryBar={false}
-                      className="rounded-none border-none"
-                      mapHeightClassName="h-[200px]"
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </Card>
-
-            {/* ── 14. DOCUMENTS & BILLING TABS ── */}
-            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-black/[0.06] dark:border-slate-800">
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setDocTab('documents')}
-                    className={cn(
-                      'text-xs font-bold pb-1.5 -mb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5',
-                      docTab === 'documents' ? 'border-[#FA634E] text-[#FA634E]' : 'border-transparent text-[#6E6E80] hover:text-[#3E3C3D]',
-                    )}
-                  >
-                    <FileStack size={14} />
-                    Documents ({documents.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDocTab('invoice')}
-                    className={cn(
-                      'text-xs font-bold pb-1.5 -mb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5',
-                      docTab === 'invoice' ? 'border-[#FA634E] text-[#FA634E]' : 'border-transparent text-[#6E6E80] hover:text-[#3E3C3D]',
-                    )}
-                  >
-                    <ReceiptText size={14} />
-                    Invoice {invoice ? `(#${invoice.ref_id})` : ''}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDocTab('rate-card')}
-                    className={cn(
-                      'text-xs font-bold pb-1.5 -mb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-1.5',
-                      docTab === 'rate-card' ? 'border-[#FA634E] text-[#FA634E]' : 'border-transparent text-[#6E6E80] hover:text-[#3E3C3D]',
-                    )}
-                  >
-                    <ReceiptText size={14} />
-                    Rate Card Breakdown
-                  </button>
-                </div>
-
-                {docTab === 'documents' && (
-                  <Button
-                    size="sm"
-                    onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                    className="h-7.5 px-3 rounded-lg text-xs font-bold bg-white border border-black/[0.12] text-[#3E3C3D] hover:bg-black/[0.03] gap-1 cursor-pointer shadow-2xs"
-                  >
-                    <UploadCloud size={13} className="text-[#FA634E]" />
-                    Upload Document
-                  </Button>
-                )}
-              </div>
-
-              {/* Tab Content: Documents */}
-              {docTab === 'documents' && (
-                <div className="mt-4 space-y-4">
-                  {isLoadingDocs ? (
-                    <Skeleton className="h-20 w-full rounded-xl" />
-                  ) : documents.length === 0 ? (
-                    <div className="text-center py-8 px-4 border border-dashed border-black/[0.1] rounded-xl bg-black/[0.01]">
-                      <FileText className="w-7 h-7 text-slate-400 mx-auto" />
-                      <p className="text-xs font-bold text-[#3E3C3D] mt-2">No documents uploaded</p>
-                      <p className="text-[11px] text-[#6E6E80] mt-0.5">PODs uploaded by drivers automatically show up here.</p>
+                      </h3>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                        className="mt-3 h-7.5 px-3 rounded-lg text-xs font-semibold border-black/[0.12] gap-1"
+                        onClick={() => setIsExpandMapOpen(true)}
+                        className="h-7 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shadow-none"
                       >
-                        <UploadCloud size={13} className="text-[#FA634E]" />
-                        Upload Document
+                        <Maximize2 size={12} className="text-[#6E6E80]" />
+                        Expand
                       </Button>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between gap-3 p-3 rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.15] transition-all"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {isImageFile(doc.file_url, doc.mime_type) ? (
-                              <div
-                                onClick={() => setPreviewImage({ url: resolveFileUrl(doc.file_url), title: documentDisplayName(doc), date: doc.createdAt })}
-                                className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 bg-slate-100 cursor-pointer"
-                              >
-                                <img src={resolveFileUrl(doc.file_url)} alt="" className="w-full h-full object-cover" />
-                              </div>
-                            ) : (
-                              <FileText className="w-5 h-5 text-[#FA634E] shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
-                                {documentDisplayName(doc)}
-                              </p>
-                              <p className="text-[10px] text-[#6E6E80]">
-                                {formatInDeploymentTz(doc.createdAt, tz, 'dd MMM yyyy')}
-                              </p>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {isImageFile(doc.file_url, doc.mime_type) && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewImage({ url: resolveFileUrl(doc.file_url), title: documentDisplayName(doc), date: doc.createdAt })}
-                                className="p-1 text-[#6E6E80] hover:text-[#FA634E] transition-colors"
-                                title="Preview"
-                              >
-                                <Eye size={14} />
-                              </button>
-                            )}
-                            <a
-                              href={resolveFileUrl(doc.file_url)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1 text-[#6E6E80] hover:text-[#FA634E] transition-colors"
-                              title="Download"
-                            >
-                              <ExternalLink size={14} />
-                            </a>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[280px] sm:h-[300px]">
+                      <TripLiveMapCard
+                        tripId={trip.id}
+                        refId={trip.ref_id || trip.id}
+                        pickupLat={pickup?.location_lat}
+                        pickupLng={pickup?.location_lng}
+                        dropoffLat={dropoff?.location_lat}
+                        dropoffLng={dropoff?.location_lng}
+                        pickupLabel={pickup?.location_name || undefined}
+                        dropoffLabel={dropoff?.location_name || undefined}
+                        resolvedLocation={trip.vehicle?.resolved_location}
+                        showHeader={false}
+                        showTelemetryBar={false}
+                        className="rounded-none border-none h-full"
+                        mapHeightClassName="h-[280px] sm:h-[300px]"
+                      />
                     </div>
-                  )}
-
-                  {/* Photo Preview Strip if photos exist */}
-                  {uploadedPhotos.length > 0 && (
-                    <div className="pt-3 border-t border-black/[0.06] space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#9898A4]">Proof of Delivery & Cargo Photos</p>
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                        {uploadedPhotos.map((doc) => (
-                          <div
-                            key={doc.id}
-                            onClick={() => setPreviewImage({ url: resolveFileUrl(doc.file_url), title: documentDisplayName(doc), date: doc.createdAt })}
-                            className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-slate-200 bg-slate-100 cursor-pointer hover:opacity-90"
-                          >
-                            <img src={resolveFileUrl(doc.file_url)} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab Content: Invoice */}
-              {docTab === 'invoice' && (
-                <div className="mt-4 p-4 rounded-xl bg-black/[0.02] border border-black/[0.06]">
-                  {invoice ? (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold font-mono text-[#3E3C3D]">Ref: {invoice.ref_id}</p>
-                        <p className="text-sm font-extrabold text-[#FA634E] font-mono mt-0.5">
-                          SAR {Number(invoice.total_amount || 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/invoices/${invoice.id}`)}
-                        className="text-xs font-semibold"
-                      >
-                        View Invoice →
-                      </Button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-[#6E6E80] text-center py-4">No invoice generated yet for this trip.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Tab Content: Rate Card */}
-              {docTab === 'rate-card' && (
-                <div className="mt-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-black/[0.02] border border-black/[0.06]">
-                    <div>
-                      <p className="font-bold text-[#3E3C3D]">{trip.rateCard?.name || 'Base Rate'}</p>
-                      <p className="text-[11px] text-[#6E6E80]">Base commercial rate</p>
-                    </div>
-                    <span className="font-extrabold font-mono text-sm">
-                      SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
                   </div>
+
                 </div>
-              )}
+              </div>
             </Card>
 
-          </div>
-
-          {/* ───────────────────────── RIGHT: Additional Charges + Activity Log ───────────────────────── */}
-          <div className="space-y-4 min-w-0">
-
-            {/* ── 9. ADDITIONAL CHARGES PANEL (TOP-RIGHT PLACEMENT) ── */}
-            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-slate-800">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
-                    <Coins className="w-4 h-4 text-[#FA634E]" />
-                    ADDITIONAL CHARGES
-                  </h3>
-                </div>
+            {/* Right Panel (5 Cols): Financials & Additional Charges (TOP-RIGHT) */}
+            <Card className="lg:col-span-5 rounded-2xl border border-[#E5E7EB] bg-white p-4.5 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {/* Section Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                <h3 className="text-sm font-bold text-[#3E3C3D]">
+                  Financials & Additional Charges
+                </h3>
                 <Button
                   size="sm"
                   onClick={() => {
                     setChargeLines(chargesToInputs(trip.charges));
                     setIsLaborModalOpen(true);
                   }}
-                  className="h-7.5 px-3 rounded-lg text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1 cursor-pointer shadow-2xs"
+                  className="h-7 px-3 rounded-lg text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1 cursor-pointer shadow-none"
                 >
                   <Plus size={13} />
                   Add Charge
                 </Button>
               </div>
 
-              {/* Charge rows */}
-              <div className="mt-3 divide-y divide-black/[0.06] dark:divide-slate-800 text-xs">
-                {(trip.charges || []).length === 0 ? (
-                  <div className="py-6 text-center text-[#9898A4]">
-                    <p className="text-xs font-semibold">No additional charges added</p>
-                    <p className="text-[11px] mt-0.5">Click + Add Charge to log waiting, labour, or extra stops.</p>
-                  </div>
-                ) : (
-                  (trip.charges || []).map((c, idx) => (
-                    <div key={c.id || idx} className="py-2.5 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 truncate">
-                          {c.charge_type}
-                        </p>
-                        <p className="text-[11px] text-[#6E6E80] font-mono">
-                          {c.quantity} {c.unit || 'qty'} × SAR {Number(c.rate || 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-extrabold font-mono text-xs text-[#3E3C3D] dark:text-slate-100">
-                          SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteChargeLine(idx)}
-                          className="text-[#9898A4] hover:text-red-600 transition-colors p-1"
-                          title="Delete Charge"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+              {/* Financial Summary Top Rows */}
+              <div className="space-y-2.5 py-3 border-b border-[#E5E7EB]">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/60 flex items-center justify-center text-slate-500 shrink-0">
+                      <Wallet size={13} />
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Financial Totals Breakdown Box */}
-              <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span className="font-medium">Billing Amount (Base Rate)</span>
-                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                    SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                  <span className="font-medium">Additional Charges</span>
-                  <span className="font-mono font-semibold text-brand">
-                    + SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100 pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>TOTAL AMOUNT</span>
-                  <span className="font-mono text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TOTAL AMOUNT</span>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-[#3E3C3D]">
                     SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1 border-t border-dashed border-slate-200 dark:border-slate-700">
-                  <span className="font-medium">Driver Charge / Payout</span>
-                  <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">
-                    - SAR {driverCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-[#FA634E] shrink-0">
+                      <Wallet size={13} />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">BALANCE DUE</span>
+                  </div>
+                  <span className="font-mono text-sm font-bold text-[#FA634E]">
+                    SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div className="flex items-center justify-between font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 p-2 rounded-lg border border-emerald-300 dark:border-emerald-700 mt-2">
-                  <span className="uppercase tracking-wider">BALANCE AMOUNT</span>
-                  <span className="font-mono text-sm font-black text-emerald-800 dark:text-emerald-300">
+              </div>
+
+              {/* Additional Charges Item List or Clean Compact Empty State */}
+              <div className="py-3 text-xs">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">ADDITIONAL CHARGES</span>
+                {(trip.charges || []).length === 0 ? (
+                  <div className="flex items-start gap-3 py-1">
+                    <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
+                      <FileText size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-[#3E3C3D]">No additional charges</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Waiting, labour and extra-stop charges will appear here.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {(trip.charges || []).map((c, idx) => (
+                      <div key={c.id || idx} className="py-1.5 px-2 rounded-lg flex items-center justify-between gap-2 hover:bg-[#EEF1F6]/60 transition-colors">
+                        <div className="min-w-0 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                            {c.charge_type.toLowerCase().includes('wait') ? (
+                              <Timer size={13} />
+                            ) : c.charge_type.toLowerCase().includes('labour') || c.charge_type.toLowerCase().includes('labor') ? (
+                              <HardHat size={13} />
+                            ) : c.charge_type.toLowerCase().includes('stop') ? (
+                              <MapPin size={13} />
+                            ) : (
+                              <Plus size={13} />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-[#3E3C3D] truncate">
+                              {c.charge_type}
+                            </p>
+                            <p className="text-[11px] text-[#6E6E80] font-mono">
+                              {c.quantity} {c.unit || 'qty'} × SAR {Number(c.rate || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-semibold font-mono text-xs text-[#3E3C3D]">
+                            SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteChargeLine(idx)}
+                            className="text-[#9898A4] hover:text-red-600 transition-colors p-0.5"
+                            title="Delete Charge"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Financial Totals Breakdown Box (Exact Boxed Container from Screenshot) */}
+              <div className="mt-2 p-3.5 rounded-2xl bg-[#EEF1F6]/50 border border-[#E5E7EB] space-y-2.5 text-xs">
+                {/* Base Rate */}
+                <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                      <FileText size={13} />
+                    </div>
+                    <span className="text-xs font-semibold text-[#3E3C3D]">Base Rate</span>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-[#3E3C3D]">
+                    SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Additional Charges */}
+                <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-[#FA634E] shrink-0">
+                      <Plus size={13} className="text-[#FA634E]" />
+                    </div>
+                    <span className="text-xs font-semibold text-[#3E3C3D]">Additional Charges</span>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-[#FA634E]">
+                    + SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Driver Payout */}
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                      <Minus size={13} />
+                    </div>
+                    <span className="text-xs font-semibold text-[#3E3C3D]">Driver Payout</span>
+                  </div>
+                  <span className="font-mono text-xs font-medium text-slate-500">
+                    − SAR {driverCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Balance Due Line inside box */}
+                <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider font-bold text-[#3E3C3D]">BALANCE DUE</span>
+                  <span className="font-mono text-[18px] font-extrabold text-[#FA634E]">
                     SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
             </Card>
 
-            {/* ── ACTIVITY LOG ── */}
-            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs">
-              <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-slate-800">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 flex items-center gap-1.5">
-                  <History size={14} className="text-[#FA634E]" /> Activity Log
+          </div>
+
+          {/* ── 4. SECONDARY BENTO GRID: ACTIVITY LOG & DOCUMENTS / INVOICE WORKSPACE ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+            {/* Activity Log (4 Columns) - Clean & Quiet Vertical List */}
+            <Card className="lg:col-span-4 rounded-2xl border border-[#E5E7EB] bg-white p-4.5 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                <h3 className="text-sm font-semibold text-[#3E3C3D]">
+                  Activity Log
                 </h3>
               </div>
 
-              <div className="mt-4 space-y-3.5">
+              <div className="pt-3 space-y-3 overflow-y-auto max-h-[320px]">
                 {timelineSteps.map((step, i) => (
-                  <div key={step.key} className="flex items-start gap-2.5">
-                    <StepCircle status={timelineStatus[i]} useTruckForDone={step.key === 'departed'} />
-                    <div className="min-w-0 -mt-0.5">
-                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-[#9898A4]' : 'text-[#3E3C3D]')}>
+                  <div key={step.key} className="flex items-start gap-3 text-xs">
+                    <div className="mt-1">
+                      {timelineStatus[i] === 'done' ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
+                      ) : timelineStatus[i] === 'active' ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
+                      ) : (
+                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className={cn('font-medium', timelineStatus[i] === 'pending' ? 'text-[#9898A4]' : 'text-[#3E3C3D]')}>
                         {step.label}
                       </p>
                       {step.time ? (
-                        <p className="text-[10px] font-mono text-[#6E6E80] mt-0.5">{fullDateTime(step.time, tz)}</p>
+                        <p className="text-[11px] font-mono text-[#6E6E80]">{fullDateTime(step.time, tz)}</p>
                       ) : step.sub ? (
-                        <p className={cn('text-[10px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#FA634E] font-[#FA634E]' : 'text-[#9898A4]')}>{step.sub}</p>
+                        <p className="text-[11px] text-[#9898A4]">{step.sub}</p>
                       ) : null}
                     </div>
                   </div>
                 ))}
               </div>
             </Card>
-          </div>
-        </div>
 
+            {/* Documents & Attachments (8 Columns) - Professional Document Ledger Format */}
+            <Card className="lg:col-span-8 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB]">
+                <h3 className="text-base font-semibold text-[#3E3C3D] flex items-center gap-2">
+                  Documents & Attachments
+                  <span className="text-xs font-medium text-[#6E6E80]">({documents.length})</span>
+                </h3>
+
+                <Button
+                  size="sm"
+                  onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                  className="h-9 px-3.5 rounded-[10px] text-sm font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1.5 cursor-pointer shadow-none"
+                >
+                  <UploadCloud size={16} />
+                  Upload Document
+                </Button>
+              </div>
+
+              {/* Document Ledger Content */}
+              <div className="pt-4 space-y-5">
+                {isLoadingDocs ? (
+                  <Skeleton className="h-32 w-full rounded-xl" />
+                ) : documents.length === 0 ? (
+                  <p className="text-xs text-[#6E6E80] py-4">No documents uploaded yet for this trip.</p>
+                ) : (
+                  (() => {
+                    const loadingDocs = documents.filter(d => {
+                      const t = (d.doc_type || d.document_type || '').toUpperCase();
+                      const name = (d.file_name || d.name || '').toLowerCase();
+                      return t.includes('LOAD') || t.includes('CARGO') || name.includes('load') || name.includes('cargo') || name.includes('photo');
+                    });
+                    const podDocs = documents.filter(d => {
+                      const t = (d.doc_type || d.document_type || '').toUpperCase();
+                      const name = (d.file_name || d.name || '').toLowerCase();
+                      return (t.includes('POD') || t.includes('DELIVERY') || name.includes('pod') || name.includes('delivery')) && !loadingDocs.includes(d);
+                    });
+                    const otherDocs = documents.filter(d => !podDocs.includes(d) && !loadingDocs.includes(d));
+
+                    const DocRowItem = ({ doc }: { doc: any }) => {
+                      const isImg = isImageFile(doc.file_url, doc.mime_type);
+                      const fileUrl = resolveFileUrl(doc.file_url);
+                      const [hasImgError, setHasImgError] = useState(false);
+
+                      return (
+                        <div key={doc.id} className="py-2.5 flex items-center justify-between gap-4 border-b border-[#E5E7EB] last:border-0">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* 64x64 Thumbnail with Controlled Fallback */}
+                            {!isImg || hasImgError ? (
+                              <div className="w-16 h-16 rounded-[10px] bg-[#EEF1F6] border border-[#E5E7EB] flex items-center justify-center text-[#6E6E80] shrink-0">
+                                <FileText size={22} className="text-[#6E6E80]" />
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                                className="w-16 h-16 rounded-[10px] overflow-hidden shrink-0 border border-[#E5E7EB] bg-[#EEF1F6] cursor-pointer group relative"
+                              >
+                                <img
+                                  src={fileUrl}
+                                  alt={documentDisplayName(doc)}
+                                  onError={() => setHasImgError(true)}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                />
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                  <Eye size={16} />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Document Information */}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="text-sm font-semibold text-[#3E3C3D] truncate" title={documentDisplayName(doc)}>
+                                {documentDisplayName(doc)}
+                              </p>
+                              <p className="text-xs font-normal text-[#6E6E80]">
+                                Uploaded {formatInDeploymentTz(doc.createdAt, tz, 'dd MMM yyyy · hh:mm a')}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Document Actions */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isImg && !hasImgError && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                                className="h-8.5 px-3 rounded-lg text-xs font-semibold text-[#FA634E] border-[#FA634E] bg-white hover:bg-rose-50 gap-1.5 cursor-pointer shadow-none"
+                              >
+                                <Eye size={13} />
+                                Preview
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              className="h-8.5 px-3 rounded-lg text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
+                            >
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink size={13} />
+                                Open
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <>
+                        {/* 1. Loaded / Cargo Photos */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 pb-1">
+                            <Camera className="w-4 h-4 text-[#3E3C3D]" />
+                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
+                              1. Loaded / Cargo Photos
+                            </h4>
+                            <span className="text-xs font-normal text-[#6E6E80]">({loadingDocs.length})</span>
+                          </div>
+
+                          {loadingDocs.length === 0 ? (
+                            <p className="text-xs text-[#6E6E80] py-1">No cargo/loading photos uploaded.</p>
+                          ) : (
+                            <div className="divide-y divide-[#E5E7EB]">
+                              {loadingDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                            </div>
+                          )}
+                        </div>
+
+                        <Separator className="bg-[#E5E7EB]" />
+
+                        {/* 2. Proof of Delivery (POD) */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 pb-1">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
+                              2. Proof of Delivery (POD)
+                            </h4>
+                            <span className="text-xs font-normal text-[#6E6E80]">({podDocs.length})</span>
+                          </div>
+
+                          {podDocs.length === 0 ? (
+                            <p className="text-xs text-[#6E6E80] py-1">No POD documents uploaded.</p>
+                          ) : (
+                            <div className="divide-y divide-[#E5E7EB]">
+                              {podDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                            </div>
+                          )}
+                        </div>
+
+                        <Separator className="bg-[#E5E7EB]" />
+
+                        {/* 3. Waybill & Other Documents */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 pb-1">
+                            <FileText className="w-4 h-4 text-[#3E3C3D]" />
+                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
+                              3. Waybill & Other Documents
+                            </h4>
+                            <span className="text-xs font-normal text-[#6E6E80]">({otherDocs.length})</span>
+                          </div>
+
+                          {otherDocs.length === 0 ? (
+                            <p className="text-xs text-[#6E6E80] py-1">No waybill or secondary documents uploaded.</p>
+                          ) : (
+                            <div className="divide-y divide-[#E5E7EB]">
+                              {otherDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()
+                )}
+              </div>
+            </Card>
+
+          </div>
+
+        </div>
       </div>
 
       {/* ── Status Confirmation Modal ── */}
