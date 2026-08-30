@@ -193,13 +193,15 @@ export default function Step2RouteSlots({
                   {/* Round Trip Curved Loop Banner */}
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-indigo-50 border border-emerald-200/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 shadow-2xs">
                     <div className="flex items-center gap-2">
-                      <RotateCcw className="w-4 h-4 text-white shrink-0" />
+                      <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white shrink-0">
+                        <RotateCcw className="w-4 h-4" />
+                      </div>
                       <div>
                         <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider block">
-                          Round-Trip Loop Journey
+                          Round-Trip Loop Journey (Outbound &amp; Return Legs)
                         </span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Automatic return trip to origin. No duplicate return pickup entry needed.
+                          Configure outbound &amp; return cargo pickup and dropoff locations and add intermediate stops for both legs.
                         </span>
                       </div>
                     </div>
@@ -207,12 +209,10 @@ export default function Step2RouteSlots({
                     <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-2xs text-xs font-extrabold text-slate-800 dark:text-slate-200">
                       <span className="text-emerald-600 font-bold">{slot.origin || 'Pickup'}</span>
                       <div className="flex flex-col items-center px-1">
-                        {/* Top Curved Right Arrow */}
                         <svg className="w-8 h-2.5 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                           <path d="M 2 8 C 10 2, 22 2, 30 8" />
                           <path d="M 25 3 L 30 8 L 24 9" />
                         </svg>
-                        {/* Bottom Curved Left Arrow */}
                         <svg className="w-8 h-2.5 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                           <path d="M 30 2 C 22 8, 10 8, 2 2" />
                           <path d="M 7 7 L 2 2 L 8 1" />
@@ -222,11 +222,13 @@ export default function Step2RouteSlots({
                     </div>
                   </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                  {/* 4 Location Slots Grid (Outbound & Return Legs) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                     {/* Outbound Pickup Location */}
                     <div className="space-y-1 p-3 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/60">
-                      <label className="text-[11px] font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
-                        Outbound Pickup (Origin) *
+                      <label className="text-[11px] font-black text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block flex items-center justify-between">
+                        <span>Outbound Pickup (Origin) *</span>
+                        <span className="text-[10px] font-bold text-emerald-600">Leg 1 Pickup</span>
                       </label>
                       <LocationCombobox
                         customerId={contractCustomer}
@@ -246,9 +248,10 @@ export default function Step2RouteSlots({
                     </div>
 
                     {/* Outbound Dropoff Location */}
-                    <div className="space-y-1 p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-900/60">
-                      <label className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block">
-                        Outbound Dropoff (Destination) *
+                    <div className="space-y-1 p-3 rounded-xl bg-orange-50/40 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/60">
+                      <label className="text-[11px] font-black text-orange-900 dark:text-orange-300 uppercase tracking-wider block flex items-center justify-between">
+                        <span>Outbound Dropoff (Destination) *</span>
+                        <span className="text-[10px] font-bold text-orange-600">Leg 1 Dropoff</span>
                       </label>
                       <LocationCombobox
                         customerId={contractCustomer}
@@ -260,10 +263,48 @@ export default function Step2RouteSlots({
                             destinationLocationId: locObj?.id ?? (isUuid(locId) ? locId : null),
                             destinationLat: locObj?.lat ?? null,
                             destinationLng: locObj?.lng ?? null,
-                            returnOrigin: name,
+                            returnOrigin: slot.returnOrigin || name,
                           });
                         }}
                         placeholder="Search destination location..."
+                      />
+                    </div>
+
+                    {/* Return Cargo Pickup Location */}
+                    <div className="space-y-1 p-3 rounded-xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-900/60">
+                      <label className="text-[11px] font-black text-teal-900 dark:text-teal-300 uppercase tracking-wider block flex items-center justify-between">
+                        <span>Return Cargo Pickup (Destination) *</span>
+                        <span className="text-[10px] font-bold text-teal-600">Leg 2 Return Pickup</span>
+                      </label>
+                      <LocationCombobox
+                        customerId={contractCustomer}
+                        value={slot.returnOrigin || slot.destination}
+                        onChange={(locId, locObj) => {
+                          const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                          onUpdateSlot(slot.id, {
+                            returnOrigin: name,
+                          });
+                        }}
+                        placeholder="Search return pickup location..."
+                      />
+                    </div>
+
+                    {/* Return Dropoff Location */}
+                    <div className="space-y-1 p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-900/60">
+                      <label className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block flex items-center justify-between">
+                        <span>Return Dropoff (Final Origin) *</span>
+                        <span className="text-[10px] font-bold text-indigo-600">Leg 2 Return Dropoff</span>
+                      </label>
+                      <LocationCombobox
+                        customerId={contractCustomer}
+                        value={slot.returnDestination || slot.origin}
+                        onChange={(locId, locObj) => {
+                          const name = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                          onUpdateSlot(slot.id, {
+                            returnDestination: name,
+                          });
+                        }}
+                        placeholder="Search return dropoff location..."
                       />
                     </div>
                   </div>
@@ -370,7 +411,7 @@ export default function Step2RouteSlots({
                   <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-1.5">
                     <span className="text-xs font-black text-indigo-950 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                      Intermediate Stops ({slot.intermediateLocations.length})
+                      {isRoundTrip ? 'Outbound Leg Intermediate Stops' : 'Intermediate Stops'} ({slot.intermediateLocations.length})
                     </span>
                     <button
                       type="button"
@@ -419,6 +460,72 @@ export default function Step2RouteSlots({
                         <button
                           type="button"
                           onClick={() => onRemoveSlotIntermediate(slot.id, idx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all shrink-0 cursor-pointer"
+                          title="Remove stop"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Return Intermediate Stops List Section */}
+              {isRoundTrip && slot.returnIntermediateLocations && slot.returnIntermediateLocations.length > 0 && (
+                <div className="rounded-xl border border-teal-200/80 bg-teal-50/20 dark:bg-teal-950/20 p-3 space-y-2 w-full">
+                  <div className="flex items-center justify-between border-b border-teal-100 dark:border-teal-900/50 pb-1.5">
+                    <span className="text-xs font-black text-teal-950 dark:text-teal-100 uppercase tracking-wider flex items-center gap-1.5">
+                      <RotateCcw className="w-3.5 h-3.5 text-teal-600" />
+                      Return Leg Intermediate Stops ({slot.returnIntermediateLocations.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onAddSlotReturnIntermediate(slot.id)}
+                      className="text-[10px] font-bold text-teal-700 bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded-md hover:bg-teal-50 dark:hover:bg-teal-950 flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3 text-teal-600" />
+                      Add Return Stop
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {slot.returnIntermediateLocations.map((loc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-teal-100 dark:border-teal-900/60 shadow-2xs group hover:border-teal-300 transition-all"
+                      >
+                        <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+
+                        <div className="flex-1 min-w-[180px]">
+                          <LocationCombobox
+                            customerId={contractCustomer}
+                            value={loc}
+                            onChange={(locId, locObj) => {
+                              const displayName = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                              onUpdateSlotReturnIntermediate(slot.id, idx, displayName);
+                            }}
+                            placeholder={`Return Intermediate Stop #${idx + 1}...`}
+                            triggerClassName="h-8 border-slate-200 bg-white shadow-2xs text-xs font-medium"
+                          />
+                        </div>
+
+                        <div className="w-28 relative shrink-0">
+                          <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-400">SAR</span>
+                          <input
+                            type="number"
+                            value={slot.returnIntermediateStopFees?.[idx] || ''}
+                            onChange={(e) => onUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
+                            placeholder="Fee"
+                            className="w-full h-8 pl-8 pr-2 rounded-md border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => onRemoveSlotReturnIntermediate(slot.id, idx)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all shrink-0 cursor-pointer"
                           title="Remove stop"
                         >
