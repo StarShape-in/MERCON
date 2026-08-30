@@ -23,6 +23,7 @@ import {
   RefreshCw,
   User,
   Building2,
+  Tag,
   CreditCard,
   MapPin,
   Truck,
@@ -2954,6 +2955,77 @@ export default function CreateTripPage() {
                                     </div>
                                   </div>
                                 )}
+                                 {/* AGREED QUOTATION COMBOS FOR THIS ROUTE */}
+                                 {(() => {
+                                   if (!slot.origin || !slot.destination) return null;
+                                   const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+                                   if (laneRateCards.length === 0) return null;
+
+                                   return (
+                                     <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 dark:bg-blue-950/20 dark:border-blue-900/50 space-y-2 mt-2">
+                                       <div className="flex items-center justify-between flex-wrap gap-2">
+                                         <span className="text-[11px] font-black uppercase text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
+                                           <Tag className="w-3.5 h-3.5 text-blue-600" />
+                                           Agreed Quotation Combos for this Route ({laneRateCards.length} Available)
+                                         </span>
+                                         <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                           Click any combo chip to auto-apply vehicle, category & operation type
+                                         </span>
+                                       </div>
+
+                                       <div className="flex items-center gap-2 flex-wrap">
+                                         {laneRateCards.map((rc) => {
+                                           const vLabel = rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label || '10 TON';
+                                           const cLabel = rc.line_type || rc.rate_category || 'Single Trip';
+                                           const bLabel = rc.billing_type || 'Monthly';
+                                           const rateVal = rc.rate ?? rc.base_price ?? 0;
+                                           const payoutVal = rc.driver_payout ?? (rc as any).driver_charge;
+
+                                           const isCurrentlyActive =
+                                             (contractVehicleType || '').toLowerCase() === vLabel.toLowerCase() &&
+                                             (contractRateCategory || '').toLowerCase() === cLabel.toLowerCase() &&
+                                             (contractBillingType || '').toLowerCase() === bLabel.toLowerCase();
+
+                                           return (
+                                             <button
+                                               key={rc.id}
+                                               type="button"
+                                               onClick={() => {
+                                                 setContractVehicleType(vLabel);
+                                                 setContractRateCategory(cLabel);
+                                                 setContractBillingType(bLabel);
+                                                 triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
+                                               }}
+                                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                                                 isCurrentlyActive
+                                                   ? 'bg-blue-600 text-white border-blue-700 shadow-xs ring-2 ring-blue-300'
+                                                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-blue-200 dark:border-blue-800 hover:bg-blue-100/60 shadow-2xs'
+                                               }`}
+                                             >
+                                               <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
+                                                 SAR {rateVal.toLocaleString()}
+                                               </span>
+                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                                 {bLabel}
+                                               </span>
+                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                                 {vLabel}
+                                               </span>
+                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                                 {cLabel}
+                                               </span>
+                                               {payoutVal != null && (
+                                                 <span className="text-[10px] font-medium opacity-80">
+                                                   (Driver: SAR {payoutVal})
+                                                 </span>
+                                               )}
+                                             </button>
+                                           );
+                                         })}
+                                       </div>
+                                     </div>
+                                   );
+                                 })()}
                               </div>
                             )}
                           </div>
