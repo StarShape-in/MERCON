@@ -125,14 +125,15 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
               const getStatusText = () => {
                 if (slot.status === 'MISSING') return 'Missing';
                 if (slot.status === 'VALID') return 'Valid';
-                if (slot.status === 'EXPIRING_SOON') return formattedDate ? `Expiring ${formattedDate}` : 'Soon';
-                if (slot.status === 'EXPIRED') return formattedDate ? `Expired ${formattedDate}` : 'Expired';
+                if (slot.status === 'EXPIRING_SOON') return 'Expiring';
+                if (slot.status === 'EXPIRED') return 'Expired';
                 return 'Valid';
               };
 
               return (
                 <div
                   key={slot.code}
+                  title={formattedDate ? `Expiry: ${formattedDate}` : undefined}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (hasDoc) onPreviewDocument?.(slot.documentId!);
