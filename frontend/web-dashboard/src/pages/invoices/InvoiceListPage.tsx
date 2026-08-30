@@ -864,50 +864,59 @@ export default function InvoiceListPage() {
 
   const rows: CustomerBillingRow[] = (res?.data as CustomerBillingRow[]) || [];
 
-  // Local Sort customers by active trip count
-  const sortedRows = useMemo(() => {
-    return [...rows].sort((a, b) => (b.total_trips || 0) - (a.total_trips || 0));
+  // 1. Flatten all trips across all customers for the unified ledger view
+  const allLedgerTrips = useMemo(() => {
+    const list: (BillingLedgerTrip & { customerName: string; customerId: string; customerObj: any })[] = [];
+    rows.forEach((r) => {
+      (r.trips || []).forEach((t) => {
+        list.push({
+          ...t,
+          customerName: r.customer?.name || 'Unknown',
+          customerId: r.customer?.id || '',
+          customerObj: r.customer,
+        });
+      });
+    });
+    return list;
   }, [rows]);
 
-  // Local search customer registry filter
-  const navCustomerRows = useMemo(() => {
-    if (!customerSearchTerm.trim()) return sortedRows;
-    const term = customerSearchTerm.toLowerCase();
-    return sortedRows.filter((r) => r.customer.name.toLowerCase().includes(term));
-  }, [sortedRows, customerSearchTerm]);
+  // Status Filter State: 'ALL' | 'Invoiced' | 'NotInvoiced'
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'Invoiced' | 'NotInvoiced'>('ALL');
 
-  // Sync selected customer
-  useEffect(() => {
-    if (sortedRows.length > 0) {
-      if (!selectedCustomerId || !sortedRows.some((r) => r.customer.id === selectedCustomerId)) {
-        setSelectedCustomerId(sortedRows[0].customer.id);
-      }
-    } else {
-      setSelectedCustomerId(null);
-    }
-  }, [sortedRows, selectedCustomerId]);
+  // Customer Combobox Options for top filter bar
+  const customerOptions = useMemo(() => {
+    const opts = [{ value: 'ALL', label: 'All Customer Companies' }];
+    rows.forEach((r) => {
+      opts.push({
+        value: r.customer.id,
+        label: `${r.customer.name} (${r.total_trips || 0} Trips)`,
+      });
+    });
+    return opts;
+  }, [rows]);
 
-  const selectedRow = useMemo(() => {
-    return sortedRows.find((r) => r.customer.id === selectedCustomerId) || sortedRows[0] || null;
-  }, [sortedRows, selectedCustomerId]);
-
-  // Clean filters when selecting a new customer to keep ledger workspace fresh
-  useEffect(() => {
-    setTripSearch('');
-    setDateRange(undefined);
-    setTripSort('latest');
-  }, [selectedCustomerId]);
-
-  // Filter Active Customer Trips locally
+  // Filter Master Trips List
   const filteredTrips = useMemo(() => {
-    if (!selectedRow?.trips) return [];
-    let list = selectedRow.trips;
+    let list = allLedgerTrips;
 
-    // 1. Search Query filter (tripSearch)
+    // 1. Customer Filter
+    if (selectedCustomerId && selectedCustomerId !== 'ALL') {
+      list = list.filter((t) => t.customerId === selectedCustomerId);
+    }
+
+    // 2. Invoice Status Filter
+    if (statusFilter === 'Invoiced') {
+      list = list.filter((t) => t.status === 'Invoiced');
+    } else if (statusFilter === 'NotInvoiced') {
+      list = list.filter((t) => t.status !== 'Invoiced');
+    }
+
+    // 3. Search Query Filter
     if (tripSearch.trim()) {
       const q = tripSearch.toLowerCase().trim();
-      list = list.filter(t => {
+      list = list.filter((t) => {
         const refId = (t.ref_id || '').toLowerCase();
+        const customer = (t.customerName || '').toLowerCase();
         const origin = getTripOrigin(t).toLowerCase();
         const dest = getTripDest(t).toLowerCase();
         const driver = getDriverDesc(t).toLowerCase();
@@ -916,6 +925,7 @@ export default function InvoiceListPage() {
         const zatca = (getInvoiceRec(t)?.zatca_ref || getInvoiceRec(t)?.ref_id || '').toLowerCase();
         return (
           refId.includes(q) ||
+          customer.includes(q) ||
           origin.includes(q) ||
           dest.includes(q) ||
           driver.includes(q) ||
@@ -926,9 +936,9 @@ export default function InvoiceListPage() {
       });
     }
 
-    // 2. Date Range filter (dateRange)
+    // 4. Date Range Filter
     if (dateRange?.from || dateRange?.to) {
-      list = list.filter(t => {
+      list = list.filter((t) => {
         const d = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
         if (isNaN(d.getTime())) return false;
         if (dateRange.from) {
@@ -945,7 +955,7 @@ export default function InvoiceListPage() {
       });
     }
 
-    // 3. Sort
+    // 5. Sort
     list = [...list].sort((a, b) => {
       if (tripSort === 'ref_id_asc') return (a.ref_id || '').localeCompare(b.ref_id || '');
       if (tripSort === 'status') return (a.status || '').localeCompare(b.status || '');
@@ -955,17 +965,16 @@ export default function InvoiceListPage() {
     });
 
     return list;
-  }, [selectedRow?.trips, tripSearch, dateRange, tripSort]);
+  }, [allLedgerTrips, selectedCustomerId, statusFilter, tripSearch, dateRange, tripSort]);
 
-  // Compute local financial KPI stats based on active period range
+  // Executive Financial Metrics
   const kpiStats = useMemo(() => {
-    if (!selectedRow) return { total: 0, invoiced: 0, pending: 0, pendingCount: 0 };
     let total = 0;
     let invoiced = 0;
     let pending = 0;
     let pendingCount = 0;
 
-    filteredTrips.forEach(t => {
+    filteredTrips.forEach((t) => {
       const amount = t.billing_amount || 0;
       total += amount;
       if (t.status === 'Invoiced') {
@@ -979,9 +988,9 @@ export default function InvoiceListPage() {
     });
 
     return { total, invoiced, pending, pendingCount };
-  }, [filteredTrips, selectedRow]);
+  }, [filteredTrips]);
 
-  const pendingInPeriod = useMemo(() => filteredTrips.filter(t => t.status === 'Completed'), [filteredTrips]);
+  const pendingInPeriod = useMemo(() => filteredTrips.filter((t) => t.status === 'Completed'), [filteredTrips]);
 
   const periodLabel = useMemo(() => {
     if (dateRange?.from && dateRange?.to) {
@@ -1028,8 +1037,9 @@ export default function InvoiceListPage() {
     }
   };
 
-  const openBulkMarkModal = (row: CustomerBillingRow, trips: BillingLedgerTrip[], label: string) => {
-    setBulkMarkModal({ open: true, row, trips, periodLabel: label });
+  const openBulkMarkModal = (trips: BillingLedgerTrip[], label: string) => {
+    const firstRow = rows.find(r => r.customer.id === selectedCustomerId) || rows[0] || null;
+    setBulkMarkModal({ open: true, row: firstRow, trips, periodLabel: label });
   };
 
   const handleConfirmBulkMark = async (zatcaRefInput: string, note: string) => {
@@ -1038,12 +1048,14 @@ export default function InvoiceListPage() {
     setIsBulkSaving(true);
     try {
       const results = await Promise.allSettled(
-        trips.map(trip => tripService.markInvoiced(trip.id, {
-          zatca_ref: zatcaRefInput.trim() || undefined,
-          invoicing_note: note.trim() || undefined,
-        }))
+        trips.map((trip) =>
+          tripService.markInvoiced(trip.id, {
+            zatca_ref: zatcaRefInput.trim() || undefined,
+            invoicing_note: note.trim() || undefined,
+          })
+        )
       );
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
       const failed = results.length - succeeded;
       if (failed === 0) {
         toast.success(`${succeeded} trip${succeeded === 1 ? '' : 's'} marked as Invoiced`);
@@ -1057,22 +1069,22 @@ export default function InvoiceListPage() {
     }
   };
 
-  const totalTrips = useMemo(() => rows.reduce((acc, r) => acc + (r.total_trips || 0), 0), [rows]);
+  const totalTripsCount = allLedgerTrips.length;
 
   return (
-    <DashboardLayout active="Invoices" title="Company Billing Ledger">
-      <div className="px-4 sm:px-6 pb-10 w-full flex flex-col animate-fade-in gap-4">
+    <DashboardLayout active="Invoices" title="Commercial Invoices & Billing Ledger">
+      <div className="px-4 sm:px-6 pb-12 w-full flex flex-col animate-fade-in gap-5 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
         
         {/* 1. Page Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/80 dark:border-slate-800/80 mt-4">
           <div className="flex items-center gap-3">
             <ReceiptText className="w-7 h-7 text-[#FA634E] shrink-0" />
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight uppercase">
-                COMPANY BILLING LEDGER
+                COMMERCIAL INVOICES & BILLING LEDGER
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-                Customer billing workspaces, trip invoicing parameters, and ledger auditing.
+                Manage customer invoicing, trip billing ledgers, ZATCA e-invoicing compliance, and payment settlements.
               </p>
             </div>
           </div>
@@ -1082,319 +1094,287 @@ export default function InvoiceListPage() {
               size="sm"
               variant="outline"
               onClick={() => setIsExportOpen(true)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-xl px-3.5 cursor-pointer transition-all"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-xl px-3.5 cursor-pointer transition-all shadow-2xs"
             >
               <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
-              <span>Export Ledger Documents</span>
+              <span>Export Ledger</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => navigate('/invoices/new')}
+              className="h-9 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white rounded-xl px-4 cursor-pointer shadow-xs border-none"
+            >
+              <ReceiptText className="w-3.5 h-3.5" />
+              <span>+ Create New Invoice</span>
             </Button>
           </div>
         </div>
 
-        {/* 2. TWO-PANEL WORKSPACE */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          
-          {/* LEFT PANEL: CUSTOMER REGISTRY NAVIGATOR */}
-          <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col max-h-[calc(100vh-170px)] min-h-[540px]">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-2.5 shrink-0">
-              <h2 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-300">
-                Customers ({navCustomerRows.length})
-              </h2>
-              {/* Left Panel Customer Search Input */}
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <Input
-                  placeholder="Search customer registry..."
-                  value={customerSearchTerm}
-                  onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                  className="h-8.5 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-8.5 rounded-xl focus-visible:ring-1 focus-visible:ring-[#FA634E]"
-                />
-              </div>
+        {/* 2. Top Executive Metric Cards (4 Cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Booked Value */}
+          <div className="bg-white dark:bg-slate-900 p-4.5 rounded-2xl border border-black/[0.05] dark:border-slate-800 shadow-xs space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Booked Value</span>
+            <div className="text-lg font-black text-slate-900 dark:text-white font-mono">
+              SAR {kpiStats.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-
-            {/* Scrollable Customer List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-2 space-y-1">
-              {isLoading ? (
-                <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
-                  <RefreshCw className="w-5 h-5 animate-spin text-brand" />
-                  <span>Loading customer list...</span>
-                </div>
-              ) : navCustomerRows.length === 0 ? (
-                <div className="py-12 text-center text-xs text-slate-400">
-                  No registered customers found
-                </div>
-              ) : (
-                navCustomerRows.map((row) => {
-                  const isSelected = selectedCustomerId === row.customer.id;
-
-                  return (
-                    <button
-                      key={row.customer.id}
-                      type="button"
-                      onClick={() => setSelectedCustomerId(row.customer.id)}
-                      className={cn(
-                        "w-full text-left p-3 rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer group border-l-4",
-                        isSelected
-                          ? "bg-orange-50/50 dark:bg-orange-950/20 border-l-[#FA634E] text-[#3E3C3D] dark:text-white font-bold"
-                          : "border-l-transparent text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CompanyLogo
-                          name={row.customer.name}
-                          logoUrl={(row.customer as any).logo_url || (row.customer as any).avatar_url}
-                          className="w-8 h-8"
-                        />
-                        <div className="min-w-0">
-                          <div className="text-xs truncate font-bold text-slate-900 dark:text-white">
-                            {row.customer.name}
-                          </div>
-                          {/* Mini Badges inside Customer cards */}
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1 font-mono text-[9px]">
-                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1 rounded font-bold">
-                              {row.total_trips} Trips
-                            </span>
-                            {row.invoiced > 0 && (
-                              <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 px-1 rounded font-bold">
-                                {row.invoiced} Billed
-                              </span>
-                            )}
-                            {row.completed > 0 && (
-                              <span className="bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 px-1 rounded font-bold">
-                                {row.completed} Pending
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight className={cn("w-3.5 h-3.5 shrink-0 transition-transform", isSelected ? "text-[#FA634E] translate-x-0.5" : "text-slate-300 group-hover:text-[#FA634E]")} />
-                    </button>
-                  );
-                })
-              )}
-            </div>
+            <span className="text-[10px] text-slate-500 block font-semibold">{filteredTrips.length} active trips in scope</span>
           </div>
 
-          {/* RIGHT PANEL: SELECTED CUSTOMER BILLING WORKSPACE */}
-          <div className="lg:col-span-9 space-y-4">
-            {selectedRow ? (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col min-h-[540px] p-6 space-y-6">
-                
-                {/* Selected Customer Workspace Header Banner */}
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-[#3E3C3D] text-white p-6 -mx-6 -mt-6 mb-2 rounded-t-2xl">
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <CompanyLogo
-                      name={selectedRow.customer.name}
-                      logoUrl={(selectedRow.customer as any).logo_url || (selectedRow.customer as any).avatar_url}
-                      className="w-11 h-11 border-2 border-white/20 bg-white"
-                    />
-                    <div className="min-w-0">
-                      <h2 className="text-base font-black tracking-tight text-white truncate">
-                        {selectedRow.customer.name}
-                      </h2>
-                      <p className="text-[11px] text-white/75 mt-0.5 font-medium">
-                        Billing Workspace, Statements & Invoice Ledger
-                      </p>
-                    </div>
-                  </div>
+          {/* Invoiced Revenue */}
+          <div className="bg-white dark:bg-slate-900 p-4.5 rounded-2xl border border-black/[0.05] dark:border-slate-800 shadow-xs space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Invoiced Revenue</span>
+            <div className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+              SAR {kpiStats.invoiced.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span className="text-[10px] text-emerald-600/85 block font-semibold">{filteredTrips.filter(t => t.status === 'Invoiced').length} trips fully billed</span>
+          </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={() => setStatementConfig({ row: selectedRow, preset: 'ALL' })}
-                      className="h-8.5 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs cursor-pointer border-none rounded-xl px-4"
-                    >
-                      <FileSpreadsheet className="w-3.5 h-3.5" /> Billing Statements
-                    </Button>
-                  </div>
-                </div>
+          {/* Pending Invoice Value */}
+          <div className="bg-white dark:bg-slate-900 p-4.5 rounded-2xl border border-black/[0.05] dark:border-slate-800 shadow-xs space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Pending Invoice Value</span>
+            <div className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
+              SAR {kpiStats.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <span className="text-[10px] text-amber-600/85 block font-semibold">{kpiStats.pendingCount} completed trips pending</span>
+          </div>
 
-                {/* 📊 Premium Financial & Operational KPI Stat Counters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Total Booked Value */}
-                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-2xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Total Booked Value</span>
-                    <div className="text-base font-black text-slate-900 dark:text-white font-mono">
-                      SAR {kpiStats.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[9px] text-slate-500 block font-semibold">{filteredTrips.length} active trips in period</span>
-                  </div>
+          {/* Active Accounts */}
+          <div className="bg-white dark:bg-slate-900 p-4.5 rounded-2xl border border-black/[0.05] dark:border-slate-800 shadow-xs space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-500 block">Active Billing Accounts</span>
+            <div className="text-lg font-black text-indigo-600 dark:text-indigo-400 font-mono">
+              {rows.length} Customer Accounts
+            </div>
+            <span className="text-[10px] text-slate-500 block font-semibold">{totalTripsCount} total ledger trip records</span>
+          </div>
+        </div>
 
-                  {/* Invoiced Revenue */}
-                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-2xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Invoiced Revenue</span>
-                    <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                      SAR {kpiStats.invoiced.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[9px] text-emerald-500/85 block font-semibold">{filteredTrips.filter(t => t.status === 'Invoiced').length} trips billed</span>
-                  </div>
+        {/* 3. Unified Dynamic Filter Toolbar & Actions */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Query Input */}
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search ref, customer, route, driver..."
+                value={tripSearch}
+                onChange={e => setTripSearch(e.target.value)}
+                className="pl-8.5 pr-3 h-9 text-xs w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FA634E]"
+              />
+            </div>
 
-                  {/* Pending Invoice Value */}
-                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-2xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Pending Invoice Value</span>
-                    <div className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
-                      SAR {kpiStats.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                    <span className="text-[9px] text-amber-500/85 block font-semibold">{kpiStats.pendingCount} completed trips pending</span>
-                  </div>
+            {/* Customer Dropdown Filter */}
+            <div className="w-[200px]">
+              <Select value={selectedCustomerId || 'ALL'} onValueChange={(val) => setSelectedCustomerId(val)}>
+                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customerOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="truncate">{opt.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                  {/* Operational Coverage */}
-                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-2xs space-y-1.5">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500 block">Invoicing Coverage</span>
-                    <div className="text-base font-black text-indigo-650 dark:text-indigo-400 font-mono">
-                      {filteredTrips.length > 0
-                        ? Math.round((filteredTrips.filter(t => t.status === 'Invoiced').length / filteredTrips.length) * 100)
-                        : 0}%
-                    </div>
-                    <span className="text-[9px] text-slate-500 block font-semibold">Billed vs Available ratio</span>
-                  </div>
-                </div>
+            {/* Invoice Status Dropdown Filter */}
+            <div className="w-[150px]">
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Statuses</SelectItem>
+                  <SelectItem value="Invoiced">Invoiced Only</SelectItem>
+                  <SelectItem value="NotInvoiced">Pending Invoice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                {/* 🔍 Dynamic Filters & Actions Control Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {/* Local Trip Search Input */}
-                    <div className="relative w-64">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search ref, route, driver, vehicle..."
-                        value={tripSearch}
-                        onChange={e => setTripSearch(e.target.value)}
-                        className="pl-8 pr-3 h-8.5 text-xs w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#FA634E]"
-                      />
-                    </div>
+            {/* Date Range Picker */}
+            <div className="w-[200px]">
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+                placeholder="Filter Date Horizon..."
+                buttonClassName="h-9 w-full bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl"
+              />
+            </div>
 
-                    {/* Integrated DateRangePicker */}
-                    <div className="w-[200px]">
-                      <DateRangePicker
-                        value={dateRange}
-                        onChange={setDateRange}
-                        placeholder="Filter by Date Horizon..."
-                        buttonClassName="h-8.5 w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-xl"
-                      />
-                    </div>
+            {/* Sort Dropdown */}
+            <SortDropdown
+              value={tripSort}
+              onChange={setTripSort}
+              options={TRIP_BILLING_SORT_OPTIONS}
+              triggerClassName="h-9 rounded-xl border-slate-200 bg-slate-50 dark:bg-slate-800/80 text-xs"
+            />
+          </div>
 
-                    {/* Sort Dropdown */}
-                    <SortDropdown
-                      value={tripSort}
-                      onChange={setTripSort}
-                      options={TRIP_BILLING_SORT_OPTIONS}
-                      triggerClassName="h-8.5 rounded-xl border-slate-200 bg-white"
-                    />
-                  </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              onClick={() => openBulkMarkModal(pendingInPeriod, periodLabel)}
+              disabled={pendingInPeriod.length === 0}
+              className="h-9 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs border-none rounded-xl disabled:opacity-40 cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> Mark Filtered Invoiced ({pendingInPeriod.length})
+            </Button>
+          </div>
+        </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={() => openBulkMarkModal(selectedRow, pendingInPeriod, periodLabel)}
-                      disabled={pendingInPeriod.length === 0}
-                      className="h-8.5 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs border-none rounded-xl disabled:opacity-40 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Mark Period Invoiced ({pendingInPeriod.length})
-                    </Button>
-                  </div>
-                </div>
+        {/* 4. Full-Width Commercial Billing Ledger Table */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/50 text-slate-500 font-black uppercase tracking-wider text-[10px]">
+                  <th className="px-4 py-3.5">Trip / Invoice Ref</th>
+                  <th className="px-4 py-3.5">Customer Company</th>
+                  <th className="px-4 py-3.5">Horizon / Date</th>
+                  <th className="px-4 py-3.5">Route (Origin → Destination)</th>
+                  <th className="px-4 py-3.5">Asset & Driver</th>
+                  <th className="px-4 py-3.5 text-right">Contract Rate</th>
+                  <th className="px-4 py-3.5 text-center">Status</th>
+                  <th className="px-4 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300 text-xs">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw className="w-6 h-6 animate-spin text-[#FA634E]" />
+                        <span className="font-bold text-xs">Loading billing ledger records...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredTrips.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                      <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No matching billing ledger records found</p>
+                      <p className="text-xs text-slate-400 mt-1">Try adjusting search query, company dropdown, or date range filter.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTrips.map((trip) => {
+                    const inv = getInvoiceRec(trip);
+                    const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
+                    const parentRow = rows.find(r => r.customer.id === trip.customerId);
 
-                {/* 📝 Trips Ledger Table */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto shadow-xs">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="px-5 py-3 text-left">Trip Ref</th>
-                        <th className="px-5 py-3 text-left">Horizon / Date</th>
-                        <th className="px-5 py-3 text-left">Route (Origin → Destination)</th>
-                        <th className="px-5 py-3 text-left">Asset & Operator</th>
-                        <th className="px-5 py-3 text-right">Contract Rate</th>
-                        <th className="px-5 py-3 text-left">Invoice No / Ref</th>
-                        <th className="px-5 py-3 text-center">Status</th>
-                        <th className="px-5 py-3 text-right">Actions</th>
+                    return (
+                      <tr
+                        key={trip.id}
+                        onClick={() => setSelectedTrip(trip)}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-mono font-bold text-[#FA634E] flex items-center gap-1">
+                              {trip.ref_id}
+                              <Eye className="w-3 h-3 text-slate-400 opacity-60" />
+                            </span>
+                            {inv?.zatca_ref && (
+                              <span className="font-mono text-[9px] text-slate-400 flex items-center gap-1">
+                                ZATCA: <strong className="text-slate-600 dark:text-slate-300">{inv.zatca_ref}</strong>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <CompanyLogo
+                              name={trip.customerName}
+                              logoUrl={(trip.customerObj as any)?.logo_url || (trip.customerObj as any)?.avatar_url}
+                              className="w-7 h-7"
+                            />
+                            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                              {trip.customerName}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+                          {formatInDeploymentTz(d, tz, 'dd/MM/yyyy')}
+                        </td>
+
+                        <td className="px-4 py-3 max-w-[260px]">
+                          <span className="font-bold text-slate-900 dark:text-slate-100 truncate block text-xs">
+                            {getTripOrigin(trip)} → {getTripDest(trip)}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3 whitespace-nowrap text-[11px]">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 font-mono">{trip.vehicle?.plate_number || '—'}</div>
+                          <div className="text-[10px] text-slate-400">{getDriverDesc(trip)}</div>
+                        </td>
+
+                        <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900 dark:text-white whitespace-nowrap">
+                          SAR {(trip.billing_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          {trip.status === 'Invoiced' ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                              Invoiced
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 font-bold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                              Pending
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {parentRow && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setStatementConfig({ row: parentRow, preset: 'ALL' })}
+                                title="View Customer Statement"
+                                className="h-7 px-2 text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 gap-1"
+                              >
+                                <FileSpreadsheet className="w-3 h-3" /> Statement
+                              </Button>
+                            )}
+
+                            {trip.status === 'Completed' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => openMarkModal(trip)}
+                                className="h-7 px-2.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-2xs border-none rounded-lg cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3 h-3" /> Mark Invoiced
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUnmark(trip)}
+                                className="h-7 px-2 text-[10px] font-semibold text-amber-600 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20 gap-1 rounded-lg"
+                              >
+                                <X className="w-3 h-3" /> Unmark
+                              </Button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-150 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-350">
-                      {filteredTrips.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="px-5 py-16 text-center text-slate-400">
-                            <FileText className="w-8 h-8 mx-auto mb-2 text-slate-350" />
-                            <p className="font-bold text-slate-650 dark:text-slate-400">No matching trips found</p>
-                            <p className="text-[11px] text-slate-400 mt-1">Adjust filters or date range selector</p>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredTrips.map((trip: BillingLedgerTrip) => {
-                          const inv = getInvoiceRec(trip);
-                          const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
-                          return (
-                            <tr
-                              key={trip.id}
-                              onClick={() => setSelectedTrip(trip)}
-                              className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/20 cursor-pointer transition-colors"
-                            >
-                              <td className="px-5 py-3 whitespace-nowrap">
-                                <span className="font-mono font-bold text-brand flex items-center gap-1">
-                                  {trip.ref_id}
-                                  <Eye className="w-3 h-3 text-slate-400 opacity-60" />
-                                </span>
-                              </td>
-                              <td className="px-5 py-3 text-slate-500 whitespace-nowrap">
-                                {formatInDeploymentTz(d, tz, 'MMM d, yyyy')}
-                              </td>
-                              <td className="px-5 py-3 max-w-[240px]">
-                                <span className="font-bold text-slate-900 dark:text-white truncate block">
-                                  {getTripOrigin(trip)} → {getTripDest(trip)}
-                                </span>
-                              </td>
-                              <td className="px-5 py-3 text-slate-500 whitespace-nowrap text-[11px]">
-                                <div className="font-semibold text-slate-700 dark:text-slate-300 font-mono">{trip.vehicle?.plate_number || '—'}</div>
-                                <div className="text-[10px] text-slate-400">{getDriverDesc(trip)}</div>
-                              </td>
-                              <td className="px-5 py-3 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                                SAR {(trip.billing_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="px-5 py-3 font-mono text-[10px] text-slate-400 max-w-[140px] truncate">
-                                {inv?.zatca_ref || inv?.ref_id || '—'}
-                              </td>
-                              <td className="px-5 py-3 text-center whitespace-nowrap">
-                                {trip.status === 'Invoiced' ? (
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-250 font-bold text-[9px] shadow-none rounded-md px-1.5 py-0.2">Invoiced</Badge>
-                                ) : (
-                                  <Badge className="bg-amber-50 text-amber-700 border-amber-250 font-bold text-[9px] shadow-none rounded-md px-1.5 py-0.2">Pending</Badge>
-                                )}
-                              </td>
-                              <td className="px-5 py-3 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                                {trip.status === 'Completed' ? (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => openMarkModal(trip)}
-                                    className="h-7 px-2.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" /> Mark Invoiced
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUnmark(trip)}
-                                    className="h-7 px-2.5 text-[10px] font-semibold text-amber-655 border-amber-305 hover:bg-amber-50 dark:hover:bg-amber-950/20 gap-1"
-                                  >
-                                    <X className="w-3 h-3" /> Unmark
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="p-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-slate-400 shadow-2xs flex flex-col items-center justify-center min-h-[540px]">
-                <FileText className="w-10 h-10 mb-3 text-slate-350" />
-                <p className="font-extrabold text-slate-700 dark:text-slate-300 text-sm">No Customer Selected</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-[280px] leading-normal font-normal">Select a customer account registry from the left list navigator to open the billing workspace.</p>
-              </div>
-            )}
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-3.5 px-5 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-mono text-slate-500">
+            <span>Showing {filteredTrips.length} of {allLedgerTrips.length} total billing records</span>
+            <span>Total Value: <strong>SAR {kpiStats.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
           </div>
         </div>
       </div>
@@ -1510,13 +1490,12 @@ export default function InvoiceListPage() {
         subtitle="MERCON Logistics Company Invoicing Ledger"
         filteredData={rows.flatMap(r => r.trips)}
         allData={rows.flatMap(r => r.trips)}
-        totalCount={totalTrips}
+        totalCount={totalTripsCount}
         columns={INVOICE_EXPORT_COLUMNS}
         filters={INVOICE_EXPORT_FILTERS}
         formats={['xlsx', 'csv', 'pdf']}
         rowDateAccessor={(t) => t.planned_start || t.createdAt}
       />
-
     </DashboardLayout>
   );
 }
