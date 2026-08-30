@@ -69,20 +69,43 @@ const colLetter = (n: number): string => {
 function autoSuggestField(headerText: string): TripReportFieldKey | null {
   if (!headerText) return null;
   const h = headerText.toLowerCase().trim();
-  if (h.includes('waybill') || h.includes('job') || h.includes('ref') || h.includes('serial') || h.includes('tracking') || h.includes('id')) return 'ref_id';
+  
+  // 1. Trip Ref ID / UUID / Job No / Departure ID
+  if (h.includes('uuid') || h.includes('departure') || h.includes('waybill') || h.includes('job') || h.includes('ref') || h.includes('serial') || h.includes('tracking') || h.includes('id')) return 'ref_id';
+  
+  // 2. Date
   if (h.includes('date') || h.includes('time')) return 'date';
+  
+  // 3. Customer / Vendor / Sender / Carrier
   if (h.includes('customer') || h.includes('client') || h.includes('sender') || h.includes('company')) return 'customer_name';
+  if (h.includes('vendor') || h.includes('carrier') || h.includes('subcontractor') || h.includes('3rd') || h.includes('provider') || h.includes('supplier')) return 'carrier_name';
+
+  // 4. Driver
   if (h.includes('driver') || h.includes('captain')) return 'driver_name';
-  if (h.includes('phone') || h.includes('mobile')) return 'driver_phone';
-  if (h.includes('plate') || h.includes('truck') || h.includes('vehicle')) return 'vehicle_plate';
-  if (h.includes('type') || h.includes('class')) return 'vehicle_type';
-  if (h.includes('carrier') || h.includes('vendor') || h.includes('subcontractor') || h.includes('3rd')) return 'carrier_name';
-  if (h.includes('pickup') || h.includes('origin') || h.includes('from')) return 'origin';
-  if (h.includes('drop') || h.includes('destination') || h.includes('to')) return 'destination';
+  if (h.includes('phone') || h.includes('mobile') || h.includes('contact')) return 'driver_phone';
+
+  // 5. Vehicle Plate / Vehicle Type (Catching typos like "Vehcile Number" / "Vehcile Type")
+  if (h.includes('plate') || h.includes('reg') || (h.includes('veh') && (h.includes('num') || h.includes('no')))) return 'vehicle_plate';
+  if (h.includes('type') || h.includes('class') || h.includes('capacity') || h.includes('ton') || h.includes('fit') || (h.includes('veh') && h.includes('type'))) return 'vehicle_type';
+
+  // 6. Rental Method / Category
+  if (h.includes('rental') || h.includes('method') || h.includes('category') || h.includes('contract') || h.includes('duty')) return 'rate_category';
+
+  // 7. Pickup / Origin / From
+  if (h.includes('pickup') || h.includes('origin') || h.includes('from') || h.includes('start') || h.includes('source')) return 'origin';
+
+  // 8. Dropoff / Destination / To / Consignee
+  if (h.includes('drop') || h.includes('destination') || h.includes('to') || h.includes('end') || h.includes('target')) return 'destination';
   if (h.includes('consignee') || h.includes('receiver')) return 'receiver';
-  if (h.includes('bill') || h.includes('rate') || h.includes('amount') || h.includes('price')) return 'billing_amount';
-  if (h.includes('total') || h.includes('sum')) return 'total_amount';
+
+  // 9. Charges / Billing Amount / VAT / Inc VAT / Total
+  if (h.includes('inc vat') || h.includes('total') || h.includes('sum') || h.includes('gross') || h.includes('net') || h.includes('final')) return 'total_amount';
+  if (h.includes('vat') || h.includes('tax') || h.includes('surcharge') || h.includes('extra')) return 'total_charges';
+  if (h.includes('charge') || h.includes('bill') || h.includes('rate') || h.includes('amount') || h.includes('price') || h.includes('cost') || h.includes('fare')) return 'billing_amount';
+
+  // 10. Status
   if (h.includes('status') || h.includes('state')) return 'status';
+
   return null;
 }
 
