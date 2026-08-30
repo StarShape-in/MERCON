@@ -23,6 +23,7 @@ export interface DateRangePickerProps {
   customLabel?: string;
   id?: string;
   align?: 'start' | 'center' | 'end';
+  showPresets?: boolean;
 }
 
 export function DateRangePicker({
@@ -36,6 +37,7 @@ export function DateRangePicker({
   customLabel,
   id,
   align = 'start',
+  showPresets = false,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -108,31 +110,30 @@ export function DateRangePicker({
 
         <PopoverContent className="w-auto p-3.5 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden space-y-3" align={align}>
           {/* Quick Preset Shortcut Buttons Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-            {presets.map((p, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  onChange?.(p.range);
-                  setOpen(false);
-                }}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E] hover:text-white text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          {showPresets && (
+            <div className="flex flex-wrap items-center gap-1.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              {presets.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    onChange?.(p.range);
+                    setOpen(false);
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E] hover:text-white text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <Calendar
             mode="range"
             selected={value}
             onSelect={handleSelect}
             numberOfMonths={1}
-            captionLayout="label"
-            classNames={{
-              caption_label: "text-xs font-extrabold text-slate-800 dark:text-slate-200 tracking-wider uppercase",
-            }}
+            captionLayout="dropdown"
             autoFocus
           />
         </PopoverContent>
