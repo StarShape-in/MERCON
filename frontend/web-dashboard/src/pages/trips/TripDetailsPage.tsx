@@ -1259,38 +1259,63 @@ export default function TripDetailsPage() {
           {/* ── 4. SECONDARY BENTO GRID: ACTIVITY LOG & DOCUMENTS / INVOICE WORKSPACE ── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
-            {/* Activity Log (4 Columns) - Clean & Quiet Vertical List */}
-            <Card className="lg:col-span-4 rounded-2xl border border-[#E5E7EB] bg-white p-4.5 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-                <h3 className="text-sm font-semibold text-[#3E3C3D]">
+            {/* Activity Log (4 Columns) - Compact Chronological Timeline */}
+            <Card className="lg:col-span-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB]">
+                <h3 className="text-base font-semibold text-[#3E3C3D]">
                   Activity Log
                 </h3>
               </div>
 
-              <div className="pt-3 space-y-3 overflow-y-auto max-h-[320px]">
-                {timelineSteps.map((step, i) => (
-                  <div key={step.key} className="flex items-start gap-3 text-xs">
-                    <div className="mt-1">
-                      {timelineStatus[i] === 'done' ? (
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
-                      ) : timelineStatus[i] === 'active' ? (
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
-                      ) : (
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
-                      )}
+              {/* Timeline List */}
+              <div className="pt-4 space-y-4">
+                {timelineSteps.map((step, i) => {
+                  const isLast = i === timelineSteps.length - 1;
+                  const status = timelineStatus[i];
+
+                  return (
+                    <div key={step.key} className="relative flex items-start gap-3">
+                      {/* Left Marker Column with Connecting Line */}
+                      <div className="relative flex flex-col items-center shrink-0 w-3.5">
+                        {/* Event Marker */}
+                        <div className="relative z-10 mt-1 flex items-center justify-center">
+                          {status === 'done' ? (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
+                          ) : status === 'active' ? (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
+                          ) : (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB] shrink-0" />
+                          )}
+                        </div>
+
+                        {/* Connector Line (rendered between items) */}
+                        {!isLast && (
+                          <div className="absolute top-[14px] bottom-[-18px] w-[1px] bg-[#D9DCE3] z-0" />
+                        )}
+                      </div>
+
+                      {/* Event Details */}
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className={cn(
+                          "text-[13px] font-semibold",
+                          status === 'pending' ? "text-[#6E6E80]" : "text-[#3E3C3D]"
+                        )}>
+                          {step.label}
+                        </p>
+                        {step.time ? (
+                          <p className="text-xs font-mono font-medium text-[#6E6E80]">
+                            {fullDateTime(step.time, tz)}
+                          </p>
+                        ) : step.sub ? (
+                          <p className="text-xs font-normal text-[#6E6E80]">
+                            {step.sub}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className={cn('font-medium', timelineStatus[i] === 'pending' ? 'text-[#9898A4]' : 'text-[#3E3C3D]')}>
-                        {step.label}
-                      </p>
-                      {step.time ? (
-                        <p className="text-[11px] font-mono text-[#6E6E80]">{fullDateTime(step.time, tz)}</p>
-                      ) : step.sub ? (
-                        <p className="text-[11px] text-[#9898A4]">{step.sub}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
@@ -1322,13 +1347,13 @@ export default function TripDetailsPage() {
                 ) : (
                   (() => {
                     const loadingDocs = documents.filter(d => {
-                      const t = (d.doc_type || d.document_type || '').toUpperCase();
-                      const name = (d.file_name || d.name || '').toLowerCase();
+                      const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
+                      const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
                       return t.includes('LOAD') || t.includes('CARGO') || name.includes('load') || name.includes('cargo') || name.includes('photo');
                     });
                     const podDocs = documents.filter(d => {
-                      const t = (d.doc_type || d.document_type || '').toUpperCase();
-                      const name = (d.file_name || d.name || '').toLowerCase();
+                      const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
+                      const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
                       return (t.includes('POD') || t.includes('DELIVERY') || name.includes('pod') || name.includes('delivery')) && !loadingDocs.includes(d);
                     });
                     const otherDocs = documents.filter(d => !podDocs.includes(d) && !loadingDocs.includes(d));
