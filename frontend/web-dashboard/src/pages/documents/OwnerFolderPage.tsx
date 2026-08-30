@@ -146,18 +146,21 @@ export default function OwnerFolderPage() {
               const fName = activeDriverObj?.first_name || fullDName.split(' ')[0] || 'Kashif';
               const lName = activeDriverObj?.last_name || fullDName.split(' ').slice(1).join(' ') || 'Ali';
               const photoUrl = activeDriverObj?.avatar_url || (activeDriverObj as any)?.photo_url || (activeDriverObj as any)?.image_url;
+              const resolvedPhoto = photoUrl
+                ? resolveFileUrl(photoUrl)
+                : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80';
               const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
 
               return (
                 <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-200 flex-wrap pt-0.5">
                   <DriverAvatar
-                    src={resolveFileUrl(photoUrl)}
+                    src={resolvedPhoto}
                     firstName={fName}
                     lastName={lName}
                     size="md"
-                    className="w-9 h-9 shrink-0 shadow-xs border-2 border-white dark:border-slate-800"
+                    className="w-10 h-10 shrink-0 shadow-sm border-2 border-white dark:border-slate-800 rounded-full"
                   />
-                  <strong className="text-slate-900 dark:text-slate-100 font-black text-sm sm:text-base tracking-tight">
+                  <strong className="text-slate-900 dark:text-slate-100 font-black text-base sm:text-lg tracking-tight">
                     {fullDName}
                   </strong>
                   {phoneNum && (
