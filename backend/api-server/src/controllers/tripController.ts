@@ -2035,6 +2035,8 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         quotation_vehicle_class: trip.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
         quotation_source_vehicle_label: trip.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
         billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number((trip as any).driver_charge ?? (trip as any).trip_charges) || null),
+        driver_charge: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
+        trip_charges: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation

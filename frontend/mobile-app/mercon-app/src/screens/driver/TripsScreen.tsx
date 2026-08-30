@@ -62,7 +62,7 @@ function extractChargeNumber(val: any): number {
 
 export function getTripChargeValue(t: MobileTrip | any): number {
   if (!t) return 0;
-  return extractChargeNumber(t.trip_charges);
+  return extractChargeNumber(t.driver_charge ?? t.trip_charges);
 }
 
 function formatCharge(val?: any): string {
