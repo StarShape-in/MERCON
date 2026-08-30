@@ -1226,7 +1226,7 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Add Template Dialog Modal (Redesigned Zero-Configuration) ─── */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent className={cn("flex flex-col max-h-[85vh] transition-all duration-300", inspection ? "sm:max-w-2xl" : "sm:max-w-md")}>
+          <DialogContent className={cn("flex flex-col max-h-[88vh] transition-all duration-300", inspection ? "sm:max-w-4xl" : "sm:max-w-md")}>
             <DialogHeader className="shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
                 <Plus className="w-4 h-4 text-brand" /> Add Company Format
@@ -1342,7 +1342,7 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Edit Template Mapping Dialog Modal ─── */}
         <Dialog open={isEditingMappingOpen} onOpenChange={setIsEditingMappingOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col">
             <DialogHeader className="shrink-0">
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
                 <Settings2 className="w-4 h-4 text-indigo-650" /> Edit Column Mappings
