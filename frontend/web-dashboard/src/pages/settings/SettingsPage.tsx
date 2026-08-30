@@ -744,7 +744,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {MODULE_KEYS.map((key) => {
+                      {MODULE_KEYS.filter((k) => k !== 'recycle-bin').map((key) => {
                         const isEnabled = enabledModules.includes(key);
                         return (
                           <button
@@ -774,7 +774,6 @@ export default function SettingsPage() {
                                 {key === 'maintenance' && 'Manage vehicle service tasks, workshop records & inspections.'}
                                 {key === 'reports' && 'Generate dispatch reports, performance & audit summaries.'}
                                 {key === 'documents' && 'Store, assign & track driver & vehicle documents.'}
-                                {key === 'recycle-bin' && 'Restore deleted items (customers, drivers, vehicles).'}
                                 {key === 'company-reports' && 'Configure and generate company-specific custom Excel reports.'}
                               </span>
                             </div>

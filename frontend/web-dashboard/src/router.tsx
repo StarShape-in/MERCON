@@ -102,7 +102,6 @@ const OperatorProfilePage     = lazyWithRetry(() => import('@/pages/settings/Ope
 const SettingsPage            = lazyWithRetry(() => import('@/pages/settings/SettingsPage'));
 const UserManagementPage      = lazyWithRetry(() => import('@/pages/settings/UserManagementPage'));
 const DocumentTypeAdminPage   = lazyWithRetry(() => import('@/pages/settings/DocumentTypeAdminPage'));
-const RecycleBinPage          = lazyWithRetry(() => import('@/pages/recycle-bin/RecycleBinPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -280,7 +279,6 @@ export default function AppRouter() {
             <Route path="/settings/profile"         element={<Navigate to="/settings" replace />} />
             <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
             <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
-            <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
           </Route>
 
           {/* Fallback */}

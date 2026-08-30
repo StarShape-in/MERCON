@@ -107,7 +107,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
         { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents' },
       ],
     },
