@@ -4,24 +4,32 @@ import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
+export type LocationSource = 'DRIVER_GPS' | 'PHYSICAL_GPS' | 'NONE' | (string & {});
+export type LocationDisplayState = 'CURRENT' | 'LAST_KNOWN' | 'UNAVAILABLE' | (string & {});
+
 export interface ResolvedLocation {
+  vehicle_id?: string | null;
+  ref_id?: string | null;
+  plate_number?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+  speed_kph?: number | null;
+  heading_deg?: number | null;
+  accuracy_m?: number | null;
+  source?: LocationSource | null;
+  display_state?: LocationDisplayState | null;
+  timestamp?: string | null;
+  formatted_time_ago?: string | null;
+  active_trip_id?: string | null;
+  active_driver_id?: string | null;
   address?: string | null;
   formatted_address?: string | null;
   name?: string | null;
   city?: string | null;
   region?: string | null;
   country?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  display_state?: string | null;
-  speed_kph?: number | null;
-  heading_deg?: number | null;
-  source?: string | null;
-  plate_number?: string | null;
-  formatted_time_ago?: string | null;
-  timestamp?: string | null;
 }
 
 export interface VehicleUsage {
@@ -37,24 +45,7 @@ export interface ActiveMaintenance {
   maintenance_type: string;
   workshop_name: string;
   start_date: string;
-export type LocationSource = 'DRIVER_GPS' | 'PHYSICAL_GPS' | 'NONE';
-export type LocationDisplayState = 'CURRENT' | 'LAST_KNOWN' | 'UNAVAILABLE';
-
-export interface ResolvedLocation {
-  vehicle_id: string;
-  ref_id: string | null;
-  plate_number: string;
-  latitude: number | null;
-  longitude: number | null;
-  speed_kph: number | null;
-  heading_deg: number | null;
-  accuracy_m: number | null;
-  source: LocationSource;
-  display_state: LocationDisplayState;
-  timestamp: string | null;
-  formatted_time_ago: string;
-  active_trip_id: string | null;
-  active_driver_id: string | null;
+  end_date: string | null;
 }
 
 export interface Vehicle {
