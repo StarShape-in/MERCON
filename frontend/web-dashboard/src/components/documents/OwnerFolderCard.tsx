@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, FileQuestion, ChevronRight, Folder } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, FileQuestion, ChevronRight, Folder, Truck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -100,7 +100,7 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUplo
                 />
               ) : (
                 <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', folderTheme.iconBg)}>
-                  <Folder className="w-4.5 h-4.5" />
+                  <Truck className="w-4.5 h-4.5" />
                 </div>
               )}
               <div className="min-w-0">
