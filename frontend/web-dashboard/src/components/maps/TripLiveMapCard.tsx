@@ -171,6 +171,25 @@ export default function TripLiveMapCard({
   const [remainingDistanceKm, setRemainingDistanceKm] = useState<number | null>(null);
   const [remainingEtaText, setRemainingEtaText] = useState<string | null>(null);
 
+  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+
+  const resLat = resolvedLocation?.latitude;
+  const resLng = resolvedLocation?.longitude;
+  const displayState = resolvedLocation?.display_state;
+  const hasResolvedCoords =
+    typeof resLat === 'number' &&
+    typeof resLng === 'number' &&
+    Number.isFinite(resLat) &&
+    Number.isFinite(resLng) &&
+    (displayState === 'CURRENT' || displayState === 'LAST_KNOWN');
+
+  const hasRealCoords = pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null;
+  const matchedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId);
+  const simulatedTruck = hasResolvedCoords ? undefined : (matchedTruck || (hasRealCoords ? undefined : fleet[0]));
+
+  const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
+  const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
+
   // OSRM Driving Route for Map Polyline (Pickup -> Dropoff) — runs ONLY when pickup/dropoff coordinates change
   useEffect(() => {
     if (!hasRealCoords) {
@@ -279,11 +298,6 @@ export default function TripLiveMapCard({
       isMounted = false;
     };
   }, [hasResolvedCoords, resLat, resLng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
-
-  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
-
-  const resLatVal = resLat;
-  const resLngVal = resLng;
 
   const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
   const polylineWaypoints: [number, number][] = roadPolyline
