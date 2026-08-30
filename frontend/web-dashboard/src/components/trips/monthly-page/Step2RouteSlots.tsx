@@ -364,6 +364,72 @@ export default function Step2RouteSlots({
                 </div>
               )}
 
+              {/* Intermediate Stops List Section */}
+              {slot.intermediateLocations && slot.intermediateLocations.length > 0 && (
+                <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/20 dark:bg-indigo-950/20 p-3 space-y-2 w-full">
+                  <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-1.5">
+                    <span className="text-xs font-black text-indigo-950 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                      Intermediate Stops ({slot.intermediateLocations.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onAddSlotIntermediate(slot.id)}
+                      className="text-[10px] font-bold text-indigo-700 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950 flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3 text-indigo-600" />
+                      Add Stop
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {slot.intermediateLocations.map((loc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs group hover:border-indigo-300 transition-all"
+                      >
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </span>
+
+                        <div className="flex-1 min-w-[180px]">
+                          <LocationCombobox
+                            customerId={contractCustomer}
+                            value={loc}
+                            onChange={(locId, locObj) => {
+                              const displayName = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                              onUpdateSlotIntermediate(slot.id, idx, displayName);
+                            }}
+                            placeholder={`Intermediate Stop #${idx + 1}...`}
+                            triggerClassName="h-8 border-slate-200 bg-white shadow-2xs text-xs font-medium"
+                          />
+                        </div>
+
+                        <div className="w-28 relative shrink-0">
+                          <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-400">SAR</span>
+                          <input
+                            type="number"
+                            value={slot.intermediateStopFees?.[idx] || ''}
+                            onChange={(e) => onUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                            placeholder="Fee"
+                            className="w-full h-8 pl-8 pr-2 rounded-md border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => onRemoveSlotIntermediate(slot.id, idx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all shrink-0 cursor-pointer"
+                          title="Remove stop"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Quotation Match Banner & Save as Quotation Option */}
               <div className="pt-1 w-full">
                 {matchedRateCard ? (

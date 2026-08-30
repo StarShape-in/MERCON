@@ -59,6 +59,53 @@ export default function MonthlyCompanyBoard({
   );
 }
 
+export interface TemplateGroup {
+  key: string;
+  lineType: string;
+  vehicleClass: string;
+  origin: string;
+  destination: string;
+  rateStr: string;
+  trips: MonthlyBoardTrip[];
+  threeDayTrips: MonthlyBoardTrip[];
+  otherTrips: MonthlyBoardTrip[];
+}
+
+function getThreeDayDateStrings(): string[] {
+  const today = new Date();
+  const dates: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    dates.push(`${yyyy}-${mm}-${dd}`);
+  }
+  return dates;
+}
+
+function getTodayDateString(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function shouldShowTripOnMonthlyBoard(trip: MonthlyBoardTrip, todayStr: string): boolean {
+  const status = (trip.status || '').toLowerCase().trim();
+  const isTerminalCompleted =
+    status === 'completed' || status === 'invoiced' || status === 'delivered' || status === 'cancelled';
+
+  if (isTerminalCompleted) {
+    // Show completed/terminal trips ONLY if their date is TODAY
+    return trip.date.startsWith(todayStr);
+  }
+  // Show all active/scheduled trips
+  return true;
+}
+
 function CompanyColumn({
   company,
   selectedTripIds = [],
@@ -74,62 +121,91 @@ function CompanyColumn({
   onToggleCompany?: (tripIds: string[]) => void;
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
-
   const handleSelectTrip = onSelectTrip || ((t: MonthlyBoardTrip) => navigate(`/trips/${t.id}`));
 
-  const trips = useMemo(() => {
+  const allCompanyTrips = useMemo(() => {
+    const todayStr = getTodayDateString();
     const list = company.days.flatMap((day) => day.trips);
-    
-    // Sort: Non-completed/terminal first, completed/terminal last
-    const sortedList = [...list].sort((a, b) => {
-      const statusA = (a.status || '').toLowerCase().trim();
-      const statusB = (b.status || '').toLowerCase().trim();
-      
-      const aIsCompleted = statusA === 'completed' || statusA === 'invoiced' || statusA === 'cancelled' || statusA === 'delivered' || statusA === 'atdelivery';
-      const bIsCompleted = statusB === 'completed' || statusB === 'invoiced' || statusB === 'cancelled' || statusB === 'delivered' || statusB === 'atdelivery';
-      
-      if (aIsCompleted && !bIsCompleted) return 1;
-      if (!aIsCompleted && bIsCompleted) return -1;
-      return 0;
-    });
 
-    console.log(`[MERCON Board Sort] Column: ${company.customer.name}, Trips total: ${sortedList.length}`);
+    // Rule: Hide completed trips except completed of Today
+    const filteredTrips = list.filter((t) => shouldShowTripOnMonthlyBoard(t, todayStr));
 
-    if (!search || !search.trim()) return sortedList;
-
-    return [...sortedList].sort((a, b) => {
-      const scoreA = computeMonthlyTripSearchRelevance(a, search);
-      const scoreB = computeMonthlyTripSearchRelevance(b, search);
-      if (scoreA !== scoreB) return scoreB - scoreA;
-      
-      const statusA = (a.status || '').toLowerCase().trim();
-      const statusB = (b.status || '').toLowerCase().trim();
-      const aIsCompleted = statusA === 'completed' || statusA === 'invoiced' || statusA === 'cancelled' || statusA === 'delivered' || statusA === 'atdelivery';
-      const bIsCompleted = statusB === 'completed' || statusB === 'invoiced' || statusB === 'cancelled' || statusB === 'delivered' || statusB === 'atdelivery';
-      
-      if (aIsCompleted && !bIsCompleted) return 1;
-      if (!aIsCompleted && bIsCompleted) return -1;
-      return 0;
-    });
+    if (!search || !search.trim()) return filteredTrips;
+    return filteredTrips.filter((t) => computeMonthlyTripSearchRelevance(t, search) > 0);
   }, [company, search]);
 
-  const companyTripIds = useMemo(() => trips.map((t) => t.id), [trips]);
-  const unassignedCount = useMemo(() => trips.filter((t) => isUnassigned(t)).length, [trips]);
+  const companyTripIds = useMemo(() => allCompanyTrips.map((t) => t.id), [allCompanyTrips]);
+  const unassignedCount = useMemo(() => allCompanyTrips.filter((t) => isUnassigned(t)).length, [allCompanyTrips]);
 
   const allSelected =
     companyTripIds.length > 0 && companyTripIds.every((id) => selectedTripIds.includes(id));
   const someSelected =
     !allSelected && companyTripIds.some((id) => selectedTripIds.includes(id));
 
-  const firstTrip = trips[0];
-  const compactTrips = trips.slice(1);
-  const visibleCompactTrips = isExpanded ? compactTrips : compactTrips.slice(0, 5);
-  const remainingCount = compactTrips.length > 5 ? compactTrips.length - 5 : 0;
+  // Group company trips by Template = Line Type + Vehicle Class + Route / Stops + Billing Rate
+  const templateGroups = useMemo(() => {
+    const threeDayDates = getThreeDayDateStrings();
+    const map = new Map<string, TemplateGroup>();
+
+    for (const trip of allCompanyTrips) {
+      const lineType = trip.rate_category || trip.billing_type || 'Single Trip';
+      const vehicleClass = trip.vehicle_type || 'Standard Truck';
+      const origin = trip.origin ?? '—';
+      const destination = (trip.destination ?? '—').replace(/🔁\s*/g, '').trim();
+      const rateStr = trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—';
+      const key = `${lineType}||${vehicleClass}||${origin}→${destination}||${rateStr}`;
+
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          key,
+          lineType,
+          vehicleClass,
+          origin,
+          destination,
+          rateStr,
+          trips: [],
+          threeDayTrips: [],
+          otherTrips: [],
+        };
+        map.set(key, group);
+      }
+      group.trips.push(trip);
+    }
+
+    // Partition trips into threeDayTrips (Today & Next 2 Days) and otherTrips
+    const groups: TemplateGroup[] = [];
+    map.forEach((g) => {
+      // Sort trips by date & time
+      g.trips.sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        return (a.planned_start || '').localeCompare(b.planned_start || '');
+      });
+
+      // Filter for Today and next 2 days
+      const threeDayMatches = g.trips.filter((t) => threeDayDates.some((d) => t.date.startsWith(d)));
+
+      if (threeDayMatches.length > 0) {
+        g.threeDayTrips = threeDayMatches.slice(0, 3);
+        const threeDaySet = new Set(g.threeDayTrips.map((t) => t.id));
+        g.otherTrips = g.trips.filter((t) => !threeDaySet.has(t.id));
+      } else {
+        // Fallback if no trips fall exactly on Today/Tomorrow/Day+2: take earliest 3 trips
+        g.threeDayTrips = g.trips.slice(0, 3);
+        g.otherTrips = g.trips.slice(3);
+      }
+
+      groups.push(g);
+    });
+
+    // Sort template groups by volume (busiest template first)
+    return groups.sort((a, b) => b.trips.length - a.trips.length);
+  }, [allCompanyTrips]);
 
   return (
-    <div className="w-[340px] shrink-0 rounded-xl border border-slate-200 bg-slate-50/80 shadow-xs flex flex-col max-h-[750px] overflow-hidden">
+    <div className="w-[360px] shrink-0 rounded-xl border border-slate-200 bg-slate-50/80 shadow-xs flex flex-col max-h-[780px] overflow-hidden">
       {/* ── Column Header ────────────────────────────────────────────── */}
       <div className="p-3.5 bg-white border-b border-slate-200 flex flex-col gap-2 shrink-0">
         <div className="flex items-center justify-between gap-2">
@@ -142,9 +218,17 @@ function CompanyColumn({
                 aria-label={`Select all trips for ${company.customer.name}`}
               />
             )}
-            <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
-              {initialsOf(company.customer.name)}
-            </span>
+            {company.customer.avatar_url || company.customer.logo_url ? (
+              <img
+                src={company.customer.avatar_url || company.customer.logo_url || ''}
+                alt={company.customer.name}
+                className="h-8 w-8 shrink-0 rounded-lg object-cover border border-purple-200 dark:border-purple-800 shadow-3xs"
+              />
+            ) : (
+              <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
+                {initialsOf(company.customer.name)}
+              </span>
+            )}
             <div className="min-w-0">
               <h3 className="text-xs font-bold text-slate-900 truncate leading-tight" title={company.customer.name}>
                 {company.customer.name}
@@ -157,7 +241,7 @@ function CompanyColumn({
 
           <div className="flex items-center gap-1 shrink-0">
             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
-              {trips.length}
+              {allCompanyTrips.length}
             </span>
             {unassignedCount > 0 && (
               <span
@@ -171,116 +255,138 @@ function CompanyColumn({
         </div>
       </div>
 
-      {/* ── Trip Cards Column Body ───────────────────────────────────── */}
-      <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1">
-        {trips.length === 0 ? (
+      {/* ── Column Body: Template Cards ───────────────────────────────── */}
+      <div className="p-3 overflow-y-auto space-y-3.5 flex-1">
+        {templateGroups.length === 0 ? (
           <div className="p-6 text-center text-xs text-slate-400 font-medium border border-dashed border-slate-200 rounded-lg bg-white">
             No scheduled trips
           </div>
         ) : (
-          <>
-            {/* 1st Trip: Expanded / Full Card */}
-            {firstTrip && (
-              <CompanyBoardTripCard
-                trip={firstTrip}
-                isSelected={selectedTripIds.includes(firstTrip.id)}
-                onToggle={onToggleTrip ? () => onToggleTrip(firstTrip.id) : undefined}
-                onOpen={() => handleSelectTrip(firstTrip)}
-              />
-            )}
-
-            {/* Remaining Trips: Compact Rows */}
-            {visibleCompactTrips.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {visibleCompactTrips.map((trip) => (
-                  <CompactTripRow
-                    key={trip.id}
-                    trip={trip}
-                    isSelected={selectedTripIds.includes(trip.id)}
-                    onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
-                    onOpen={() => handleSelectTrip(trip)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* "+ X more trips" expandable control */}
-            {remainingCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full py-2 text-center text-xs font-bold text-purple-600 hover:underline flex items-center justify-center gap-1 bg-[#FAF7FF] border border-purple-200 rounded-xl cursor-pointer hover:bg-purple-100/30 transition-colors"
-              >
-                <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips ▾`}</span>
-              </button>
-            )}
-          </>
+          templateGroups.map((group) => (
+            <TemplateBigCard
+              key={group.key}
+              group={group}
+              selectedTripIds={selectedTripIds}
+              onToggleTrip={onToggleTrip}
+              onSelectTrip={handleSelectTrip}
+            />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-function CompactTripRow({
-  trip,
-  isSelected = false,
-  onToggle,
-  onOpen,
+/** Big Card for a specific Template (Line Type + Vehicle Class + Route + Rate) */
+function TemplateBigCard({
+  group,
+  selectedTripIds = [],
+  onToggleTrip,
+  onSelectTrip,
 }: {
-  trip: MonthlyBoardTrip;
-  isSelected?: boolean;
-  onToggle?: () => void;
-  onOpen?: () => void;
+  group: TemplateGroup;
+  selectedTripIds?: string[];
+  onToggleTrip?: (id: string) => void;
+  onSelectTrip: (trip: MonthlyBoardTrip) => void;
 }) {
-  const driverName = trip.driver?.name ?? 'Not assigned';
-  const gap = isUnassigned(trip);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const displayedTrips = isExpanded
+    ? [...group.threeDayTrips, ...group.otherTrips]
+    : group.threeDayTrips;
+
+  const remainingCount = group.otherTrips.length;
+  const isUnstacked = isExpanded || isHovered;
 
   return (
     <div
-      onClick={onOpen}
-      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-3xs hover:shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer px-2 py-1.5 flex flex-col gap-1 select-none ${
-        isSelected 
-          ? 'border-purple-500 ring-1 ring-purple-500/30 bg-purple-50/20' 
-          : gap
-          ? 'border-amber-200 bg-amber-50/20'
-          : 'border-slate-200'
-      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group/template rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/80 shadow-2xs hover:shadow-md transition-all flex flex-col p-3 gap-2.5"
     >
-      {/* Top line: Checkbox + Calendar Icon + Date Time */}
-      <div className="flex items-center gap-1.5">
-        {onToggle && (
-          <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onToggle}
-              className="h-3 w-3 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-            />
-          </div>
-        )}
-        <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-          <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-          {formatDayHeading(trip.date)}
-          <span className="ml-1 text-[9px] font-medium text-slate-400">{formatTime(trip.planned_start)}</span>
-        </span>
-      </div>
-
-      {/* Bottom line: Route  Driver Name  Status Badge  Chevron */}
-      <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-        <div className="flex items-center gap-1 min-w-0 flex-1">
-          <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 truncate">
-            {trip.origin ?? '—'} → {(trip.destination ?? '—').replace(/🔁\s*/g, '').trim()}
+      {/* ── 1. Big Template Header Metadata ──────────────────────────── */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="cursor-pointer flex flex-col gap-2 select-none pb-2.5 border-b border-slate-200/80 dark:border-slate-700/80"
+      >
+        {/* Line Type Badge + Rate */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/80 px-2.5 py-0.5 rounded-md border border-purple-200/80 dark:border-purple-800/80">
+            {group.lineType}
           </span>
-          <span className="text-slate-300 text-[9px] select-none">·</span>
-          <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[130px]" title={driverName}>
-            {driverName}
+          <span className="text-xs font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-3xs">
+            {group.rateStr}
           </span>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <StatusBadge status={trip.status} />
-          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+        {/* Route / Stops */}
+        <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-slate-100">
+          <span className="truncate max-w-[130px]" title={group.origin}>
+            {group.origin}
+          </span>
+          <ArrowRight className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+          <span className="truncate max-w-[130px]" title={group.destination}>
+            {group.destination}
+          </span>
+        </div>
+
+        {/* Vehicle Class & Total Trips Count */}
+        <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 dark:text-slate-300 pt-1">
+          <span className="flex items-center gap-1">
+            <Truck className="h-3 w-3 text-purple-600 shrink-0" />
+            {group.vehicleClass}
+          </span>
+          <span className="text-purple-700 dark:text-purple-300 font-extrabold bg-purple-100/80 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+            {group.trips.length} {group.trips.length === 1 ? 'trip' : 'trips'}
+          </span>
         </div>
       </div>
+
+      {/* ── 2. Trips Stacked Directly Below Template Header ───────────── */}
+      {displayedTrips.length > 0 && (
+        <div className="flex flex-col relative transition-all duration-300 ease-out cursor-pointer">
+          {displayedTrips.map((trip, idx) => {
+            const isSelected = selectedTripIds.includes(trip.id);
+
+            // Layering logic: Ascending z-index so Card 1 (z-20) sits on top of Card 0 (z-10),
+            // making Card 1's top Date row fully exposed and visible!
+            const stackStyle = !isUnstacked && idx > 0
+              ? idx === 1
+                ? '-mt-6 z-20 scale-[0.98]'
+                : '-mt-6 z-30 scale-[0.96]'
+              : 'mt-0 z-10 scale-100';
+
+            return (
+              <div
+                key={trip.id}
+                className={`transition-all duration-300 ease-out ${stackStyle} ${idx > 0 && isUnstacked ? 'mt-2' : ''}`}
+              >
+                <CompanyBoardTripCard
+                  trip={trip}
+                  isSelected={isSelected}
+                  onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                  onOpen={() => onSelectTrip(trip)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── 3. Expandable Toggle for Remaining Trips in Month ─────────── */}
+      {remainingCount > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className="w-full py-1.5 text-center text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center justify-center gap-1 bg-white/80 dark:bg-slate-900/80 border border-purple-200/80 dark:border-purple-800/80 rounded-xl transition-colors cursor-pointer shadow-3xs"
+        >
+          <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips in month ▾`}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -301,69 +407,46 @@ function CompanyBoardTripCard({
   return (
     <div
       onClick={onOpen}
-      className={`group relative rounded-xl border bg-white p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 ${
+      className={`group relative rounded-xl border bg-white dark:bg-slate-900 p-2.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 select-none ${
         isSelected
           ? 'border-purple-500 ring-1 ring-purple-500/30 bg-purple-50/20'
           : gap
           ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
-          : 'border-slate-200 hover:border-slate-300'
+          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
       }`}
     >
-      {/* Top Header Row: Date & Status */}
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-        <div className="flex items-center gap-2 min-w-0">
+      {/* Top Row: Checkbox, Prominent Date & Day, Ref ID, Status Badge */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           {onToggle && (
-            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={onToggle}
-                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
               />
             </div>
           )}
-          <span className="flex items-center gap-1 text-[11px] font-bold text-slate-800 truncate">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            {formatDayHeading(trip.date)}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80 text-[11px] font-extrabold text-purple-950 dark:text-purple-200 whitespace-nowrap">
+            <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span>{formatDayHeading(trip.date)}</span>
+            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-300 ml-0.5">{formatTime(trip.planned_start)}</span>
           </span>
-          <span className="text-[10px] font-semibold text-slate-400 shrink-0">
-            {formatTime(trip.planned_start)}
+          <span className="text-[9px] font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
+            {trip.ref_id || 'TRIP'}
           </span>
         </div>
 
         <StatusBadge status={trip.status} />
       </div>
 
-      {/* Ref ID & Route */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-mono font-bold text-purple-700 uppercase tracking-wider">
-            {trip.ref_id || 'TRIP'}
-          </span>
-          {trip.billing_amount != null && (
-            <span className="text-xs font-extrabold text-slate-900">
-              {formatMoney(trip.billing_amount, trip.currency)}
-            </span>
-          )}
-        </div>
-
-        {(trip.origin || trip.destination) && (
-          <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap mt-0.5">
-            <span className="truncate max-w-[120px]" title={trip.origin ?? ''}>{trip.origin ?? '—'}</span>
-            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-            <span className="truncate max-w-[120px]" title={trip.destination ?? ''}>
-              {(trip.destination ?? '—').replace(/🔁\s*/g, '').trim()}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Driver & Vehicle Assignment Footer */}
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <User className="h-3 w-3 text-slate-400 shrink-0" />
+      {/* Bottom Row: Driver Name & Vehicle Plate */}
+      <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100 dark:border-slate-800 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
           <span
-            className={`truncate font-medium ${
-              trip.driver ? 'text-slate-700' : 'text-amber-700 font-bold'
+            className={`truncate font-semibold ${
+              trip.driver ? 'text-slate-800 dark:text-slate-200' : 'text-amber-700 dark:text-amber-400 font-bold'
             }`}
             title={trip.driver?.name}
           >
@@ -372,10 +455,10 @@ function CompanyBoardTripCard({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <Truck className="h-3 w-3 text-slate-400 shrink-0" />
+          <Truck className="h-3.5 w-3.5 text-slate-400 shrink-0" />
           <span
-            className={`font-medium ${
-              trip.vehicle ? 'text-slate-700 font-mono' : 'text-amber-700 font-bold'
+            className={`font-semibold ${
+              trip.vehicle ? 'text-slate-800 dark:text-slate-200 font-mono' : 'text-amber-700 dark:text-amber-400 font-bold'
             }`}
           >
             {trip.vehicle?.plate_number ?? 'No Truck'}

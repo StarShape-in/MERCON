@@ -258,7 +258,7 @@ export interface MonthlyBoardTrip {
 }
 
 export interface MonthlyBoardCompany {
-  customer: { id: string; name: string; contact_phone: string };
+  customer: { id: string; name: string; contact_phone: string; avatar_url?: string | null; logo_url?: string | null };
   total_trips: number;
   total_billed: number;
   /** Trips still missing a driver or a truck — the gaps to fill. */
