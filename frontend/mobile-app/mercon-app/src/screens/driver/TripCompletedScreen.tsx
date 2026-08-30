@@ -205,8 +205,6 @@ const TripCompletedScreen = () => {
           {/* MERCON LOGISTICS Branding Logo */}
           <View style={styles.cleanBrandingGroup}>
             <Image source={logo} style={styles.cleanLogoImage} resizeMode="contain" />
-            <Text style={styles.cleanLogoTitle}>MERCON LOGISTICS</Text>
-            <Text style={styles.cleanLogoSubtitle}>SERVICES COMPANY</Text>
           </View>
         </ScrollView>
 
@@ -214,7 +212,7 @@ const TripCompletedScreen = () => {
         <View style={styles.cleanActionBar}>
           {/* 1. Share screenshot */}
           <TouchableOpacity style={styles.cleanBtnShare} activeOpacity={0.8} onPress={handleShare}>
-            <Share2 size={16} color="#16A34A" strokeWidth={2.2} />
+            <Share2 size={15} color="#16A34A" strokeWidth={2.2} />
             <Text style={styles.cleanBtnShareText} numberOfLines={1}>Share screenshot</Text>
           </TouchableOpacity>
 
@@ -501,38 +499,24 @@ const styles = StyleSheet.create({
   cleanBrandingGroup: {
     alignItems: 'center',
     marginTop: 'auto',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   cleanLogoImage: {
-    width: 140,
-    height: 45,
-    marginBottom: 4,
-  },
-  cleanLogoTitle: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#FA634E',
-    letterSpacing: 0.8,
-  },
-  cleanLogoSubtitle: {
-    fontSize: 8.5,
-    fontWeight: '600',
-    color: '#64748B',
-    letterSpacing: 0.5,
-    marginTop: 1,
+    width: 160,
+    height: 60,
   },
   cleanActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: 6,
+    paddingHorizontal: 12,
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   cleanBtnShare: {
-    flex: 1,
+    flex: 1.1,
     height: 48,
     borderRadius: 14,
     borderWidth: 1.5,
@@ -541,11 +525,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingHorizontal: 2,
   },
   cleanBtnShareText: {
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#16A34A',
   },
@@ -559,11 +543,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingHorizontal: 2,
   },
   cleanBtnDetailsText: {
-    fontSize: 11.5,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#2563EB',
   },
