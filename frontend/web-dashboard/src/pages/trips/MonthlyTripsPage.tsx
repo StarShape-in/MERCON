@@ -30,6 +30,7 @@ import {
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 
 const LABEL = 'text-[10px] font-bold uppercase tracking-wider text-[#9898A4]';
@@ -383,7 +384,54 @@ export default function MonthlyTripsPage() {
               icon={<Filter className="h-3.5 w-3.5 text-slate-400" />}
             />
 
-            {/* Reset Filters / More Filters */}
+            {/* More Filters Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-9 px-3 text-xs font-semibold rounded-xl border shadow-2xs gap-1.5 ${
+                    billingType
+                      ? 'border-purple-300 bg-purple-50 text-purple-700 font-bold'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
+                  <span>More Filters</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-3">
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center justify-between">
+                  <span>Additional Filters</span>
+                  {billingType && (
+                    <button onClick={() => setBillingType('')} className="text-[10px] text-purple-600 hover:underline">
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Billing Type</label>
+                  <Select value={billingType || 'all'} onValueChange={(v) => setBillingType(v === 'all' ? '' : v)}>
+                    <SelectTrigger className="h-8 text-xs font-semibold rounded-lg bg-slate-50 border-slate-200">
+                      <SelectValue placeholder="All Billing Types" />
+                    </SelectTrigger>
+                    <SelectContent align="start" className="bg-white border-slate-200">
+                      <SelectItem value="all">All Billing Types</SelectItem>
+                      {BILLING_TYPES.map((b) => (
+                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {appliedFiltersCount > 0 && (
+                  <Button onClick={resetFilters} variant="outline" size="sm" className="w-full h-8 text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl">
+                    <X className="h-3.5 w-3.5 mr-1" /> Clear All Filters ({appliedFiltersCount})
+                  </Button>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Clear Filters Quick Button */}
             {appliedFiltersCount > 0 && (
               <Button
                 variant="outline"
