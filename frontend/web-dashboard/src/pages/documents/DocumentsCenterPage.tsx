@@ -27,6 +27,7 @@ import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCat
 import FolderCardSection from '@/components/documents/FolderCardSection';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
+import DocumentsLedgerMatrixView from '@/components/documents/DocumentsLedgerMatrixView';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -345,6 +346,10 @@ export default function DocumentsCenterPage() {
     ])),
     [vehicleFolders, search]
   );
+
+  const needAttentionTotal = useMemo(() => {
+    return vehicleFolders.filter((r) => r.slots.some((s) => s.status === 'EXPIRED' || s.status === 'MISSING' || s.status === 'EXPIRING_SOON')).length;
+  }, [vehicleFolders]);
 
   const handleSelectCategory = (cat: PillCategory) => {
     setActiveCategory(cat);
@@ -734,15 +739,55 @@ export default function DocumentsCenterPage() {
     <DashboardLayout active="Documents" title="Documents Center">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── Page Header ─────────────────────────────────────────────────── */}
+        {/* ── Page Header (Matching uploaded mockup) ─────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
+          <div>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Documents Center
             </h1>
+            <p className="text-xs text-[#FA634E] font-bold mt-0.5 flex items-center gap-1.5">
+              <span>{filteredVehicleFolders.length} vehicles</span>
+              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="text-rose-600 font-bold">{needAttentionTotal} need attention</span>
+            </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search vehicle, plate, driver..."
+                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-48 sm:w-60"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Status Dropdown */}
+            <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
+              <SelectTrigger className="h-9 text-xs font-bold w-32 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="warning">Needs Attention</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="critical">Critical &lt;7d</SelectItem>
+                <SelectItem value="valid">Compliant</SelectItem>
+              </SelectContent>
+            </Select>
+
             {/* Export CSV Action */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -774,154 +819,108 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Single Primary Action Button */}
+            {/* Coral Red Primary Button */}
             <Button
               size="sm"
               onClick={() => setIsUploadOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
+              className="h-9 gap-1.5 text-xs bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer border-none"
             >
               <UploadCloud className="w-4 h-4" />
               <span>+ Upload Document</span>
             </Button>
-
           </div>
         </div>
 
-
-
-
-        {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {CATEGORY_TABS.map((cat) => {
-              const count = cat === 'Vehicles'
-                ? vehicleFolders.length
-                : cat === 'Drivers'
-                  ? driverFolders.length
-                  : cat === 'Other'
-                    ? foldersByCategory.Operations.count + foldersByCategory.Company.count
-                    : cat === 'All'
-                      ? docs.length
-                      : cat === 'Unassigned'
-                        ? groupedEntityFolders.unlinked.length
-                        : 0;
-              const isActive = activeCategory === cat;
-              const isUnassignedPill = cat === 'Unassigned';
-              if (isUnassignedPill && count === 0) return null;
-
-              const style = CAT_STYLES[cat];
-
-              return (
-                <button
-                  key={cat}
-                  onClick={() => handleSelectCategory(cat)}
-                  className={cn(
-                    'px-4 py-2 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border cursor-pointer',
-                    isActive ? style.active : style.inactive
-                  )}
-                >
-                  {isUnassignedPill && <Sparkles size={12} className={isActive ? 'text-white' : 'text-amber-500'} />}
-                  <span>{PILL_LABEL[cat]}</span>
-                  {cat !== 'All' && (
-                    <span className={cn(
-                      'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md',
-                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                    )}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Compact Toolbar Controls */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search vehicle, plate, driver, doc..."
-                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-48 sm:w-60"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+        {/* ── Category Navigation Tabs Bar ───────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-b border-slate-200 dark:border-slate-800 pb-1">
+          <div className="flex items-center gap-6 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => handleSelectCategory('Vehicles')}
+              className={cn(
+                "pb-2.5 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-b-2 whitespace-nowrap",
+                activeCategory === 'Vehicles' || activeCategory === 'All'
+                  ? "border-[#FA634E] text-[#FA634E]"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
               )}
-            </div>
+            >
+              <Truck className="w-4 h-4" />
+              <span>Vehicle Documents</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {vehicleFolders.length}
+              </span>
+            </button>
 
-            {/* Status Filter */}
-            <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="warning">Needs Attention</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="critical">Critical &lt;7d</SelectItem>
-                <SelectItem value="valid">Compliant</SelectItem>
-              </SelectContent>
-            </Select>
+            <button
+              type="button"
+              onClick={() => handleSelectCategory('Drivers')}
+              className={cn(
+                "pb-2.5 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-b-2 whitespace-nowrap",
+                activeCategory === 'Drivers'
+                  ? "border-[#FA634E] text-[#FA634E]"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              )}
+            >
+              <UserIcon className="w-4 h-4" />
+              <span>Driver Documents</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {driverFolders.length}
+              </span>
+            </button>
 
-            {/* Sort Dropdown */}
-            <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                <SelectValue placeholder="Sort By" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="attention">Needs Attention First</SelectItem>
-                <SelectItem value="expiry">Expiry Date</SelectItem>
-                <SelectItem value="plate">Vehicle Plate / Ref</SelectItem>
-                <SelectItem value="recent">Recently Uploaded</SelectItem>
-              </SelectContent>
-            </Select>
+            <button
+              type="button"
+              onClick={() => handleSelectCategory('Other')}
+              className={cn(
+                "pb-2.5 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-b-2 whitespace-nowrap",
+                activeCategory === 'Other'
+                  ? "border-[#FA634E] text-[#FA634E]"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+              )}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Company & Operations</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {foldersByCategory.Operations.count + foldersByCategory.Company.count}
+              </span>
+            </button>
+          </div>
 
-            {/* View Switcher */}
-            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-              <button
-                type="button"
-                onClick={() => handleViewChange('folders')}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
-                  viewMode === 'folders'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Folders</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewChange('list')}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
-                  viewMode === 'list'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ledger</span>
-              </button>
-            </div>
+          {/* View Switcher (Folders vs Ledger) */}
+          <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 mb-1">
+            <button
+              type="button"
+              onClick={() => handleViewChange('folders')}
+              className={cn(
+                'px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                viewMode === 'folders'
+                  ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+              <span>Folders</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange('list')}
+              className={cn(
+                'px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                viewMode === 'list'
+                  ? 'bg-[#FA634E] text-white shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+              )}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Ledger</span>
+            </button>
           </div>
         </div>
 
-        {/* ── Document Vault Area (Grouped Folders vs List vs Grid) ────────────── */}
+        {/* ── Document Vault Area (Grouped Folders vs Ledger Matrix View) ────────── */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <RotateCw className="w-8 h-8 animate-spin text-indigo-500 opacity-70" />
+            <RotateCw className="w-8 h-8 animate-spin text-[#FA634E] opacity-70" />
             <p className="text-xs font-medium">Loading compliance repository...</p>
           </div>
         ) : isError ? (
@@ -944,9 +943,7 @@ export default function DocumentsCenterPage() {
             </div>
           ) : (
             <div className="space-y-8">
-
-
-              {/* 1. Vehicles Group Section — 1 row on All overview, full list on Vehicles page */}
+              {/* 1. Vehicles Group Section */}
               {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
                 <FolderCardSection
                   title="Vehicle Compliance Folders"
@@ -961,7 +958,7 @@ export default function DocumentsCenterPage() {
                 />
               )}
 
-              {/* 2. Drivers Group Section — 1 row on All overview, full list on Drivers page */}
+              {/* 2. Drivers Group Section */}
               {(activeCategory === 'All' || activeCategory === 'Drivers') && (
                 <FolderCardSection
                   title="Driver Compliance Folders"
@@ -1040,291 +1037,23 @@ export default function DocumentsCenterPage() {
               )}
             </div>
           )
-        ) : filteredDocs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                {search ? `No documents matching "${search}"` : 'No documents found'}
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
-            </div>
-          </div>
         ) : (
-          <DataTable<EnrichedDocument>
-            title={
-              <span className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-brand" />
-                <span>Document Vault Ledger</span>
-              </span>
-            }
-            columns={[
-              {
-                header: 'Document File',
-                accessor: (row) => {
-                  const DocIcon = DOC_TYPE_ICON[row.doc_type] ?? FileText;
-                  const catCfg = CATEGORY_CONFIG[row.category];
-                  return (
-                    <div className="flex items-center gap-2.5 py-0.5">
-                      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800', catCfg?.iconBg)}>
-                        <DocIcon className={cn('w-4 h-4', catCfg?.color)} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span 
-                          onClick={() => setPreviewDoc(row)}
-                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand cursor-pointer block truncate max-w-[220px]"
-                        >
-                          {documentDisplayName(row)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">#DOC-{row.id.toString().slice(0, 8)}</span>
-                      </div>
-                    </div>
-                  );
-                }
-              },
-              {
-                header: 'Category',
-                accessor: (row) => {
-                  const catCfg = CATEGORY_CONFIG[row.category];
-                  return (
-                    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold border', catCfg?.iconBg, catCfg?.borderColor, catCfg?.color)}>
-                      <catCfg.icon className="w-3.5 h-3.5" />
-                      {row.category}
-                    </span>
-                  );
-                }
-              },
-              {
-                header: 'Entity Owner',
-                accessor: (row) => {
-                  const isUnknown = row.entityName.includes('Unknown') || !row.entity_id;
-
-                  return (
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Combobox
-                        options={entityComboboxOptions}
-                        value={`${row.entity_type}:${row.entity_id}`}
-                        onChange={(val) => {
-                          const [type, id] = val.split(':');
-                          if (type && id) {
-                            handleSingleAssignEntity(row.id, type, id);
-                          }
-                        }}
-                        placeholder={row.entityName || 'Assign owner...'}
-                        searchPlaceholder="Search vehicle plate or driver..."
-                        emptyText="No match."
-                        triggerClassName={cn(
-                          'h-7 text-xs font-bold px-2 py-0 border rounded-lg max-w-[185px] shrink-0',
-                          isUnknown
-                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-mono'
-                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                        )}
-                      />
-                    </div>
-                  );
-                }
-              },
-              {
-                header: 'Doc # / AI Metadata',
-                accessor: (row) => {
-                  const docNum = row.ai_extracted_json?.document_number;
-                  const confidence = row.ai_extracted_json?.confidence;
-                  return (
-                    <div className="flex flex-col">
-                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                        {docNum || `DOC-${row.id.slice(0, 8)}`}
-                      </span>
-                      {confidence ? (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>{Math.round(confidence * 100)}% AI Vision</span>
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400">Manual Entry</span>
-                      )}
-                    </div>
-                  );
-                }
-              },
-              {
-                header: 'Issuer Authority',
-                accessor: (row) => (
-                  <span className="text-xs text-slate-700 dark:text-slate-200 font-semibold">
-                    {formatBilingualAuthority(row.ai_extracted_json?.issuing_authority || row.issuer)}
-                  </span>
-                )
-              },
-              {
-                header: 'Uploaded Date',
-                accessor: (row) => (
-                  <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">
-                    {row.createdAt ? formatInDeploymentTz(row.createdAt, tz, 'MMM d, yyyy') : '—'}
-                  </span>
-                )
-              },
-              {
-                header: 'Expiry Date',
-                accessor: (row) => (
-                  row.expiry_date ? (
-                    <div>
-                      <span className="text-xs text-slate-900 dark:text-slate-100 font-mono font-semibold block">
-                        {formatDocDate(row.expiry_date)}
-                      </span>
-                      {row.daysLeft !== null && (
-                        <span className={cn(
-                          'text-[10px] font-bold inline-block mt-0.5',
-                          row.daysLeft <= 0 ? 'text-rose-600' : row.daysLeft <= 7 ? 'text-rose-500' : row.daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
-                        )}>
-                          {row.daysLeft <= 0 ? `${Math.abs(row.daysLeft)}d overdue` : `${row.daysLeft}d remaining`}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400 font-mono">No Expiry</span>
-                  )
-                )
-              },
-              {
-                header: 'Status',
-                accessor: (row) => {
-                  const expBadge = EXPIRY_BADGE[row.expStatus];
-                  return (
-                    <span className={cn('inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border', expBadge.className)}>
-                      {row.expStatus === 'expired' || row.expStatus === 'critical' ? (
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                      ) : row.expStatus === 'valid' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      ) : row.expStatus === 'warning' ? (
-                        <Clock className="w-3.5 h-3.5" />
-                      ) : null}
-                      {expBadge.label}
-                    </span>
-                  );
-                }
-              },
-              {
-                header: 'Actions',
-                headerClassName: 'text-right',
-                accessor: (row) => (
-                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleSingleDocAiOcr(row.id, documentDisplayName(row))}
-                      disabled={extractingRowId === row.id}
-                      className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors disabled:opacity-50"
-                      title="AI Vision Auto-Extract Metadata (Serial #, Plate #, Issue/Expiry Date, Authority)"
-                    >
-                      {extractingRowId === row.id ? <Loader2 size={14} className="animate-spin text-amber-600" /> : <Sparkles size={14} />}
-                    </button>
-                    <button
-                      onClick={() => setPreviewDoc(row)}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                      title="Preview File & AI Details"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setMoveTargetDocIds([row.id]);
-                        setIsMoveModalOpen(true);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                      title="Move to Folder"
-                    >
-                      <FolderInput size={14} />
-                    </button>
-                    <a
-                      href={row.file_url}
-                      download
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      title="Download File"
-                    >
-                      <Download size={14} />
-                    </a>
-                    <button
-                      onClick={() => setDeleteDocId(row.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                      title="Delete Document"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                )
-              }
-            ]}
-            data={filteredDocs}
-            compact={true}
-            pageSize={pageSize}
-            onPageSizeChange={(sz) => setPageSize(sz)}
-            pageSizeOptions={[10, 25, 50, 100]}
-            bulkActions={[
-              {
-                label: 'AI Vision Auto-Extract',
-                icon: <Sparkles size={13} className="text-amber-500 fill-amber-500/20" />,
-                variant: 'secondary' as const,
-                onClick: (selectedRows: EnrichedDocument[]) => {
-                  handleBulkExtractSelectedDocs(selectedRows.map(r => r.id));
-                }
-              },
-              {
-                label: 'Move to Folder',
-                icon: <FolderInput size={13} />,
-                variant: 'secondary' as const,
-                onClick: (selectedRows: EnrichedDocument[]) => {
-                  setMoveTargetDocIds(selectedRows.map(r => r.id));
-                  setIsMoveModalOpen(true);
-                }
-              },
-              {
-                label: 'Bulk Download ZIP',
-                icon: <Download size={13} />,
-                variant: 'secondary' as const,
-                onClick: async (selectedRows: EnrichedDocument[]) => {
-                  const ids = selectedRows.map(r => r.id);
-                  const blob = await documentService.bulkDownloadZip(ids);
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `documents-${new Date().toISOString().slice(0, 10)}.zip`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                }
-              },
-              {
-                label: 'Export Excel',
-                icon: <FileSpreadsheet size={13} className="text-emerald-600" />,
-                variant: 'secondary' as const,
-                onClick: (selectedRows: EnrichedDocument[]) => {
-                  handleExportDocs(selectedRows, 'excel');
-                }
-              },
-              {
-                label: 'Export PDF',
-                icon: <FileText size={13} className="text-rose-600" />,
-                variant: 'secondary' as const,
-                onClick: (selectedRows: EnrichedDocument[]) => {
-                  handleExportDocs(selectedRows, 'pdf');
-                }
-              },
-              {
-                label: 'Delete Selected',
-                icon: <Trash2 size={13} />,
-                variant: 'danger' as const,
-                onClick: (selectedRows: EnrichedDocument[]) => {
-                  setBulkDeleteIds(selectedRows.map(r => r.id));
-                  setIsBulkDeleteOpen(true);
-                }
-              }
-            ]}
-            enableSelection={true}
-            isLoading={isLoading}
-            searchPlaceholder="Search by document name, owner, vehicle plate, or issuer..."
-            searchValue={search}
-            onSearchChange={setSearch}
-            onRowClick={(row) => setPreviewDoc(row)}
+          /* ── Matrix Ledger View (Exact screenshot layout) ── */
+          <DocumentsLedgerMatrixView
+            activeCategory={activeCategory}
+            search={search}
+            onSearchChange={handleSearchChange}
+            expiryFilter={expiryFilter}
+            onExpiryFilterChange={handleFilterChange}
+            vehicleFolders={filteredVehicleFolders}
+            driverFolders={filteredDriverFolders}
+            otherDocs={[...groupedEntityFolders.company, ...groupedEntityFolders.operations]}
+            onUploadClick={() => setIsUploadOpen(true)}
+            onPreviewDoc={(id) => {
+              const d = filteredDocs.find((x) => x.id === id);
+              if (d) setPreviewDoc(d);
+            }}
+            tz={tz}
           />
         )}
 
