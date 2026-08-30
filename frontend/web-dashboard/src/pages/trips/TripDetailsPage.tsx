@@ -1077,7 +1077,7 @@ export default function TripDetailsPage() {
                       </Button>
                     </div>
 
-                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[280px] sm:h-[300px]">
+                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[340px] sm:h-[360px]">
                       <TripLiveMapCard
                         tripId={trip.id}
                         refId={trip.ref_id || trip.id}
@@ -1091,7 +1091,7 @@ export default function TripDetailsPage() {
                         showHeader={false}
                         showTelemetryBar={false}
                         className="rounded-none border-none h-full"
-                        mapHeightClassName="h-[280px] sm:h-[300px]"
+                        mapHeightClassName="h-[340px] sm:h-[360px]"
                       />
                     </div>
                   </div>

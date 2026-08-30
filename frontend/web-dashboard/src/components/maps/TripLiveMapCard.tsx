@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -104,14 +104,20 @@ function MapResizeTrigger({ isFullscreen }: { isFullscreen: boolean }) {
   return null;
 }
 
-/** Fits the map to real pickup/dropoff points — used when there's no
- *  simulated-fleet truck to fly the camera to (i.e. a real trip whose
- *  route isn't one of the canned demo routes). */
-function FitBounds({ aLat, aLng, bLat, bLng }: { aLat: number; aLng: number; bLat: number; bLng: number }) {
+/** Fits map bounds once to include pickup, dropoff, and vehicle location without camera jumping on polling updates */
+function FitAllBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
+  const hasFittedRef = useRef(false);
+
   useEffect(() => {
-    map.fitBounds(L.latLngBounds([[aLat, aLng], [bLat, bLng]]), { padding: [56, 56], maxZoom: 10 });
-  }, [aLat, aLng, bLat, bLng, map]);
+    if (points.length === 0 || hasFittedRef.current) return;
+    const validPoints = points.filter(([lat, lng]) => typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng));
+    if (validPoints.length === 0) return;
+
+    map.fitBounds(L.latLngBounds(validPoints), { padding: [60, 60], maxZoom: 12 });
+    hasFittedRef.current = true;
+  }, [map, points]);
+
   return null;
 }
 
@@ -150,12 +156,15 @@ export default function TripLiveMapCard({
   showHeader = true,
   showTelemetryBar = true,
   className,
-  mapHeightClassName = 'h-[310px]',
+  mapHeightClassName = 'h-[400px]',
 }: TripLiveMapCardProps) {
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [roadPolyline, setRoadPolyline] = useState<[number, number][] | null>(null);
+  const [isRoutingFallback, setIsRoutingFallback] = useState(false);
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
@@ -176,12 +185,60 @@ export default function TripLiveMapCard({
   const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
   const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
 
+  // OSRM Driving Route fetch & memoization — runs ONLY when pickup/dropoff coordinates change
+  useEffect(() => {
+    if (!hasRealCoords) {
+      setRoadPolyline(null);
+      setIsRoutingFallback(false);
+      return;
+    }
+
+    let isMounted = true;
+    const fromLng = pickupPoint.lng;
+    const fromLat = pickupPoint.lat;
+    const toLng = dropoffPoint.lng;
+    const toLat = dropoffPoint.lat;
+
+    const fetchOsrmRoute = async () => {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.code === 'Ok' && Array.isArray(data?.routes?.[0]?.geometry?.coordinates)) {
+          const rawCoords: [number, number][] = data.routes[0].geometry.coordinates;
+          const leafletCoords: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
+          if (isMounted) {
+            setRoadPolyline(leafletCoords);
+            setIsRoutingFallback(false);
+          }
+          return;
+        }
+        throw new Error('Invalid OSRM geometry response');
+      } catch (err) {
+        console.warn('OSRM road routing fallback active:', err);
+        if (isMounted) {
+          setRoadPolyline(null);
+          setIsRoutingFallback(true);
+        }
+      }
+    };
+
+    fetchOsrmRoute();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pickupPoint.lat, pickupPoint.lng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
+
   const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
-  const polylineWaypoints: [number, number][] = hasRealCoords
-    ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
-    : demoRoute
-      ? demoRoute.waypoints.map((w) => [w.lat, w.lng])
-      : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]];
+  const polylineWaypoints: [number, number][] = roadPolyline
+    ? roadPolyline
+    : hasRealCoords
+      ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
+      : demoRoute
+        ? demoRoute.waypoints.map((w) => [w.lat, w.lng])
+        : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]];
 
   const activeTruckLat = hasResolvedCoords ? resLat! : (simulatedTruck ? simulatedTruck.currentCoords.lat : pickupPoint.lat);
   const activeTruckLng = hasResolvedCoords ? resLng! : (simulatedTruck ? simulatedTruck.currentCoords.lng : pickupPoint.lng);
@@ -286,17 +343,22 @@ export default function TripLiveMapCard({
               url={currentTheme.url}
             />
 
-            {hasResolvedCoords ? (
-              <MapFlyTo lat={resLat!} lng={resLng!} />
-            ) : simulatedTruck ? (
-              <MapFlyTo lat={simulatedTruck.currentCoords.lat} lng={simulatedTruck.currentCoords.lng} />
-            ) : (
-              <FitBounds aLat={pickupPoint.lat} aLng={pickupPoint.lng} bLat={dropoffPoint.lat} bLng={dropoffPoint.lng} />
-            )}
+            <FitAllBounds
+              points={
+                hasResolvedCoords
+                  ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng], [resLat!, resLng!]]
+                  : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
+              }
+            />
 
             <Polyline
               positions={polylineWaypoints}
-              pathOptions={{ color: '#FF5500', weight: 4, opacity: 0.85, dashArray: '6, 10' }}
+              pathOptions={{
+                color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                weight: 4,
+                opacity: isRoutingFallback ? 0.6 : 0.85,
+                dashArray: isRoutingFallback ? '6, 10' : undefined,
+              }}
             />
 
             <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
