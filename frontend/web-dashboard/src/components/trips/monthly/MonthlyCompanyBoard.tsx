@@ -106,6 +106,59 @@ function shouldShowTripOnMonthlyBoard(trip: MonthlyBoardTrip, todayStr: string):
   return true;
 }
 
+function CompanyProfileLogo({ customer }: { customer: { name: string; avatar_url?: string | null; logo_url?: string | null } }) {
+  const logoUrl = customer.avatar_url || customer.logo_url;
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt={customer.name}
+        className="h-8 w-8 shrink-0 rounded-lg object-cover border border-purple-200 dark:border-purple-800 shadow-3xs"
+      />
+    );
+  }
+
+  const nameUpper = customer.name.toUpperCase();
+
+  if (nameUpper.includes('IMILE')) {
+    return (
+      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-red-600 to-rose-700 text-white grid place-items-center text-[10px] font-black tracking-tight shadow-3xs border border-red-500">
+        iMile
+      </span>
+    );
+  }
+
+  if (nameUpper.includes('JINGDONG') || nameUpper.includes('JDL')) {
+    return (
+      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-red-600 to-red-800 text-white grid place-items-center text-[11px] font-black tracking-wider shadow-3xs border border-red-600">
+        JDL
+      </span>
+    );
+  }
+
+  if (nameUpper.includes('AMAZON')) {
+    return (
+      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 grid place-items-center text-[10px] font-black tracking-tight shadow-3xs border border-slate-700">
+        amzn
+      </span>
+    );
+  }
+
+  if (nameUpper.includes('DHL')) {
+    return (
+      <span className="h-8 w-8 shrink-0 rounded-lg bg-amber-400 text-red-700 grid place-items-center text-xs font-black tracking-wider shadow-3xs border border-amber-500">
+        DHL
+      </span>
+    );
+  }
+
+  return (
+    <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
+      {initialsOf(customer.name)}
+    </span>
+  );
+}
+
 function CompanyColumn({
   company,
   selectedTripIds = [],
@@ -218,17 +271,7 @@ function CompanyColumn({
                 aria-label={`Select all trips for ${company.customer.name}`}
               />
             )}
-            {company.customer.avatar_url || company.customer.logo_url ? (
-              <img
-                src={company.customer.avatar_url || company.customer.logo_url || ''}
-                alt={company.customer.name}
-                className="h-8 w-8 shrink-0 rounded-lg object-cover border border-purple-200 dark:border-purple-800 shadow-3xs"
-              />
-            ) : (
-              <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
-                {initialsOf(company.customer.name)}
-              </span>
-            )}
+            <CompanyProfileLogo customer={company.customer} />
             <div className="min-w-0">
               <h3 className="text-xs font-bold text-slate-900 truncate leading-tight" title={company.customer.name}>
                 {company.customer.name}
@@ -297,7 +340,7 @@ function TemplateBigCard({
     : group.threeDayTrips;
 
   const remainingCount = group.otherTrips.length;
-  const isUnstacked = isExpanded || isHovered;
+  const isDeckUnstacked = isExpanded || isHovered;
 
   return (
     <div
@@ -343,27 +386,28 @@ function TemplateBigCard({
         </div>
       </div>
 
-      {/* ── 2. Trips Stacked Directly Below Template Header ───────────── */}
+      {/* ── 2. Stacked Trips Deck (Hover & Click Slide-Down) ──────────── */}
       {displayedTrips.length > 0 && (
-        <div className="flex flex-col relative transition-all duration-300 ease-out cursor-pointer py-0.5">
+        <div
+          onClick={() => !isExpanded && setIsExpanded(true)}
+          className="flex flex-col relative transition-all duration-300 ease-out cursor-pointer pt-1"
+        >
           {displayedTrips.map((trip, idx) => {
             const isSelected = selectedTripIds.includes(trip.id);
 
-            // Modern 3D Stacked Deck Effect:
-            // Collapsed: Cards stack upward with 3D scale inset and depth shadow
-            // Hover / Click: Cards slide down into full spacing view
-            const stackStyle = !isUnstacked && idx > 0
-              ? idx === 1
-                ? '-mt-9 z-20 scale-[0.97] shadow-md border-t border-purple-200/70 dark:border-purple-800/70'
-                : '-mt-9 z-10 scale-[0.94] opacity-90 shadow-sm border-t border-purple-200/50 dark:border-purple-800/50'
-              : 'mt-0 z-30 scale-100 opacity-100';
+            // Ascending z-index layering (Card 0: z-10, Card 1: z-20, Card 2: z-30)
+            // with negative top margin (-mt-7).
+            // Card 1's top Date header covers Card 0's bottom driver line, leaving Card 0's Date header 100% exposed!
+            // Card 2's top Date header covers Card 1's bottom driver line, leaving Card 1's Date header 100% exposed!
+            const zIndexClass = idx === 0 ? 'z-10' : idx === 1 ? 'z-20' : 'z-30';
+            const stackClass = !isDeckUnstacked && idx > 0
+              ? `-mt-7 ${zIndexClass} scale-[0.99] opacity-95 shadow-md border-t border-purple-200/80`
+              : `mt-2.5 ${zIndexClass} scale-100 opacity-100 shadow-sm`;
 
             return (
               <div
                 key={trip.id}
-                className={`transition-all duration-300 ease-out transform-gpu origin-top ${stackStyle} ${
-                  idx > 0 && isUnstacked ? 'mt-2.5' : ''
-                }`}
+                className={`transition-all duration-300 ease-out transform ${stackClass}`}
               >
                 <CompanyBoardTripCard
                   trip={trip}
