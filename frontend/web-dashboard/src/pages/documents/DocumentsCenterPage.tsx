@@ -858,23 +858,23 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
-        {/* ── Category Navigation Tabs Bar ── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 border-b border-slate-200/80 dark:border-slate-800 pb-3">
-          {/* Rounded Pill Box Tab Container (Matching Screenshot) */}
+        {/* ── Category Navigation Tabs & Toolbar (Single Line, Right-Aligned Controls) ── */}
+        <div className="flex items-center justify-between gap-3 w-full shrink-0 border-b border-slate-200/80 dark:border-slate-800 pb-3 overflow-x-auto scrollbar-none">
+          {/* Left Category Tabs Container */}
           <div className="flex items-center gap-1 p-1 bg-[#F2F4F8] dark:bg-slate-900 rounded-full border border-slate-200/60 dark:border-slate-800/80 shrink-0">
             <button
               type="button"
               onClick={() => handleSelectCategory('Vehicles')}
               className={cn(
-                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
+                "px-3.5 py-1.5 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Vehicles' || activeCategory === 'All'
                   ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
+              <FileText className={cn("w-3.5 h-3.5", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Vehicle Documents</span>
-              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
+              <span className="ml-0.5 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {vehicleFolders.length}
               </span>
             </button>
@@ -883,15 +883,15 @@ export default function DocumentsCenterPage() {
               type="button"
               onClick={() => handleSelectCategory('Drivers')}
               className={cn(
-                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
+                "px-3.5 py-1.5 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Drivers'
                   ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
+              <UserIcon className={cn("w-3.5 h-3.5", activeCategory === 'Drivers' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Driver Documents</span>
-              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
+              <span className="ml-0.5 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {driverFolders.length}
               </span>
             </button>
@@ -900,22 +900,22 @@ export default function DocumentsCenterPage() {
               type="button"
               onClick={() => handleSelectCategory('Other')}
               className={cn(
-                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
+                "px-3.5 py-1.5 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Other'
                   ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
+              <Building2 className={cn("w-3.5 h-3.5", activeCategory === 'Other' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Company & Operations</span>
-              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
+              <span className="ml-0.5 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {foldersByCategory.Operations.count + foldersByCategory.Company.count}
               </span>
             </button>
           </div>
 
-          {/* Right Side Control Bar: Search Input + Status Dropdown + View Switcher */}
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          {/* Right Side Control Bar: Search Input + Status Dropdown + View Switcher (Positioned on the Right Side) */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             {/* Search Input */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -924,7 +924,7 @@ export default function DocumentsCenterPage() {
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search vehicle, plate, driver..."
-                className="h-9 text-xs pl-8 pr-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FA634E]/30 w-48 sm:w-60"
+                className="h-8.5 text-xs pl-8 pr-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FA634E]/30 w-44 sm:w-52"
               />
               {search && (
                 <button
@@ -939,7 +939,7 @@ export default function DocumentsCenterPage() {
 
             {/* Status Dropdown */}
             <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-extrabold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-800 dark:text-slate-200">
+              <SelectTrigger className="h-8.5 text-xs font-extrabold w-32 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-800 dark:text-slate-200">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent className="rounded-2xl">
@@ -951,13 +951,13 @@ export default function DocumentsCenterPage() {
               </SelectContent>
             </Select>
 
-            {/* View Switcher (Folders vs Ledger - Matching Screenshot) */}
+            {/* View Switcher (Folders vs Ledger) */}
             <div className="flex items-center p-0.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
               <button
                 type="button"
                 onClick={() => handleViewChange('folders')}
                 className={cn(
-                  'px-3.5 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'folders'
                     ? 'bg-[#0F172A] text-white shadow-2xs'
                     : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -970,7 +970,7 @@ export default function DocumentsCenterPage() {
                 type="button"
                 onClick={() => handleViewChange('list')}
                 className={cn(
-                  'px-3.5 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'list'
                     ? 'bg-[#0F172A] text-white shadow-2xs'
                     : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
