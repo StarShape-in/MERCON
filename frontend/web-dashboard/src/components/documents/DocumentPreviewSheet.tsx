@@ -227,7 +227,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
                 >
                   <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                    <Clock className="w-3.5 h-3.5 text-brand" />
                     <span>Activity & Audit History</span>
                   </span>
                   <span className="text-[10px] text-slate-400">{showHistory ? 'Hide' : 'Show'}</span>
@@ -235,7 +235,7 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                 {showHistory && (
                   <div className="p-3 space-y-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-xs">
                     <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
-                      <Clock className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                      <Clock className="w-3.5 h-3.5 text-brand mt-0.5 shrink-0" />
                       <div>
                         <p className="font-bold text-slate-800 dark:text-slate-200">Document Record Uploaded</p>
                         <p className="text-[10px] text-slate-400 font-mono">
@@ -305,10 +305,10 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 cursor-pointer"
+                  className="h-9 text-xs font-bold gap-1.5 border-slate-200 text-slate-750 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-850 cursor-pointer"
                   onClick={() => setIsReplaceModalOpen(true)}
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Replace
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-400" /> Replace
                 </Button>
                 <Button
                   variant="outline"

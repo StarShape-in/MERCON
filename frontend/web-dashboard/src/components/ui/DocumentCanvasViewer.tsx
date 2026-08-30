@@ -97,16 +97,16 @@ export default function DocumentCanvasViewer({
       )}
 
       {/* Main Canvas Area */}
-      <div className={cn('relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center group', canvasHeightClassName)}>
+      <div className={cn('relative rounded-2xl overflow-hidden bg-slate-100/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 flex items-center justify-center group', canvasHeightClassName)}>
         
         {/* Canvas Toolbar Controls overlay */}
         {showActions && (
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700/60 shadow-lg opacity-90 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm opacity-90 group-hover:opacity-100 transition-opacity">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
+              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleZoomIn}
               title="Zoom In"
             >
@@ -116,7 +116,7 @@ export default function DocumentCanvasViewer({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
+              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleZoomOut}
               title="Zoom Out"
             >
@@ -126,7 +126,7 @@ export default function DocumentCanvasViewer({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
+              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleRotate}
               title="Rotate 90°"
             >
@@ -137,7 +137,7 @@ export default function DocumentCanvasViewer({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-[10px] font-bold text-indigo-400 hover:bg-slate-800 rounded-lg cursor-pointer"
+                className="h-7 px-2 text-[10px] font-bold text-brand hover:bg-brand/5 dark:hover:bg-brand/10 rounded-lg cursor-pointer transition-colors"
                 onClick={handleReset}
               >
                 Reset
@@ -147,7 +147,7 @@ export default function DocumentCanvasViewer({
               href={resolvedUrl}
               target="_blank"
               rel="noreferrer"
-              className="h-7 w-7 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center justify-center cursor-pointer"
+              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
               title="Open Raw File"
             >
               <ExternalLink className="w-3.5 h-3.5" />

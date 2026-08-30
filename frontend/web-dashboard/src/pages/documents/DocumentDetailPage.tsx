@@ -5,7 +5,8 @@ import {
   ArrowLeft, Download, Trash2, ExternalLink, Sparkles, FolderOpen,
   Loader2, FileText, Hash, Building2, Calendar, Plus, ZoomIn, ZoomOut,
   RotateCw, RefreshCw, Maximize2, CheckCircle2, AlertTriangle, XCircle,
-  Files as FilesIcon, ShieldAlert, Truck, User, ArrowUpRight, Eye, ChevronRight
+  Files as FilesIcon, ShieldAlert, Truck, User, ArrowUpRight, Eye, ChevronRight,
+  Clock, ShieldCheck, Lock, Unlock, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,7 +23,7 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: any }> = {
   expired:  { label: 'Expired',        className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-450', icon: XCircle },
-  critical: { label: 'Expiring Soon',  className: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450', icon: AlertTriangle },
+  critical: { label: 'Expiring Soon',  className: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-455', icon: AlertTriangle },
   warning:  { label: 'Expiring Soon',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: AlertTriangle },
   valid:    { label: 'Valid & Verified', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-450', icon: CheckCircle2 },
   none:     { label: 'No Expiry',     className: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400', icon: FileText },
@@ -182,6 +183,17 @@ export default function DocumentDetailPage() {
     ? (vehicle?.plate_number || vehicle?.ref_id || `Vehicle #${document.entity_id.slice(0, 8)}`)
     : (driver ? `${driver.first_name} ${driver.last_name}` : `Driver #${document.entity_id.slice(0, 8)}`);
 
+  // Document Lifespan & Timeline Calculations
+  const daysRemaining = document.expiry_date
+    ? Math.ceil((new Date(document.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const isExpired = daysRemaining !== null && daysRemaining <= 0;
+  const isExpiringSoon = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 30;
+  const progressPercent = daysRemaining !== null
+    ? Math.max(0, Math.min(100, (daysRemaining / 365) * 100))
+    : 100;
+
   return (
     <DashboardLayout active="Documents" title={documentDisplayName(document)}>
       <div className="px-4 sm:px-6 pb-10 space-y-6 max-w-[1600px] mx-auto">
@@ -217,8 +229,8 @@ export default function DocumentDetailPage() {
                     {statusCfg.label}
                   </Badge>
                   {document.ai_extracted_json && (
-                    <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-450 text-[10px] font-extrabold gap-1.5 shadow-2xs border">
-                      <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-450 animate-pulse" /> AI Extracted
+                    <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 text-[10px] font-extrabold gap-1.5 shadow-2xs border">
+                      <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400 animate-pulse" /> AI Extracted
                     </Badge>
                   )}
                 </div>
@@ -277,145 +289,309 @@ export default function DocumentDetailPage() {
           {/* Left Column (Metadata & Details - 5/12 width) */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Document Inspector Card */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-6 space-y-6">
+            {/* Owner Details Card */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Owner Entity</h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[11px] font-bold text-brand hover:text-brand-hover gap-1 p-0 hover:bg-transparent cursor-pointer"
+                  onClick={() => navigate(ownerFolderUrl)}
+                >
+                  View Owner Vault <ArrowUpRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800/80">
+                <div className="w-12 h-12 rounded-xl bg-brand/10 dark:bg-brand/20 text-brand flex items-center justify-center shrink-0 shadow-2xs">
+                  {document.entity_type === 'Vehicle' ? <Truck className="w-6 h-6" /> : <User className="w-6 h-6" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">{ownerDisplayName}</h4>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    {document.entity_type === 'Vehicle' ? `Plate: ${vehicle?.plate_number || 'N/A'}` : `Driver ID: ${document.entity_id.slice(0, 8)}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Compliance & Lifespan Card */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Compliance Status</h3>
               
-              {/* Section 1: Owner Info */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Owner Entity</h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 text-[11px] font-bold text-brand hover:text-brand-hover gap-1 p-0 hover:bg-transparent cursor-pointer"
-                    onClick={() => navigate(ownerFolderUrl)}
-                  >
-                    View Owner Vault <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
-                  <div className="w-10 h-10 rounded-xl bg-brand/10 dark:bg-brand/20 text-brand flex items-center justify-center shrink-0 shadow-2xs">
-                    {document.entity_type === 'Vehicle' ? <Truck className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">{ownerDisplayName}</h4>
-                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                      {document.entity_type === 'Vehicle' ? `Plate: ${vehicle?.plate_number || 'N/A'}` : `Driver ID: ${document.entity_id.slice(0, 8)}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-100 dark:border-slate-800/80" />
-
-              {/* Section 2: Document Details */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Document Attributes</h3>
-
-                <div className="rounded-xl border border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  <DetailRow 
-                    label="Requirement" 
-                    value={
-                      document.documentType?.requirementStatus === 'MANDATORY' ? (
-                        <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-450 font-extrabold text-[10px] py-0 px-2 border">
-                          MANDATORY
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-850 dark:text-slate-400 font-bold text-[10px] py-0 px-2 border">
-                          OPTIONAL
-                        </Badge>
-                      )
-                    } 
-                  />
-                  <DetailRow label="Configured Type" value={document.documentType?.name || document.doc_type} />
-                  {document.issue_date && (
-                    <DetailRow label="Issue Date" value={formatInDeploymentTz(document.issue_date, tz, 'MM/dd/yyyy')} />
-                  )}
-                  {document.expiry_date ? (
-                    <DetailRow label="Expiry Date" value={formatInDeploymentTz(document.expiry_date, tz, 'MM/dd/yyyy')} />
-                  ) : (
-                    <DetailRow label="Expiry Date" value="No Expiry Date" />
-                  )}
-                  <DetailRow label="Total Pages / Files" value={`${files.length} attached`} />
-                  <DetailRow 
-                    label="Confidentiality" 
-                    value={
-                      document.is_confidential ? (
-                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-extrabold text-[10px]">
-                          Confidential
-                        </Badge>
-                      ) : (
-                        <span className="text-slate-600 dark:text-slate-300 font-semibold">Standard Access</span>
-                      )
-                    } 
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-slate-100 dark:border-slate-800/80" />
-
-              {/* Section 3: AI Vision OCR Analysis */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> AI Vision OCR Analysis
-                  </h3>
-                  {document.ai_extracted_json && typeof document.ai_extracted_json.confidence === 'number' && (
-                    <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-455 text-[10px] font-mono font-black border border-emerald-200">
-                      {Math.round(document.ai_extracted_json.confidence * 100)}% Confidence
-                    </Badge>
-                  )}
-                </div>
-
-                {document.ai_extracted_json ? (
-                  <div className="space-y-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-amber-50/30 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 space-y-2.5">
-                      {document.ai_extracted_json.document_number && (
-                        <AiDetailRow icon={Hash} label="Document Number" value={document.ai_extracted_json.document_number} />
-                      )}
-                      {document.ai_extracted_json.vehicle_plate && (
-                        <AiDetailRow icon={Truck} label="Detected Plate" value={document.ai_extracted_json.vehicle_plate} />
-                      )}
-                      {document.ai_extracted_json.issuing_authority && (
-                        <AiDetailRow icon={Building2} label="Issuing Authority" value={formatBilingualAuthority(document.ai_extracted_json.issuing_authority)} />
-                      )}
-                      {document.ai_extracted_json.notes && (
-                        <p className="text-[11px] text-amber-800/90 dark:text-amber-400 italic pt-2 border-t border-amber-200/40 dark:border-amber-900/20">
-                          "{document.ai_extracted_json.notes}"
-                        </p>
-                      )}
+              <div className="space-y-4">
+                {/* Lifespan progress / gauge */}
+                {document.expiry_date ? (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-500">Document Validity</span>
+                      <span className={cn(
+                        'font-black',
+                        isExpired ? 'text-rose-600 dark:text-rose-400' :
+                        isExpiringSoon ? 'text-amber-600 dark:text-amber-400' :
+                        'text-emerald-600 dark:text-emerald-400'
+                      )}>
+                        {isExpired ? 'Expired' : 
+                         daysRemaining === 1 ? '1 Day Remaining' :
+                         `${daysRemaining} Days Remaining`}
+                      </span>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs font-bold gap-1.5 border-amber-300 text-amber-855 dark:border-amber-900 dark:text-amber-455 hover:bg-amber-50/60 dark:hover:bg-amber-950/20 shadow-2xs cursor-pointer"
-                      onClick={handleRescan}
-                      disabled={isRescanning}
-                    >
-                      {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      Re-Scan with AI Vision
-                    </Button>
+                    {/* Visual Progress Bar */}
+                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          isExpired ? 'bg-rose-500' :
+                          isExpiringSoon ? 'bg-amber-500' :
+                          'bg-emerald-500'
+                        )} 
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span>Uploaded</span>
+                      <span>Expires: {formatInDeploymentTz(document.expiry_date, tz, 'MMM dd, yyyy')}</span>
+                    </div>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3">
-                    <p className="text-xs text-slate-500 font-medium">No AI OCR metadata has been extracted yet.</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-xs font-bold gap-1.5 border-amber-300 text-amber-855 dark:border-amber-900 dark:text-amber-455 hover:bg-amber-50/60 dark:hover:bg-amber-950/20 shadow-2xs cursor-pointer"
-                      onClick={handleRescan}
-                      disabled={isRescanning}
-                    >
-                      {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      Scan Document with AI Vision
-                    </Button>
+                  <div className="p-4 rounded-xl bg-emerald-50/10 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-emerald-800 dark:text-emerald-300">Indefinite Validity</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">This document has no configured expiration date and stays active indefinitely.</p>
+                    </div>
                   </div>
+                )}
+
+                {/* Compliance Milestone Checkpoints */}
+                <div className="relative pl-6 border-l border-slate-100 dark:border-slate-800 space-y-4 pt-1">
+                  
+                  {/* Node 1: Upload */}
+                  <div className="relative">
+                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 bg-emerald-500 flex items-center justify-center shadow-xs">
+                      <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                    </span>
+                    <div className="text-xs">
+                      <p className="font-black text-slate-800 dark:text-slate-200">Document Uploaded</p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        Received on {formatInDeploymentTz(document.createdAt, tz, 'MMM dd, yyyy · hh:mm a')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Node 2: AI OCR Vision Scan */}
+                  <div className="relative">
+                    <span className={cn(
+                      'absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-xs',
+                      document.ai_extracted_json ? 'bg-amber-500' : 'bg-slate-350'
+                    )}>
+                      {document.ai_extracted_json ? (
+                        <Sparkles className="w-2.5 h-2.5 text-white" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </span>
+                    <div className="text-xs">
+                      <p className="font-black text-slate-800 dark:text-slate-200">AI Vision OCR Check</p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        {document.ai_extracted_json ? (
+                          `Completed with ${Math.round((document.ai_extracted_json.confidence || 0.9) * 100)}% extraction confidence`
+                        ) : (
+                          'OCR extraction not executed'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Node 3: Expiry Status */}
+                  <div className="relative">
+                    <span className={cn(
+                      'absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-xs',
+                      isExpired ? 'bg-rose-500' :
+                      isExpiringSoon ? 'bg-amber-500' :
+                      'bg-emerald-500'
+                    )}>
+                      {isExpired ? (
+                        <XCircle className="w-2.5 h-2.5 text-white" />
+                      ) : (
+                        <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                      )}
+                    </span>
+                    <div className="text-xs">
+                      <p className="font-black text-slate-800 dark:text-slate-200">Operational Compliance</p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        {isExpired ? 'Blocked - Document expired' :
+                         isExpiringSoon ? 'Attention - Nearing expiration' :
+                         'Approved - Active and compliant'}
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            {/* AI Vision OCR Passport Card */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" /> AI OCR Passport
+                </h3>
+                {document.ai_extracted_json && typeof document.ai_extracted_json.confidence === 'number' && (
+                  <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-mono font-black border border-emerald-200/50 shadow-2xs">
+                    {Math.round(document.ai_extracted_json.confidence * 100)}% CONFIDENCE
+                  </Badge>
                 )}
               </div>
 
+              {document.ai_extracted_json ? (
+                <div className="space-y-4">
+                  {/* Simulated Chip/Passport layout */}
+                  <div className="relative overflow-hidden rounded-xl border border-amber-200/60 dark:border-amber-900/30 bg-gradient-to-br from-amber-50/40 via-amber-50/10 to-amber-100/10 dark:from-slate-800/40 dark:to-amber-950/15 p-4 shadow-3xs">
+                    
+                    {/* Simulated smart chip icon in top-right */}
+                    <div className="absolute top-4 right-4 w-8 h-6 rounded-md bg-gradient-to-tr from-amber-200 to-amber-300 dark:from-amber-600 dark:to-amber-500 opacity-60 flex flex-col justify-between p-1">
+                      <div className="h-[1px] w-full bg-amber-400/50" />
+                      <div className="h-[1px] w-full bg-amber-400/50" />
+                      <div className="h-[1px] w-full bg-amber-400/50" />
+                    </div>
+
+                    <div className="space-y-3">
+                      {document.ai_extracted_json.document_number && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">DOCUMENT NUMBER</span>
+                          <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 tracking-wider">
+                            {document.ai_extracted_json.document_number}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {document.ai_extracted_json.vehicle_plate && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">DETECTED PLATE</span>
+                            <span className="text-xs font-mono font-black text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5">
+                              <Truck className="w-3.5 h-3.5 text-amber-500" />
+                              {document.ai_extracted_json.vehicle_plate}
+                            </span>
+                          </div>
+                        )}
+                        {document.ai_extracted_json.issuing_authority && (
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">AUTHORITY</span>
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5 truncate max-w-full">
+                              <Building2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span className="truncate">{formatBilingualAuthority(document.ai_extracted_json.issuing_authority)}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {document.ai_extracted_json.notes && (
+                        <div className="pt-2.5 border-t border-amber-250/20 dark:border-amber-900/20">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">VISION EXTRACTION NOTES</span>
+                          <p className="text-[11px] text-amber-900/90 dark:text-amber-400 font-mono bg-white/50 dark:bg-slate-950/40 p-2 rounded-lg border border-amber-100/50 dark:border-amber-900/10 italic">
+                            "{document.ai_extracted_json.notes}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-bold gap-1.5 border-amber-300 text-amber-800 dark:border-amber-900 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-955/20 shadow-3xs cursor-pointer"
+                    onClick={handleRescan}
+                    disabled={isRescanning}
+                  >
+                    {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Re-Scan Document with AI Vision
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-4 bg-slate-50/30 dark:bg-slate-950/10">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="max-w-xs mx-auto">
+                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">Vision Analysis Missing</p>
+                    <p className="text-[10px] text-slate-500 mt-1">This document has not been processed by Gemini Vision OCR. Run a scan to automatically extract official metadata.</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs font-bold gap-1.5 border-amber-300 text-amber-800 dark:border-amber-900 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-955/20 shadow-2xs cursor-pointer"
+                    onClick={handleRescan}
+                    disabled={isRescanning}
+                  >
+                    {isRescanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Scan with AI Vision
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {/* Technical Attributes Grid */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-slate-400" /> Technical Details
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Requirement</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {document.documentType?.requirementStatus === 'MANDATORY' ? (
+                      <>
+                        <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span className="text-xs font-black text-rose-700 dark:text-rose-455 font-black">Mandatory</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Optional</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Privacy Access</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {document.is_confidential ? (
+                      <>
+                        <Lock className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="text-xs font-black text-rose-750 dark:text-rose-450 font-black">Confidential</span>
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Standard Access</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Configured Type</span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200 block truncate mt-0.5">
+                    {document.documentType?.name || document.doc_type}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/10 space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Page Count</span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200 block mt-0.5">
+                    {files.length === 1 ? '1 attached page' : `${files.length} attached pages`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* Right Column (Viewer Canvas - 7/12 width) */}
