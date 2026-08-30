@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, Maximize2, X, MapPin } from 'lucide-react';
+import { Navigation, Gauge, Maximize2, X, MapPin, Route, Clock, ShieldCheck } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 import type { ResolvedLocation } from '@/services/vehicleService';
+import { reverseGeocode } from '@/services/addressSearch';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -166,26 +167,11 @@ export default function TripLiveMapCard({
   const [roadPolyline, setRoadPolyline] = useState<[number, number][] | null>(null);
   const [isRoutingFallback, setIsRoutingFallback] = useState(false);
 
-  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+  const [currentPlaceName, setCurrentPlaceName] = useState<string | null>(null);
+  const [remainingDistanceKm, setRemainingDistanceKm] = useState<number | null>(null);
+  const [remainingEtaText, setRemainingEtaText] = useState<string | null>(null);
 
-  const resLat = resolvedLocation?.latitude;
-  const resLng = resolvedLocation?.longitude;
-  const displayState = resolvedLocation?.display_state;
-  const hasResolvedCoords =
-    typeof resLat === 'number' &&
-    typeof resLng === 'number' &&
-    Number.isFinite(resLat) &&
-    Number.isFinite(resLng) &&
-    (displayState === 'CURRENT' || displayState === 'LAST_KNOWN');
-
-  const hasRealCoords = pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null;
-  const matchedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId);
-  const simulatedTruck = hasResolvedCoords ? undefined : (matchedTruck || (hasRealCoords ? undefined : fleet[0]));
-
-  const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
-  const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
-
-  // OSRM Driving Route fetch & memoization — runs ONLY when pickup/dropoff coordinates change
+  // OSRM Driving Route for Map Polyline (Pickup -> Dropoff) — runs ONLY when pickup/dropoff coordinates change
   useEffect(() => {
     if (!hasRealCoords) {
       setRoadPolyline(null);
@@ -230,6 +216,74 @@ export default function TripLiveMapCard({
       isMounted = false;
     };
   }, [pickupPoint.lat, pickupPoint.lng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
+
+  // 1. Reverse Geocode current physical vehicle coordinates
+  useEffect(() => {
+    if (!hasResolvedCoords || !resLat || !resLng) {
+      setCurrentPlaceName(null);
+      return;
+    }
+    let isMounted = true;
+    reverseGeocode(resLat, resLng)
+      .then((name) => {
+        if (isMounted) setCurrentPlaceName(name);
+      })
+      .catch(() => {
+        if (isMounted) setCurrentPlaceName(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [hasResolvedCoords, resLat, resLng]);
+
+  // 2. Fetch OSRM remaining distance & ETA: CURRENT VEHICLE POSITION -> DESTINATION
+  useEffect(() => {
+    if (!hasResolvedCoords || !resLat || !resLng || !hasRealCoords) {
+      setRemainingDistanceKm(null);
+      setRemainingEtaText(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchRemainingRoute = async () => {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${resLng},${resLat};${dropoffPoint.lng},${dropoffPoint.lat}?overview=false`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.code === 'Ok' && Array.isArray(data?.routes) && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distKm = Math.round((Number(route.distance) || 0) / 1000);
+          const durSec = Number(route.duration) || 0;
+          const hours = Math.floor(durSec / 3600);
+          const mins = Math.round((durSec % 3600) / 60);
+          const etaText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+          if (isMounted) {
+            setRemainingDistanceKm(distKm);
+            setRemainingEtaText(etaText);
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn('[TripLiveMapCard] OSRM remaining route calculation failed:', err);
+        if (isMounted) {
+          setRemainingDistanceKm(null);
+          setRemainingEtaText(null);
+        }
+      }
+    };
+
+    fetchRemainingRoute();
+    return () => {
+      isMounted = false;
+    };
+  }, [hasResolvedCoords, resLat, resLng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
+
+  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+
+  const resLatVal = resLat;
+  const resLngVal = resLng;
 
   const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
   const polylineWaypoints: [number, number][] = roadPolyline
@@ -288,6 +342,104 @@ export default function TripLiveMapCard({
       )}
 
       <CardContent className="p-4">
+        {/* LIVE VEHICLE STATUS HUD SUMMARY */}
+        <div className="bg-slate-900 text-white rounded-xl p-3 border border-slate-800 shadow-md mb-3 space-y-2">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-200">
+                Live Vehicle Status
+              </h4>
+            </div>
+            {resolvedLocation?.plate_number && (
+              <span className="text-[11px] font-mono font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                {resolvedLocation.plate_number}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* 1. CURRENT LOCATION */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-emerald-400 shrink-0 border border-slate-700">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                    Current Location
+                  </span>
+                  <span className={cn(
+                    "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
+                    displayState === 'CURRENT'
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      : displayState === 'LAST_KNOWN'
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      : "bg-slate-800 text-slate-400 border border-slate-700"
+                  )}>
+                    {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-slate-100 truncate" title={currentPlaceName || undefined}>
+                  {displayState === 'UNAVAILABLE' || !hasResolvedCoords
+                    ? 'Location unavailable'
+                    : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. DISTANCE REMAINING */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400 shrink-0 border border-slate-700">
+                <Route className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                  Distance Remaining
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-100 truncate">
+                  {remainingDistanceKm != null
+                    ? `${remainingDistanceKm} km`
+                    : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. ETA REMAINING */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-sky-400 shrink-0 border border-slate-700">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                  ETA Remaining
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-100 truncate">
+                  {remainingEtaText != null
+                    ? remainingEtaText
+                    : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+                </span>
+              </div>
+            </div>
+
+            {/* 4. SOURCE & UPDATED */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-indigo-400 shrink-0 border border-slate-700">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                  Source & Updated
+                </span>
+                <span className="text-xs font-bold text-slate-200 truncate">
+                  {hasResolvedCoords
+                    ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
+                    : 'No Live Telemetry'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
         {/* Map View */}
         <div 
           className={cn(
