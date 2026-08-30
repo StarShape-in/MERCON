@@ -397,7 +397,37 @@ export default function CompanyReportsGeneratorPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success('Report generated successfully');
+
+      // Construct and append new report run record to Generated Reports ledger
+      const targetCustomer = customers.find((c: any) => c.id === selectedCustomerId);
+      const companyName = targetCustomer?.name || (selectedCustomerId === 'all' ? 'All Customers' : 'Company Report');
+      const companyLogo = companyName.length >= 2 ? companyName.slice(0, 2).toUpperCase() : 'CR';
+      const formatName = `${selectedTemplate?.name || 'report.xlsx'} v${selectedTemplate?.version || 1}`;
+
+      const periodText = startDate && endDate
+        ? `${format(new Date(startDate), 'dd/MM/yyyy')} - ${format(new Date(endDate), 'dd/MM/yyyy')}`
+        : preset === 'this_month'
+          ? `${format(startOfMonth(new Date()), 'dd/MM/yyyy')} - ${format(new Date(), 'dd/MM/yyyy')}`
+          : preset === 'this_week'
+            ? `${format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'dd/MM/yyyy')} - ${format(new Date(), 'dd/MM/yyyy')}`
+            : 'Custom Period';
+
+      const newReport: GeneratedReportItem = {
+        id: `rep-${Date.now()}`,
+        companyId: selectedCustomerId || 'all',
+        companyName,
+        companyLogo,
+        formatName,
+        dataType: selectedDataType || 'Trips',
+        period: periodText,
+        recordsCount: previewData?.rows?.length || filteredRows.length || 0,
+        generatedOn: format(new Date(), 'dd/MM/yyyy, hh:mm a'),
+        generatedBy: 'Adarsh VP',
+        status: 'Ready'
+      };
+
+      setGeneratedReports(prev => [newReport, ...prev]);
+      toast.success('Report generated and logged to Generated Reports ledger');
     } catch (err: any) {
       toast.error(err?.response?.data?.error?.message || 'Failed to generate report');
     } finally {
