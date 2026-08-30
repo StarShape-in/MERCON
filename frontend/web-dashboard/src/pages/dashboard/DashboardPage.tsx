@@ -181,17 +181,19 @@ const STATUS_MARKER_BOX_STYLE: Record<string, { bg: string; text: string; border
   'Delayed':     { bg: '#FFE4E6', text: '#BE123C', border: '#F43F5E', shadow: 'rgba(244, 63, 94, 0.5)', ping: 'rgba(244, 63, 94, 0.6)', hue: 'hue-rotate(320deg) saturate(2.5) brightness(0.9)' },
 };
 
-function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean) {
+function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean, heading: number = 0) {
   const boxStyle = STATUS_MARKER_BOX_STYLE[status] || STATUS_MARKER_BOX_STYLE['In Transit'];
 
   const delayedBadge = isDelayed
     ? `<span style="background:#FFE4E6;color:#BE123C;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:900;margin-left:4px;letter-spacing:0.3px;border:1px solid #F43F5E;">DELAYED</span>`
     : '';
 
+  const adjustedHeading = ((heading || 0) + 180) % 360;
+
   const svgHtml = `
     <div style="position:relative;width:75px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <!-- 3D Truck Asset with status color hue -->
-      <div style="position:relative;z-index:2;transform:translateY(-2px);width:44px;height:44px;">
+      <!-- 3D Truck Asset with status color hue and cardinal heading rotation -->
+      <div style="position:relative;z-index:2;transform:translateY(-2px) rotate(${adjustedHeading}deg);transition:transform 0.3s ease;width:44px;height:44px;">
         <img 
           src="/truck_3d_orange_transparent.png" 
           style="width:100%;height:100%;object-fit:contain;filter:${boxStyle.hue} drop-shadow(0 3px 5px rgba(0,0,0,0.25));" 
@@ -1332,7 +1334,7 @@ export default function DashboardPage() {
                     <Marker
                       key={`map-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
-                      icon={createTruckMapIcon(v.plate, v.status, v.isDelayed)}
+                      icon={createTruckMapIcon(v.plate, v.status, v.isDelayed, v.heading ?? v.resolved_location?.heading_deg ?? 0)}
                     >
                       <Popup maxWidth={260} minWidth={230}>
                         <div className="font-sans text-[11px] p-1">

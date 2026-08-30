@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, getFleetFinancials, bulkImportVehicles, getVehicleUsage, getVehicleStats } from '../controllers/vehicleController';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, getFleetFinancials, bulkImportVehicles, getVehicleUsage, getVehicleStats, getPhysicalGpsStatusSummary } from '../controllers/vehicleController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -14,9 +14,9 @@ router.post('/bulk-update-status', bulkUpdateVehicleStatus);
 // Fleet workbook import — see the note on the drivers equivalent.
 router.post('/import', validate({ body: bulkImportVehiclesBody }), bulkImportVehicles);
 
-
 // Registered before `/:id` so the literal path isn't captured as an id.
 router.get('/stats', getVehicleStats);
+router.get('/icces-summary', getPhysicalGpsStatusSummary);
 router.get('/', validate({ query: listQuery }), getVehicles);
 router.post('/', validate({ body: createVehicleBody }), createVehicle);
 // Must be registered before `/:id` so the literal path isn't captured as an id.

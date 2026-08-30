@@ -206,9 +206,34 @@ export interface VehicleStats {
   maintenance: number;
 }
 
+export interface PhysicalGpsStatusSummary {
+  mercon_total: number;
+  physical_gps_total: number;
+  not_connected_total: number;
+  reconciliation_valid: boolean;
+  category_sum: number;
+  status_counts: {
+    MOVING: number;
+    IDLE: number;
+    STOPPED: number;
+    COMMAND: number;
+    ALERT: number;
+    DEVICE_NO_SIGNAL: number;
+    DEVICE_NOT_WORKING: number;
+    ACCIDENT: number;
+    TAMPER_WEIGHT: number;
+    UNKNOWN: number;
+  };
+}
+
 export const vehicleService = {
   async getStats(): Promise<VehicleStats> {
     const res = await api.get<ApiResponse<VehicleStats>>('/vehicles/stats');
+    return res.data.data;
+  },
+
+  async getIccesSummary(): Promise<PhysicalGpsStatusSummary> {
+    const res = await api.get<ApiResponse<PhysicalGpsStatusSummary>>('/vehicles/icces-summary');
     return res.data.data;
   },
 

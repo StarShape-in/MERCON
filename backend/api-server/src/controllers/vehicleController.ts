@@ -703,6 +703,69 @@ export const getVehicleStats = async (_req: Request, res: Response) => {
   }
 };
 
+/**
+ * Computes exact physical GPS status counts and reconciliation for the fleet donut chart.
+ * Reconciles: Physical GPS Tracked (27) + Not Connected (4) = MERCON Vehicles (31).
+ */
+export const getPhysicalGpsStatusSummary = async (_req: Request, res: Response) => {
+  try {
+    const where = { deletedAt: null };
+    const vehicles = await prisma.vehicle.findMany({
+      where,
+      select: {
+        id: true,
+        icces_device_id: true,
+        last_status: true,
+        last_seen_at: true,
+      },
+    });
+
+    const merconTotal = vehicles.length;
+    const connectedVehicles = vehicles.filter((v) => v.icces_device_id && v.icces_device_id.trim() !== '');
+    const notConnectedTotal = merconTotal - connectedVehicles.length;
+    const physicalGpsTotal = connectedVehicles.length;
+
+    const statusCounts: Record<string, number> = {
+      MOVING: 0,
+      IDLE: 0,
+      STOPPED: 0,
+      COMMAND: 0,
+      ALERT: 0,
+      DEVICE_NO_SIGNAL: 0,
+      DEVICE_NOT_WORKING: 0,
+      ACCIDENT: 0,
+      TAMPER_WEIGHT: 0,
+      UNKNOWN: 0,
+    };
+
+    for (const v of connectedVehicles) {
+      const rawStatus = (v.last_status || 'UNKNOWN').trim().toUpperCase();
+      if (rawStatus in statusCounts) {
+        statusCounts[rawStatus] += 1;
+      } else {
+        statusCounts.UNKNOWN += 1;
+      }
+    }
+
+    const categorySum = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const reconciliationValid = categorySum === physicalGpsTotal;
+
+    res.json({
+      success: true,
+      data: {
+        mercon_total: merconTotal,
+        physical_gps_total: physicalGpsTotal,
+        not_connected_total: notConnectedTotal,
+        reconciliation_valid: reconciliationValid,
+        category_sum: categorySum,
+        status_counts: statusCounts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to compute physical GPS status summary' } });
+  }
+};
+
 export const getVehicleUsage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;

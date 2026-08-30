@@ -80,6 +80,7 @@ import SendToWorkshopDialog from '@/components/fleet/SendToWorkshopDialog';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import FleetStatusDonutChart from '@/components/dashboard/FleetStatusDonutChart';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
@@ -1356,11 +1357,14 @@ export default function VehicleListPage() {
         {/* ── ICCES Hardware GPS Telemetry Status Strip ── */}
         <IccesStatusHeader />
 
-        {/* ── 4 Telematics Instrument Panel Cards ───────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        {/* ── Summary Cards & Physical GPS Fleet Status Donut Chart Panel ───────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 shrink-0 items-stretch">
           
-          {/* Card 1: Total Fleet Assets */}
-          <KpiCard
+          {/* Left: 4 Telematics Instrument Panel Cards */}
+          <div className="lg:col-span-7 xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            {/* Card 1: Total Fleet Assets */}
+            <KpiCard
             title="TOTAL FLEET ASSETS"
             className="kpi-tint-vehicles"
             value={
@@ -1764,6 +1768,12 @@ export default function VehicleListPage() {
               </div>
             }
           />
+          </div>
+
+          {/* Right: Physical GPS Telemetry Donut Chart */}
+          <div className="lg:col-span-5 xl:col-span-5 flex flex-col justify-stretch">
+            <FleetStatusDonutChart />
+          </div>
         </div>
 
         {/* Control Toolbar (Search, Filter, View Switcher) - Only show in map view to prevent duplication with DataTable controls */}
