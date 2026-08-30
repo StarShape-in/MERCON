@@ -453,9 +453,12 @@ export default function TripDetailsPage() {
   const invoice = trip.invoices?.[0];
   const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
 
-  // Compute Base Commercial Rate & Total Billing
-  const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? trip.trip_charges ?? 0);
-  const totalTripBilling = baseRate + chargesTotal;
+  // Compute Financial Totals & Balance
+  const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
+  const totalAmount = baseRate + chargesTotal;
+  const driverCharge = trip.is_third_party ? Number(trip.third_party_cost || 0) : Number(trip.trip_charges || 0);
+  const balanceAmount = totalAmount - (chargesTotal + driverCharge);
+  const totalTripBilling = totalAmount;
 
   const dropoffDone = !!dropoff?.actual_arrival;
 
@@ -946,18 +949,24 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* Rate & Price */}
+            {/* Financial Summary */}
             <div className="space-y-0.5 min-w-0 pt-2 sm:pt-0 sm:pl-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] block">Rate & Price</span>
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <ReceiptText className="w-4 h-4 text-amber-600 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-100 font-mono">
-                    SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-[11px] text-[#6E6E80] truncate" title={trip.rateCard?.name || 'Commercial Rate'}>
-                    {trip.rateCard?.name || 'Base Rate'}
-                  </p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] block">Financial Summary</span>
+              <div className="flex items-center gap-2 pt-0.5">
+                <ReceiptText className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-mono">
+                    <span className="text-[10px] font-bold text-slate-500">TOTAL:</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
+                      SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono">
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">BALANCE:</span>
+                    <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
+                      SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1364,22 +1373,35 @@ export default function TripDetailsPage() {
               </div>
 
               {/* Financial Totals Breakdown Box */}
-              <div className="mt-4 p-3 rounded-lg bg-black/[0.02] dark:bg-slate-800/40 border border-black/[0.06] space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-[#6E6E80]">
-                  <span>Base Rate</span>
-                  <span className="font-mono font-semibold">SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <span className="font-medium">Billing Amount (Base Rate)</span>
+                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                    SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between text-[#6E6E80]">
-                  <span>Additional Charges</span>
-                  <span className="font-mono font-semibold text-[#FA634E]">
+                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <span className="font-medium">Additional Charges</span>
+                  <span className="font-mono font-semibold text-brand">
                     + SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                <Separator className="my-1.5" />
-                <div className="flex items-center justify-between font-bold text-[#3E3C3D] dark:text-slate-100 pt-0.5">
-                  <span>Total Trip Billing</span>
-                  <span className="font-mono text-sm text-[#FA634E]">
-                    SAR {totalTripBilling.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-center justify-between font-bold text-slate-900 dark:text-slate-100 pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span>TOTAL AMOUNT</span>
+                  <span className="font-mono text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                    SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 pt-1 border-t border-dashed border-slate-200 dark:border-slate-700">
+                  <span className="font-medium">Driver Charge / Payout</span>
+                  <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">
+                    - SAR {driverCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 p-2 rounded-lg border border-emerald-300 dark:border-emerald-700 mt-2">
+                  <span className="uppercase tracking-wider">BALANCE AMOUNT</span>
+                  <span className="font-mono text-sm font-black text-emerald-800 dark:text-emerald-300">
+                    SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
