@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 100,
     paddingBottom: 20,
   },
   cleanCheckWrapper: {
