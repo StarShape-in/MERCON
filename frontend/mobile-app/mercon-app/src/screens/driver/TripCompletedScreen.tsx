@@ -103,8 +103,12 @@ const TripCompletedScreen = () => {
     refetch();
   }, []);
 
-  const cargoPhotos = documents.filter((d) => d.doc_type === 'CARGO_PHOTO');
-  const podPhotos = documents.filter((d) => d.doc_type === 'POD');
+  const tripDocs = trip?.id
+    ? documents.filter((d) => d.entity_id === trip.id || d.trip_ref_id === trip.ref_id)
+    : documents;
+
+  const cargoPhotos = tripDocs.filter((d) => d.doc_type === 'Waybill' || d.doc_type === 'CARGO_PHOTO' || d.doc_type === 'CustomsClearance');
+  const podPhotos = tripDocs.filter((d) => d.doc_type === 'POD');
 
   const handleShare = async () => {
     try {
