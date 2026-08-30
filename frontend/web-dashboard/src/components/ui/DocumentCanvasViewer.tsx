@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink, Maximize2, X } from 'lucide-react';
 import { resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export interface DocumentFileItem {
@@ -24,7 +25,7 @@ export default function DocumentCanvasViewer({
   files,
   title,
   className,
-  canvasHeightClassName = 'h-[360px] md:h-[450px]',
+  canvasHeightClassName = 'h-full min-h-[480px]',
   showActions = true,
 }: DocumentCanvasViewerProps) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -32,6 +33,7 @@ export default function DocumentCanvasViewer({
   const [rotation, setRotation] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   const activeFile = files[activeIdx] || files[0];
 
@@ -48,10 +50,10 @@ export default function DocumentCanvasViewer({
 
   if (!activeFile || !activeFile.file_url) {
     return (
-      <div className={cn('rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center p-8 text-slate-400 text-center', canvasHeightClassName, className)}>
+      <div className={cn('rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-8 text-slate-400 text-center h-full w-full', className)}>
         <div className="space-y-2">
-          <FileText className="w-10 h-10 text-slate-600 mx-auto" />
-          <p className="text-xs font-bold text-slate-400">No document file preview available</p>
+          <FileText className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto" />
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No document file preview available</p>
         </div>
       </div>
     );
@@ -61,7 +63,7 @@ export default function DocumentCanvasViewer({
   const isImg = isImageFile(activeFile.file_url, activeFile.mime_type);
   const isPdf = isPdfFile(activeFile.file_url, activeFile.mime_type);
 
-  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.25, 3));
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.25, 3.5));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.25, 0.5));
   const handleRotate = () => setRotation((r) => (r + 90) % 360);
   const handleReset = () => {
@@ -70,10 +72,10 @@ export default function DocumentCanvasViewer({
   };
 
   return (
-    <div className={cn('flex flex-col space-y-2', className)}>
+    <div className={cn('flex flex-col space-y-2 h-full flex-1 min-h-0 w-full', className)}>
       {/* File Attachment Selector Tabs */}
       {files.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 shrink-0 scrollbar-none">
           {files.map((file, idx) => (
             <button
               key={file.id || idx}
@@ -85,7 +87,7 @@ export default function DocumentCanvasViewer({
               className={cn(
                 'px-3 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer',
                 activeIdx === idx
-                  ? 'bg-brand text-white border-brand shadow-xs'
+                  ? 'bg-[#FA634E] text-white border-[#FA634E] shadow-xs'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
               )}
             >
@@ -97,16 +99,16 @@ export default function DocumentCanvasViewer({
       )}
 
       {/* Main Canvas Area */}
-      <div className={cn('relative rounded-2xl overflow-hidden bg-slate-100/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 flex items-center justify-center group', canvasHeightClassName)}>
+      <div className={cn('relative rounded-2xl overflow-hidden bg-slate-50/80 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 flex-1 min-h-0 w-full flex items-center justify-center group', canvasHeightClassName)}>
         
-        {/* Canvas Toolbar Controls overlay */}
+        {/* Canvas Toolbar Controls Overlay */}
         {showActions && (
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm opacity-90 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm opacity-90 group-hover:opacity-100 transition-opacity">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleZoomIn}
               title="Zoom In"
             >
@@ -116,7 +118,7 @@ export default function DocumentCanvasViewer({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleZoomOut}
               title="Zoom Out"
             >
@@ -126,28 +128,41 @@ export default function DocumentCanvasViewer({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={handleRotate}
               title="Rotate 90°"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              onClick={() => setIsFullscreenOpen(true)}
+              title="Fullscreen Mode"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </Button>
+
             {(zoomLevel !== 1 || rotation !== 0) && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-[10px] font-bold text-brand hover:bg-brand/5 dark:hover:bg-brand/10 rounded-lg cursor-pointer transition-colors"
+                className="h-7 px-2 text-[10px] font-bold text-[#FA634E] hover:bg-[#FA634E]/10 rounded-lg cursor-pointer transition-colors"
                 onClick={handleReset}
               >
                 Reset
               </Button>
             )}
+            
             <a
               href={resolvedUrl}
               target="_blank"
               rel="noreferrer"
-              className="h-7 w-7 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+              className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center cursor-pointer transition-colors"
               title="Open Raw File"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -176,14 +191,14 @@ export default function DocumentCanvasViewer({
               <a
                 href={resolvedUrl}
                 download
-                className="h-7 px-3 rounded-lg bg-brand text-white text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-brand-hover"
+                className="h-7 px-3 rounded-lg bg-[#FA634E] text-white text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#FA634E]/90"
               >
                 <Download className="w-3 h-3" /> Download
               </a>
             </div>
           </div>
         ) : isImg ? (
-          <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
+          <div className="w-full h-full flex items-center justify-center overflow-auto p-3 sm:p-5">
             <img
               key={`${resolvedUrl}-${retryKey}`}
               src={resolvedUrl}
@@ -196,7 +211,7 @@ export default function DocumentCanvasViewer({
                 maxWidth: '100%',
                 objectFit: 'contain',
               }}
-              className="rounded-lg shadow-xl"
+              className="rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-800 bg-white"
             />
           </div>
         ) : isPdf ? (
@@ -217,6 +232,53 @@ export default function DocumentCanvasViewer({
           />
         )}
       </div>
+
+      {/* Fullscreen Preview Lightbox Modal */}
+      {isFullscreenOpen && (
+        <Dialog open={isFullscreenOpen} onOpenChange={setIsFullscreenOpen}>
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] max-h-[92vh] p-0 rounded-2xl overflow-hidden bg-slate-950 border-slate-800 flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 text-white shrink-0">
+              <span className="text-sm font-extrabold flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#FA634E]" />
+                <span>{title || 'Document Preview (Fullscreen)'}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={resolvedUrl}
+                  download
+                  className="h-8 px-3 rounded-lg bg-[#FA634E] text-white text-xs font-bold flex items-center gap-1.5 hover:bg-[#FA634E]/90 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download
+                </a>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer"
+                  onClick={() => setIsFullscreenOpen(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto p-6 flex items-center justify-center bg-slate-950">
+              {isImg ? (
+                <img
+                  src={resolvedUrl}
+                  alt={title || 'Document Fullscreen'}
+                  className="max-h-full max-w-full object-contain rounded-xl shadow-2xl"
+                />
+              ) : (
+                <iframe
+                  src={resolvedUrl}
+                  title={title || 'Document Fullscreen'}
+                  className="w-full h-full border-0 rounded-xl"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
