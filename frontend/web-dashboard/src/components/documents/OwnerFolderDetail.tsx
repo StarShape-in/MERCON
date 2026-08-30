@@ -162,53 +162,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── 1. Driver & Vehicle Details Header Bar (Head) ──────────────── */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-4 shrink-0 text-xs">
-        <div className="flex items-center gap-6 flex-wrap min-w-0">
-          {/* Vehicle Details */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8.5 h-8.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
-              <Truck className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block leading-none">Vehicle Details</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-                  {vehicle?.plate_number || (ownerType === 'Vehicle' ? folder.ownerName : 'BRA-4012')}
-                </span>
-                <span className="text-slate-400 font-mono text-[11px] font-semibold">
-                  · {vehicle?.ref_id || 'TRK-117'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 12).toFixed(0)} TON
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
-
-          {/* Driver Details */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shrink-0">
-              <User className="w-4.5 h-4.5" />
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block leading-none">Driver Details</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-                  {driver ? `${driver.first_name} ${driver.last_name}` : (vehicle?.assignedDriver ? `${vehicle.assignedDriver.first_name} ${vehicle.assignedDriver.last_name}` : 'Waseem Akram')}
-                </span>
-                <span className="text-slate-400 font-mono text-[11px] font-semibold">
-                  · Phone: {(driver as any)?.phone || (driver as any)?.phone_number || (driver as any)?.iqama_number || '+966 50 123 4567'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Compliance Badge */}
-        <Badge className={cn('text-xs font-mono font-bold px-3 py-1 border rounded-full shadow-none', cardSummary.className)}>
-          {isFullyCompliant ? '🟢 Fully Compliant' : `🔴 ${issueSlots.length} Issue${issueSlots.length > 1 ? 's' : ''}`}
-        </Badge>
-      </div>
+      {/* ── 1. Top Document Tab Buttons Bar (Interactive Button Model) ──────────────── */}
 
       {/* ── 2. Top Document Tab Buttons Bar (Interactive Button Model) ──────────────── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 shrink-0 scrollbar-none">

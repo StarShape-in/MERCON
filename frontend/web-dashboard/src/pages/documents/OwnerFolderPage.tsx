@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
+import { Download, UploadCloud, Truck, User, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -10,6 +10,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { documentService } from '@/services/documentService';
 import { downloadCSV } from '@/utils/exportUtils';
 import { getOwnerCardSummary } from '@/lib/documents';
+import { cn } from '@/lib/utils';
 import OwnerFolderDetail from '@/components/documents/OwnerFolderDetail';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function OwnerFolderPage() {
+  const navigate = useNavigate();
   const [isSingleUploadOpen, setIsSingleUploadOpen] = useState(false);
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isCustomDocOpen, setIsCustomDocOpen] = useState(false);
@@ -95,26 +97,57 @@ export default function OwnerFolderPage() {
       {/* Anchored Viewport Container: No outer page scroll */}
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-3">
         
-        {/* MERCON Header Layout: Starts directly with vehicle identity */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+        {/* ── Single Prominent MERCON Header: Highlighted Truck & Driver Cards ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-2.5 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
           
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                  {vehicle?.plate_number || ownerName}
-                </h1>
-                <Badge className={cardSummary.className}>
-                  {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
-                </Badge>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Highlighted Truck Badge Card */}
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-2xs border border-slate-800">
+              <Truck className="w-4.5 h-4.5 text-[#FA634E] shrink-0" />
+              <div className="flex items-center gap-2">
+                <span className="font-black font-mono text-sm tracking-wide text-white">
+                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'BRA-4012')}
+                </span>
+                <span className="text-[11px] font-mono text-slate-300 font-bold">
+                  ({vehicle?.ref_id || 'TRK-117'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 12).toFixed(0)} TON)
+                </span>
               </div>
-              <p className="text-xs font-semibold text-slate-500 mt-1">
-                {vehicle?.ref_id || 'TRK-112'} · {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton · Driver: {driverName}
-              </p>
             </div>
+
+            {/* Separator Dot */}
+            <span className="text-slate-300 dark:text-slate-700 font-bold hidden sm:inline">•</span>
+
+            {/* Highlighted Driver Badge Card */}
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 text-indigo-950 dark:text-indigo-200 shadow-2xs">
+              <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-500">Driver:</span>
+                <span className="text-indigo-950 dark:text-indigo-100 font-black">
+                  {normalizedType === 'Driver' ? ownerName : driverName}
+                </span>
+                {((driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567') && (
+                  <span className="text-[11px] font-mono font-semibold text-indigo-600/80 dark:text-indigo-300/80">
+                    · Phone: {(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Action & Compliance Badge */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Badge className={cn('text-xs font-mono font-extrabold px-3 py-1 border rounded-full shadow-none', cardSummary.className)}>
+              {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
+            </Badge>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/documents')}
+              className="h-8.5 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
+            >
+              Back to Vault
+            </Button>
           </div>
 
         </div>
