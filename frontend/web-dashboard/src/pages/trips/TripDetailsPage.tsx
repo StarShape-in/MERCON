@@ -456,7 +456,7 @@ export default function TripDetailsPage() {
   // Compute Financial Totals & Balance
   const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
   const totalAmount = baseRate + chargesTotal;
-  const driverCharge = trip.is_third_party ? Number(trip.third_party_cost || 0) : Number(trip.trip_charges || 0);
+  const driverCharge = trip.is_third_party ? Number(trip.third_party_cost || 0) : Number(trip.driver_charge ?? trip.trip_charges ?? 0);
   const balanceAmount = totalAmount - (chargesTotal + driverCharge);
   const totalTripBilling = totalAmount;
 

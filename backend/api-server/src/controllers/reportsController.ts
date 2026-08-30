@@ -407,7 +407,8 @@ export const getCustomReport = async (req: Request, res: Response) => {
           const billing = Number(t.billing_amount ?? invoice?.subtotal ?? 0);
           const chargesTotal = computeTripChargesTotal(t.charges);
           const totalAmt = invoice?.total_amount != null ? Number(invoice.total_amount) : billing + chargesTotal;
-          const balance = totalAmt - Number(t.trip_charges);
+          const driverCharge = Number(t.driver_charge ?? 0);
+          const balance = totalAmt - (chargesTotal + driverCharge);
           const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
 
           return {
@@ -425,7 +426,8 @@ export const getCustomReport = async (req: Request, res: Response) => {
             charges: t.charges,
             billing_amount: billing,
             total_amount: totalAmt,
-            trip_charges: t.trip_charges,
+            trip_charges: driverCharge,
+            driver_charge: driverCharge,
             balance_amount: balance,
             company_name: t.customer?.name || 'MERCON',
             status: t.status,

@@ -32,7 +32,8 @@ export interface ChargeLike {
 /** What a trip carries that these sums read. */
 export interface TripFinancialsLike {
   billing_amount: Money | null;
-  trip_charges: Money;
+  driver_charge?: Money;
+  trip_charges?: Money;
 }
 
 /** Sum of the itemised customer-billable extras on a trip. */
@@ -43,15 +44,9 @@ export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined
 
 /**
  * The base price the customer is billed, before extras.
- *
- * Falls back to trip_charges when billing_amount was never set — not because
- * the two mean the same thing (they don't), but because trips created before
- * billing_amount existed only carry the one number, and showing 0 for them
- * would silently erase real revenue. New code should always set
- * billing_amount.
  */
 export function computeTripBaseBilling(trip: TripFinancialsLike): number {
-  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.trip_charges);
+  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.driver_charge ?? trip.trip_charges);
 }
 
 /** Full amount owed by the customer: base price plus every itemised extra. */
@@ -62,10 +57,13 @@ export function computeTripTotalAmount(
   return computeTripBaseBilling(trip) + computeTripChargesTotal(charges);
 }
 
-/** What MERCON keeps: customer total minus what it paid out to run the trip. */
+/** What MERCON keeps: customer total minus (additional charges + driver charge). */
 export function computeTripBalance(
   trip: TripFinancialsLike,
   charges: ChargeLike[] | null | undefined
 ): number {
-  return computeTripTotalAmount(trip, charges) - asNumber(trip.trip_charges);
+  const totalAmt = computeTripTotalAmount(trip, charges);
+  const extraCharges = computeTripChargesTotal(charges);
+  const driverCharge = asNumber(trip.driver_charge ?? trip.trip_charges);
+  return totalAmt - (extraCharges + driverCharge);
 }

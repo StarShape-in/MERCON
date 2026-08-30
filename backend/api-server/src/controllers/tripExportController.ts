@@ -360,7 +360,7 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         formatDate(t.actual_start, tz),
         formatDate(t.planned_end, tz),
         formatDate(t.actual_end, tz),
-        Number(t.trip_charges ?? 0),
+        Number(t.driver_charge ?? t.trip_charges ?? 0),
         Number(t.billing_amount ?? t.quotation?.rate ?? 0),
         getCarrierLabel(t),
       ];

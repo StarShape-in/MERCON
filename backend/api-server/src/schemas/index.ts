@@ -154,6 +154,7 @@ export const createTripBody = z.object({
   vehicle_id: z.string().uuid('Invalid vehicle').optional(),
   planned_start: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
+  driver_charge: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
   status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
   dispatch_now: z.boolean().optional(),

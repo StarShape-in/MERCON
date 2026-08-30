@@ -714,7 +714,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
-              trip_charges: finalTripCharges,
+              driver_charge: finalTripCharges,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
                 thirdPartyProviderId: third_party_provider_id || null,
@@ -989,9 +989,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
-              ...(row.trip_charges !== undefined && row.trip_charges !== null && !isNaN(Number(row.trip_charges))
-                ? { trip_charges: Number(row.trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { trip_charges: thirdPartyCostVal } : {})),
+              ...(((row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_charge ?? (row as any).trip_charges))
+                ? { driver_charge: Number((row as any).driver_charge ?? (row as any).trip_charges) }
+                : (thirdPartyCostVal !== undefined ? { driver_charge: thirdPartyCostVal } : {})),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...((row.origin || row.destination) ? {
@@ -1755,9 +1755,10 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Decimal at runtime — normalised to number here so this stays a plain
       // number through every branch below (Prisma accepts a number for a
       // Decimal field write, so nothing is lost storing it back as one).
-      let nextTripCharges = Number(trip.trip_charges);
-      if (trip_charges !== undefined) {
-        nextTripCharges = parseOptionalFloat(trip_charges) ?? Number(trip.trip_charges);
+      let nextTripCharges = Number(trip.driver_charge);
+      const inputCharges = req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges;
+      if (inputCharges !== undefined) {
+        nextTripCharges = parseOptionalFloat(inputCharges) ?? Number(trip.driver_charge);
       } else if (trip.is_third_party) {
         if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
           nextTripCharges = Number(trip.third_party_cost);
@@ -1822,7 +1823,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
-          trip_charges: nextTripCharges,
+          driver_charge: nextTripCharges,
           billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? trip.billing_amount) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
@@ -2033,7 +2034,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         applied_rate: trip.applied_rate != null ? Number(trip.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : null),
         quotation_vehicle_class: trip.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
         quotation_source_vehicle_label: trip.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
-        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number(trip.trip_charges) || null),
+        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number((trip as any).driver_charge ?? (trip as any).trip_charges) || null),
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation

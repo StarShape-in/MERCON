@@ -40,6 +40,7 @@ export interface Trip {
   payment_status: string | null;
   /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
   charges?: TripCharge[];
+  driver_charge?: number;
   trip_charges?: number;
   billing_amount?: number;
   quotationId?: string | null;

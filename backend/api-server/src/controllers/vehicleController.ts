@@ -861,7 +861,7 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     let totalDistanceKm = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
-      const tripCharges = Number(t.trip_charges);
+      const tripCharges = Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0);
       if (isEarned(t.status)) {
         totalIncome += income;
         driverCharges += tripCharges;
@@ -1030,7 +1030,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       const b = bucket(t.vehicleId);
       b.income += tripIncome(t);
       b.trips_count += 1;
-      b.driver_charges += Number(t.trip_charges);
+      b.driver_charges += Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0);
     }
 
     // MaintenanceRecord.cost / Expense.amount are Decimal at runtime —
@@ -1111,7 +1111,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
     const monthlyExpenses = [
       ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: Number(m.cost) })),
       ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: Number(e.amount) })),
-      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number(t.trip_charges)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number(t.trip_charges) })),
+      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0) })),
     ];
 
     const monthly = buildMonthlySeries(
