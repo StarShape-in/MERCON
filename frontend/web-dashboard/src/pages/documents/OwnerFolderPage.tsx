@@ -9,12 +9,13 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService } from '@/services/documentService';
 import { downloadCSV } from '@/utils/exportUtils';
-import { getOwnerCardSummary } from '@/lib/documents';
+import { getOwnerCardSummary, resolveFileUrl } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import OwnerFolderDetail from '@/components/documents/OwnerFolderDetail';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import AddCustomDocumentModal from '@/components/ui/AddCustomDocumentModal';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,10 +98,11 @@ export default function OwnerFolderPage() {
       {/* Anchored Viewport Container: No outer page scroll */}
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-3">
         
-        {/* ── Executive MERCON Operating System Header with Surface Background ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-900/90 px-4 py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+        {/* ── Executive MERCON Header with Driver Photo & Vehicle Specs ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-900/90 px-5 py-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-2">
+            {/* Row 1: Vehicle Plate Number & Specification Tags */}
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                 {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
@@ -117,24 +119,40 @@ export default function OwnerFolderPage() {
               </span>
             </div>
 
-            {/* Driver Details Subtitle Row */}
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 flex-wrap">
-              <span className="text-slate-400 font-medium">Assigned Driver:</span>
-              <strong className="text-slate-900 dark:text-slate-100 font-black flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-[#FA634E]" />
-                {normalizedType === 'Driver' ? ownerName : driverName}
-              </strong>
-              {((driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567') && (
-                <span className="text-slate-500 dark:text-slate-400 font-mono">
-                  ({(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'})
-                </span>
-              )}
-            </div>
+            {/* Row 2: Driver Photo Avatar + Driver Name + Phone Number */}
+            {(() => {
+              const activeDriverObj = normalizedType === 'Driver' ? driver : assignedDriver;
+              const fullDName = normalizedType === 'Driver' ? ownerName : driverName;
+              const fName = activeDriverObj?.first_name || fullDName.split(' ')[0] || 'Kashif';
+              const lName = activeDriverObj?.last_name || fullDName.split(' ').slice(1).join(' ') || 'Ali';
+              const photoUrl = (activeDriverObj as any)?.avatar_url || (activeDriverObj as any)?.photo_url || (activeDriverObj as any)?.image_url;
+              const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
+
+              return (
+                <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 flex-wrap pt-0.5">
+                  <DriverAvatar
+                    src={resolveFileUrl(photoUrl)}
+                    firstName={fName}
+                    lastName={lName}
+                    size="sm"
+                    className="w-7 h-7 shrink-0 shadow-2xs border border-slate-200 dark:border-slate-700"
+                  />
+                  <strong className="text-slate-900 dark:text-slate-100 font-black text-xs sm:text-sm tracking-tight">
+                    {fullDName}
+                  </strong>
+                  {phoneNum && (
+                    <span className="text-slate-500 dark:text-slate-400 font-mono font-medium text-xs">
+                      ({phoneNum})
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right Side: Compliance Status Badge */}
           <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
-            <Badge className={cn('text-xs font-mono font-black px-3.5 py-1.5 border rounded-xl shadow-2xs', cardSummary.className)}>
+            <Badge className={cn('text-xs font-mono font-black px-4 py-2 border rounded-xl shadow-2xs', cardSummary.className)}>
               {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
             </Badge>
           </div>
