@@ -848,22 +848,22 @@ export default function DocumentsCenterPage() {
         </div>
 
         {/* ── Category Navigation Tabs Bar ── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 border-b border-slate-200 dark:border-slate-800 pb-2.5">
-          {/* Rounded Button-Box Tab List container */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+          {/* Rounded Pill Box Tab Container (Matching Screenshot) */}
+          <div className="flex items-center gap-1 p-1 bg-[#F2F4F8] dark:bg-slate-900 rounded-full border border-slate-200/60 dark:border-slate-800/80 shrink-0">
             <button
               type="button"
               onClick={() => handleSelectCategory('Vehicles')}
               className={cn(
-                "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
+                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Vehicles' || activeCategory === 'All'
-                  ? "bg-[#FA634E] text-white shadow-2xs border border-[#FA634E]"
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-white" : "text-slate-450")} />
+              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Vehicle Documents</span>
-              <span className="ml-1 opacity-60 font-mono text-[10px]">
+              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {vehicleFolders.length}
               </span>
             </button>
@@ -872,15 +872,15 @@ export default function DocumentsCenterPage() {
               type="button"
               onClick={() => handleSelectCategory('Drivers')}
               className={cn(
-                "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
+                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Drivers'
-                  ? "bg-blue-650 dark:bg-blue-700 text-white shadow-2xs border border-blue-650 dark:border-blue-700"
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-white" : "text-slate-450")} />
+              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Driver Documents</span>
-              <span className="ml-1 opacity-60 font-mono text-[10px]">
+              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {driverFolders.length}
               </span>
             </button>
@@ -889,15 +889,15 @@ export default function DocumentsCenterPage() {
               type="button"
               onClick={() => handleSelectCategory('Other')}
               className={cn(
-                "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
+                "px-4 py-1.5 text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer border-none rounded-full whitespace-nowrap",
                 activeCategory === 'Other'
-                  ? "bg-violet-650 dark:bg-violet-750 text-white shadow-2xs border border-violet-650 dark:border-violet-750"
-                  : "text-slate-500 hover:text-slate-850 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200/50 dark:border-slate-700"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-white" : "text-slate-450")} />
+              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-slate-700 dark:text-slate-200" : "text-slate-400")} />
               <span>Company & Operations</span>
-              <span className="ml-1 opacity-60 font-mono text-[10px]">
+              <span className="ml-1 text-slate-400 dark:text-slate-500 font-mono text-[11px] font-semibold">
                 {foldersByCategory.Operations.count + foldersByCategory.Company.count}
               </span>
             </button>
@@ -913,7 +913,7 @@ export default function DocumentsCenterPage() {
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search vehicle, plate, driver..."
-                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FA634E]/30 w-48 sm:w-60"
+                className="h-9 text-xs pl-8 pr-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FA634E]/30 w-48 sm:w-60"
               />
               {search && (
                 <button
@@ -928,10 +928,10 @@ export default function DocumentsCenterPage() {
 
             {/* Status Dropdown */}
             <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold w-32 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl">
-                <SelectValue placeholder="Status" />
+              <SelectTrigger className="h-9 text-xs font-extrabold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-800 dark:text-slate-200">
+                <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="warning">Needs Attention</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
@@ -940,16 +940,16 @@ export default function DocumentsCenterPage() {
               </SelectContent>
             </Select>
 
-            {/* View Switcher (Folders vs Ledger) */}
-            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
+            {/* View Switcher (Folders vs Ledger - Matching Screenshot) */}
+            <div className="flex items-center p-0.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
               <button
                 type="button"
                 onClick={() => handleViewChange('folders')}
                 className={cn(
-                  'px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3.5 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'folders'
-                    ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                    ? 'bg-[#0F172A] text-white shadow-2xs'
+                    : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
               >
                 <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
@@ -959,10 +959,10 @@ export default function DocumentsCenterPage() {
                 type="button"
                 onClick={() => handleViewChange('list')}
                 className={cn(
-                  'px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3.5 py-1 text-xs font-extrabold rounded-full transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'list'
-                    ? 'bg-[#FA634E] text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                    ? 'bg-[#0F172A] text-white shadow-2xs'
+                    : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 )}
               >
                 <List className="w-3.5 h-3.5" />
@@ -972,9 +972,9 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
-        {/* Filter Pills row */}
+        {/* Filter Pills row (Matching Screenshot) */}
         {viewMode === 'folders' && (activeCategory === 'Vehicles' || activeCategory === 'Drivers') && (
-          <div className="flex flex-wrap items-center gap-2 pb-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 pb-1 shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -982,14 +982,14 @@ export default function DocumentsCenterPage() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5",
                 folderSubFilter === 'all'
-                  ? "bg-[#FA634E]/10 border-[#FA634E]/25 text-[#FA634E]"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+                  ? "bg-[#FFEAEA] border-rose-200/80 text-[#FA4D56]"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
               )}
             >
               <span>All</span>
-              <span className="opacity-60 font-mono text-[10px]">{folderStats.all}</span>
+              <span className="font-mono text-[11px] opacity-80">{folderStats.all}</span>
             </button>
 
             <button
@@ -999,14 +999,14 @@ export default function DocumentsCenterPage() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5",
                 folderSubFilter === 'compliant'
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-950/40 dark:text-emerald-300"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                  : "bg-white dark:bg-slate-900 border-emerald-200/80 text-emerald-600 hover:bg-emerald-50/50"
               )}
             >
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Compliant</span>
-              <span className="opacity-60 font-mono text-[10px]">{folderStats.compliant}</span>
+              <span>Compliant</span>
+              <span className="font-mono text-[11px] opacity-80">{folderStats.compliant}</span>
             </button>
 
             <button
@@ -1016,14 +1016,14 @@ export default function DocumentsCenterPage() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5",
                 folderSubFilter === 'expiring'
-                  ? "bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-950/40 dark:text-amber-300"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+                  ? "bg-amber-50 text-amber-700 border-amber-300"
+                  : "bg-white dark:bg-slate-900 border-amber-200/80 text-amber-600 hover:bg-amber-50/50"
               )}
             >
-              <span className="text-amber-600 dark:text-amber-400 font-bold">Expiring Soon</span>
-              <span className="opacity-60 font-mono text-[10px]">{folderStats.expiring}</span>
+              <span>Expiring Soon</span>
+              <span className="font-mono text-[11px] opacity-80">{folderStats.expiring}</span>
             </button>
 
             <button
@@ -1033,14 +1033,14 @@ export default function DocumentsCenterPage() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5",
                 folderSubFilter === 'issues'
-                  ? "bg-rose-50 text-rose-700 border-rose-250 dark:bg-rose-950/40 dark:text-rose-300"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+                  ? "bg-rose-50 text-rose-700 border-rose-300"
+                  : "bg-white dark:bg-slate-900 border-rose-200/80 text-rose-500 hover:bg-rose-50/50"
               )}
             >
-              <span className="text-rose-600 dark:text-rose-400 font-bold">Issues</span>
-              <span className="opacity-60 font-mono text-[10px]">{folderStats.issues}</span>
+              <span>Issues</span>
+              <span className="font-mono text-[11px] opacity-80">{folderStats.issues}</span>
             </button>
 
             <button
@@ -1050,14 +1050,14 @@ export default function DocumentsCenterPage() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-2",
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5",
                 folderSubFilter === 'missing'
-                  ? "bg-slate-100 border-slate-300 text-slate-700 dark:bg-slate-800 dark:border-slate-750 dark:text-slate-300"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50"
+                  ? "bg-slate-100 text-slate-800 border-slate-300"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50"
               )}
             >
               <span>Missing</span>
-              <span className="opacity-60 font-mono text-[10px]">{folderStats.missing}</span>
+              <span className="font-mono text-[11px] opacity-80">{folderStats.missing}</span>
             </button>
           </div>
         )}
