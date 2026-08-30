@@ -176,6 +176,40 @@ export default function CompanyReportsGeneratorPage() {
   const [isEditingMappingOpen, setIsEditingMappingOpen] = useState(false);
   const [isSavingMapping, setIsSavingMapping] = useState(false);
 
+  // Dedicated Format Details modal state
+  const [selectedFormatForDetails, setSelectedFormatForDetails] = useState<ReportTemplateSummary | null>(null);
+  const [activeFormatDetailsTab, setActiveFormatDetailsTab] = useState<'mock_preview' | 'edit_mappings'>('mock_preview');
+
+  const formatInspection: TemplateInspection = useMemo(() => {
+    if (!selectedFormatForDetails || !editingLayout) {
+      return { allSheets: [], bestSheet: null };
+    }
+    const cols = editingLayout.columns.map((col) => ({
+      colIndex: col.colIndex,
+      headerText: col.headerText || `Column ${col.colIndex}`,
+      sampleValue: '',
+      suggestedField: col.source.kind === 'field' ? col.source.key : null,
+    }));
+    return {
+      allSheets: [editingLayout.sheetName || 'Sheet1'],
+      bestSheet: {
+        sheetName: editingLayout.sheetName || 'Sheet1',
+        headerRowIdx: editingLayout.headerRowIdx || 2,
+        dataStartRow: editingLayout.dataStartRow || 4,
+        dataEndRow: editingLayout.dataEndRow || 10,
+        bandSize: 1,
+        columns: cols,
+      },
+    };
+  }, [selectedFormatForDetails, editingLayout]);
+
+  const handleOpenFormatDetails = (template: ReportTemplateSummary) => {
+    setSelectedFormatForDetails(template);
+    setEditingTemplate(template);
+    setEditingLayout(JSON.parse(JSON.stringify(template.layout)));
+    setActiveFormatDetailsTab('mock_preview');
+  };
+
   const { data: customersResponse } = useQuery({
     queryKey: ['customers'],
     queryFn: () => customerService.getAll({ per_page: 500, mode: 'lookup' }),
@@ -329,16 +363,18 @@ export default function CompanyReportsGeneratorPage() {
   };
 
   const handleSaveMapping = async () => {
-    if (!editingTemplate || !editingLayout) return;
+    const target = editingTemplate || selectedFormatForDetails;
+    if (!target || !editingLayout) return;
     setIsSavingMapping(true);
     try {
-      await reportTemplateService.update(editingTemplate.id, {
-        name: editingTemplate.name,
-        customerId: editingTemplate.customerId ?? 'all',
+      await reportTemplateService.update(target.id, {
+        name: target.name,
+        customerId: target.customerId ?? 'all',
         layout: editingLayout
       });
-      toast.success('Report column mappings updated successfully!');
+      toast.success(`Format mappings for "${target.name}" updated successfully!`);
       setIsEditingMappingOpen(false);
+      setSelectedFormatForDetails(null);
       setEditingTemplate(null);
       setEditingLayout(null);
       queryClient.invalidateQueries({ queryKey: ['report-templates'] });
@@ -1011,19 +1047,14 @@ export default function CompanyReportsGeneratorPage() {
                 templates.map((tpl) => (
                   <div 
                     key={tpl.id}
-                    onClick={() => {
-                      setSelectedTemplateId(tpl.id);
-                      if (tpl.customerId) setSelectedCustomerId(tpl.customerId);
-                      const genCard = document.getElementById('generate-report-card');
-                      if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
-                    }}
+                    onClick={() => handleOpenFormatDetails(tpl)}
                     className={cn(
                       "p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group relative",
                       selectedTemplateId === tpl.id
                         ? "bg-orange-50/30 border-[#FA634E]/40 dark:bg-slate-800/40 shadow-xs ring-1 ring-[#FA634E]/20"
                         : "bg-white border-slate-100 hover:bg-slate-50 hover:border-[#FA634E]/25 dark:bg-slate-900 dark:border-slate-800"
                     )}
-                    title="Click to select this format template"
+                    title="Click to view format details, mock Excel preview, and column mappings"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 shrink-0">
@@ -1034,22 +1065,29 @@ export default function CompanyReportsGeneratorPage() {
                           {tpl.name}
                         </div>
                         <div className="text-[10px] text-slate-400 truncate mt-0.5 font-mono">
-                          {tpl.layout?.columns?.length || 18} Columns
+                          {tpl.layout?.columns?.length || 11} Columns Mapped
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge className="bg-emerald-50/50 text-emerald-800 border-none font-bold text-[9px] shadow-none rounded-md px-1.5 py-0.2">
-                        Active
-                      </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenFormatDetails(tpl);
+                        }}
+                        className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700"
+                        title="View Format Details & Mappings"
+                      >
+                        <Settings2 className="w-3.5 h-3.5 text-slate-500" />
+                      </button>
                       
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteTemplate(tpl.id, e);
                         }}
-                        className="h-6 w-6 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Delete Format Template"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1251,6 +1289,262 @@ export default function CompanyReportsGeneratorPage() {
                     className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
                   >
                     <Download className="w-4 h-4" /> Download Report (.xlsx)
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── Dedicated Report Format Details Dialog Modal ─── */}
+        <Dialog open={!!selectedFormatForDetails} onOpenChange={() => setSelectedFormatForDetails(null)}>
+          <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
+            {/* Modal Header */}
+            <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shrink-0 relative">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2.5 rounded-xl bg-white/10 text-emerald-400 border border-white/10 backdrop-blur-xs shrink-0">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-base font-black tracking-tight text-white flex items-center gap-2 truncate">
+                      {selectedFormatForDetails?.name || 'Report Format Details'}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-300 mt-0.5 font-mono truncate">
+                      {selectedFormatForDetails?.original_filename || 'Excel Template'} · Version v{selectedFormatForDetails?.version || 1}
+                    </DialogDescription>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-extrabold text-xs shadow-none rounded-lg px-3 py-1">
+                    Active Format
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Navigation Tabs Bar */}
+              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveFormatDetailsTab('mock_preview')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                    activeFormatDetailsTab === 'mock_preview'
+                      ? "bg-[#FA634E] text-white shadow-xs"
+                      : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
+                  )}
+                >
+                  <Eye className="w-3.5 h-3.5" /> Visual Mock Format Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFormatDetailsTab('edit_mappings')}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                    activeFormatDetailsTab === 'edit_mappings'
+                      ? "bg-[#FA634E] text-white shadow-xs"
+                      : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
+                  )}
+                >
+                  <Settings2 className="w-3.5 h-3.5" /> Edit Column Mappings
+                </button>
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-950">
+              {activeFormatDetailsTab === 'mock_preview' ? (
+                <div className="space-y-4">
+                  {/* Top Metadata Info Strip */}
+                  <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Assigned Target Customer</span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-[#FA634E]" />
+                        {selectedFormatForDetails?.customer?.name || 'Shared / Any Customer'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Mapped Columns</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                        {editingLayout?.columns?.length || selectedFormatForDetails?.layout?.columns?.length || 11} Columns Configured
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Start Row</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                        Row {editingLayout?.dataStartRow || 4} to Row {editingLayout?.dataEndRow || 10}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 📊 Visual Mock Excel Report Layout Spreadsheet Preview */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs space-y-0">
+                    <div className="bg-slate-100 dark:bg-slate-800/80 px-4 py-2 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        Mock Excel Layout Preview ({selectedFormatForDetails?.name || 'Format Preview'})
+                      </span>
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                        Visual Excel Render
+                      </Badge>
+                    </div>
+
+                    {/* Banner Title Inside Mock Excel */}
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 text-center border-b border-slate-200 dark:border-slate-800 font-black text-sm text-slate-800 dark:text-slate-100 tracking-tight uppercase">
+                      {selectedFormatForDetails?.name?.toUpperCase() || 'COMPANY LOGISTICS REPORT'} OF JUNE-2026
+                    </div>
+
+                    {/* Interactive Mock Excel Table Grid */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-center border-collapse">
+                        {/* Header Row (Styled in Cyan/Blue Excel Header Style #00A3E0) */}
+                        <thead className="bg-[#00A3E0] text-white font-extrabold text-[11px] uppercase tracking-wide border-b-2 border-slate-400">
+                          <tr>
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <th key={idx} className="px-3 py-2.5 border-r border-white/20 whitespace-nowrap min-w-[110px]">
+                                {col.headerText || `HEADER ${col.colIndex}`}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+
+                        {/* Sample Subheader / Guideline Row */}
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-[11px]">
+                          <tr className="bg-slate-100/70 dark:bg-slate-800/50 font-semibold text-slate-600 dark:text-slate-300 italic">
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800">
+                                {col.headerText.toLowerCase().includes('date') ? 'Date' :
+                                 col.headerText.toLowerCase().includes('vendor') ? 'Company Name' :
+                                 col.headerText.toLowerCase().includes('type') ? '5ton/10ton/40fit' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? 'Quotation Price' :
+                                 col.headerText.toLowerCase().includes('uuid') ? 'UUID/Departure ID' : 'Sample Data'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Generated Data Sample Rows */}
+                          <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
+                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
+                                 col.headerText.toLowerCase().includes('from') ? 'Khamis Station' :
+                                 col.headerText.toLowerCase().includes('dest') ? 'Abha Station' :
+                                 col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
+                                 col.headerText.toLowerCase().includes('type') ? '10 TON' :
+                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? '5049-3531' :
+                                 col.headerText.toLowerCase().includes('uuid') ? '(450*30)' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '13,500.00' :
+                                 col.headerText.toLowerCase().includes('inc') ? '15,525.00' :
+                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '2,025.00' : '—'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
+                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
+                                 col.headerText.toLowerCase().includes('from') ? 'Riyadh Station' :
+                                 col.headerText.toLowerCase().includes('dest') ? 'Al Baha Station' :
+                                 col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
+                                 col.headerText.toLowerCase().includes('type') ? '10 TON' :
+                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? '012-4207-3999' :
+                                 col.headerText.toLowerCase().includes('uuid') ? '(1750*30)' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '52,500.00' :
+                                 col.headerText.toLowerCase().includes('inc') ? '60,375.00' :
+                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '7,875.00' : '—'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
+                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
+                                 col.headerText.toLowerCase().includes('from') ? 'Riyadh Station' :
+                                 col.headerText.toLowerCase().includes('dest') ? 'Riyadh (LOCAL 10hrs)' :
+                                 col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
+                                 col.headerText.toLowerCase().includes('type') ? '10 TON' :
+                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? 'VRA5510' :
+                                 col.headerText.toLowerCase().includes('uuid') ? '(430*30)' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '12,900.00' :
+                                 col.headerText.toLowerCase().includes('inc') ? '14,835.00' :
+                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '1,935.00' : '—'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Yellow Highlighted Excel Totals Summary Row */}
+                          <tr className="bg-[#FEF08A] text-slate-900 font-extrabold border-t-2 border-slate-400">
+                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
+                              <td key={idx} className="px-3 py-2.5 border-r border-slate-300 font-mono whitespace-nowrap text-rose-700">
+                                {idx === 0 ? 'TOTAL' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '1,19,370.00' :
+                                 col.headerText.toLowerCase().includes('inc') ? '1,37,275.50' :
+                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '17,905.50' : ''}
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Edit Column Mappings Tab */
+                <div className="space-y-4">
+                  {formatInspection && editingLayout && (
+                    <TemplateMappingEditor
+                      inspection={formatInspection}
+                      layout={editingLayout}
+                      onChange={setEditingLayout}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 px-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedFormatForDetails(null)}
+                className="h-9 px-4 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              >
+                Close
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTemplateId(selectedFormatForDetails?.id || '');
+                    if (selectedFormatForDetails?.customerId) setSelectedCustomerId(selectedFormatForDetails.customerId);
+                    setSelectedFormatForDetails(null);
+                    const genCard = document.getElementById('generate-report-card');
+                    if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
+                    toast.success(`Selected "${selectedFormatForDetails?.name}" for report generation`);
+                  }}
+                  className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
+                >
+                  <Check className="w-4 h-4" /> Select Format For Generation
+                </Button>
+                {activeFormatDetailsTab === 'edit_mappings' && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveMapping}
+                    disabled={isSavingMapping}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
+                  >
+                    {isSavingMapping && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    Save Mapping Changes
                   </Button>
                 )}
               </div>
