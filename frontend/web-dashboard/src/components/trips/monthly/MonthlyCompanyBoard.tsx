@@ -345,22 +345,25 @@ function TemplateBigCard({
 
       {/* ── 2. Trips Stacked Directly Below Template Header ───────────── */}
       {displayedTrips.length > 0 && (
-        <div className="flex flex-col relative transition-all duration-300 ease-out cursor-pointer">
+        <div className="flex flex-col relative transition-all duration-300 ease-out cursor-pointer py-0.5">
           {displayedTrips.map((trip, idx) => {
             const isSelected = selectedTripIds.includes(trip.id);
 
-            // Layering logic: Ascending z-index so Card 1 (z-20) sits on top of Card 0 (z-10),
-            // making Card 1's top Date row fully exposed and visible!
+            // Modern 3D Stacked Deck Effect:
+            // Collapsed: Cards stack upward with 3D scale inset and depth shadow
+            // Hover / Click: Cards slide down into full spacing view
             const stackStyle = !isUnstacked && idx > 0
               ? idx === 1
-                ? '-mt-6 z-20 scale-[0.98]'
-                : '-mt-6 z-30 scale-[0.96]'
-              : 'mt-0 z-10 scale-100';
+                ? '-mt-9 z-20 scale-[0.97] shadow-md border-t border-purple-200/70 dark:border-purple-800/70'
+                : '-mt-9 z-10 scale-[0.94] opacity-90 shadow-sm border-t border-purple-200/50 dark:border-purple-800/50'
+              : 'mt-0 z-30 scale-100 opacity-100';
 
             return (
               <div
                 key={trip.id}
-                className={`transition-all duration-300 ease-out ${stackStyle} ${idx > 0 && isUnstacked ? 'mt-2' : ''}`}
+                className={`transition-all duration-300 ease-out transform-gpu origin-top ${stackStyle} ${
+                  idx > 0 && isUnstacked ? 'mt-2.5' : ''
+                }`}
               >
                 <CompanyBoardTripCard
                   trip={trip}
