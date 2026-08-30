@@ -12,6 +12,9 @@ export interface TripProgressStepperProps {
   currentStep: number; // 1 = Pickup, 2 = Loading, 3 = Delivery, 4 = Complete
   isCompletedAll?: boolean;
   onStepPress?: (stepId: number) => void;
+  customStep1Label?: string;
+  customStep2Label?: string;
+  customStep3Label?: string;
 }
 
 const DEFAULT_STEPS: TripStepperStep[] = [
@@ -25,6 +28,9 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
   currentStep,
   isCompletedAll = false,
   onStepPress,
+  customStep1Label,
+  customStep2Label,
+  customStep3Label,
 }) => {
   const allDone = isCompletedAll || currentStep >= 4;
 
@@ -76,7 +82,13 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
                   ]}
                   numberOfLines={1}
                 >
-                  {step.label}
+                  {step.id === 1 && customStep1Label
+                    ? customStep1Label
+                    : step.id === 2 && customStep2Label
+                    ? customStep2Label
+                    : step.id === 3 && customStep3Label
+                    ? customStep3Label
+                    : step.label}
                 </Text>
                 {allDone && (
                   <Text style={styles.subtextCompleted}>Completed</Text>
@@ -173,7 +185,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   label: {
-    fontSize: 10.5,
+    fontSize: 9.8,
     marginTop: 5,
     textAlign: 'center',
     fontWeight: '700',

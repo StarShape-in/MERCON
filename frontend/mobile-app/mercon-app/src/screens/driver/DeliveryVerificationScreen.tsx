@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G, Polygon, Ellipse } from 'react-native-svg';
-import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, MessageSquare, ClipboardList, Send, Navigation } from 'lucide-react-native';
+import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, MessageSquare, ClipboardList, Send, Navigation, RotateCcw } from 'lucide-react-native';
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -82,7 +82,16 @@ const SideMapTileBox = () => (
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
-  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? trip?.stops?.[trip.stops.length - 1] ?? null;
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const isReturnDelivery = ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN';
+
+  const targetSeq = isReturnDelivery ? 4 : 2;
+  const dropoffStop =
+    trip?.stops?.find((s) => s.stop_sequence === targetSeq) ??
+    (isReturnDelivery
+      ? (trip?.stops?.find((s) => s.stop_sequence === 4) ?? trip?.stops?.[trip.stops.length - 1])
+      : (trip?.stops?.find((s) => s.stop_sequence === 2) ?? trip?.stops?.find((s) => s.stop_type === 'Dropoff'))) ??
+    trip?.stops?.[trip.stops?.length - 1] ?? null;
 
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -94,18 +103,22 @@ const DeliveryVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const key = `delivery_draft_photos_${trip.id}`;
-        const saved = await SecureStore.getItemAsync(key);
+        const draftKey = isReturnDelivery
+          ? `return_delivery_draft_photos_${trip.id}`
+          : `delivery_draft_photos_${trip.id}`;
+        const saved = await SecureStore.getItemAsync(draftKey);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) setPhotos(parsed);
+        } else {
+          setPhotos([]);
         }
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id]);
+  }, [trip?.id, isReturnDelivery]);
 
   const addPhoto = async () => {
     try {
@@ -114,8 +127,10 @@ const DeliveryVerificationScreen = () => {
         setPhotos((prev) => {
           const next = [...prev, photo].slice(0, 3);
           if (trip?.id) {
-            SecureStore.setItemAsync(`delivery_draft_photos_${trip.id}`, JSON.stringify(next));
-            SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(next));
+            const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
+            const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
+            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
           }
           return next;
         });
@@ -129,8 +144,10 @@ const DeliveryVerificationScreen = () => {
     setPhotos((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
       if (trip?.id) {
-        SecureStore.setItemAsync(`delivery_draft_photos_${trip.id}`, JSON.stringify(next));
-        SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(next));
+        const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
+        const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
+        SecureStore.setItemAsync(draftKey, JSON.stringify(next));
+        SecureStore.setItemAsync(completedKey, JSON.stringify(next));
       }
       return next;
     });
@@ -141,13 +158,19 @@ const DeliveryVerificationScreen = () => {
     setSubmitting(true);
     try {
       if (trip?.id) {
-        await SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(photos));
+        const photoKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
+        await SecureStore.setItemAsync(photoKey, JSON.stringify(photos));
         if (trip.ref_id) {
-          await SecureStore.setItemAsync(`delivery_completed_photos_${trip.ref_id}`, JSON.stringify(photos));
+          const refKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.ref_id}` : `delivery_completed_photos_${trip.ref_id}`;
+          await SecureStore.setItemAsync(refKey, JSON.stringify(photos));
+        }
+        if (isReturnDelivery) {
+          await SecureStore.setItemAsync('last_return_delivery_photos', JSON.stringify(photos));
+        } else {
+          await SecureStore.setItemAsync('last_delivery_photos', JSON.stringify(photos));
         }
         await SecureStore.setItemAsync('last_completed_trip_id', trip.id);
       }
-      await SecureStore.setItemAsync('last_delivery_photos', JSON.stringify(photos));
       // Upload POD photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {
@@ -165,14 +188,49 @@ const DeliveryVerificationScreen = () => {
           }
         }
       }
-      try {
-        const updated = await tripService.updateStatus(trip.id, 'Completed', 'COMPLETED');
-        setTrip(updated);
-      } catch (statusErr) {
-        console.warn('Status update warning:', statusErr);
-      }
+      const ws = trip.driver_workflow_state || 'ASSIGNED';
+      const isRoundTrip =
+        trip.trip_type?.toLowerCase().includes('round') ||
+        (trip.stops && trip.stops.length >= 3) ||
+        (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name);
+
+      const isFinalLeg =
+        !isRoundTrip ||
+        ws === 'IN_TRANSIT_RETURN' ||
+        ws === 'ARRIVED_AT_FINAL_DELIVERY' ||
+        ws === 'FINAL_DELIVERY_VERIFICATION';
+
       triggerGPayHapticsAndSound();
-      router.replace('/trip/completed');
+
+      if (!isFinalLeg) {
+        // Round trip outbound delivery completed! Transition to Return Loading
+        try {
+          const updated = await tripService.updateStatus(trip.id, 'Loading', 'RETURN_LOADING');
+          setTrip(updated);
+        } catch (statusErr) {
+          console.warn('Status update warning:', statusErr);
+        }
+        await SecureStore.deleteItemAsync(`pickup_draft_photos_${trip.id}`).catch(() => {});
+        Alert.alert(
+          'Delivery Completed!',
+          'Outbound delivery confirmed. Proceed to Return Cargo Loading at ' + (stopLabel(dropoffStop) || 'destination'),
+          [
+            {
+              text: 'Start Return Loading',
+              onPress: () => router.replace('/trip/pickup'),
+            },
+          ]
+        );
+      } else {
+        // Final leg delivery completed! Transition to COMPLETED
+        try {
+          const updated = await tripService.updateStatus(trip.id, 'Completed', 'COMPLETED');
+          setTrip(updated);
+        } catch (statusErr) {
+          console.warn('Status update warning:', statusErr);
+        }
+        router.replace('/trip/completed');
+      }
     } catch (err) {
       console.error('Delivery completion error:', err);
       triggerGPayHapticsAndSound();
@@ -204,12 +262,17 @@ const DeliveryVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Delivery</Text>
+          <Text style={styles.headerTitle}>{isReturnDelivery ? 'Return Delivery' : 'Delivery'}</Text>
           <DelayButton onPress={() => setShowDelayModal(true)} />
         </View>
 
         {/* 4-Step Progress Stepper: Pickup ✓ -> Loading ✓ -> Delivery ● -> Complete */}
-        <TripProgressStepper currentStep={3} />
+        <TripProgressStepper
+          currentStep={3}
+          customStep1Label={isReturnDelivery ? 'Pickup ↩' : undefined}
+          customStep2Label={isReturnDelivery ? 'Loading ↩' : undefined}
+          customStep3Label={isReturnDelivery ? 'Delivery ↩' : undefined}
+        />
 
         {/* Location Card (Horizontal Side-by-Side matching Screenshot 2) */}
         <View style={styles.locationCardHorizontal}>
@@ -217,7 +280,7 @@ const DeliveryVerificationScreen = () => {
 
           <View style={styles.locationRightColumn}>
             <View style={styles.locationTopRow}>
-              <Text style={styles.locationSubLabel}>Delivery Point</Text>
+              <Text style={styles.locationSubLabel}>{isReturnDelivery ? 'Return Delivery Point' : 'Delivery Point'}</Text>
               <TouchableOpacity style={styles.navigateBlueBtn} activeOpacity={0.8} onPress={openNavigation}>
                 <Send size={12} color="#2563EB" strokeWidth={2.2} />
                 <Text style={styles.navigateBlueBtnText}>Navigate</Text>
@@ -236,7 +299,7 @@ const DeliveryVerificationScreen = () => {
         {/* Upload Delivery Photos Section */}
         <View style={styles.uploadSectionCard}>
           <View style={styles.uploadHeaderRow}>
-            <Text style={styles.uploadTitle}>UPLOAD DELIVERY PHOTOS</Text>
+            <Text style={styles.uploadTitle}>{isReturnDelivery ? 'UPLOAD RETURN DELIVERY PHOTOS' : 'UPLOAD DELIVERY PHOTOS'}</Text>
             <View style={styles.chatIconCircle}>
               <MessageSquare size={16} color="#E8450F" strokeWidth={2.2} />
             </View>
@@ -285,7 +348,7 @@ const DeliveryVerificationScreen = () => {
             disabled={submitting}
           >
             <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'COMPLETING…' : 'DELIVERY COMPLETE'}</Text>
+            <Text style={styles.mainActionBtnText}>{submitting ? 'COMPLETING…' : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}</Text>
             <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
@@ -345,6 +408,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+  },
+  returnBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 4,
+    marginTop: 2,
+  },
+  returnBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FA634E',
+    letterSpacing: 0.3,
   },
   delayBadgeBtn: {
     flexDirection: 'row',

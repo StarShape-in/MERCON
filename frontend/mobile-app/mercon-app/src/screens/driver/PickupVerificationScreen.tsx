@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G, Polygon, Ellipse } from 'react-native-svg';
-import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Check, Navigation, Send } from 'lucide-react-native';
+import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Check, Navigation, Send, RotateCcw } from 'lucide-react-native';
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -83,9 +83,16 @@ const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP';
+  const isReturnLoading = ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED';
+  const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP' || isReturnLoading;
 
-  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? trip?.stops?.[0] ?? null;
+  const targetSeq = isReturnLoading ? 3 : 1;
+  const pickupStop =
+    trip?.stops?.find((s) => s.stop_sequence === targetSeq) ??
+    (isReturnLoading
+      ? (trip?.stops?.find((s) => s.stop_sequence === 2 || s.stop_sequence === 3) ?? trip?.stops?.[1])
+      : trip?.stops?.find((s) => s.stop_type === 'Pickup')) ??
+    trip?.stops?.[0] ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
@@ -96,18 +103,22 @@ const PickupVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const key = `pickup_draft_photos_${trip.id}`;
-        const saved = await SecureStore.getItemAsync(key);
+        const draftKey = isReturnLoading
+          ? `return_pickup_draft_photos_${trip.id}`
+          : `pickup_draft_photos_${trip.id}`;
+        const saved = await SecureStore.getItemAsync(draftKey);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) setPhotos(parsed);
+        } else {
+          setPhotos([]);
         }
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id]);
+  }, [trip?.id, isReturnLoading]);
 
   const addPhoto = async () => {
     try {
@@ -116,8 +127,10 @@ const PickupVerificationScreen = () => {
         setPhotos((prev) => {
           const next = [...prev, photo].slice(0, 3);
           if (trip?.id) {
-            SecureStore.setItemAsync(`pickup_draft_photos_${trip.id}`, JSON.stringify(next));
-            SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(next));
+            const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
+            const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
+            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
           }
           return next;
         });
@@ -131,8 +144,10 @@ const PickupVerificationScreen = () => {
     setPhotos((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
       if (trip?.id) {
-        SecureStore.setItemAsync(`pickup_draft_photos_${trip.id}`, JSON.stringify(next));
-        SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(next));
+        const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
+        const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
+        SecureStore.setItemAsync(draftKey, JSON.stringify(next));
+        SecureStore.setItemAsync(completedKey, JSON.stringify(next));
       }
       return next;
     });
@@ -161,12 +176,18 @@ const PickupVerificationScreen = () => {
     setSubmitting(true);
     try {
       if (trip?.id) {
-        await SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(photos));
+        const photoKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
+        await SecureStore.setItemAsync(photoKey, JSON.stringify(photos));
         if (trip.ref_id) {
-          await SecureStore.setItemAsync(`pickup_completed_photos_${trip.ref_id}`, JSON.stringify(photos));
+          const refKey = isReturnLoading ? `return_pickup_completed_photos_${trip.ref_id}` : `pickup_completed_photos_${trip.ref_id}`;
+          await SecureStore.setItemAsync(refKey, JSON.stringify(photos));
+        }
+        if (isReturnLoading) {
+          await SecureStore.setItemAsync('last_return_pickup_photos', JSON.stringify(photos));
+        } else {
+          await SecureStore.setItemAsync('last_pickup_photos', JSON.stringify(photos));
         }
       }
-      await SecureStore.setItemAsync('last_pickup_photos', JSON.stringify(photos));
       // Upload photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {
@@ -184,8 +205,10 @@ const PickupVerificationScreen = () => {
           }
         }
       }
+      const nextWorkflowState = isReturnLoading ? 'IN_TRANSIT_RETURN' : 'IN_TRANSIT';
+
       try {
-        const updated = await tripService.updateStatus(trip.id, 'InTransit', 'IN_TRANSIT');
+        const updated = await tripService.updateStatus(trip.id, 'InTransit', nextWorkflowState);
         setTrip(updated);
       } catch (statusErr) {
         console.warn('Status update warning:', statusErr);
@@ -223,12 +246,17 @@ const PickupVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Loading</Text>
+          <Text style={styles.headerTitle}>{isReturnLoading ? 'Return Loading' : 'Loading'}</Text>
           <DelayButton onPress={() => setShowDelayModal(true)} />
         </View>
 
         {/* 4-Step Progress Stepper: Pickup -> Loading -> Delivery -> Complete */}
-        <TripProgressStepper currentStep={isStarted ? 2 : 1} />
+        <TripProgressStepper
+          currentStep={isStarted ? 2 : 1}
+          customStep1Label={isReturnLoading ? 'Pickup ↩' : undefined}
+          customStep2Label={isReturnLoading ? 'Loading ↩' : undefined}
+          customStep3Label={isReturnLoading ? 'Delivery ↩' : undefined}
+        />
 
         {/* Location Card (Horizontal Side-by-Side matching Screenshot 2) */}
         <View style={styles.locationCardHorizontal}>
@@ -236,7 +264,7 @@ const PickupVerificationScreen = () => {
 
           <View style={styles.locationRightColumn}>
             <View style={styles.locationTopRow}>
-              <Text style={styles.locationSubLabel}>Pickup Point</Text>
+              <Text style={styles.locationSubLabel}>{isReturnLoading ? 'Return Pickup Point' : 'Pickup Point'}</Text>
               <TouchableOpacity style={styles.navigateBlueBtn} activeOpacity={0.8} onPress={openNavigation}>
                 <Send size={12} color="#2563EB" strokeWidth={2.2} />
                 <Text style={styles.navigateBlueBtnText}>Navigate</Text>
@@ -255,7 +283,7 @@ const PickupVerificationScreen = () => {
         {/* Upload Loading Photos Section */}
         <View style={styles.uploadSectionCard}>
           <View style={styles.uploadHeaderRow}>
-            <Text style={styles.uploadTitle}>UPLOAD LOADING PHOTOS</Text>
+            <Text style={styles.uploadTitle}>{isReturnLoading ? 'UPLOAD RETURN LOADING PHOTOS' : 'UPLOAD LOADING PHOTOS'}</Text>
             <View style={styles.cameraIconCircle}>
               <Camera size={16} color="#E8450F" strokeWidth={2.2} />
             </View>
@@ -304,7 +332,7 @@ const PickupVerificationScreen = () => {
             disabled={submitting}
           >
             <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'PROCESSING…' : 'LOADING COMPLETE'}</Text>
+            <Text style={styles.mainActionBtnText}>{submitting ? 'PROCESSING…' : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}</Text>
             <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
@@ -364,6 +392,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+  },
+  returnBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 4,
+    marginTop: 2,
+  },
+  returnBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FA634E',
+    letterSpacing: 0.3,
   },
   delayBadgeBtn: {
     flexDirection: 'row',

@@ -45,6 +45,8 @@ const TripCompletedScreen = () => {
   const [completedTrip, setCompletedTrip] = useState<MobileTrip | null>(null);
   const [localPickupPhotos, setLocalPickupPhotos] = useState<any[]>([]);
   const [localDeliveryPhotos, setLocalDeliveryPhotos] = useState<any[]>([]);
+  const [localReturnPickupPhotos, setLocalReturnPickupPhotos] = useState<any[]>([]);
+  const [localReturnDeliveryPhotos, setLocalReturnDeliveryPhotos] = useState<any[]>([]);
 
   useEffect(() => {
     refetch();
@@ -96,6 +98,42 @@ const TripCompletedScreen = () => {
             }
           }
         }
+
+        const returnPickupKeys = [
+          targetId ? `return_pickup_completed_photos_${targetId}` : null,
+          targetRefId ? `return_pickup_completed_photos_${targetRefId}` : null,
+          lastTripId ? `return_pickup_completed_photos_${lastTripId}` : null,
+          'last_return_pickup_photos',
+        ].filter(Boolean) as string[];
+
+        for (const key of returnPickupKeys) {
+          const saved = await SecureStore.getItemAsync(key);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLocalReturnPickupPhotos(parsed);
+              break;
+            }
+          }
+        }
+
+        const returnDeliveryKeys = [
+          targetId ? `return_delivery_completed_photos_${targetId}` : null,
+          targetRefId ? `return_delivery_completed_photos_${targetRefId}` : null,
+          lastTripId ? `return_delivery_completed_photos_${lastTripId}` : null,
+          'last_return_delivery_photos',
+        ].filter(Boolean) as string[];
+
+        for (const key of returnDeliveryKeys) {
+          const saved = await SecureStore.getItemAsync(key);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLocalReturnDeliveryPhotos(parsed);
+              break;
+            }
+          }
+        }
       } catch (e) {
         console.error('Error loading local photos:', e);
       }
@@ -111,9 +149,19 @@ const TripCompletedScreen = () => {
 
   const apiCargo = tripDocs.filter((d) => d.doc_type === 'Waybill' || d.doc_type === 'CARGO_PHOTO' || d.doc_type === 'CustomsClearance');
   const apiPod = tripDocs.filter((d) => d.doc_type === 'POD');
+  const apiReturnCargo = tripDocs.filter((d) => d.doc_type === 'RETURN_CARGO_PHOTO' || d.doc_type === 'RETURN_POL');
+  const apiReturnPod = tripDocs.filter((d) => d.doc_type === 'RETURN_POD');
 
   const polList = apiCargo.length > 0 ? apiCargo : localPickupPhotos;
   const podList = apiPod.length > 0 ? apiPod : localDeliveryPhotos;
+  const returnPolList = apiReturnCargo.length > 0 ? apiReturnCargo : localReturnPickupPhotos;
+  const returnPodList = apiReturnPod.length > 0 ? apiReturnPod : localReturnDeliveryPhotos;
+
+  const isRoundTrip =
+    activeTrip?.trip_type?.toLowerCase().includes('round') ||
+    (activeTrip?.stops && activeTrip.stops.length >= 3) ||
+    returnPolList.length > 0 ||
+    returnPodList.length > 0;
 
   const handleShare = async () => {
     try {
@@ -160,6 +208,26 @@ const TripCompletedScreen = () => {
       })
     : 'Aug 26, 2026 at 12:03 PM';
 
+  const formattedReturnLoadingDate = (activeTrip as any)?.actual_return_pickup
+    ? new Date((activeTrip as any).actual_return_pickup).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Aug 26, 2026 at 02:15 PM';
+
+  const formattedReturnDeliveryDate = (activeTrip as any)?.actual_return_delivery || activeTrip?.actual_end
+    ? new Date((activeTrip as any).actual_return_delivery || activeTrip?.actual_end).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Aug 26, 2026 at 05:30 PM';
+
   // ---------------------------------------------------------------------------
   // VIEW 1: CLEAN LANDING CARD (MATCHING USER SCREENSHOT EXACTLY)
   // ---------------------------------------------------------------------------
@@ -185,19 +253,19 @@ const TripCompletedScreen = () => {
           <View style={styles.cleanInfoList}>
             {/* Row 1: Destination Location */}
             <View style={styles.cleanInfoRow}>
-              <MapPin size={24} color="#16A34A" strokeWidth={2.2} />
+              <MapPin size={20} color="#16A34A" strokeWidth={2.2} />
               <Text style={styles.cleanInfoText}>{destinationLocation}</Text>
             </View>
 
             {/* Row 2: Delivery Date */}
             <View style={styles.cleanInfoRow}>
-              <Calendar size={24} color="#16A34A" strokeWidth={2.2} />
+              <Calendar size={20} color="#16A34A" strokeWidth={2.2} />
               <Text style={styles.cleanInfoText}>{formattedDeliveryDate}</Text>
             </View>
 
             {/* Row 3: Trip ID */}
             <View style={styles.cleanInfoRow}>
-              <FileText size={24} color="#16A34A" strokeWidth={2.2} />
+              <FileText size={20} color="#16A34A" strokeWidth={2.2} />
               <Text style={styles.cleanInfoText}>Trip ID: {tripIdDisplay}</Text>
             </View>
           </View>
@@ -306,8 +374,8 @@ const TripCompletedScreen = () => {
               </View>
             </View>
 
-            {/* Grid Row 3: Loading Completed (Left) */}
-            <View style={[styles.gridRow, { borderBottomWidth: 0 }]}>
+            {/* Grid Row 3: Loading Completed (Left) | Return Loading Completed (Right) */}
+            <View style={[styles.gridRow, !isRoundTrip && { borderBottomWidth: 0 }]}>
               <View style={[styles.gridCell, styles.gridCellLeft]}>
                 <View style={styles.cellIconRing}>
                   <PackageCheck size={11} color="#10B981" strokeWidth={2.2} />
@@ -317,8 +385,37 @@ const TripCompletedScreen = () => {
                   <Text style={styles.cellValueBold}>{formattedLoadingDate}</Text>
                 </View>
               </View>
-              <View style={styles.gridCell} />
+
+              {isRoundTrip ? (
+                <View style={styles.gridCell}>
+                  <View style={styles.cellIconRing}>
+                    <PackageCheck size={11} color="#FA634E" strokeWidth={2.2} />
+                  </View>
+                  <View style={styles.cellTextWrapper}>
+                    <Text style={styles.cellLabel}>Return Loading Completed</Text>
+                    <Text style={styles.cellValueBold}>{formattedReturnLoadingDate}</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.gridCell} />
+              )}
             </View>
+
+            {/* Grid Row 4 (Round Trip): Return Delivery Completed */}
+            {isRoundTrip && (
+              <View style={[styles.gridRow, { borderBottomWidth: 0 }]}>
+                <View style={[styles.gridCell, styles.gridCellLeft]}>
+                  <View style={styles.cellIconRing}>
+                    <CheckCircle2 size={11} color="#FA634E" strokeWidth={2.2} />
+                  </View>
+                  <View style={styles.cellTextWrapper}>
+                    <Text style={styles.cellLabel}>Return Delivery Completed</Text>
+                    <Text style={styles.cellValueBold}>{formattedReturnDeliveryDate}</Text>
+                  </View>
+                </View>
+                <View style={styles.gridCell} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -407,6 +504,98 @@ const TripCompletedScreen = () => {
               })}
             </View>
           )}
+
+          {/* Return Proof of Loading (Return POL) */}
+          {isRoundTrip && (
+            <>
+              <View style={styles.cardDivider} />
+              <View style={styles.mediaSectionHeader}>
+                <View style={styles.mediaSectionTitleGroup}>
+                  <PackageCheck size={18} color="#FA634E" strokeWidth={2.2} />
+                  <Text style={styles.mediaSectionTitle}>Return Proof of Loading (Return POL)</Text>
+                </View>
+                {returnPolList.length > 0 && (
+                  <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
+                    <Text style={styles.viewAllText}>View all ›</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {returnPolList.length === 0 ? (
+                <View style={styles.emptyPhotoBox}>
+                  <PackageCheck size={18} color="#94A3B8" />
+                  <Text style={styles.emptyPhotoText}>No return loading photo attached</Text>
+                </View>
+              ) : (
+                <View style={styles.mediaGrid}>
+                  {returnPolList.slice(0, 3).map((item, idx) => {
+                    const photoUri = getPhotoUri(item);
+                    if (!photoUri) return null;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.mediaThumbFrame}
+                        activeOpacity={0.8}
+                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `Return Proof of Loading #${idx + 1}` })}
+                      >
+                        <Image
+                          source={{ uri: photoUri }}
+                          style={styles.mediaThumbImg}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Return Proof of Delivery (Return POD) */}
+          {isRoundTrip && (
+            <>
+              <View style={styles.cardDivider} />
+              <View style={styles.mediaSectionHeader}>
+                <View style={styles.mediaSectionTitleGroup}>
+                  <CheckCircle2 size={18} color="#FA634E" strokeWidth={2.2} />
+                  <Text style={styles.mediaSectionTitle}>Return Proof of Delivery (Return POD)</Text>
+                </View>
+                {returnPodList.length > 0 && (
+                  <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
+                    <Text style={styles.viewAllText}>View all ›</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {returnPodList.length === 0 ? (
+                <View style={styles.emptyPhotoBox}>
+                  <CheckCircle2 size={18} color="#94A3B8" />
+                  <Text style={styles.emptyPhotoText}>No return delivery photo attached</Text>
+                </View>
+              ) : (
+                <View style={styles.mediaGrid}>
+                  {returnPodList.slice(0, 3).map((item, idx) => {
+                    const photoUri = getPhotoUri(item);
+                    if (!photoUri) return null;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.mediaThumbFrame}
+                        activeOpacity={0.8}
+                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `Return Proof of Delivery #${idx + 1}` })}
+                      >
+                        <Image
+                          source={{ uri: photoUri }}
+                          style={styles.mediaThumbImg}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* 3. Bottom Action Buttons in Detailed View */}
@@ -475,6 +664,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginBottom: 4,
     textAlign: 'center',
+    alignSelf: 'center',
   },
   cleanCustomerName: {
     fontSize: 17,
@@ -482,12 +672,15 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     textAlign: 'center',
     lineHeight: 22,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
   },
   cleanInfoList: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
+    marginTop: 18,
     gap: 12,
     marginBottom: 20,
   },
@@ -495,10 +688,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   cleanInfoText: {
-    fontSize: 15,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#1E293B',
     textAlign: 'center',
@@ -511,8 +704,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cleanLogoImage: {
-    width: 115,
-    height: 40,
+    width: 75,
+    height: 26,
     alignSelf: 'center',
   },
   cleanActionBar: {
