@@ -493,6 +493,7 @@ export default function CreateMonthlyTripPage() {
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
   const [masterTripCharge, setMasterTripCharge] = useState('');
+  const [masterAdditionalCharges, setMasterAdditionalCharges] = useState('');
   const [masterDriverCharge, setMasterDriverCharge] = useState('');
 
   const [loopTeams, setLoopTeams] = useState<LoopTeam[]>([
@@ -507,11 +508,14 @@ export default function CreateMonthlyTripPage() {
       if (slot0.billingAmount && (!masterTripCharge || masterTripCharge === '0')) {
         setMasterTripCharge(slot0.billingAmount);
       }
+      if (slot0.additionalCharges && (!masterAdditionalCharges || masterAdditionalCharges === '0')) {
+        setMasterAdditionalCharges(slot0.additionalCharges);
+      }
       if (slot0.driverTripCharge && (!masterDriverCharge || masterDriverCharge === '0')) {
         setMasterDriverCharge(slot0.driverTripCharge);
       }
     }
-  }, [contractSlots, masterTripCharge, masterDriverCharge]);
+  }, [contractSlots, masterTripCharge, masterAdditionalCharges, masterDriverCharge]);
 
   const handleMasterDriverChange = (driverId: string) => {
     const drvVal = !driverId || driverId === 'unassigned' ? '' : driverId;
@@ -898,16 +902,20 @@ export default function CreateMonthlyTripPage() {
         const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
         const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
 
-        // Per-row overrides take priority, then fall back to slot-level values
+        // Per-row overrides take priority, then fall back to master or slot-level values
         const effectiveTripCharge = assignment.tripCharge !== undefined && assignment.tripCharge !== ''
           ? assignment.tripCharge
-          : slot.billingAmount;
+          : (masterTripCharge || slot.billingAmount);
+        const effectiveExtras = assignment.additionalCharges !== undefined && assignment.additionalCharges !== ''
+          ? assignment.additionalCharges
+          : (masterAdditionalCharges || slot.additionalCharges);
         const effectiveDriverCharge = assignment.driverTripCharge !== undefined && assignment.driverTripCharge !== ''
           ? assignment.driverTripCharge
-          : slot.driverTripCharge;
+          : (masterDriverCharge || slot.driverTripCharge);
 
         const baseAmount = Number(effectiveTripCharge) || 0;
-        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+        const extrasAmount = (Number(effectiveExtras) || 0) + outboundFeesSum + returnFeesSum;
+        const totalAmount = baseAmount + extrasAmount;
 
         let destString = slot.destination.trim();
 
@@ -935,7 +943,8 @@ export default function CreateMonthlyTripPage() {
           billing_type: contractBillingType || 'MONTHLY',
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
-          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          billing_amount: baseAmount > 0 ? baseAmount : (totalAmount > 0 ? totalAmount : undefined),
+          driver_charge: driverChargeVal > 0 ? driverChargeVal : undefined,
           trip_charges: driverChargeVal > 0 ? driverChargeVal : undefined,
           status: 'Draft',
         });
@@ -1247,6 +1256,8 @@ export default function CreateMonthlyTripPage() {
                     onMasterVehicleChange={handleMasterVehicleChange}
                     masterTripCharge={masterTripCharge}
                     onMasterTripChargeChange={handleMasterTripChargeChange}
+                    masterAdditionalCharges={masterAdditionalCharges}
+                    onMasterAdditionalChargesChange={setMasterAdditionalCharges}
                     masterDriverCharge={masterDriverCharge}
                     onMasterDriverChargeChange={handleMasterDriverChargeChange}
                     loopTeams={loopTeams}

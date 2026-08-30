@@ -9,6 +9,7 @@ export interface ContractSlot {
   pickupTime: string;
   dropoffTime: string;
   billingAmount: string;
+  additionalCharges?: string;
   driverTripCharge: string;
   isOvernight?: boolean;
   intermediateLocations: string[];
@@ -37,6 +38,7 @@ export interface LoopTeam {
   driverId: string;
   vehicleId: string;
   tripCharge?: string;
+  additionalCharges?: string;
   driverTripCharge?: string;
 }
 
