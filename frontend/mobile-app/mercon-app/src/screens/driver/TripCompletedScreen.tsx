@@ -482,19 +482,23 @@ const styles = StyleSheet.create({
   },
   cleanInfoList: {
     width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    gap: 22,
+    gap: 20,
     marginBottom: 44,
   },
   cleanInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
+    gap: 12,
   },
   cleanInfoText: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1E293B',
+    textAlign: 'center',
   },
   cleanBrandingGroup: {
     alignItems: 'center',
