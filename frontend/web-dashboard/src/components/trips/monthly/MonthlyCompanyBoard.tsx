@@ -32,6 +32,145 @@ interface MonthlyCompanyBoardProps {
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
 }
 
+export interface TemplatePalette {
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  countBg: string;
+  countText: string;
+  countBorder: string;
+  iconColor: string;
+  arrowColor: string;
+  dateBg: string;
+  dateText: string;
+  dateBorder: string;
+  cardBorderHover: string;
+  deckBorder: string;
+  moreBtnText: string;
+  moreBtnBorder: string;
+}
+
+const TEMPLATE_PALETTES: TemplatePalette[] = [
+  // Palette 0: Indigo / Blue
+  {
+    badgeBg: 'bg-indigo-100/90 dark:bg-indigo-950/80',
+    badgeText: 'text-indigo-800 dark:text-indigo-200',
+    badgeBorder: 'border-indigo-200/90 dark:border-indigo-800/80',
+    countBg: 'bg-indigo-50 dark:bg-indigo-950/60',
+    countText: 'text-indigo-700 dark:text-indigo-300',
+    countBorder: 'border-indigo-200 dark:border-indigo-800',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+    arrowColor: 'text-indigo-600 dark:text-indigo-400',
+    dateBg: 'bg-indigo-50 dark:bg-indigo-950/60',
+    dateText: 'text-indigo-950 dark:text-indigo-200',
+    dateBorder: 'border-indigo-200/80 dark:border-indigo-800/80',
+    cardBorderHover: 'hover:border-indigo-300 dark:hover:border-indigo-700',
+    deckBorder: 'border-indigo-200/80',
+    moreBtnText: 'text-indigo-700 dark:text-indigo-300',
+    moreBtnBorder: 'border-indigo-200/80 dark:border-indigo-800/80',
+  },
+  // Palette 1: Emerald / Green
+  {
+    badgeBg: 'bg-emerald-100/90 dark:bg-emerald-950/80',
+    badgeText: 'text-emerald-800 dark:text-emerald-200',
+    badgeBorder: 'border-emerald-200/90 dark:border-emerald-800/80',
+    countBg: 'bg-emerald-50 dark:bg-emerald-950/60',
+    countText: 'text-emerald-700 dark:text-emerald-300',
+    countBorder: 'border-emerald-200 dark:border-emerald-800',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+    arrowColor: 'text-emerald-600 dark:text-emerald-400',
+    dateBg: 'bg-emerald-50 dark:bg-emerald-950/60',
+    dateText: 'text-emerald-950 dark:text-emerald-200',
+    dateBorder: 'border-emerald-200/80 dark:border-emerald-800/80',
+    cardBorderHover: 'hover:border-emerald-300 dark:hover:border-emerald-700',
+    deckBorder: 'border-emerald-200/80',
+    moreBtnText: 'text-emerald-700 dark:text-emerald-300',
+    moreBtnBorder: 'border-emerald-200/80 dark:border-emerald-800/80',
+  },
+  // Palette 2: Sky Blue
+  {
+    badgeBg: 'bg-sky-100/90 dark:bg-sky-950/80',
+    badgeText: 'text-sky-800 dark:text-sky-200',
+    badgeBorder: 'border-sky-200/90 dark:border-sky-800/80',
+    countBg: 'bg-sky-50 dark:bg-sky-950/60',
+    countText: 'text-sky-700 dark:text-sky-300',
+    countBorder: 'border-sky-200 dark:border-sky-800',
+    iconColor: 'text-sky-600 dark:text-sky-400',
+    arrowColor: 'text-sky-600 dark:text-sky-400',
+    dateBg: 'bg-sky-50 dark:bg-sky-950/60',
+    dateText: 'text-sky-950 dark:text-sky-200',
+    dateBorder: 'border-sky-200/80 dark:border-sky-800/80',
+    cardBorderHover: 'hover:border-sky-300 dark:hover:border-sky-700',
+    deckBorder: 'border-sky-200/80',
+    moreBtnText: 'text-sky-700 dark:text-sky-300',
+    moreBtnBorder: 'border-sky-200/80 dark:border-sky-800/80',
+  },
+  // Palette 3: Violet / Purple
+  {
+    badgeBg: 'bg-purple-100/90 dark:bg-purple-950/80',
+    badgeText: 'text-purple-800 dark:text-purple-200',
+    badgeBorder: 'border-purple-200/90 dark:border-purple-800/80',
+    countBg: 'bg-purple-50 dark:bg-purple-950/60',
+    countText: 'text-purple-700 dark:text-purple-300',
+    countBorder: 'border-purple-200 dark:border-purple-800',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+    arrowColor: 'text-purple-600 dark:text-purple-400',
+    dateBg: 'bg-purple-50 dark:bg-purple-950/60',
+    dateText: 'text-purple-950 dark:text-purple-200',
+    dateBorder: 'border-purple-200/80 dark:border-purple-800/80',
+    cardBorderHover: 'hover:border-purple-300 dark:hover:border-purple-700',
+    deckBorder: 'border-purple-200/80',
+    moreBtnText: 'text-purple-700 dark:text-purple-300',
+    moreBtnBorder: 'border-purple-200/80 dark:border-purple-800/80',
+  },
+  // Palette 4: Amber / Warm Orange
+  {
+    badgeBg: 'bg-amber-100/90 dark:bg-amber-950/80',
+    badgeText: 'text-amber-800 dark:text-amber-200',
+    badgeBorder: 'border-amber-200/90 dark:border-amber-800/80',
+    countBg: 'bg-amber-50 dark:bg-amber-950/60',
+    countText: 'text-amber-700 dark:text-amber-300',
+    countBorder: 'border-amber-200 dark:border-amber-800',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+    arrowColor: 'text-amber-600 dark:text-amber-400',
+    dateBg: 'bg-amber-50 dark:bg-amber-950/60',
+    dateText: 'text-amber-950 dark:text-amber-200',
+    dateBorder: 'border-amber-200/80 dark:border-amber-800/80',
+    cardBorderHover: 'hover:border-amber-300 dark:hover:border-amber-700',
+    deckBorder: 'border-amber-200/80',
+    moreBtnText: 'text-amber-700 dark:text-amber-300',
+    moreBtnBorder: 'border-amber-200/80 dark:border-amber-800/80',
+  },
+  // Palette 5: Teal / Cyan
+  {
+    badgeBg: 'bg-teal-100/90 dark:bg-teal-950/80',
+    badgeText: 'text-teal-800 dark:text-teal-200',
+    badgeBorder: 'border-teal-200/90 dark:border-teal-800/80',
+    countBg: 'bg-teal-50 dark:bg-teal-950/60',
+    countText: 'text-teal-700 dark:text-teal-300',
+    countBorder: 'border-teal-200 dark:border-teal-800',
+    iconColor: 'text-teal-600 dark:text-teal-400',
+    arrowColor: 'text-teal-600 dark:text-teal-400',
+    dateBg: 'bg-teal-50 dark:bg-teal-950/60',
+    dateText: 'text-teal-950 dark:text-teal-200',
+    dateBorder: 'border-teal-200/80 dark:border-teal-800/80',
+    cardBorderHover: 'hover:border-teal-300 dark:hover:border-teal-700',
+    deckBorder: 'border-teal-200/80',
+    moreBtnText: 'text-teal-700 dark:text-teal-300',
+    moreBtnBorder: 'border-teal-200/80 dark:border-teal-800/80',
+  },
+];
+
+function getTemplatePalette(key: string, index: number): TemplatePalette {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash << 5) - hash + key.charCodeAt(i);
+    hash |= 0;
+  }
+  const paletteIndex = Math.abs(hash + index) % TEMPLATE_PALETTES.length;
+  return TEMPLATE_PALETTES[paletteIndex];
+}
+
 export default function MonthlyCompanyBoard({
   companies,
   selectedTripIds = [],
@@ -107,53 +246,19 @@ function shouldShowTripOnMonthlyBoard(trip: MonthlyBoardTrip, todayStr: string):
 }
 
 function CompanyProfileLogo({ customer }: { customer: { name: string; avatar_url?: string | null; logo_url?: string | null } }) {
-  const logoUrl = customer.avatar_url || customer.logo_url;
+  const logoUrl = customer.logo_url || customer.avatar_url;
   if (logoUrl) {
     return (
       <img
         src={logoUrl}
         alt={customer.name}
-        className="h-8 w-8 shrink-0 rounded-lg object-cover border border-purple-200 dark:border-purple-800 shadow-3xs"
+        className="h-8 w-8 shrink-0 rounded-lg object-contain border border-slate-200 dark:border-slate-800 bg-white p-0.5 shadow-3xs"
       />
     );
   }
 
-  const nameUpper = customer.name.toUpperCase();
-
-  if (nameUpper.includes('IMILE')) {
-    return (
-      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-red-600 to-rose-700 text-white grid place-items-center text-[10px] font-black tracking-tight shadow-3xs border border-red-500">
-        iMile
-      </span>
-    );
-  }
-
-  if (nameUpper.includes('JINGDONG') || nameUpper.includes('JDL')) {
-    return (
-      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-red-600 to-red-800 text-white grid place-items-center text-[11px] font-black tracking-wider shadow-3xs border border-red-600">
-        JDL
-      </span>
-    );
-  }
-
-  if (nameUpper.includes('AMAZON')) {
-    return (
-      <span className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 grid place-items-center text-[10px] font-black tracking-tight shadow-3xs border border-slate-700">
-        amzn
-      </span>
-    );
-  }
-
-  if (nameUpper.includes('DHL')) {
-    return (
-      <span className="h-8 w-8 shrink-0 rounded-lg bg-amber-400 text-red-700 grid place-items-center text-xs font-black tracking-wider shadow-3xs border border-amber-500">
-        DHL
-      </span>
-    );
-  }
-
   return (
-    <span className="h-8 w-8 shrink-0 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 grid place-items-center text-xs font-extrabold shadow-3xs">
+    <span className="h-8 w-8 shrink-0 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 grid place-items-center text-xs font-extrabold shadow-3xs">
       {initialsOf(customer.name)}
     </span>
   );
@@ -267,7 +372,7 @@ function CompanyColumn({
               <Checkbox
                 checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                 onCheckedChange={() => onToggleCompany(companyTripIds)}
-                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 shrink-0"
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand shrink-0"
                 aria-label={`Select all trips for ${company.customer.name}`}
               />
             )}
@@ -283,7 +388,7 @@ function CompanyColumn({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
               {allCompanyTrips.length}
             </span>
             {unassignedCount > 0 && (
@@ -305,10 +410,11 @@ function CompanyColumn({
             No scheduled trips
           </div>
         ) : (
-          templateGroups.map((group) => (
+          templateGroups.map((group, idx) => (
             <TemplateBigCard
               key={group.key}
               group={group}
+              index={idx}
               selectedTripIds={selectedTripIds}
               onToggleTrip={onToggleTrip}
               onSelectTrip={handleSelectTrip}
@@ -323,17 +429,21 @@ function CompanyColumn({
 /** Big Card for a specific Template (Line Type + Vehicle Class + Route + Rate) */
 function TemplateBigCard({
   group,
+  index = 0,
   selectedTripIds = [],
   onToggleTrip,
   onSelectTrip,
 }: {
   group: TemplateGroup;
+  index?: number;
   selectedTripIds?: string[];
   onToggleTrip?: (id: string) => void;
   onSelectTrip: (trip: MonthlyBoardTrip) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  const palette = useMemo(() => getTemplatePalette(group.key, index), [group.key, index]);
 
   const displayedTrips = isExpanded
     ? [...group.threeDayTrips, ...group.otherTrips]
@@ -355,7 +465,7 @@ function TemplateBigCard({
       >
         {/* Line Type Badge + Rate */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-100/90 dark:bg-purple-950/80 px-2.5 py-0.5 rounded-md border border-purple-200/80 dark:border-purple-800/80">
+          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${palette.badgeBg} ${palette.badgeText} ${palette.badgeBorder}`}>
             {group.lineType}
           </span>
           <span className="text-xs font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-3xs">
@@ -368,7 +478,7 @@ function TemplateBigCard({
           <span className="truncate max-w-[130px]" title={group.origin}>
             {group.origin}
           </span>
-          <ArrowRight className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+          <ArrowRight className={`h-3.5 w-3.5 shrink-0 ${palette.arrowColor}`} />
           <span className="truncate max-w-[130px]" title={group.destination}>
             {group.destination}
           </span>
@@ -377,10 +487,10 @@ function TemplateBigCard({
         {/* Vehicle Class & Total Trips Count */}
         <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 dark:text-slate-300 pt-1">
           <span className="flex items-center gap-1">
-            <Truck className="h-3 w-3 text-purple-600 shrink-0" />
+            <Truck className={`h-3 w-3 shrink-0 ${palette.iconColor}`} />
             {group.vehicleClass}
           </span>
-          <span className="text-purple-700 dark:text-purple-300 font-extrabold bg-purple-100/80 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+          <span className={`font-extrabold px-2 py-0.5 rounded-md border ${palette.countBg} ${palette.countText} ${palette.countBorder}`}>
             {group.trips.length} {group.trips.length === 1 ? 'trip' : 'trips'}
           </span>
         </div>
@@ -395,13 +505,14 @@ function TemplateBigCard({
           {displayedTrips.map((trip, idx) => {
             const isSelected = selectedTripIds.includes(trip.id);
 
-            // Ascending z-index layering (Card 0: z-10, Card 1: z-20, Card 2: z-30)
+            // Layering logic in collapsed stacked state:
+            // Ascending z-index (Card 0: z-10, Card 1: z-20, Card 2: z-30)
             // with negative top margin (-mt-7).
             // Card 1's top Date header covers Card 0's bottom driver line, leaving Card 0's Date header 100% exposed!
             // Card 2's top Date header covers Card 1's bottom driver line, leaving Card 1's Date header 100% exposed!
             const zIndexClass = idx === 0 ? 'z-10' : idx === 1 ? 'z-20' : 'z-30';
             const stackClass = !isDeckUnstacked && idx > 0
-              ? `-mt-7 ${zIndexClass} scale-[0.99] opacity-95 shadow-md border-t border-purple-200/80`
+              ? `-mt-7 ${zIndexClass} scale-[0.99] opacity-95 shadow-md border-t ${palette.deckBorder}`
               : `mt-2.5 ${zIndexClass} scale-100 opacity-100 shadow-sm`;
 
             return (
@@ -411,6 +522,7 @@ function TemplateBigCard({
               >
                 <CompanyBoardTripCard
                   trip={trip}
+                  palette={palette}
                   isSelected={isSelected}
                   onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
                   onOpen={() => onSelectTrip(trip)}
@@ -429,7 +541,7 @@ function TemplateBigCard({
             e.stopPropagation();
             setIsExpanded(!isExpanded);
           }}
-          className="w-full py-1.5 text-center text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center justify-center gap-1 bg-white/80 dark:bg-slate-900/80 border border-purple-200/80 dark:border-purple-800/80 rounded-xl transition-colors cursor-pointer shadow-3xs"
+          className={`w-full py-1.5 text-center text-[11px] font-bold hover:underline flex items-center justify-center gap-1 bg-white/80 dark:bg-slate-900/80 border rounded-xl transition-colors cursor-pointer shadow-3xs ${palette.moreBtnText} ${palette.moreBtnBorder}`}
         >
           <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips in month ▾`}</span>
         </button>
@@ -440,23 +552,30 @@ function TemplateBigCard({
 
 function CompanyBoardTripCard({
   trip,
+  palette,
   isSelected = false,
   onToggle,
   onOpen,
 }: {
   trip: MonthlyBoardTrip;
+  palette?: TemplatePalette;
   isSelected?: boolean;
   onToggle?: () => void;
   onOpen?: () => void;
 }) {
   const gap = isUnassigned(trip);
 
+  const dateBg = palette ? palette.dateBg : 'bg-blue-50 dark:bg-blue-950/60';
+  const dateText = palette ? palette.dateText : 'text-blue-950 dark:text-blue-200';
+  const dateBorder = palette ? palette.dateBorder : 'border-blue-200/80 dark:border-blue-800/80';
+  const iconColor = palette ? palette.iconColor : 'text-blue-600 dark:text-blue-400';
+
   return (
     <div
       onClick={onOpen}
       className={`group relative rounded-xl border bg-white dark:bg-slate-900 p-2.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 select-none ${
         isSelected
-          ? 'border-purple-500 ring-1 ring-purple-500/30 bg-purple-50/20'
+          ? 'border-blue-500 ring-1 ring-blue-500/30 bg-blue-50/20'
           : gap
           ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
           : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
@@ -470,14 +589,14 @@ function CompanyBoardTripCard({
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={onToggle}
-                className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                className="h-3.5 w-3.5 rounded border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
               />
             </div>
           )}
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80 text-[11px] font-extrabold text-purple-950 dark:text-purple-200 whitespace-nowrap">
-            <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap ${dateBg} ${dateText} ${dateBorder}`}>
+            <Calendar className={`w-3.5 h-3.5 shrink-0 ${iconColor}`} />
             <span>{formatDayHeading(trip.date)}</span>
-            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-300 ml-0.5">{formatTime(trip.planned_start)}</span>
+            <span className="text-[10px] font-bold opacity-80 ml-0.5">{formatTime(trip.planned_start)}</span>
           </span>
           <span className="text-[9px] font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
             {trip.ref_id || 'TRIP'}
