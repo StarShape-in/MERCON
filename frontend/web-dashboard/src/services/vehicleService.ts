@@ -5,17 +5,23 @@ export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
 export interface ResolvedLocation {
-  lat?: number;
-  lng?: number;
-  latitude?: number;
-  longitude?: number;
-  display_state?: string;
-  speed_kph?: number;
-  heading_deg?: number;
-  plate_number?: string;
-  formatted_time_ago?: string;
-  formatted_address?: string;
-  source?: string;
+  address?: string | null;
+  formatted_address?: string | null;
+  name?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  display_state?: string | null;
+  speed_kph?: number | null;
+  heading_deg?: number | null;
+  source?: string | null;
+  plate_number?: string | null;
+  formatted_time_ago?: string | null;
+  timestamp?: string | null;
 }
 
 export interface VehicleUsage {
