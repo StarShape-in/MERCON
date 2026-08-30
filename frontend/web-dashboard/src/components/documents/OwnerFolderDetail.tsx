@@ -162,8 +162,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── Top Document Selection Tab Buttons Bar with Spacing ──────────────── */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pt-1 pb-2 my-1 shrink-0 scrollbar-none">
+      {/* ── Top Document Selection Tab Buttons Bar (Compact & Sleek) ──────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pt-0.5 pb-1 my-0.5 shrink-0 scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;
@@ -179,9 +179,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               type="button"
               onClick={() => setSelectedSlotId(slot.documentType.id)}
               className={cn(
-                "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-2.5 border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
+                "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
                 isSelected
-                  ? "bg-[#0F172A] text-white border-[#0F172A] shadow-xs ring-2 ring-[#0F172A]/20"
+                  ? "bg-[#0F172A] text-white border-[#0F172A] shadow-2xs ring-1 ring-[#0F172A]/20"
                   : isExpiredOrMissing
                     ? "bg-rose-50/80 hover:bg-rose-100/80 text-rose-700 border-rose-200/80 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800"
                     : isExpiring
@@ -189,25 +189,25 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800"
               )}
             >
-              <StatusIcon className={cn("w-4 h-4 shrink-0", isSelected ? "text-white" : iconColor)} />
+              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white" : iconColor)} />
               <span>{slot.documentType.name}</span>
               {code === 'EXPIRED' && (
-                <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full font-bold", isSelected ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-700")}>
+                <span className={cn("text-[9px] font-mono px-1.5 py-0.2 rounded-md font-bold", isSelected ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-700")}>
                   Expired
                 </span>
               )}
               {code === 'MISSING' && (
-                <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full font-bold", isSelected ? "bg-slate-600 text-white" : "bg-slate-100 text-slate-500")}>
+                <span className={cn("text-[9px] font-mono px-1.5 py-0.2 rounded-md font-bold", isSelected ? "bg-slate-600 text-white" : "bg-slate-100 text-slate-500")}>
                   Missing
                 </span>
               )}
               {code === 'EXPIRING_SOON' && (
-                <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full font-bold", isSelected ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700")}>
+                <span className={cn("text-[9px] font-mono px-1.5 py-0.2 rounded-md font-bold", isSelected ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700")}>
                   Expiring
                 </span>
               )}
               {(code === 'VALID' || code === 'NO_EXPIRY') && (
-                <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full font-bold", isSelected ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-600")}>
+                <span className={cn("text-[9px] font-mono px-1.5 py-0.2 rounded-md font-bold", isSelected ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-600")}>
                   Valid
                 </span>
               )}
