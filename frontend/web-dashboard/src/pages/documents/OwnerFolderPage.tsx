@@ -126,7 +126,7 @@ export default function OwnerFolderPage() {
               className="h-8.5 px-3.5 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
             >
               <UploadCloud className="w-3.5 h-3.5" />
-              <span>+ Upload Document</span>
+              <span>Upload Document</span>
             </Button>
 
             {/* Secondary Action: + Add Custom Document */}
