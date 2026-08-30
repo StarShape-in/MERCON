@@ -171,11 +171,12 @@ const HomeScreen = () => {
   // Refresh the trip whenever Home regains focus
   useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); fetchEarnings(); }, [refetch, fetchScheduled, fetchEarnings]));
 
-  const firstName = (profile?.name || 'Driver').split(' ')[0];
+  const displayTrip = trip || (scheduledTrips.length > 0 ? scheduledTrips[0] : null);
+  const remainingScheduled = scheduledTrips.filter((st) => st.id !== displayTrip?.id);
 
-  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
-  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
-  const intermediateStops = trip?.stops?.filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff') ?? [];
+  const pickupStop = displayTrip?.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? displayTrip?.stops?.[0];
+  const dropoffStop = displayTrip?.stops?.find((s) => s.stop_sequence === (displayTrip?.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? displayTrip?.stops?.[displayTrip?.stops?.length - 1];
+  const intermediateStops = (displayTrip?.stops ?? []).filter((s) => s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
 
   const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
@@ -328,16 +329,16 @@ const HomeScreen = () => {
 
         {/* ── Current Trip Card Section (Overlapping Header naturally) ── */}
         <View style={styles.cardWrapper}>
-          {loading && !trip ? (
+          {loading && !displayTrip ? (
             <View style={styles.centerBox}>
               <ActivityIndicator color="#FA634E" />
             </View>
-          ) : error ? (
+          ) : error && !displayTrip ? (
             <View style={styles.centerBox}>
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
             </View>
-          ) : !trip ? (
+          ) : !displayTrip ? (
             <View style={styles.emptyCard}>
               <BilingualText
                 ur="فی الحال کوئی فعال ٹرپ نہیں ہے"
@@ -361,8 +362,8 @@ const HomeScreen = () => {
               <View style={styles.cardHeaderRow}>
                 <View style={styles.cardTitleCol}>
                   <BilingualText
-                    ur="موجودہ ٹرپ"
-                    en="Current Trip"
+                    ur={displayTrip.status === 'Scheduled' || displayTrip.status === 'Draft' ? 'اگلا شیڈول شدہ ٹرپ' : 'موجودہ ٹرپ'}
+                    en={displayTrip.status === 'Scheduled' || displayTrip.status === 'Draft' ? 'Next Scheduled Trip' : 'Current Trip'}
                     primaryStyle={styles.cardTitleUrduPrimary}
                     subStyle={styles.cardTitleSubEn}
                   />
@@ -372,7 +373,7 @@ const HomeScreen = () => {
                   <View style={styles.inProgressBadge}>
                     <View style={styles.coralDot} />
                     <Text style={styles.inProgressText} numberOfLines={1} ellipsizeMode="tail">
-                      {trip.driver_workflow_state ? trip.driver_workflow_state.replace(/_/g, ' ') : 'In Progress'}
+                      {displayTrip.driver_workflow_state ? displayTrip.driver_workflow_state.replace(/_/g, ' ') : statusLabel(displayTrip.status)}
                     </Text>
                   </View>
                   <TouchableOpacity style={styles.moreOptionsBtn}>
@@ -384,7 +385,7 @@ const HomeScreen = () => {
               {/* Trip ID Row */}
               <View style={styles.tripIdRow}>
                 <Text style={styles.tripIdLabel}>Trip ID</Text>
-                <Text style={styles.tripIdValue}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                <Text style={styles.tripIdValue}>TRP-{displayTrip.ref_id ?? displayTrip.id.slice(0, 8)}</Text>
               </View>
 
               <View style={styles.cardDivider} />
@@ -486,13 +487,16 @@ const HomeScreen = () => {
 
               {/* Primary Action CTA & Secondary Delay Button Below */}
               {(() => {
-                const info = getWorkflowStateInfo(trip);
+                const info = getWorkflowStateInfo(displayTrip);
                 return (
                   <View style={styles.actionsContainer}>
                     <TouchableOpacity
                       style={[styles.primaryCtaBtn, advancing && { opacity: 0.7 }]}
                       activeOpacity={0.88}
-                      onPress={info.onPress}
+                      onPress={() => {
+                        setTrip(displayTrip);
+                        info.onPress();
+                      }}
                       disabled={advancing}
                     >
                       {advancing ? (
@@ -500,8 +504,8 @@ const HomeScreen = () => {
                       ) : (
                         <View style={styles.ctaContentRow}>
                           <BilingualText
-                            ur={WORKFLOW_URDU_LABEL[trip.driver_workflow_state || 'ASSIGNED'] || 'ٹرپ شروع کریں'}
-                            en={info.btnLabel || 'Go to Pickup'}
+                            ur={WORKFLOW_URDU_LABEL[displayTrip.driver_workflow_state || 'ASSIGNED'] || 'ٹرپ شروع کریں'}
+                            en={info.btnLabel || 'Start Trip'}
                             align="center"
                             primaryStyle={styles.ctaUrduPrimary}
                             subStyle={styles.ctaSubEn}
@@ -532,11 +536,73 @@ const HomeScreen = () => {
             </View>
           )}
         </View>
+
+        {/* ── Upcoming Scheduled Trips List Section ── */}
+        {remainingScheduled.length > 0 && (
+          <View style={styles.scheduledSection}>
+            <View style={styles.scheduledSectionHeader}>
+              <BilingualText
+                ur="دیگر شیڈول شدہ ٹرپس"
+                en={`Upcoming Scheduled Trips (${remainingScheduled.length})`}
+                primaryStyle={styles.scheduledSectionUrdu}
+                subStyle={styles.scheduledSectionEn}
+              />
+              <TouchableOpacity onPress={() => router.push('/(tabs)/trips' as any)}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {remainingScheduled.map((st) => {
+              const p = st.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? st.stops?.[0];
+              const d = st.stops?.find((s) => s.stop_sequence === (st.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? st.stops?.[st.stops?.length - 1];
+              return (
+                <View key={st.id} style={styles.scheduledCard}>
+                  <View style={styles.scheduledCardHeader}>
+                    <View style={styles.customerLogoBadge}>
+                      <Text style={styles.customerLogoLetter}>{(st.customer?.name || 'M')[0]}</Text>
+                    </View>
+                    <View style={styles.customerMetaCol}>
+                      <Text style={styles.scheduledCustomerName} numberOfLines={1}>
+                        {st.customer?.name || 'MERCON Customer'}
+                      </Text>
+                      <Text style={styles.scheduledTripIdText}>Trip ID · TRP-{st.ref_id ?? st.id.slice(0, 8)}</Text>
+                    </View>
+                    <View style={styles.scheduledPillBadge}>
+                      <Text style={styles.scheduledPillText}>Scheduled</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.scheduledRouteRow}>
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{stopLabel(p) ?? 'Pickup'}</Text>
+                    <ArrowRight size={14} color="#FA634E" strokeWidth={2.2} />
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{stopLabel(d) ?? 'Delivery'}</Text>
+                  </View>
+
+                  <View style={styles.scheduledCardFooter}>
+                    <View style={styles.footerTimeRow}>
+                      <Clock size={13} color="#64748B" />
+                      <Text style={styles.footerTimeText}>{shortWhen(st.planned_start, 'Scheduled')}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.startTripSmallBtn}
+                      onPress={() => {
+                        setTrip(st);
+                        router.push('/trip/navigate');
+                      }}
+                    >
+                      <Text style={styles.startTripSmallBtnText}>Start Trip</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       <DelayReportModal
         visible={delayModalVisible}
-        tripId={trip?.id ?? null}
+        tripId={displayTrip?.id ?? null}
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
       />
@@ -979,6 +1045,134 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: '#FA634E',
+  },
+
+  /* Scheduled Trips Section */
+  scheduledSection: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  scheduledSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  scheduledSectionUrdu: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  scheduledSectionEn: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FA634E',
+  },
+  scheduledCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  scheduledCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  customerLogoBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1D4ED8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerLogoLetter: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  customerMetaCol: {
+    flex: 1,
+  },
+  scheduledCustomerName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  scheduledTripIdText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  scheduledPillBadge: {
+    backgroundColor: '#FFF0ED',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD0C7',
+  },
+  scheduledPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  scheduledRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  scheduledCityText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3E3C3D',
+    flex: 1,
+  },
+  scheduledCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  footerTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  footerTimeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  startTripSmallBtn: {
+    backgroundColor: '#FA634E',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+  },
+  startTripSmallBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
 });
 

@@ -35,24 +35,34 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
   const include = tripInclude;
 
   try {
-    // Prefer an in-progress / dispatched trip.
+    // 1. Prefer an active in-progress / loading / transit trip.
     let trip = await prisma.trip.findFirst({
       where: {
         driverId,
         deletedAt: null,
         status: {
-          in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
+          in: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
+        },
+        NOT: {
+          driver_workflow_state: 'COMPLETED'
         }
       },
       include,
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Otherwise show the next upcoming trip that's assigned but not yet dispatched
-    // (created for this driver in the operator panel).
+    // 2. Otherwise show the earliest next upcoming trip that is assigned (Scheduled or Draft)
     if (!trip) {
       trip = await prisma.trip.findFirst({
-        where: { driverId, deletedAt: null, status: TripStatus.Scheduled },
+        where: {
+          driverId,
+          deletedAt: null,
+          status: { in: [TripStatus.Scheduled, TripStatus.Draft] },
+          OR: [
+            { driver_workflow_state: null },
+            { driver_workflow_state: { not: 'COMPLETED' } }
+          ]
+        },
         include,
         orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       });
@@ -60,6 +70,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: trip ?? null });
   } catch (error) {
+    logger.error({ err: error }, 'getCurrentTrip error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
@@ -89,6 +100,7 @@ export const getTripHistory = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: trips });
   } catch (error) {
+    logger.error({ err: error }, 'getTripHistory error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
@@ -104,6 +116,10 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
         driverId,
         deletedAt: null,
         status: { in: [TripStatus.Draft, TripStatus.Scheduled] },
+        OR: [
+          { driver_workflow_state: null },
+          { driver_workflow_state: { not: 'COMPLETED' } }
+        ]
       },
       include: tripInclude,
       orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
@@ -112,6 +128,7 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: trips });
   } catch (error) {
+    logger.error({ err: error }, 'getScheduledTrips error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
