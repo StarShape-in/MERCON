@@ -6,7 +6,7 @@ import {
   Plus, Edit2, FileText, FileSpreadsheet, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown, Layers,
-  ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PieChart
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -217,6 +217,7 @@ export default function VehicleListPage() {
   const [sortOrder, setSortOrder] = useState<VehicleSortOption>('latest');
   const [locationSortDir, setLocationSortDir] = useState<'asc' | 'desc' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [kpiSummaryMode, setKpiSummaryMode] = useState<'cards' | 'chart'>('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBatchTruckDocsOpen, setIsBatchTruckDocsOpen] = useState(false);
@@ -1271,6 +1272,37 @@ export default function VehicleListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* KPI Summary Switcher (Cards | GPS Chart) */}
+            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
+              <button
+                type="button"
+                onClick={() => setKpiSummaryMode('cards')}
+                className={`px-2.5 py-1.5 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  kpiSummaryMode === 'cards'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+                title="Standard KPI Summary Cards"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
+                <span>KPI Cards</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setKpiSummaryMode('chart')}
+                className={`px-2.5 py-1.5 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  kpiSummaryMode === 'chart'
+                    ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+                title="Physical GPS Telemetry Donut Chart"
+              >
+                <PieChart className="w-3.5 h-3.5 text-emerald-500" />
+                <span>GPS Chart</span>
+              </button>
+            </div>
+
             {viewMode === 'map' && (
               <MapThemeSelector
                 currentThemeId={mapThemeId}
@@ -1349,7 +1381,7 @@ export default function VehicleListPage() {
               onClick={() => setIsCreateVehicleOpen(true)}
             >
               <Plus className="h-4 w-4" />
-              Add Vehicle Profile
+              Add Vehicle
             </Button>
           </div>
         </div>
@@ -1358,423 +1390,758 @@ export default function VehicleListPage() {
         <IccesStatusHeader />
 
         {/* ── Summary Cards & Physical GPS Fleet Status Donut Chart Panel ───────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 shrink-0 items-stretch">
-          
-          {/* Left: 4 Telematics Instrument Panel Cards */}
-          <div className="lg:col-span-7 xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            {/* Card 1: Total Fleet Assets */}
-            <KpiCard
-            title="TOTAL FLEET ASSETS"
-            className="kpi-tint-vehicles"
-            value={
-              <span>
-                {totalCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
-              </span>
-            }
-            variant="slate"
-            trend="up"
-            trendValue={`${activePct}% Active`}
-            description="Total assets in database"
-            icon={FleetTruck}
-            isActive={selectedStatus === 'All'}
-            onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
-                <style>{`
-                  @keyframes routeDashBrand {
-                    to {
-                      stroke-dashoffset: -12;
-                    }
-                  }
-                `}</style>
-                {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid-brand" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid-brand)" />
-                </svg>
-                
-                {/* Intersecting Fleet Route Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
-                </svg>
+        {kpiSummaryMode === 'chart' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 shrink-0 items-stretch">
+            {/* Left: 4 Telematics Instrument Panel Cards */}
+            <div className="lg:col-span-7 xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Card 1: Total Fleet Assets */}
+              <KpiCard
+                title="TOTAL FLEET ASSETS"
+                className="kpi-tint-vehicles"
+                value={
+                  <span>
+                    {totalCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
+                  </span>
+                }
+                variant="slate"
+                trend="up"
+                trendValue={`${activePct}% Active`}
+                description="Total assets in database"
+                icon={FleetTruck}
+                isActive={selectedStatus === 'All'}
+                onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
+                customFooter={
+                  <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
+                    <style>{`
+                      @keyframes routeDashBrand {
+                        to {
+                          stroke-dashoffset: -12;
+                        }
+                      }
+                    `}</style>
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                      <pattern id="card-map-grid-brand" width="12" height="12" patternUnits="userSpaceOnUse">
+                        <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                      </pattern>
+                      <rect width="100%" height="100%" fill="url(#card-map-grid-brand)" />
+                    </svg>
+                    
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                      <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                      <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                    </svg>
 
-                {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Base grey road */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#D1D5DB" 
-                    strokeWidth="3.5" 
-                    strokeLinecap="round"
-                  />
-                  {/* Orange brand route progress */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="var(--color-brand)" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashBrand 4s linear infinite' }}
-                  />
-                </svg>
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#D1D5DB" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                      />
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="var(--color-brand)" 
+                        strokeWidth="3" 
+                        strokeDasharray="6,6"
+                        strokeLinecap="round"
+                        style={{ animation: 'routeDashBrand 4s linear infinite' }}
+                      />
+                    </svg>
 
-                {/* Start Pin */}
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
-                </div>
-
-                {/* Truck 1: Pulsing Active Orange Truck (Available) */}
-                <div 
-                  className="absolute"
-                  style={{
-                    left: '28%',
-                    top: '35%',
-                    transform: 'translate(-50%, -50%) scale(0.55)',
-                    zIndex: 10
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-8 w-8 rounded-full bg-orange-500/25 animate-ping" />
-                    <img 
-                      src="/truck_3d_orange_transparent.png" 
-                      alt="Active Truck 1" 
-                      className="h-9 w-9 object-contain"
-                    />
-                  </div>
-                </div>
-
-                {/* Truck 2: Pulsing Active Green Truck (On Trip) */}
-                <div 
-                  className="absolute"
-                  style={{
-                    left: '72%',
-                    top: '60%',
-                    transform: 'translate(-50%, -50%) scale(0.55)',
-                    zIndex: 10
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/25 animate-ping" />
-                    <img 
-                      src="/truck_3d_orange_transparent.png" 
-                      alt="Active Truck 2" 
-                      className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            }
-          />
-
-          {/* Card 2: Dispatch Ready */}
-          <KpiCard
-            title="DISPATCH READY"
-            className="kpi-tint-vehicles"
-            value={
-              <span>
-                {availableCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
-              </span>
-            }
-            variant="emerald"
-            trend="up"
-            trendValue={`${availableCount} Available`}
-            description="Ready for operational trip"
-            icon={CheckBadge}
-            isActive={selectedStatus === 'Available'}
-            onClick={() => { setSelectedStatus('Available'); setViewMode('list'); setCurrentPage(1); }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
-                <style>{`
-                  @keyframes routeDashBlue {
-                    to {
-                      stroke-dashoffset: -12;
-                    }
-                  }
-                `}</style>
-                {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid-blue)" />
-                </svg>
-                
-                {/* Stylized Intersecting Street Map Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                </svg>
-
-                {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Base grey road */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#D1D5DB" 
-                    strokeWidth="3.5" 
-                    strokeLinecap="round"
-                  />
-                  {/* Blue active route progress */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#3B82F6" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashBlue 4s linear infinite' }}
-                  />
-                </svg>
-
-                {/* Origin Pin */}
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
-                </div>
-                
-                {/* The 3D Truck sitting in the middle of the route */}
-                <div 
-                  className="absolute"
-                  style={{
-                    left: '52%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%) scale(0.68)',
-                    zIndex: 10
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    {/* Pulsing glow under the truck */}
-                    <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
-                    <img 
-                      src="/truck_3d_orange_transparent.png" 
-                      alt="Mini Map Truck" 
-                      className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            }
-          />
-
-          {/* Card 3: Maintenance Bay */}
-          <KpiCard
-            title="MAINTENANCE BAY"
-            className="kpi-tint-vehicles"
-            value={
-              <span>
-                {maintenanceCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">In Shop</span>
-              </span>
-            }
-            variant="rose"
-            trend={maintenanceCount > 3 ? 'up' : 'down'}
-            trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
-            description="Active servicing units"
-            icon={MaintenanceWrench}
-            isActive={selectedStatus === 'Maintenance'}
-            onClick={() => { setSelectedStatus('Maintenance'); setViewMode('list'); setCurrentPage(1); }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
-                <style>{`
-                  @keyframes routeDashRed {
-                    to {
-                      stroke-dashoffset: -12;
-                    }
-                  }
-                `}</style>
-                {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid-red" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid-red)" />
-                </svg>
-                
-                {/* Stylized Intersecting Street Map Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                  <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                  <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
-                </svg>
-
-                {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Base grey road */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#D1D5DB" 
-                    strokeWidth="3.5" 
-                    strokeLinecap="round"
-                  />
-                  {/* Red active route progress */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#DC2626" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDashRed 4s linear infinite' }}
-                  />
-                </svg>
-
-                {/* Bay Entry Pin */}
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
-                </div>
-                
-                {/* The 3D Truck sitting in the middle of the route */}
-                <div 
-                  className="absolute"
-                  style={{
-                    left: '52%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%) scale(0.68)',
-                    zIndex: 10
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    {/* Bouncing Warning Popup Badge */}
-                    <div 
-                      className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
-                      style={{ whiteSpace: 'nowrap' }}
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
-                      <span>MAINTENANCE</span>
-                      {/* Arrow */}
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
                     </div>
 
-                    {/* Glow ring */}
-                    <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
-                    
-                    {/* Desaturated red truck to indicate servicing status */}
-                    <img 
-                      src="/truck_3d_orange_transparent.png" 
-                      alt="Servicing Truck" 
-                      className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            }
-          />
+                    <div 
+                      className="absolute"
+                      style={{
+                        left: '28%',
+                        top: '35%',
+                        transform: 'translate(-50%, -50%) scale(0.55)',
+                        zIndex: 10
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-8 w-8 rounded-full bg-orange-500/25 animate-ping" />
+                        <img 
+                          src="/truck_3d_orange_transparent.png" 
+                          alt="Active Truck 1" 
+                          className="h-9 w-9 object-contain"
+                        />
+                      </div>
+                    </div>
 
-          {/* Card 4: Active On Trips */}
-          <KpiCard
-            title="ACTIVE ON TRIPS"
-            className="kpi-tint-vehicles"
-            value={
-              <span>
-                {onTripCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
-              </span>
-            }
-            variant="emerald"
-            trend={onTripCount > 0 ? 'up' : 'neutral'}
-            trendValue={`${onTripCount} En Route`}
-            description="Currently dispatched on active trips"
-            icon={Truck}
-            isActive={selectedStatus === 'OnTrip'}
-            onClick={() => { setSelectedStatus('OnTrip'); setViewMode('list'); setCurrentPage(1); }}
-            customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
-                <style>{`
-                  @keyframes routeDash {
-                    to {
-                      stroke-dashoffset: -12;
+                    <div 
+                      className="absolute"
+                      style={{
+                        left: '68%',
+                        top: '55%',
+                        transform: 'translate(-50%, -50%) scale(0.55)',
+                        zIndex: 10
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-8 w-8 rounded-full bg-emerald-500/25 animate-ping" />
+                        <img 
+                          src="/truck_3d_orange_transparent.png" 
+                          alt="Active Truck 2" 
+                          className="h-9 w-9 object-contain"
+                          style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+
+              {/* Card 2: Available Duty Ready */}
+              <KpiCard
+                title="AVAILABLE DUTY READY"
+                className="kpi-tint-vehicles"
+                value={
+                  <span>
+                    {availableCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">Available</span>
+                  </span>
+                }
+                variant="blue"
+                trend="neutral"
+                trendValue={`${availableCount} Ready`}
+                description="Ready for immediate dispatch"
+                icon={CheckBadge}
+                isActive={selectedStatus === 'Available'}
+                onClick={() => { setSelectedStatus('Available'); setViewMode('list'); setCurrentPage(1); }}
+                customFooter={
+                  <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
+                    <style>{`
+                      @keyframes routeDashBlue {
+                        to {
+                          stroke-dashoffset: -12;
+                        }
+                      }
+                    `}</style>
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                      <pattern id="card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
+                        <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                      </pattern>
+                      <rect width="100%" height="100%" fill="url(#card-map-grid-blue)" />
+                    </svg>
+                    
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                      <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                      <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                    </svg>
+
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#D1D5DB" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                      />
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#2563EB" 
+                        strokeWidth="3" 
+                        strokeDasharray="6,6"
+                        strokeLinecap="round"
+                        style={{ animation: 'routeDashBlue 4s linear infinite' }}
+                      />
+                    </svg>
+
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
+                    </div>
+                    
+                    <div 
+                      className="absolute"
+                      style={{
+                        left: '42%',
+                        top: '40%',
+                        transform: 'translate(-50%, -50%) scale(0.65)',
+                        zIndex: 10
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
+                        <img 
+                          src="/truck_3d_orange_transparent.png" 
+                          alt="Mini Map Truck" 
+                          className="h-9 w-9 object-contain"
+                          style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+
+              {/* Card 3: Maintenance Bay */}
+              <KpiCard
+                title="MAINTENANCE BAY"
+                className="kpi-tint-vehicles"
+                value={
+                  <span>
+                    {maintenanceCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">In Shop</span>
+                  </span>
+                }
+                variant="rose"
+                trend={maintenanceCount > 3 ? 'up' : 'down'}
+                trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
+                description="Active servicing units"
+                icon={MaintenanceWrench}
+                isActive={selectedStatus === 'Maintenance'}
+                onClick={() => { setSelectedStatus('Maintenance'); setViewMode('list'); setCurrentPage(1); }}
+                customFooter={
+                  <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
+                    <style>{`
+                      @keyframes routeDashRed {
+                        to {
+                          stroke-dashoffset: -12;
+                        }
+                      }
+                    `}</style>
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                      <pattern id="card-map-grid-red" width="12" height="12" patternUnits="userSpaceOnUse">
+                        <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                      </pattern>
+                      <rect width="100%" height="100%" fill="url(#card-map-grid-red)" />
+                    </svg>
+                    
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                      <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                      <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                    </svg>
+
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#D1D5DB" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                      />
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#DC2626" 
+                        strokeWidth="3" 
+                        strokeDasharray="6,6"
+                        strokeLinecap="round"
+                        style={{ animation: 'routeDashRed 4s linear infinite' }}
+                      />
+                    </svg>
+
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
+                    </div>
+                    
+                    <div 
+                      className="absolute"
+                      style={{
+                        left: '52%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%) scale(0.68)',
+                        zIndex: 10
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div 
+                          className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                          style={{ whiteSpace: 'nowrap' }}
+                        >
+                          <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                          <span>MAINTENANCE</span>
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
+                        </div>
+
+                        <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
+                        
+                        <img 
+                          src="/truck_3d_orange_transparent.png" 
+                          alt="Servicing Truck" 
+                          className="h-9 w-9 object-contain"
+                          style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+
+              {/* Card 4: Active On Trips */}
+              <KpiCard
+                title="ACTIVE ON TRIPS"
+                className="kpi-tint-vehicles"
+                value={
+                  <span>
+                    {onTripCount}
+                    <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+                  </span>
+                }
+                variant="emerald"
+                trend={onTripCount > 0 ? 'up' : 'neutral'}
+                trendValue={`${onTripCount} En Route`}
+                description="Currently dispatched on active trips"
+                icon={Truck}
+                isActive={selectedStatus === 'OnTrip'}
+                onClick={() => { setSelectedStatus('OnTrip'); setViewMode('list'); setCurrentPage(1); }}
+                customFooter={
+                  <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+                    <style>{`
+                      @keyframes routeDash {
+                        to {
+                          stroke-dashoffset: -12;
+                        }
+                      }
+                    `}</style>
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
+                      <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
+                        <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                      </pattern>
+                      <rect width="100%" height="100%" fill="url(#card-map-grid)" />
+                    </svg>
+                    
+                    <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                      <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                      <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                    </svg>
+
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#D1D5DB" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                      />
+                      <path 
+                        d="M -10 24 C 70 10, 150 38, 290 24" 
+                        fill="none" 
+                        stroke="#10B981" 
+                        strokeWidth="3" 
+                        strokeDasharray="6,6"
+                        strokeLinecap="round"
+                        style={{ animation: 'routeDash 4s linear infinite' }}
+                      />
+                    </svg>
+
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                    </div>
+                    
+                    <div 
+                      className="absolute"
+                      style={{
+                        left: '52%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%) scale(0.68)',
+                        zIndex: 10
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-8 w-8 rounded-full bg-emerald-500/20 animate-ping" />
+                        <img 
+                          src="/truck_3d_orange_transparent.png" 
+                          alt="En Route Truck" 
+                          className="h-9 w-9 object-contain"
+                          style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              />
+            </div>
+
+            {/* Right: Physical GPS Telemetry Donut Chart */}
+            <div className="lg:col-span-5 xl:col-span-5 flex flex-col justify-stretch">
+              <FleetStatusDonutChart />
+            </div>
+          </div>
+        ) : (
+          /* ── Standard Full-Width 4-Column Grid: 4 KPI Cards ── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+            {/* Card 1: Total Fleet Assets */}
+            <KpiCard
+              title="TOTAL FLEET ASSETS"
+              className="kpi-tint-vehicles"
+              value={
+                <span>
+                  {totalCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
+                </span>
+              }
+              variant="slate"
+              trend="up"
+              trendValue={`${activePct}% Active`}
+              description="Total assets in database"
+              icon={FleetTruck}
+              isActive={selectedStatus === 'All'}
+              onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
+              customFooter={
+                <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
+                  <style>{`
+                    @keyframes routeDashBrand {
+                      to {
+                        stroke-dashoffset: -12;
+                      }
                     }
-                  }
-                `}</style>
-                {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
-                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid)" />
-                </svg>
-                
-                {/* Stylized Intersecting Street Map Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                </svg>
+                  `}</style>
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                    <pattern id="card-map-grid-brand-full" width="12" height="12" patternUnits="userSpaceOnUse">
+                      <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#card-map-grid-brand-full)" />
+                  </svg>
+                  
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                    <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                    <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                  </svg>
 
-                {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Base grey road */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#D1D5DB" 
-                    strokeWidth="3.5" 
-                    strokeLinecap="round"
-                  />
-                  {/* Green active route progress */}
-                  <path 
-                    d="M -10 24 C 70 10, 150 38, 290 24" 
-                    fill="none" 
-                    stroke="#10B981" 
-                    strokeWidth="3" 
-                    strokeDasharray="6,6"
-                    strokeLinecap="round"
-                    style={{ animation: 'routeDash 4s linear infinite' }}
-                  />
-                </svg>
-
-                {/* Start Pin */}
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                </div>
-                
-                {/* The 3D Truck sitting in the middle of the route */}
-                <div 
-                  className="absolute"
-                  style={{
-                    left: '52%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%) scale(0.68)',
-                    zIndex: 10
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    {/* Glow ring */}
-                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/20 animate-ping" />
-                    
-                    {/* Green tinted truck to indicate active status */}
-                    <img 
-                      src="/truck_3d_orange_transparent.png" 
-                      alt="En Route Truck" 
-                      className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#D1D5DB" 
+                      strokeWidth="3.5" 
+                      strokeLinecap="round"
                     />
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="var(--color-brand)" 
+                      strokeWidth="3" 
+                      strokeDasharray="6,6"
+                      strokeLinecap="round"
+                      style={{ animation: 'routeDashBrand 4s linear infinite' }}
+                    />
+                  </svg>
+
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
+                  </div>
+
+                  <div 
+                    className="absolute"
+                    style={{
+                      left: '28%',
+                      top: '35%',
+                      transform: 'translate(-50%, -50%) scale(0.55)',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute h-8 w-8 rounded-full bg-orange-500/25 animate-ping" />
+                      <img 
+                        src="/truck_3d_orange_transparent.png" 
+                        alt="Active Truck 1" 
+                        className="h-9 w-9 object-contain"
+                      />
+                    </div>
+                  </div>
+
+                  <div 
+                    className="absolute"
+                    style={{
+                      left: '68%',
+                      top: '55%',
+                      transform: 'translate(-50%, -50%) scale(0.55)',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute h-8 w-8 rounded-full bg-emerald-500/25 animate-ping" />
+                      <img 
+                        src="/truck_3d_orange_transparent.png" 
+                        alt="Active Truck 2" 
+                        className="h-9 w-9 object-contain"
+                        style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            }
-          />
-          </div>
+              }
+            />
 
-          {/* Right: Physical GPS Telemetry Donut Chart */}
-          <div className="lg:col-span-5 xl:col-span-5 flex flex-col justify-stretch">
-            <FleetStatusDonutChart />
+            {/* Card 2: Available Duty Ready */}
+            <KpiCard
+              title="AVAILABLE DUTY READY"
+              className="kpi-tint-vehicles"
+              value={
+                <span>
+                  {availableCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">Available</span>
+                </span>
+              }
+              variant="blue"
+              trend="neutral"
+              trendValue={`${availableCount} Ready`}
+              description="Ready for immediate dispatch"
+              icon={CheckBadge}
+              isActive={selectedStatus === 'Available'}
+              onClick={() => { setSelectedStatus('Available'); setViewMode('list'); setCurrentPage(1); }}
+              customFooter={
+                <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
+                  <style>{`
+                    @keyframes routeDashBlue {
+                      to {
+                        stroke-dashoffset: -12;
+                      }
+                    }
+                  `}</style>
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                    <pattern id="card-map-grid-blue-full" width="12" height="12" patternUnits="userSpaceOnUse">
+                      <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#card-map-grid-blue-full)" />
+                  </svg>
+                  
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                    <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                    <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#BFDBFE" strokeWidth="1.5" />
+                  </svg>
+
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#D1D5DB" 
+                      strokeWidth="3.5" 
+                      strokeLinecap="round"
+                    />
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#2563EB" 
+                      strokeWidth="3" 
+                      strokeDasharray="6,6"
+                      strokeLinecap="round"
+                      style={{ animation: 'routeDashBlue 4s linear infinite' }}
+                    />
+                  </svg>
+
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
+                  </div>
+                  
+                  <div 
+                    className="absolute"
+                    style={{
+                      left: '42%',
+                      top: '40%',
+                      transform: 'translate(-50%, -50%) scale(0.65)',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
+                      <img 
+                        src="/truck_3d_orange_transparent.png" 
+                        alt="Mini Map Truck" 
+                        className="h-9 w-9 object-contain"
+                        style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              }
+            />
+
+            {/* Card 3: Maintenance Bay */}
+            <KpiCard
+              title="MAINTENANCE BAY"
+              className="kpi-tint-vehicles"
+              value={
+                <span>
+                  {maintenanceCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">In Shop</span>
+                </span>
+              }
+              variant="rose"
+              trend={maintenanceCount > 3 ? 'up' : 'down'}
+              trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
+              description="Active servicing units"
+              icon={MaintenanceWrench}
+              isActive={selectedStatus === 'Maintenance'}
+              onClick={() => { setSelectedStatus('Maintenance'); setViewMode('list'); setCurrentPage(1); }}
+              customFooter={
+                <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
+                  <style>{`
+                    @keyframes routeDashRed {
+                      to {
+                        stroke-dashoffset: -12;
+                      }
+                    }
+                  `}</style>
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                    <pattern id="card-map-grid-red-full" width="12" height="12" patternUnits="userSpaceOnUse">
+                      <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#card-map-grid-red-full)" />
+                  </svg>
+                  
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                    <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                    <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                  </svg>
+
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#D1D5DB" 
+                      strokeWidth="3.5" 
+                      strokeLinecap="round"
+                    />
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#DC2626" 
+                      strokeWidth="3" 
+                      strokeDasharray="6,6"
+                      strokeLinecap="round"
+                      style={{ animation: 'routeDashRed 4s linear infinite' }}
+                    />
+                  </svg>
+
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
+                  </div>
+                  
+                  <div 
+                    className="absolute"
+                    style={{
+                      left: '52%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%) scale(0.68)',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div 
+                        className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                        <span>MAINTENANCE</span>
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
+                      </div>
+
+                      <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
+                      
+                      <img 
+                        src="/truck_3d_orange_transparent.png" 
+                        alt="Servicing Truck" 
+                        className="h-9 w-9 object-contain"
+                        style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              }
+            />
+
+            {/* Card 4: Active On Trips */}
+            <KpiCard
+              title="ACTIVE ON TRIPS"
+              className="kpi-tint-vehicles"
+              value={
+                <span>
+                  {onTripCount}
+                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+                </span>
+              }
+              variant="emerald"
+              trend={onTripCount > 0 ? 'up' : 'neutral'}
+              trendValue={`${onTripCount} En Route`}
+              description="Currently dispatched on active trips"
+              icon={Truck}
+              isActive={selectedStatus === 'OnTrip'}
+              onClick={() => { setSelectedStatus('OnTrip'); setViewMode('list'); setCurrentPage(1); }}
+              customFooter={
+                <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+                  <style>{`
+                    @keyframes routeDash {
+                      to {
+                        stroke-dashoffset: -12;
+                      }
+                    }
+                  `}</style>
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
+                    <pattern id="card-map-grid-full" width="12" height="12" patternUnits="userSpaceOnUse">
+                      <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#card-map-grid-full)" />
+                  </svg>
+                  
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                    <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                    <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  </svg>
+
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#D1D5DB" 
+                      strokeWidth="3.5" 
+                      strokeLinecap="round"
+                    />
+                    <path 
+                      d="M -10 24 C 70 10, 150 38, 290 24" 
+                      fill="none" 
+                      stroke="#10B981" 
+                      strokeWidth="3" 
+                      strokeDasharray="6,6"
+                      strokeLinecap="round"
+                      style={{ animation: 'routeDash 4s linear infinite' }}
+                    />
+                  </svg>
+
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                  </div>
+                  
+                  <div 
+                    className="absolute"
+                    style={{
+                      left: '52%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%) scale(0.68)',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute h-8 w-8 rounded-full bg-emerald-500/20 animate-ping" />
+                      <img 
+                        src="/truck_3d_orange_transparent.png" 
+                        alt="En Route Truck" 
+                        className="h-9 w-9 object-contain"
+                        style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              }
+            />
           </div>
-        </div>
+        )}
 
         {/* Control Toolbar (Search, Filter, View Switcher) - Only show in map view to prevent duplication with DataTable controls */}
         {viewMode === 'map' && (
