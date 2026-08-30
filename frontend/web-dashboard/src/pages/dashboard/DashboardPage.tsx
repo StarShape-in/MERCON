@@ -355,9 +355,9 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
 ];
 
 function DashboardLocationCell({ rawTrip }: { rawTrip?: any }) {
-  const resolvedLoc = rawTrip?.vehicle?.resolved_location;
-  const lat = resolvedLoc?.latitude;
-  const lng = resolvedLoc?.longitude;
+  const resolvedLoc = rawTrip?.vehicle?.resolved_location || rawTrip?.resolved_location || rawTrip?.rawTrip?.vehicle?.resolved_location;
+  const lat = resolvedLoc?.latitude ?? resolvedLoc?.lat;
+  const lng = resolvedLoc?.longitude ?? resolvedLoc?.lng;
   const displayState = resolvedLoc?.display_state;
   const hasCoords = typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
   const isUnavailable = !resolvedLoc || displayState === 'UNAVAILABLE' || !hasCoords;
@@ -1015,7 +1015,7 @@ export default function DashboardPage() {
       header: 'Current Location',
       className: 'min-w-[170px] max-w-[210px] truncate',
       accessor: (row: any) => {
-        const matchingTrip = activeTrips.find((t) => (t.ref_id || t.id) === (row.ref_id || row.id)) || row.rawTrip || row;
+        const matchingTrip = row.rawTrip || (activeTrips.find((t) => (t.ref_id || t.id) === (row.ref_id || row.id)) as any)?.rawTrip || row;
         return <DashboardLocationCell rawTrip={matchingTrip} />;
       },
     },
