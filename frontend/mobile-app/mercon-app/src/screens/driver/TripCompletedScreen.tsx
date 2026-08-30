@@ -464,7 +464,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   cleanHeaderGroup: {
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
   },
   cleanSubtitle: {
@@ -472,6 +474,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#64748B',
     marginBottom: 4,
+    textAlign: 'center',
   },
   cleanCustomerName: {
     fontSize: 17,
@@ -501,13 +504,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cleanBrandingGroup: {
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 'auto',
     marginBottom: 20,
   },
   cleanLogoImage: {
     width: 160,
     height: 60,
+    alignSelf: 'center',
   },
   cleanActionBar: {
     flexDirection: 'row',
