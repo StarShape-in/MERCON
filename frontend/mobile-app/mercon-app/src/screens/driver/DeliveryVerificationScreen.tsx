@@ -142,7 +142,12 @@ const DeliveryVerificationScreen = () => {
     try {
       if (trip?.id) {
         await SecureStore.setItemAsync(`delivery_completed_photos_${trip.id}`, JSON.stringify(photos));
+        if (trip.ref_id) {
+          await SecureStore.setItemAsync(`delivery_completed_photos_${trip.ref_id}`, JSON.stringify(photos));
+        }
+        await SecureStore.setItemAsync('last_completed_trip_id', trip.id);
       }
+      await SecureStore.setItemAsync('last_delivery_photos', JSON.stringify(photos));
       // Upload POD photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {

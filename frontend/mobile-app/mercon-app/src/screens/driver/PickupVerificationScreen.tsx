@@ -162,7 +162,11 @@ const PickupVerificationScreen = () => {
     try {
       if (trip?.id) {
         await SecureStore.setItemAsync(`pickup_completed_photos_${trip.id}`, JSON.stringify(photos));
+        if (trip.ref_id) {
+          await SecureStore.setItemAsync(`pickup_completed_photos_${trip.ref_id}`, JSON.stringify(photos));
+        }
       }
+      await SecureStore.setItemAsync('last_pickup_photos', JSON.stringify(photos));
       // Upload photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {

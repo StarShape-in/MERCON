@@ -10,6 +10,7 @@ import { GeotagPhotoModal } from '../../components';
 import { API_URL } from '../../lib/api';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useCargoPodPhotos } from '../../lib/documents';
+import { tripService, type MobileTrip } from '../../lib/trips';
 
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 
@@ -102,38 +103,71 @@ const TripCompletedScreen = () => {
     refetch();
   }, []);
 
+  const [completedTrip, setCompletedTrip] = useState<MobileTrip | null>(null);
   const [localPickupPhotos, setLocalPickupPhotos] = useState<any[]>([]);
   const [localDeliveryPhotos, setLocalDeliveryPhotos] = useState<any[]>([]);
 
   useEffect(() => {
     refetch();
-    if (!trip?.id) return;
-    const loadLocal = async () => {
+    const loadData = async () => {
       try {
-        const pComp = await SecureStore.getItemAsync(`pickup_completed_photos_${trip.id}`);
-        const pDraft = await SecureStore.getItemAsync(`pickup_draft_photos_${trip.id}`);
-        const pSaved = pComp || pDraft;
-        if (pSaved) {
-          const p = JSON.parse(pSaved);
-          if (Array.isArray(p)) setLocalPickupPhotos(p);
+        const history = await tripService.getHistory(1).catch(() => []);
+        const latestTrip = history[0] ?? null;
+        if (latestTrip) setCompletedTrip(latestTrip);
+
+        const currentOrLatest = trip || latestTrip;
+        const targetId = currentOrLatest?.id;
+        const targetRefId = currentOrLatest?.ref_id;
+        const lastTripId = await SecureStore.getItemAsync('last_completed_trip_id');
+
+        const pickupKeys = [
+          targetId ? `pickup_completed_photos_${targetId}` : null,
+          targetId ? `pickup_draft_photos_${targetId}` : null,
+          targetRefId ? `pickup_completed_photos_${targetRefId}` : null,
+          lastTripId ? `pickup_completed_photos_${lastTripId}` : null,
+          'last_pickup_photos',
+        ].filter(Boolean) as string[];
+
+        for (const key of pickupKeys) {
+          const saved = await SecureStore.getItemAsync(key);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLocalPickupPhotos(parsed);
+              break;
+            }
+          }
         }
 
-        const dComp = await SecureStore.getItemAsync(`delivery_completed_photos_${trip.id}`);
-        const dDraft = await SecureStore.getItemAsync(`delivery_draft_photos_${trip.id}`);
-        const dSaved = dComp || dDraft;
-        if (dSaved) {
-          const d = JSON.parse(dSaved);
-          if (Array.isArray(d)) setLocalDeliveryPhotos(d);
+        const deliveryKeys = [
+          targetId ? `delivery_completed_photos_${targetId}` : null,
+          targetId ? `delivery_draft_photos_${targetId}` : null,
+          targetRefId ? `delivery_completed_photos_${targetRefId}` : null,
+          lastTripId ? `delivery_completed_photos_${lastTripId}` : null,
+          'last_delivery_photos',
+        ].filter(Boolean) as string[];
+
+        for (const key of deliveryKeys) {
+          const saved = await SecureStore.getItemAsync(key);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLocalDeliveryPhotos(parsed);
+              break;
+            }
+          }
         }
       } catch (e) {
         console.error('Error loading local photos:', e);
       }
     };
-    loadLocal();
+    loadData();
   }, [trip?.id]);
 
-  const tripDocs = trip?.id
-    ? documents.filter((d) => d.entity_id === trip.id || d.trip_ref_id === trip.ref_id)
+  const activeTrip = trip || completedTrip;
+
+  const tripDocs = activeTrip?.id
+    ? documents.filter((d) => d.entity_id === activeTrip.id || d.trip_ref_id === activeTrip.ref_id)
     : documents;
 
   const apiCargo = tripDocs.filter((d) => d.doc_type === 'Waybill' || d.doc_type === 'CARGO_PHOTO' || d.doc_type === 'CustomsClearance');
@@ -145,8 +179,8 @@ const TripCompletedScreen = () => {
   const handleShare = async () => {
     try {
       await Share.share({
-        title: `MERCON Trip Summary #${trip?.ref_id ?? 'TRP-0399'}`,
-        message: `Trip #${trip?.ref_id ?? 'TRP-0399'} to ${trip?.customer?.name || 'Customer'} completed successfully. Distance: 164 km, Duration: 2h 18m.`,
+        title: `MERCON Trip Summary #${activeTrip?.ref_id ?? 'TRP-0065'}`,
+        message: `Trip #${activeTrip?.ref_id ?? 'TRP-0065'} to ${activeTrip?.customer?.name || 'Customer'} completed successfully.`,
       });
     } catch {
       // silent
@@ -157,11 +191,11 @@ const TripCompletedScreen = () => {
     router.replace('/');
   };
 
-  const tripRefId = trip?.ref_id ? `#${trip.ref_id}` : '#TRP-0430';
-  const customerName = trip?.customer?.name ? trip.customer.name.toUpperCase() : 'IMILE DELIVERY SAUDI LOGIS...';
+  const tripRefId = activeTrip?.ref_id ? `#${activeTrip.ref_id.startsWith('TRP-') ? activeTrip.ref_id : 'TRP-' + activeTrip.ref_id}` : activeTrip?.id ? `#TRP-${activeTrip.id.slice(0, 8)}` : '#TRP-0065';
+  const customerName = activeTrip?.customer?.name ? activeTrip.customer.name.toUpperCase() : 'IMILE DELIVERY SAUDI LOGISTICS';
   
-  const formattedLoadingDate = (trip as any)?.actual_pickup || (trip as any)?.actual_start
-    ? new Date((trip as any).actual_pickup || (trip as any).actual_start).toLocaleString('en-US', {
+  const formattedLoadingDate = (activeTrip as any)?.actual_pickup || (activeTrip as any)?.actual_start
+    ? new Date((activeTrip as any).actual_pickup || (activeTrip as any).actual_start).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -170,8 +204,8 @@ const TripCompletedScreen = () => {
       })
     : 'Aug 26, 2026 at 09:45 AM';
 
-  const formattedDeliveryDate = trip?.actual_end
-    ? new Date(trip.actual_end).toLocaleString('en-US', {
+  const formattedDeliveryDate = activeTrip?.actual_end
+    ? new Date(activeTrip.actual_end).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
