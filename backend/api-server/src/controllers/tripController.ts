@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
+import { resolveVehicleLocation } from '../services/locationResolver';
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
@@ -334,6 +335,13 @@ export const getTrips = async (req: Request, res: Response) => {
               id: true,
               ref_id: true,
               plate_number: true,
+              last_lat: true,
+              last_lng: true,
+              last_speed_kph: true,
+              last_heading: true,
+              last_status: true,
+              last_seen_at: true,
+              icces_device_id: true,
               deletedAt: true,
             }
           },
@@ -390,15 +398,31 @@ export const getTrips = async (req: Request, res: Response) => {
       prisma.trip.count({ where: whereClause })
     ]);
 
-    // Map quotation to rateCard for backward compatibility with frontend
-    const mappedTrips = trips.map((t) => ({
-      ...t,
-      rateCard: (t as any).quotation ? {
-        id: (t as any).quotation.id,
-        name: (t as any).quotation.name,
-        base_price: Number((t as any).quotation.rate),
-      } : null
-    }));
+    // Map quotation to rateCard for backward compatibility with frontend, and attach resolved_location for vehicle
+    const mappedTrips = await Promise.all(
+      trips.map(async (t) => {
+        let resolvedLocation = null;
+        if (t.vehicle) {
+          resolvedLocation = await resolveVehicleLocation(t.vehicle, prisma);
+        }
+        return {
+          ...t,
+          vehicle: t.vehicle
+            ? {
+                ...t.vehicle,
+                resolved_location: resolvedLocation,
+              }
+            : null,
+          rateCard: (t as any).quotation
+            ? {
+                id: (t as any).quotation.id,
+                name: (t as any).quotation.name,
+                base_price: Number((t as any).quotation.rate),
+              }
+            : null,
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -470,9 +494,20 @@ export const getTripById = async (req: Request, res: Response) => {
       driver_payout: (trip as any).quotation.driver_payout ? Number((trip as any).quotation.driver_payout) : null
     } : null;
 
+    let resolvedLocation = null;
+    if (trip.vehicle) {
+      resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
+    }
+
     const tripData = {
       ...trip,
-      rateCard: mappedRateCard
+      vehicle: trip.vehicle
+        ? {
+            ...trip.vehicle,
+            resolved_location: resolvedLocation,
+          }
+        : null,
+      rateCard: mappedRateCard,
     };
 
     res.json({ success: true, data: tripData });

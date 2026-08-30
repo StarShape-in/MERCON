@@ -417,6 +417,15 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
       ? new Date(recorded_at)
       : new Date();
 
+    logger.info({
+      driverId,
+      tripId: trip.id,
+      vehicleId: trip.vehicleId,
+      lat,
+      lng,
+      recordedAt: recordedAt.toISOString()
+    }, '[LOCATION] Received driver GPS');
+
     const location = await prisma.tripLocation.create({
       data: {
         tripId: trip.id,
@@ -428,6 +437,21 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
         recordedAt,
       },
     });
+
+    try {
+      const { io } = require('../index');
+      if (io) {
+        io.emit('fleet:location_update', {
+          tripId: trip.id,
+          vehicleId: trip.vehicleId,
+          lat,
+          lng,
+          recordedAt,
+        });
+      }
+    } catch {
+      // Non-fatal socket broadcast
+    }
 
     return res.json({ success: true, data: location });
   } catch (error: any) {
