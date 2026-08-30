@@ -31,6 +31,7 @@ interface Step2RouteSlotsProps {
   onUpdateSlotReturnIntermediate: (slotId: string, idx: number, val: string) => void;
   onUpdateSlotReturnIntermediateFee: (slotId: string, idx: number, val: string) => void;
   getMatchingRateCard: (origin?: string, destination?: string, vehicleType?: string, rateCategory?: string, billingType?: string) => RateCard | null;
+  getAvailableRateCardsForLane?: (origin?: string, destination?: string, originLocId?: string | null, destLocId?: string | null) => RateCard[];
   isStep2Valid: boolean;
   onNext: () => void;
   onBack: () => void;
@@ -90,6 +91,7 @@ export default function Step2RouteSlots({
   onUpdateSlotReturnIntermediate,
   onUpdateSlotReturnIntermediateFee,
   getMatchingRateCard,
+  getAvailableRateCardsForLane,
 }: Step2RouteSlotsProps) {
   const isRoundTrip = isRoundTripCategory(contractRateCategory);
 
@@ -461,24 +463,158 @@ export default function Step2RouteSlots({
                         </div>
                       );
                     })()}
+                    {/* AGREED QUOTATIONS FOR THIS ROUTE */}
+                    {(() => {
+                      if (!getAvailableRateCardsForLane || !slot.origin || !slot.destination) return null;
+                      const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+                      if (laneRateCards.length === 0) return null;
+
+                      return (
+                        <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 dark:bg-blue-950/20 dark:border-blue-900/50 space-y-2 mt-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <span className="text-[11px] font-black uppercase text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
+                              <Tag className="w-3.5 h-3.5 text-blue-600" />
+                              Agreed Quotation Combos for this Route ({laneRateCards.length} Available)
+                            </span>
+                            <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                              Click any combo chip to auto-apply vehicle, category & operation type
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {laneRateCards.map((rc) => {
+                              const vLabel = rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label || '10 TON';
+                              const cLabel = rc.line_type || rc.rate_category || 'Single Trip';
+                              const bLabel = rc.billing_type || 'Monthly';
+                              const rateVal = rc.rate ?? rc.base_price ?? 0;
+                              const payoutVal = rc.driver_payout ?? (rc as any).driver_charge;
+
+                              const isCurrentlyActive =
+                                (contractVehicleType || '').toLowerCase() === vLabel.toLowerCase() &&
+                                (contractRateCategory || '').toLowerCase() === cLabel.toLowerCase() &&
+                                (contractBillingType || '').toLowerCase() === bLabel.toLowerCase();
+
+                              return (
+                                <button
+                                  key={rc.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (onUpdateVehicleType) onUpdateVehicleType(vLabel);
+                                    onUpdateRateCategory(cLabel);
+                                    if (onUpdateBillingType) onUpdateBillingType(bLabel);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                                    isCurrentlyActive
+                                      ? 'bg-blue-600 text-white border-blue-700 shadow-xs ring-2 ring-blue-300'
+                                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-blue-200 dark:border-blue-800 hover:bg-blue-100/60 shadow-2xs'
+                                  }`}
+                                >
+                                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
+                                    SAR {rateVal.toLocaleString()}
+                                  </span>
+                                  <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                    {bLabel}
+                                  </span>
+                                  <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                    {vLabel}
+                                  </span>
+                                  <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                    {cLabel}
+                                  </span>
+                                  {payoutVal != null && (
+                                    <span className="text-[10px] font-medium opacity-80">
+                                      (Driver: SAR {payoutVal})
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   slot.origin && slot.destination && (
-                    <div className="flex items-center justify-between flex-wrap gap-2 w-full p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60">
-                      <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                        <AlertCircle className="w-4 h-4 text-amber-600" /> MANUAL RATE: Custom Lane Rate
-                      </span>
-                      <label className="flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-2xs transition-all">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(slot.saveAsQuotation)}
-                          onChange={(e) => onUpdateSlot(slot.id, { saveAsQuotation: e.target.checked })}
-                          className="rounded border-white text-emerald-800 focus:ring-emerald-400 h-4 w-4"
-                        />
-                        <span className="text-xs font-black flex items-center gap-1">
-                          <Plus className="w-3.5 h-3.5" /> Save as Quotation for Future Trips
+                    <div className="space-y-2 w-full">
+                      <div className="flex items-center justify-between flex-wrap gap-2 w-full p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60">
+                        <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                          <AlertCircle className="w-4 h-4 text-amber-600" /> MANUAL RATE: Custom Lane Rate
                         </span>
-                      </label>
+                        <label className="flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-2xs transition-all">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(slot.saveAsQuotation)}
+                            onChange={(e) => onUpdateSlot(slot.id, { saveAsQuotation: e.target.checked })}
+                            className="rounded border-white text-emerald-800 focus:ring-emerald-400 h-4 w-4"
+                          />
+                          <span className="text-xs font-black flex items-center gap-1">
+                            <Plus className="w-3.5 h-3.5" /> Save as Quotation for Future Trips
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* AGREED QUOTATIONS FOR THIS ROUTE EVEN IF UNMATCHED FOR CURRENT COMBO */}
+                      {(() => {
+                        if (!getAvailableRateCardsForLane || !slot.origin || !slot.destination) return null;
+                        const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+                        if (laneRateCards.length === 0) return null;
+
+                        return (
+                          <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 dark:bg-blue-950/20 dark:border-blue-900/50 space-y-2">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <span className="text-[11px] font-black uppercase text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
+                                <Tag className="w-3.5 h-3.5 text-blue-600" />
+                                Agreed Quotation Combos for this Route ({laneRateCards.length} Available)
+                              </span>
+                              <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                Click any combo chip to auto-apply vehicle, category & operation type
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {laneRateCards.map((rc) => {
+                                const vLabel = rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label || '10 TON';
+                                const cLabel = rc.line_type || rc.rate_category || 'Single Trip';
+                                const bLabel = rc.billing_type || 'Monthly';
+                                const rateVal = rc.rate ?? rc.base_price ?? 0;
+                                const payoutVal = rc.driver_payout ?? (rc as any).driver_charge;
+
+                                return (
+                                  <button
+                                    key={rc.id}
+                                    type="button"
+                                    onClick={() => {
+                                      if (onUpdateVehicleType) onUpdateVehicleType(vLabel);
+                                      onUpdateRateCategory(cLabel);
+                                      if (onUpdateBillingType) onUpdateBillingType(bLabel);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-blue-200 dark:border-blue-800 hover:bg-blue-100/60 shadow-2xs"
+                                  >
+                                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
+                                      SAR {rateVal.toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                      {bLabel}
+                                    </span>
+                                    <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                      {vLabel}
+                                    </span>
+                                    <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
+                                      {cLabel}
+                                    </span>
+                                    {payoutVal != null && (
+                                      <span className="text-[10px] font-medium opacity-80">
+                                        (Driver: SAR {payoutVal})
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )
                 )}
