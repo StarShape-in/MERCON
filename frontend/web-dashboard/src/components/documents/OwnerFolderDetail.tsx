@@ -155,33 +155,58 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── 1. Compact Single-Line Compliance Summary Strip ──────────────── */}
-      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0 text-xs">
-        <div className="flex items-center gap-2 flex-wrap font-semibold text-slate-700 dark:text-slate-300">
-          <span className="font-black text-slate-400 uppercase text-[10px] tracking-wider font-mono">Compliance</span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className={cn('font-bold', isFullyCompliant ? 'text-emerald-600' : 'text-rose-600')}>
-            {isFullyCompliant ? '🟢 Fully Compliant' : `🔴 ${issueSlots.length} Issue${issueSlots.length > 1 ? 's' : ''}`}
-          </span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="font-mono text-slate-500 font-bold">{compliantCount}/{totalSlots} compliant</span>
-        </div>
+      {/* ── 1. Top Document Tab Buttons Bar (Interactive Button Model) ──────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 shrink-0 scrollbar-none">
+        {folder.slots.map((slot) => {
+          const isSelected = (selectedSlotId || folder.slots[0]?.documentType.id) === slot.documentType.id;
+          const doc = slot.document;
+          const code = getSlotStatusFromDoc(doc);
+          const StatusIcon = STATUS_ICONS[code]?.icon || FileQuestion;
+          const iconColor = STATUS_ICONS[code]?.className || 'text-slate-400';
+          const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+          const isExpiring = code === 'EXPIRING_SOON';
 
-        {/* Attention items inline list */}
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          {isFullyCompliant ? (
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> All required compliance documents are valid
-            </span>
-          ) : (
-            issueSlots.map((s) => (
-              <span key={s.documentType.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[11px] font-semibold">
-                <strong className="font-extrabold">{s.documentType.name}</strong>
-                <span>{s.status === 'MISSING' ? 'missing' : `expired (${formatDocDate(s.document?.expiry_date)})`}</span>
-              </span>
-            ))
-          )}
-        </div>
+          return (
+            <button
+              key={slot.documentType.id}
+              type="button"
+              onClick={() => setSelectedSlotId(slot.documentType.id)}
+              className={cn(
+                "px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
+                isSelected
+                  ? "bg-[#0F172A] text-white border-[#0F172A] shadow-xs"
+                  : isExpiredOrMissing
+                    ? "bg-rose-50/80 hover:bg-rose-100/80 text-rose-700 border-rose-200/80 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800"
+                    : isExpiring
+                      ? "bg-amber-50/80 hover:bg-amber-100/80 text-amber-700 border-amber-200/80 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800"
+                      : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800"
+              )}
+            >
+              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white" : iconColor)} />
+              <span>{slot.documentType.name}</span>
+              {code === 'EXPIRED' && (
+                <span className={cn("text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold", isSelected ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-700")}>
+                  Expired
+                </span>
+              )}
+              {code === 'MISSING' && (
+                <span className={cn("text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold", isSelected ? "bg-slate-600 text-white" : "bg-slate-100 text-slate-500")}>
+                  Missing
+                </span>
+              )}
+              {code === 'EXPIRING_SOON' && (
+                <span className={cn("text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold", isSelected ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700")}>
+                  Expiring
+                </span>
+              )}
+              {(code === 'VALID' || code === 'NO_EXPIRY') && (
+                <span className={cn("text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold", isSelected ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-600")}>
+                  Valid
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── 2. Master / Detail Viewport-Anchored Grid ────────────────────── */}
