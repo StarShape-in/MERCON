@@ -9,6 +9,7 @@
     "frontend/web-dashboard"
   ],
   "scripts": {
+    "dev": "npx concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "npm run dev -w @mercon/api-server",
     "dev:web": "npm run dev -w @mercon/web-dashboard",
     "build:types": "npm run build -w @mercon/shared-types",
