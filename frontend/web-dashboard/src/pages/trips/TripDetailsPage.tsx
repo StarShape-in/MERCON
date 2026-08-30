@@ -1077,7 +1077,7 @@ export default function TripDetailsPage() {
                       </Button>
                     </div>
 
-                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[340px] sm:h-[360px]">
+                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[460px] sm:h-[480px]">
                       <TripLiveMapCard
                         tripId={trip.id}
                         refId={trip.ref_id || trip.id}
@@ -1089,9 +1089,9 @@ export default function TripDetailsPage() {
                         dropoffLabel={dropoff?.location_name || undefined}
                         resolvedLocation={trip.vehicle?.resolved_location}
                         showHeader={false}
-                        showTelemetryBar={false}
+                        showTelemetryBar={true}
                         className="rounded-none border-none h-full"
-                        mapHeightClassName="h-[340px] sm:h-[360px]"
+                        mapHeightClassName="h-[460px] sm:h-[480px]"
                       />
                     </div>
                   </div>
@@ -1633,6 +1633,7 @@ export default function TripDetailsPage() {
               dropoffLng={dropoff?.location_lng}
               pickupLabel={pickup?.location_name || undefined}
               dropoffLabel={dropoff?.location_name || undefined}
+              resolvedLocation={trip.vehicle?.resolved_location}
               showHeader={false}
               showTelemetryBar={true}
               mapHeightClassName="h-[650px]"

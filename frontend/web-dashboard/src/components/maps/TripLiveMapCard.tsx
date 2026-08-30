@@ -674,14 +674,23 @@ export default function TripLiveMapCard({
                 </div>
               </div>
 
-              {!hasResolvedCoords && (
+              {hasResolvedCoords && (remainingDistanceKm != null || remainingEtaText) ? (
+                <div className="text-right shrink-0">
+                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Distance / ETA</p>
+                  <p className="text-xs font-bold text-[#FF5500]">
+                    {remainingDistanceKm != null && `${remainingDistanceKm} km`}
+                    {remainingDistanceKm != null && remainingEtaText && ' • '}
+                    {remainingEtaText && `~${remainingEtaText}`}
+                  </p>
+                </div>
+              ) : !hasResolvedCoords ? (
                 <div className="text-right shrink-0">
                   <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
                   <p className="text-xs font-bold text-[#FF5500]">
                     {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {!hasResolvedCoords && <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />}
