@@ -4,6 +4,20 @@ import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
+export interface ResolvedLocation {
+  lat?: number;
+  lng?: number;
+  latitude?: number;
+  longitude?: number;
+  display_state?: string;
+  speed_kph?: number;
+  heading_deg?: number;
+  plate_number?: string;
+  formatted_time_ago?: string;
+  formatted_address?: string;
+  source?: string;
+}
+
 export interface VehicleUsage {
   activeTrips: number;
   totalTrips: number;

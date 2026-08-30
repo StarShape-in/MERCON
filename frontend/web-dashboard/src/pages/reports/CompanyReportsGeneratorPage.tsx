@@ -1077,47 +1077,47 @@ export default function CompanyReportsGeneratorPage() {
 
 
 
-        {/* ─── Report Run Details Modal (Redesigned Executive Audit View) ─── */}
+        {/* ─── Report Run Details Modal (Clean Executive View) ─── */}
         <Dialog open={!!selectedReportForDetails} onOpenChange={() => setSelectedReportForDetails(null)}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl [&>button]:text-white [&>button]:top-5 [&>button]:right-5">
-            {/* Modal Header */}
-            <div className="p-6 pb-5 bg-[#3E3C3D] text-white shrink-0">
-              <div className="flex items-center justify-between gap-4 pr-6">
+          <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
+            {/* Standard Clean White Dialog Header */}
+            <DialogHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-white/10 text-[#FA634E] border border-white/10 shrink-0">
+                  <div className="p-2.5 rounded-xl bg-orange-50 text-[#FA634E] dark:bg-slate-800 shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black tracking-tight text-white flex items-center gap-2">
-                      Report Run Executive Details
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      Execution audit, extracted records, schema breakdown & financial summary
-                    </p>
+                    <DialogTitle className="text-base font-black tracking-tight text-slate-900 dark:text-slate-100">
+                      Report Run Details
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                      Execution parameters and schema column mapping breakdown
+                    </DialogDescription>
                   </div>
                 </div>
 
                 {selectedReportForDetails && (
                   <Badge className={cn(
                     "font-extrabold text-xs shadow-none rounded-lg px-3 py-1 border shrink-0",
-                    selectedReportForDetails.status === 'Ready' && "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-                    selectedReportForDetails.status === 'Processing' && "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse",
-                    selectedReportForDetails.status === 'Failed' && "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                    selectedReportForDetails.status === 'Ready' && "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300",
+                    selectedReportForDetails.status === 'Processing' && "bg-amber-50 text-amber-700 border-amber-200 animate-pulse dark:bg-amber-950/40",
+                    selectedReportForDetails.status === 'Failed' && "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40"
                   )}>
-                    {selectedReportForDetails.status === 'Ready' ? '✓ Ready (100% Exported)' : selectedReportForDetails.status}
+                    {selectedReportForDetails.status === 'Ready' ? '✓ Ready' : selectedReportForDetails.status}
                   </Badge>
                 )}
               </div>
-            </div>
+            </DialogHeader>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/50 dark:bg-slate-950">
               {selectedReportForDetails && (
                 <>
-                  {/* Top Company & Format Banner Card */}
+                  {/* Company & Format Identity Card */}
                   <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5 min-w-0">
                       <span className={cn(
-                        "h-11 w-11 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0 shadow-2xs border border-black/5",
+                        "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0 shadow-2xs border border-black/5",
                         selectedReportForDetails.companyLogo === 'iM' && "bg-violet-100 text-violet-850 dark:bg-violet-950/60 dark:text-violet-300",
                         selectedReportForDetails.companyLogo === 'Ax' && "bg-rose-100 text-rose-850 dark:bg-rose-950/60 dark:text-rose-300",
                         selectedReportForDetails.companyLogo === 'DL' && "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300",
@@ -1131,9 +1131,9 @@ export default function CompanyReportsGeneratorPage() {
                         <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">
                           {selectedReportForDetails.companyName}
                         </h4>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
-                          <span>Format Template: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong></span>
-                        </div>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5">
+                          Format: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong>
+                        </p>
                       </div>
                     </div>
 
@@ -1153,102 +1153,45 @@ export default function CompanyReportsGeneratorPage() {
                     </div>
                   </div>
 
-                  {/* Financial & Essential Metrics Summary Bar (4 Cards) */}
+                  {/* 4 Clean, Hyper-Focused KPI Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Financial Value</span>
-                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-mono">
-                        <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" />
-                        SAR 119,370.00
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        {selectedReportForDetails.dataType} Ledger
                       </div>
-                      <span className="text-[10px] text-slate-400 block">Inc. VAT: SAR 137,275.50</span>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category & Rows</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
-                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                        {selectedReportForDetails.recordsCount} Trip Rows
-                      </div>
-                      <span className="text-[10px] text-slate-400 block">{selectedReportForDetails.dataType} Ledger Data</span>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Period Horizon</span>
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Horizon / Period</span>
                       <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
                         <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                         {selectedReportForDetails.period}
                       </div>
-                      <span className="text-[10px] text-slate-400 block">Filtered Operational Range</span>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Audit Stamp</span>
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Rows Extracted</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
+                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        {selectedReportForDetails.recordsCount} Rows
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Stamp</span>
                       <div className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap">
                         {selectedReportForDetails.generatedOn}
                       </div>
-                      <span className="text-[10px] text-slate-400 block truncate">By: {selectedReportForDetails.generatedBy}</span>
                     </div>
                   </div>
 
-                  {/* Compact Sample Data Ledger Preview */}
+                  {/* Clean Mapped Schema Columns Section */}
                   <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2.5">
                       <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Exported Data Rows Preview (Top Sample Records)
-                      </h4>
-                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold">
-                        3 of {selectedReportForDetails.recordsCount} Records Shown
-                      </Badge>
-                    </div>
-
-                    <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-lg">
-                      <table className="w-full text-left text-xs font-mono border-collapse">
-                        <thead className="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                          <tr className="border-b border-slate-200 dark:border-slate-700">
-                            <th className="py-2 px-3">Carrier</th>
-                            <th className="py-2 px-3">Date</th>
-                            <th className="py-2 px-3">Origin</th>
-                            <th className="py-2 px-3">Destination</th>
-                            <th className="py-2 px-3">Vehicle Plate</th>
-                            <th className="py-2 px-3 text-right">Charge (SAR)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
-                          <tr>
-                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">01/06/2026</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Khamis Station</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Abha Station</td>
-                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">5049-3531</td>
-                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">13,500.00</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">05/06/2026</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Station</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Al Baha Station</td>
-                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">012-4207</td>
-                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">52,500.00</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">12/06/2026</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Station</td>
-                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Hub</td>
-                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">VRA5510</td>
-                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">12,900.00</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Mapped Schema Columns Breakdown (2-Column Grid to prevent ANY text truncation!) */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between gap-3">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Full Exported Column Schema & Mappings
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Exported Schema Columns & Mapping Breakdown
                       </h4>
                       <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 border-emerald-200 text-[10px] font-bold font-mono">
                         100% Normalized
