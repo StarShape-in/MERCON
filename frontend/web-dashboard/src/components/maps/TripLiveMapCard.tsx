@@ -48,7 +48,7 @@ const dropoffMarkerIcon = L.divIcon({
 });
 
 function createLiveTruckIcon(heading: number = 0) {
-  const adjustedHeading = ((heading || 0) + 180) % 360;
+  const adjustedHeading = heading || 0;
   return L.divIcon({
     html: `
       <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
@@ -70,7 +70,7 @@ function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 
   const glowColor = isCurrent ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)';
   const borderColor = isCurrent ? '#10B981' : '#F59E0B';
   const pingClass = isCurrent ? 'animate-ping' : '';
-  const adjustedHeading = ((heading || 0) + 180) % 360;
+  const adjustedHeading = heading || 0;
 
   return L.divIcon({
     html: `
@@ -167,6 +167,7 @@ export default function TripLiveMapCard({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [roadPolyline, setRoadPolyline] = useState<[number, number][] | null>(null);
+  const [remainingRoadPolyline, setRemainingRoadPolyline] = useState<[number, number][] | null>(null);
   const [isRoutingFallback, setIsRoutingFallback] = useState(false);
 
   const [currentPlaceName, setCurrentPlaceName] = useState<string | null>(null);
@@ -257,9 +258,10 @@ export default function TripLiveMapCard({
     };
   }, [hasResolvedCoords, resLat, resLng]);
 
-  // 2. Fetch OSRM remaining distance & ETA: CURRENT VEHICLE POSITION -> DESTINATION
+  // 2. Fetch OSRM remaining road route, distance & ETA: CURRENT VEHICLE POSITION -> DESTINATION
   useEffect(() => {
     if (!hasResolvedCoords || !resLat || !resLng || !hasRealCoords) {
+      setRemainingRoadPolyline(null);
       setRemainingDistanceKm(null);
       setRemainingEtaText(null);
       return;
@@ -268,7 +270,7 @@ export default function TripLiveMapCard({
     let isMounted = true;
     const fetchRemainingRoute = async () => {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${resLng},${resLat};${dropoffPoint.lng},${dropoffPoint.lat}?overview=false`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${resLng},${resLat};${dropoffPoint.lng},${dropoffPoint.lat}?overview=full&geometries=geojson`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
         const data = await res.json();
@@ -280,7 +282,14 @@ export default function TripLiveMapCard({
           const mins = Math.round((durSec % 3600) / 60);
           const etaText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
+          let leafletRemainingCoords: [number, number][] | null = null;
+          if (Array.isArray(route.geometry?.coordinates)) {
+            const rawCoords: [number, number][] = route.geometry.coordinates;
+            leafletRemainingCoords = rawCoords.map(([lng, lat]) => [lat, lng]);
+          }
+
           if (isMounted) {
+            setRemainingRoadPolyline(leafletRemainingCoords);
             setRemainingDistanceKm(distKm);
             setRemainingEtaText(etaText);
           }
@@ -289,6 +298,7 @@ export default function TripLiveMapCard({
       } catch (err) {
         console.warn('[TripLiveMapCard] OSRM remaining route calculation failed:', err);
         if (isMounted) {
+          setRemainingRoadPolyline(null);
           setRemainingDistanceKm(null);
           setRemainingEtaText(null);
         }
@@ -302,7 +312,7 @@ export default function TripLiveMapCard({
   }, [hasResolvedCoords, resLat, resLng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
 
   const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
-  const polylineWaypoints: [number, number][] = roadPolyline
+  const plannedPolylineWaypoints: [number, number][] = roadPolyline
     ? roadPolyline
     : hasRealCoords
       ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
@@ -317,6 +327,12 @@ export default function TripLiveMapCard({
   const progress = simulatedTruck ? simulatedTruck.progressPercentage : 0;
   const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 0;
   const sourceText = resolvedLocation?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLocation?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
+
+  const remainingPolylineWaypoints: [number, number][] | null = remainingRoadPolyline
+    ? remainingRoadPolyline
+    : hasResolvedCoords
+      ? [[activeTruckLat, activeTruckLng], [dropoffPoint.lat, dropoffPoint.lng]]
+      : null;
 
   return (
     <Card className={cn('border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden p-0 gap-0', className)}>
@@ -519,15 +535,39 @@ export default function TripLiveMapCard({
               }
             />
 
+            {/* Original Planned Route (Pickup -> Dropoff) */}
             <Polyline
-              positions={polylineWaypoints}
+              positions={plannedPolylineWaypoints}
               pathOptions={{
-                color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                color: '#94A3B8',
                 weight: 4,
-                opacity: isRoutingFallback ? 0.6 : 0.85,
-                dashArray: isRoutingFallback ? '6, 10' : undefined,
+                opacity: 0.45,
+                dashArray: '6, 8',
               }}
             />
+
+            {/* Live Navigation Remaining Road Route (Current Truck GPS -> Destination) */}
+            {remainingPolylineWaypoints ? (
+              <Polyline
+                positions={remainingPolylineWaypoints}
+                pathOptions={{
+                  color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                  weight: 5,
+                  opacity: isRoutingFallback ? 0.6 : 0.95,
+                  dashArray: isRoutingFallback ? '6, 10' : undefined,
+                }}
+              />
+            ) : !hasResolvedCoords && (
+              <Polyline
+                positions={plannedPolylineWaypoints}
+                pathOptions={{
+                  color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                  weight: 5,
+                  opacity: isRoutingFallback ? 0.6 : 0.95,
+                  dashArray: isRoutingFallback ? '6, 10' : undefined,
+                }}
+              />
+            )}
 
             <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
               <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>

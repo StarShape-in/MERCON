@@ -188,7 +188,7 @@ function createTruckMapIcon(plate: string, status: string, isDelayed?: boolean, 
     ? `<span style="background:#FFE4E6;color:#BE123C;padding:1px 5px;border-radius:4px;font-size:7px;font-weight:900;margin-left:4px;letter-spacing:0.3px;border:1px solid #F43F5E;">DELAYED</span>`
     : '';
 
-  const adjustedHeading = ((heading || 0) + 180) % 360;
+  const adjustedHeading = heading || 0;
 
   const svgHtml = `
     <div style="position:relative;width:75px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
