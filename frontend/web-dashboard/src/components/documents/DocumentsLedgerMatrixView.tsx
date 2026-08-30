@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OwnerFoldersSummaryRow, OwnerFoldersSummarySlot } from '@/services/documentService';
-import { formatDocDate, sortFoldersByAttentionFirst } from '@/lib/documents';
+import DriverAvatar from '@/components/ui/DriverAvatar';
+import { formatDocDate, sortFoldersByAttentionFirst, resolveFileUrl } from '@/lib/documents';
 
 interface DocumentsLedgerMatrixViewProps {
   activeCategory: 'Vehicles' | 'Drivers' | 'Other' | 'All' | 'Unassigned';
@@ -458,10 +459,23 @@ export default function DocumentsLedgerMatrixView({
                       >
                         {/* Driver */}
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-extrabold text-slate-900 dark:text-white text-xs tracking-tight">
-                              {row.ownerName}
-                            </span>
+                          <div className="flex items-center gap-2.5">
+                            <DriverAvatar
+                              src={row.avatar_url ? resolveFileUrl(row.avatar_url) : (matchedDriver?.avatar_url ? resolveFileUrl(matchedDriver.avatar_url) : null)}
+                              firstName={row.ownerName.split(' ')[0]}
+                              lastName={row.ownerName.split(' ')[1]}
+                              size="sm"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-slate-900 dark:text-white text-xs tracking-tight">
+                                {row.ownerName}
+                              </span>
+                              {row.ownerRef && (
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {row.ownerRef}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
  

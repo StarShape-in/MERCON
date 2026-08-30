@@ -327,15 +327,26 @@ export default function DocumentsCenterPage() {
     queryKey: ['documents', 'owner-folders', 'Vehicle'],
     queryFn: () => documentService.getOwnerFolders('Vehicle'),
   });
+  const enrichedDriverFolders = useMemo(() => {
+    return driverFolders.map((row) => {
+      const matched = drivers.find((d: any) => d.id === row.ownerId || d.name === row.ownerName);
+      const rawAvatar = row.avatar_url || matched?.avatar_url || null;
+      return {
+        ...row,
+        avatar_url: rawAvatar ? resolveFileUrl(rawAvatar) : null,
+      };
+    });
+  }, [driverFolders, drivers]);
+
   const filteredDriverFolders = useMemo(
-    () => sortFoldersByAttentionFirst(driverFolders.filter((r) => matchesSearch(search, [
+    () => sortFoldersByAttentionFirst(enrichedDriverFolders.filter((r) => matchesSearch(search, [
       r.ownerName,
       r.ownerRef || '',
       r.relatedName || '',
       ...r.slots.map((s) => s.name),
       ...r.slots.map((s) => s.code),
     ]))),
-    [driverFolders, search],
+    [enrichedDriverFolders, search],
   );
   const filteredVehicleFolders = useMemo(
     () => sortFoldersByAttentionFirst(vehicleFolders.filter((r) => matchesSearch(search, [
