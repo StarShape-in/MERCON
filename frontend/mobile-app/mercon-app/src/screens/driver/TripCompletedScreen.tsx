@@ -4,15 +4,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Svg, { Circle, Path } from 'react-native-svg';
-import { Check, Share2, Clock, Calendar, User, FileText, MapPin, Home, PackageCheck, CheckCircle2 } from 'lucide-react-native';
+import { Check, Share2, Clock, Calendar, User, FileText, MapPin, Home, PackageCheck, CheckCircle2, ArrowLeft } from 'lucide-react-native';
 import { GeotagPhotoModal } from '../../components';
 import { API_URL } from '../../lib/api';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useCargoPodPhotos } from '../../lib/documents';
 import { tripService, type MobileTrip } from '../../lib/trips';
-
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const logo = require('../../../assets/images/mercon-logo.png');
 
 const FILE_BASE = API_URL ? API_URL.replace(/\/api\/?$/, '') : '';
 
@@ -33,76 +34,14 @@ const getPhotoUri = (item: any): string | null => {
   return null;
 };
 
-// Vibrant Green Success Checkmark Badge with Spring Entrance, Dual Glow Rings & Rich Confetti
-const SuccessCheckmarkBadge = () => {
-  const scaleAnim = useRef(new Animated.Value(0.3)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={[styles.heroBadgeWrapper, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-      {/* Outer Soft Aura Ring */}
-      <View style={styles.heroCheckOuterRing} />
-      {/* Inner Glow Ring */}
-      <View style={styles.heroCheckGlowRing} />
-      {/* Core Solid Green Check Circle */}
-      <View style={styles.heroCheckCircle}>
-        <Check size={42} color="#FFFFFF" strokeWidth={4} />
-      </View>
-
-      {/* Rich Sparkle & Confetti Burst Overlay */}
-      <Svg width={220} height={120} viewBox="0 0 220 120" style={styles.confettiOverlay}>
-        {/* Left Side Confetti & Sparkles */}
-        <Circle cx={25} cy={35} r={3.5} fill="#F59E0B" />
-        <Circle cx={45} cy={18} r={2.5} fill="#10B981" />
-        <Circle cx={15} cy={65} r={3} fill="#06B6D4" />
-        <Circle cx={42} cy={85} r={2} fill="#FF6B6B" />
-        <Path d="M 18 42 L 24 36" stroke="#FF6B6B" strokeWidth={2.5} strokeLinecap="round" />
-        <Path d="M 32 80 L 38 76" stroke="#F59E0B" strokeWidth={2} strokeLinecap="round" />
-
-        {/* Right Side Confetti & Sparkles */}
-        <Circle cx={195} cy={35} r={3.5} fill="#10B981" />
-        <Circle cx={175} cy={18} r={2.5} fill="#F59E0B" />
-        <Circle cx={205} cy={65} r={3} fill="#6366F1" />
-        <Circle cx={178} cy={85} r={2} fill="#FF6B6B" />
-        <Path d="M 198 42 L 192 36" stroke="#10B981" strokeWidth={2.5} strokeLinecap="round" />
-        <Path d="M 182 78 L 176 74" stroke="#6366F1" strokeWidth={2} strokeLinecap="round" />
-
-        {/* Top Floating Stars */}
-        <Circle cx={110} cy={10} r={3} fill="#F59E0B" />
-        <Circle cx={85} cy={16} r={2.5} fill="#10B981" />
-        <Circle cx={135} cy={16} r={2.5} fill="#06B6D4" />
-      </Svg>
-    </Animated.View>
-  );
-};
-
 const TripCompletedScreen = () => {
   const router = useRouter();
   const { trip, refetch } = useCurrentTrip();
   const { photos: docs } = useCargoPodPhotos();
   const documents = docs || [];
+  
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
-
-  useEffect(() => {
-    refetch();
-  }, []);
-
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const [completedTrip, setCompletedTrip] = useState<MobileTrip | null>(null);
   const [localPickupPhotos, setLocalPickupPhotos] = useState<any[]>([]);
   const [localDeliveryPhotos, setLocalDeliveryPhotos] = useState<any[]>([]);
@@ -179,8 +118,8 @@ const TripCompletedScreen = () => {
   const handleShare = async () => {
     try {
       await Share.share({
-        title: `MERCON Trip Summary #${activeTrip?.ref_id ?? 'TRP-0065'}`,
-        message: `Trip #${activeTrip?.ref_id ?? 'TRP-0065'} to ${activeTrip?.customer?.name || 'Customer'} completed successfully.`,
+        title: `MERCON Trip Summary #${activeTrip?.ref_id ?? 'TRP-0467'}`,
+        message: `Trip #${activeTrip?.ref_id ?? 'TRP-0467'} to ${activeTrip?.customer?.name || 'IMILE DELIVERY SAUDI LOGISTICS'} completed successfully.`,
       });
     } catch {
       // silent
@@ -191,9 +130,16 @@ const TripCompletedScreen = () => {
     router.replace('/');
   };
 
-  const tripRefId = activeTrip?.ref_id ? `#${activeTrip.ref_id.startsWith('TRP-') ? activeTrip.ref_id : 'TRP-' + activeTrip.ref_id}` : activeTrip?.id ? `#TRP-${activeTrip.id.slice(0, 8)}` : '#TRP-0065';
+  const rawRef = activeTrip?.ref_id || activeTrip?.id || 'TRP-0467';
+  const tripIdDisplay = rawRef.startsWith('TRP-') ? rawRef : `TRP-${rawRef.slice(0, 6)}`;
+  const tripRefId = `#${tripIdDisplay}`;
   const customerName = activeTrip?.customer?.name ? activeTrip.customer.name.toUpperCase() : 'IMILE DELIVERY SAUDI LOGISTICS';
   
+  // Destination city/address
+  const destinationLocation = (activeTrip as any)?.destination_location?.name
+    || (activeTrip?.stops && activeTrip.stops.length > 0 ? activeTrip.stops[activeTrip.stops.length - 1]?.location?.name : null)
+    || 'Riyadh, Saudi Arabia';
+
   const formattedLoadingDate = (activeTrip as any)?.actual_pickup || (activeTrip as any)?.actual_start
     ? new Date((activeTrip as any).actual_pickup || (activeTrip as any).actual_start).toLocaleString('en-US', {
         month: 'short',
@@ -214,23 +160,96 @@ const TripCompletedScreen = () => {
       })
     : 'Aug 26, 2026 at 12:03 PM';
 
+  // ---------------------------------------------------------------------------
+  // VIEW 1: CLEAN LANDING CARD (MATCHING USER SCREENSHOT EXACTLY)
+  // ---------------------------------------------------------------------------
+  if (!showDetails) {
+    return (
+      <SafeAreaView style={styles.cleanContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <ScrollView contentContainerStyle={styles.cleanScroll} showsVerticalScrollIndicator={false}>
+          {/* Top Checkmark Circle */}
+          <View style={styles.cleanCheckWrapper}>
+            <View style={styles.cleanCheckCircle}>
+              <Check size={48} color="#FFFFFF" strokeWidth={3.8} />
+            </View>
+          </View>
+
+          {/* Delivered To Subtitle & Bold Customer Name */}
+          <View style={styles.cleanHeaderGroup}>
+            <Text style={styles.cleanSubtitle}>Delivered to</Text>
+            <Text style={styles.cleanCustomerName}>{customerName}</Text>
+          </View>
+
+          {/* 3 Detail Info Rows */}
+          <View style={styles.cleanInfoList}>
+            {/* Row 1: Destination Location */}
+            <View style={styles.cleanInfoRow}>
+              <MapPin size={24} color="#16A34A" strokeWidth={2.2} />
+              <Text style={styles.cleanInfoText}>{destinationLocation}</Text>
+            </View>
+
+            {/* Row 2: Delivery Date */}
+            <View style={styles.cleanInfoRow}>
+              <Calendar size={24} color="#16A34A" strokeWidth={2.2} />
+              <Text style={styles.cleanInfoText}>{formattedDeliveryDate}</Text>
+            </View>
+
+            {/* Row 3: Trip ID */}
+            <View style={styles.cleanInfoRow}>
+              <FileText size={24} color="#16A34A" strokeWidth={2.2} />
+              <Text style={styles.cleanInfoText}>Trip ID: {tripIdDisplay}</Text>
+            </View>
+          </View>
+
+          {/* MERCON LOGISTICS Branding Logo */}
+          <View style={styles.cleanBrandingGroup}>
+            <Image source={logo} style={styles.cleanLogoImage} resizeMode="contain" />
+            <Text style={styles.cleanLogoTitle}>MERCON LOGISTICS</Text>
+            <Text style={styles.cleanLogoSubtitle}>SERVICES COMPANY</Text>
+          </View>
+        </ScrollView>
+
+        {/* Bottom 3 Action Buttons */}
+        <View style={styles.cleanActionBar}>
+          {/* 1. Share screenshot */}
+          <TouchableOpacity style={styles.cleanBtnShare} activeOpacity={0.8} onPress={handleShare}>
+            <Share2 size={16} color="#16A34A" strokeWidth={2.2} />
+            <Text style={styles.cleanBtnShareText} numberOfLines={1}>Share screenshot</Text>
+          </TouchableOpacity>
+
+          {/* 2. More details */}
+          <TouchableOpacity style={styles.cleanBtnDetails} activeOpacity={0.8} onPress={() => setShowDetails(true)}>
+            <FileText size={16} color="#2563EB" strokeWidth={2.2} />
+            <Text style={styles.cleanBtnDetailsText} numberOfLines={1}>More details</Text>
+          </TouchableOpacity>
+
+          {/* 3. Done */}
+          <TouchableOpacity style={styles.cleanBtnDone} activeOpacity={0.85} onPress={handleBackHome}>
+            <Text style={styles.cleanBtnDoneText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // VIEW 2: FULL DETAILED PAGE (WITH POL / POD PHOTOS AND DETAILED METRICS)
+  // ---------------------------------------------------------------------------
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F0FDF4' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#F0FDF4" />
+      
+      {/* Top Header Bar for Detailed View */}
+      <View style={styles.detailedHeader}>
+        <TouchableOpacity style={styles.detailedBackBtn} activeOpacity={0.8} onPress={() => setShowDetails(false)}>
+          <ArrowLeft size={20} color="#0F172A" strokeWidth={2.2} />
+        </TouchableOpacity>
+        <Text style={styles.detailedHeaderTitle}>Trip Details Summary</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Top Hero Header with Success Badge */}
-        <View style={styles.topHeroSection}>
-          {/* Floating Back Button on Top Left */}
-          <TouchableOpacity style={styles.floatingBackBtn} activeOpacity={0.8} onPress={handleBackHome}>
-            <Text style={styles.backIconText}>←</Text>
-          </TouchableOpacity>
-
-          {/* Hero Main Content */}
-          <View style={styles.topHeroContent}>
-            <SuccessCheckmarkBadge />
-          </View>
-        </View>
-
         {/* 1. Trip Summary Card */}
         <View style={styles.summaryCard}>
           {/* Card Header Row */}
@@ -392,11 +411,11 @@ const TripCompletedScreen = () => {
           )}
         </View>
 
-        {/* 3. Bottom Action Buttons */}
+        {/* 3. Bottom Action Buttons in Detailed View */}
         <View style={styles.actionButtonsRow}>
-          <TouchableOpacity style={styles.shareBtn} activeOpacity={0.8} onPress={handleShare}>
-            <Share2 size={16} color="#10B981" strokeWidth={2.2} />
-            <Text style={styles.shareBtnText}>SHARE TRIP</Text>
+          <TouchableOpacity style={styles.shareBtn} activeOpacity={0.8} onPress={() => setShowDetails(false)}>
+            <ArrowLeft size={16} color="#10B981" strokeWidth={2.2} />
+            <Text style={styles.shareBtnText}>BACK TO SUMMARY</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.homeBtn} activeOpacity={0.85} onPress={handleBackHome}>
@@ -416,123 +435,223 @@ const TripCompletedScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    paddingBottom: 16,
-  },
-  topHeroSection: {
-    position: 'relative',
-    width: '100%',
-    height: 260,
-  },
-  floatingBackBtn: {
-    position: 'absolute',
-    top: 10,
-    left: 14,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  // ---------------------------------------------------------------------------
+  // CLEAN LANDING STYLES (MATCHING USER SCREENSHOT EXACTLY)
+  // ---------------------------------------------------------------------------
+  cleanContainer: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    zIndex: 30,
   },
-  backIconText: {
+  cleanScroll: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 24,
+  },
+  cleanCheckWrapper: {
+    marginBottom: 28,
+  },
+  cleanCheckCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cleanHeaderGroup: {
+    alignItems: 'center',
+    marginBottom: 36,
+  },
+  cleanSubtitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  cleanCustomerName: {
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+    textAlign: 'center',
+    lineHeight: 24,
   },
-  heroBadgeWrapper: {
-    position: 'relative',
+  cleanInfoList: {
+    width: '100%',
+    paddingHorizontal: 12,
+    gap: 22,
+    marginBottom: 44,
+  },
+  cleanInfoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 16,
+  },
+  cleanInfoText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  cleanBrandingGroup: {
+    alignItems: 'center',
+    marginTop: 'auto',
+    marginBottom: 16,
+  },
+  cleanLogoImage: {
     width: 140,
-    height: 140,
+    height: 45,
+    marginBottom: 4,
   },
-  heroCheckOuterRing: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+  cleanLogoTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FA634E',
+    letterSpacing: 0.8,
+  },
+  cleanLogoSubtitle: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  cleanActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  cleanBtnShare: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  heroCheckGlowRing: {
-    position: 'absolute',
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  heroCheckCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#10B981',
+    borderColor: '#16A34A',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 10,
+    gap: 5,
+    paddingHorizontal: 4,
   },
-  confettiOverlay: {
-    position: 'absolute',
-    top: 10,
+  cleanBtnShareText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#16A34A',
   },
-  topHeroContent: {
-    position: 'absolute',
-    top: 75,
-    left: 0,
-    right: 0,
+  cleanBtnDetails: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#2563EB',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 4,
+  },
+  cleanBtnDetailsText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  cleanBtnDone: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  cleanBtnDoneText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  // ---------------------------------------------------------------------------
+  // DETAILED VIEW STYLES
+  // ---------------------------------------------------------------------------
+  detailedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  detailedBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailedHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
 
   summaryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 8,
-    width: '84%',
-    alignSelf: 'center',
-    marginTop: -30,
-    marginBottom: 10,
+    borderRadius: 16,
+    padding: 14,
+    marginHorizontal: 14,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 3,
   },
   summaryCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   summaryTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     color: '#0F172A',
   },
   tripIdBadge: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '800',
     color: '#10B981',
   },
   gridContainer: {
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   gridRow: {
@@ -544,18 +663,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    gap: 6,
   },
   gridCellLeft: {
     borderRightWidth: 1,
     borderRightColor: '#F1F5F9',
   },
   cellIconRing: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#10B981',
     backgroundColor: '#F0FDF4',
@@ -567,16 +686,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cellLabel: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '600',
     color: '#64748B',
-    marginBottom: 0,
+    marginBottom: 1,
   },
   cellValueBold: {
-    fontSize: 9.5,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#0F172A',
-    lineHeight: 12,
+    lineHeight: 14,
   },
 
   mediaCard: {
@@ -676,7 +795,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   shareBtnText: {
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#10B981',
     letterSpacing: 0.3,
@@ -697,7 +816,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   homeBtnText: {
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.5,
