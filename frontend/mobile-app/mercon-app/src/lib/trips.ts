@@ -188,6 +188,16 @@ export const tripService = {
     return (data.data ?? []) as MobileTrip[];
   },
 
+  /** Scheduled / assigned trips for the driver. */
+  async getScheduled(limit = 30): Promise<MobileTrip[]> {
+    try {
+      const { data } = await api.get('/mobile/trips/scheduled', { params: { limit } });
+      return (data.data ?? []) as MobileTrip[];
+    } catch {
+      return [];
+    }
+  },
+
   /**
    * The road route from where the driver is now to the trip's next stop.
    *

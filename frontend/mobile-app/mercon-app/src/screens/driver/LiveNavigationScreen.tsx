@@ -56,6 +56,7 @@ const LiveNavigationScreen = () => {
   const routeFetchedRef = useRef<string | null>(null);
   
   const [arriving, setArriving] = useState(false);
+  const [delayModalVisible, setDelayModalVisible] = useState(false);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 

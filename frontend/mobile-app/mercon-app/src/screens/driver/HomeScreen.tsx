@@ -160,7 +160,7 @@ const HomeScreen = () => {
     setScheduledLoading(true);
     try {
       const data = await tripService.getScheduled();
-      setScheduledTrips(trip ? data.filter((t) => t.id !== trip.id) : data);
+      setScheduledTrips(trip ? data.filter((t: MobileTrip) => t.id !== trip.id) : data);
     } catch {
       // silently fail
     } finally {
