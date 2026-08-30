@@ -1115,21 +1115,21 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Report Run Details Modal (Redesigned Executive Audit View) ─── */}
         <Dialog open={!!selectedReportForDetails} onOpenChange={() => setSelectedReportForDetails(null)}>
-          <DialogContent className="sm:max-w-3xl max-h-[88vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl [&>button]:text-white [&>button]:top-5 [&>button]:right-5">
             {/* Modal Header */}
-            <DialogHeader className="p-6 pb-5 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shrink-0 relative">
-              <div className="flex items-center justify-between gap-4">
+            <div className="p-6 pb-5 bg-[#3E3C3D] text-white shrink-0">
+              <div className="flex items-center justify-between gap-4 pr-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-white/10 text-[#FA634E] border border-white/10 backdrop-blur-xs shrink-0">
+                  <div className="p-2.5 rounded-xl bg-white/10 text-[#FA634E] border border-white/10 shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <DialogTitle className="text-base font-black tracking-tight text-white flex items-center gap-2">
-                      Report Run Audit Details
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-300 mt-0.5">
-                      Execution parameters, record count, and schema mapping overview
-                    </DialogDescription>
+                    <h3 className="text-base font-black tracking-tight text-white flex items-center gap-2">
+                      Report Run Executive Details
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Execution audit, extracted records, schema breakdown & financial summary
+                    </p>
                   </div>
                 </div>
 
@@ -1144,9 +1144,9 @@ export default function CompanyReportsGeneratorPage() {
                   </Badge>
                 )}
               </div>
-            </DialogHeader>
+            </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/50 dark:bg-slate-950">
               {selectedReportForDetails && (
                 <>
                   {/* Top Company & Format Banner Card */}
@@ -1168,7 +1168,7 @@ export default function CompanyReportsGeneratorPage() {
                           {selectedReportForDetails.companyName}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
-                          <span>Format: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong></span>
+                          <span>Format Template: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong></span>
                         </div>
                       </div>
                     </div>
@@ -1189,53 +1189,109 @@ export default function CompanyReportsGeneratorPage() {
                     </div>
                   </div>
 
-                  {/* 4 Metric Specification Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {/* Financial & Essential Metrics Summary Bar (4 Cards) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        {selectedReportForDetails.dataType} Ledger
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Financial Value</span>
+                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-mono">
+                        <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" />
+                        SAR 119,370.00
                       </div>
+                      <span className="text-[10px] text-slate-400 block">Inc. VAT: SAR 137,275.50</span>
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Horizon / Period</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category & Rows</span>
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
+                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        {selectedReportForDetails.recordsCount} Trip Rows
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">{selectedReportForDetails.dataType} Ledger Data</span>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Period Horizon</span>
                       <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
                         <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                         {selectedReportForDetails.period}
                       </div>
+                      <span className="text-[10px] text-slate-400 block">Filtered Operational Range</span>
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Rows Exported</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
-                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                        {selectedReportForDetails.recordsCount} Rows
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Stamp</span>
-                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono truncate" title={selectedReportForDetails.generatedOn}>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Audit Stamp</span>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap">
                         {selectedReportForDetails.generatedOn}
                       </div>
-                      <span className="text-[10px] text-slate-400 block">By: {selectedReportForDetails.generatedBy}</span>
+                      <span className="text-[10px] text-slate-400 block truncate">By: {selectedReportForDetails.generatedBy}</span>
                     </div>
                   </div>
 
-                  {/* Included Columns Mapping Summary Section */}
+                  {/* Compact Sample Data Ledger Preview */}
                   <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between gap-3">
                       <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Exported Schema Columns & Mapping Breakdown
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Exported Data Rows Preview (Top Sample Records)
+                      </h4>
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-bold">
+                        3 of {selectedReportForDetails.recordsCount} Records Shown
+                      </Badge>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200/80 dark:border-slate-800 rounded-lg">
+                      <table className="w-full text-left text-xs font-mono border-collapse">
+                        <thead className="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          <tr className="border-b border-slate-200 dark:border-slate-700">
+                            <th className="py-2 px-3">Carrier</th>
+                            <th className="py-2 px-3">Date</th>
+                            <th className="py-2 px-3">Origin</th>
+                            <th className="py-2 px-3">Destination</th>
+                            <th className="py-2 px-3">Vehicle Plate</th>
+                            <th className="py-2 px-3 text-right">Charge (SAR)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">01/06/2026</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Khamis Station</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Abha Station</td>
+                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">5049-3531</td>
+                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">13,500.00</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">05/06/2026</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Station</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Al Baha Station</td>
+                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">012-4207</td>
+                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">52,500.00</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">MERCON</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">12/06/2026</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Station</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-400">Riyadh Hub</td>
+                            <td className="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">VRA5510</td>
+                            <td className="py-2 px-3 text-right font-extrabold text-emerald-600">12,900.00</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mapped Schema Columns Breakdown (2-Column Grid to prevent ANY text truncation!) */}
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Full Exported Column Schema & Mappings
                       </h4>
                       <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 border-emerald-200 text-[10px] font-bold font-mono">
                         100% Normalized
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                       {[
                         { col: 'C', header: 'VENDOR NAME', field: 'Carrier / 3rd Party' },
                         { col: 'D', header: 'DATE', field: 'Trip Date' },
@@ -1247,16 +1303,16 @@ export default function CompanyReportsGeneratorPage() {
                         { col: 'J', header: 'UUID NUMBER', field: 'Trip / Job Ref ID' },
                         { col: 'K', header: 'CHARGES', field: 'Billing Amount (Base Rate)' },
                       ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs gap-2">
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs gap-3">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="font-mono text-[10px] font-extrabold text-emerald-700 bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.5 rounded shrink-0 border border-emerald-200">
                               {item.col}
                             </span>
-                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={item.header}>
+                            <span className="font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                               {item.header}
                             </span>
                           </div>
-                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate text-right">
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap text-right">
                             {item.field}
                           </span>
                         </div>
