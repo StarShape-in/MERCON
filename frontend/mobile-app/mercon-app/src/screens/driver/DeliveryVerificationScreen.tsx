@@ -1,168 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, Image, Alert, ActivityIndicator, Share, Animated, Vibration, Platform,
+  StatusBar, Image, Alert, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G, Polygon, Ellipse } from 'react-native-svg';
-import {
-  ArrowLeft, Check, Camera, Plus, Trash2, ClipboardCheck, Info, MapPin, Package, ArrowRight, Clock, IdCard, GitFork, CornerUpLeft, ImageIcon, RotateCcw, Calendar,
-} from 'lucide-react-native';
-import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper } from '../../components';
+import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, MessageSquare, ClipboardList, Send, Navigation } from 'lucide-react-native';
+import { Colors } from '../../theme/tokens';
+import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { useCargoPodPhotos } from '../../lib/documents';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
-import { getApiErrorMessage, API_URL } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
-
-const MIN_PHOTOS = 1;
-
-// 3D Folded Map Graphic SVG Component for Location Card
-const FoldedMapPreviewGraphic = () => (
-  <Svg width={68} height={42} viewBox="0 0 68 42">
-    <G transform="rotate(-4 34 21)">
-      <Polygon points="4,10 22,5 22,35 4,40" fill="#FFF7ED" stroke="#FED7AA" strokeWidth={1} />
-      <Polygon points="22,5 44,10 44,40 22,35" fill="#FFEDD5" stroke="#FED7AA" strokeWidth={1} />
-      <Polygon points="44,10 62,5 62,35 44,40" fill="#FFF7ED" stroke="#FED7AA" strokeWidth={1} />
-      <Path d="M 12 32 Q 28 16 38 25 T 54 16" fill="none" stroke="#F97316" strokeWidth={2.2} strokeDasharray="3,2" />
-      <G transform="translate(30, 8)">
-        <Path d="M7 0C3.13 0 0 3.13 0 7C0 12.25 7 16.5 7 16.5C7 16.5 14 12.25 14 7C14 3.13 10.87 0 7 0Z" fill="#FA634E" />
-        <Circle cx={7} cy={7} r={2.5} fill="#FFFFFF" />
-      </G>
-    </G>
-  </Svg>
-);
-
-// Vector Logistics Delivery Illustration: Truck traveling toward Warehouse / Godown
-const FinalDeliveryBannerGraphic = () => (
-  <View style={styles.illustrationWrapper}>
-    <Svg width="100%" height={105} viewBox="0 0 340 105" preserveAspectRatio="xMidYMid meet">
-      {/* Background City Skyline Silhouette */}
-      <Path
-        d="M 10 85 L 10 45 L 22 45 L 22 32 L 35 32 L 35 55 L 48 55 L 48 25 L 62 25 L 62 85 
-           M 70 85 L 70 38 L 85 38 L 85 22 L 100 22 L 100 85 
-           M 235 85 L 235 40 L 250 40 L 250 30 L 265 30 L 265 85 
-           M 275 85 L 275 48 L 290 48 L 290 38 L 305 38 L 305 85"
-        fill="#F1F5F9"
-        opacity={0.85}
-      />
-
-      {/* Ground Line */}
-      <Line x1={0} y1={87} x2={340} y2={87} stroke="#E2E8F0" strokeWidth={1.5} />
-
-      {/* Orange Dashed Route Path Line */}
-      <Path
-        d="M 65 60 Q 115 35, 160 50 T 215 45"
-        fill="none"
-        stroke="#F97316"
-        strokeWidth={2}
-        strokeDasharray="4,3"
-      />
-
-      {/* Orange Route Location Pin */}
-      <G transform="translate(140, 32)">
-        <Path d="M7 0C3.13 0 0 3.13 0 7C0 11.5 7 16 7 16C7 16 14 11.5 14 7C14 3.13 10.87 0 7 0Z" fill="#E8450F" />
-        <Circle cx={7} cy={7} r={2.5} fill="#FFFFFF" />
-      </G>
-
-      {/* Left: White Delivery Truck */}
-      <G transform="translate(25, 36)">
-        {/* Wheels */}
-        <Circle cx={18} cy={44} r={5.5} fill="#1E293B" stroke="#94A3B8" strokeWidth={1.8} />
-        <Circle cx={18} cy={44} r={2.2} fill="#E2E8F0" />
-        <Circle cx={60} cy={44} r={5.5} fill="#1E293B" stroke="#94A3B8" strokeWidth={1.8} />
-        <Circle cx={60} cy={44} r={2.2} fill="#E2E8F0" />
-
-        {/* Chassis */}
-        <Rect x={10} y={38} width={60} height={4} fill="#334155" rx={1} />
-
-        {/* Cargo Box */}
-        <Rect x={5} y={10} width={48} height={30} rx={2} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.4} />
-        {/* Orange Stripe */}
-        <Rect x={5} y={34} width={48} height={3} fill="#F59E0B" />
-
-        {/* Truck Cabin */}
-        <Path d="M 53 16 L 68 16 Q 76 16 78 22 L 79 33 Q 79 40 73 40 L 53 40 Z" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.4} />
-        <Path d="M 58 19 L 70 19 Q 74 19 75 23 L 75 29 L 58 29 Z" fill="#64748B" />
-
-        {/* Headlight & Bumper */}
-        <Rect x={78} y={33} width={3} height={5} fill="#F59E0B" rx={1} />
-        <Rect x={53} y={37} width={26} height={3} fill="#334155" rx={1} />
-      </G>
-
-      {/* Right: Warehouse / Godown Facility */}
-      <G transform="translate(195, 24)">
-        {/* Roof with Orange Trim */}
-        <Polygon points="0,20 58,8 116,20" fill="#FFFFFF" stroke="#E8450F" strokeWidth={2.8} />
-
-        {/* Building Facade */}
-        <Rect x={5} y={20} width={106} height={43} fill="#E2E8F0" stroke="#CBD5E1" strokeWidth={1.4} />
-
-        {/* Dock Bay Doors */}
-        <Rect x={12} y={30} width={28} height={33} fill="#475569" rx={1} stroke="#334155" strokeWidth={1} />
-        <Rect x={68} y={28} width={38} height={35} fill="#1E293B" rx={1} stroke="#0F172A" strokeWidth={1} />
-
-        {/* Garage Panel Lines */}
-        <Line x1={12} y1={38} x2={40} y2={38} stroke="#64748B" strokeWidth={1} />
-        <Line x1={12} y1={46} x2={40} y2={46} stroke="#64748B" strokeWidth={1} />
-        <Line x1={12} y1={54} x2={40} y2={54} stroke="#64748B" strokeWidth={1} />
-
-        {/* Cargo Boxes Outside Entrance */}
-        <Rect x={44} y={43} width={13} height={13} fill="#F59E0B" rx={1.5} stroke="#D97706" strokeWidth={1} />
-        <Rect x={56} y={45} width={11} height={11} fill="#D97706" rx={1.5} stroke="#B45309" strokeWidth={1} />
-        <Rect x={48} y={31} width={11} height={11} fill="#F59E0B" rx={1.5} stroke="#D97706" strokeWidth={1} />
-
-        {/* Green Bushes */}
-        <Circle cx={112} cy={55} r={5.5} fill="#10B981" />
-        <Circle cx={116} cy={57} r={4} fill="#059669" />
-      </G>
-    </Svg>
-  </View>
-);
-
-// Clipboard with Checkmarks & Camera Graphic for POD Photo Banner
-const ClipboardCameraGraphic = () => (
-  <Svg width={54} height={48} viewBox="0 0 54 48">
-    {/* Shadow */}
-    <Ellipse cx={24} cy={44} rx={20} ry={3} fill="#FED7AA" opacity={0.6} />
-
-    {/* Clipboard Base */}
-    <Rect x={4} y={5} width={28} height={34} rx={4} fill="#F59E0B" stroke="#D97706" strokeWidth={1} />
-    <Rect x={6} y={9} width={24} height={28} rx={2.5} fill="#FFFFFF" />
-    {/* Clip Top */}
-    <Rect x={12} y={3} width={12} height={4.5} rx={1.2} fill="#475569" />
-    {/* Checkmarks */}
-    <Path d="M 9 15 L 12 18 L 16 13" stroke="#10B981" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <Line x1={18} y1={16} x2={26} y2={16} stroke="#94A3B8" strokeWidth={1.5} strokeLinecap="round" />
-    <Path d="M 9 22 L 12 25 L 16 20" stroke="#10B981" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <Line x1={18} y1={23} x2={26} y2={23} stroke="#94A3B8" strokeWidth={1.5} strokeLinecap="round" />
-    <Path d="M 9 29 L 12 32 L 16 27" stroke="#10B981" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <Line x1={18} y1={30} x2={24} y2={30} stroke="#94A3B8" strokeWidth={1.5} strokeLinecap="round" />
-
-    {/* Camera Badge Overlapping Bottom Right */}
-    <G transform="translate(26, 22)">
-      {/* Shadow */}
-      <Rect x={1} y={4} width={24} height={18} rx={5} fill="#000000" opacity={0.2} />
-
-      {/* Main Camera Body (Sleek dark navy with orange accent) */}
-      <Rect x={0} y={3} width={24} height={18} rx={5} fill="#0F172A" />
-      {/* Top Flash bump */}
-      <Path d="M 7 3 L 9 0.5 L 15 0.5 L 17 3 Z" fill="#1E293B" />
-      {/* Outer Lens Ring */}
-      <Circle cx={12} cy={12} r={5.5} fill="#334155" stroke="#475569" strokeWidth={1} />
-      {/* Glass Lens Element */}
-      <Circle cx={12} cy={12} r={3.8} fill="#0284C7" />
-      {/* Lens Flare Specular Highlight */}
-      <Circle cx={10.5} cy={10.5} r={1.2} fill="#FFFFFF" opacity={0.9} />
-      {/* Red/Orange Recording LED */}
-      <Circle cx={19.5} cy={6.5} r={1.2} fill="#EF4444" />
-    </G>
-  </Svg>
-);
 
 // Orange Camera Icon with Plus Badge for Photo Upload Slots
 const OrangeCameraPlusIcon = () => (
@@ -185,159 +37,81 @@ const OrangeCameraPlusIcon = () => (
   </View>
 );
 
-function formatSimpleDate(iso?: string | null): string {
-  if (!iso) return 'Aug 26, 2026 at 10:29 PM';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Aug 26, 2026 at 10:29 PM';
-  const month = d.toLocaleString('en-US', { month: 'short' });
-  const day = d.getDate();
-  const year = d.getFullYear();
-  let hours = d.getHours();
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
-}
+// Side Map Tile Box Component (matching Screenshot 2 reference)
+const SideMapTileBox = () => (
+  <View style={styles.sideMapTileContainer}>
+    <Svg width={92} height={92} viewBox="0 0 92 92">
+      {/* Light Greenish Map Land Background */}
+      <Rect width="92" height="92" fill="#E2F4E5" rx={18} />
 
-const GPaySuccessCheckmark = () => {
-  const scaleAnim = useRef(new Animated.Value(0.1)).current;
-  const rippleScale = useRef(new Animated.Value(0.8)).current;
-  const rippleOpacity = useRef(new Animated.Value(0.75)).current;
-  const sparkleScale = useRef(new Animated.Value(0)).current;
+      {/* Grid Lines & White Road Patterns */}
+      <Path d="M 0 32 L 92 32" stroke="#FFFFFF" strokeWidth={6} />
+      <Path d="M 0 64 L 92 64" stroke="#FFFFFF" strokeWidth={5} />
+      <Path d="M 32 0 L 32 92" stroke="#FFFFFF" strokeWidth={6} />
+      <Path d="M 68 0 L 68 92" stroke="#FFFFFF" strokeWidth={5} />
+      <Path d="M 0 12 L 92 78" stroke="#FFFFFF" strokeWidth={4} />
 
-  useEffect(() => {
-    triggerGPayHapticsAndSound();
+      {/* Park & Lawn Green Blocks */}
+      <Rect x={6} y={6} width={20} height={20} fill="#C6F6D5" rx={4} />
+      <Rect x={38} y={6} width={24} height={20} fill="#BBF7D0" rx={4} />
+      <Rect x={74} y={6} width={12} height={20} fill="#C6F6D5" rx={3} />
+      <Rect x={6} y={38} width={20} height={20} fill="#BBF7D0" rx={4} />
+      <Rect x={38} y={38} width={24} height={20} fill="#C6F6D5" rx={4} />
+      <Rect x={74} y={38} width={12} height={20} fill="#BBF7D0" rx={3} />
 
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 110,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rippleScale, {
-        toValue: 1.55,
-        duration: 650,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rippleOpacity, {
-        toValue: 0,
-        duration: 650,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sparkleScale, {
-        toValue: 1,
-        friction: 6,
-        tension: 90,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+      {/* Soft Pulse Ring Overlay around Location Pin */}
+      <Circle cx={46} cy={44} r={16} fill="rgba(249, 115, 22, 0.12)" />
+      <Circle cx={46} cy={44} r={10} fill="rgba(249, 115, 22, 0.20)" />
 
-  return (
-    <View style={styles.checkmarkContainer}>
-      <Animated.View
-        style={[
-          styles.rippleCircle,
-          {
-            transform: [{ scale: rippleScale }],
-            opacity: rippleOpacity,
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.checkmarkCircle,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Check size={42} color="#FFFFFF" strokeWidth={3.5} />
-      </Animated.View>
+      {/* Red/Orange Location Pin Marker */}
+      <G transform="translate(37, 27)">
+        <Path d="M9 0C4.03 0 0 4.03 0 9C0 15.5 9 22 9 22C9 22 18 15.5 18 9C18 4.03 13.97 0 9 0Z" fill="#F95738" />
+        <Circle cx={9} cy={9} r={3.5} fill="#FFFFFF" />
+      </G>
+    </Svg>
+
+    {/* Bottom Left Navigation Arrow Circle Badge Overlay */}
+    <View style={styles.mapTileArrowBadge}>
+      <Svg width={12} height={12} viewBox="0 0 12 12" fill="none" style={{ transform: [{ rotate: '65deg' }] }}>
+        <Path d="M6 1L10.5 10.5L6 8.4L1.5 10.5L6 1Z" fill="#0F172A" />
+      </Svg>
     </View>
-  );
-};
+  </View>
+);
 
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
-  const { trip, loading, setTrip } = useCurrentTrip();
-  const { photos: savedDocPhotos } = useCargoPodPhotos();
-  const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const legIndex = (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') ? 1 : 0;
-  const activeStop = trip?.stops?.find((s) => s.stop_sequence === (legIndex + 2)) ?? null;
-  const dropoffStop = activeStop;
-  const [step, setStep] = useState(1);
+  const { trip, loading, refetch, setTrip } = useCurrentTrip();
+  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? trip?.stops?.[trip.stops.length - 1] ?? null;
+
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
-  const uploadedIndices = useRef<Set<number>>(new Set());
-  const inFlight = useRef(false);
-  const viewRef = useRef<any>(null);
+  const [showDelayModal, setShowDelayModal] = useState(false);
 
-  const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
-  const cargoDoc = (savedDocPhotos as any[]).find((p) => (p.doc_type === 'Waybill' || p.doc_type === 'Cargo') && (p.entity_id === trip?.id || p.trip_ref_id === trip?.ref_id));
-  const podDoc = (savedDocPhotos as any[]).find((p) => p.doc_type === 'POD' && (p.entity_id === trip?.id || p.trip_ref_id === trip?.ref_id));
-
-  const cargoPhotoUri = photos[0]?.uri || (cargoDoc?.file_url ? (cargoDoc.file_url.startsWith('http') ? cargoDoc.file_url : `${FILE_BASE}${cargoDoc.file_url}`) : null);
-  const podPhotoUri = photos[1]?.uri || photos[0]?.uri || (podDoc?.file_url ? (podDoc.file_url.startsWith('http') ? podDoc.file_url : `${FILE_BASE}${podDoc.file_url}`) : null);
-
-  // Load draft photos from SecureStore on mount/trip load
+  // Load draft photos
   useEffect(() => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
+        const key = `delivery_draft_photos_${trip.id}`;
         const saved = await SecureStore.getItemAsync(key);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setPhotos(parsed);
-          }
-        } else {
-          setPhotos([]);
+          if (Array.isArray(parsed)) setPhotos(parsed);
         }
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id, legIndex]);
-
-  // Save draft photos to SecureStore on change
-  useEffect(() => {
-    if (!trip?.id) return;
-    const saveDraft = async () => {
-      try {
-        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
-        if (photos.length > 0) {
-          await SecureStore.setItemAsync(key, JSON.stringify(photos));
-        } else {
-          await SecureStore.deleteItemAsync(key);
-        }
-      } catch (e) {
-        console.error('Error saving draft photos:', e);
-      }
-    };
-    saveDraft();
-  }, [photos, trip?.id, legIndex]);
-
-  // Sync step with backend workflow state on load
-  useEffect(() => {
-    if (trip?.driver_workflow_state === 'REVIEW_COMPLETE' || trip?.driver_workflow_state === 'FIRST_DELIVERY_COMPLETED') {
-      setStep(2);
-    } else {
-      setStep(1);
-    }
-  }, [trip?.driver_workflow_state]);
+  }, [trip?.id]);
 
   const addPhoto = async () => {
     try {
       const photo = await choosePhoto();
       if (photo) {
         setPhotos((prev) => [...prev, photo].slice(0, 3));
-        uploadedIndices.current.clear();
       }
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
@@ -346,166 +120,107 @@ const DeliveryVerificationScreen = () => {
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, idx) => idx !== index));
-    uploadedIndices.current.clear();
   };
 
-  const continueToReview = async () => {
+  const handleCompleteDelivery = async () => {
     if (!trip || submitting) return;
     setSubmitting(true);
     try {
-      for (let i = 0; i < photos.length; i++) {
-        if (!uploadedIndices.current.has(i)) {
-          await tripService.uploadPhoto(trip.id, 'pod', photos[i], legIndex, 'delivery');
-          uploadedIndices.current.add(i);
+      // Upload POD photos via tripService.uploadPhoto
+      for (const p of photos) {
+        if (p.uri) {
+          try {
+            await tripService.uploadPhoto(trip.id, 'pod', {
+              uri: p.uri,
+              location: p.location ? {
+                latitude: p.location.latitude,
+                longitude: p.location.longitude,
+                timestamp: p.location.timestamp,
+              } : null,
+            });
+          } catch (photoErr) {
+            console.warn('POD photo upload warning:', photoErr);
+          }
         }
       }
-      const nextState = legIndex === 1 ? 'REVIEW_COMPLETE' : 'FIRST_DELIVERY_COMPLETED';
-      const updated = await tripService.updateStatus(trip.id, 'InTransit', nextState);
-      setTrip(updated);
-
       try {
-        const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
-        await SecureStore.deleteItemAsync(key);
-      } catch (err) {
-        console.error('Failed to delete draft key:', err);
-      }
-
-      setStep(2);
-    } catch (e) {
-      Alert.alert('Could not upload POD photos', getApiErrorMessage(e));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const complete = async () => {
-    if (!trip) return;
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setSubmitting(true);
-    try {
-      if (legIndex === 1) {
         const updated = await tripService.updateStatus(trip.id, 'Completed', 'COMPLETED');
         setTrip(updated);
-        try {
-          const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
-          await SecureStore.deleteItemAsync(key);
-        } catch (err) {
-          console.error('Failed to delete draft key:', err);
-        }
-        await triggerGPayHapticsAndSound();
-        router.replace('/trip/completed');
-      } else {
-        const updated = await tripService.updateStatus(trip.id, 'InTransit', 'FIRST_DELIVERY_COMPLETED');
-        setTrip(updated);
-        try {
-          const key = `delivery_draft_photos_${trip.id}_${legIndex}`;
-          await SecureStore.deleteItemAsync(key);
-        } catch (err) {
-          console.error('Failed to delete draft key:', err);
-        }
-        await triggerGPayHapticsAndSound();
-        router.replace('/trip/pickup');
+      } catch (statusErr) {
+        console.warn('Status update warning:', statusErr);
       }
-    } catch (e) {
-      Alert.alert('Could not complete trip', getApiErrorMessage(e));
+      triggerGPayHapticsAndSound();
+      router.replace('/trip/completed');
+    } catch (err) {
+      console.error('Delivery completion error:', err);
+      triggerGPayHapticsAndSound();
+      router.replace('/trip/completed');
     } finally {
-      inFlight.current = false;
       setSubmitting(false);
     }
   };
 
-  if (submitting && step === 2) {
-    return (
-      <SafeAreaView style={[{ flex: 1, backgroundColor: Colors.white, justifyContent: 'center', alignItems: 'center' }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.completingContent}>
-          <View style={styles.completingIconCircle}>
-            <ClipboardCheck size={72} color="#10B981" strokeWidth={1.5} />
-          </View>
-          <Text style={styles.completingTitle}>Completing Trip...</Text>
-          <ActivityIndicator color="#E8450F" size="large" style={{ marginTop: Spacing.xl }} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const openNavigation = () => {
+    const address = stopAddress(dropoffStop) || 'Al Ahsa Governorate, Saudi Arabia';
+    const url = Platform.OS === 'ios'
+      ? `maps://0,0?q=${encodeURIComponent(address)}`
+      : `geo:0,0?q=${encodeURIComponent(address)}`;
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`);
+    });
+  };
 
-  const deliveryStartedTime = dropoffStop?.actual_arrival || trip?.actual_start;
-  const formattedDeliveryStarted = formatSimpleDate(deliveryStartedTime);
+  const deliveryLocationName = stopLabel(dropoffStop) || 'Al Ahsa Governorate';
+  const deliveryLocationAddr = stopAddress(dropoffStop) || 'Al Ahsa Governorate, Eastern Province, Saudi Arabia';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
-      {step === 1 ? (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Header Bar */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-              <ArrowLeft size={20} color="#0F172A" strokeWidth={2.2} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Final Delivery</Text>
-            <View style={styles.placeholder} />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header Bar */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
+            <Text style={styles.backIconText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Delivery</Text>
+          <DelayButton onPress={() => setShowDelayModal(true)} />
+        </View>
+
+        {/* 4-Step Progress Stepper: Pickup ✓ -> Loading ✓ -> Delivery ● -> Complete */}
+        <TripProgressStepper currentStep={3} />
+
+        {/* Location Card (Horizontal Side-by-Side matching Screenshot 2) */}
+        <View style={styles.locationCardHorizontal}>
+          <SideMapTileBox />
+
+          <View style={styles.locationRightColumn}>
+            <View style={styles.locationTopRow}>
+              <Text style={styles.locationSubLabel}>Delivery Point</Text>
+              <TouchableOpacity style={styles.navigateBlueBtn} activeOpacity={0.8} onPress={openNavigation}>
+                <Send size={12} color="#2563EB" strokeWidth={2.2} />
+                <Text style={styles.navigateBlueBtnText}>Navigate</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.locationTitle} numberOfLines={2}>
+              {deliveryLocationName}
+            </Text>
+            <Text style={styles.locationAddress} numberOfLines={3}>
+              {deliveryLocationAddr}
+            </Text>
+          </View>
+        </View>
+
+        {/* Upload Delivery Photos Section */}
+        <View style={styles.uploadSectionCard}>
+          <View style={styles.uploadHeaderRow}>
+            <Text style={styles.uploadTitle}>UPLOAD DELIVERY PHOTOS</Text>
+            <View style={styles.chatIconCircle}>
+              <MessageSquare size={16} color="#E8450F" strokeWidth={2.2} />
+            </View>
           </View>
 
-          {/* 4-Step Progress Stepper: Go to Pickup -> Loading -> In Transit -> Delivery (In Progress) */}
-          <TripProgressStepper currentStep={4} />
-
-          {/* Combined Illustration Banner + Trip Summary Card */}
-          <View style={styles.combinedCard}>
-            <View style={styles.illustrationWrapper}>
-              <Image
-                source={require('../../../assets/images/delivery.png')}
-                style={styles.bannerImage}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Trip ID</Text>
-                <Text style={styles.summaryValue}>#{trip?.ref_id ?? 'TRP-0039'}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.summaryItemFlex}>
-                <Text style={styles.summaryLabel}>Customer</Text>
-                <Text style={styles.summaryValue} numberOfLines={1}>
-                  {trip?.customer?.name ? trip.customer.name.toUpperCase() : 'IMILE DELIVERY SAUDI LO...'}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Location Card with Folded Map Preview */}
-          <View style={styles.locationCard}>
-            <View style={styles.locationLeftRow}>
-              <View style={styles.locationPinBadge}>
-                <MapPin size={18} color="#E8450F" strokeWidth={2.2} />
-              </View>
-              <View style={styles.locationText}>
-                <Text style={styles.locationName} numberOfLines={1}>
-                  {stopLabel(dropoffStop) ?? 'Riyadh, Saudi Arabia'}
-                </Text>
-                <Text style={styles.locationAddress} numberOfLines={2}>
-                  {stopAddress(dropoffStop) ?? 'الرياض، محافظة الرياض، منطقة الرياض، 12643 السعودية'}
-                </Text>
-              </View>
-            </View>
-            <FoldedMapPreviewGraphic />
-          </View>
-
-          {/* POD Instructions Banner Card */}
-          <View style={styles.instructionCard}>
-            <View style={styles.infoIconCircle}>
-              <Info size={16} color="#E8450F" strokeWidth={2.4} />
-            </View>
-            <View style={styles.instructionTextWrapper}>
-              <Text style={styles.instructionTitle}>Upload Proof of Delivery (POD) photos.</Text>
-              <Text style={styles.instructionSubtext}>Take at least 1 photo.</Text>
-            </View>
-            <ClipboardCameraGraphic />
-          </View>
-
-          {/* Photos Upload Cards Section */}
-          <Text style={styles.sectionTitle}>Photos ({photos.length}/3)</Text>
+          {/* 3 Photo Slots */}
           <View style={styles.photosGrid}>
             {[0, 1, 2].map((i) => (
               <TouchableOpacity
@@ -526,11 +241,7 @@ const DeliveryVerificationScreen = () => {
                         compact
                       />
                     )}
-                    <TouchableOpacity
-                      style={styles.deletePhotoBtn}
-                      activeOpacity={0.7}
-                      onPress={() => removePhoto(i)}
-                    >
+                    <TouchableOpacity style={styles.deletePhotoBtn} activeOpacity={0.7} onPress={() => removePhoto(i)}>
                       <Trash2 size={12} color={Colors.white} />
                     </TouchableOpacity>
                   </>
@@ -544,135 +255,51 @@ const DeliveryVerificationScreen = () => {
             ))}
           </View>
 
-          <GeotagPhotoModal
-            visible={!!previewPhoto}
-            photo={previewPhoto ? { uri: previewPhoto.uri, title: 'POD Photo Preview', location: previewPhoto.location } : null}
-            onClose={() => setPreviewPhoto(null)}
-          />
-
-          {/* Bottom Primary Action Button */}
+          {/* Primary Action Button: DELIVERY COMPLETE */}
           <TouchableOpacity
             style={styles.mainActionBtn}
             activeOpacity={0.85}
-            onPress={continueToReview}
+            onPress={handleCompleteDelivery}
             disabled={submitting}
           >
             <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>CONTINUE TO REVIEW</Text>
+            <Text style={styles.mainActionBtnText}>{submitting ? 'COMPLETING…' : 'DELIVERY COMPLETE'}</Text>
             <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
           </TouchableOpacity>
-        </ScrollView>
-      ) : (
-        <View ref={viewRef} style={styles.simpleStep2Wrapper}>
-          <ScrollView contentContainerStyle={styles.simpleScrollContent} showsVerticalScrollIndicator={false}>
-            {/* Top Bar with back button */}
-            <View style={styles.simpleTopBar}>
-              <TouchableOpacity style={styles.simpleBackBtn} activeOpacity={0.8} onPress={() => setStep(1)}>
-                <ArrowLeft size={20} color="#0F172A" strokeWidth={2.2} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Checkmark and Title */}
-            <View style={styles.simpleHeaderSection}>
-              <GPaySuccessCheckmark />
-              <Text style={styles.simpleHeaderTitle}>Delivery Completed!</Text>
-              <Text style={styles.simpleHeaderSub}>
-                {legIndex === 1 ? 'All Deliveries Completed' : '1 / 2 Deliveries Completed'}
-              </Text>
-            </View>
-
-            {/* Trip Summary Card */}
-            <View style={styles.simpleCard}>
-              <Text style={styles.simpleCardTitle}>Trip Summary</Text>
-
-              <View style={styles.simpleRowBorder}>
-                <View style={styles.simpleLabelRow}>
-                  <IdCard size={18} color="#10B981" strokeWidth={2} />
-                  <Text style={styles.simpleLabelText}>Trip ID</Text>
-                </View>
-                <Text style={styles.simpleValueText}>#{trip?.ref_id ?? 'TRP-0039'}</Text>
-              </View>
-
-              <View style={styles.simpleRowBorder}>
-                <View style={styles.simpleLabelRow}>
-                  <GitFork size={18} color="#10B981" strokeWidth={2} />
-                  <Text style={styles.simpleLabelText}>Trip Type</Text>
-                </View>
-                <Text style={[styles.simpleValueText, { color: '#10B981', fontWeight: '800' }]}>{trip?.trip_type || 'Round Trip'}</Text>
-              </View>
-
-              <View style={styles.simpleRowNoBorder}>
-                <View style={styles.simpleLabelRow}>
-                  <Clock size={18} color="#10B981" strokeWidth={2} />
-                  <Text style={styles.simpleLabelText}>Completed At</Text>
-                </View>
-                <Text style={styles.simpleValueText}>
-                  {formatSimpleDate(dropoffStop?.actual_arrival || activeStop?.actual_arrival || trip?.actual_end)}
-                </Text>
-              </View>
-            </View>
-
-            {/* Trip Media Card */}
-            <View style={styles.simpleCard}>
-              <Text style={styles.simpleCardTitle}>Trip Media</Text>
-
-              <View style={styles.simpleMediaGrid}>
-                {/* Cargo Pickup (Loading) */}
-                <View style={styles.simpleMediaCol}>
-                  <Text style={styles.simpleMediaLabel}>Cargo Pickup (Loading)</Text>
-                  <View style={styles.simpleMediaBox}>
-                    {cargoPhotoUri ? (
-                      <Image source={{ uri: cargoPhotoUri }} style={styles.simpleMediaImg} resizeMode="cover" />
-                    ) : (
-                      <ImageIcon size={34} color="#94A3B8" strokeWidth={1.5} />
-                    )}
-                  </View>
-                </View>
-
-                {/* Proof of Delivery (POD) */}
-                <View style={styles.simpleMediaCol}>
-                  <Text style={styles.simpleMediaLabel}>Proof of Delivery (POD)</Text>
-                  <View style={styles.simpleMediaBox}>
-                    {podPhotoUri ? (
-                      <Image source={{ uri: podPhotoUri }} style={styles.simpleMediaImg} resizeMode="cover" />
-                    ) : (
-                      <ImageIcon size={34} color="#94A3B8" strokeWidth={1.5} />
-                    )}
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.simpleActionStack}>
-              <TouchableOpacity
-                style={styles.simplePrimaryBtn}
-                activeOpacity={0.85}
-                onPress={complete}
-                disabled={submitting}
-              >
-                <Check size={18} color="#FFFFFF" strokeWidth={2.5} />
-                <Text style={styles.simplePrimaryBtnText}>{submitting ? 'COMPLETING…' : 'COMPLETE TRIP'}</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
         </View>
-      )}
+
+        {/* Faded Bottom Truck Illustration */}
+        <FadedBottomIllustration type="delivery" height={240} imageOpacity={0.5} resizeMode="contain" />
+      </ScrollView>
+
+      <GeotagPhotoModal
+        visible={!!previewPhoto}
+        photo={previewPhoto ? { uri: previewPhoto.uri, title: 'POD Photo Preview', location: previewPhoto.location } : null}
+        onClose={() => setPreviewPhoto(null)}
+      />
+
+      <DelayReportModal
+        visible={showDelayModal}
+        tripId={trip?.id ?? ''}
+        onClose={() => setShowDelayModal(false)}
+        onSuccess={() => setShowDelayModal(false)}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   scroll: {
+    flexGrow: 1,
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 36,
+    paddingTop: 6,
+    paddingBottom: 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   backBtn: {
     width: 36,
@@ -687,227 +314,160 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  headerTitle: {
-    fontSize: 17,
+  backIconText: {
+    fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
   },
-  placeholder: {
-    width: 36,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  combinedCard: {
-    backgroundColor: '#FFFFFF',
+  delayBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF7ED',
     borderRadius: 16,
-    marginBottom: 10,
-    overflow: 'hidden',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  delayBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#E8450F',
+  },
+  locationCardHorizontal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
   },
-  illustrationWrapper: {
+  sideMapTileContainer: {
+    position: 'relative',
+    width: 92,
+    height: 92,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  mapTileArrowBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#FFFFFF',
-    height: 122,
-    paddingTop: 4,
-    paddingBottom: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 3,
   },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-  },
-  summaryItem: {
+  locationRightColumn: {
     flex: 1,
-    alignItems: 'flex-start',
-    paddingLeft: 4,
+    marginLeft: 12,
   },
-  summaryItemFlex: {
-    flex: 1.5,
-    alignItems: 'flex-start',
-    paddingLeft: 12,
+  locationTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 3,
   },
-  summaryLabel: {
+  locationSubLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  locationTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    lineHeight: 20,
+    marginBottom: 3,
+  },
+  locationAddress: {
     fontSize: 11,
     color: '#64748B',
-    marginBottom: 3,
-    fontWeight: '600',
+    lineHeight: 15,
   },
-  summaryValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  divider: {
-    width: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 2,
-  },
-  locationCard: {
+  navigateBlueBtn: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 10,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 5,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  navigateBlueBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  mapBoxContainer: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  uploadSectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
   },
-  locationLeftRow: {
-    flex: 1,
+  uploadHeaderRow: {
     flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  locationPinBadge: {
+  uploadTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  chatIconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 1,
   },
-  locationText: { flex: 1 },
-  locationName: { fontSize: 13.5, fontWeight: '800', color: '#0F172A' },
-  locationAddress: { fontSize: 10.5, color: '#64748B', marginTop: 2, lineHeight: 14.5 },
-
-  statusCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusLabelGroup: {
+  instructionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    marginBottom: 12,
   },
-  statusIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarIconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusLabel: {
-    fontSize: 11.5,
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 3.5,
-    borderRadius: 12,
-  },
-  statusBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  startedRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  startedLabel: {
-    fontSize: 11.5,
-    color: '#0F172A',
-    fontWeight: '600',
-  },
-  startedValue: {
+  instructionText: {
     fontSize: 11,
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-
-  instructionCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
-  },
-  infoIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFEDD5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  instructionTextWrapper: {
+    color: '#C2410C',
+    fontWeight: '600',
     flex: 1,
-    marginRight: 6,
-  },
-  instructionTitle: {
-    fontSize: 12,
-    color: '#7C2D12',
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  instructionSubtext: {
-    fontSize: 11,
-    color: '#9A3412',
-    fontWeight: '600',
-    marginTop: 1,
-  },
-
-  sectionTitle: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 8,
-    marginTop: 2,
   },
   photosGrid: {
     flexDirection: 'row',
@@ -955,217 +515,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
+  checklistCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  checklistIconSquare: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  checklistTextWrapper: {
+    flex: 1,
+  },
+  checklistTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#9A3412',
+  },
+  checklistSub: {
+    fontSize: 10.5,
+    color: '#C2410C',
+    marginTop: 1,
+  },
+  readyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  readyBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#15803D',
+  },
   mainActionBtn: {
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#E8450F',
+    backgroundColor: '#FA634E',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    shadowColor: '#E8450F',
+    shadowColor: '#FA634E',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
-    marginTop: 2,
   },
   mainActionBtnText: {
     color: '#FFFFFF',
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 0.5,
-    flex: 1,
-    textAlign: 'center',
-  },
-
-  completingContent: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  completingIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xl,
-  },
-  completingTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-    textAlign: 'center',
-  },
-
-  simpleStep2Wrapper: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  simpleScrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 36,
-  },
-  simpleTopBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  simpleBackBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  checkmarkContainer: {
-    width: 100,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  rippleCircle: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#10B981',
-  },
-  checkmarkCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  simpleHeaderSection: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  simpleHeaderTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  simpleHeaderSub: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  simpleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  simpleCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 12,
-  },
-  simpleRowBorder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  simpleRowNoBorder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  simpleLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  simpleLabelText: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  simpleValueText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  simpleMediaGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  simpleMediaCol: {
-    flex: 1,
-  },
-  simpleMediaLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-    marginBottom: 6,
-  },
-  simpleMediaBox: {
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  simpleMediaImg: {
-    width: '100%',
-    height: '100%',
-  },
-  simpleActionStack: {
-    marginTop: 8,
-  },
-  simplePrimaryBtn: {
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#10B981',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  simplePrimaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
     letterSpacing: 0.5,
   },
 });

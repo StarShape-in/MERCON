@@ -189,6 +189,7 @@ const HomeScreen = () => {
     const ws = t.driver_workflow_state || 'ASSIGNED';
     switch (ws) {
       case 'ASSIGNED':
+      case 'GOING_TO_PICKUP':
         return {
           badgeLabel: 'Assigned',
           btnLabel: 'Start Trip',
@@ -197,7 +198,7 @@ const HomeScreen = () => {
             try {
               const updated = await tripService.updateStatus(t.id, 'Scheduled', 'GOING_TO_PICKUP');
               setTrip(updated);
-              router.push('/trip/navigate');
+              router.push('/trip/pickup');
             } catch (err) {
               Alert.alert('Error', getApiErrorMessage(err));
             } finally {
@@ -205,35 +206,19 @@ const HomeScreen = () => {
             }
           }
         };
-      case 'GOING_TO_PICKUP':
-        return {
-          badgeLabel: 'Going to Pickup',
-          btnLabel: 'Go to Pickup',
-          onPress: () => router.push('/trip/navigate')
-        };
       case 'ARRIVED_AT_PICKUP':
-        return {
-          badgeLabel: 'Arrived at Pickup',
-          btnLabel: 'Start Loading',
-          onPress: () => router.push('/trip/pickup')
-        };
       case 'LOADING':
         return {
-          badgeLabel: 'Loading In Progress',
-          btnLabel: 'Start Trip',
+          badgeLabel: 'Pickup / Loading',
+          btnLabel: 'Pickup & Loading',
           onPress: () => router.push('/trip/pickup')
         };
       case 'IN_TRANSIT':
-        return {
-          badgeLabel: 'In Transit',
-          btnLabel: 'Go to Delivery',
-          onPress: () => router.push('/trip/navigate')
-        };
       case 'ARRIVED_AT_DELIVERY':
       case 'DELIVERY_VERIFICATION':
         return {
-          badgeLabel: 'Arrived at Delivery',
-          btnLabel: 'Unload & Verify',
+          badgeLabel: 'Delivery In Progress',
+          btnLabel: 'Go to Delivery',
           onPress: () => router.push('/trip/delivery')
         };
       case 'FIRST_DELIVERY_COMPLETED':

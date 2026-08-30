@@ -25,7 +25,7 @@ if (Platform.OS !== 'web') {
 }
 import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { DelayReportModal, TripProgressStepper } from '../../components';
+import { DelayReportModal, TripProgressStepper, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
@@ -59,9 +59,33 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
-  const activeStop = trip?.stops?.find((s) => s.actual_arrival === null) ?? trip?.stops?.[0] ?? null;
-  const isPickup = activeStop ? activeStop.stop_type === 'Pickup' : (trip?.status === 'Scheduled' || trip?.status === 'Draft' || trip?.driver_workflow_state === 'GOING_TO_PICKUP');
-  const isHeadingToPickup = isPickup;
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+
+  // Determine if heading to pickup or delivery directly from workflow state
+  const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || ws === 'RETURN_LOADING';
+
+  // Leg index: 0 for first leg, 1 for return leg
+  const legIndex = (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FIRST_DELIVERY_COMPLETED') ? 1 : 0;
+
+  // Find target stop based on current state and leg
+  const activeStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+
+    if (isHeadingToPickup) {
+      // Heading to Pickup: Stop 1 for leg 0, Stop 3 for leg 1
+      const targetSeq = legIndex === 1 ? 3 : 1;
+      return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
+             trip.stops.find((s) => s.stop_type === 'Pickup') ??
+             trip.stops[0];
+    } else {
+      // Heading to Delivery: Stop 2 for leg 0, Stop 4 for leg 1
+      const targetSeq = legIndex === 1 ? 4 : 2;
+      return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
+             trip.stops.find((s) => s.stop_type === 'Dropoff') ??
+             trip.stops[1] ??
+             trip.stops[0];
+    }
+  }, [trip?.stops, isHeadingToPickup, legIndex]);
 
   const goToStop = async () => {
     if (!trip || hasArrivedRef.current) return;
@@ -72,7 +96,7 @@ const LiveNavigationScreen = () => {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        const isFinal = activeStop ? activeStop.stop_sequence === (trip.stops?.length ?? 1) : true;
+        const isFinal = legIndex === 1 || (activeStop ? activeStop.stop_sequence === (trip.stops?.length ?? 1) : true);
         const nextState = isFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
         await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
@@ -290,14 +314,7 @@ const LiveNavigationScreen = () => {
                   </Text>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.delayPillBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setDelayModalVisible(true)}
-                >
-                  <Clock size={13} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.delayPillText}>Delay</Text>
-                </TouchableOpacity>
+                <DelayButton onPress={() => setDelayModalVisible(true)} />
               </View>
 
               {/* Subtle Horizontal Divider */}
