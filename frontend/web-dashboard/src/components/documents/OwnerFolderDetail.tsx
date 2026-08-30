@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
-import ConfirmModal from '@/components/ui/ConfirmModal';
 import DocumentCanvasViewer from '@/components/ui/DocumentCanvasViewer';
 import {
   formatBilingualAuthority, resolveFileUrl, CENTRAL_SLOT_STATUS,
@@ -49,8 +48,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Edit Date State for Inspector
   const [isEditingDates, setIsEditingDates] = useState(false);
@@ -77,22 +74,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   const activeSlot = useMemo(() => {
     if (!folder?.slots || !selectedSlotId) return null;
     return folder.slots.find((s) => s.documentType.id === selectedSlotId) || null;
-  }, [folder?.slots, selectedSlotId]);
-
-  // Auto-select first slot when folder loads if no slot is selected yet
-  useEffect(() => {
-    if (folder?.slots && folder.slots.length > 0 && !selectedSlotId) {
-      const firstIssue = folder.slots.find((s) => {
-        const code = getSlotStatusFromDoc(s.document);
-        return code !== 'VALID' && code !== 'NO_EXPIRY';
-      });
-      if (firstIssue) {
-        setSelectedSlotId(firstIssue.documentType.id);
-      } else {
-        const firstDocSlot = folder.slots.find((s) => !!s.document);
-        setSelectedSlotId(firstDocSlot ? firstDocSlot.documentType.id : folder.slots[0].documentType.id);
-      }
-    }
   }, [folder?.slots, selectedSlotId]);
 
   const activeDoc = activeSlot?.document || null;
@@ -154,22 +135,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     }
   };
 
-  const handleDeleteDocument = async () => {
-    if (!deleteDocId) return;
-    setIsDeleting(true);
-    try {
-      toast.loading('Deleting document record...', { id: 'delete-doc' });
-      await documentService.delete(deleteDocId);
-      toast.success('Document deleted successfully from vault', { id: 'delete-doc' });
-      setDeleteDocId(null);
-      await refresh();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
@@ -209,16 +174,16 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         <div className="lg:col-span-5 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs space-y-4">
             
-            {/* Required Compliance Section — Bento Box Grid */}
+            {/* Required Compliance Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   Required Compliance
                 </h4>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">{requiredSlots.length} Requirements</span>
+                <span className="text-[10px] font-mono text-slate-400">{requiredSlots.length} Requirements</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
                 {requiredSlots.map((slot) => {
                   const statusCode = getSlotStatusFromDoc(slot.document);
                   const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
@@ -227,88 +192,66 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   const hasDoc = !!slot.document;
                   const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
 
-                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
-                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
-                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
+                  const getSubText = () => {
+                    if (statusCode === 'MISSING') return 'Missing · Required';
+                    if (statusCode === 'NO_EXPIRY') return 'Valid · No expiry';
+                    if (statusCode === 'VALID') return formattedDate ? `Valid · ${formattedDate}` : 'Valid document';
+                    if (statusCode === 'EXPIRED') return formattedDate ? `Expired · ${formattedDate}` : 'Expired';
+                    return formattedDate ? `Expiring · ${formattedDate}` : 'Due soon';
+                  };
 
                   return (
                     <div
                       key={slot.documentType.id}
                       onClick={() => setSelectedSlotId(slot.documentType.id)}
                       className={cn(
-                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
+                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
                         isSelected
-                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
-                          : isValid
-                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                            : isExpired
-                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
-                              : isExpiringSoon
-                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
+                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
+                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
                       )}
                     >
-                      {/* Top Row: Icon + Name */}
-                      <div className="flex items-start justify-between gap-1.5 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
-                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
+                        <div className="min-w-0">
+                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
                             {slot.documentType.name}
-                          </h5>
+                          </p>
+                          <p className={cn('text-[11px]', statusCode === 'MISSING' || statusCode === 'EXPIRED' ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-slate-400')}>
+                            {getSubText()}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Bottom Row: Status Badge & Quick Upload Action */}
-                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-                        <div className="min-w-0 truncate">
-                          {isExpired ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black bg-rose-100 dark:bg-rose-900/70 text-rose-700 dark:text-rose-300">
-                              ! Exp. {formattedDate || 'Expired'}
-                            </span>
-                          ) : isExpiringSoon ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-extrabold bg-amber-100 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300">
-                              ⚠️ {formattedDate || 'Expiring'}
-                            </span>
-                          ) : isValid ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
-                              ✓ Valid
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
-                              — Missing
-                            </span>
-                          )}
+                      {/* Missing Slot Direct Action */}
+                      {!hasDoc && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-[11px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer"
+                            onClick={() => setUploadSlot(slot)}
+                          >
+                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
+                          </Button>
                         </div>
-
-                        {!hasDoc && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-[10px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer rounded-lg shrink-0"
-                              onClick={() => setUploadSlot(slot)}
-                            >
-                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Additional Documents Section — Bento Box Grid */}
-            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            {/* Additional Documents Section */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between px-1">
                 <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   Additional Documents
                 </h4>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">{additionalSlots.length} Optional</span>
+                <span className="text-[10px] font-mono text-slate-400">{additionalSlots.length} Optional</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
                 {additionalSlots.map((slot) => {
                   const statusCode = getSlotStatusFromDoc(slot.document);
                   const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
@@ -317,77 +260,54 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   const hasDoc = !!slot.document;
                   const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
 
-                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
-                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
-                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
-
                   return (
                     <div
                       key={slot.documentType.id}
                       onClick={() => setSelectedSlotId(slot.documentType.id)}
                       className={cn(
-                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
+                        'flex items-center justify-between gap-3 px-3 py-2.5 cursor-pointer transition-all group',
                         isSelected
-                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
-                          : isValid
-                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                            : isExpired
-                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
-                              : isExpiringSoon
-                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
+                          ? 'bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand'
+                          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/50'
                       )}
                     >
-                      {/* Top Row: Icon + Name */}
-                      <div className="flex items-start justify-between gap-1.5 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
-                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <StatusIcon className={cn('w-4 h-4 shrink-0', IconConfig.className)} />
+                        <div className="min-w-0">
+                          <p className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
                             {slot.documentType.name}
-                          </h5>
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {hasDoc ? (formattedDate ? `Valid · ${formattedDate}` : 'Valid · No expiry') : 'Optional record'}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Bottom Row: Status Badge & Quick Upload Action */}
-                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-                        <div className="min-w-0 truncate">
-                          {hasDoc ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
-                              ✓ Valid {formattedDate ? `· ${formattedDate}` : ''}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
-                              Optional
-                            </span>
-                          )}
+                      {!hasDoc && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-[11px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer"
+                            onClick={() => setUploadSlot(slot)}
+                          >
+                            <UploadCloud className="w-3.5 h-3.5 mr-1" /> Upload
+                          </Button>
                         </div>
-
-                        {!hasDoc && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-[10px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer rounded-lg shrink-0"
-                              onClick={() => setUploadSlot(slot)}
-                            >
-                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              {/* Add Custom Document Action */}
+              {/* + Add Custom Document Action */}
               <button
                 type="button"
                 onClick={onOpenAddCustomDoc}
                 className="w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand text-slate-600 dark:text-slate-300 hover:text-brand text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 mt-2"
               >
                 <FilePlus className="w-4 h-4 text-brand" />
-                <span>Add Custom Document</span>
+                <span>+ Add Custom Document</span>
               </button>
             </div>
 
@@ -558,34 +478,26 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </div>
 
                   {/* ACTIONS */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-4 gap-1.5">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2">
                     <a
                       href={resolveFileUrl(activeDocFiles[0]?.file_url || activeDoc.file_url)}
                       download
-                      className="h-8.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      className="h-8.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <Download className="w-3.5 h-3.5" /> Download
                     </a>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 cursor-pointer"
+                      className="h-8.5 text-xs font-bold gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 cursor-pointer"
                       onClick={() => setIsReplaceOpen(true)}
                     >
                       <RefreshCw className="w-3.5 h-3.5" /> Replace
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 cursor-pointer"
-                      onClick={() => setDeleteDocId(activeDoc.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </Button>
-                    <Button
                       variant="default"
                       size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 bg-brand hover:bg-brand-hover text-white cursor-pointer"
+                      className="h-8.5 text-xs font-bold gap-1.5 bg-brand hover:bg-brand-hover text-white cursor-pointer"
                       onClick={() => navigate(`/documents/doc/${activeDoc.id}`)}
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> Full View
@@ -642,7 +554,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               ) : (
                 /* MISSING DOCUMENT STATE */
                 <div className="py-12 px-6 flex flex-col items-center justify-center text-center space-y-3">
-                  <FileQuestion className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center border border-rose-200 dark:border-rose-900">
+                    <FileQuestion className="w-6 h-6" />
+                  </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{activeSlot.documentType.name}</h3>
                     <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold mt-1">Missing</Badge>
@@ -664,7 +578,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           ) : (
             /* INTENTIONAL NO-SELECTION STATE */
             <div className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 space-y-3 min-h-[400px]">
-              <FileText className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                <FileText className="w-6 h-6" />
+              </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Select a document</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-xs">
@@ -693,18 +609,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           onImported={refresh}
         />
       )}
-
-      {/* Confirm Delete Document Modal */}
-      <ConfirmModal
-        isOpen={!!deleteDocId}
-        onClose={() => setDeleteDocId(null)}
-        onConfirm={handleDeleteDocument}
-        title="Delete Document Record"
-        message="Are you sure you want to permanently delete this document from the vault? This action cannot be undone."
-        confirmLabel="Delete Document"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
     </div>
   );
 }

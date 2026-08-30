@@ -219,7 +219,9 @@ export default function UploadDocumentModal({
                 
                 {uploadMutation.isPending ? (
                   <div className="flex flex-col items-center w-full space-y-2.5">
-                    <Loader2 size={24} className="animate-spin text-indigo-600 dark:text-indigo-400 mb-1" />
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-1">
+                      <Loader2 size={20} className="animate-spin" />
+                    </div>
                     <div className="w-full">
                       <div className="flex items-center justify-between text-xs font-extrabold text-slate-900 dark:text-slate-100 mb-1">
                         <span>Uploading document...</span>
@@ -240,13 +242,17 @@ export default function UploadDocumentModal({
                   </div>
                 ) : selectedFile ? (
                   <div className="flex flex-col items-center">
-                    <FileText size={24} className="text-emerald-600 dark:text-emerald-400 mb-2" />
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
+                      <FileText size={20} />
+                    </div>
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[250px]">{selectedFile.name}</p>
                     <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <UploadCloud size={24} className="text-slate-400 dark:text-slate-500 mb-2" />
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-2">
+                      <UploadCloud size={20} />
+                    </div>
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Click to upload document</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">PDF, PNG, JPG, WEBP (Max 50MB)</p>
                   </div>

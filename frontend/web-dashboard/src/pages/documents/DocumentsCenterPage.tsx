@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { 
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
-  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive, Files,
+  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2, ChevronDown, ArrowRight,
-  Hash, Building2, Calendar, Search, Lock, Globe, FileCog
+  Hash, Building2, Calendar, Search, Lock, Globe
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,9 +25,8 @@ import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority, formatDocDate } from '@/lib/documents';
 import FolderCardSection from '@/components/documents/FolderCardSection';
-import SingleDocumentCard from '@/components/documents/SingleDocumentCard';
+import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
-import DocumentTypeAdminSection from '@/components/documents/DocumentTypeAdminSection';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,128 +55,77 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-type PillCategory = 'Vehicles' | 'Drivers' | 'Company' | 'Operations' | 'Other' | 'All' | 'Unassigned';
-const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Company', 'Operations'];
+type PillCategory = 'All' | 'Drivers' | 'Vehicles' | 'Other' | 'Unassigned';
+const CATEGORY_TABS: PillCategory[] = ['Vehicles', 'Drivers', 'Other'];
 const PILL_LABEL: Record<PillCategory, string> = {
   All: 'All Documents',
-  Vehicles: 'Vehicle Documents',
-  Drivers: 'Driver Documents',
-  Company: 'Company Documents',
-  Operations: 'Operations & Transportation',
-  Other: 'Company Documents',
+  Drivers: 'Driver Docs',
+  Vehicles: 'Vehicle Docs',
+  Other: 'Company & Operations',
   Unassigned: 'Unassigned',
 };
 
-const CATEGORY_CONFIG: Record<PillCategory, {
+const CAT_STYLES: Record<PillCategory, { active: string; inactive: string }> = {
+  Vehicles: {
+    active: 'bg-emerald-600 border-emerald-600 text-white shadow-md hover:bg-emerald-700 ring-2 ring-emerald-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Drivers: {
+    active: 'bg-indigo-600 border-indigo-600 text-white shadow-md hover:bg-indigo-700 ring-2 ring-indigo-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Other: {
+    active: 'bg-violet-600 border-violet-600 text-white shadow-md hover:bg-violet-700 ring-2 ring-violet-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/20 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  All: {
+    active: 'bg-brand border-brand text-white shadow-md ring-2 ring-brand/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+  Unassigned: {
+    active: 'bg-amber-600 border-amber-600 text-white shadow-md ring-2 ring-amber-500/20',
+    inactive: 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80',
+  },
+};
+
+const CATEGORY_CONFIG: Record<DocCategory, {
   icon: React.ElementType;
   color: string;
   iconBg: string;
   borderColor: string;
-  activeCardStyle: string;
-  activePillStyle: string;
   label: string;
   description: string;
 }> = {
-  Vehicles: {
-    icon: Truck,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    iconBg: 'bg-emerald-50 dark:bg-emerald-950/40',
-    borderColor: 'border-emerald-200/80 dark:border-emerald-800',
-    activeCardStyle: 'border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-xs',
-    activePillStyle: 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-500 dark:text-slate-950 dark:border-emerald-500',
-    label: 'Vehicle Documents',
-    description: 'Registrations, insurance & Istimara',
-  },
-  Drivers: {
-    icon: UserIcon,
-    color: 'text-purple-600 dark:text-purple-400',
-    iconBg: 'bg-purple-50 dark:bg-purple-950/40',
-    borderColor: 'border-purple-200/80 dark:border-purple-800',
-    activeCardStyle: 'border-purple-500 dark:border-purple-400 ring-2 ring-purple-500/20 bg-purple-50/20 dark:bg-purple-950/20 shadow-xs',
-    activePillStyle: 'bg-purple-600 text-white border-purple-600 dark:bg-purple-500 dark:text-slate-950 dark:border-purple-500',
-    label: 'Driver Documents',
-    description: 'Licenses, medical certificates & permits',
-  },
-  Company: {
-    icon: Briefcase,
-    color: 'text-blue-600 dark:text-blue-400',
-    iconBg: 'bg-blue-50 dark:bg-blue-950/40',
-    borderColor: 'border-blue-200/80 dark:border-blue-800',
-    activeCardStyle: 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 shadow-xs',
-    activePillStyle: 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:text-slate-950 dark:border-blue-500',
-    label: 'Company Documents',
-    description: 'Contracts, invoices & corporate filings',
-  },
-  Operations: {
-    icon: FileText,
-    color: 'text-amber-600 dark:text-amber-400',
-    iconBg: 'bg-amber-50 dark:bg-amber-950/40',
-    borderColor: 'border-amber-200/80 dark:border-amber-800',
-    activeCardStyle: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/20 bg-amber-50/20 dark:bg-amber-950/20 shadow-xs',
-    activePillStyle: 'bg-amber-600 text-white border-amber-600 dark:bg-amber-500 dark:text-slate-950 dark:border-amber-500',
-    label: 'Operations & Transportation',
-    description: 'Waybills, PODs & customs clearance',
-  },
-  Other: {
-    icon: Briefcase,
-    color: 'text-blue-600 dark:text-blue-400',
-    iconBg: 'bg-blue-50 dark:bg-blue-950/40',
-    borderColor: 'border-blue-200/80 dark:border-blue-800',
-    activeCardStyle: 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20 shadow-xs',
-    activePillStyle: 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:text-slate-950 dark:border-blue-500',
-    label: 'Company Documents',
-    description: 'Contracts, invoices & corporate filings',
-  },
-  All: {
-    icon: FolderOpen,
-    color: 'text-brand',
-    iconBg: 'bg-brand/10',
-    borderColor: 'border-brand/20',
-    activeCardStyle: 'border-slate-800 dark:border-slate-200 ring-2 ring-slate-800/10 shadow-xs',
-    activePillStyle: 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100',
-    label: 'All Documents',
-    description: 'All document repository files',
-  },
-  Unassigned: {
-    icon: Sparkles,
-    color: 'text-amber-600',
-    iconBg: 'bg-amber-50',
-    borderColor: 'border-amber-200',
-    activeCardStyle: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/20 shadow-xs',
-    activePillStyle: 'bg-amber-600 text-white border-amber-600',
-    label: 'Unassigned',
-    description: 'Unlinked document attachments',
-  },
+  Drivers:    { icon: UserIcon,      color: 'text-brand',   iconBg: 'bg-brand-light dark:bg-brand/10', borderColor: 'border-brand/20', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
+  Vehicles:   { icon: Car,           color: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/30',    borderColor: 'border-blue-200/60',   label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
+  Operations: { icon: Briefcase,     color: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/30',borderColor: 'border-violet-200/60', label: 'Operations Files', description: 'Waybills, PODs & customs clearance' },
+  Company:    { icon: Shield,        color: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200/60', label: 'Company Records', description: 'Contracts, invoices & corporate filings' },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
-  DriverLicense:          FileBadge2,
-  Passport:               FileBadge2,
-  VehicleRegistration:    FileKey2,
-  Insurance:              FileCheck,
-  POD:                    FileCheck,
-  CustomsClearance:       FileKey2,
-  Waybill:                FileClock,
-  Contract:               FileText,
-  Invoice:                FileBarChart2,
-  Emergency:              ShieldAlert,
-  CustomerDoc:            Briefcase,
-  CommercialRegistration: Briefcase,
+  DriverLicense:       FileBadge2,
+  Passport:            FileBadge2,
+  VehicleRegistration: FileKey2,
+  Insurance:           FileCheck,
+  POD:                 FileBarChart2,
+  CustomsClearance:    FileKey2,
+  Waybill:             FileClock,
+  Contract:            FileText,
+  Invoice:             FileBarChart2,
+  Emergency:           ShieldAlert,
 };
 
 const REGULATORY_BODY: Record<string, string> = {
-  DriverLicense:          'Saudi MOT / Transport Auth',
-  Passport:               'Passport Authority',
-  VehicleRegistration:    'MOMRAH / Istimara',
-  Insurance:              'Najm Insurance Protection',
-  POD:                    'MERCON Dispatch System',
-  CustomsClearance:       'ZATCA Saudi Customs',
-  Waybill:                'Saudi Land Transport Auth',
-  Contract:               'Ministry of Commerce / Corporate MSA',
-  Invoice:                'ZATCA Tax Authority',
-  Emergency:              'Civil Defense / Operations Center',
-  CustomerDoc:            'Corporate CR & Onboarding Files',
-  CommercialRegistration: 'Ministry of Commerce CR Certificate',
+  DriverLicense:       'Saudi MOT / Transport Auth',
+  Passport:            'Passport Authority',
+  VehicleRegistration: 'MOMRAH / Istimara',
+  Insurance:           'Najm Insurance Protection',
+  POD:                 'MERCON Dispatch System',
+  CustomsClearance:    'ZATCA Saudi Customs',
+  Waybill:             'Saudi Land Transport Auth',
+  Contract:            'Ministry of Commerce',
+  Invoice:             'ZATCA Tax Authority',
+  Emergency:           'Civil Defense / Operations Center',
 };
 
 const EXPIRY_BADGE: Record<string, { label: string; className: string }> = {
@@ -198,134 +146,6 @@ type EnrichedDocument = MerconDocument & {
   issuer: string;
 };
 
-// ─── Filter & Sort Helpers ──────────────────────────────────────────────────
-
-function matchesFolderExpiryFilter(row: OwnerFoldersSummaryRow, filter: string): boolean {
-  if (filter === 'all') return true;
-
-  const hasExpired = row.slots.some((s) => s.status === 'EXPIRED');
-  const hasExpiring = row.slots.some((s) => s.status === 'EXPIRING_SOON');
-  const hasMissing = row.slots.some((s) => s.status === 'MISSING');
-  const allValid = row.slots.length > 0 && row.slots.every((s) => s.status === 'VALID');
-
-  if (filter === 'warning') return hasExpired || hasExpiring || hasMissing;
-  if (filter === 'expired') return hasExpired;
-  if (filter === 'critical') return hasExpired || hasExpiring;
-  if (filter === 'valid') return allValid;
-  return true;
-}
-
-function sortFolderRows(rows: OwnerFoldersSummaryRow[], sortBy: string): OwnerFoldersSummaryRow[] {
-  return [...rows].sort((a, b) => {
-    if (sortBy === 'name_asc' || sortBy === 'plate') {
-      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
-      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    }
-
-    if (sortBy === 'name_desc') {
-      const nameA = (a.ownerName || a.ownerRef || '').toLowerCase();
-      const nameB = (b.ownerName || b.ownerRef || '').toLowerCase();
-      return nameB.localeCompare(nameA);
-    }
-
-    if (sortBy === 'attention') {
-      const countA = a.slots.filter((s) => s.status !== 'VALID').length;
-      const countB = b.slots.filter((s) => s.status !== 'VALID').length;
-      if (countA !== countB) return countB - countA;
-
-      const expA = a.slots.filter((s) => s.status === 'EXPIRED').length;
-      const expB = b.slots.filter((s) => s.status === 'EXPIRED').length;
-      if (expA !== expB) return expB - expA;
-    }
-
-    if (sortBy === 'expiry') {
-      const getEarliestExpiry = (r: OwnerFoldersSummaryRow) => {
-        const dates = r.slots
-          .map((s) => s.expiry_date)
-          .filter(Boolean)
-          .map((d) => new Date(d!).getTime())
-          .filter((t) => !isNaN(t));
-        return dates.length > 0 ? Math.min(...dates) : Infinity;
-      };
-      const timeA = getEarliestExpiry(a);
-      const timeB = getEarliestExpiry(b);
-      if (timeA !== timeB) return timeA - timeB;
-    }
-
-    if (sortBy === 'recent') {
-      const getLatestDate = (r: OwnerFoldersSummaryRow) => {
-        const dateStr = (r as any).lastUpdated || (r as any).updatedAt;
-        return dateStr ? new Date(dateStr).getTime() : 0;
-      };
-      return getLatestDate(b) - getLatestDate(a);
-    }
-
-    return 0;
-  });
-}
-
-function isImageFile(url: string, mime?: string | null): boolean {
-  if (mime && mime.startsWith('image/')) return true;
-  if (!url) return false;
-  return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url);
-}
-
-function isPdfFile(url: string, mime?: string | null): boolean {
-  if (mime === 'application/pdf') return true;
-  if (!url) return false;
-  return /\.pdf(\?.*)?$/i.test(url);
-}
-
-function sortDocumentList(docsList: EnrichedDocument[], sortBy: string): EnrichedDocument[] {
-  return [...docsList].sort((a, b) => {
-    if (sortBy === 'name_asc' || sortBy === 'plate') {
-      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
-      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
-      return nameA.localeCompare(nameB);
-    }
-
-    if (sortBy === 'name_desc') {
-      const nameA = (a.entityName || documentDisplayName(a)).toLowerCase();
-      const nameB = (b.entityName || documentDisplayName(b)).toLowerCase();
-      return nameB.localeCompare(nameA);
-    }
-
-    if (sortBy === 'doc_type') {
-      const typeA = (documentDisplayName(a) || a.doc_type).toLowerCase();
-      const typeB = (documentDisplayName(b) || b.doc_type).toLowerCase();
-      return typeA.localeCompare(typeB);
-    }
-
-    if (sortBy === 'attention') {
-      const statusWeight: Record<string, number> = {
-        expired: 4,
-        critical: 3,
-        warning: 2,
-        none: 1,
-        valid: 0,
-      };
-      const weightA = statusWeight[a.expStatus] ?? 0;
-      const weightB = statusWeight[b.expStatus] ?? 0;
-      if (weightA !== weightB) return weightB - weightA;
-    }
-
-    if (sortBy === 'expiry') {
-      const timeA = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity;
-      const timeB = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity;
-      if (timeA !== timeB) return timeA - timeB;
-    }
-
-    if (sortBy === 'recent') {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    }
-
-    return 0;
-  });
-}
-
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function DocumentsCenterPage() {
@@ -341,8 +161,11 @@ export default function DocumentsCenterPage() {
   const initialSort = searchParams.get('sort') || 'attention';
   const initialView = searchParams.get('view') === 'list' ? 'list' : 'folders';
 
+  // Operations/Company were separate pills before merging into a single "Other" pill.
   const initialCategory: PillCategory =
-    (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'Vehicles';
+    rawInitialCategory === 'Operations' || rawInitialCategory === 'Company'
+      ? 'Other'
+      : (CATEGORY_TABS as string[]).includes(rawInitialCategory) ? (rawInitialCategory as PillCategory) : 'Vehicles';
   const initialRadar = searchParams.get('radar') === 'open';
 
   // State
@@ -357,8 +180,6 @@ export default function DocumentsCenterPage() {
     ['attention', 'expiry', 'plate', 'recent'].includes(initialSort) ? (initialSort as any) : 'attention'
   );
   const [viewMode, setViewMode] = useState<'folders' | 'list'>(initialView);
-  const [opsSubFilter, setOpsSubFilter] = useState<'all' | 'Waybill' | 'POD' | 'CustomsClearance' | 'Emergency'>('all');
-  const [companySubFilter, setCompanySubFilter] = useState<'all' | 'Contract' | 'Invoice' | 'CustomerDoc'>('all');
 
   const updateUrlParams = (key: string, val: string) => {
     setSearchParams((prev) => {
@@ -392,11 +213,11 @@ export default function DocumentsCenterPage() {
     updateUrlParams('view', val);
   };
 
-  const [mainTab, setMainTab] = useState<'vault' | 'types'>('vault');
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
+  const [folderSheetDocId, setFolderSheetDocId] = useState<string | null>(null);
   const [uploadMissingTarget, setUploadMissingTarget] = useState<{ row: OwnerFoldersSummaryRow; slotCode: string } | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -453,7 +274,9 @@ export default function DocumentsCenterPage() {
       setExpiryFilter(filterParam as any);
     }
     const catParam = searchParams.get('category');
-    if (catParam && (CATEGORY_TABS as string[]).includes(catParam)) {
+    if (catParam === 'Operations' || catParam === 'Company') {
+      setActiveCategory('Other');
+    } else if (catParam && (CATEGORY_TABS as string[]).includes(catParam)) {
       setActiveCategory(catParam as PillCategory);
     }
     if (searchParams.get('radar') === 'open') {
@@ -503,35 +326,24 @@ export default function DocumentsCenterPage() {
     queryFn: () => documentService.getOwnerFolders('Vehicle'),
   });
   const filteredDriverFolders = useMemo(
-    () => {
-      const searchAndStatusFiltered = driverFolders.filter((r) =>
-        matchesSearch(search, [
-          r.ownerName,
-          r.ownerRef || '',
-          r.relatedName || '',
-          ...r.slots.map((s) => s.name),
-          ...r.slots.map((s) => s.code),
-        ]) && matchesFolderExpiryFilter(r, expiryFilter)
-      );
-      return sortFolderRows(searchAndStatusFiltered, sortBy);
-    },
-    [driverFolders, search, expiryFilter, sortBy],
+    () => driverFolders.filter((r) => matchesSearch(search, [
+      r.ownerName,
+      r.ownerRef || '',
+      r.relatedName || '',
+      ...r.slots.map((s) => s.name),
+      ...r.slots.map((s) => s.code),
+    ])),
+    [driverFolders, search],
   );
-
   const filteredVehicleFolders = useMemo(
-    () => {
-      const searchAndStatusFiltered = vehicleFolders.filter((r) =>
-        matchesSearch(search, [
-          r.ownerName,
-          r.ownerRef || '',
-          r.relatedName || '',
-          ...r.slots.map((s) => s.name),
-          ...r.slots.map((s) => s.code),
-        ]) && matchesFolderExpiryFilter(r, expiryFilter)
-      );
-      return sortFolderRows(searchAndStatusFiltered, sortBy);
-    },
-    [vehicleFolders, search, expiryFilter, sortBy]
+    () => vehicleFolders.filter((r) => matchesSearch(search, [
+      r.ownerName,
+      r.ownerRef || '',
+      r.relatedName || '',
+      ...r.slots.map((s) => s.name),
+      ...r.slots.map((s) => s.code),
+    ])),
+    [vehicleFolders, search]
   );
 
   const handleSelectCategory = (cat: PillCategory) => {
@@ -670,7 +482,7 @@ export default function DocumentsCenterPage() {
 
   // Enriched & Filtered Documents
   const filteredDocs = useMemo(() => {
-    const list = docs
+    return docs
       .map((d) => ({
         ...d,
         entityName: nameFor(d),
@@ -703,7 +515,9 @@ export default function DocumentsCenterPage() {
           ? true
           : activeCategory === 'Unassigned'
             ? isUnlinked
-            : d.category === activeCategory;
+            : activeCategory === 'Other'
+              ? (d.category === 'Operations' || d.category === 'Company')
+              : d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' 
           ? true 
           : expiryFilter === 'warning' 
@@ -718,8 +532,7 @@ export default function DocumentsCenterPage() {
         ]);
         return matchesCat && matchesExpiry && matchesFolder && matchesTerm;
       });
-    return sortDocumentList(list, sortBy);
-  }, [docs, nameFor, activeCategory, expiryFilter, selectedFolderId, search, sortBy]);
+  }, [docs, nameFor, activeCategory, expiryFilter, selectedFolderId, search]);
 
   // ── Calculated Real Vault Telematics ──────────────────────────────────────────
   const totalDocsCount = docs.length;
@@ -861,20 +674,10 @@ export default function DocumentsCenterPage() {
         const g = driverGroups.get(d.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
-      } else if (
-        doc.category === 'Company' ||
-        doc.entity_type === 'Company' ||
-        doc.entity_type === 'Customer' ||
-        ['Contract', 'Invoice', 'CustomerDoc', 'CommercialRegistration'].includes(doc.doc_type)
-      ) {
-        companyDocs.push(doc);
-      } else if (
-        doc.category === 'Operations' ||
-        doc.entity_type === 'Trip' ||
-        doc.entity_type === 'Waybill' ||
-        ['Waybill', 'POD', 'CustomsClearance', 'Emergency'].includes(doc.doc_type)
-      ) {
+      } else if (doc.category === 'Operations' || doc.entity_type === 'Trip') {
         operationsDocs.push(doc);
+      } else if (doc.category === 'Company') {
+        companyDocs.push(doc);
       } else {
         unlinkedDocs.push(doc);
       }
@@ -883,65 +686,22 @@ export default function DocumentsCenterPage() {
     return {
       vehicles: Array.from(vehicleGroups.values()),
       drivers: Array.from(driverGroups.values()),
-      operations: sortDocumentList(operationsDocs, sortBy),
-      company: sortDocumentList(companyDocs, sortBy),
-      unlinked: sortDocumentList(unlinkedDocs, sortBy),
+      operations: operationsDocs,
+      company: companyDocs,
+      unlinked: unlinkedDocs,
     };
-  }, [filteredDocs, vehicles, drivers, sortBy]);
-
-  const opsCounts = useMemo(() => {
-    const counts = { Waybill: 0, POD: 0, CustomsClearance: 0, Emergency: 0 };
-    for (const d of groupedEntityFolders.operations) {
-      if (d.doc_type === 'Waybill') counts.Waybill++;
-      else if (d.doc_type === 'POD') counts.POD++;
-      else if (d.doc_type === 'CustomsClearance') counts.CustomsClearance++;
-      else if (d.doc_type === 'Emergency') counts.Emergency++;
-    }
-    return counts;
-  }, [groupedEntityFolders.operations]);
-
-  const displayedOpsDocs = useMemo(() => {
-    if (opsSubFilter === 'all') return groupedEntityFolders.operations;
-    return groupedEntityFolders.operations.filter((d) => {
-      if (opsSubFilter === 'Waybill') return d.doc_type === 'Waybill';
-      if (opsSubFilter === 'POD') return d.doc_type === 'POD';
-      if (opsSubFilter === 'CustomsClearance') return d.doc_type === 'CustomsClearance';
-      if (opsSubFilter === 'Emergency') return d.doc_type === 'Emergency';
-      return true;
-    });
-  }, [groupedEntityFolders.operations, opsSubFilter]);
-
-  const companyCounts = useMemo(() => {
-    const counts = { Contract: 0, Invoice: 0, CustomerDoc: 0 };
-    for (const d of groupedEntityFolders.company) {
-      if (d.doc_type === 'Contract') counts.Contract++;
-      else if (d.doc_type === 'Invoice') counts.Invoice++;
-      else if (d.doc_type === 'CustomerDoc' || d.doc_type === 'CommercialRegistration') counts.CustomerDoc++;
-    }
-    return counts;
-  }, [groupedEntityFolders.company]);
-
-  const displayedCompanyDocs = useMemo(() => {
-    if (companySubFilter === 'all') return groupedEntityFolders.company;
-    return groupedEntityFolders.company.filter((d) => {
-      if (companySubFilter === 'Contract') return d.doc_type === 'Contract';
-      if (companySubFilter === 'Invoice') return d.doc_type === 'Invoice';
-      if (companySubFilter === 'CustomerDoc') return d.doc_type === 'CustomerDoc' || d.doc_type === 'CommercialRegistration';
-      return true;
-    });
-  }, [groupedEntityFolders.company, companySubFilter]);
+  }, [filteredDocs, vehicles, drivers]);
 
   const hasFolderResults = useMemo(() => {
     if (activeCategory === 'Vehicles') return filteredVehicleFolders.length > 0;
     if (activeCategory === 'Drivers') return filteredDriverFolders.length > 0;
-    if (activeCategory === 'Company') return groupedEntityFolders.company.length > 0;
-    if (activeCategory === 'Operations') return groupedEntityFolders.operations.length > 0;
     if (activeCategory === 'Unassigned') return groupedEntityFolders.unlinked.length > 0;
+    if (activeCategory === 'Other') return groupedEntityFolders.operations.length > 0 || groupedEntityFolders.company.length > 0;
     return (
       filteredVehicleFolders.length > 0 ||
       filteredDriverFolders.length > 0 ||
-      groupedEntityFolders.company.length > 0 ||
       groupedEntityFolders.operations.length > 0 ||
+      groupedEntityFolders.company.length > 0 ||
       groupedEntityFolders.unlinked.length > 0
     );
   }, [activeCategory, filteredVehicleFolders, filteredDriverFolders, groupedEntityFolders]);
@@ -974,69 +734,22 @@ export default function DocumentsCenterPage() {
     <DashboardLayout active="Documents" title="Documents Center">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── Page Header & Top Level Hub Switcher ─────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-3 min-w-0">
-{mainTab === 'vault' ? (
-              <Files className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            ) : (
-              <FileCog className="w-7 h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            )}
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Documents Center Hub
-                </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 text-[10px] font-bold">
-                  {mainTab === 'vault' ? `${totalDocsCount} Records` : 'Requirements Admin'}
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {mainTab === 'vault'
-                  ? 'Central vault for fleet compliance documents, waybills, POD receipts, and legal records.'
-                  : 'Configure compliance requirements, mandatory slots, expiry rules, and custom document templates.'}
-              </p>
-            </div>
+        {/* ── Page Header ─────────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Documents Center
+            </h1>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap shrink-0">
-            {/* Segmented Hub Mode Control */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setMainTab('vault')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer",
-                  mainTab === 'vault'
-                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                )}
-              >
-                <FolderOpen className="w-3.5 h-3.5" />
-                <span>Document Vault</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMainTab('types')}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer",
-                  mainTab === 'types'
-                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                )}
-              >
-                <FileCog className="w-3.5 h-3.5" />
-                <span>Document Types</span>
-              </button>
-            </div>
-
-            {/* Export Action */}
+          <div className="flex items-center gap-2.5">
+            {/* Export CSV Action */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer rounded-xl"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Export</span>
@@ -1061,195 +774,145 @@ export default function DocumentsCenterPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Upload Document Button */}
+            {/* Single Primary Action Button */}
             <Button
               size="sm"
               onClick={() => setIsUploadOpen(true)}
               className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-extrabold shadow-xs rounded-xl px-4 cursor-pointer"
             >
               <UploadCloud className="w-4 h-4" />
-              <span>Upload Document</span>
+              <span>+ Upload Document</span>
             </Button>
+
           </div>
         </div>
 
-        {/* ── Hub Content Switch ───────────────────────────────────────────── */}
-        {mainTab === 'types' ? (
-          <DocumentTypeAdminSection />
-        ) : (
-          <>
 
-        {/* ── 4 Top Category Cards Grid (Screenshot Layout) ───────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          {CATEGORY_TABS.map((cat) => {
-            const count = cat === 'Vehicles'
-              ? vehicleFolders.length
-              : cat === 'Drivers'
-                ? driverFolders.length
-                : cat === 'Company'
-                  ? foldersByCategory.Company.count
-                  : foldersByCategory.Operations.count;
 
-            const isActive = activeCategory === cat;
-            const cfg = CATEGORY_CONFIG[cat];
-            const Icon = cfg.icon;
 
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => handleSelectCategory(cat)}
-                className={cn(
-                  'p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer shadow-2xs group relative bg-white dark:bg-slate-900',
-                  isActive
-                    ? cfg.activeCardStyle
-                    : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={cn('w-6 h-6 shrink-0', cfg.color)} />
-                  <div>
-                    <h3 className={cn('text-sm tracking-tight', isActive ? 'font-black text-slate-900 dark:text-slate-100' : 'font-extrabold text-slate-700 dark:text-slate-300')}>
-                      {PILL_LABEL[cat]}
-                    </h3>
-                  </div>
-                </div>
-                <span className={cn(
-                  'text-xs font-mono font-extrabold px-2.5 py-1 rounded-full border transition-all',
-                  isActive
-                    ? cfg.activePillStyle
-                    : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                )}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {CATEGORY_TABS.map((cat) => {
+              const count = cat === 'Vehicles'
+                ? vehicleFolders.length
+                : cat === 'Drivers'
+                  ? driverFolders.length
+                  : cat === 'Other'
+                    ? foldersByCategory.Operations.count + foldersByCategory.Company.count
+                    : cat === 'All'
+                      ? docs.length
+                      : cat === 'Unassigned'
+                        ? groupedEntityFolders.unlinked.length
+                        : 0;
+              const isActive = activeCategory === cat;
+              const isUnassignedPill = cat === 'Unassigned';
+              if (isUnassignedPill && count === 0) return null;
 
-        {/* ── Control Toolbar Row ────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-          {/* Left: Status Selector */}
-          <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
-            <SelectTrigger className="h-9 text-xs font-bold w-44 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
-              <div className="flex items-center gap-1.5 truncate">
-                <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <SelectValue placeholder="All Statuses" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-xl z-50">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="warning">Needs Attention</SelectItem>
-              <SelectItem value="expired">Expired Only</SelectItem>
-              <SelectItem value="critical">Critical (&lt;7d)</SelectItem>
-              <SelectItem value="valid">Fully Compliant</SelectItem>
-            </SelectContent>
-          </Select>
+              const style = CAT_STYLES[cat];
 
-          {/* Center: Search Input */}
-          <div className="relative flex-1 max-w-xl">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search vehicle, plate, driver, or document..."
-              className="h-9 text-xs pl-9 pr-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-full font-medium"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => handleSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+              return (
+                <button
+                  key={cat}
+                  onClick={() => handleSelectCategory(cat)}
+                  className={cn(
+                    'px-4 py-2 text-xs font-black rounded-xl transition-all flex items-center gap-2 whitespace-nowrap border cursor-pointer',
+                    isActive ? style.active : style.inactive
+                  )}
+                >
+                  {isUnassignedPill && <Sparkles size={12} className={isActive ? 'text-white' : 'text-amber-500'} />}
+                  <span>{PILL_LABEL[cat]}</span>
+                  {cat !== 'All' && (
+                    <span className={cn(
+                      'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md',
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Right: Controls */}
-          <div className="flex items-center gap-2">
-            {/* Category-Tailored Sort Selector */}
-            <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
-              <SelectTrigger className="h-9 text-xs font-bold min-w-48 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 rounded-xl">
-                <div className="flex items-center gap-1.5 truncate">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-slate-400 font-normal">Sort:</span>
-                  <SelectValue placeholder="Sort option" />
-                </div>
+          {/* Compact Toolbar Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search vehicle, plate, driver, doc..."
+                className="h-9 text-xs pl-8 pr-7 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 w-48 sm:w-60"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <Select value={expiryFilter} onValueChange={(val: any) => handleFilterChange(val)}>
+              <SelectTrigger className="h-9 text-xs font-bold w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl z-50">
-                {activeCategory === 'Company' ? (
-                  <>
-                    <SelectItem value="name_asc">Company Name (A - Z)</SelectItem>
-                    <SelectItem value="name_desc">Company Name (Z - A)</SelectItem>
-                    <SelectItem value="doc_type">Document Type</SelectItem>
-                    <SelectItem value="attention">Needs Attention First</SelectItem>
-                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
-                    <SelectItem value="recent">Recently Uploaded</SelectItem>
-                  </>
-                ) : activeCategory === 'Operations' ? (
-                  <>
-                    <SelectItem value="plate">Trip / Entity (A - Z)</SelectItem>
-                    <SelectItem value="doc_type">Document Type</SelectItem>
-                    <SelectItem value="attention">Needs Attention First</SelectItem>
-                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
-                    <SelectItem value="recent">Recently Uploaded</SelectItem>
-                  </>
-                ) : activeCategory === 'Drivers' ? (
-                  <>
-                    <SelectItem value="plate">Driver Name (A - Z)</SelectItem>
-                    <SelectItem value="attention">Needs Attention First</SelectItem>
-                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
-                    <SelectItem value="recent">Recently Uploaded</SelectItem>
-                  </>
-                ) : activeCategory === 'Vehicles' ? (
-                  <>
-                    <SelectItem value="plate">Vehicle Plate / Ref (A - Z)</SelectItem>
-                    <SelectItem value="attention">Needs Attention First</SelectItem>
-                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
-                    <SelectItem value="recent">Recently Uploaded</SelectItem>
-                  </>
-                ) : (
-                  <>
-                    <SelectItem value="attention">Needs Attention First</SelectItem>
-                    <SelectItem value="name_asc">Entity / Company (A - Z)</SelectItem>
-                    <SelectItem value="expiry">Earliest Expiry Date</SelectItem>
-                    <SelectItem value="recent">Recently Uploaded</SelectItem>
-                  </>
-                )}
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="warning">Needs Attention</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="critical">Critical &lt;7d</SelectItem>
+                <SelectItem value="valid">Compliant</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Dropdown */}
+            <Select value={sortBy} onValueChange={(val: any) => handleSortChange(val)}>
+              <SelectTrigger className="h-9 text-xs font-bold w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="attention">Needs Attention First</SelectItem>
+                <SelectItem value="expiry">Expiry Date</SelectItem>
+                <SelectItem value="plate">Vehicle Plate / Ref</SelectItem>
+                <SelectItem value="recent">Recently Uploaded</SelectItem>
               </SelectContent>
             </Select>
 
             {/* View Switcher */}
-            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60">
+            <div className="flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               <button
                 type="button"
                 onClick={() => handleViewChange('folders')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer',
+                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'folders'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
-                title="Folders View"
-                aria-label="Folders View"
               >
-                <FolderOpen className={cn("w-4 h-4", viewMode === 'folders' ? "text-brand" : "")} />
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Folders</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleViewChange('list')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer',
+                  'px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer',
                   viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
-                title="Ledger View"
-                aria-label="Ledger View"
               >
-                <List className="w-4 h-4" />
+                <List className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ledger</span>
               </button>
             </div>
           </div>
@@ -1269,7 +932,9 @@ export default function DocumentsCenterPage() {
         ) : viewMode === 'folders' ? (
           !hasFolderResults ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+              </div>
               <div className="text-center">
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                   {search ? `No compliance folders matching "${search}"` : 'No compliance folders found'}
@@ -1285,10 +950,11 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Vehicles') && (
                 <FolderCardSection
                   title="Vehicle Compliance Folders"
-                  icon={<Truck className="w-5 h-5 text-emerald-600" />}
+                  icon={<Truck className="w-4 h-4 text-emerald-600" />}
                   noun="Vehicles"
                   rows={filteredVehicleFolders}
                   onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
+                  onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
                   isOverview={activeCategory === 'All'}
                   onViewAll={() => handleSelectCategory('Vehicles')}
@@ -1299,219 +965,76 @@ export default function DocumentsCenterPage() {
               {(activeCategory === 'All' || activeCategory === 'Drivers') && (
                 <FolderCardSection
                   title="Driver Compliance Folders"
-                  icon={<UserIcon className="w-5 h-5 text-blue-600" />}
+                  icon={<UserIcon className="w-4 h-4 text-blue-600" />}
                   noun="Drivers"
                   rows={filteredDriverFolders}
                   onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
+                  onPreviewDocument={setFolderSheetDocId}
                   onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
                   isOverview={activeCategory === 'All'}
                   onViewAll={() => handleSelectCategory('Drivers')}
                 />
               )}
 
-              {/* 3. Company Documents Section */}
-              {(activeCategory === 'All' || activeCategory === 'Company') && groupedEntityFolders.company.length > 0 && (
+              {/* 3. Other / Company & Operations Group Section */}
+              {(activeCategory === 'All' || activeCategory === 'Other') && (groupedEntityFolders.company.length > 0 || groupedEntityFolders.operations.length > 0) && (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-                      <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
-                      <span>Company Documents</span>
-                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
-                        ({displayedCompanyDocs.length} Records)
-                      </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-violet-600" />
+                      <span>Company & Operations Documents ({groupedEntityFolders.company.length + groupedEntityFolders.operations.length} Records)</span>
                     </h3>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
-                        <button
-                          type="button"
-                          onClick={() => setCompanySubFilter('all')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer',
-                            companySubFilter === 'all'
-                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                          )}
-                        >
-                          All ({groupedEntityFolders.company.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCompanySubFilter('Contract')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            companySubFilter === 'Contract'
-                              ? 'bg-blue-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
-                          )}
-                        >
-                          <FileText className="w-3 h-3" />
-                          <span>Contracts</span>
-                          <span className="font-mono text-[10px] opacity-80">({companyCounts.Contract})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCompanySubFilter('Invoice')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            companySubFilter === 'Invoice'
-                              ? 'bg-emerald-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600'
-                          )}
-                        >
-                          <FileBarChart2 className="w-3 h-3" />
-                          <span>Invoices</span>
-                          <span className="font-mono text-[10px] opacity-80">({companyCounts.Invoice})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCompanySubFilter('CustomerDoc')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            companySubFilter === 'CustomerDoc'
-                              ? 'bg-purple-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-purple-600'
-                          )}
-                        >
-                          <Briefcase className="w-3 h-3" />
-                          <span>Customer CR Docs</span>
-                          <span className="font-mono text-[10px] opacity-80">({companyCounts.CustomerDoc})</span>
-                        </button>
-                      </div>
-                      {activeCategory === 'All' && (
-                        <button
-                          onClick={() => handleSelectCategory('Company')}
-                          className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>View all company docs</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
+                    {activeCategory === 'All' && (
+                      <button
+                        onClick={() => handleSelectCategory('Other')}
+                        className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View all other docs</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {(activeCategory === 'All'
-                      ? displayedCompanyDocs.slice(0, 3)
-                      : displayedCompanyDocs
-                    ).map((doc) => (
-                      <SingleDocumentCard
-                        key={doc.id}
-                        doc={doc}
-                        category="Company"
-                        onPreview={(targetDoc) => setPreviewDoc(targetDoc)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 4. Operations & Transportation Files Section */}
-              {(activeCategory === 'All' || activeCategory === 'Operations') && groupedEntityFolders.operations.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-                      <FileText className="w-5 h-5 text-amber-600 shrink-0" />
-                      <span>Operations & Transportation Files</span>
-                      <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
-                        ({displayedOpsDocs.length} Records)
-                      </span>
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {/* Waybill / POD / Customs / Emergency Sub-Filter Pills */}
-                      <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
-                        <button
-                          type="button"
-                          onClick={() => setOpsSubFilter('all')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer',
-                            opsSubFilter === 'all'
-                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                          )}
+                      ? [...groupedEntityFolders.company, ...groupedEntityFolders.operations].slice(0, 4)
+                      : [...groupedEntityFolders.company, ...groupedEntityFolders.operations]
+                    ).map((doc) => {
+                      const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                      const catCfg = CATEGORY_CONFIG[doc.category];
+                      return (
+                        <Card
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
                         >
-                          All ({groupedEntityFolders.operations.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOpsSubFilter('Waybill')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            opsSubFilter === 'Waybill'
-                              ? 'bg-amber-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-amber-600'
-                          )}
-                        >
-                          <FileClock className="w-3 h-3" />
-                          <span>Waybills</span>
-                          <span className="font-mono text-[10px] opacity-80">({opsCounts.Waybill})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOpsSubFilter('POD')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            opsSubFilter === 'POD'
-                              ? 'bg-emerald-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600'
-                          )}
-                        >
-                          <FileCheck className="w-3 h-3" />
-                          <span>POD (Proof of Delivery)</span>
-                          <span className="font-mono text-[10px] opacity-80">({opsCounts.POD})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOpsSubFilter('CustomsClearance')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            opsSubFilter === 'CustomsClearance'
-                              ? 'bg-blue-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
-                          )}
-                        >
-                          <FileKey2 className="w-3 h-3" />
-                          <span>Customs Clearance</span>
-                          <span className="font-mono text-[10px] opacity-80">({opsCounts.CustomsClearance})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOpsSubFilter('Emergency')}
-                          className={cn(
-                            'px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5',
-                            opsSubFilter === 'Emergency'
-                              ? 'bg-rose-600 text-white shadow-2xs'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-rose-600'
-                          )}
-                        >
-                          <ShieldAlert className="w-3 h-3" />
-                          <span>Emergency Logs</span>
-                          <span className="font-mono text-[10px] opacity-80">({opsCounts.Emergency})</span>
-                        </button>
-                      </div>
-                      {activeCategory === 'All' && (
-                        <button
-                          onClick={() => handleSelectCategory('Operations')}
-                          className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>View all ops docs</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {(activeCategory === 'All'
-                      ? displayedOpsDocs.slice(0, 3)
-                      : displayedOpsDocs
-                    ).map((doc) => (
-                      <SingleDocumentCard
-                        key={doc.id}
-                        doc={doc}
-                        category="Operations"
-                        onPreview={(targetDoc) => setPreviewDoc(targetDoc)}
-                      />
-                    ))}
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center shrink-0', catCfg?.iconBg || 'bg-slate-100 dark:bg-slate-800 text-slate-600')}>
+                                  <DocIcon className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand transition-colors">
+                                    {documentDisplayName(doc)}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-400 font-mono truncate block">
+                                    {doc.entityName}
+                                  </span>
+                                </div>
+                              </div>
+                              <Badge className={cn('text-[10px] font-mono font-bold px-2 py-0.5 border-0 shrink-0', EXPIRY_BADGE[doc.expStatus]?.className)}>
+                                {EXPIRY_BADGE[doc.expStatus]?.label || doc.expStatus}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+                              <span className="text-[10px] text-slate-400">{doc.issuer}</span>
+                              <span className="text-[10px] font-mono text-slate-400">#DOC-{doc.id.slice(0, 6)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1519,7 +1042,9 @@ export default function DocumentsCenterPage() {
           )
         ) : filteredDocs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <FolderOpen className="w-7 h-7 text-slate-300 shrink-0" />
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+            </div>
             <div className="text-center">
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 {search ? `No documents matching "${search}"` : 'No documents found'}
@@ -1802,8 +1327,7 @@ export default function DocumentsCenterPage() {
             onRowClick={(row) => setPreviewDoc(row)}
           />
         )}
-        </>
-        )}
+
       </div>
 
       {/* ── Document Details & Intelligence Center Modal ────────────────────── */}
@@ -1818,7 +1342,9 @@ export default function DocumentsCenterPage() {
           {/* Pinned Header */}
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-indigo-600 shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                <FileText className="w-5 h-5" />
+              </div>
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
@@ -1900,7 +1426,9 @@ export default function DocumentsCenterPage() {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
-                        <FileText className="w-7 h-7 text-indigo-600 shrink-0" />
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                          <FileText className="w-8 h-8" />
+                        </div>
                         <div>
                           <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                             {documentDisplayName(previewDoc)}
@@ -2194,6 +1722,13 @@ export default function DocumentsCenterPage() {
       <CreateFolderModal
         isOpen={isCreateFolderOpen}
         onClose={() => setIsCreateFolderOpen(false)}
+      />
+
+      {/* ── Owner-folder document preview sheet (Drivers/Vehicles cards) ─── */}
+      <DocumentPreviewSheet
+        documentId={folderSheetDocId}
+        onClose={() => setFolderSheetDocId(null)}
+        showOpenFolder
       />
 
       {/* ── Missing-slot upload (clicking a Missing row on a Driver/Vehicle card) ─── */}

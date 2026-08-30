@@ -279,7 +279,9 @@ export default function ImportReviewModal({
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <DialogHeader className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <UploadCloud className="w-6 h-6 text-brand shrink-0" />
+            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-brand/30 text-brand flex items-center justify-center shrink-0 shadow-2xs">
+              <UploadCloud className="w-5 h-5" />
+            </div>
             <div>
               <DialogTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 Import Documents & Folders
@@ -376,8 +378,12 @@ export default function ImportReviewModal({
               ) : (
                 <div className="flex flex-col items-center gap-4 py-2">
                   <div className="flex items-center justify-center gap-4">
-                    <UploadCloud className="w-10 h-10 text-brand" />
-                    <Folder className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand flex items-center justify-center shadow-2xs">
+                      <UploadCloud className="w-7 h-7" />
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-2xs">
+                      <Folder className="w-7 h-7" />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <p className="text-base font-black text-slate-900 dark:text-slate-100">
@@ -484,7 +490,9 @@ export default function ImportReviewModal({
                           className="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand shrink-0 disabled:opacity-40"
                         />
 
-                        <FileText className="w-5 h-5 text-slate-600 shrink-0" />
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-2xs">
+                          <FileText className="w-4 h-4" />
+                        </div>
 
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{item.filename}</p>

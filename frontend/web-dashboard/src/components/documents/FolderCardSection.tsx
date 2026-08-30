@@ -15,6 +15,7 @@ interface FolderCardSectionProps {
   noun: string; // "Vehicles" | "Drivers" — used for the "View all N Vehicles" label
   rows: OwnerFoldersSummaryRow[];
   onOpenRow: (row: OwnerFoldersSummaryRow) => void;
+  onPreviewDocument: (documentId: string) => void;
   onUploadMissing?: (row: OwnerFoldersSummaryRow, slotCode: string) => void;
   isOverview?: boolean;
   onViewAll?: () => void;
@@ -32,6 +33,7 @@ export default function FolderCardSection({
   noun,
   rows,
   onOpenRow,
+  onPreviewDocument,
   onUploadMissing,
   isOverview = false,
   onViewAll,
@@ -50,12 +52,9 @@ export default function FolderCardSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+        <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
           {icon}
-          <span>{title}</span>
-          <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700">
-            ({rows.length} {noun})
-          </span>
+          <span>{title} ({rows.length} {noun})</span>
         </h3>
         {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
           <button
@@ -68,9 +67,9 @@ export default function FolderCardSection({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {visibleRows.map((row) => (
-          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onUploadMissing={onUploadMissing} />
+          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onPreviewDocument={onPreviewDocument} onUploadMissing={onUploadMissing} />
         ))}
       </div>
 
