@@ -44,7 +44,7 @@ const MAPPING_OPTIONS: ComboboxOption[] = [
 
   { value: 'field:billing_amount', label: 'Billing Amount (Base Rate)', group: '💰 Billing & Financials', keywords: 'billing amount rate price base' },
   { value: 'field:total_amount', label: 'Total Amount (Grand Total)', group: '💰 Billing & Financials', keywords: 'total amount sum grand' },
-  { value: 'field:trip_charges', label: 'Trip Charges', group: '💰 Billing & Financials', keywords: 'trip charge fee' },
+  { value: 'field:trip_charges', label: 'Driver Charge', group: '💰 Billing & Financials', keywords: 'driver charge payout trip charge fee' },
   { value: 'field:total_charges', label: 'Extra Surcharges (Waiting, Stops)', group: '💰 Billing & Financials', keywords: 'extra surcharge waiting detention stop' },
   { value: 'field:balance_amount', label: 'Balance Amount', group: '💰 Billing & Financials', keywords: 'balance due remaining' },
 ];

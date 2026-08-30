@@ -329,7 +329,7 @@ export default function Step5Review({
             <p className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400">
               SAR {fmt(totals.driverPayout)}
             </p>
-            <p className="text-[9px] text-slate-400">Trip charges total</p>
+            <p className="text-[9px] text-slate-400">Driver charges total</p>
           </div>
 
           {/* Gross Margin */}

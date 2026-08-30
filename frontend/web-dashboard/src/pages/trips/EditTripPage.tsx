@@ -516,7 +516,7 @@ export default function EditTripPage() {
 
                     <div className="space-y-1">
                       <Label htmlFor="trip_charges" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Extra Trip Charges / Surcharges (SAR)
+                        Driver Charge / Payout (SAR)
                       </Label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">SAR</span>

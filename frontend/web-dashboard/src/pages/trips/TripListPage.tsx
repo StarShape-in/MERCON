@@ -145,7 +145,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
   'Payload Capacity', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-  'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+  'Driver Charge (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
@@ -1644,7 +1644,7 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Trip Charge (SAR)',
+      header: 'Driver Charge (SAR)',
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
@@ -2954,7 +2954,7 @@ export default function TripListPage() {
                       <span className="font-mono font-semibold">Origin</span>,{' '}
                       <span className="font-mono font-semibold">Destination</span>,{' '}
                       <span className="font-mono font-semibold">Billing Amount</span>,{' '}
-                      <span className="font-mono font-semibold">Trip Charges</span>
+                      <span className="font-mono font-semibold">Driver Charge</span>
                     </div>
                   </div>
 

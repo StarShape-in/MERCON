@@ -309,7 +309,7 @@ export default function Step4Assignments({
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-0.5">
                         <DollarSign className="w-2.5 h-2.5 text-emerald-500" />
-                        Trip Charge
+                        Billing Rate
                       </label>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-[9px] pointer-events-none">
@@ -399,7 +399,7 @@ export default function Step4Assignments({
                   <th className="py-2.5 px-3">
                     <span className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3 text-emerald-500" />
-                      Trip Charge
+                      Billing Rate
                     </span>
                   </th>
                   <th className="py-2.5 px-3">

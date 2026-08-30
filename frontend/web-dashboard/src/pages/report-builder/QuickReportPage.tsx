@@ -75,7 +75,7 @@ const FIELD_LABELS: Record<string, string> = {
   'trips.createdAt': 'Trip Date',
   'trips.status': 'Trip Status',
   'trips.revenue': 'Revenue',
-  'trips.trip_charges': 'Trip Charges',
+  'trips.trip_charges': 'Driver Charge',
   'trips.third_party_cost': 'Third-Party Cost',
   'trips.count': 'Trip Count',
 

@@ -3550,10 +3550,10 @@ export default function CreateTripPage() {
                                           <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg font-black" title="Total gross revenue">
                                             TOTAL: SAR {total.toLocaleString()}
                                           </span>
-                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver trip charge payout">
-                                            TRIP CHARGES: SAR {slotTripCharge.toLocaleString()}
+                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver charge payout">
+                                            DRIVER CHARGE: SAR {slotTripCharge.toLocaleString()}
                                           </span>
-                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting trip charges and additional charges">
+                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting driver charge and additional charges">
                                             BALANCE: SAR {(total - slotTripCharge).toLocaleString()}
                                           </span>
                                         </div>

@@ -605,7 +605,7 @@ export default function DriverListPage() {
       accessor: (row: Driver) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Total Trip Charge',
+      header: 'Total Driver Charges',
       accessor: (row: Driver) => (
         <span
           className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400"
