@@ -22,6 +22,8 @@ interface DocumentsLedgerMatrixViewProps {
   onUploadClick: () => void;
   onPreviewDoc?: (docId: string) => void;
   tz?: string;
+  vehicles?: any[];
+  drivers?: any[];
 }
 
 export default function DocumentsLedgerMatrixView({
@@ -36,6 +38,8 @@ export default function DocumentsLedgerMatrixView({
   onUploadClick,
   onPreviewDoc,
   tz,
+  vehicles = [],
+  drivers = [],
 }: DocumentsLedgerMatrixViewProps) {
   const navigate = useNavigate();
 
@@ -312,6 +316,7 @@ export default function DocumentsLedgerMatrixView({
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-extrabold text-[11px]">
                   <th className="px-5 py-3.5 text-left whitespace-nowrap">Vehicle ˅</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Driver</th>
+                  <th className="px-4 py-3.5 text-left whitespace-nowrap">Capacity</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Isthimara</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Insurance</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Operation Card</th>
@@ -324,7 +329,7 @@ export default function DocumentsLedgerMatrixView({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
                 {filteredVehicles.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center text-slate-400">
+                    <td colSpan={10} className="px-4 py-16 text-center text-slate-400">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No vehicles found</p>
                       <p className="text-xs text-slate-400 mt-1">Adjust search query or filter pills</p>
@@ -337,6 +342,10 @@ export default function DocumentsLedgerMatrixView({
                     const opCard = findSlot(row, ['operation', 'card']);
                     const saso = findSlot(row, ['saso', 'plate']);
                     const fahas = findSlot(row, ['fahas', 'inspection']);
+
+                    const matchedVehicle = vehicles.find((v: any) => v.id === row.ownerId);
+                    const capacityVal = matchedVehicle?.capacity_kg;
+                    const capacityText = capacityVal ? `${(capacityVal / 1000).toFixed(0)} TON` : '—';
 
                     return (
                       <tr
@@ -362,10 +371,14 @@ export default function DocumentsLedgerMatrixView({
                             <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
                               {row.relatedName || 'Unassigned'}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              +966 5*******
-                            </span>
                           </div>
+                        </td>
+
+                        {/* Capacity */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="text-xs font-semibold text-slate-650 dark:text-slate-400">
+                            {capacityText}
+                          </span>
                         </td>
 
                         {/* Isthimara */}
@@ -404,6 +417,7 @@ export default function DocumentsLedgerMatrixView({
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-extrabold text-[11px]">
                   <th className="px-5 py-3.5 text-left whitespace-nowrap">Driver ˅</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Assigned Vehicle</th>
+                  <th className="px-4 py-3.5 text-left whitespace-nowrap">Capacity</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Driver License</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Passport</th>
                   <th className="px-4 py-3.5 text-left whitespace-nowrap">Iqama / Residency</th>
@@ -415,7 +429,7 @@ export default function DocumentsLedgerMatrixView({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-350">
                 {filteredDrivers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-16 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-16 text-center text-slate-400">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No drivers found</p>
                       <p className="text-xs text-slate-400 mt-1">Adjust search query or filter pills</p>
@@ -428,6 +442,12 @@ export default function DocumentsLedgerMatrixView({
                     const iqama = findSlot(row, ['iqama', 'residency']);
                     const medical = findSlot(row, ['medical', 'check']);
 
+                    const matchedDriver = drivers.find((d) => d.id === row.ownerId);
+                    const assignedVehId = matchedDriver?.assignedVehicleId || matchedDriver?.assigned_vehicle_id;
+                    const matchedVehicle = vehicles.find((v) => v.id === assignedVehId);
+                    const capacityVal = matchedVehicle?.capacity_kg;
+                    const capacityText = capacityVal ? `${(capacityVal / 1000).toFixed(0)} TON` : '—';
+ 
                     return (
                       <tr
                         key={row.ownerId}
@@ -440,12 +460,9 @@ export default function DocumentsLedgerMatrixView({
                             <span className="font-extrabold text-slate-900 dark:text-white text-xs tracking-tight">
                               {row.ownerName}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              {row.ownerRef || '+966 5*******'}
-                            </span>
                           </div>
                         </td>
-
+ 
                         {/* Vehicle */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="flex flex-col">
@@ -456,15 +473,22 @@ export default function DocumentsLedgerMatrixView({
                           </div>
                         </td>
 
+                        {/* Capacity */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="text-xs font-semibold text-slate-650 dark:text-slate-400">
+                            {capacityText}
+                          </span>
+                        </td>
+ 
                         {/* Slots */}
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(license)}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(passport)}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(iqama)}</td>
                         <td className="px-4 py-3.5 whitespace-nowrap">{renderSlotCell(medical)}</td>
-
+ 
                         {/* Status */}
                         <td className="px-4 py-3.5 text-center whitespace-nowrap">{renderRowStatusBadge(row)}</td>
-
+ 
                         {/* Action */}
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#FA634E] inline-block" />

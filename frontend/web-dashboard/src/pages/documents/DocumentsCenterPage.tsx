@@ -1248,6 +1248,8 @@ export default function DocumentsCenterPage() {
               if (d) setPreviewDoc(d);
             }}
             tz={tz}
+            vehicles={vehicles}
+            drivers={drivers}
           />
         )}
 
