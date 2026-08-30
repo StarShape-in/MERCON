@@ -97,51 +97,38 @@ export default function OwnerFolderPage() {
       {/* Anchored Viewport Container: No outer page scroll */}
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-3">
         
-        {/* ── Executive MERCON Operating System Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 pb-3 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+        {/* ── Executive MERCON Operating System Header with Surface Background ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-900/90 px-4 py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           
-          <div className="flex items-center gap-3.5 min-w-0">
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={() => navigate('/documents')}
-              className="w-9 h-9 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Back to Documents Vault"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
+              </h1>
+              
+              {/* Vehicle Ref Code Tag */}
+              <span className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-xs font-extrabold border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                {vehicle?.ref_id || 'TRK-110'}
+              </span>
 
-            {/* Vehicle Identity & Driver Metadata Stack */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
-                </h1>
-                
-                {/* Vehicle Ref Code Tag */}
-                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200/60 dark:border-slate-700">
-                  {vehicle?.ref_id || 'TRK-110'}
+              {/* Capacity Tag */}
+              <span className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
+              </span>
+            </div>
+
+            {/* Driver Details Subtitle Row */}
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 flex-wrap">
+              <span className="text-slate-400 font-medium">Assigned Driver:</span>
+              <strong className="text-slate-900 dark:text-slate-100 font-black flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-[#FA634E]" />
+                {normalizedType === 'Driver' ? ownerName : driverName}
+              </strong>
+              {((driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567') && (
+                <span className="text-slate-500 dark:text-slate-400 font-mono">
+                  ({(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'})
                 </span>
-
-                {/* Capacity Tag */}
-                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono text-xs font-bold border border-slate-200/60 dark:border-slate-700">
-                  {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
-                </span>
-              </div>
-
-              {/* Driver Details Subtitle Row */}
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 flex-wrap">
-                <span className="text-slate-400 font-medium">Assigned Driver:</span>
-                <strong className="text-slate-800 dark:text-slate-200 font-extrabold flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-[#FA634E]" />
-                  {normalizedType === 'Driver' ? ownerName : driverName}
-                </strong>
-                {((driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567') && (
-                  <span className="text-slate-400 font-mono">
-                    ({(driver as any)?.phone || (driver as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567'})
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
