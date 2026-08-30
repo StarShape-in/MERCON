@@ -56,6 +56,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import CompanyTripKanbanBoard from '@/components/trips/kanban/CompanyTripKanbanBoard';
 import QuickAssignModal from '@/components/trips/QuickAssignModal';
+import { reverseGeocode } from '@/services/addressSearch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
@@ -114,6 +115,11 @@ const DASHBOARD_EXPORT_COLUMNS: ExportColumn<any>[] = [
   { id: 'id', label: 'Trip ID', accessor: (t) => t.id || t.tripId || t.ref_id },
   { id: 'customer', label: 'Customer', accessor: (t) => t.customerName || t.customer?.name || '—' },
   { id: 'route', label: 'Route', accessor: (t) => t.route || `${t.pickup || t.stops?.[0]?.location_name || ''} → ${t.dropoff || t.stops?.[t.stops?.length - 1]?.location_name || ''}` },
+  { id: 'location', label: 'Current Location', accessor: (t) => {
+    const loc = t.vehicle?.resolved_location || t.rawTrip?.vehicle?.resolved_location;
+    if (!loc || loc.display_state === 'UNAVAILABLE' || !loc.latitude || !loc.longitude) return 'Location unavailable';
+    return `${loc.display_state === 'CURRENT' ? 'Current' : 'Last known'}: ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)} (${loc.formatted_time_ago || ''})`;
+  } },
   { id: 'driver', label: 'Driver', accessor: (t) => t.driver ? (typeof t.driver === 'string' ? t.driver : `${t.driver.first_name} ${t.driver.last_name}`) : '—' },
   { id: 'vehicle', label: 'Vehicle Plate', accessor: (t) => t.vehicle ? (typeof t.vehicle === 'string' ? t.vehicle : t.vehicle.plate_number) : t.plate || '—' },
   { id: 'status', label: 'Status', accessor: (t) => t.status || t.rawStatus },
@@ -347,6 +353,72 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     planned_distance: 180,
   } as any,
 ];
+
+function DashboardLocationCell({ rawTrip }: { rawTrip?: any }) {
+  const resolvedLoc = rawTrip?.vehicle?.resolved_location;
+  const lat = resolvedLoc?.latitude;
+  const lng = resolvedLoc?.longitude;
+  const displayState = resolvedLoc?.display_state;
+  const hasCoords = typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
+  const isUnavailable = !resolvedLoc || displayState === 'UNAVAILABLE' || !hasCoords;
+
+  const [placeName, setPlaceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasCoords || isUnavailable) {
+      setPlaceName(null);
+      return;
+    }
+
+    let isMounted = true;
+    reverseGeocode(lat!, lng!)
+      .then((res) => {
+        if (isMounted) setPlaceName(res);
+      })
+      .catch(() => {
+        if (isMounted) setPlaceName(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lat, lng, isUnavailable, hasCoords]);
+
+  if (isUnavailable) {
+    return (
+      <div className="flex items-center gap-1 text-[11px] font-medium italic text-slate-400 dark:text-slate-500 py-0.5" title="No live physical GPS telemetry">
+        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <span className="truncate">Location unavailable</span>
+      </div>
+    );
+  }
+
+  const isCurrent = displayState === 'CURRENT';
+  const coordsText = `${lat!.toFixed(4)}, ${lng!.toFixed(4)}`;
+  const locationLabel = placeName || coordsText;
+  const sourceLabel = resolvedLoc?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLoc?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
+  const timeAgoText = resolvedLoc?.formatted_time_ago;
+  const statePrefix = isCurrent ? 'Current' : 'Last known';
+
+  return (
+    <div className="flex flex-col gap-0.5 py-0.5 max-w-[190px] truncate" title={`${statePrefix}: ${locationLabel}`}>
+      <div className="flex items-center gap-1 min-w-0">
+        <Navigation className={cn("w-3 h-3 shrink-0", isCurrent ? "text-emerald-500" : "text-amber-500")} />
+        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+          📍 {locationLabel}
+        </span>
+      </div>
+      <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 pl-4 truncate">
+        {timeAgoText && (
+          <span>
+            {isCurrent ? `Current · ${timeAgoText}` : `Last known · ${timeAgoText}`}
+          </span>
+        )}
+        {sourceLabel && <span>· {sourceLabel}</span>}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -711,6 +783,7 @@ export default function DashboardPage() {
         tripId: t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`,
         planned_start: t.planned_start,
         createdAt: t.createdAt,
+        rawTrip: t,
       };
 
       // Include active ongoing operational trips in active fleet summary (all non-completed/cancelled active trips)
@@ -936,6 +1009,14 @@ export default function DashboardPage() {
             </div>
           </div>
         );
+      },
+    },
+    {
+      header: 'Current Location',
+      className: 'min-w-[170px] max-w-[210px] truncate',
+      accessor: (row: any) => {
+        const matchingTrip = activeTrips.find((t) => (t.ref_id || t.id) === (row.ref_id || row.id)) || row.rawTrip || row;
+        return <DashboardLocationCell rawTrip={matchingTrip} />;
       },
     },
     {
