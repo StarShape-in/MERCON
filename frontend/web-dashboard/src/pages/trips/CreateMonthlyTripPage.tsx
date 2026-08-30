@@ -903,14 +903,15 @@ export default function CreateMonthlyTripPage() {
         const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
 
         // Per-row overrides take priority, then fall back to master or slot-level values
-        const effectiveTripCharge = assignment.tripCharge !== undefined && assignment.tripCharge !== ''
-          ? assignment.tripCharge
+        const assignAny = assignment as any;
+        const effectiveTripCharge = assignAny.tripCharge !== undefined && assignAny.tripCharge !== ''
+          ? assignAny.tripCharge
           : (masterTripCharge || slot.billingAmount);
-        const effectiveExtras = assignment.additionalCharges !== undefined && assignment.additionalCharges !== ''
-          ? assignment.additionalCharges
+        const effectiveExtras = assignAny.additionalCharges !== undefined && assignAny.additionalCharges !== ''
+          ? assignAny.additionalCharges
           : (masterAdditionalCharges || slot.additionalCharges);
-        const effectiveDriverCharge = assignment.driverTripCharge !== undefined && assignment.driverTripCharge !== ''
-          ? assignment.driverTripCharge
+        const effectiveDriverCharge = assignAny.driverTripCharge !== undefined && assignAny.driverTripCharge !== ''
+          ? assignAny.driverTripCharge
           : (masterDriverCharge || slot.driverTripCharge);
 
         const baseAmount = Number(effectiveTripCharge) || 0;
@@ -944,7 +945,6 @@ export default function CreateMonthlyTripPage() {
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
           billing_amount: baseAmount > 0 ? baseAmount : (totalAmount > 0 ? totalAmount : undefined),
-          driver_charge: driverChargeVal > 0 ? driverChargeVal : undefined,
           trip_charges: driverChargeVal > 0 ? driverChargeVal : undefined,
           status: 'Draft',
         });
