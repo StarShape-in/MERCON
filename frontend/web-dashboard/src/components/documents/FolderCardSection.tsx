@@ -51,21 +51,23 @@ export default function FolderCardSection({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
-          {icon}
-          <span>{title} ({rows.length} {noun})</span>
-        </h3>
-        {isOverview && onViewAll && rows.length > ITEMS_PER_ROW && (
-          <button
-            onClick={onViewAll}
-            className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer transition-colors"
-          >
-            <span>View all {noun.toLowerCase()} ({rows.length})</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+      {isOverview && (
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+            {icon}
+            <span>{title} ({rows.length} {noun})</span>
+          </h3>
+          {onViewAll && rows.length > ITEMS_PER_ROW && (
+            <button
+              onClick={onViewAll}
+              className="text-xs font-bold text-brand hover:text-brand-hover flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>View all {noun.toLowerCase()} ({rows.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-7">
         {visibleRows.map((row) => (

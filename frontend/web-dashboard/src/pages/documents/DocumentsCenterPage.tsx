@@ -857,11 +857,11 @@ export default function DocumentsCenterPage() {
               className={cn(
                 "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
                 activeCategory === 'Vehicles' || activeCategory === 'All'
-                  ? "bg-white dark:bg-slate-805 text-[#FA634E] shadow-2xs border border-slate-200/40 dark:border-slate-700"
+                  ? "bg-[#FA634E] text-white shadow-2xs border border-[#FA634E]"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-[#FA634E]" : "text-slate-450")} />
+              <FileText className={cn("w-4 h-4", (activeCategory === 'Vehicles' || activeCategory === 'All') ? "text-white" : "text-slate-450")} />
               <span>Vehicle Documents</span>
               <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {vehicleFolders.length}
@@ -874,11 +874,11 @@ export default function DocumentsCenterPage() {
               className={cn(
                 "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
                 activeCategory === 'Drivers'
-                  ? "bg-white dark:bg-slate-805 text-[#FA634E] shadow-2xs border border-slate-200/40 dark:border-slate-700"
+                  ? "bg-blue-650 dark:bg-blue-700 text-white shadow-2xs border border-blue-650 dark:border-blue-700"
                   : "text-slate-500 hover:text-slate-800 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-[#FA634E]" : "text-slate-450")} />
+              <UserIcon className={cn("w-4 h-4", activeCategory === 'Drivers' ? "text-white" : "text-slate-450")} />
               <span>Driver Documents</span>
               <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {driverFolders.length}
@@ -891,11 +891,11 @@ export default function DocumentsCenterPage() {
               className={cn(
                 "px-4 py-2 text-xs font-black transition-all flex items-center gap-2 cursor-pointer border-none rounded-lg whitespace-nowrap",
                 activeCategory === 'Other'
-                  ? "bg-white dark:bg-slate-805 text-[#FA634E] shadow-2xs border border-slate-200/40 dark:border-slate-700"
+                  ? "bg-violet-650 dark:bg-violet-750 text-white shadow-2xs border border-violet-650 dark:border-violet-750"
                   : "text-slate-500 hover:text-slate-850 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40"
               )}
             >
-              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-[#FA634E]" : "text-slate-450")} />
+              <Building2 className={cn("w-4 h-4", activeCategory === 'Other' ? "text-white" : "text-slate-450")} />
               <span>Company & Operations</span>
               <span className="ml-1 opacity-60 font-mono text-[10px]">
                 {foldersByCategory.Operations.count + foldersByCategory.Company.count}
