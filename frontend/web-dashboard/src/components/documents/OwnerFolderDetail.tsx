@@ -5,7 +5,8 @@ import {
   UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files,
   Download, Trash2, Plus, ExternalLink, RefreshCw, FileText, Hash, Building2,
   Calendar, History, Clock, Sparkles, Edit2, Save, FilePlus,
-  ShieldCheck, Lock, Unlock, ShieldAlert, Info, ChevronRight, ArrowUpRight, Truck, User
+  ShieldCheck, Lock, Unlock, ShieldAlert, Info, ChevronRight, ArrowUpRight, Truck, User,
+  Landmark, SlidersHorizontal, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -160,56 +161,84 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
 
   return (
-    <div className="h-full flex flex-col space-y-3 overflow-hidden">
+    <div className="h-full flex flex-col space-y-3.5 overflow-hidden">
       
-      {/* ── Top Clean Document Selection Buttons Bar (Indigo/Navy Pill Buttons) ──────────────── */}
-      <div className="flex items-center gap-2.5 border-b border-slate-200/80 dark:border-slate-800 pb-3 pt-0.5 mb-5 shrink-0 overflow-x-auto scrollbar-none">
-        {folder.slots.map((slot) => {
-          const isSelected = activeSlot?.documentType.id === slot.documentType.id;
-          const doc = slot.document;
-          const code = getSlotStatusFromDoc(doc);
-          const StatusIcon = STATUS_ICONS[code]?.icon || FileQuestion;
-          const iconColor = STATUS_ICONS[code]?.className || 'text-slate-400';
-          const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
-          const isExpiring = code === 'EXPIRING_SOON';
+      {/* ── 1. Top Documents Selector Card (Matching Uploaded Reference Design) ──────────────── */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-3.5 shadow-3xs space-y-2.5 shrink-0">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+            Documents
+          </span>
+          
+          {/* Attention Counter Warning */}
+          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 hover:underline cursor-pointer">
+            {folder.slots.filter((s) => {
+              const code = getSlotStatusFromDoc(s.document);
+              return code !== 'VALID' && code !== 'NO_EXPIRY';
+            }).length} document(s) need attention <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
 
-          return (
-            <button
-              key={slot.documentType.id}
-              type="button"
-              onClick={() => setSelectedSlotId(slot.documentType.id)}
-              className={cn(
-                "px-3.5 py-2 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
-                isSelected
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-sm ring-2 ring-indigo-500/20"
-                  : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300"
-              )}
-            >
-              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white" : iconColor)} />
-              <span className={cn(isSelected ? "font-black" : "font-semibold")}>
-                {slot.documentType.name}
-              </span>
-              
-              {/* Secondary Status Badge */}
-              <span className={cn(
-                "text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded-md transition-colors",
-                isSelected
-                  ? "bg-white/20 text-white"
-                  : isExpiredOrMissing
-                    ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
-                    : isExpiring
-                      ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50"
-                      : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50"
-              )}>
-                {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
-              </span>
-            </button>
-          );
-        })}
+        {/* The 5 Pill Selection Buttons Bar */}
+        <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-none pt-0.5">
+          {folder.slots.map((slot) => {
+            const isSelected = activeSlot?.documentType.id === slot.documentType.id;
+            const doc = slot.document;
+            const code = getSlotStatusFromDoc(doc);
+            const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+            const isExpiring = code === 'EXPIRING_SOON';
+
+            return (
+              <button
+                key={slot.documentType.id}
+                type="button"
+                onClick={() => setSelectedSlotId(slot.documentType.id)}
+                className={cn(
+                  "px-3.5 py-1.5 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
+                  isSelected
+                    ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-sm ring-2 ring-indigo-500/20"
+                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                )}
+              >
+                {/* Status Indicator Icon Dot */}
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] shrink-0 font-extrabold",
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : isExpiredOrMissing
+                      ? "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                      : isExpiring
+                        ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+                        : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                )}>
+                  {isExpiredOrMissing ? '✕' : '✓'}
+                </div>
+
+                <span className={cn(isSelected ? "font-black" : "font-extrabold")}>
+                  {slot.documentType.name}
+                </span>
+                
+                {/* Status Badge Tag */}
+                <span className={cn(
+                  "text-[9.5px] font-bold px-1.5 py-0.2 rounded-md transition-colors uppercase tracking-wider",
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : isExpiredOrMissing
+                      ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
+                      : isExpiring
+                        ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50"
+                        : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50"
+                )}>
+                  {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── 3. Master / Detail Workspace Split Grid (Fills One Page Desktop Viewport) ──────────────── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4.5 h-full overflow-hidden">
+      {/* ── 2. Master / Detail Workspace Split Grid (Fills One Page Desktop Viewport) ──────────────── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
         {/* LEFT SIDE COLUMN: 4 / 12 width */}
         <div className="lg:col-span-4 h-full flex flex-col space-y-4 overflow-hidden">

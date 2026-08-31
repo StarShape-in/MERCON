@@ -246,14 +246,17 @@ export default function DriverDetailsPage() {
       <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
         
         {/* Back Navigation Row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             onClick={() => navigate('/drivers')} 
-            className="gap-1.5 p-0 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-transparent font-bold text-xs cursor-pointer"
+            className="h-8 gap-1.5 px-3 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs cursor-pointer rounded-lg"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </Button>
+          <span className="text-sm font-black text-slate-850 dark:text-slate-200">
+            {driver.first_name} {driver.last_name}
+          </span>
         </div>
 
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
@@ -427,62 +430,70 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
-          {/* Card B: Driver & License */}
+          {/* Card B: Driver & License Information */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4 flex-1">
               <div className="flex items-center gap-2">
-                <Award className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                <User className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
                 <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                  Driver & License
+                  Driver & License Information
                 </h3>
               </div>
 
-              <div className="divide-y divide-slate-105 dark:divide-slate-800/80 text-xs">
-                <div className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <span>Joining Date</span>
-                  </div>
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800/80 text-xs pt-1">
+                {/* Left Column: Employment */}
+                <div className="space-y-3">
+                  <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                    Employment
                   </span>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-slate-500 font-semibold">Joining Date</span>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                      {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span>License Number</span>
-                  </div>
-                  <span className="font-mono font-black text-slate-900 dark:text-slate-100">
-                    {driver.license_number || '—'}
+                {/* Right Column: License */}
+                <div className="space-y-3 md:pl-8">
+                  <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                    License
                   </span>
-                </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between py-0.5">
+                      <span className="text-slate-500 font-semibold">License Number</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-slate-100">
+                        {driver.license_number || '—'}
+                      </span>
+                    </div>
 
-                <div className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <span>License Expiry</span>
-                  </div>
-                  <span className="font-mono font-black text-slate-800 dark:text-slate-200">
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
-                  </span>
-                </div>
+                    <div className="flex items-center justify-between py-0.5">
+                      <span className="text-slate-500 font-semibold">License Expiry</span>
+                      <span className="font-mono font-black text-slate-805 dark:text-slate-200">
+                        {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
+                      </span>
+                    </div>
 
-                <div className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
-                    <ShieldCheck className="w-4 h-4 text-slate-400" />
-                    <span>License Status</span>
+                    <div className="flex items-center justify-between py-0.5">
+                      <span className="text-slate-500 font-semibold">License Status</span>
+                      <span className={cn(
+                        'text-[10px] font-black px-2 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
+                        isLicenseExpired 
+                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/20 dark:text-rose-400' 
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                      )}>
+                        {isLicenseExpired ? 'Expired' : 'Valid'}
+                      </span>
+                    </div>
                   </div>
-                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600' : 'text-emerald-600')}>
-                    {isLicenseExpired ? 'Expired' : 'Valid'}
-                  </span>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
 
-        {/* ── 3. DOCUMENT STATUS ── */}
+        {/* ── 3. DOCUMENTS ── */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
@@ -491,7 +502,7 @@ export default function DriverDetailsPage() {
               </div>
               <div>
                 <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-widest">
-                  Document Status
+                  Documents
                 </h3>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                   Overview of important documents
@@ -508,46 +519,66 @@ export default function DriverDetailsPage() {
             </Button>
           </div>
 
-          {/* Three Slot Cards Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: 'Driver License', check: licenseCheck },
-              { name: 'ID Document', check: idCheck },
-              { name: 'Medical Certificate', check: medicalCheck }
-            ].map((item, idx) => {
-              const isOk = item.check.label.includes('Valid');
-              return (
-                <div 
-                  key={idx} 
-                  onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
-                  className={cn(
-                    "flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-950/10",
-                    item.check.id && "cursor-pointer hover:border-indigo-250 dark:hover:border-indigo-850 transition-colors"
-                  )}
-                >
-                  <div className={cn(
-                    "p-2.5 rounded-full flex items-center justify-center shrink-0",
-                    isOk 
-                      ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" 
-                      : "bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400"
-                  )}>
-                    {isOk ? <ShieldCheck className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 block truncate">
-                      {item.name}
-                    </span>
-                    <span className={cn(
-                      "text-[10px] font-black uppercase tracking-wider block mt-0.5",
-                      isOk ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-405"
-                    )}>
-                      {isOk ? 'Valid' : 'Due'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3 font-black pl-3">Document</th>
+                  <th className="pb-3 font-black w-[150px]">Status</th>
+                  <th className="pb-3 font-black w-[200px]">Expiry Date</th>
+                  <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {[
+                  { name: 'Driver License', check: licenseCheck },
+                  { name: 'ID Document', check: idCheck },
+                  { name: 'Medical Certificate', check: medicalCheck }
+                ].map((item, idx) => {
+                  const isOk = item.check.label.includes('Valid');
+                  const expiryVal = item.check.id && (
+                    item.name === 'Driver License' 
+                      ? (driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—')
+                      : '—'
+                  );
+                  return (
+                    <tr 
+                      key={idx} 
+                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
+                      className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                    >
+                      <td className="py-3.5 pl-3 flex items-center gap-3">
+                        <div className={cn(
+                          "p-1.5 rounded-lg flex items-center justify-center shrink-0 border shadow-3xs",
+                          isOk 
+                            ? "bg-emerald-50/50 text-emerald-600 border-emerald-150/40 dark:bg-emerald-955/20 dark:text-emerald-400" 
+                            : "bg-amber-50/50 text-amber-600 border-amber-150/40 dark:bg-amber-955/20 dark:text-amber-400"
+                        )}>
+                          {isOk ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                        </div>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {item.name}
+                        </span>
+                      </td>
+                      <td className="py-3.5">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOk ? 'bg-emerald-500' : 'bg-amber-500')} />
+                          <span className={isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                            {isOk ? 'Valid' : 'Due'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {expiryVal || '—'}
+                      </td>
+                      <td className="py-3.5 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
+                        <ChevronRight className="w-4 h-4 ml-auto" />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -558,7 +589,7 @@ export default function DriverDetailsPage() {
               <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-955/20 text-[#FA634E]">
                 <Truck className="w-5 h-5" />
               </div>
-              <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-widest">
+              <h3 className="text-xs font-black text-slate-855 dark:text-slate-200 uppercase tracking-widest">
                 Recent Trips
               </h3>
             </div>
@@ -579,13 +610,14 @@ export default function DriverDetailsPage() {
           ) : (
             <div className="space-y-4">
               <div className="overflow-x-auto scrollbar-none">
-                <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+                <table className="w-full text-xs text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                      <th className="pb-3 font-black pl-3 w-[120px]">Trip ID</th>
+                      <th className="pb-3 font-black pl-3 w-[120px]">Trip No.</th>
+                      <th className="pb-3 font-black w-[130px]">Vehicle</th>
                       <th className="pb-3 font-black">Route</th>
-                      <th className="pb-3 font-black w-[150px]">Date</th>
-                      <th className="pb-3 font-black w-[120px]">Status</th>
+                      <th className="pb-3 font-black w-[160px]">Date</th>
+                      <th className="pb-3 font-black w-[130px]">Status</th>
                       <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
                     </tr>
                   </thead>
@@ -600,23 +632,26 @@ export default function DriverDetailsPage() {
                           onClick={() => navigate(`/trips/${trip.id}`)}
                           className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
                         >
-                          <td className="py-3 font-mono font-bold text-slate-805 dark:text-slate-200 pl-3">
+                          <td className="py-3.5 font-mono font-bold text-slate-805 dark:text-slate-200 pl-3">
                             {trip.ref_id || 'TRIP'}
                           </td>
-                          <td className="py-3 font-semibold text-slate-800 dark:text-slate-200">
+                          <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {assignedVehicle?.plate_number || 'DRA-6487'}
+                          </td>
+                          <td className="py-3.5 font-bold text-slate-800 dark:text-slate-200">
                             {route.pickup} &nbsp;→&nbsp; {route.dropoff}
                           </td>
-                          <td className="py-3 text-slate-500 font-bold flex items-center gap-1.5 mt-0.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <td className="py-3.5 text-slate-505 font-bold flex items-center gap-1.5 mt-0.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span>{dateStr}</span>
                           </td>
-                          <td className="py-3">
-                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 shadow-3xs gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <td className="py-3.5">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 shadow-3xs gap-1.5 rounded-lg">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                               Completed
                             </Badge>
                           </td>
-                          <td className="py-3 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
+                          <td className="py-3.5 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
                             <ChevronRight className="w-4 h-4 ml-auto" />
                           </td>
                         </tr>
@@ -625,9 +660,6 @@ export default function DriverDetailsPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center uppercase tracking-wider pt-2 border-t border-slate-105/50 dark:border-slate-800/30">
-                Showing last 2 completed trips
-              </p>
             </div>
           )}
         </div>

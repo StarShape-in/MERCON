@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, UploadCloud, Truck, User, ArrowLeft, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus } from 'lucide-react';
+import { Download, UploadCloud, Truck, User, ArrowLeft, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, Phone, ChevronRight, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -130,51 +130,61 @@ export default function OwnerFolderPage() {
       {/* Anchored Desktop Viewport Container: Fits full browser height on every desktop without scrolling */}
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full h-[calc(100vh-4.75rem)] flex flex-col overflow-hidden space-y-4">
         
-        {/* ── Professional ERP Header Card (Matching UI header color backdrop) ── */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-gradient-to-r from-slate-100/90 via-slate-50 to-slate-100/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3.5 sm:p-4 shadow-2xs flex items-center justify-between gap-4 shrink-0">
+        {/* ── Reference Design ERP Header Card ── */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-3xs flex items-center justify-between gap-4 shrink-0">
           
-          <div className="min-w-0 space-y-1">
-            {/* Row 1: Main Vehicle Number + Compact Metadata Tags */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
-              </h1>
-              
-              {/* Vehicle Ref Code Tag */}
-              <span className="px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-xs font-black border border-slate-200 dark:border-slate-700 shadow-3xs">
-                {vehicle?.ref_id || 'TRK-110'}
-              </span>
-
-              {/* Capacity Tag */}
-              <span className="px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-3xs">
-                {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
-              </span>
+          <div className="flex items-center gap-3.5 min-w-0">
+            {/* Left Truck / Entity Icon Box */}
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
+              <Truck className="w-6 h-6 text-slate-700 dark:text-slate-300" />
             </div>
 
-            {/* Row 2: Driver Name · Phone Number */}
-            {(() => {
-              const fullDName = activeDriverObj ? `${activeDriverObj.first_name} ${activeDriverObj.last_name}` : (normalizedType === 'Driver' ? ownerName : driverName);
-              const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
+            <div className="min-w-0 space-y-1">
+              {/* Row 1: Plate Number + Metadata Badges */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
+                </h1>
+                
+                {/* Vehicle Ref Code Tag */}
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+                  {vehicle?.ref_id || 'TRK-110'}
+                </span>
 
-              return (
-                <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 flex-wrap">
-                  <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{fullDName}</span>
-                  {phoneNum && (
-                    <>
-                      <span className="text-slate-300 dark:text-slate-600 font-bold">·</span>
-                      <span className="text-slate-500 dark:text-slate-400 font-mono font-bold text-xs">{phoneNum}</span>
-                    </>
-                  )}
-                </div>
-              );
-            })()}
+                {/* Capacity Tag */}
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+                  {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
+                </span>
+              </div>
+
+              {/* Row 2: Subtitle Name & Phone */}
+              {(() => {
+                const fullDName = activeDriverObj ? `${activeDriverObj.first_name} ${activeDriverObj.last_name}` : (normalizedType === 'Driver' ? ownerName : driverName);
+                const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
+
+                return (
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 flex-wrap">
+                    <span className="uppercase tracking-wide font-extrabold text-slate-800 dark:text-slate-200">{fullDName}</span>
+                    {phoneNum && (
+                      <span className="flex items-center gap-1 text-slate-400 dark:text-slate-500 font-mono text-[11px]">
+                        <Phone className="w-3 h-3" /> {phoneNum}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
-          {/* Right Side: Status Badge */}
-          <div className="shrink-0">
-            <Badge className={cn('text-xs font-mono font-extrabold px-3.5 py-1.5 border rounded-xl shadow-3xs', cardSummary.className)}>
-              {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
+          {/* Right Side: Issues Warning Badge & Sub-link */}
+          <div className="shrink-0 flex flex-col items-end space-y-1">
+            <Badge className={cn('text-xs font-mono font-extrabold px-3 py-1 border rounded-xl shadow-3xs gap-1.5', cardSummary.className)}>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              {cardSummary.isCompliant ? '0 Issues' : cardSummary.label}
             </Badge>
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1 hover:text-slate-600 cursor-pointer">
+              Documents need attention <ChevronRight className="w-3.5 h-3.5" />
+            </span>
           </div>
 
         </div>
