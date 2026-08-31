@@ -5,7 +5,7 @@ import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
   Trash2, Truck, ShieldCheck, User, Plus, AlertCircle, Download, 
   ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
-  MoreVertical, X
+  MoreVertical, X, Activity, Award, Lock, FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -256,90 +256,95 @@ export default function DriverDetailsPage() {
           </Button>
         </div>
 
-        {/* ── 1. DRIVER PROFILE HEADER ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-805">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            {/* Driver Avatar */}
-            <DriverAvatar
-              src={driver.avatar_url}
-              firstName={driver.first_name}
-              lastName={driver.last_name}
-              size="xl"
-              status={driver.status}
-              showStatusDot={false}
-              previewable
-              className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 shadow-3xs cursor-pointer hover:opacity-90 transition-opacity rounded-xl"
-              onPreview={() => setIsPhotoFullViewOpen(true)}
-            />
+        {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-white via-white to-orange-50/15 dark:to-orange-950/5">
+          <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
+            {/* Driver Avatar with overlay status dot */}
+            <div className="relative shrink-0">
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="2xl"
+                status={driver.status}
+                showStatusDot={true}
+                previewable
+                className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 shadow-3xs cursor-pointer hover:opacity-90 transition-opacity rounded-full border border-slate-100 dark:border-slate-800"
+                onPreview={() => setIsPhotoFullViewOpen(true)}
+              />
+            </div>
             
-            <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="min-w-0 flex-1 space-y-2">
               {/* Name & Availability */}
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   {driver.first_name} {driver.last_name}
                 </h1>
                 
                 {/* Available Status Badge */}
                 <Badge variant="outline" className={cn(
-                  'text-[9.5px] font-extrabold px-1.5 py-0.2 border gap-1 shadow-3xs uppercase tracking-wider',
+                  'text-[10px] font-extrabold px-2.5 py-0.5 border gap-1 shadow-3xs uppercase tracking-wider',
                   (driver.status || '').toLowerCase() === 'available' 
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    : 'bg-amber-50 text-amber-700 border-amber-250/50 dark:bg-amber-950/40 dark:text-amber-400'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
                 )}>
-                  <span className={cn('w-1.2 h-1.2 rounded-full shrink-0', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
                   {driver.status}
                 </Badge>
               </div>
 
               {/* ID & Phone line */}
-              <p className="text-xs font-mono font-bold text-slate-505 dark:text-slate-450 tracking-tight">
-                {driver.ref_id || 'DRV-123'} · {driver.phone_primary}
+              <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-450 tracking-tight">
+                {driver.ref_id || 'DRV-131'} &nbsp;·&nbsp; {driver.phone_primary}
               </p>
 
               {/* Assigned Vehicle */}
-              <p className="text-xs text-slate-700 dark:text-slate-350 font-medium flex items-center gap-1">
-                <span className="text-slate-400">Assigned Vehicle:</span>
-                {assignedVehicle ? (
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {assignedVehicle.plate_number} · {assignedVehicle.asset_type || 'Box'} · {assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
-                  </span>
-                ) : (
-                  <span className="text-slate-405 italic">Unassigned</span>
-                )}
-              </p>
+              <div className="space-y-0.5 pt-0.5">
+                <div className="text-sm font-black text-slate-850 dark:text-slate-200 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-slate-400" />
+                  {assignedVehicle ? (
+                    <span>
+                      {assignedVehicle.plate_number} &nbsp;·&nbsp; {assignedVehicle.asset_type || 'Box'} &nbsp;·&nbsp; {assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">Unassigned</span>
+                  )}
+                </div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-6">Assigned Vehicle</span>
+              </div>
             </div>
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center gap-2 shrink-0 md:self-center">
+          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-8 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-805 dark:text-slate-300 shadow-3xs cursor-pointer"
+              className="h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
             >
-              Edit
+              <Edit2 className="w-3.5 h-3.5" /> Edit
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-8 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-805 dark:text-slate-300 shadow-3xs cursor-pointer"
+              className="h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
             >
-              Vault
+              <FolderOpen className="w-3.5 h-3.5" /> Vault
             </Button>
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-8 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-lg px-3.5 cursor-pointer"
+              className="h-9 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-xl px-4 cursor-pointer gap-1.5"
             >
-              New Trip
+              <Plus className="w-4 h-4" /> New Trip
             </Button>
 
             {/* Dropdown Menu for Delete/Export */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                <Button variant="outline" size="icon" className="h-9 w-9 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
                   <MoreVertical className="w-4 h-4 text-slate-505" />
                 </Button>
               </DropdownMenuTrigger>
@@ -356,214 +361,275 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. CURRENT OPERATION SECTION ── */}
-        <div className="py-3 px-1 border-b border-slate-200/60 dark:border-slate-850 space-y-2.5 shrink-0">
-          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-            Current Operation
-          </span>
+        {/* ── 2. ROW 1: TWO COLUMN GRID ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           
-          <div className="flex items-center gap-3">
-            {activeTrip ? (
-              <>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">
-                    On Trip
+          {/* Card A: Current Operation */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-5">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                  Current Operation
+                </h3>
+              </div>
+
+              {/* Inner Status Block */}
+              <div className="rounded-xl border border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', activeTrip ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500')} />
+                  <span className="text-sm font-black text-slate-900 dark:text-slate-100">
+                    {activeTrip ? 'On Trip' : 'Available'}
                   </span>
                 </div>
-                <span className="text-xs text-slate-400 font-medium">
-                  {activeTrip.ref_id || 'TRIP-REF'} · {activeTripRoute.pickup} → {activeTripRoute.dropoff}
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">
-                    Available
+                <p className="text-xs text-slate-450 pl-4.5 font-bold uppercase tracking-wider">
+                  {activeTrip ? `${activeTrip.ref_id || 'TRIP'} · ${activeTripRoute.pickup} → ${activeTripRoute.dropoff}` : 'No active trip'}
+                </p>
+              </div>
+            </div>
+
+            {/* Parameters Divider Row */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-col items-start gap-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Current Location</span>
+                <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">{(driver as any).current_location || 'Riyadh'}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-4">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Last Dispatch</span>
+                <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">
+                    {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
                   </span>
                 </div>
-                <span className="text-xs text-slate-400 font-medium">
-                  No active trip
-                </span>
-              </>
-            )}
-          </div>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs pt-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Current Location</span>
-              <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                {(driver as any).current_location || 'Riyadh'}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Last Dispatch</span>
-              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Next Assignment</span>
-              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                {nextAssignment ? (
-                  <button 
-                    onClick={() => navigate(`/trips/${nextAssignment.id}`)}
-                    className="hover:underline text-[#FA634E] text-left font-black"
-                  >
-                    {nextAssignment.ref_id || 'TRIP'}
-                  </button>
-                ) : '—'}
-              </span>
+              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-4">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Next Assignment</span>
+                <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">
+                    {nextAssignment ? (
+                      <button 
+                        onClick={() => navigate(`/trips/${nextAssignment.id}`)}
+                        className="hover:underline text-[#FA634E] text-left font-black"
+                      >
+                        {nextAssignment.ref_id || 'TRIP'}
+                      </button>
+                    ) : '—'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ── 3. DETAILS & COMPLIANCE GRID ── */}
-        <div className="space-y-6">
-          {/* Card 1: Driver & License (Full-Width on top, Flat Layout) */}
-          <div className="py-4 px-1 border-b border-slate-200/60 dark:border-slate-850 space-y-3 shrink-0">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Driver & License</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-8 text-xs">
-              <div className="flex items-center justify-between sm:justify-start sm:gap-4 py-0.5">
-                <span className="font-semibold text-slate-400 dark:text-slate-500 w-28 shrink-0">Phone</span>
-                <span className="font-mono font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
+          {/* Card B: Driver & License */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center gap-2">
+                <Award className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                  Driver & License
+                </h3>
               </div>
-              <div className="flex items-center justify-between sm:justify-start sm:gap-4 py-0.5">
-                <span className="font-semibold text-slate-400 dark:text-slate-500 w-28 shrink-0">Joined</span>
-                <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                  {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
-                </span>
-              </div>
-              <div className="flex items-center justify-between sm:justify-start sm:gap-4 py-0.5">
-                <span className="font-semibold text-slate-400 dark:text-slate-500 w-28 shrink-0">License Number</span>
-                <span className="font-mono font-black text-slate-900 dark:text-slate-100 tracking-wider">
-                  {driver.license_number || '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between sm:justify-start sm:gap-4 py-0.5">
-                <span className="font-semibold text-slate-400 dark:text-slate-500 w-28 shrink-0">Expires</span>
-                <span className="font-mono font-black text-slate-805 dark:text-slate-200">
-                  {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between sm:justify-start sm:gap-4 py-0.5">
-                <span className="font-semibold text-slate-400 dark:text-slate-500 w-28 shrink-0">License Status</span>
-                <div className="flex items-center gap-1.5">
-                  <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
-                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600 dark:text-rose-455' : 'text-emerald-600 dark:text-emerald-455')}>
+
+              <div className="divide-y divide-slate-105 dark:divide-slate-800/80 text-xs">
+                <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span>Joining Date</span>
+                  </div>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span>License Number</span>
+                  </div>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100">
+                    {driver.license_number || '—'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span>License Expiry</span>
+                  </div>
+                  <span className="font-mono font-black text-slate-800 dark:text-slate-200">
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-2.5">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
+                    <ShieldCheck className="w-4 h-4 text-slate-400" />
+                    <span>License Status</span>
+                  </div>
+                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600' : 'text-emerald-600')}>
                     {isLicenseExpired ? 'Expired' : 'Valid'}
                   </span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* 2-Column Side-by-Side: Documents & Recent Trips (Flat unboxed Layout) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 pt-1">
-            {/* Card 2: Documents Vault Checklist */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Documents</h3>
-                <Button
-                  variant="link"
-                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                  className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
-                >
-                  View Vault →
-                </Button>
+        {/* ── 3. DOCUMENT STATUS ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-955/20 text-indigo-650 dark:text-indigo-400">
+                <FileText className="w-5 h-5" />
               </div>
-              
-              <div className="divide-y divide-slate-100 dark:divide-slate-850">
-                {[
-                  { name: 'Driver License', check: licenseCheck },
-                  { name: 'ID Document', check: idCheck },
-                  { name: 'Medical Certificate', check: medicalCheck }
-                ].map((item, idx) => {
-                  return (
-                    <div 
-                      key={idx} 
-                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
-                      className={cn(
-                        "flex items-center justify-between py-2.5",
-                        item.check.id && "cursor-pointer hover:text-[#FA634E]"
-                      )}
-                    >
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-355">{item.name}</span>
-                      <span className={cn(
-                        'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
-                        item.check.className
-                      )}>
-                        {item.check.label}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div>
+                <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-widest">
+                  Document Status
+                </h3>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                  Overview of important documents
+                </p>
               </div>
             </div>
-
-            {/* Card 3: Recent Trips Ledger */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Recent Trips</h3>
-                <Button
-                  variant="link"
-                  onClick={() => navigate('/trips')}
-                  className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
-                >
-                  View All →
-                </Button>
-              </div>
-              
-              {recentTripsList.length === 0 ? (
-                <div className="text-xs text-slate-400 py-3 italic text-left">
-                  No completed trips yet.
-                </div>
-              ) : (
-                <div className="overflow-x-auto scrollbar-none">
-                  <table className="w-full text-xs text-left border-collapse min-w-[280px]">
-                    <thead>
-                      <tr className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <th className="pb-2 font-black">Trip ID</th>
-                        <th className="pb-2 font-black">Route</th>
-                        <th className="pb-2 font-black">Date</th>
-                        <th className="pb-2 font-black text-right">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-105 dark:divide-slate-850">
-                      {recentTripsList.map((trip) => {
-                        const route = getTripRouteInfo(trip);
-                        const dateVal = trip.planned_start || trip.createdAt;
-                        const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM') : '—';
-                        return (
-                          <tr 
-                            key={trip.id} 
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                            className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850/50"
-                          >
-                            <td className="py-2.5 font-mono font-bold text-[#FA634E] group-hover:underline">
-                              {trip.ref_id || 'TRIP'}
-                            </td>
-                            <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200 max-w-[125px] truncate">
-                              {route.pickup} → {route.dropoff}
-                            </td>
-                            <td className="py-2.5 text-slate-500 font-medium">
-                              {dateStr}
-                            </td>
-                            <td className="py-2.5 text-right font-bold text-emerald-600 dark:text-emerald-455">
-                              Completed
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            
+            <Button
+              variant="link"
+              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+              className="p-0 h-auto text-xs font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+            >
+              View Vault →
+            </Button>
           </div>
+
+          {/* Three Slot Cards Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: 'Driver License', check: licenseCheck },
+              { name: 'ID Document', check: idCheck },
+              { name: 'Medical Certificate', check: medicalCheck }
+            ].map((item, idx) => {
+              const isOk = item.check.label.includes('Valid');
+              return (
+                <div 
+                  key={idx} 
+                  onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-950/10",
+                    item.check.id && "cursor-pointer hover:border-indigo-250 dark:hover:border-indigo-850 transition-colors"
+                  )}
+                >
+                  <div className={cn(
+                    "p-2.5 rounded-full flex items-center justify-center shrink-0",
+                    isOk 
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" 
+                      : "bg-amber-50 dark:bg-amber-955/20 text-amber-600 dark:text-amber-400"
+                  )}>
+                    {isOk ? <ShieldCheck className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 block truncate">
+                      {item.name}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] font-black uppercase tracking-wider block mt-0.5",
+                      isOk ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-405"
+                    )}>
+                      {isOk ? 'Valid' : 'Due'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── 4. RECENT TRIPS ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-955/20 text-[#FA634E]">
+                <Truck className="w-5 h-5" />
+              </div>
+              <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-widest">
+                Recent Trips
+              </h3>
+            </div>
+            
+            <Button
+              variant="link"
+              onClick={() => navigate('/trips')}
+              className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
+            >
+              View All →
+            </Button>
+          </div>
+
+          {recentTripsList.length === 0 ? (
+            <div className="text-xs text-slate-400 py-6 italic text-center">
+              No completed trips yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto scrollbar-none">
+                <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      <th className="pb-3 font-black pl-3 w-[120px]">Trip ID</th>
+                      <th className="pb-3 font-black">Route</th>
+                      <th className="pb-3 font-black w-[150px]">Date</th>
+                      <th className="pb-3 font-black w-[120px]">Status</th>
+                      <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {recentTripsList.map((trip) => {
+                      const route = getTripRouteInfo(trip);
+                      const dateVal = trip.planned_start || trip.createdAt;
+                      const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM yyyy') : '—';
+                      return (
+                        <tr 
+                          key={trip.id} 
+                          onClick={() => navigate(`/trips/${trip.id}`)}
+                          className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                        >
+                          <td className="py-3 font-mono font-bold text-slate-805 dark:text-slate-200 pl-3">
+                            {trip.ref_id || 'TRIP'}
+                          </td>
+                          <td className="py-3 font-semibold text-slate-800 dark:text-slate-200">
+                            {route.pickup} &nbsp;→&nbsp; {route.dropoff}
+                          </td>
+                          <td className="py-3 text-slate-500 font-bold flex items-center gap-1.5 mt-0.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{dateStr}</span>
+                          </td>
+                          <td className="py-3">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 shadow-3xs gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Completed
+                            </Badge>
+                          </td>
+                          <td className="py-3 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
+                            <ChevronRight className="w-4 h-4 ml-auto" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center uppercase tracking-wider pt-2 border-t border-slate-105/50 dark:border-slate-800/30">
+                Showing last 2 completed trips
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

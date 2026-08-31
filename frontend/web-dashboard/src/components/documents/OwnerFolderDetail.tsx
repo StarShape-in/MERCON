@@ -208,11 +208,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         })}
       </div>
 
-      {/* ── 3. Master / Detail Workspace Split Grid ──────────────── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 h-full overflow-hidden">
+      {/* ── 3. Master / Detail Workspace Split Grid (Left: Content Height, Right: Full Viewer Height) ──────────────── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start h-full overflow-hidden">
         
-        {/* LEFT SIDE COLUMN: Streamlined Single Document & Audit Panel (4 / 12 width) */}
-        <div className="lg:col-span-4 flex flex-col justify-start space-y-2.5 overflow-y-auto scrollbar-none">
+        {/* LEFT SIDE COLUMN: Content-Height Panel (Ends naturally after actions & audit box) */}
+        <div className="lg:col-span-4 flex flex-col space-y-3 h-fit">
           {activeSlot ? (
             <>
               {/* 📦 Box 1: Document Details & Actions */}
