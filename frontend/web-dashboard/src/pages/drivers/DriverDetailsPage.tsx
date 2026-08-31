@@ -232,6 +232,7 @@ export default function DriverDetailsPage() {
   const licenseCheck = getDocCheck(['License', 'Driver License']);
   const idCheck = getDocCheck(['ID', 'Iqama', 'National ID']);
   const medicalCheck = getDocCheck(['Medical', 'Health']);
+  const permitCheck = getDocCheck(['Permit', 'Work Permit', 'Contract', 'Passport']);
 
   // Recent Trips List: Most recent 2 completed trips
   const recentTripsList = (() => {
@@ -482,10 +483,10 @@ export default function DriverDetailsPage() {
                 </h3>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+              <div className="divide-y divide-slate-200/60 dark:divide-slate-800/80 text-xs">
                 <div className="flex items-center justify-between py-2">
                   <span className="text-slate-550 font-semibold">Joined Date</span>
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                  <span className="font-extrabold text-slate-800 dark:text-slate-205">
                     15 Mar 2023
                   </span>
                 </div>
@@ -507,7 +508,7 @@ export default function DriverDetailsPage() {
                 <div className="flex items-center justify-between py-2">
                   <span className="text-slate-550 font-semibold">License Status</span>
                   <span className={cn(
-                    'text-[10px] font-black px-2.5 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
+                    'text-[10px] font-black px-2 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
                     isLicenseExpired 
                       ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/20 dark:text-rose-400' 
                       : 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
@@ -538,15 +539,16 @@ export default function DriverDetailsPage() {
                 </Button>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+              <div className="divide-y divide-slate-200/60 dark:divide-slate-800/80 text-xs">
                 {[
                   { name: 'Driver License', check: licenseCheck },
                   { name: 'ID Document', check: idCheck },
-                  { name: 'Medical Certificate', check: medicalCheck }
+                  { name: 'Medical Certificate', check: medicalCheck },
+                  { name: 'Work Permit', check: permitCheck }
                 ].map((item, idx) => {
                   const isOk = item.check.label.includes('Valid');
                   return (
-                    <div key={idx} className="flex items-center justify-between py-2.5">
+                    <div key={idx} className="flex items-center justify-between py-2">
                       <span className="text-slate-655 font-bold">{item.name}</span>
                       <span className={cn(
                         'text-[9px] font-black px-2 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
