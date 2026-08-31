@@ -356,67 +356,67 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. CURRENT OPERATION CARD ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Current Operation</h3>
+        {/* ── 2. CURRENT OPERATION SECTION ── */}
+        <div className="py-3 px-1 border-b border-slate-200/60 dark:border-slate-850 space-y-2.5 shrink-0">
+          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            Current Operation
+          </span>
           
-          <div className="flex flex-col gap-4">
-            {/* Live Operation Status */}
-            <div className="flex items-center gap-3">
-              {activeTrip ? (
-                <>
-                  <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                  <div>
-                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">
-                      On Trip · {activeTrip.ref_id || 'TRIP-REF'}
-                    </p>
-                    <p className="text-[10px] text-slate-455 mt-0.5">
-                      {activeTripRoute.pickup} → {activeTripRoute.dropoff}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">Available</p>
-                    <p className="text-[10px] text-slate-455 mt-0.5">No active trip</p>
-                  </div>
-                </>
-              )}
+          <div className="flex items-center gap-3">
+            {activeTrip ? (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                    On Trip
+                  </span>
+                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  {activeTrip.ref_id || 'TRIP-REF'} · {activeTripRoute.pickup} → {activeTripRoute.dropoff}
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                    Available
+                  </span>
+                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  No active trip
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs pt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Current Location</span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                {(driver as any).current_location || 'Riyadh'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Last Dispatch</span>
+              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
+              </span>
             </div>
 
-            {/* Attributes values row */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-850">
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Current Location</span>
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
-                  {(driver as any).current_location || 'Riyadh'}
-                </span>
-              </div>
-              
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Last Dispatch</span>
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
-                  {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Next Assignment</span>
-                <span className="text-xs font-black text-slate-855 dark:text-slate-200 mt-0.5 block truncate">
-                  {nextAssignment ? (
-                    <button 
-                      onClick={() => navigate(`/trips/${nextAssignment.id}`)}
-                      className="hover:underline text-[#FA634E] text-left font-black"
-                    >
-                      {nextAssignment.ref_id || 'TRIP'}
-                    </button>
-                  ) : '—'}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500">Next Assignment</span>
+              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                {nextAssignment ? (
+                  <button 
+                    onClick={() => navigate(`/trips/${nextAssignment.id}`)}
+                    className="hover:underline text-[#FA634E] text-left font-black"
+                  >
+                    {nextAssignment.ref_id || 'TRIP'}
+                  </button>
+                ) : '—'}
+              </span>
             </div>
           </div>
         </div>
