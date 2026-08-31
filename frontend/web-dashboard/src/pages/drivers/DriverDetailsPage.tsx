@@ -249,7 +249,7 @@ export default function DriverDetailsPage() {
       <div className="pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
         
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
-        <div className="rounded-2xl border border-indigo-100/50 dark:border-slate-800 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-indigo-50/15 to-purple-50/30 dark:from-slate-900/60 dark:to-slate-950/40">
+        <div className="rounded-2xl border border-emerald-100/60 dark:border-emerald-950/50 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-emerald-50/40 via-emerald-50/10 to-teal-50/15 dark:from-emerald-950/10 dark:via-slate-900/50 dark:to-slate-950/40">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-5 min-w-0 flex-1">
             {/* Driver Avatar with overlay status dot */}
             <div className="relative shrink-0">
@@ -335,73 +335,64 @@ export default function DriverDetailsPage() {
         </div>
 
         {/* ── DRIVER SUMMARY KPI SECTION ── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-              Driver Summary
-            </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* KPI 1: Total Trips */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+              <Truck className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                128
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Trips
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {/* KPI 1: Total Trips */}
-            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-955/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
-                <Truck className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                  128
-                </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Total Trips
-                </span>
-              </div>
+          {/* KPI 2: Total Revenue */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+              <DollarSign className="w-5 h-5" />
             </div>
-
-            {/* KPI 2: Total Revenue */}
-            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                  SAR 28,450
-                </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Total Revenue
-                </span>
-              </div>
+            <div>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                SAR 28,450
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Revenue
+              </span>
             </div>
+          </div>
 
-            {/* KPI 3: Total Distance */}
-            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-955/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-405">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                  8,560 KM
-                </span>
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
-                  Total Distance
-                </span>
-              </div>
+          {/* KPI 3: Total Distance */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-955/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-405">
+              <MapPin className="w-5 h-5" />
             </div>
+            <div>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                8,560 KM
+              </span>
+              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
+                Total Distance
+              </span>
+            </div>
+          </div>
 
-            {/* KPI 4: On-time Performance */}
-            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                  96%
-                </span>
-                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
-                  On-time Perf.
-                </span>
-              </div>
+          {/* KPI 4: On-time Performance */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                96%
+              </span>
+              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
+                On-time Perf.
+              </span>
             </div>
           </div>
         </div>
@@ -477,7 +468,7 @@ export default function DriverDetailsPage() {
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4 flex-1">
               <div className="flex items-center gap-2">
-                <User className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                <User className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
                   Driver Information
                 </h3>
@@ -525,7 +516,7 @@ export default function DriverDetailsPage() {
             <div className="space-y-4 flex-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                  <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
                     Documents Status
                   </h3>
@@ -533,7 +524,7 @@ export default function DriverDetailsPage() {
                 <Button
                   variant="link"
                   onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                  className="p-0 h-auto text-[10px] font-black text-indigo-650 dark:text-indigo-400 hover:text-indigo-750 flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
+                  className="p-0 h-auto text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-750 flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
                 >
                   Manage →
                 </Button>
