@@ -16,6 +16,13 @@ import { vehicleService } from '@/services/vehicleService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import DocumentCanvasViewer from '@/components/ui/DocumentCanvasViewer';
@@ -160,6 +167,14 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     ? activeDoc.files
     : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
 
+  const daysRemaining = useMemo(() => {
+    if (!activeDoc?.expiry_date) return null;
+    const exp = new Date(activeDoc.expiry_date);
+    const now = new Date();
+    const diffTime = exp.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [activeDoc?.expiry_date]);
+
   return (
     <div className="h-full flex flex-col space-y-3.5 overflow-hidden">
       
@@ -245,23 +260,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           {activeSlot ? (
             <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col justify-between space-y-3 overflow-y-auto scrollbar-none">
               
-              {/* Card Header & Title */}
+              {/* Card Header & Title (Clean Header without top Edit button) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                     <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     Document Details
                   </span>
-                  
-                  {!isEditingDates && activeDoc && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingDates(true)}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3" /> Edit details
-                    </button>
-                  )}
                 </div>
 
                 {/* Subtitle Name */}
@@ -283,7 +288,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </span>
                   </div>
 
-                  {/* Issue Date */}
+                  {/* Issue Date (Clean formatting without + Add issue date link) */}
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
                       <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
@@ -297,7 +302,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       />
                     ) : (
                       <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd MMM yyyy') : <span className="text-indigo-600 font-bold hover:underline cursor-pointer" onClick={() => setIsEditingDates(true)}>+ Add issue date</span>}
+                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd MMM yyyy') : 'Not Set'}
                       </span>
                     )}
                   </div>
@@ -319,13 +324,35 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                         {activeDoc?.expiry_date ? (
                           formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd MMM yyyy')
                         ) : (
-                          <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-1">
+                          <span className="text-rose-600 dark:text-rose-400 font-extrabold">
                             Not available
-                            <span className="text-indigo-600 text-xs font-bold hover:underline cursor-pointer ml-1" onClick={() => setIsEditingDates(true)}>+ Add expiry date</span>
                           </span>
                         )}
                       </span>
                     )}
+                  </div>
+
+                  {/* Days Remaining (New Field under Expiry Date) */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Days Remaining</span>
+                    </div>
+                    <span className="font-mono text-xs">
+                      {daysRemaining !== null ? (
+                        daysRemaining > 0 ? (
+                          <span className={cn('font-black px-2 py-0.5 rounded-md border text-[11px]', daysRemaining < 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')}>
+                            {daysRemaining} Days
+                          </span>
+                        ) : (
+                          <span className="font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[11px]">
+                            Expired ({Math.abs(daysRemaining)} days ago)
+                          </span>
+                        )
+                      ) : (
+                        <span className="font-bold text-slate-400">—</span>
+                      )}
+                    </span>
                   </div>
 
                   {/* Requirement Status */}
@@ -403,7 +430,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </div>
                 </div>
 
-                {/* Bottom Action CTAs Row matching Reference Layout */}
+                {/* Bottom Action CTAs Row */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <Button
@@ -415,15 +442,74 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       <UploadCloud className="w-3.5 h-3.5" /> Re-upload document
                     </Button>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-                    >
-                      <span>More actions</span>
-                      <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
-                    </Button>
+                    {/* More actions Dropdown Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                        >
+                          <span>More actions</span>
+                          <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 rounded-xl text-xs font-bold">
+                        {activeDoc && (
+                          <DropdownMenuItem
+                            onClick={() => setIsEditingDates(true)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Edit details & dates</span>
+                          </DropdownMenuItem>
+                        )}
+                        {activeDoc && (
+                          <DropdownMenuItem
+                            onClick={handleRescan}
+                            disabled={isRescanning}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Run AI Validation / OCR</span>
+                          </DropdownMenuItem>
+                        )}
+                        {activeDocFiles.length > 0 && activeDocFiles[0].file_url && (
+                          <DropdownMenuItem
+                            onClick={() => window.open(resolveFileUrl(activeDocFiles[0].file_url), '_blank')}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Download className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Download document</span>
+                          </DropdownMenuItem>
+                        )}
+                        {activeDoc && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                if (!activeDoc) return;
+                                if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}?`)) {
+                                  try {
+                                    toast.loading('Deleting document file...', { id: 'delete-doc' });
+                                    await documentService.delete(activeDoc.id);
+                                    toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                                    await refresh();
+                                  } catch (err: any) {
+                                    toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
+                                  }
+                                }
+                              }}
+                              className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete document</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   {activeDoc && (
