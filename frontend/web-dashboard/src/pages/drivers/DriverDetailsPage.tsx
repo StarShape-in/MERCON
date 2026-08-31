@@ -422,82 +422,51 @@ export default function DriverDetailsPage() {
         </div>
 
         {/* ── 3. DETAILS & COMPLIANCE GRID ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          
-          {/* Left Column: Driver & License + Documents */}
-          <div className="space-y-5">
-            {/* Card 1: Driver & License */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Driver & License</h3>
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
-                  <span className="font-semibold text-slate-400 dark:text-slate-500">Phone</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
-                  <span className="font-semibold text-slate-400 dark:text-slate-500">Joining Date</span>
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+        <div className="space-y-5">
+          {/* Card 1: Driver & License (Full-Width on top) */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Driver & License</h3>
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                <span className="font-semibold text-slate-400 dark:text-slate-500">Phone</span>
+                <span className="font-mono font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                <span className="font-semibold text-slate-400 dark:text-slate-500">Joining Date</span>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                  {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                <span className="font-semibold text-slate-400 dark:text-slate-500">License Number</span>
+                <span className="font-mono font-black text-slate-900 dark:text-slate-100 tracking-wider">
+                  {driver.license_number || '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                <span className="font-semibold text-slate-400 dark:text-slate-500">License Expiry</span>
+                <span className="font-mono font-black text-slate-800 dark:text-slate-200">
+                  {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="font-semibold text-slate-400 dark:text-slate-500">License Status</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
+                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600 dark:text-rose-455' : 'text-emerald-600 dark:text-emerald-455')}>
+                    {isLicenseExpired ? 'Expired' : 'Valid'}
                   </span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
-                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Number</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-slate-100 tracking-wider">
-                    {driver.license_number || '—'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
-                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Expiry</span>
-                  <span className="font-mono font-black text-slate-800 dark:text-slate-200">
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Status</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
-                    <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600 dark:text-rose-455' : 'text-emerald-600 dark:text-emerald-455')}>
-                      {isLicenseExpired ? 'Expired' : 'Valid'}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
+          {/* 2-Column Side-by-Side: Documents & Recent Trips */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Card 2: Documents Vault Checklist */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between space-y-4">
-              <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between pb-1">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Documents</h3>
-                
-                <div className="space-y-3">
-                  {[
-                    { name: 'Driver License', check: licenseCheck },
-                    { name: 'ID Document', check: idCheck },
-                    { name: 'Medical Certificate', check: medicalCheck }
-                  ].map((item, idx) => {
-                    return (
-                      <div 
-                        key={idx} 
-                        onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
-                        className={cn(
-                          "flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80 last:border-0",
-                          item.check.id && "cursor-pointer hover:text-brand"
-                        )}
-                      >
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
-                        <span className={cn(
-                          'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
-                          item.check.className
-                        )}>
-                          {item.check.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   variant="link"
                   onClick={() => navigate(`/drivers/${driver.id}/documents`)}
@@ -506,44 +475,96 @@ export default function DriverDetailsPage() {
                   View Vault →
                 </Button>
               </div>
+              
+              <div className="space-y-2.5">
+                {[
+                  { name: 'Driver License', check: licenseCheck },
+                  { name: 'ID Document', check: idCheck },
+                  { name: 'Medical Certificate', check: medicalCheck }
+                ].map((item, idx) => {
+                  return (
+                    <div 
+                      key={idx} 
+                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
+                      className={cn(
+                        "flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/80 last:border-0",
+                        item.check.id && "cursor-pointer hover:text-brand"
+                      )}
+                    >
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-350">{item.name}</span>
+                      <span className={cn(
+                        'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
+                        item.check.className
+                      )}>
+                        {item.check.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Right Column: Recent Trips Ledger */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full space-y-4">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Trips</h3>
+            {/* Card 3: Recent Trips Ledger */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between pb-1">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Trips</h3>
+                <Button
+                  variant="link"
+                  onClick={() => navigate('/trips')}
+                  className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
+                >
+                  View All →
+                </Button>
+              </div>
               
               {recentTripsList.length === 0 ? (
-                <p className="text-xs text-slate-400">No completed trips on record.</p>
+                <div className="text-xs text-slate-400 py-4 italic text-left">
+                  No completed trips yet.
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {recentTripsList.map((trip) => {
-                    const route = getTripRouteInfo(trip);
-                    const dateVal = trip.planned_start || trip.createdAt;
-                    const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM') : 'Date TBD';
-                    return (
-                      <div key={trip.id} onClick={() => navigate(`/trips/${trip.id}`)} className="group cursor-pointer space-y-1">
-                        <div className="flex items-center justify-between text-xs font-black text-slate-850 dark:text-slate-200 group-hover:text-brand transition-colors">
-                          <span className="font-mono tracking-tight text-[#FA634E] bg-[#FA634E]/5 px-1.5 py-0.2 rounded border border-[#FA634E]/25">
-                            {trip.ref_id || 'TRIP'}
-                          </span>
-                          <span className="truncate ml-2">{route.pickup} → {route.dropoff}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-455 font-bold uppercase tracking-wider">
-                          <span>{dateStr}</span>
-                          <span className="text-emerald-600 dark:text-emerald-455 font-bold">Completed</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="overflow-x-auto scrollbar-thin">
+                  <table className="w-full text-xs text-left border-collapse min-w-[280px]">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        <th className="pb-2 font-black">Trip ID</th>
+                        <th className="pb-2 font-black">Route</th>
+                        <th className="pb-2 font-black">Date</th>
+                        <th className="pb-2 font-black text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {recentTripsList.map((trip) => {
+                        const route = getTripRouteInfo(trip);
+                        const dateVal = trip.planned_start || trip.createdAt;
+                        const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM') : '—';
+                        return (
+                          <tr 
+                            key={trip.id} 
+                            onClick={() => navigate(`/trips/${trip.id}`)}
+                            className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          >
+                            <td className="py-2.5 font-mono font-bold text-[#FA634E] group-hover:underline">
+                              {trip.ref_id || 'TRIP'}
+                            </td>
+                            <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200 max-w-[120px] truncate">
+                              {route.pickup} → {route.dropoff}
+                            </td>
+                            <td className="py-2.5 text-slate-500 font-medium">
+                              {dateStr}
+                            </td>
+                            <td className="py-2.5 text-right font-bold text-emerald-600 dark:text-emerald-455">
+                              Completed
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           </div>
-
         </div>
-
       </div>
 
       {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
