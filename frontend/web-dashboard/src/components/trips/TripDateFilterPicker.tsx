@@ -60,7 +60,7 @@ export function TripDateFilterPicker({
       },
       {
         id: '3Days',
-        label: '3 Days (Prev, Today, Next)',
+        label: '3 Days',
         getRange: () => ({ from: subDays(today, 1), to: addDays(today, 1) }),
       },
       {
@@ -134,7 +134,7 @@ export function TripDateFilterPicker({
 
   const getButtonLabel = () => {
     if (dateFilter === 'All') return 'All Dates';
-    if (dateFilter === '3Days') return '3 Days (Prev, Today, Next)';
+    if (dateFilter === '3Days') return '3 Days';
     if (dateFilter === 'Today') return 'Today';
     if (dateFilter === 'Yesterday') return 'Yesterday';
     if (dateFilter === 'ThisWeek') return 'This Week';
