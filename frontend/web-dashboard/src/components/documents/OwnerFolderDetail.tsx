@@ -274,9 +274,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
         {/* LEFT SIDE COLUMN: "Document Details" (4 / 12 width) - Matching Reference Mockup */}
-        <div className="lg:col-span-4 h-full flex flex-col overflow-hidden">
+        <div className="lg:col-span-4 flex flex-col overflow-y-auto scrollbar-none">
           {activeSlot ? (
-            <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col justify-between overflow-y-auto scrollbar-none">
+            <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col gap-3">
               
               {/* Card Header & Title */}
               <div className="space-y-3">
@@ -424,10 +424,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 )}
               </div>
 
-              {/* Bottom Portion: Audit Sub-card & Action CTAs */}
-              <div className="space-y-3 pt-2">
-                {/* Audit Surface Box */}
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/60 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
+              {/* Audit Surface Box */}
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/60 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                       Uploaded by
@@ -448,8 +446,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </div>
                 </div>
 
-                {/* Bottom Action CTAs Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Bottom Action CTAs Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Button
                     type="button"
                     size="sm"
@@ -528,7 +526,6 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </div>
 
             </div>
           ) : (
