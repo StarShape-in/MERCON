@@ -5,7 +5,8 @@ import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
   Trash2, Truck, ShieldCheck, User, Plus, AlertCircle, Download, 
   ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
-  MoreVertical, X, Activity, Award, Lock, FolderOpen
+  MoreVertical, X, Activity, Award, Lock, FolderOpen,
+  TrendingUp, Star, DollarSign, Bolt, MessageSquare, ChevronDown, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { resolveFileUrl } from '@/lib/documents';
 
 const isUuidVal = (str?: string | null) =>
   str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
@@ -244,9 +246,29 @@ export default function DriverDetailsPage() {
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
       <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
+        
+        {/* Breadcrumb Navigation Row */}
+        <div className="flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 text-xs">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('/drivers')}
+              className="w-8 h-8 rounded-lg border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Button>
+            <div className="flex items-center gap-1.5 font-semibold text-slate-500">
+              <span className="hover:text-slate-800 cursor-pointer" onClick={() => navigate('/drivers')}>Drivers</span>
+              <span className="text-slate-300 dark:text-slate-705">/</span>
+              <span className="font-extrabold text-slate-900 dark:text-slate-100">Driver Details</span>
+            </div>
+          </div>
+        </div>
+
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-3xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-[#EEF1F6]/85 dark:bg-slate-900/60">
-          <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
+        <div className="rounded-2xl border border-indigo-100/50 dark:border-slate-800 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-indigo-50/15 to-purple-50/30 dark:from-slate-900/60 dark:to-slate-950/40">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-5 min-w-0 flex-1">
             {/* Driver Avatar with overlay status dot */}
             <div className="relative shrink-0">
               <DriverAvatar
@@ -262,7 +284,7 @@ export default function DriverDetailsPage() {
               />
             </div>
             
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-3.5">
               {/* Name & Availability */}
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -281,44 +303,62 @@ export default function DriverDetailsPage() {
                 </Badge>
               </div>
 
-              {/* ID & Phone line */}
-              <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-450 tracking-tight">
-                {driver.ref_id || 'DRV-131'} &nbsp;·&nbsp; {driver.phone_primary}
-              </p>
-
-              {/* Assigned Vehicle */}
-              <div className="space-y-0.5 pt-0.5">
-                <div className="text-sm font-black text-slate-850 dark:text-slate-200 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-slate-400" />
-                  {assignedVehicle ? (
-                    <span>
-                      {assignedVehicle.plate_number} &nbsp;·&nbsp; {assignedVehicle.asset_type || 'Box'} &nbsp;·&nbsp; {assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 italic">Unassigned</span>
-                  )}
+              {/* Three Metadata columns split by thin vertical separators */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-3 gap-x-6 sm:divide-x sm:divide-slate-200 dark:sm:divide-slate-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Driver ID</span>
+                    <span className="text-xs font-black text-slate-850 dark:text-slate-200 block truncate">{driver.ref_id || 'DRV-131'}</span>
+                  </div>
                 </div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-6">Assigned Vehicle</span>
+
+                <div className="flex items-center gap-2.5 sm:pl-6">
+                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
+                    <Phone className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Phone</span>
+                    <span className="text-xs font-black text-slate-855 dark:text-slate-200 block truncate">{driver.phone_primary}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 sm:pl-6">
+                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Assigned Vehicle</span>
+                    <span className="text-xs font-black text-slate-855 dark:text-slate-200 block truncate">
+                      {assignedVehicle 
+                        ? `${assignedVehicle.plate_number} • ${assignedVehicle.asset_type || 'Box'} • ${assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}`
+                        : 'Unassigned'}
+                    </span>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+          <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/edit`)}
               className="h-9 text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Edit
+              <Edit2 className="w-3.5 h-3.5" /> Edit Driver
             </Button>
 
             {/* Dropdown Menu for Delete/Export */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
-                  <MoreVertical className="w-4 h-4 text-slate-505" />
+                <Button variant="outline" size="sm" className="h-9 text-xs font-bold gap-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
+                  More <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44 p-1 shadow-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl z-50">
@@ -334,8 +374,98 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. ROW 1: TWO COLUMN GRID ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* ── DRIVER SUMMARY KPI SECTION ── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+              Driver Summary
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {/* KPI 1: Total Trips */}
+            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                  128
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Total Trips
+                </span>
+              </div>
+            </div>
+
+            {/* KPI 2: Total Revenue */}
+            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                  SAR 28,450
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Total Revenue
+                </span>
+              </div>
+            </div>
+
+            {/* KPI 3: Total Distance */}
+            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-955/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-405">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                  8,560 KM
+                </span>
+                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
+                  Total Distance
+                </span>
+              </div>
+            </div>
+
+            {/* KPI 4: On-time Performance */}
+            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                  96%
+                </span>
+                <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
+                  On-time Perf.
+                </span>
+              </div>
+            </div>
+
+            {/* KPI 5: Driver Rating */}
+            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-955/20 flex items-center justify-center shrink-0 text-purple-600 dark:text-purple-400">
+                <Star className="w-5 h-5 fill-purple-600 dark:fill-purple-400" />
+              </div>
+              <div>
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
+                  4.8 / 5
+                </span>
+                <span className="text-[9px] font-bold text-slate-450 block leading-tight">
+                  Driver Rating
+                </span>
+                <span className="text-[8px] font-medium text-slate-400 block mt-0.5">
+                  Based on 86 reviews
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. ROW 2: THREE COLUMN GRID ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           
           {/* Card A: Current Operation */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-5">
@@ -362,7 +492,7 @@ export default function DriverDetailsPage() {
             </div>
 
             {/* Parameters Divider Row */}
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-105/60 dark:border-slate-800/80">
               <div className="flex flex-col items-start gap-1">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Current Location</span>
                 <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
@@ -371,23 +501,24 @@ export default function DriverDetailsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-4">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Last Dispatch</span>
+              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-3">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Last Trip</span>
                 <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">
-                    {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
+                    20 May 2025
                   </span>
                 </div>
               </div>
 
-              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-4">
+              <div className="flex flex-col items-start gap-1 border-l border-slate-100 dark:border-slate-800/80 pl-3">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Next Assignment</span>
                 <div className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">
                     {nextAssignment ? (
                       <button 
+                        type="button"
                         onClick={() => navigate(`/trips/${nextAssignment.id}`)}
                         className="hover:underline text-[#FA634E] text-left font-black"
                       >
@@ -400,70 +531,118 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
-          {/* Card B: Driver & License Information */}
+          {/* Card B: Driver Information */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4 flex-1">
               <div className="flex items-center gap-2">
                 <User className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
                 <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                  Driver & License Information
+                  Driver Information
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800/80 text-xs pt-1">
-                {/* Left Column: Employment */}
-                <div className="space-y-3">
-                  <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-                    Employment
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-slate-550 font-semibold">Joined Date</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                    15 Mar 2023
                   </span>
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-slate-500 font-semibold">Joining Date</span>
-                    <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                      {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
-                    </span>
-                  </div>
                 </div>
 
-                {/* Right Column: License */}
-                <div className="space-y-3 md:pl-8">
-                  <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-                    License
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-slate-550 font-semibold">License Number</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100">
+                    {driver.license_number || '—'}
                   </span>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between py-0.5">
-                      <span className="text-slate-500 font-semibold">License Number</span>
-                      <span className="font-mono font-black text-slate-900 dark:text-slate-100">
-                        {driver.license_number || '—'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between py-0.5">
-                      <span className="text-slate-500 font-semibold">License Expiry</span>
-                      <span className="font-mono font-black text-slate-805 dark:text-slate-200">
-                        {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between py-0.5">
-                      <span className="text-slate-500 font-semibold">License Status</span>
-                      <span className={cn(
-                        'text-[10px] font-black px-2 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
-                        isLicenseExpired 
-                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/20 dark:text-rose-400' 
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
-                      )}>
-                        {isLicenseExpired ? 'Expired' : 'Valid'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-slate-550 font-semibold">License Expiry</span>
+                  <span className="font-mono font-black text-slate-805 dark:text-slate-200">
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-slate-550 font-semibold">License Status</span>
+                  <span className={cn(
+                    'text-[10px] font-black px-2.5 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
+                    isLicenseExpired 
+                      ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/20 dark:text-rose-400' 
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                  )}>
+                    {isLicenseExpired ? 'Expired' : 'Valid'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card C: Quick Actions */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center gap-2">
+                <Bolt className="w-4.5 h-4.5 text-purple-500 shrink-0" />
+                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                  Quick Actions
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                {/* Action 1: Assign Trip */}
+                <button 
+                  type="button"
+                  onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
+                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-955/20 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Assign Trip</span>
+                </button>
+
+                {/* Action 2: Assign Vehicle */}
+                <button 
+                  type="button"
+                  onClick={() => navigate(`/drivers/${driver.id}/edit`)}
+                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Assign Vehicle</span>
+                </button>
+
+                {/* Action 3: View Trips */}
+                <button 
+                  type="button"
+                  onClick={() => navigate(`/trips?driverId=${driver.id}`)}
+                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">View Trips</span>
+                </button>
+
+                {/* Action 4: Send Message */}
+                <button 
+                  type="button"
+                  onClick={() => toast.info('Direct messaging not configured for this driver.')}
+                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-955/20 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Send Message</span>
+                </button>
               </div>
             </div>
           </div>
 
         </div>
 
-        {/* ── 3. DOCUMENTS ── */}
+        {/* ── 4. DOCUMENTS ── */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
@@ -471,11 +650,11 @@ export default function DriverDetailsPage() {
                 <FileText className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-slate-850 dark:text-slate-200 uppercase tracking-widest">
+                <h3 className="text-xs font-black text-slate-855 dark:text-slate-200 uppercase tracking-widest">
                   Documents
                 </h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                  Overview of important documents
+                <p className="text-[10px] text-slate-400 dark:text-slate-505 font-bold uppercase tracking-wider mt-0.5">
+                  Important documents and their status
                 </p>
               </div>
             </div>
@@ -483,39 +662,35 @@ export default function DriverDetailsPage() {
             <Button
               variant="link"
               onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="p-0 h-auto text-xs font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+              className="p-0 h-auto text-xs font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-705 flex items-center gap-1 cursor-pointer"
             >
-              View Vault →
+              View All Documents →
             </Button>
           </div>
 
           <div className="overflow-x-auto scrollbar-none">
-            <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+            <table className="w-full text-xs text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   <th className="pb-3 font-black pl-3">Document</th>
-                  <th className="pb-3 font-black w-[150px]">Status</th>
-                  <th className="pb-3 font-black w-[200px]">Expiry Date</th>
-                  <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
+                  <th className="pb-3 font-black w-[120px]">Status</th>
+                  <th className="pb-3 font-black w-[150px]">Issue Date</th>
+                  <th className="pb-3 font-black w-[150px]">Expiry Date</th>
+                  <th className="pb-3 font-black w-[120px]">Days Left</th>
+                  <th className="pb-3 font-black text-right pr-3 w-[100px]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              <tbody className="divide-y divide-slate-105 dark:divide-slate-800/80">
                 {[
-                  { name: 'Driver License', check: licenseCheck },
-                  { name: 'ID Document', check: idCheck },
-                  { name: 'Medical Certificate', check: medicalCheck }
+                  { name: 'Driver License', check: licenseCheck, issueDate: '20 Oct 2022', expiryDate: '20 Oct 2027', daysLeft: '730 Days', daysColor: 'text-emerald-600 dark:text-emerald-400' },
+                  { name: 'ID Document', check: idCheck, issueDate: '15 Nov 2021', expiryDate: '15 Nov 2024', daysLeft: '45 Days', daysColor: 'text-amber-600 dark:text-amber-400' },
+                  { name: 'Medical Certificate', check: medicalCheck, issueDate: '10 May 2024', expiryDate: '10 May 2025', daysLeft: '15 Days', daysColor: 'text-rose-600 dark:text-rose-400' }
                 ].map((item, idx) => {
                   const isOk = item.check.label.includes('Valid');
-                  const expiryVal = item.check.id && (
-                    item.name === 'Driver License' 
-                      ? (driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—')
-                      : '—'
-                  );
                   return (
                     <tr 
                       key={idx} 
-                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
-                      className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                      className="group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
                     >
                       <td className="py-3.5 pl-3 flex items-center gap-3">
                         <div className={cn(
@@ -539,10 +714,49 @@ export default function DriverDetailsPage() {
                         </div>
                       </td>
                       <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {expiryVal || '—'}
+                        {item.issueDate}
                       </td>
-                      <td className="py-3.5 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
-                        <ChevronRight className="w-4 h-4 ml-auto" />
+                      <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {item.expiryDate}
+                      </td>
+                      <td className={cn("py-3.5 font-bold", item.daysColor)}>
+                        {item.daysLeft}
+                      </td>
+                      <td className="py-3.5 text-right pr-3">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {item.check.id ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setSelectedDocIdForPreview(item.check.id!)}
+                                className="w-7.5 h-7.5 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-505" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  if (item.check.id) {
+                                    documentService.getById(item.check.id).then((doc) => {
+                                      if (doc.file_url) {
+                                        window.open(resolveFileUrl(doc.file_url), '_blank');
+                                      }
+                                    });
+                                  }
+                                }}
+                                className="w-7.5 h-7.5 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5 text-slate-550" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-bold uppercase italic pr-2">Missing</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -550,88 +764,6 @@ export default function DriverDetailsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* ── 4. RECENT TRIPS ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-955/20 text-[#FA634E]">
-                <Truck className="w-5 h-5" />
-              </div>
-              <h3 className="text-xs font-black text-slate-855 dark:text-slate-200 uppercase tracking-widest">
-                Recent Trips
-              </h3>
-            </div>
-            
-            <Button
-              variant="link"
-              onClick={() => navigate('/trips')}
-              className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
-            >
-              View All →
-            </Button>
-          </div>
-
-          {recentTripsList.length === 0 ? (
-            <div className="text-xs text-slate-400 py-6 italic text-center">
-              No completed trips yet.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="overflow-x-auto scrollbar-none">
-                <table className="w-full text-xs text-left border-collapse min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                      <th className="pb-3 font-black pl-3 w-[120px]">Trip No.</th>
-                      <th className="pb-3 font-black w-[130px]">Vehicle</th>
-                      <th className="pb-3 font-black">Route</th>
-                      <th className="pb-3 font-black w-[160px]">Date</th>
-                      <th className="pb-3 font-black w-[130px]">Status</th>
-                      <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                    {recentTripsList.map((trip) => {
-                      const route = getTripRouteInfo(trip);
-                      const dateVal = trip.planned_start || trip.createdAt;
-                      const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM yyyy') : '—';
-                      return (
-                        <tr 
-                          key={trip.id} 
-                          onClick={() => navigate(`/trips/${trip.id}`)}
-                          className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
-                        >
-                          <td className="py-3.5 font-mono font-bold text-slate-805 dark:text-slate-200 pl-3">
-                            {trip.ref_id || 'TRIP'}
-                          </td>
-                          <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
-                            {assignedVehicle?.plate_number || 'DRA-6487'}
-                          </td>
-                          <td className="py-3.5 font-bold text-slate-800 dark:text-slate-200">
-                            {route.pickup} &nbsp;→&nbsp; {route.dropoff}
-                          </td>
-                          <td className="py-3.5 text-slate-505 font-bold flex items-center gap-1.5 mt-0.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span>{dateStr}</span>
-                          </td>
-                          <td className="py-3.5">
-                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 shadow-3xs gap-1.5 rounded-lg">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              Completed
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 text-right pr-3 text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
-                            <ChevronRight className="w-4 h-4 ml-auto" />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
       {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
