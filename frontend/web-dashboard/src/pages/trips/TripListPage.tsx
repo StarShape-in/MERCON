@@ -600,6 +600,19 @@ const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
   { label: 'Issues', value: 'Issues' },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  All: 'All Statuses',
+  Active: 'Active',
+  Draft: 'Draft',
+  Dispatched: 'Dispatched',
+  AtPickup: 'Loading',
+  InTransit: 'In Transit',
+  AtDelivery: 'At Delivery',
+  Completed: 'Completed',
+  Invoiced: 'Invoiced',
+  Cancelled: 'Cancelled'
+};
+
 const EXACT_SERVER_STATUSES = new Set<TripStatusFilter>([
   'Draft',
   'Dispatched',
@@ -2369,29 +2382,15 @@ export default function TripListPage() {
                       className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
                     >
                       <option value="All">All Statuses</option>
-                      <optgroup label="Status Group">
-                        {STATUS_TABS.map((tab) => (
-                          <option key={tab.value} value={tab.value}>
-                            {tab.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Exact State">
-                        {[
-                          ['Draft', 'Scheduled (Draft)'],
-                          ['Dispatched', 'Dispatched'],
-                          ['AtPickup', 'Loading'],
-                          ['InTransit', 'In Transit'],
-                          ['AtDelivery', 'At Delivery'],
-                          ['Completed', 'Completed'],
-                          ['Invoiced', 'Invoiced'],
-                          ['Cancelled', 'Cancelled'],
-                        ].map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </optgroup>
+                      <option value="Active">Active</option>
+                      <option value="Draft">Draft</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="AtPickup">Loading</option>
+                      <option value="InTransit">In Transit</option>
+                      <option value="AtDelivery">At Delivery</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Invoiced">Invoiced</option>
+                      <option value="Cancelled">Cancelled</option>
                     </select>
                   </div>
 
@@ -2525,7 +2524,7 @@ export default function TripListPage() {
                 <div className="flex items-center gap-2">
                   <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
                   <span>
-                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_LABELS[selectedStatus] || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
                   </span>
                 </div>
                 <button
