@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
-  Eye, Trash2, Truck, ShieldCheck, User, IdCard,
-  Plus, AlertCircle, Download, ChevronRight,
-  RotateCw, Calendar, Gauge, Weight, CheckCircle2, Clock, X
+  Trash2, Truck, ShieldCheck, User, Plus, AlertCircle, Download, 
+  ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
+  MoreVertical, X
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -15,27 +16,46 @@ import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
 import DriverAvatar from '@/components/ui/DriverAvatar';
-import PhoneDisplay from '@/components/ui/PhoneDisplay';
-import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
-import DriverTripOperations from '@/components/drivers/DriverTripOperations';
-
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
-function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 last:border-0">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">{label}</span>
-      <span className="text-xs min-w-0 text-right">{children}</span>
-    </div>
-  );
+const isUuidVal = (str?: string | null) =>
+  str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+function resolveStopLocationName(stop: any, fallback: string): string {
+  if (!stop) return fallback;
+  const code = stop.location?.codes?.[0] || stop.location?.code;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
+  const result = code || locName || locCity || rawLocName || rawSourceLabel || fallback;
+  return String(result).replace(/🔁\s*/g, '').trim();
+}
+
+function getTripRouteInfo(trip: any) {
+  if (trip.stops && Array.isArray(trip.stops) && trip.stops.length > 0) {
+    const sortedStops = [...trip.stops].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const pickupStop = sortedStops.find((s) => s.stop_type === 'Pickup') || sortedStops[0];
+    const dropoffStop = sortedStops.find((s) => s.stop_type === 'Dropoff') || sortedStops[sortedStops.length - 1];
+    const pickup = resolveStopLocationName(pickupStop, trip.pickup || trip.origin_city || 'Depot');
+    const dropoff = resolveStopLocationName(dropoffStop, trip.dropoff || trip.destination_city || 'Delivery');
+    return { pickup, dropoff };
+  }
+  return {
+    pickup: trip.pickup || trip.origin_city || 'Central Terminal',
+    dropoff: trip.dropoff || trip.destination_city || 'Client Site',
+  };
 }
 
 export default function DriverDetailsPage() {
@@ -47,9 +67,6 @@ export default function DriverDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDocIdForPreview, setSelectedDocIdForPreview] = useState<string | null>(null);
   const [isPhotoFullViewOpen, setIsPhotoFullViewOpen] = useState(false);
 
@@ -66,7 +83,7 @@ export default function DriverDetailsPage() {
     }
   }, [driver?.id, id, navigate]);
 
-  const { data: docsRes, isLoading: isLoadingDocs } = useQuery({
+  const { data: docsRes } = useQuery({
     queryKey: ['documents', 'Driver', id],
     queryFn: () => documentService.getAll({ entity_type: 'Driver', entity_id: id, per_page: 50 }),
     enabled: !!id,
@@ -89,13 +106,6 @@ export default function DriverDetailsPage() {
       setDeleteError(err.response?.data?.error?.message || 'Failed to delete driver account.');
     },
   });
-
-  const refreshDriver = async () => {
-    setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['driver', id] });
-    await queryClient.invalidateQueries({ queryKey: ['documents', 'Driver', id] });
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const handleDeleteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,14 +142,13 @@ export default function DriverDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1200px] mx-auto w-full space-y-4 animate-pulse">
           <div className="h-36 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-[200px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[200px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           </div>
-          <div className="h-[400px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="h-[240px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
         </div>
       </DashboardLayout>
     );
@@ -148,7 +157,7 @@ export default function DriverDetailsPage() {
   if (error || !driver) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1200px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
@@ -163,37 +172,94 @@ export default function DriverDetailsPage() {
   }
 
   const isLicenseExpired = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
-  const daysUntilExpiry = driver.license_expiry ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const isLicenseExpiringSoon = !isLicenseExpired && daysUntilExpiry != null && daysUntilExpiry <= 30;
   const trips = driver.trips || [];
-  const completedTripsCount = trips.filter(t => t.status === 'Completed').length;
-  const totalTripsCount = trips.length;
   const assignedVehicle = driver.assignedVehicle;
 
-  const getDocStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Verified':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-[10px] font-bold">VERIFIED</Badge>;
-      case 'Rejected':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">REJECTED</Badge>;
-      case 'Expired':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">EXPIRED</Badge>;
-      default:
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 text-[10px] font-bold">PENDING</Badge>;
-    }
+  // Categorize active/upcoming vs history
+  const activeUpcomingTrips = trips.filter((t) => {
+    const s = (t.status || '').toLowerCase();
+    return s !== 'completed' && s !== 'invoiced' && s !== 'cancelled';
+  });
+
+  const historyTrips = trips.filter((t) => {
+    const s = (t.status || '').toLowerCase();
+    return s === 'completed' || s === 'invoiced' || s === 'cancelled';
+  });
+
+  // Active Trip: First active trip in activeUpcomingTrips
+  const activeTrip = activeUpcomingTrips.find(t => {
+    const s = (t.status || '').toLowerCase();
+    return s === 'intransit' || s === 'atpickup' || s === 'atdelivery';
+  }) || null;
+
+  const activeTripRoute = activeTrip ? getTripRouteInfo(activeTrip) : { pickup: '', dropoff: '' };
+
+  // Last Dispatch: Most recent completed trip from history
+  const lastDispatchDate = (() => {
+    const completedTrips = historyTrips.filter(t => (t.status || '').toLowerCase() === 'completed');
+    if (completedTrips.length === 0) return null;
+    const sorted = [...completedTrips].sort((a, b) => {
+      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
+      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return sorted[0].planned_start || sorted[0].createdAt || null;
+  })();
+
+  // Next Assignment: Next upcoming trip in activeUpcomingTrips that is not active yet
+  const nextAssignment = (() => {
+    const scheduled = activeUpcomingTrips.filter(t => t.id !== activeTrip?.id);
+    if (scheduled.length === 0) return null;
+    const sorted = [...scheduled].sort((a, b) => {
+      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
+      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
+      return dateA - dateB;
+    });
+    return sorted[0];
+  })();
+
+  // Documents Check status
+  const getDocCheck = (types: string[]) => {
+    const doc = documents.find(d => types.some(t => d.doc_type.toLowerCase().includes(t.toLowerCase())));
+    if (!doc) return { id: null, label: '⚠ Due', className: 'text-amber-600 bg-amber-50 dark:bg-amber-955/20 border-amber-250/50', icon: AlertTriangle };
+    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+    if (isExpired) return { id: doc.id, label: '⚠ Expired', className: 'text-rose-600 bg-rose-50 dark:bg-rose-955/20 border-rose-200/50', icon: AlertTriangle };
+    return { id: doc.id, label: '✓ Valid', className: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/25 border-emerald-250/50', icon: CheckCircle2 };
   };
+
+  const licenseCheck = getDocCheck(['License', 'Driver License']);
+  const idCheck = getDocCheck(['ID', 'Iqama', 'National ID']);
+  const medicalCheck = getDocCheck(['Medical', 'Health']);
+
+  // Recent Trips List: Most recent 2 completed trips
+  const recentTripsList = (() => {
+    const completed = historyTrips.filter(t => (t.status || '').toLowerCase() === 'completed');
+    return [...completed].sort((a, b) => {
+      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
+      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    }).slice(0, 2);
+  })();
 
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
         
-        {/* ── 1. TOP HEADER BAR: Horizontal Driver Avatar Photo + Driver Name & Tags Placed Directly Under Name ── */}
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 sm:gap-12 pb-4 border-b border-slate-200/80 dark:border-slate-800">
-          
-          {/* Left: Horizontal Photo Avatar + Driver Name with Tags Underneath (Guaranteed space before Action Buttons) */}
-          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1 pr-2 sm:pr-6">
-            
-            {/* Standalone Profile Photo Avatar */}
+        {/* Back Navigation Row */}
+        <div className="flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/drivers')} 
+            className="gap-1.5 p-0 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-transparent font-bold text-xs cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
+          </Button>
+        </div>
+
+        {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
+          <div className="flex items-start gap-4.5 min-w-0 flex-1">
+            {/* Driver Avatar */}
             <DriverAvatar
               src={driver.avatar_url}
               firstName={driver.first_name}
@@ -202,358 +268,303 @@ export default function DriverDetailsPage() {
               status={driver.status}
               showStatusDot
               previewable
-              className="[&>img]:w-24 [&>img]:h-24 [&>div]:w-24 [&>div]:h-24 [&>div]:text-3xl w-24 h-24 sm:[&>img]:w-28 sm:[&>img]:h-28 sm:[&>div]:w-28 sm:[&>div]:h-28 sm:w-28 sm:h-28 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
+              className="[&>img]:w-20 [&>img]:h-20 [&>div]:w-20 [&>div]:h-20 [&>div]:text-2xl w-20 h-20 shrink-0 shadow-3xs cursor-pointer hover:opacity-90 transition-opacity rounded-xl"
               onPreview={() => setIsPhotoFullViewOpen(true)}
             />
+            
+            <div className="min-w-0 flex-1 space-y-2.5">
+              {/* Name & Availability */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                  {driver.first_name} {driver.last_name}
+                </h1>
+                
+                {/* Available Status Badge */}
+                <Badge variant="outline" className={cn(
+                  'text-[10px] font-extrabold px-2.5 py-0.5 border gap-1 shadow-3xs uppercase tracking-wider',
+                  (driver.status || '').toLowerCase() === 'available' 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                )}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                  {driver.status}
+                </Badge>
+              </div>
 
-            {/* Driver Name + Badges & Details Directly Under Name */}
-            <div className="flex flex-col min-w-0 flex-1">
-              <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
-                title={`${driver.first_name} ${driver.last_name}`}
-              >
-                <User className="w-7 h-7 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>{driver.first_name} {driver.last_name}</span>
-              </h1>
+              {/* ID & Phone line */}
+              <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-450 tracking-tight flex items-center gap-1.5">
+                <span>{driver.ref_id || 'DRV-123'}</span>
+                <span>·</span>
+                <span>{driver.phone_primary}</span>
+              </p>
 
-              {/* Badges & Tags Under the Name */}
-              <div className="flex flex-col gap-2 mt-2.5">
-                {/* Status & ID Tags Row */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                    <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Drivers Module
-                  </Badge>
-                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                    ID: {driver.ref_id || 'DRV-123'}
+              {/* Assigned Vehicle */}
+              <div className="space-y-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Assigned Vehicle:</span>
+                {assignedVehicle ? (
+                  <div className="text-xs font-black text-slate-850 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <Truck className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{assignedVehicle.plate_number}</span>
+                    <span>·</span>
+                    <span className="font-semibold text-slate-500">{assignedVehicle.asset_type || 'Box'}</span>
+                    {assignedVehicle.capacity_kg && (
+                      <>
+                        <span>·</span>
+                        <span className="font-semibold text-slate-500">{assignedVehicle.capacity_kg.toLocaleString()} KG</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    <Truck className="w-3.5 h-3.5 text-slate-300" /> Unassigned
                   </span>
-                  <StatusBadge status={driver.status} />
-                  {!driver.isActive && <DeletedBadge />}
-                </div>
-
-                {/* Contact Phone Details Directly Under the Tags */}
-                <div className="flex items-center gap-2 mt-0.5 pt-0.5">
-                  <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <PhoneDisplay
-                    phone={driver.phone_primary}
-                    variant="inline"
-                    showActions
-                    className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
-                  />
-                </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0 lg:pt-1">
-
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportDossier}
-              className="h-9 gap-1.5 text-xs font-semibold"
-              title="Export Driver Dossier"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400"
-              title="Document Vault"
-            >
-              <FileText className="w-4 h-4" />
-              Vault
-            </Button>
-
+          {/* Action Buttons Row */}
+          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-9 gap-1.5 text-xs font-semibold"
+              className="h-8.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer"
             >
-              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
               Edit
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-              title="Delete Driver"
+              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+              className="h-8.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" />
+              Vault
             </Button>
-
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-lg px-4"
+              className="h-8.5 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-lg px-4 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
               New Trip
             </Button>
+
+            {/* Dropdown Menu for Delete/Export */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8.5 w-8.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                  <MoreVertical className="w-4 h-4 text-slate-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 p-1 shadow-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl z-50">
+                <DropdownMenuItem onClick={handleExportDossier} className="text-xs font-bold text-slate-700 dark:text-slate-355 px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer flex items-center gap-2">
+                  <Download className="w-3.5 h-3.5" /> Export Dossier
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
+                <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)} className="text-xs font-bold text-rose-600 dark:text-rose-455 px-2.5 py-2 hover:bg-rose-50 dark:hover:bg-rose-955/20 rounded-lg cursor-pointer flex items-center gap-2">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Account
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        {/* ── 2. OVERVIEW INSTRUMENT-TILE STAT BLOCKS (3 Columns) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+        {/* ── 2. CURRENT OPERATION CARD ── */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Current Operation</h3>
           
-          {/* Overview 1: Assigned Vehicle */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {assignedVehicle ? assignedVehicle.asset_type || 'Vehicle Asset' : 'No truck linked'}
-            </div>
-          </div>
-
-          {/* Overview 2: Document Expiry */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Document Expiry
-            </div>
-            <div className={cn(
-              'font-mono text-base font-black truncate leading-tight',
-              isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'
-            )}>
-              {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'No expiry set'}
-            </div>
-          </div>
-
-          {/* Overview 3: Dispatch Trips */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-brand" /> Dispatch Trips
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              {completedTripsCount} / {totalTripsCount}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              Completed Dispatches
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 3. LICENSE COMPLIANCE ALERT (only when expired/expiring) ────────────── */}
-        {(isLicenseExpired || isLicenseExpiringSoon) && (
-          <div className={cn(
-            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs',
-            isLicenseExpired
-              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
-              : 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60'
-          )}>
+          <div className="flex flex-col gap-4">
+            {/* Live Operation Status */}
             <div className="flex items-center gap-3">
-              <div className={cn(
-                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                isLicenseExpired ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-600' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
-              )}>
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className={cn(
-                  'text-xs font-bold',
-                  isLicenseExpired ? 'text-rose-900 dark:text-rose-200' : 'text-amber-900 dark:text-amber-200'
-                )}>
-                  {isLicenseExpired ? 'Driver License Expired' : 'Driver License Expiring Soon'}
-                </h4>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  License #{driver.license_number || 'N/A'} {isLicenseExpired ? 'expired on' : 'expires on'} {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}. Please update compliance records.
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-8 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              Update License
-            </Button>
-          </div>
-        )}
-
-        {/* ── 4. DRIVER CREDENTIALS & COMMERCIAL COMPLIANCE (3 PROMINENT CARD BOXES) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          
-          {/* Box 1: Driver Credentials */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-brand" /> Driver Credentials
-                </h3>
-                <StatusBadge status={driver.status} />
-              </div>
-              <div className="space-y-1.5">
-                <InfoRow label="Duty Status">
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{driver.status}</span>
-                </InfoRow>
-                <InfoRow label="License Number">
-                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                    {driver.license_number || 'N/A'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="License Expiry">
-                  <span className={cn('font-mono font-bold', isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100')}>
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="Registration Date">
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
-                  </span>
-                </InfoRow>
-              </div>
-            </div>
-          </Card>
-
-          {/* Box 2: Assigned Vehicle Details */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-emerald-600" /> Vehicle Details
-                </h3>
-                {assignedVehicle && (
-                  <button
-                    onClick={() => navigate(`/vehicles/${assignedVehicle.id}`)}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
-                  >
-                    Open Details <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {!assignedVehicle ? (
-                <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
-                  <Truck className="w-4 h-4 text-slate-400 shrink-0" /> No vehicle currently assigned.
-                </div>
+              {activeTrip ? (
+                <>
+                  <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  <div>
+                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">
+                      On Trip · {activeTrip.ref_id || 'TRIP-REF'}
+                    </p>
+                    <p className="text-[10px] text-slate-455 mt-0.5">
+                      {activeTripRoute.pickup} → {activeTripRoute.dropoff}
+                    </p>
+                  </div>
+                </>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 tracking-wide flex items-center gap-1.5">
-                      {assignedVehicle.plate_number}
-                      {assignedVehicle.deletedAt && <DeletedBadge />}
-                    </span>
-                    <StatusBadge status={assignedVehicle.status} />
+                <>
+                  <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 pt-1">
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 p-3">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Gauge className="w-3 h-3" /> Odometer
-                      </span>
-                      <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                        {assignedVehicle.current_odometer != null ? `${assignedVehicle.current_odometer.toLocaleString()} KM` : 'N/A'}
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 p-3">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Weight className="w-3 h-3" /> Capacity
-                      </span>
-                      <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                        {assignedVehicle.capacity_kg != null ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
-                      </div>
-                    </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-900 dark:text-slate-100">Available</p>
+                    <p className="text-[10px] text-slate-455 mt-0.5">No active trip</p>
                   </div>
-                </div>
+                </>
               )}
             </div>
-          </Card>
 
-          {/* Box 3: Compliance Documents Vault */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-600" /> Documents Vault
-                  {documents.length > 0 && (
-                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 text-[10px] font-bold">
-                      {documents.length}
-                    </span>
-                  )}
-                </h3>
-                <button
-                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
-                >
-                  Vault <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+            {/* Attributes values row */}
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-850">
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Current Location</span>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
+                  {driver.current_location || 'Riyadh'}
+                </span>
+              </div>
+              
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Last Dispatch</span>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
+                  {lastDispatchDate ? formatInDeploymentTz(lastDispatchDate, tz, 'dd MMM yyyy') : '—'}
+                </span>
               </div>
 
-              {isLoadingDocs ? (
-                <div className="space-y-2 animate-pulse mt-2">
-                  {[1, 2].map(i => <div key={i} className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800" />)}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Next Assignment</span>
+                <span className="text-xs font-black text-slate-855 dark:text-slate-200 mt-0.5 block truncate">
+                  {nextAssignment ? (
+                    <button 
+                      onClick={() => navigate(`/trips/${nextAssignment.id}`)}
+                      className="hover:underline text-[#FA634E] text-left font-black"
+                    >
+                      {nextAssignment.ref_id || 'TRIP'}
+                    </button>
+                  ) : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. FOUR DETAILS & COMPLIANCE CARDS GRID ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          
+          {/* Card 1: Driver Details */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Driver Details</h3>
+              <div className="space-y-3.5 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Phone</span>
+                  <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
                 </div>
-              ) : documents.length === 0 ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
-                  <span className="text-xs text-slate-500">No documents uploaded.</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                    className="h-7 text-[11px] font-bold shrink-0"
-                  >
-                    Upload
-                  </Button>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Joining Date</span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
+                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: License Details */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">License</h3>
+              <div className="space-y-3.5 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">License Number</span>
+                  <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wider font-semibold">
+                    {driver.license_number || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Expiry</span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
+                  </span>
+                </div>
+                <div className="pt-1.5 flex items-center gap-1.5">
+                  <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
+                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600' : 'text-emerald-600')}>
+                    {isLicenseExpired ? 'Expired' : 'Valid'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Documents Vault Checklist */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full space-y-4">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Documents</h3>
+              
+              <div className="space-y-3">
+                {[
+                  { name: 'Driver License', check: licenseCheck },
+                  { name: 'ID Document', check: idCheck },
+                  { name: 'Medical Certificate', check: medicalCheck }
+                ].map((item, idx) => {
+                  return (
+                    <div 
+                      key={idx} 
+                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
+                      className={cn(
+                        "flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80 last:border-0",
+                        item.check.id && "cursor-pointer hover:text-brand"
+                      )}
+                    >
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
+                      <span className={cn(
+                        'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
+                        item.check.className
+                      )}>
+                        {item.check.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="link"
+                onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
+              >
+                View Vault →
+              </Button>
+            </div>
+          </div>
+
+          {/* Card 4: Recent Trips Ledger */}
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full space-y-4">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Trips</h3>
+              
+              {recentTripsList.length === 0 ? (
+                <p className="text-xs text-slate-400">No completed trips on record.</p>
               ) : (
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-0.5">
-                  {documents.map((doc) => {
-                    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                <div className="space-y-4">
+                  {recentTripsList.map((trip) => {
+                    const route = getTripRouteInfo(trip);
+                    const dateVal = trip.planned_start || trip.createdAt;
+                    const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM') : 'Date TBD';
                     return (
-                      <div
-                        key={doc.id}
-                        onClick={() => setSelectedDocIdForPreview(doc.id)}
-                        className="flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
-                        title="Click to preview document details & OCR metadata"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={cn(
-                            'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                            isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
-                          )}>
-                            {isExpired ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <div key={trip.id} onClick={() => navigate(`/trips/${trip.id}`)} className="group cursor-pointer space-y-1">
+                        <div className="flex items-center justify-between text-xs font-black text-slate-850 dark:text-slate-200 group-hover:text-brand transition-colors">
+                          <span className="font-mono tracking-tight text-[#FA634E] bg-[#FA634E]/5 px-1.5 py-0.2 rounded border border-[#FA634E]/25">
+                            {trip.ref_id || 'TRIP'}
                           </span>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">{doc.doc_type}</div>
-                          </div>
+                          <span className="truncate ml-2">{route.pickup} → {route.dropoff}</span>
                         </div>
-                        {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
+                        <div className="flex items-center justify-between text-[10px] text-slate-450 font-bold uppercase tracking-wider">
+                          <span>{dateStr}</span>
+                          <span className="text-emerald-600 dark:text-emerald-455 font-bold">Completed</span>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               )}
             </div>
-          </Card>
+          </div>
 
-        </div>
-
-        {/* ── 5. DRIVER TRIP OPERATIONS (Active & Scheduled / Dispatch History) ── */}
-        <div>
-          <DriverTripOperations
-            driverId={driver.id}
-            driverName={`${driver.first_name} ${driver.last_name}`}
-            trips={driver.trips || []}
-          />
         </div>
 
       </div>
 
-      {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ─────────────────────────────── */}
+      {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
       <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
         <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-white rounded-3xl">
           <div className="relative flex flex-col items-center justify-center p-6 min-h-[380px]">
@@ -572,11 +583,11 @@ export default function DriverDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── DELETE DRIVER CONFIRMATION MODAL ────────────────────────────── */}
+      {/* ── DELETE DRIVER CONFIRMATION MODAL ── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
         <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-950/20">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-955/20">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-450">
               <AlertTriangle className="w-5 h-5 shrink-0" />
               <DialogTitle className="text-base font-black">Delete Driver Account</DialogTitle>
             </div>
@@ -640,13 +651,6 @@ export default function DriverDetailsPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* ── DRIVER PROFILE PREVIEW & DOCUMENT PREVIEW MODALS ── */}
-      <DriverPreviewModal
-        driver={driver}
-        isOpen={isPreviewModalOpen}
-        onClose={() => setIsPreviewModalOpen(false)}
-      />
 
       <DocumentPreviewSheet
         documentId={selectedDocIdForPreview}
