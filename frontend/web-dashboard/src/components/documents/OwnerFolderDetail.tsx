@@ -215,14 +215,14 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
             /* Single Outer Coherent Panel Box (No nested cards inside) */
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-4.5 shadow-2xs h-full flex flex-col justify-between overflow-hidden">
               
-              {/* Scrollable Content Area for the 4 Logical Sections */}
+              {/* Scrollable Content Area for the 3 Logical Sections */}
               <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
                 
-                {/* ── 1. DOCUMENT ── */}
+                {/* ── DOCUMENT ── */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                      1. Document
+                      DOCUMENT
                     </span>
                     <span className="text-xs font-black text-slate-900 dark:text-slate-100">
                       {activeSlot.documentType.name}
@@ -253,12 +253,12 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
                 <div className="border-t border-slate-100 dark:border-slate-800/80" />
 
-                {/* ── 2. VALIDITY ── */}
+                {/* ── VALIDITY ── */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        2. Validity
+                        VALIDITY
                       </span>
                       {activeDoc ? (
                         <Badge variant="outline" className={cn('text-[9.5px] font-extrabold px-1.5 py-0.2 shadow-3xs', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
@@ -355,92 +355,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
                 <div className="border-t border-slate-100 dark:border-slate-800/80" />
 
-                {/* ── 3. VALIDATION ── */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                      3. Validation Checks
-                    </span>
-                    {(() => {
-                      const status = activeDoc ? getSlotStatusFromDoc(activeDoc) : 'MISSING';
-                      const hasDocNum = !!(activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number);
-                      const hasIssueDate = !!activeDoc?.issue_date;
-                      const isExpiryValid = status === 'VALID' || status === 'NO_EXPIRY';
-                      const allPassed = !!activeDoc && hasDocNum && hasIssueDate && isExpiryValid;
-
-                      return allPassed ? (
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Passed
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Review Needed
-                        </span>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Compact Checklist Rows */}
-                  {(() => {
-                    const hasDocNum = !!(activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number);
-                    const hasIssueDate = !!activeDoc?.issue_date;
-
-                    const checks = [
-                      {
-                        id: 'file',
-                        label: 'File Attachment',
-                        passed: !!activeDoc,
-                        msg: activeDoc ? 'Uploaded' : 'Missing File',
-                      },
-                      {
-                        id: 'number',
-                        label: 'Reference Serial Number',
-                        passed: hasDocNum,
-                        msg: hasDocNum ? 'Verified' : 'Ref Missing',
-                      },
-                      {
-                        id: 'issue_date',
-                        label: 'Issue Date Record',
-                        passed: hasIssueDate,
-                        msg: hasIssueDate ? 'Recorded' : 'Not Set',
-                      },
-                    ];
-
-                    return (
-                      <div className="space-y-1 pt-0.5">
-                        {checks.map((chk) => (
-                          <div key={chk.id} className="flex items-center justify-between text-xs py-0.5">
-                            <span className="flex items-center gap-1.5 min-w-0">
-                              {chk.passed ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              ) : (
-                                <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              )}
-                              <span className={cn("text-[11px] truncate", chk.passed ? "text-slate-700 dark:text-slate-300" : "font-bold text-rose-700 dark:text-rose-400")}>
-                                {chk.label}
-                              </span>
-                            </span>
-
-                            <span className={cn(
-                              "text-[10.5px] font-mono shrink-0 ml-2",
-                              chk.passed ? "text-slate-400 dark:text-slate-500" : "font-bold text-rose-600 dark:text-rose-400"
-                            )}>
-                              {chk.msg}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="border-t border-slate-100 dark:border-slate-800/80" />
-
-                {/* ── 4. OTHER VEHICLE DOCUMENTS ── */}
+                {/* ── OTHER VEHICLE DOCUMENTS ── */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                      4. Other Vehicle Documents
+                      OTHER VEHICLE DOCUMENTS
                     </span>
                     <span className="text-[10px] font-mono text-slate-400 font-bold">
                       {folder.slots.length} Records
