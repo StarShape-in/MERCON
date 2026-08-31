@@ -284,40 +284,18 @@ export default function DriverDetailsPage() {
                 </Badge>
               </div>
 
-              {/* Three Metadata columns split by thin vertical separators */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-3 gap-x-6 sm:divide-x sm:divide-slate-200 dark:sm:divide-slate-800/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
-                    <User className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Driver ID</span>
-                    <span className="text-xs font-black text-slate-850 dark:text-slate-200 block truncate">{driver.ref_id || 'DRV-131'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 sm:pl-6">
-                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
-                    <Phone className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Phone</span>
-                    <span className="text-xs font-black text-slate-855 dark:text-slate-200 block truncate">{driver.phone_primary}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 sm:pl-6">
-                  <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-400 shrink-0">
-                    <Truck className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-widest block">Assigned Vehicle</span>
-                    <span className="text-xs font-black text-slate-855 dark:text-slate-200 block truncate">
-                      {assignedVehicle 
-                        ? `${assignedVehicle.plate_number} • ${assignedVehicle.asset_type || 'Box'} • ${assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}`
-                        : 'Unassigned'}
-                    </span>
-                  </div>
+              {/* Assigned Vehicle & Phone number details directly below the name */}
+              <div className="text-xs font-semibold text-slate-550 dark:text-slate-400">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-slate-700 dark:text-slate-300">Assigned Vehicle:</span>
+                  <span className="font-black text-slate-900 dark:text-slate-100">
+                    {assignedVehicle 
+                      ? `${assignedVehicle.plate_number} ${assignedVehicle.capacity_kg ? `(${assignedVehicle.capacity_kg.toLocaleString()} KG)` : ''}`
+                      : 'Unassigned'}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700">·</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">Phone:</span>
+                  <span className="font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
                 </div>
               </div>
 
