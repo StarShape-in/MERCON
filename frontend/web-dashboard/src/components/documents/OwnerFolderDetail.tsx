@@ -513,27 +513,28 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 )}
               </div>
 
-              {/* 📦 BOX 2: All Documents Validity & Compliance Overview (Fills remaining height down to exact bottom line!) */}
+              {/* 📦 BOX 2: Related Vehicle Documents / Document Validity Summary (Compact List Layout - No Inner Cards) */}
               <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex-1 min-h-0 flex flex-col overflow-hidden">
                 
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                {/* Box 2 Header */}
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
                   <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-[#FA634E]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#FA634E]" />
                     <span>Document Validity Summary</span>
                   </h3>
-                  <span className="text-[10px] font-mono text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                    {folder.slots.length} Documents
+                  <span className="text-[10px] font-mono text-slate-400 font-bold">
+                    {folder.slots.length} Records
                   </span>
                 </div>
 
-                {/* Scrollable List of All Remaining Document Validity Dates */}
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pt-2.5 pr-0.5 scrollbar-thin">
+                {/* Compact Document List Rows (Subtle Dividers, No Separate Inner Cards) */}
+                <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 pr-0.5 scrollbar-thin">
                   {folder.slots.map((s) => {
                     const isSelected = activeSlot?.documentType.id === s.documentType.id;
                     const d = s.document;
                     const code = getSlotStatusFromDoc(d);
-                    const StatusIcon = STATUS_ICONS[code]?.icon || FileQuestion;
-                    const iconColor = STATUS_ICONS[code]?.className || 'text-slate-400';
+                    const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+                    const isExpiring = code === 'EXPIRING_SOON';
 
                     const expFormatted = d?.expiry_date 
                       ? formatInDeploymentTz(d.expiry_date, tz, 'dd/MM/yyyy') 
@@ -546,26 +547,44 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                         key={s.documentType.id}
                         onClick={() => setSelectedSlotId(s.documentType.id)}
                         className={cn(
-                          "p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60",
+                          "py-2.5 px-2 flex items-center justify-between gap-3 text-xs cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg my-0.5",
                           isSelected 
-                            ? "bg-slate-50 dark:bg-slate-800/80 border-[#FA634E]/50 ring-1 ring-[#FA634E]/20 font-bold" 
-                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/80"
+                            ? "bg-slate-50 dark:bg-slate-800/80 font-black text-slate-900 border-l-2 border-l-[#FA634E]" 
+                            : "text-slate-700 dark:text-slate-300"
                         )}
                       >
+                        {/* 1. Document Name (Primary Element) */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", iconColor)} />
-                          <span className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate">
+                          <span className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            isExpiredOrMissing ? "bg-rose-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
+                          )} />
+                          <span className={cn(
+                            "text-xs truncate",
+                            isSelected ? "font-black text-slate-900 dark:text-slate-100" : "font-extrabold text-slate-800 dark:text-slate-200"
+                          )}>
                             {s.documentType.name}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {/* 2. Status → 3. Expiry / Validity Info */}
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          {/* Status Indicator Tag */}
+                          <span className={cn(
+                            "text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md",
+                            isExpiredOrMissing
+                              ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40"
+                              : isExpiring
+                                ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
+                                : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
+                          )}>
+                            {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
+                          </span>
+
+                          {/* Expiry Date */}
+                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 w-20 text-right">
                             {expFormatted}
                           </span>
-                          <Badge variant="outline" className={cn('text-[9px] font-extrabold px-1.5 py-0.2 rounded-md shadow-2xs', (CENTRAL_SLOT_STATUS[code] || CENTRAL_SLOT_STATUS.VALID).className)}>
-                            {(CENTRAL_SLOT_STATUS[code] || CENTRAL_SLOT_STATUS.VALID).label}
-                          </Badge>
                         </div>
                       </div>
                     );

@@ -406,7 +406,7 @@ export default function DriverDetailsPage() {
               <div>
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Current Location</span>
                 <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
-                  {driver.current_location || 'Riyadh'}
+                  {(driver as any).current_location || 'Riyadh'}
                 </span>
               </div>
               
