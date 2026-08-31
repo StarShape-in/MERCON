@@ -453,13 +453,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       );
                     })()}
 
-                    {/* Action Buttons Bar: Delete Document & Re-upload / Replace Document */}
-                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
+                    {/* Action Buttons Bar: Delete (Subtle Destructive) & Re-upload (Primary Action) */}
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-8 text-xs font-bold gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-400 dark:hover:bg-rose-950/40 cursor-pointer shadow-3xs"
+                        className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
                         onClick={async () => {
                           if (!activeDoc) return;
                           if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
@@ -474,13 +474,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                           }
                         }}
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Delete Document
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                       </Button>
 
                       <Button
                         type="button"
                         size="sm"
-                        className="h-8 text-xs font-bold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-3xs cursor-pointer"
+                        className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
                         onClick={() => setIsReplaceOpen(true)}
                       >
                         <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
