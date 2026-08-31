@@ -214,29 +214,22 @@ export default function Step2RouteSlots({
               {isRoundTrip ? (
                 <div className="space-y-3 w-full">
                   {/* Round Trip Curved Loop Banner */}
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-indigo-50 border border-emerald-200/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 shadow-2xs">
+                  <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-indigo-50/80 border border-emerald-200/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-indigo-950/40 shadow-2xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white shrink-0">
-                        <RotateCcw className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider block">
-                          Round-Trip Loop Journey (Outbound &amp; Return Legs)
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                          Configure outbound &amp; return cargo pickup and dropoff locations and add intermediate stops for both legs.
-                        </span>
-                      </div>
+                      <RotateCcw className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        Round-Trip Loop Journey (Outbound &amp; Return Legs)
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-2xs text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold text-slate-800 dark:text-slate-200">
                       <span className="text-emerald-600 font-bold">{slot.origin || 'Pickup'}</span>
-                      <div className="flex flex-col items-center px-1">
-                        <svg className="w-8 h-2.5 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <div className="flex items-center px-0.5">
+                        <svg className="w-5 h-2 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                           <path d="M 2 8 C 10 2, 22 2, 30 8" />
                           <path d="M 25 3 L 30 8 L 24 9" />
                         </svg>
-                        <svg className="w-8 h-2.5 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <svg className="w-5 h-2 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                           <path d="M 30 2 C 22 8, 10 8, 2 2" />
                           <path d="M 7 7 L 2 2 L 8 1" />
                         </svg>
