@@ -13,10 +13,8 @@ import { DateRange } from 'react-day-picker';
 import {
   Calendar as CalendarIcon,
   ChevronDown,
-  ChevronLeft,
   Check,
   CalendarDays,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -232,14 +230,7 @@ export function TripDateFilterPicker({
           /* Custom Calendar Mode inside little box */
           <div className="p-1 space-y-2">
             <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsCustomMode(false)}
-                className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 rounded px-1.5 py-0.5 hover:bg-slate-100 cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Back
-              </button>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Custom Range</span>
 
               <span className="text-[11px] font-mono text-slate-500 truncate max-w-[150px]">
                 {tempRange?.from ? (
