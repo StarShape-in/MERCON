@@ -156,9 +156,9 @@ export default function OwnerFolderPage() {
   };
 
   return (
-    <DashboardLayout active="Documents" title={`${ownerName} Workspace`}>
+    <DashboardLayout active="Documents" title={`${ownerName} Workspace`} fixedViewport>
       {/* Anchored Desktop Viewport Container: Fits full browser height on every desktop without scrolling */}
-      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full h-[calc(100vh-4.75rem)] flex flex-col overflow-hidden space-y-4">
+      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full h-full flex flex-col overflow-hidden gap-4">
         
         {/* ── Reference Design ERP Header Card ── */}
         <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 px-5 py-4 sm:px-6 sm:py-5 shadow-3xs flex items-center justify-between gap-4 shrink-0">

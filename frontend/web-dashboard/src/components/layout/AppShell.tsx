@@ -103,7 +103,7 @@ function ShellInner() {
         {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC]"
+          className={`flex-1 min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense
