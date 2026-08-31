@@ -211,14 +211,14 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       {/* ── 3. Master / Detail Workspace Split Grid ──────────────── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
-        {/* LEFT SIDE COLUMN: Selected Document Details & Actions Panel (4 / 12 width) */}
+        {/* LEFT SIDE COLUMN: Streamlined Single Document & Validity Panel (4 / 12 width) */}
         <div className="lg:col-span-4 flex flex-col justify-start">
           {activeSlot ? (
-            /* 📦 Clean Content-Height Panel: Ends naturally after Actions */
+            /* 📦 Streamlined Card Box */
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-2xs flex flex-col space-y-4">
               
-              {/* ── DOCUMENT ── */}
-              <div className="space-y-2">
+              {/* ── DOCUMENT HEADER ── */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     DOCUMENT
@@ -228,126 +228,32 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </span>
                 </div>
 
-                {/* Key-Value Grid (Simplified for Operation Card) */}
-                {activeSlot.documentType.name.toLowerCase().includes('operation card') ? (
-                  /* 📦 Operation Card: Simplified to 2 meaningful metadata fields (No Doc Number / Ref, No Attachment File) */
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-0.5">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Issuing Authority
-                      </span>
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                        {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Transport Authority (TGA - النقل)')}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Requirement Status
-                      </span>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                        {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Standard 4-Field Grid for other documents */
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Doc Number / Ref
-                      </span>
-                      <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
-                        {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '---'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Issuing Authority
-                      </span>
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                        {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Requirement Status
-                      </span>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                        {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Attachment File
-                      </span>
-                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 block truncate">
-                        {activeDoc ? (activeDoc.file_url ? activeDoc.file_url.split('/').pop() || 'document.pdf' : 'File Uploaded') : 'No File Attached'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-slate-100 dark:border-slate-800/80" />
-
-              {/* ── VALIDITY & ACTIONS ── */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                      VALIDITY
-                    </span>
-                    {activeDoc ? (
-                      <Badge variant="outline" className={cn('text-[9.5px] font-extrabold px-1.5 py-0.2 shadow-3xs', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
-                        {(CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).label}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-extrabold text-[9.5px] px-1.5 py-0.2">
-                        🔴 Missing
-                      </Badge>
-                    )}
-                  </div>
-
-                  {!isEditingDates && activeDoc && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingDates(true)}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3" /> Edit Dates
-                    </button>
-                  )}
-                </div>
-
-                {/* Dates Key-Value Grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {/* Streamlined 2-Column Grid: Issuing Authority, Expiry Date, Requirement Status, Issue Date */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-0.5">
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Issue Date
+                      Issuing Authority
                     </span>
-                    {isEditingDates ? (
-                      <div className="mt-1">
-                        <DatePicker
-                          value={editIssueDate}
-                          onChange={(_, dateStr) => setEditIssueDate(dateStr)}
-                          placeholder="Issue Date..."
-                        />
-                      </div>
-                    ) : (
-                      <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
-                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
-                      </span>
-                    )}
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                      {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || (activeSlot.documentType.name.toLowerCase().includes('operation card') ? 'Saudi Transport Authority (TGA - النقل)' : 'Saudi Traffic Dept (المرور)'))}
+                    </span>
                   </div>
 
                   <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Expiry Date
-                    </span>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Expiry Date
+                      </span>
+                      {!isEditingDates && activeDoc && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingDates(true)}
+                          className="text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" /> Edit
+                        </button>
+                      )}
+                    </div>
                     {isEditingDates ? (
                       <div className="mt-1">
                         <DatePicker
@@ -363,6 +269,34 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                           : activeSlot.documentType.requiresExpiryDate
                           ? <span className="text-rose-600 font-extrabold">Expiry Missing</span>
                           : <span className="text-slate-400 font-semibold">No Expiry Required</span>}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Requirement Status
+                    </span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Issue Date
+                    </span>
+                    {isEditingDates ? (
+                      <div className="mt-1">
+                        <DatePicker
+                          value={editIssueDate}
+                          onChange={(_, dateStr) => setEditIssueDate(dateStr)}
+                          placeholder="Issue Date..."
+                        />
+                      </div>
+                    ) : (
+                      <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
+                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
                       </span>
                     )}
                   </div>
@@ -392,55 +326,57 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </Button>
                   </div>
                 )}
+              </div>
 
-                {/* Document Actions Bar: Delete & Re-upload */}
-                <div className="pt-2 flex items-center justify-between gap-2">
-                  {activeDoc ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
-                        onClick={async () => {
-                          if (!activeDoc) return;
-                          if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
-                            try {
-                              toast.loading('Deleting document file...', { id: 'delete-doc' });
-                              await documentService.delete(activeDoc.id);
-                              toast.success('Document file deleted successfully', { id: 'delete-doc' });
-                              await refresh();
-                            } catch (err: any) {
-                              toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-                            }
+              <div className="border-t border-slate-100 dark:border-slate-800/80" />
+
+              {/* ── ACTIONS BAR (Delete & Re-upload Directly Below) ── */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                {activeDoc ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+                      onClick={async () => {
+                        if (!activeDoc) return;
+                        if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
+                          try {
+                            toast.loading('Deleting document file...', { id: 'delete-doc' });
+                            await documentService.delete(activeDoc.id);
+                            toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                            await refresh();
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
                           }
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                      </Button>
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                    </Button>
 
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
-                        onClick={() => setIsReplaceOpen(true)}
-                      >
-                        <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
-                      </Button>
-                    </>
-                  ) : (
                     <Button
                       type="button"
                       size="sm"
-                      className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
-                      onClick={() => setUploadSlot(activeSlot!)}
+                      className="h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
+                      onClick={() => setIsReplaceOpen(true)}
                     >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
                     </Button>
-                  )}
-                </div>
-
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
+                    onClick={() => setUploadSlot(activeSlot!)}
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                  </Button>
+                )}
               </div>
+
             </div>
           ) : (
             <div className="p-8 text-center text-slate-400 text-xs font-bold">
