@@ -163,7 +163,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
       {/* ── Top Clean Document Selection Buttons Bar (Indigo/Navy Pill Buttons) ──────────────── */}
-      <div className="flex items-center gap-2 sm:gap-2.5 border-b border-slate-200/80 dark:border-slate-800 pb-3 pt-0.5 mb-3 shrink-0 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-2 sm:gap-2.5 border-b border-slate-200/80 dark:border-slate-800 pb-2 pt-0 mb-2 shrink-0 overflow-x-auto scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;
@@ -179,7 +179,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               type="button"
               onClick={() => setSelectedSlotId(slot.documentType.id)}
               className={cn(
-                "px-3.5 py-2 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
+                "px-3.5 py-1.5 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
                 isSelected
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-sm ring-2 ring-indigo-500/20"
                   : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300"
@@ -209,17 +209,17 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       </div>
 
       {/* ── 3. Master / Detail Workspace Split Grid ──────────────── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 h-full overflow-hidden">
         
         {/* LEFT SIDE COLUMN: Streamlined Single Document & Audit Panel (4 / 12 width) */}
-        <div className="lg:col-span-4 flex flex-col justify-start space-y-3">
+        <div className="lg:col-span-4 flex flex-col justify-start space-y-2.5 overflow-y-auto scrollbar-none">
           {activeSlot ? (
             <>
               {/* 📦 Box 1: Document Details & Actions */}
-              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-2xs flex flex-col space-y-4">
+              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs flex flex-col space-y-3 shrink-0">
               
               {/* ── DOCUMENT HEADER ── */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     DOCUMENT
@@ -230,7 +230,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 </div>
 
                 {/* Streamlined 2-Column Grid: Issuing Authority, Expiry Date, Requirement Status, Issue Date */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-0.5">
+                <div className="grid grid-cols-2 gap-x-3.5 gap-y-2.5 pt-0.5">
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                       Issuing Authority
@@ -339,7 +339,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-8.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+                      className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
                       onClick={async () => {
                         if (!activeDoc) return;
                         if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
@@ -360,7 +360,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     <Button
                       type="button"
                       size="sm"
-                      className="h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
+                      className="h-8 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
                       onClick={() => setIsReplaceOpen(true)}
                     >
                       <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
@@ -370,7 +370,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   <Button
                     type="button"
                     size="sm"
-                    className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
+                    className="w-full h-8 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
                     onClick={() => setUploadSlot(activeSlot!)}
                   >
                     <UploadCloud className="w-3.5 h-3.5" /> Upload Document
@@ -381,7 +381,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
             </div>
 
               {/* 📦 Box 2: AI Extraction & Audit Trail */}
-              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
+              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs space-y-2.5 shrink-0">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                     AI EXTRACTION & AUDIT TRAIL
@@ -389,7 +389,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 </div>
 
-                <div className="space-y-2.5 text-xs">
+                <div className="space-y-2 text-xs">
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                       AI Extraction Status
@@ -400,13 +400,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-y-2 pt-0.5">
+                  <div className="grid grid-cols-2 gap-x-3 pt-0.5">
                     <div>
                       <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                         Uploaded By
                       </span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
-                        {(activeDoc as any)?.uploader_name || 'System Administrator (Adarsh VP)'}
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 block truncate">
+                        {(activeDoc as any)?.uploader_name || 'System Administrator'}
                       </span>
                     </div>
 
@@ -414,7 +414,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                         Upload Timestamp
                       </span>
-                      <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 block truncate">
                         {activeDoc?.createdAt 
                           ? formatInDeploymentTz(activeDoc.createdAt, tz, 'dd MMM yyyy · HH:mm') + ' GST'
                           : '18 Aug 2026 · 14:32 GST'}
@@ -431,9 +431,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           )}
         </div>
 
-        {/* RIGHT SIDE COLUMN: Full Canvas Viewer (8 / 12 width) - Compact Default Desktop Height */}
+        {/* RIGHT SIDE COLUMN: Full Canvas Viewer (8 / 12 width) - Responsive Flex Height (No Overflow) */}
         <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
-          <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 overflow-hidden">
+          <div className="h-full min-h-0 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs flex flex-col space-y-2 overflow-hidden">
             <div className="flex items-center justify-between shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
               <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-brand" />
@@ -447,11 +447,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
             </div>
 
             {activeDoc ? (
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                 <DocumentCanvasViewer
                   files={activeDocFiles}
                   title={activeSlot ? activeSlot.documentType.name : 'Document Preview'}
-                  canvasHeightClassName="h-[430px] sm:h-[450px] max-h-[470px]"
+                  canvasHeightClassName="h-full flex-1 min-h-0"
                 />
               </div>
             ) : (
