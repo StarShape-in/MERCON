@@ -162,8 +162,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── Top Document Selection Tab Buttons Bar (Compact & Sleek) ──────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto pt-0.5 pb-1 my-0.5 shrink-0 scrollbar-none">
+      {/* ── Top Document Selection Tab Buttons Bar (Compact, Sleek & Well Spaced) ──────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1.5 mt-1 mb-3 shrink-0 scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;

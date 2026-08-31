@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink, Maximize2, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink, Maximize2, X, Scaling, Expand } from 'lucide-react';
 import { resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ export default function DocumentCanvasViewer({
   const [activeIdx, setActiveIdx] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [fitMode, setFitMode] = useState<'contain' | 'width'>('contain');
   const [hasError, setHasError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -41,6 +42,7 @@ export default function DocumentCanvasViewer({
     setActiveIdx(0);
     setZoomLevel(1);
     setRotation(0);
+    setFitMode('contain');
     setHasError(false);
   }, [files]);
 
@@ -66,9 +68,11 @@ export default function DocumentCanvasViewer({
   const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.25, 3.5));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.25, 0.5));
   const handleRotate = () => setRotation((r) => (r + 90) % 360);
+  const toggleFitMode = () => setFitMode((m) => (m === 'contain' ? 'width' : 'contain'));
   const handleReset = () => {
     setZoomLevel(1);
     setRotation(0);
+    setFitMode('contain');
   };
 
   return (
@@ -135,6 +139,23 @@ export default function DocumentCanvasViewer({
               <RotateCw className="w-3.5 h-3.5" />
             </Button>
 
+            {isImg && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-7 px-2 text-[10px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1",
+                  fitMode === 'width' ? "bg-brand/10 text-brand font-black" : "text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                onClick={toggleFitMode}
+                title={fitMode === 'contain' ? "Fit Width (for tall certificates)" : "Fit Container"}
+              >
+                <Expand className="w-3 h-3" />
+                <span>{fitMode === 'contain' ? 'Fit Width' : 'Fit Page'}</span>
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="ghost"
@@ -146,7 +167,7 @@ export default function DocumentCanvasViewer({
               <Maximize2 className="w-3.5 h-3.5" />
             </Button>
 
-            {(zoomLevel !== 1 || rotation !== 0) && (
+            {(zoomLevel !== 1 || rotation !== 0 || fitMode !== 'contain') && (
               <Button
                 type="button"
                 variant="ghost"
@@ -198,7 +219,10 @@ export default function DocumentCanvasViewer({
             </div>
           </div>
         ) : isImg ? (
-          <div className="w-full h-full flex items-center justify-center overflow-auto p-3 sm:p-5">
+          <div className={cn(
+            "w-full h-full p-3 sm:p-5 overflow-auto flex scrollbar-thin",
+            fitMode === 'width' ? "items-start justify-center" : "items-center justify-center"
+          )}>
             <img
               key={`${resolvedUrl}-${retryKey}`}
               src={resolvedUrl}
@@ -207,11 +231,12 @@ export default function DocumentCanvasViewer({
               style={{
                 transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
                 transition: 'transform 0.2s ease-out',
-                maxHeight: '100%',
+                maxHeight: fitMode === 'width' ? 'none' : '100%',
                 maxWidth: '100%',
+                width: fitMode === 'width' ? '100%' : 'auto',
                 objectFit: 'contain',
               }}
-              className="rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-800 bg-white"
+              className="rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-800 bg-white m-auto"
             />
           </div>
         ) : isPdf ? (
