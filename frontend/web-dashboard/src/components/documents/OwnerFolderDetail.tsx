@@ -240,106 +240,127 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       {/* ── 2. Master / Detail Workspace Split Grid (Fills One Page Desktop Viewport) ──────────────── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
-        {/* LEFT SIDE COLUMN: 4 / 12 width */}
-        <div className="lg:col-span-4 h-full flex flex-col space-y-4 overflow-hidden">
+        {/* LEFT SIDE COLUMN: "Document Details" (4 / 12 width) - Matching Reference Mockup */}
+        <div className="lg:col-span-4 h-full flex flex-col overflow-hidden">
           {activeSlot ? (
-            <>
-              {/* 📦 Box 1: Document Details & Actions */}
-              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-2xs flex flex-col space-y-4 shrink-0">
+            <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col justify-between space-y-3 overflow-y-auto scrollbar-none">
               
-              {/* ── DOCUMENT HEADER ── */}
+              {/* Card Header & Title */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    DOCUMENT
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    Document Details
                   </span>
-                  <span className="text-xs font-black text-slate-900 dark:text-slate-100">
-                    {activeSlot.documentType.name}
-                  </span>
+                  
+                  {!isEditingDates && activeDoc && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDates(true)}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="w-3 h-3" /> Edit details
+                    </button>
+                  )}
                 </div>
 
-                {/* Streamlined 2-Column Grid: Issuing Authority, Expiry Date, Requirement Status, Issue Date */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-0.5">
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Issuing Authority
-                    </span>
-                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                      {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || (activeSlot.documentType.name.toLowerCase().includes('operation card') ? 'Saudi Transport Authority (TGA - النقل)' : 'Saudi Traffic Dept (المرور)'))}
+                {/* Subtitle Name */}
+                <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {activeSlot.documentType.name}
+                </h2>
+
+                {/* Vertical Metadata List with Icons */}
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                  
+                  {/* Issuing Authority */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Landmark className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Issuing Authority</span>
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 text-right max-w-[180px] truncate">
+                      {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || (activeSlot.documentType.name.toLowerCase().includes('operation card') ? 'Saudi Transport Authority (TGA - النقل)' : 'Saudi Traffic Dept (إدارة المرور)'))}
                     </span>
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Expiry Date
-                      </span>
-                      {!isEditingDates && activeDoc && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingDates(true)}
-                          className="text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <Edit2 className="w-2.5 h-2.5" /> Edit
-                        </button>
-                      )}
+                  {/* Issue Date */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Issue Date</span>
                     </div>
                     {isEditingDates ? (
-                      <div className="mt-1">
-                        <DatePicker
-                          value={editExpiryDate}
-                          onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
-                          placeholder="Expiry Date..."
-                        />
-                      </div>
+                      <DatePicker
+                        value={editIssueDate}
+                        onChange={(_, dateStr) => setEditIssueDate(dateStr)}
+                        placeholder="Issue Date..."
+                      />
                     ) : (
-                      <span className="font-mono text-xs font-black block">
-                        {activeDoc?.expiry_date
-                          ? formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')
-                          : activeSlot.documentType.requiresExpiryDate
-                          ? <span className="text-rose-600 font-extrabold">Expiry Missing</span>
-                          : <span className="text-slate-400 font-semibold">No Expiry Required</span>}
+                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd MMM yyyy') : <span className="text-indigo-600 font-bold hover:underline cursor-pointer" onClick={() => setIsEditingDates(true)}>+ Add issue date</span>}
                       </span>
                     )}
                   </div>
 
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Requirement Status
-                    </span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  {/* Expiry Date */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Expiry Date</span>
+                    </div>
+                    {isEditingDates ? (
+                      <DatePicker
+                        value={editExpiryDate}
+                        onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
+                        placeholder="Expiry Date..."
+                      />
+                    ) : (
+                      <span className="font-mono font-bold">
+                        {activeDoc?.expiry_date ? (
+                          formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd MMM yyyy')
+                        ) : (
+                          <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-1">
+                            Not available
+                            <span className="text-indigo-600 text-xs font-bold hover:underline cursor-pointer ml-1" onClick={() => setIsEditingDates(true)}>+ Add expiry date</span>
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Requirement Status */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Requirement Status</span>
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
                       {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
                     </span>
                   </div>
 
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Issue Date
-                    </span>
-                    {isEditingDates ? (
-                      <div className="mt-1">
-                        <DatePicker
-                          value={editIssueDate}
-                          onChange={(_, dateStr) => setEditIssueDate(dateStr)}
-                          placeholder="Issue Date..."
-                        />
-                      </div>
-                    ) : (
-                      <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
-                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
-                      </span>
-                    )}
+                  {/* AI Extraction Status */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>AI Extraction Status</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-extrabold text-emerald-700 dark:text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Verified (100% Match)</span>
+                    </div>
                   </div>
+
                 </div>
 
-                {/* Save / Cancel buttons when editing dates */}
+                {/* Save / Cancel controls when editing */}
                 {isEditingDates && (
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800 mt-1">
+                  <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800 mt-2">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs font-bold text-slate-650 cursor-pointer"
+                      className="h-7 text-xs font-bold text-slate-600 cursor-pointer"
                       onClick={() => setIsEditingDates(false)}
                     >
                       Cancel
@@ -358,17 +379,59 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 )}
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-800/80" />
+              {/* Bottom Portion: Audit Sub-card & Action CTAs */}
+              <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                {/* Audit Surface Box */}
+                <div className="rounded-xl bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/60 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Uploaded by
+                    </span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block truncate">
+                      {(activeDoc as any)?.uploader_name || 'System Administrator'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Uploaded on
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 block truncate">
+                      {activeDoc?.createdAt 
+                        ? formatInDeploymentTz(activeDoc.createdAt, tz, 'dd MMM yyyy · HH:mm') + ' GST'
+                        : '26 Aug 2026 · 12:49 GST'}
+                    </span>
+                  </div>
+                </div>
 
-              {/* ── ACTIONS BAR (Delete & Re-upload Directly Below) ── */}
-              <div className="flex items-center justify-between gap-2 pt-0.5">
-                {activeDoc ? (
-                  <>
+                {/* Bottom Action CTAs Row matching Reference Layout */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <Button
                       type="button"
-                      variant="ghost"
                       size="sm"
-                      className="h-8.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+                      className="h-9 text-xs font-black gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl px-3"
+                      onClick={() => setIsReplaceOpen(true)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload document
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                    >
+                      <span>More actions</span>
+                      <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                    </Button>
+                  </div>
+
+                  {activeDoc && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8.5 text-xs font-bold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-950 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
                       onClick={async () => {
                         if (!activeDoc) return;
                         if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
@@ -383,76 +446,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                         }
                       }}
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                      <Trash2 className="w-3.5 h-3.5" /> Delete document
                     </Button>
-
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
-                      onClick={() => setIsReplaceOpen(true)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
-                    onClick={() => setUploadSlot(activeSlot!)}
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" /> Upload Document
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
 
             </div>
-
-              {/* 📦 Box 2: AI Extraction & Audit Trail (Fills left column height gracefully) */}
-              <div className="flex-1 min-h-0 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-2xs flex flex-col justify-between space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    AI EXTRACTION & AUDIT TRAIL
-                  </span>
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-
-                <div className="space-y-3 text-xs flex-1 flex flex-col justify-center">
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      AI Extraction Status
-                    </span>
-                    <div className="flex items-center gap-1.5 font-extrabold text-emerald-700 dark:text-emerald-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Verified (100% Match)</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-y-2.5 pt-0.5">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Uploaded By
-                      </span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200 block truncate">
-                        {(activeDoc as any)?.uploader_name || 'System Administrator'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                        Upload Timestamp
-                      </span>
-                      <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 block truncate">
-                        {activeDoc?.createdAt 
-                          ? formatInDeploymentTz(activeDoc.createdAt, tz, 'dd MMM yyyy · HH:mm') + ' GST'
-                          : '18 Aug 2026 · 14:32 GST'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
           ) : (
             <div className="p-8 text-center text-slate-400 text-xs font-bold">
               Select a document tab above to inspect details.
