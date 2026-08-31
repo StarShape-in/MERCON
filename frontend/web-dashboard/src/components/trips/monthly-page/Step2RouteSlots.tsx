@@ -166,15 +166,38 @@ export default function Step2RouteSlots({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 text-xs font-bold text-white bg-brand hover:bg-[#d13d0d] gap-1 px-2.5"
-                    onClick={() => onAddSlotIntermediate(slot.id)}
-                  >
-                    <Plus className="w-3.5 h-3.5 text-white" />
-                    Add Stop
-                  </Button>
+                  {isRoundTrip ? (
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 gap-1 px-2.5 shadow-2xs"
+                        onClick={() => onAddSlotIntermediate(slot.id)}
+                      >
+                        <Plus className="w-3.5 h-3.5 text-white" />
+                        + Add Leg 1 Stop
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 gap-1 px-2.5 shadow-2xs"
+                        onClick={() => onAddSlotReturnIntermediate(slot.id)}
+                      >
+                        <Plus className="w-3.5 h-3.5 text-white" />
+                        + Add Leg 2 Stop
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 text-xs font-bold text-white bg-brand hover:bg-[#d13d0d] gap-1 px-2.5"
+                      onClick={() => onAddSlotIntermediate(slot.id)}
+                    >
+                      <Plus className="w-3.5 h-3.5 text-white" />
+                      Add Stop
+                    </Button>
+                  )}
                   {contractSlots.length > 1 && (
                     <button
                       type="button"
@@ -251,7 +274,18 @@ export default function Step2RouteSlots({
                     <div className="space-y-1 p-3 rounded-xl bg-orange-50/40 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/60">
                       <label className="text-[11px] font-black text-orange-900 dark:text-orange-300 uppercase tracking-wider block flex items-center justify-between">
                         <span>Outbound Dropoff (Destination) *</span>
-                        <span className="text-[10px] font-bold text-orange-600">Leg 1 Dropoff</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-orange-600">Leg 1 Dropoff</span>
+                          <button
+                            type="button"
+                            onClick={() => onAddSlotIntermediate(slot.id)}
+                            className="text-[10px] font-bold text-orange-700 bg-orange-100 hover:bg-orange-200 dark:bg-orange-950 dark:text-orange-300 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer border border-orange-300/60 dark:border-orange-800"
+                            title="Add intermediate stop to Leg 1"
+                          >
+                            <Plus className="w-3 h-3 text-orange-600 dark:text-orange-400" />
+                            + Add Stop
+                          </button>
+                        </div>
                       </label>
                       <LocationCombobox
                         customerId={contractCustomer}
@@ -293,7 +327,18 @@ export default function Step2RouteSlots({
                     <div className="space-y-1 p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-900/60">
                       <label className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-wider block flex items-center justify-between">
                         <span>Return Dropoff (Final Origin) *</span>
-                        <span className="text-[10px] font-bold text-indigo-600">Leg 2 Return Dropoff</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-indigo-600">Leg 2 Return Dropoff</span>
+                          <button
+                            type="button"
+                            onClick={() => onAddSlotReturnIntermediate(slot.id)}
+                            className="text-[10px] font-bold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer border border-indigo-300/60 dark:border-indigo-800"
+                            title="Add intermediate stop to Leg 2"
+                          >
+                            <Plus className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                            + Add Stop
+                          </button>
+                        </div>
                       </label>
                       <LocationCombobox
                         customerId={contractCustomer}
