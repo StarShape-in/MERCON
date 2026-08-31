@@ -362,6 +362,7 @@ export default function BulkAddTripsModal({
     pickupTime: string;
     dropoffTime: string;
     billingAmount: string;
+    additionalCharges?: string;
     driverTripCharge: string;
     isOvernight?: boolean;
     intermediateLocations: string[];

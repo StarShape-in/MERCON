@@ -10,6 +10,7 @@ interface DayAssignment {
   driverId: string;
   vehicleId: string;
   tripCharge?: string;
+  additionalCharges?: string;
   driverTripCharge?: string;
 }
 
