@@ -128,10 +128,10 @@ export default function OwnerFolderPage() {
   return (
     <DashboardLayout active="Documents" title={`${ownerName} Workspace`}>
       {/* Anchored Desktop Viewport Container: Fits default browser size on every desktop without scrolling */}
-      <div className="px-4 sm:px-6 pb-2.5 max-w-[1600px] mx-auto h-[calc(100vh-4.25rem)] flex flex-col overflow-hidden space-y-2.5">
+      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full flex flex-col space-y-3">
         
         {/* ── Professional ERP Header Card (Matching UI header color backdrop) ── */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-gradient-to-r from-slate-100/90 via-slate-50 to-slate-100/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3 sm:p-3.5 shadow-2xs flex items-center justify-between gap-4 shrink-0">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-gradient-to-r from-slate-100/90 via-slate-50 to-slate-100/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3.5 sm:p-4 shadow-2xs flex items-center justify-between gap-4 shrink-0">
           
           <div className="min-w-0 space-y-1">
             {/* Row 1: Main Vehicle Number + Compact Metadata Tags */}

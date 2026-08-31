@@ -451,7 +451,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 <DocumentCanvasViewer
                   files={activeDocFiles}
                   title={activeSlot ? activeSlot.documentType.name : 'Document Preview'}
-                  canvasHeightClassName="h-full flex-1 min-h-0"
+                  canvasHeightClassName="h-[305px] sm:h-[315px]"
                 />
               </div>
             ) : (
