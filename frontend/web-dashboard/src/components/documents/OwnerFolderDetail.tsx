@@ -162,7 +162,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── Top Clean Document Selection Buttons Bar (Real Pill Buttons with Hover & Active Depth) ──────────────── */}
+      {/* ── Top Clean Document Selection Buttons Bar (Indigo/Navy Pill Buttons) ──────────────── */}
       <div className="flex items-center gap-2 sm:gap-2.5 border-b border-slate-200/80 dark:border-slate-800 pb-3 pt-0.5 mb-3 shrink-0 overflow-x-auto scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
@@ -181,11 +181,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               className={cn(
                 "px-3.5 py-2 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
                 isSelected
-                  ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-sm ring-2 ring-slate-900/10"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-sm ring-2 ring-indigo-500/20"
                   : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300"
               )}
             >
-              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white dark:text-slate-900" : iconColor)} />
+              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white" : iconColor)} />
               <span className={cn(isSelected ? "font-black" : "font-semibold")}>
                 {slot.documentType.name}
               </span>
@@ -194,7 +194,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               <span className={cn(
                 "text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded-md transition-colors",
                 isSelected
-                  ? "bg-white/20 text-white dark:bg-slate-900/30 dark:text-slate-900"
+                  ? "bg-white/20 text-white"
                   : isExpiredOrMissing
                     ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
                     : isExpiring
@@ -261,7 +261,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                       Attachment File
                     </span>
-                    <span className="text-xs font-mono font-bold text-[#FA634E] block truncate">
+                    <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 block truncate">
                       {activeDoc ? (activeDoc.file_url ? activeDoc.file_url.split('/').pop() || 'document.pdf' : 'File Uploaded') : 'No File Attached'}
                     </span>
                   </div>
@@ -292,7 +292,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     <button
                       type="button"
                       onClick={() => setIsEditingDates(true)}
-                      className="text-xs font-bold text-[#FA634E] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Edit2 className="w-3 h-3" /> Edit Dates
                     </button>
@@ -359,7 +359,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     <Button
                       type="button"
                       size="sm"
-                      className="h-7 text-xs font-bold gap-1 bg-[#FA634E] text-white hover:bg-[#FA634E]/90 cursor-pointer"
+                      className="h-7 text-xs font-bold gap-1 bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
                       onClick={handleSaveDates}
                       disabled={isSavingDates}
                     >
@@ -398,7 +398,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       <Button
                         type="button"
                         size="sm"
-                        className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
+                        className="h-8 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer px-4 rounded-xl"
                         onClick={() => setIsReplaceOpen(true)}
                       >
                         <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
@@ -408,7 +408,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     <Button
                       type="button"
                       size="sm"
-                      className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer"
+                      className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl"
                       onClick={() => setUploadSlot(activeSlot!)}
                     >
                       <UploadCloud className="w-3.5 h-3.5" /> Upload Document
