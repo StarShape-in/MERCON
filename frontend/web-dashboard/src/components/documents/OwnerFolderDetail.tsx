@@ -258,11 +258,11 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         {/* LEFT SIDE COLUMN: "Document Details" (4 / 12 width) - Matching Reference Mockup */}
         <div className="lg:col-span-4 h-full flex flex-col overflow-hidden">
           {activeSlot ? (
-            <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col justify-between space-y-3 overflow-y-auto scrollbar-none">
+            <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col justify-between overflow-y-auto scrollbar-none">
               
-              {/* Card Header & Title (Clean Header without top Edit button) */}
+              {/* Card Header & Title */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
                     <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     Document Details
@@ -288,7 +288,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </span>
                   </div>
 
-                  {/* Issue Date (Clean formatting without + Add issue date link) */}
+                  {/* Issue Date */}
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
                       <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
@@ -332,7 +332,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     )}
                   </div>
 
-                  {/* Days Remaining (New Field under Expiry Date) */}
+                  {/* Days Remaining */}
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
                       <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -407,7 +407,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               </div>
 
               {/* Bottom Portion: Audit Sub-card & Action CTAs */}
-              <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-3 pt-2">
                 {/* Audit Surface Box */}
                 <div className="rounded-xl bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/60 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -431,110 +431,84 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 </div>
 
                 {/* Bottom Action CTAs Row */}
-                <div className="space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-9 text-xs font-black gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl px-3"
-                      onClick={() => setIsReplaceOpen(true)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload document
-                    </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 text-xs font-black gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl px-3"
+                    onClick={() => setIsReplaceOpen(true)}
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" /> Re-upload document
+                  </Button>
 
-                    {/* More actions Dropdown Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                  {/* More actions Dropdown Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                      >
+                        <span>More actions</span>
+                        <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 rounded-xl text-xs font-bold">
+                      {activeDoc && (
+                        <DropdownMenuItem
+                          onClick={() => setIsEditingDates(true)}
+                          className="cursor-pointer gap-2"
                         >
-                          <span>More actions</span>
-                          <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 rounded-xl text-xs font-bold">
-                        {activeDoc && (
+                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Edit details & dates</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDoc && (
+                        <DropdownMenuItem
+                          onClick={handleRescan}
+                          disabled={isRescanning}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Run AI Validation / OCR</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDocFiles.length > 0 && activeDocFiles[0].file_url && (
+                        <DropdownMenuItem
+                          onClick={() => window.open(resolveFileUrl(activeDocFiles[0].file_url), '_blank')}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Download document</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDoc && (
+                        <>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => setIsEditingDates(true)}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Edit details & dates</span>
-                          </DropdownMenuItem>
-                        )}
-                        {activeDoc && (
-                          <DropdownMenuItem
-                            onClick={handleRescan}
-                            disabled={isRescanning}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Run AI Validation / OCR</span>
-                          </DropdownMenuItem>
-                        )}
-                        {activeDocFiles.length > 0 && activeDocFiles[0].file_url && (
-                          <DropdownMenuItem
-                            onClick={() => window.open(resolveFileUrl(activeDocFiles[0].file_url), '_blank')}
-                            className="cursor-pointer gap-2"
-                          >
-                            <Download className="w-3.5 h-3.5 text-slate-500" />
-                            <span>Download document</span>
-                          </DropdownMenuItem>
-                        )}
-                        {activeDoc && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                if (!activeDoc) return;
-                                if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}?`)) {
-                                  try {
-                                    toast.loading('Deleting document file...', { id: 'delete-doc' });
-                                    await documentService.delete(activeDoc.id);
-                                    toast.success('Document file deleted successfully', { id: 'delete-doc' });
-                                    await refresh();
-                                  } catch (err: any) {
-                                    toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-                                  }
+                            onClick={async () => {
+                              if (!activeDoc) return;
+                              if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}?`)) {
+                                try {
+                                  toast.loading('Deleting document file...', { id: 'delete-doc' });
+                                  await documentService.delete(activeDoc.id);
+                                  toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                                  await refresh();
+                                } catch (err: any) {
+                                  toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
                                 }
-                              }}
-                              className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Delete document</span>
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {activeDoc && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-8.5 text-xs font-bold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-950 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer"
-                      onClick={async () => {
-                        if (!activeDoc) return;
-                        if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
-                          try {
-                            toast.loading('Deleting document file...', { id: 'delete-doc' });
-                            await documentService.delete(activeDoc.id);
-                            toast.success('Document file deleted successfully', { id: 'delete-doc' });
-                            await refresh();
-                          } catch (err: any) {
-                            toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-                          }
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete document
-                    </Button>
-                  )}
+                              }
+                            }}
+                            className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete document</span>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
