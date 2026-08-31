@@ -270,8 +270,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
         </div>
       </div>
 
-      {/* ── 2. Master / Detail Workspace Split Grid (Fills One Page Desktop Viewport) ──────────────── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
+      {/* ── 2. Master / Detail Workspace Split Grid ──────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
         {/* LEFT SIDE COLUMN: "Document Details" (4 / 12 width) - Matching Reference Mockup */}
         <div className="lg:col-span-4 flex flex-col overflow-y-auto scrollbar-none">
@@ -535,9 +535,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           )}
         </div>
 
-        {/* RIGHT SIDE COLUMN: Full Canvas Viewer (8 / 12 width) - Responsive Flex Height */}
-        <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
-          <div className="h-full min-h-0 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 overflow-hidden">
+        {/* RIGHT SIDE COLUMN: Full Canvas Viewer (8 / 12 width) */}
+        <div className="lg:col-span-8 flex flex-col">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 min-h-[420px]">
             <div className="flex items-center justify-between shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
               <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-brand" />

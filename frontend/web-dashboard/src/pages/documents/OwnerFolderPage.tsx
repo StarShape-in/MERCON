@@ -161,18 +161,18 @@ export default function OwnerFolderPage() {
       <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full h-[calc(100vh-4.75rem)] flex flex-col overflow-hidden space-y-4">
         
         {/* ── Reference Design ERP Header Card ── */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-3xs flex items-center justify-between gap-4 shrink-0">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 px-5 py-4 sm:px-6 sm:py-5 shadow-3xs flex items-center justify-between gap-4 shrink-0">
           
           <div className="flex items-center gap-3.5 min-w-0">
             {/* Left Truck / Entity Icon Box */}
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
-              <Truck className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
+              <Truck className="w-7 h-7 text-slate-700 dark:text-slate-300" />
             </div>
 
             <div className="min-w-0 space-y-1">
               {/* Row 1: Plate Number + Metadata Badges */}
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
                 </h1>
                 
