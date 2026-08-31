@@ -539,7 +539,14 @@ export default function BulkAddTripsModal({
         if (s.id !== slotId) return s;
         const nextFees = [...(s.intermediateStopFees || [])];
         nextFees[idx] = val;
-        return { ...s, intermediateStopFees: nextFees };
+        const oSum = nextFees.reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const rSum = (s.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const totalStops = oSum + rSum;
+        return {
+          ...s,
+          intermediateStopFees: nextFees,
+          additionalCharges: totalStops > 0 ? String(totalStops) : s.additionalCharges || '',
+        };
       })
     );
   };
@@ -590,7 +597,14 @@ export default function BulkAddTripsModal({
         if (s.id !== slotId) return s;
         const nextFees = [...(s.returnIntermediateStopFees || [])];
         nextFees[idx] = val;
-        return { ...s, returnIntermediateStopFees: nextFees };
+        const rSum = nextFees.reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const oSum = (s.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const totalStops = oSum + rSum;
+        return {
+          ...s,
+          returnIntermediateStopFees: nextFees,
+          additionalCharges: totalStops > 0 ? String(totalStops) : s.additionalCharges || '',
+        };
       })
     );
   };

@@ -504,7 +504,14 @@ export default function CreateMonthlyTripPage() {
         if (s.id !== slotId) return s;
         const nextFees = [...(s.intermediateStopFees || [])];
         nextFees[idx] = val;
-        return { ...s, intermediateStopFees: nextFees };
+        const oSum = nextFees.reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const rSum = (s.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const totalStops = oSum + rSum;
+        return {
+          ...s,
+          intermediateStopFees: nextFees,
+          additionalCharges: totalStops > 0 ? String(totalStops) : s.additionalCharges || '',
+        };
       })
     );
   };
@@ -554,7 +561,14 @@ export default function CreateMonthlyTripPage() {
         if (s.id !== slotId) return s;
         const nextFees = [...(s.returnIntermediateStopFees || [])];
         nextFees[idx] = val;
-        return { ...s, returnIntermediateStopFees: nextFees };
+        const rSum = nextFees.reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const oSum = (s.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const totalStops = oSum + rSum;
+        return {
+          ...s,
+          returnIntermediateStopFees: nextFees,
+          additionalCharges: totalStops > 0 ? String(totalStops) : s.additionalCharges || '',
+        };
       })
     );
   };
@@ -576,15 +590,18 @@ export default function CreateMonthlyTripPage() {
     { id: 'B', name: 'Team B', driverId: '', vehicleId: '' },
   ]);
 
-  // Auto-sync Master Charges with Slot 1 Matched Quotation Rates
+  // Auto-sync Master Charges with Slot 1 Matched Quotation Rates & Intermediate Stop Fees
   useEffect(() => {
     const slot0 = contractSlots[0];
     if (slot0) {
       if (slot0.billingAmount && (!masterTripCharge || masterTripCharge === '0')) {
         setMasterTripCharge(slot0.billingAmount);
       }
-      if (slot0.additionalCharges && (!masterAdditionalCharges || masterAdditionalCharges === '0')) {
-        setMasterAdditionalCharges(slot0.additionalCharges);
+      const slot0StopFees = (slot0.intermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0) +
+                            (slot0.returnIntermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+      const expectedAdditional = slot0StopFees > 0 ? String(slot0StopFees) : (slot0.additionalCharges || '');
+      if (expectedAdditional && masterAdditionalCharges !== expectedAdditional) {
+        setMasterAdditionalCharges(expectedAdditional);
       }
       if (slot0.driverTripCharge && (!masterDriverCharge || masterDriverCharge === '0')) {
         setMasterDriverCharge(slot0.driverTripCharge);

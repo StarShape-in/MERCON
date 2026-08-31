@@ -251,12 +251,26 @@ export default function Step4Assignments({
               </div>
             </div>
 
-            {/* Master Extras (Additional Charges) */}
+            {/* Master Extras (Additional / Stop Charges) */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                <DollarSign className="w-3 h-3 text-amber-500" />
-                Extras (Additional)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  <DollarSign className="w-3 h-3 text-amber-500" />
+                  Extras (Stop Charges)
+                </label>
+                {(() => {
+                  const totalStopFees = contractSlots.reduce((acc, slot) => {
+                    const oFees = (slot.intermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+                    const rFees = (slot.returnIntermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+                    return acc + oFees + rFees;
+                  }, 0);
+                  return totalStopFees > 0 ? (
+                    <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-300/80 shrink-0">
+                      🎯 SAR {totalStopFees.toFixed(2)} Stops
+                    </span>
+                  ) : null;
+                })()}
+              </div>
               <div className="relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-[10px] pointer-events-none">
                   SAR
@@ -267,8 +281,12 @@ export default function Step4Assignments({
                   step="0.01"
                   value={masterAdditionalCharges}
                   onChange={(e) => onMasterAdditionalChargesChange && onMasterAdditionalChargesChange(e.target.value)}
-                  placeholder={contractSlots[0]?.additionalCharges || '0.00'}
-                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 placeholder:text-slate-400"
+                  placeholder={(() => {
+                    const stopFees = (contractSlots[0]?.intermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0) +
+                                     (contractSlots[0]?.returnIntermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+                    return stopFees > 0 ? String(stopFees) : (contractSlots[0]?.additionalCharges || '0.00');
+                  })()}
+                  className="h-8.5 w-full pl-9 pr-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 placeholder:text-slate-400 font-mono"
                 />
               </div>
             </div>
@@ -317,7 +335,7 @@ export default function Step4Assignments({
                 const eVal = parseFloat(masterAdditionalCharges || contractSlots[0]?.additionalCharges || '0') || 0;
                 const dVal = parseFloat(masterDriverCharge || contractSlots[0]?.driverTripCharge || '0') || 0;
                 const totVal = bVal + eVal;
-                const balVal = totVal - (eVal + dVal);
+                const balVal = totVal - dVal;
                 return (
                   <div className={`h-8.5 w-full px-2.5 flex items-center rounded-lg border font-mono text-xs font-black ${
                     balVal >= 0
@@ -498,10 +516,13 @@ export default function Step4Assignments({
                   const slotDefault = getSlotForRow(rowItem);
 
                   const billingVal = parseFloat(currentAssignment.tripCharge !== undefined && currentAssignment.tripCharge !== '' ? currentAssignment.tripCharge : (masterTripCharge || slotDefault?.billingAmount || '0')) || 0;
-                  const extrasVal = parseFloat(currentAssignment.additionalCharges !== undefined && currentAssignment.additionalCharges !== '' ? currentAssignment.additionalCharges : (masterAdditionalCharges || slotDefault?.additionalCharges || '0')) || 0;
+                  const slotStopFees = (slotDefault?.intermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0) +
+                                       (slotDefault?.returnIntermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+                  const defaultExtras = masterAdditionalCharges || (slotStopFees > 0 ? String(slotStopFees) : (slotDefault?.additionalCharges || '0'));
+                  const extrasVal = parseFloat(currentAssignment.additionalCharges !== undefined && currentAssignment.additionalCharges !== '' ? currentAssignment.additionalCharges : defaultExtras) || 0;
                   const totalAmt = billingVal + extrasVal;
                   const driverVal = parseFloat(currentAssignment.driverTripCharge !== undefined && currentAssignment.driverTripCharge !== '' ? currentAssignment.driverTripCharge : (masterDriverCharge || slotDefault?.driverTripCharge || '0')) || 0;
-                  const balanceAmt = totalAmt - (extrasVal + driverVal);
+                  const balanceAmt = totalAmt - driverVal;
 
                   return (
                     <tr key={rowItem.key} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
@@ -569,7 +590,7 @@ export default function Step4Assignments({
                         </div>
                       </td>
 
-                      {/* Extras (Additional Charges) Override */}
+                      {/* Extras (Additional Charges / Stop Charges) Override */}
                       <td className="py-2 px-2">
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-[9px] pointer-events-none">
@@ -583,7 +604,7 @@ export default function Step4Assignments({
                             onChange={(e) =>
                               onUpdateDayAssignment(rowItem.key, { additionalCharges: e.target.value })
                             }
-                            placeholder={slotDefault?.additionalCharges || '0.00'}
+                            placeholder={defaultExtras || '0.00'}
                             className="h-8 w-24 pl-8 pr-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 placeholder:text-slate-300 font-mono"
                           />
                         </div>

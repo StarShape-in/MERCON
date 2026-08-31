@@ -82,9 +82,13 @@ export default function Step5Review({
         : (masterDriverCharge || slot?.driverTripCharge || '0')
     ) || 0;
 
-    const stopFees =
+    const slotStopFees =
       (slot?.intermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0) +
       (slot?.returnIntermediateStopFees || []).reduce((s, f) => s + (Number(f) || 0), 0);
+
+    const stopFees = (asgn.additionalCharges !== undefined && asgn.additionalCharges !== '')
+      ? (Number(asgn.additionalCharges) || 0)
+      : (slotStopFees > 0 ? slotStopFees : Number(slot?.additionalCharges || 0));
 
     const totalBilled = billingBase + stopFees;
     const grossMargin = totalBilled - driverPayout;
@@ -108,12 +112,13 @@ export default function Step5Review({
       const slot = getSlot(row);
       const f = resolveRowFinancials(row, slot);
       acc.billing += f.billingBase;
+      acc.stopFees += f.stopFees;
       acc.totalBilled += f.totalBilled;
       acc.driverPayout += f.driverPayout;
       acc.grossMargin += f.grossMargin;
       return acc;
     },
-    { billing: 0, totalBilled: 0, driverPayout: 0, grossMargin: 0 }
+    { billing: 0, stopFees: 0, totalBilled: 0, driverPayout: 0, grossMargin: 0 }
   );
 
   /** Primary driver / vehicle for header display */
@@ -195,7 +200,7 @@ export default function Step5Review({
       const vehicleId = vehicle?.id || 'unassigned';
       const slotId = slot?.id || 'default';
 
-      const groupKey = `${slotId}_${driverId}_${vehicleId}_${financials.billingBase}_${financials.driverPayout}`;
+      const groupKey = `${slotId}_${driverId}_${vehicleId}_${financials.billingBase}_${financials.stopFees}_${financials.driverPayout}`;
 
       if (!groupMap.has(groupKey)) {
         groupMap.set(groupKey, {
@@ -302,7 +307,7 @@ export default function Step5Review({
           {/* Customer Billing */}
           <div className="p-3 space-y-0.5">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-              <DollarSign className="w-2.5 h-2.5" /> Customer Billing
+              <DollarSign className="w-2.5 h-2.5" /> Base Billing
             </span>
             <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
               SAR {fmt(totals.billing)}
@@ -318,7 +323,9 @@ export default function Step5Review({
             <p className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">
               SAR {fmt(totals.totalBilled)}
             </p>
-            <p className="text-[9px] text-emerald-500">Incl. intermediate stop fees</p>
+            <p className="text-[9px] text-emerald-500">
+              {totals.stopFees > 0 ? `Incl. SAR ${fmt(totals.stopFees)} stop fees` : 'Incl. intermediate stop fees'}
+            </p>
           </div>
 
           {/* Driver / 3PL Payout */}
@@ -440,6 +447,11 @@ export default function Step5Review({
                   <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
                     BILLING RATE: SAR {fmt(groupTotalBilling)} {tripCount > 1 ? `(${fmt(billingBase)}/trip)` : ''}
                   </span>
+                  {stopFees > 0 && (
+                    <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300/80">
+                      STOP FEES: SAR {fmt(stopFees * tripCount)} {tripCount > 1 ? `(${fmt(stopFees)}/trip)` : ''}
+                    </span>
+                  )}
                   <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
                     TOTAL: SAR {fmt(groupTotalBilled)}
                   </span>
