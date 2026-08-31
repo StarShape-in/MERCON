@@ -245,27 +245,8 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
+      <div className="pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
         
-        {/* Breadcrumb Navigation Row */}
-        <div className="flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 text-xs">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/drivers')}
-              className="w-8 h-8 rounded-lg border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </Button>
-            <div className="flex items-center gap-1.5 font-semibold text-slate-500">
-              <span className="hover:text-slate-800 cursor-pointer" onClick={() => navigate('/drivers')}>Drivers</span>
-              <span className="text-slate-300 dark:text-slate-705">/</span>
-              <span className="font-extrabold text-slate-900 dark:text-slate-100">Driver Details</span>
-            </div>
-          </div>
-        </div>
-
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
         <div className="rounded-2xl border border-indigo-100/50 dark:border-slate-800 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-indigo-50/50 via-indigo-50/15 to-purple-50/30 dark:from-slate-900/60 dark:to-slate-950/40">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-5 min-w-0 flex-1">
@@ -383,10 +364,10 @@ export default function DriverDetailsPage() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {/* KPI 1: Total Trips */}
             <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-955/20 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
                 <Truck className="w-5 h-5" />
               </div>
               <div>
@@ -440,24 +421,6 @@ export default function DriverDetailsPage() {
                 </span>
                 <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
                   On-time Perf.
-                </span>
-              </div>
-            </div>
-
-            {/* KPI 5: Driver Rating */}
-            <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-955/20 flex items-center justify-center shrink-0 text-purple-600 dark:text-purple-400">
-                <Star className="w-5 h-5 fill-purple-600 dark:fill-purple-400" />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                  4.8 / 5
-                </span>
-                <span className="text-[9px] font-bold text-slate-450 block leading-tight">
-                  Driver Rating
-                </span>
-                <span className="text-[8px] font-medium text-slate-400 block mt-0.5">
-                  Based on 86 reviews
                 </span>
               </div>
             </div>
@@ -558,7 +521,7 @@ export default function DriverDetailsPage() {
 
                 <div className="flex items-center justify-between py-2">
                   <span className="text-slate-550 font-semibold">License Expiry</span>
-                  <span className="font-mono font-black text-slate-805 dark:text-slate-200">
+                  <span className="font-mono font-black text-slate-805 dark:text-slate-205">
                     {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
                   </span>
                 </div>
@@ -578,64 +541,46 @@ export default function DriverDetailsPage() {
             </div>
           </div>
 
-          {/* Card C: Quick Actions */}
+          {/* Card C: Documents Status */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4 flex-1">
-              <div className="flex items-center gap-2">
-                <Bolt className="w-4.5 h-4.5 text-purple-500 shrink-0" />
-                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                  Quick Actions
-                </h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4.5 h-4.5 text-indigo-500 shrink-0" />
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                    Documents Status
+                  </h3>
+                </div>
+                <Button
+                  variant="link"
+                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                  className="p-0 h-auto text-[10px] font-black text-indigo-650 dark:text-indigo-400 hover:text-indigo-750 flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
+                >
+                  Manage →
+                </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                {/* Action 1: Assign Trip */}
-                <button 
-                  type="button"
-                  onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-955/20 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Assign Trip</span>
-                </button>
-
-                {/* Action 2: Assign Vehicle */}
-                <button 
-                  type="button"
-                  onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Assign Vehicle</span>
-                </button>
-
-                {/* Action 3: View Trips */}
-                <button 
-                  type="button"
-                  onClick={() => navigate(`/trips?driverId=${driver.id}`)}
-                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">View Trips</span>
-                </button>
-
-                {/* Action 4: Send Message */}
-                <button 
-                  type="button"
-                  onClick={() => toast.info('Direct messaging not configured for this driver.')}
-                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 flex flex-col items-center justify-center gap-2 text-center shadow-3xs hover:bg-slate-50/50 hover:border-slate-250/50 dark:hover:bg-slate-950/40 cursor-pointer transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-955/20 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Send Message</span>
-                </button>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                {[
+                  { name: 'Driver License', check: licenseCheck },
+                  { name: 'ID Document', check: idCheck },
+                  { name: 'Medical Certificate', check: medicalCheck }
+                ].map((item, idx) => {
+                  const isOk = item.check.label.includes('Valid');
+                  return (
+                    <div key={idx} className="flex items-center justify-between py-2.5">
+                      <span className="text-slate-655 font-bold">{item.name}</span>
+                      <span className={cn(
+                        'text-[9px] font-black px-2 py-0.5 rounded-md border shadow-3xs uppercase tracking-wider',
+                        isOk 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'bg-amber-50 text-amber-700 border-amber-205/50 dark:bg-amber-955/20 dark:text-amber-405'
+                      )}>
+                        {isOk ? 'Valid' : 'Due'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
