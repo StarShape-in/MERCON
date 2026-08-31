@@ -127,13 +127,13 @@ export default function OwnerFolderPage() {
 
   return (
     <DashboardLayout active="Documents" title={`${ownerName} Workspace`}>
-      {/* Anchored Viewport Container: No outer page scroll */}
-      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-4">
+      {/* Anchored Desktop Viewport Container: Fits default browser size on every desktop without scrolling */}
+      <div className="px-4 sm:px-6 pb-3 max-w-[1600px] mx-auto h-[calc(100vh-5rem)] flex flex-col overflow-hidden space-y-3.5">
         
-        {/* ── Professional ERP Header Card (Slightly larger, matching light UI, no back button) ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-4.5 shadow-xs flex items-center justify-between gap-4 shrink-0">
+        {/* ── Professional ERP Header Card (Matching UI header color backdrop) ── */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-gradient-to-r from-slate-100/90 via-slate-50 to-slate-100/60 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-3.5 sm:p-4 shadow-2xs flex items-center justify-between gap-4 shrink-0">
           
-          <div className="min-w-0 space-y-1.5">
+          <div className="min-w-0 space-y-1">
             {/* Row 1: Main Vehicle Number + Compact Metadata Tags */}
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
@@ -141,12 +141,12 @@ export default function OwnerFolderPage() {
               </h1>
               
               {/* Vehicle Ref Code Tag */}
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-black border border-slate-200/80 dark:border-slate-700">
+              <span className="px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono text-xs font-black border border-slate-200 dark:border-slate-700 shadow-3xs">
                 {vehicle?.ref_id || 'TRK-110'}
               </span>
 
               {/* Capacity Tag */}
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200/80 dark:border-slate-700">
+              <span className="px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-3xs">
                 {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
               </span>
             </div>

@@ -162,8 +162,8 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   return (
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
-      {/* ── Top Clean Document Navigation Bar ──────────────── */}
-      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-2 pt-0.5 mb-4 shrink-0 overflow-x-auto scrollbar-none">
+      {/* ── Top Clean Document Selection Buttons Bar (Real Pill Buttons with Hover & Active Depth) ──────────────── */}
+      <div className="flex items-center gap-2 sm:gap-2.5 border-b border-slate-200/80 dark:border-slate-800 pb-3 pt-0.5 mb-3 shrink-0 overflow-x-auto scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;
@@ -179,25 +179,27 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
               type="button"
               onClick={() => setSelectedSlotId(slot.documentType.id)}
               className={cn(
-                "px-3 py-2 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 whitespace-nowrap -mb-px",
+                "px-3.5 py-2 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
                 isSelected
-                  ? "border-[#FA634E] text-slate-900 dark:text-slate-100 font-black"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
+                  ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-sm ring-2 ring-slate-900/10"
+                  : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300"
               )}
             >
-              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", iconColor)} />
-              <span className={cn(isSelected ? "text-slate-900 dark:text-slate-100 font-black" : "text-slate-700 dark:text-slate-300")}>
+              <StatusIcon className={cn("w-3.5 h-3.5 shrink-0", isSelected ? "text-white dark:text-slate-900" : iconColor)} />
+              <span className={cn(isSelected ? "font-black" : "font-semibold")}>
                 {slot.documentType.name}
               </span>
               
               {/* Secondary Status Badge */}
               <span className={cn(
-                "text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded-md",
-                isExpiredOrMissing
-                  ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
-                  : isExpiring
-                    ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50"
-                    : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50"
+                "text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded-md transition-colors",
+                isSelected
+                  ? "bg-white/20 text-white dark:bg-slate-900/30 dark:text-slate-900"
+                  : isExpiredOrMissing
+                    ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
+                    : isExpiring
+                      ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50"
+                      : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50"
               )}>
                 {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
               </span>
@@ -226,14 +228,14 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </span>
                 </div>
 
-                {/* 2-Column Key-Value Grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-0.5">
+                {/* 2-Column Grid (Showing 4 necessary fields!) */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
                   <div>
                     <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                       Doc Number / Ref
                     </span>
                     <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
-                      {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '7024295474'}
+                      {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '---'}
                     </span>
                   </div>
 
@@ -243,6 +245,24 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                     </span>
                     <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
                       {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Requirement Status
+                    </span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Attachment File
+                    </span>
+                    <span className="text-xs font-mono font-bold text-[#FA634E] block truncate">
+                      {activeDoc ? (activeDoc.file_url ? activeDoc.file_url.split('/').pop() || 'document.pdf' : 'File Uploaded') : 'No File Attached'}
                     </span>
                   </div>
                 </div>
@@ -405,7 +425,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
           )}
         </div>
 
-        {/* RIGHT SIDE BOX: Full Canvas Document Preview (8 / 12 width - larger width preview) */}
+        {/* RIGHT SIDE COLUMN: Full Canvas Viewer (8 / 12 width) - Compact Default Desktop Height */}
         <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
           <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 overflow-hidden">
             <div className="flex items-center justify-between shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -425,7 +445,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                 <DocumentCanvasViewer
                   files={activeDocFiles}
                   title={activeSlot ? activeSlot.documentType.name : 'Document Preview'}
-                  canvasHeightClassName="h-full min-h-[480px]"
+                  canvasHeightClassName="h-[430px] sm:h-[450px] max-h-[470px]"
                 />
               </div>
             ) : (
