@@ -37,20 +37,38 @@ export default function OwnerFolderPage() {
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers'],
-    queryFn: () => driverService.getAll({ mode: 'lookup' }),
+    queryFn: async () => {
+      try {
+        return await driverService.getAll({ mode: 'lookup' });
+      } catch (err) {
+        return { data: [] } as any;
+      }
+    },
   });
 
   const driversList: Driver[] = driversRes?.data || [];
 
   const { data: driver } = useQuery({
     queryKey: ['driver', ownerId],
-    queryFn: () => driverService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await driverService.getById(ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && normalizedType === 'Driver',
   });
 
   const { data: vehicle } = useQuery({
     queryKey: ['vehicle', ownerId],
-    queryFn: () => vehicleService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await vehicleService.getById(ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && normalizedType === 'Vehicle',
   });
 
@@ -60,13 +78,25 @@ export default function OwnerFolderPage() {
 
   const { data: fullTargetDriver } = useQuery({
     queryKey: ['driver', targetDriverId],
-    queryFn: () => driverService.getById(targetDriverId!),
+    queryFn: async () => {
+      try {
+        return await driverService.getById(targetDriverId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!targetDriverId,
   });
 
   const { data: folder } = useQuery({
     queryKey: ['documents', 'owner', normalizedType, ownerId],
-    queryFn: () => documentService.getOwnerFolder(normalizedType!, ownerId!),
+    queryFn: async () => {
+      try {
+        return await documentService.getOwnerFolder(normalizedType!, ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && !!normalizedType,
   });
 
