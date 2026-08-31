@@ -244,23 +244,8 @@ export default function DriverDetailsPage() {
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
       <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
-        
-        {/* Back Navigation Row */}
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/drivers')} 
-            className="h-8 gap-1.5 px-3 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs cursor-pointer rounded-lg"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back
-          </Button>
-          <span className="text-sm font-black text-slate-850 dark:text-slate-200">
-            {driver.first_name} {driver.last_name}
-          </span>
-        </div>
-
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-white via-white to-orange-50/15 dark:to-orange-950/5">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-3xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-[#EEF1F6]/85 dark:bg-slate-900/60">
           <div className="flex items-start sm:items-center gap-5 min-w-0 flex-1">
             {/* Driver Avatar with overlay status dot */}
             <div className="relative shrink-0">
@@ -324,24 +309,9 @@ export default function DriverDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
+              className="h-9 text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
             >
               <Edit2 className="w-3.5 h-3.5" /> Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer gap-1.5 rounded-xl px-4"
-            >
-              <FolderOpen className="w-3.5 h-3.5" /> Vault
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-9 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-xl px-4 cursor-pointer gap-1.5"
-            >
-              <Plus className="w-4 h-4" /> New Trip
             </Button>
 
             {/* Dropdown Menu for Delete/Export */}
