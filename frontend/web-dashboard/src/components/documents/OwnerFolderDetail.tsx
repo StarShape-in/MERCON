@@ -364,6 +364,95 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       </div>
                     )}
 
+                    {/* Document Completeness & Validation Checklist (Clean Checklist Rows - No Nested Cards) */}
+                    {(() => {
+                      const status = activeDoc ? getSlotStatusFromDoc(activeDoc) : 'MISSING';
+                      const hasDocNum = !!(activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number);
+                      const hasIssueDate = !!activeDoc?.issue_date;
+                      const isExpiryValid = status === 'VALID' || status === 'NO_EXPIRY';
+
+                      const checks = [
+                        {
+                          id: 'file',
+                          label: 'File Attachment',
+                          passed: !!activeDoc,
+                          msg: activeDoc ? 'Uploaded' : 'Missing File',
+                        },
+                        {
+                          id: 'number',
+                          label: 'Reference Serial Number',
+                          passed: hasDocNum,
+                          msg: hasDocNum ? 'Verified' : 'Ref Missing',
+                        },
+                        {
+                          id: 'issue_date',
+                          label: 'Issue Date Record',
+                          passed: hasIssueDate,
+                          msg: hasIssueDate ? 'Recorded' : 'Not Set',
+                        },
+                        {
+                          id: 'expiry',
+                          label: 'Expiry Validity Status',
+                          passed: isExpiryValid,
+                          msg: status === 'EXPIRED'
+                            ? 'Expired'
+                            : status === 'EXPIRING_SOON'
+                            ? 'Expiring Soon'
+                            : activeSlot.documentType.requiresExpiryDate && !activeDoc?.expiry_date
+                            ? 'Date Required'
+                            : isExpiryValid
+                            ? 'Valid & Active'
+                            : 'Missing',
+                        },
+                      ];
+
+                      const allPassed = checks.every((c) => c.passed);
+
+                      return (
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                              Document Validation Checks
+                            </span>
+                            {allPassed ? (
+                              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Passed All Checks
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Needs Attention
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Clean Checklist Rows (No Inner Boxes) */}
+                          <div className="space-y-1">
+                            {checks.map((chk) => (
+                              <div key={chk.id} className="flex items-center justify-between text-xs py-0.5">
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                  {chk.passed ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  ) : (
+                                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                  )}
+                                  <span className={cn("text-[11px] truncate", chk.passed ? "text-slate-700 dark:text-slate-300" : "font-bold text-rose-700 dark:text-rose-400")}>
+                                    {chk.label}
+                                  </span>
+                                </span>
+
+                                <span className={cn(
+                                  "text-[10.5px] font-mono shrink-0 ml-2",
+                                  chk.passed ? "text-slate-400 dark:text-slate-500" : "font-bold text-rose-600 dark:text-rose-400"
+                                )}>
+                                  {chk.msg}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Action Buttons Bar: Delete Document & Re-upload / Replace Document */}
                     <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
                       <Button
