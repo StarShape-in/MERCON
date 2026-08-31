@@ -631,7 +631,6 @@ export default function DriverDetailsPage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
       <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
@@ -726,6 +725,7 @@ export default function DriverDetailsPage() {
         onClose={() => setSelectedDocIdForPreview(null)}
       />
 
-    </DashboardLayout>
-  );
+    </div>
+  </DashboardLayout>
+);
 }
