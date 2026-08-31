@@ -193,31 +193,38 @@ const HomeScreen = () => {
     const isRoundTrip =
       trip.trip_type?.toLowerCase().includes('round') ||
       (trip.stops && trip.stops.length >= 3) ||
-      (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name);
+      (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name) ||
+      (trip.destination && (trip.destination.includes('[RETURN:') || trip.destination.toLowerCase().includes('return')));
 
-    // If trip has 3+ explicit stops
+    // If trip has 3+ explicit stops objects from backend
     if (trip.stops && trip.stops.length >= 3) {
       return trip.stops.map((s, idx) => {
-        let typeEn = 'Stop';
-        let typeUrdu = 'اسٹاپ';
+        let typeEn = `Stop #${idx}`;
+        let typeUrdu = `اسٹاپ #${idx}`;
         let iconType: 'House' | 'MapPin' | 'Route' = 'Route';
 
         if (idx === 0) {
           typeEn = 'Pickup';
           typeUrdu = 'پک اپ';
           iconType = 'House';
-        } else if (idx === 1) {
-          typeEn = 'Delivery';
-          typeUrdu = 'ڈلیوری';
+        } else if (idx === trip.stops.length - 1) {
+          typeEn = isRoundTrip ? 'Return Delivery' : 'Delivery';
+          typeUrdu = isRoundTrip ? 'واپسی ڈلیوری' : 'ڈلیوری';
           iconType = 'MapPin';
-        } else if (idx === 2) {
-          typeEn = 'Return Loading';
-          typeUrdu = 'واپسی لوڈنگ';
-          iconType = 'House';
         } else {
-          typeEn = 'Return Delivery';
-          typeUrdu = 'واپسی ڈلیوری';
-          iconType = 'MapPin';
+          if (s.stop_type === 'Pickup') {
+            typeEn = 'Return Loading';
+            typeUrdu = 'واپسی لوڈنگ';
+            iconType = 'House';
+          } else if (s.stop_type === 'Dropoff') {
+            typeEn = 'Delivery';
+            typeUrdu = 'ڈلیوری';
+            iconType = 'MapPin';
+          } else {
+            typeEn = `Intermediate Stop #${idx}`;
+            typeUrdu = `انٹرمیڈیٹ اسٹاپ #${idx}`;
+            iconType = 'Route';
+          }
         }
 
         return {
@@ -231,27 +238,140 @@ const HomeScreen = () => {
       });
     }
 
-    const pickupStop = trip.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? trip.stops?.[0];
-    const dropoffStop = trip.stops?.find((s) => s.stop_sequence === (trip.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? trip.stops?.[trip.stops?.length - 1];
+    // Parse origin and destination string representations
+    const originStr = trip.origin || (trip.stops?.[0] ? stopLabel(trip.stops[0]) : '') || 'Pickup Location';
+    const destStr = trip.destination || (trip.stops?.[1] ? stopLabel(trip.stops[1]) : '') || 'Delivery Location';
 
-    const pName = stopLabel(pickupStop) ?? 'Riyadh';
-    const pAddr = stopAddress(pickupStop) ?? 'Riyadh Governorate, Saudi Arabia';
-    const dName = stopLabel(dropoffStop) ?? 'Khamis Mushait';
-    const dAddr = stopAddress(dropoffStop) ?? 'Khamis Mushait Governorate, Saudi Arabia';
+    // Parse [RETURN: ...] if present in destination string
+    let outboundText = destStr;
+    let returnText = '';
 
-    if (isRoundTrip) {
-      return [
-        { id: 'stop-1', typeUrdu: 'پک اپ', typeEn: 'Pickup', name: pName, address: pAddr, iconType: 'House' },
-        { id: 'stop-2', typeUrdu: 'ڈلیوری', typeEn: 'Delivery', name: dName, address: dAddr, iconType: 'MapPin' },
-        { id: 'stop-3', typeUrdu: 'واپسی لوڈنگ', typeEn: 'Return Loading', name: dName, address: dAddr, iconType: 'House' },
-        { id: 'stop-4', typeUrdu: 'واپسی ڈلیوری', typeEn: 'Return Delivery', name: pName, address: pAddr, iconType: 'MapPin' },
-      ];
+    if (destStr.includes('[RETURN:')) {
+      const parts = destStr.split(/\[RETURN:\s*/i);
+      outboundText = parts[0].trim();
+      returnText = parts[1] ? parts[1].replace(/\]$/, '').trim() : '';
     }
 
-    return [
-      { id: pickupStop?.id ?? 'stop-p', typeUrdu: 'پک اپ', typeEn: 'Pickup', name: pName, address: pAddr, iconType: 'House' },
-      { id: dropoffStop?.id ?? 'stop-d', typeUrdu: 'ڈلیوری', typeEn: 'Delivery', name: dName, address: dAddr, iconType: 'MapPin' },
-    ];
+    // Split location chain like "AL BAHA -> Khamis Mushait"
+    const splitChain = (str: string): string[] => {
+      if (!str) return [];
+      return str
+        .split(/\s*(?:→|->|-->)\s*/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    };
+
+    const outboundStops = splitChain(outboundText);
+    const returnStops = splitChain(returnText);
+
+    const result: TimelineStop[] = [];
+
+    // 1. Pickup Node
+    result.push({
+      id: 'pickup-0',
+      typeEn: 'Pickup',
+      typeUrdu: 'پک اپ',
+      name: originStr,
+      address: null,
+      iconType: 'House',
+    });
+
+    // 2. Outbound Intermediate & Delivery Stops
+    if (outboundStops.length > 1) {
+      const intermediateList = outboundStops.slice(0, -1);
+      const finalOutboundDest = outboundStops[outboundStops.length - 1];
+
+      intermediateList.forEach((stopName, idx) => {
+        result.push({
+          id: `outbound-inter-${idx}`,
+          typeEn: `Outbound Stop #${idx + 1}`,
+          typeUrdu: `آؤٹ باؤنڈ اسٹاپ #${idx + 1}`,
+          name: stopName,
+          address: null,
+          iconType: 'Route',
+        });
+      });
+
+      result.push({
+        id: 'outbound-delivery',
+        typeEn: 'Delivery',
+        typeUrdu: 'ڈلیوری',
+        name: finalOutboundDest,
+        address: null,
+        iconType: 'MapPin',
+      });
+    } else if (outboundStops.length === 1) {
+      result.push({
+        id: 'outbound-delivery',
+        typeEn: 'Delivery',
+        typeUrdu: 'ڈلیوری',
+        name: outboundStops[0],
+        address: null,
+        iconType: 'MapPin',
+      });
+    }
+
+    // 3. Return Leg Stops if Round Trip
+    if (isRoundTrip || returnStops.length > 0) {
+      if (returnStops.length > 0) {
+        // Return Loading (First location in return leg)
+        result.push({
+          id: 'return-pickup',
+          typeEn: 'Return Loading',
+          typeUrdu: 'واپسی لوڈنگ',
+          name: returnStops[0],
+          address: null,
+          iconType: 'House',
+        });
+
+        // Return Intermediate Stops
+        if (returnStops.length > 2) {
+          const returnIntermediates = returnStops.slice(1, -1);
+          returnIntermediates.forEach((stopName, idx) => {
+            result.push({
+              id: `return-inter-${idx}`,
+              typeEn: `Return Stop #${idx + 1}`,
+              typeUrdu: `واپسی اسٹاپ #${idx + 1}`,
+              name: stopName,
+              address: null,
+              iconType: 'Route',
+            });
+          });
+        }
+
+        // Return Final Delivery
+        if (returnStops.length >= 2) {
+          result.push({
+            id: 'return-delivery',
+            typeEn: 'Return Delivery',
+            typeUrdu: 'واپسی ڈلیوری',
+            name: returnStops[returnStops.length - 1],
+            address: null,
+            iconType: 'MapPin',
+          });
+        }
+      } else if (isRoundTrip) {
+        const lastOutbound = result[result.length - 1]?.name || destStr;
+        result.push({
+          id: 'return-pickup',
+          typeEn: 'Return Loading',
+          typeUrdu: 'واپسی لوڈنگ',
+          name: lastOutbound,
+          address: null,
+          iconType: 'House',
+        });
+        result.push({
+          id: 'return-delivery',
+          typeEn: 'Return Delivery',
+          typeUrdu: 'واپسی ڈلیوری',
+          name: originStr,
+          address: null,
+          iconType: 'MapPin',
+        });
+      }
+    }
+
+    return result;
   }
 
   interface WorkflowStateInfo {

@@ -204,88 +204,235 @@ export default function DriverTripDetailsScreen() {
               />
             </View>
 
-            <View style={styles.routeContainer}>
-              {/* Left Timeline Line */}
-              <View style={styles.timelineCol}>
-                <View style={styles.pickupNodeOuter}>
-                  <View style={styles.pickupNodeInner} />
-                </View>
-                <View style={styles.dashedLine} />
-                {intermediateStops.length > 0 && (
-                  <>
-                    <View style={styles.stopNodeDot} />
-                    <View style={styles.dashedLine} />
-                  </>
-                )}
-                <View style={styles.stopNodeDot} />
-              </View>
+            {/* Route & Locations Timeline */}
+            {(() => {
+              const timelineStops = (() => {
+                if (!trip) return [];
 
-              {/* Route Items */}
-              <View style={styles.routeItemsCol}>
-                {/* Pickup Location */}
-                <View style={styles.routeRowItem}>
-                  <View style={styles.iconCircleBadge}>
-                    <House size={20} color="#FA634E" strokeWidth={2} />
-                  </View>
-                  <View style={styles.routeTextCol}>
-                    <BilingualText
-                      ur="پک اپ پوائنٹ"
-                      en="Pickup Location"
-                      primaryStyle={styles.stageUrduPrimary}
-                      subStyle={styles.stageSubEn}
-                    />
-                    <Text style={styles.routePlaceName}>{stopLabel(pickupStop) ?? 'Mercon Hub'}</Text>
-                    <Text style={styles.routeAddressText}>{stopAddress(pickupStop) ?? 'Location address'}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(stopAddress(pickupStop))}>
-                    <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                  </TouchableOpacity>
-                </View>
+                const isRoundTrip =
+                  trip.trip_type?.toLowerCase().includes('round') ||
+                  (trip.stops && trip.stops.length >= 3) ||
+                  (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name) ||
+                  (trip.destination && (trip.destination.includes('[RETURN:') || trip.destination.toLowerCase().includes('return')));
 
-                {/* Intermediate Stops if present */}
-                {intermediateStops.length > 0 && (
-                  <View style={styles.routeRowItem}>
-                    <View style={styles.iconCircleBadge}>
-                      <Route size={20} color="#FA634E" strokeWidth={2} />
-                    </View>
-                    <View style={styles.routeTextCol}>
-                      <BilingualText
-                        ur="اسٹاپس"
-                        en="Waypoints"
-                        primaryStyle={styles.stageUrduPrimary}
-                        subStyle={styles.stageSubEn}
-                      />
-                      <Text style={styles.routePlaceName}>
-                        {intermediateStops.length} {intermediateStops.length === 1 ? 'Intermediate Stop' : 'Intermediate Stops'}
-                      </Text>
-                      <Text style={styles.routeAddressText}>
-                        {intermediateStops.map((s) => stopLabel(s)).filter(Boolean).join(', ')}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                if (trip.stops && trip.stops.length >= 3) {
+                  return trip.stops.map((s, idx) => {
+                    let typeEn = `Stop #${idx}`;
+                    let typeUrdu = `اسٹاپ #${idx}`;
+                    let iconType: 'House' | 'MapPin' | 'Route' = 'Route';
 
-                {/* Delivery Location */}
-                <View style={styles.routeRowItem}>
-                  <View style={styles.iconCircleBadge}>
-                    <MapPin size={20} color="#FA634E" strokeWidth={2} />
+                    if (idx === 0) {
+                      typeEn = 'Pickup Location';
+                      typeUrdu = 'پک اپ پوائنٹ';
+                      iconType = 'House';
+                    } else if (idx === trip.stops.length - 1) {
+                      typeEn = isRoundTrip ? 'Return Delivery' : 'Delivery Location';
+                      typeUrdu = isRoundTrip ? 'واپسی ڈلیوری' : 'ڈلیوری پوائنٹ';
+                      iconType = 'MapPin';
+                    } else {
+                      if (s.stop_type === 'Pickup') {
+                        typeEn = 'Return Loading';
+                        typeUrdu = 'واپسی لوڈنگ';
+                        iconType = 'House';
+                      } else if (s.stop_type === 'Dropoff') {
+                        typeEn = 'Delivery Location';
+                        typeUrdu = 'ڈلیوری پوائنٹ';
+                        iconType = 'MapPin';
+                      } else {
+                        typeEn = `Intermediate Stop #${idx}`;
+                        typeUrdu = `انٹرمیڈیٹ اسٹاپ #${idx}`;
+                        iconType = 'Route';
+                      }
+                    }
+
+                    return {
+                      id: s.id || `stop-${idx}`,
+                      typeUrdu,
+                      typeEn,
+                      name: stopLabel(s) ?? 'Location',
+                      address: stopAddress(s),
+                      iconType,
+                    };
+                  });
+                }
+
+                const originStr = trip.origin || (trip.stops?.[0] ? stopLabel(trip.stops[0]) : '') || 'Pickup Location';
+                const destStr = trip.destination || (trip.stops?.[1] ? stopLabel(trip.stops[1]) : '') || 'Delivery Location';
+
+                let outboundText = destStr;
+                let returnText = '';
+
+                if (destStr.includes('[RETURN:')) {
+                  const parts = destStr.split(/\[RETURN:\s*/i);
+                  outboundText = parts[0].trim();
+                  returnText = parts[1] ? parts[1].replace(/\]$/, '').trim() : '';
+                }
+
+                const splitChain = (str: string): string[] => {
+                  if (!str) return [];
+                  return str
+                    .split(/\s*(?:→|->|-->)\s*/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                };
+
+                const outboundStops = splitChain(outboundText);
+                const returnStops = splitChain(returnText);
+
+                const result: Array<{ id: string; typeUrdu: string; typeEn: string; name: string; address: string | null; iconType: 'House' | 'MapPin' | 'Route' }> = [];
+
+                result.push({
+                  id: 'pickup-0',
+                  typeEn: 'Pickup Location',
+                  typeUrdu: 'پک اپ پوائنٹ',
+                  name: originStr,
+                  address: null,
+                  iconType: 'House',
+                });
+
+                if (outboundStops.length > 1) {
+                  const intermediateList = outboundStops.slice(0, -1);
+                  const finalOutboundDest = outboundStops[outboundStops.length - 1];
+
+                  intermediateList.forEach((stopName, idx) => {
+                    result.push({
+                      id: `outbound-inter-${idx}`,
+                      typeEn: `Outbound Stop #${idx + 1}`,
+                      typeUrdu: `آؤٹ باؤنڈ اسٹاپ #${idx + 1}`,
+                      name: stopName,
+                      address: null,
+                      iconType: 'Route',
+                    });
+                  });
+
+                  result.push({
+                    id: 'outbound-delivery',
+                    typeEn: 'Delivery Location',
+                    typeUrdu: 'ڈلیوری پوائنٹ',
+                    name: finalOutboundDest,
+                    address: null,
+                    iconType: 'MapPin',
+                  });
+                } else if (outboundStops.length === 1) {
+                  result.push({
+                    id: 'outbound-delivery',
+                    typeEn: 'Delivery Location',
+                    typeUrdu: 'ڈلیوری پوائنٹ',
+                    name: outboundStops[0],
+                    address: null,
+                    iconType: 'MapPin',
+                  });
+                }
+
+                if (isRoundTrip || returnStops.length > 0) {
+                  if (returnStops.length > 0) {
+                    result.push({
+                      id: 'return-pickup',
+                      typeEn: 'Return Loading',
+                      typeUrdu: 'واپسی لوڈنگ',
+                      name: returnStops[0],
+                      address: null,
+                      iconType: 'House',
+                    });
+
+                    if (returnStops.length > 2) {
+                      const returnIntermediates = returnStops.slice(1, -1);
+                      returnIntermediates.forEach((stopName, idx) => {
+                        result.push({
+                          id: `return-inter-${idx}`,
+                          typeEn: `Return Stop #${idx + 1}`,
+                          typeUrdu: `واپسی اسٹاپ #${idx + 1}`,
+                          name: stopName,
+                          address: null,
+                          iconType: 'Route',
+                        });
+                      });
+                    }
+
+                    if (returnStops.length >= 2) {
+                      result.push({
+                        id: 'return-delivery',
+                        typeEn: 'Return Delivery',
+                        typeUrdu: 'واپسی ڈلیوری',
+                        name: returnStops[returnStops.length - 1],
+                        address: null,
+                        iconType: 'MapPin',
+                      });
+                    }
+                  } else if (isRoundTrip) {
+                    const lastOutbound = result[result.length - 1]?.name || destStr;
+                    result.push({
+                      id: 'return-pickup',
+                      typeEn: 'Return Loading',
+                      typeUrdu: 'واپسی لوڈنگ',
+                      name: lastOutbound,
+                      address: null,
+                      iconType: 'House',
+                    });
+                    result.push({
+                      id: 'return-delivery',
+                      typeEn: 'Return Delivery',
+                      typeUrdu: 'واپسی ڈلیوری',
+                      name: originStr,
+                      address: null,
+                      iconType: 'MapPin',
+                    });
+                  }
+                }
+
+                return result;
+              })();
+
+              return (
+                <View style={styles.routeContainer}>
+                  {/* Left Timeline Line */}
+                  <View style={styles.timelineCol}>
+                    {timelineStops.map((st, idx) => (
+                      <React.Fragment key={`node-${st.id}-${idx}`}>
+                        {idx === 0 ? (
+                          <View style={styles.pickupNodeOuter}>
+                            <View style={styles.pickupNodeInner} />
+                          </View>
+                        ) : (
+                          <View style={styles.stopNodeDot} />
+                        )}
+                        {idx < timelineStops.length - 1 && <View style={styles.dashedLine} />}
+                      </React.Fragment>
+                    ))}
                   </View>
-                  <View style={styles.routeTextCol}>
-                    <BilingualText
-                      ur="ڈلیوری پوائنٹ"
-                      en="Delivery Location"
-                      primaryStyle={styles.stageUrduPrimary}
-                      subStyle={styles.stageSubEn}
-                    />
-                    <Text style={styles.routePlaceName}>{stopLabel(dropoffStop) ?? 'Destination'}</Text>
-                    <Text style={styles.routeAddressText}>{stopAddress(dropoffStop) ?? 'Location address'}</Text>
+
+                  {/* Route Items */}
+                  <View style={styles.routeItemsCol}>
+                    {timelineStops.map((st) => (
+                      <View key={`item-${st.id}`} style={styles.routeRowItem}>
+                        <View style={styles.iconCircleBadge}>
+                          {st.iconType === 'House' ? (
+                            <House size={20} color="#FA634E" strokeWidth={2} />
+                          ) : st.iconType === 'MapPin' ? (
+                            <MapPin size={20} color="#FA634E" strokeWidth={2} />
+                          ) : (
+                            <Route size={20} color="#FA634E" strokeWidth={2} />
+                          )}
+                        </View>
+                        <View style={styles.routeTextCol}>
+                          <BilingualText
+                            ur={st.typeUrdu}
+                            en={st.typeEn}
+                            primaryStyle={styles.stageUrduPrimary}
+                            subStyle={styles.stageSubEn}
+                          />
+                          <Text style={styles.routePlaceName}>{st.name}</Text>
+                          {st.address ? <Text style={styles.routeAddressText}>{st.address}</Text> : null}
+                        </View>
+                        <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(st.address || st.name)}>
+                          <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                   </View>
-                  <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(stopAddress(dropoffStop))}>
-                    <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                  </TouchableOpacity>
                 </View>
-              </View>
-            </View>
+              );
+            })()}
           </View>
 
           {/* Card 3: Schedule & Times */}
