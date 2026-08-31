@@ -440,8 +440,11 @@ export default function TaxonomyManagementPage() {
                         </td>
                       </tr>
                     );
-                  })
-        </div>
+                  }))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
         {/* Vehicle Operational Assignment Rules Section */}
         {activeTab === 'VEHICLE_CLASS' && (
