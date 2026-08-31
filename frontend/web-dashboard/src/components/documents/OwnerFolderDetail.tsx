@@ -163,7 +163,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     <div className="h-full flex flex-col space-y-3 overflow-hidden">
       
       {/* ── Top Clean Document Navigation Bar ──────────────── */}
-      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-0 pt-0.5 mb-2 shrink-0 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-2 pt-0.5 mb-4 shrink-0 overflow-x-auto scrollbar-none">
         {folder.slots.map((slot) => {
           const isSelected = activeSlot?.documentType.id === slot.documentType.id;
           const doc = slot.document;
@@ -210,13 +210,13 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
         {/* LEFT SIDE COLUMN: Single Coherent Enterprise ERP Document Details Panel (4 / 12 width) */}
-        <div className="lg:col-span-4 h-full flex flex-col justify-between overflow-hidden">
+        <div className="lg:col-span-4 h-full flex flex-col overflow-hidden">
           {activeSlot ? (
-            /* Single Outer Coherent Panel Box (No nested cards inside) */
+            /* Single Outer Coherent Panel Box */
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-4.5 shadow-2xs h-full flex flex-col justify-between overflow-hidden">
               
-              {/* Scrollable Content Area for the 3 Logical Sections */}
-              <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+              {/* Top Section: Active Document Details & Actions */}
+              <div className="space-y-4 shrink-0">
                 
                 {/* ── DOCUMENT ── */}
                 <div className="space-y-2">
@@ -230,7 +230,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </div>
 
                   {/* 2-Column Key-Value Grid */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-0.5">
                     <div>
                       <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                         Doc Number / Ref
@@ -253,7 +253,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
                 <div className="border-t border-slate-100 dark:border-slate-800/80" />
 
-                {/* ── VALIDITY ── */}
+                {/* ── VALIDITY & ACTIVE ACTIONS ── */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -351,129 +351,128 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                       </Button>
                     </div>
                   )}
-                </div>
 
-                <div className="border-t border-slate-100 dark:border-slate-800/80" />
-
-                {/* ── OTHER VEHICLE DOCUMENTS ── */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                      OTHER VEHICLE DOCUMENTS
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400 font-bold">
-                      {folder.slots.length} Records
-                    </span>
-                  </div>
-
-                  {/* Compact Table/List Rows (No inner cards!) */}
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800/80 pr-0.5">
-                    {folder.slots.map((s) => {
-                      const isSelected = activeSlot?.documentType.id === s.documentType.id;
-                      const d = s.document;
-                      const code = getSlotStatusFromDoc(d);
-                      const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
-                      const isExpiring = code === 'EXPIRING_SOON';
-
-                      const expFormatted = d?.expiry_date 
-                        ? formatInDeploymentTz(d.expiry_date, tz, 'dd/MM/yyyy') 
-                        : s.documentType.requiresExpiryDate 
-                        ? 'No Date' 
-                        : 'No Expiry';
-
-                      return (
-                        <div
-                          key={s.documentType.id}
-                          onClick={() => setSelectedSlotId(s.documentType.id)}
-                          className={cn(
-                            "py-2 px-2 flex items-center justify-between gap-3 text-xs cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg my-0.5",
-                            isSelected 
-                              ? "bg-slate-50 dark:bg-slate-800/80 font-black text-slate-900 border-l-2 border-l-[#FA634E]" 
-                              : "text-slate-700 dark:text-slate-300"
-                          )}
+                  {/* Document Actions Bar (Belongs directly to current document details!) */}
+                  <div className="pt-2 flex items-center justify-between gap-2">
+                    {activeDoc ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+                          onClick={async () => {
+                            if (!activeDoc) return;
+                            if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
+                              try {
+                                toast.loading('Deleting document file...', { id: 'delete-doc' });
+                                await documentService.delete(activeDoc.id);
+                                toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                                await refresh();
+                              } catch (err: any) {
+                                toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
+                              }
+                            }
+                          }}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={cn(
-                              "w-2 h-2 rounded-full shrink-0",
-                              isExpiredOrMissing ? "bg-rose-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
-                            )} />
-                            <span className={cn(
-                              "text-xs truncate",
-                              isSelected ? "font-black text-slate-900 dark:text-slate-100" : "font-extrabold text-slate-800 dark:text-slate-200"
-                            )}>
-                              {s.documentType.name}
-                            </span>
-                          </div>
+                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                        </Button>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={cn(
-                              "text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md",
-                              isExpiredOrMissing
-                                ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40"
-                                : isExpiring
-                                  ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
-                                  : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
-                            )}>
-                              {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
-                            </span>
-
-                            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 w-20 text-right">
-                              {expFormatted}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
+                          onClick={() => setIsReplaceOpen(true)}
+                        >
+                          <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer"
+                        onClick={() => setUploadSlot(activeSlot!)}
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                      </Button>
+                    )}
                   </div>
+
                 </div>
 
               </div>
 
-              {/* Bottom Actions Bar (Inside same single panel) */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 mt-3">
-                {activeDoc ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
-                      onClick={async () => {
-                        if (!activeDoc) return;
-                        if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
-                          try {
-                            toast.loading('Deleting document file...', { id: 'delete-doc' });
-                            await documentService.delete(activeDoc.id);
-                            toast.success('Document file deleted successfully', { id: 'delete-doc' });
-                            await refresh();
-                          } catch (err: any) {
-                            toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-                          }
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                    </Button>
+              {/* Bottom Section: OTHER VEHICLE DOCUMENTS (Fills remaining height, perfectly aligned) */}
+              <div className="flex-1 min-h-0 flex flex-col pt-3 border-t border-slate-100 dark:border-slate-800/80 overflow-hidden mt-3">
+                <div className="flex items-center justify-between pb-1.5 shrink-0">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    OTHER VEHICLE DOCUMENTS
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 font-bold">
+                    {folder.slots.length} Records
+                  </span>
+                </div>
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
-                      onClick={() => setIsReplaceOpen(true)}
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer"
-                    onClick={() => setUploadSlot(activeSlot!)}
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" /> Upload Document
-                  </Button>
-                )}
+                {/* Scrollable Compact Table/List Rows */}
+                <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 pr-0.5 scrollbar-thin">
+                  {folder.slots.map((s) => {
+                    const isSelected = activeSlot?.documentType.id === s.documentType.id;
+                    const d = s.document;
+                    const code = getSlotStatusFromDoc(d);
+                    const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+                    const isExpiring = code === 'EXPIRING_SOON';
+
+                    const expFormatted = d?.expiry_date 
+                      ? formatInDeploymentTz(d.expiry_date, tz, 'dd/MM/yyyy') 
+                      : s.documentType.requiresExpiryDate 
+                      ? 'No Date' 
+                      : 'No Expiry';
+
+                    return (
+                      <div
+                        key={s.documentType.id}
+                        onClick={() => setSelectedSlotId(s.documentType.id)}
+                        className={cn(
+                          "py-2 px-2 flex items-center justify-between gap-3 text-xs cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg my-0.5",
+                          isSelected 
+                            ? "bg-slate-50 dark:bg-slate-800/80 font-black text-slate-900 border-l-2 border-l-[#FA634E]" 
+                            : "text-slate-700 dark:text-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            isExpiredOrMissing ? "bg-rose-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
+                          )} />
+                          <span className={cn(
+                            "text-xs truncate",
+                            isSelected ? "font-black text-slate-900 dark:text-slate-100" : "font-extrabold text-slate-800 dark:text-slate-200"
+                          )}>
+                            {s.documentType.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn(
+                            "text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md",
+                            isExpiredOrMissing
+                              ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40"
+                              : isExpiring
+                                ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
+                                : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
+                          )}>
+                            {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
+                          </span>
+
+                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 w-20 text-right">
+                            {expFormatted}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
             </div>
