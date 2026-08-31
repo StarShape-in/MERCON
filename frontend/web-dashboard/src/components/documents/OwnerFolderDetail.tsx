@@ -69,20 +69,38 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   // Queries for Owner Details (Driver & Vehicle)
   const { data: driver } = useQuery({
     queryKey: ['driver', ownerId],
-    queryFn: () => driverService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await driverService.getById(ownerId!);
+      } catch {
+        return null;
+      }
+    },
     enabled: !!ownerId && ownerType === 'Driver',
   });
 
   const { data: vehicle } = useQuery({
     queryKey: ['vehicle', ownerId],
-    queryFn: () => vehicleService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await vehicleService.getById(ownerId!);
+      } catch {
+        return null;
+      }
+    },
     enabled: !!ownerId && ownerType === 'Vehicle',
   });
 
   const queryKey = ['documents', 'owner', ownerType, ownerId];
   const { data: folder, isLoading } = useQuery({
     queryKey,
-    queryFn: () => documentService.getOwnerFolder(ownerType, ownerId),
+    queryFn: async () => {
+      try {
+        return await documentService.getOwnerFolder(ownerType, ownerId);
+      } catch {
+        return null;
+      }
+    },
     enabled: !!ownerId,
   });
 
