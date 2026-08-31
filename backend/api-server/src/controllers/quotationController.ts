@@ -55,18 +55,27 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
   return { origin, destination };
 };
 
+const MAX_SAFE_DECIMAL = 999999999.99;
+
+const parseDecimalSafe = (val: any): number | null => {
+  if (val === null || val === undefined || val === '' || val === 'null' || val === 'NULL') return null;
+  const n = Number(val);
+  if (isNaN(n) || !isFinite(n) || n < 0 || n > MAX_SAFE_DECIMAL) return null;
+  return n;
+};
+
 export const createQuotation = async (req: Request, res: Response) => {
   try {
     const { name, base_price, rate, driver_payout, driver_charge, default_trip_charge, currency, customerId, is_active, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
-    const price = Number(rate ?? base_price);
-    if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a rate greater than 0' } });
+    const price = parseDecimalSafe(rate ?? base_price);
+    if (price === null || price <= 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a valid rate between 0 and 999,999,999' } });
     }
 
     const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
-    const payoutVal = rawPayout != null && !isNaN(Number(rawPayout)) ? Number(rawPayout) : null;
+    const payoutVal = parseDecimalSafe(rawPayout);
 
     const normalisedCustomerId = getValidUuid(customerId);
     if (!normalisedCustomerId) {
@@ -282,14 +291,14 @@ export const updateQuotation = async (req: Request, res: Response) => {
 
     const priceVal = rate ?? base_price;
     if (priceVal !== undefined) {
-      const price = Number(priceVal);
-      if (isNaN(price) || price <= 0) {
-        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a rate greater than 0' } });
+      const price = parseDecimalSafe(priceVal);
+      if (price === null || price <= 0) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a valid rate between 0 and 999,999,999' } });
       }
     }
 
     const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
-    const payoutVal = rawPayout !== undefined ? Number(rawPayout) : undefined;
+    const payoutVal = rawPayout !== undefined ? parseDecimalSafe(rawPayout) : undefined;
 
     const { vehicleType: sentVehicleType, rateCategory: sentRateCategory, billingType: sentBillingType, vehicleClass: sentVehicleClass, pricingBasis: sentPricingBasis, validFrom: sentValidFrom, validTo: sentValidTo, sourceType: sentSourceType, sourceReference: sentSourceReference } = parseTierFields(req.body);
 

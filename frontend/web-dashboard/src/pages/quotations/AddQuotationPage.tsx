@@ -233,6 +233,39 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     ]);
   }, [isEdit, existingQuotation]);
 
+  const isReturnToTrip = searchParams.get('return_to_trip') === 'true';
+
+  // Populate state from search params if passed from /trips/new
+  useEffect(() => {
+    if (isEdit) return;
+
+    const custId = searchParams.get('customer_id');
+    const origId = searchParams.get('origin_id');
+    const destId = searchParams.get('destination_id');
+    const vClass = searchParams.get('vehicle_class');
+    const lType = searchParams.get('line_type');
+    const bType = searchParams.get('billing_type');
+    const priceVal = searchParams.get('price');
+
+    if (custId) setCustomerId(custId);
+    if (bType) {
+      const normB = bType.toUpperCase().includes('MONTHLY') ? 'MONTHLY' : 'EXTRA';
+      setOperationType(normB);
+    }
+
+    if (origId || destId || vClass || lType || priceVal) {
+      setLineItems([
+        createEmptyLine({
+          originLocationId: origId || '',
+          destinationLocationId: destId || '',
+          vehicleClass: vClass || '10 TON',
+          lineType: lType || 'SINGLE_TRIP',
+          rate: priceVal || '',
+        }),
+      ]);
+    }
+  }, [isEdit, searchParams]);
+
   // Line Item Handlers
   const handleAddLine = () => {
     setLineItems((prev) => [...prev, createEmptyLine()]);
@@ -379,9 +412,16 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         return false;
       }
       const numRate = parseFloat(item.rate);
-      if (isNaN(numRate) || numRate <= 0) {
-        setFormError(`Line #${i + 1}: Enter a valid agreed rate greater than 0.`);
+      if (isNaN(numRate) || !isFinite(numRate) || numRate <= 0 || numRate > 999999999.99) {
+        setFormError(`Line #${i + 1}: Enter a valid agreed rate between 0 and 999,999,999.`);
         return false;
+      }
+      if (item.driverPayout) {
+        const numPayout = parseFloat(item.driverPayout);
+        if (isNaN(numPayout) || !isFinite(numPayout) || numPayout < 0 || numPayout > 999999999.99) {
+          setFormError(`Line #${i + 1}: Enter a valid driver payout amount.`);
+          return false;
+        }
       }
     }
 
@@ -392,6 +432,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   // Batch Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const parseSafeDecimal = (val?: string | number | null): number | undefined => {
+        if (val === null || val === undefined || val === '' || val === 'NULL') return undefined;
+        const num = typeof val === 'number' ? val : parseFloat(String(val));
+        if (isNaN(num) || !isFinite(num) || num < 0) return undefined;
+        return Math.min(num, 999999999.99);
+      };
+
       if (isEdit && id) {
         // Single quotation update
         const line = lineItems[0];
@@ -403,8 +450,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           billing_type: operationType,
           line_type: line.lineType,
           pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
-          rate: parseFloat(line.rate),
-          driver_payout: line.driverPayout ? parseFloat(line.driverPayout) : undefined,
+          rate: parseSafeDecimal(line.rate) ?? 0,
+          driver_payout: parseSafeDecimal(line.driverPayout),
           currency: line.currency,
           source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
           valid_from: validFrom || undefined,
@@ -427,8 +474,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             billing_type: operationType,
             line_type: line.lineType,
             pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
-            rate: parseFloat(line.rate),
-            driver_payout: line.driverPayout ? parseFloat(line.driverPayout) : undefined,
+            rate: parseSafeDecimal(line.rate) ?? 0,
+            driver_payout: parseSafeDecimal(line.driverPayout),
             currency: line.currency,
             source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
             valid_from: validFrom || undefined,
@@ -447,13 +494,25 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
       setIsPreviewOpen(false);
-      toast.success(
-        isEdit
-          ? 'Quotation updated successfully'
-          : `Successfully created ${lineItems.length} commercial rate line${lineItems.length > 1 ? 's' : ''}`
-      );
-      navigate('/quotations');
+
+      if (isReturnToTrip) {
+        const returnStep = searchParams.get('return_step') || '3';
+        toast.success('Commercial Quotation created successfully! Returning to Trip creation...');
+        setTimeout(() => {
+          navigate(`/trips/new?step=${returnStep}`);
+        }, 300);
+      } else {
+        toast.success(
+          isEdit
+            ? 'Quotation updated successfully'
+            : `Successfully created ${lineItems.length} commercial rate line${lineItems.length > 1 ? 's' : ''}`
+        );
+        navigate('/quotations');
+      }
     },
     onError: (err: any) => {
       const msg = err.response?.data?.error?.message || err.message || 'Failed to save agreement rates';
@@ -528,10 +587,22 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               className="h-8.5 px-4.5 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/20 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Save Agreement ({lineItems.length} Lines)</span>
+              <span>{isReturnToTrip ? 'Save Quotation & Return to Trip →' : `Save Agreement (${lineItems.length} Lines)`}</span>
             </Button>
           </div>
         </div>
+
+        {isReturnToTrip && (
+          <div className="p-3.5 rounded-xl bg-orange-50/90 border border-[#FA634E]/30 flex items-center justify-between gap-3 text-xs font-bold text-[#3E3C3D] animate-fade-in shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4.5 h-4.5 text-[#FA634E] shrink-0" />
+              <span>Creating commercial quotation to apply to your current trip creation workflow.</span>
+            </div>
+            <Badge className="bg-[#FA634E] text-white font-extrabold text-[10px] uppercase px-2.5 py-0.5 rounded-md">
+              Trip Creation Context
+            </Badge>
+          </div>
+        )}
 
         {formError && (
           <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 shadow-2xs">

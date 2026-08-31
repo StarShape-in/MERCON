@@ -41,6 +41,8 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  SlidersHorizontal,
+  UserCheck,
 } from 'lucide-react';
 
 import { cn, isUuid } from '@/lib/utils';
@@ -55,14 +57,16 @@ import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import EditCustomerModal from '@/components/customers/EditCustomerModal';
 import EditVehicleModal from '@/components/fleet/EditVehicleModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+import QuotationFormDialog from '@/components/quotations/QuotationFormDialog';
 import { RateCategorySelect } from '@/components/quotations/RateCategorySelect';
 import { BillingTypeSelect } from '@/components/quotations/BillingTypeSelect';
 import { quotationService, RateCard } from '@/services/quotationService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -185,6 +189,32 @@ const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
   return '40 FEET';
 };
 
+const normalizeBillingType = (val?: string | null): string => {
+  if (!val) return 'Monthly';
+  const s = String(val).toUpperCase();
+  if (s.includes('EXTRA') || s.includes('SPOT')) return 'Extra';
+  return 'Monthly';
+};
+
+const normalizeRateCategory = (val?: string | null): string => {
+  if (!val) return 'Single Trip';
+  const s = String(val).toUpperCase().replace(/_/g, ' ');
+  if (s.includes('ROUND')) return 'Round Trip';
+  if (s.includes('10')) return '10 Hours Duty';
+  if (s.includes('12')) return '12 Hours Duty';
+  return 'Single Trip';
+};
+
+const normalizeVehicleClass = (val?: string | null): string => {
+  if (!val) return '10 TON';
+  const s = String(val).toUpperCase().replace(/_/g, ' ');
+  if (s.includes('3') || s.includes('4')) return '3-4 TON';
+  if (s.includes('5')) return '5 TON';
+  if (s.includes('20')) return '20 TON';
+  if (s.includes('40') || s.includes('FEET')) return '40 FEET';
+  return '10 TON';
+};
+
 export const getActualCapacityLabel = (capacityKg?: number | null): string => {
   if (capacityKg == null || capacityKg <= 0) return '';
   const tons = capacityKg / 1000;
@@ -264,6 +294,7 @@ export default function CreateTripPage() {
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
   const [isCustomThirdPartyVehicleType, setIsCustomThirdPartyVehicleType] = useState(false);
+  const [isManualRateOverride, setIsManualRateOverride] = useState(false);
 
   // Third-party vehicle assignment fields
   const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
@@ -367,12 +398,25 @@ export default function CreateTripPage() {
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
-  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(1);
+  const [searchParams] = useSearchParams();
+  const urlStepParam = searchParams.get('step');
+  const initialStep = (urlStepParam && [1, 2, 3, 4].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3 | 4) : 1;
+
+  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractBillingType, setContractBillingType] = useState<string>('Extra');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
+
+  useEffect(() => {
+    if (urlStepParam) {
+      const parsed = Number(urlStepParam);
+      if ([1, 2, 3, 4].includes(parsed)) {
+        setContractStep(parsed as 1 | 2 | 3 | 4);
+      }
+    }
+  }, [urlStepParam]);
 
   const { data: rateCardsRes } = useQuery({
     queryKey: ['quotations-select', contractCustomer],
@@ -381,6 +425,29 @@ export default function CreateTripPage() {
   });
 
   const customerRateCards: RateCard[] = rateCardsRes?.data ?? [];
+
+  const handleOpenCreateQuotation = (slot?: (typeof contractSlots)[0]) => {
+    const originId = slot?.originLocationId || '';
+    const destId = slot?.destinationLocationId || '';
+    const vClass = normalizeVehicleClass(contractVehicleType);
+    const lType = normalizeRateCategory(contractRateCategory);
+    const bType = normalizeBillingType(contractBillingType);
+    const priceVal = slot?.billingAmount || '';
+
+    const params = new URLSearchParams({
+      return_to_trip: 'true',
+      return_step: String(contractStep),
+      customer_id: contractCustomer || '',
+      origin_id: originId,
+      destination_id: destId,
+      vehicle_class: vClass,
+      line_type: lType,
+      billing_type: bType,
+      price: priceVal,
+    });
+
+    navigate(`/quotations/new?${params.toString()}`);
+  };
 
   const getMatchingRateCard = useCallback((
     origin?: string,
@@ -621,6 +688,244 @@ export default function CreateTripPage() {
       returnDestinationLng: null,
     },
   ]);
+
+  // Fetch recent trips for accelerators
+  const { data: recentTripsRes } = useQuery({
+    queryKey: ['recent-trips-accelerators', contractCustomer],
+    queryFn: () => tripService.getAll({ per_page: 100 }),
+    staleTime: 60000,
+  });
+  const recentTrips: Trip[] = recentTripsRes?.data ?? [];
+
+  // ── 1. STEP 2 ACCELERATOR: RECENT ROUTES FOR SELECTED CUSTOMER ──
+  const recentRoutesList = useMemo(() => {
+    if (!contractCustomer) return [];
+
+    const map = new Map<string, {
+      key: string;
+      origin: string;
+      originLocationId: string | null;
+      originLat?: number | null;
+      originLng?: number | null;
+      destination: string;
+      destinationLocationId: string | null;
+      destinationLat?: number | null;
+      destinationLng?: number | null;
+      stopsCount: number;
+      count: number;
+      lastUsedDate: Date;
+      formattedLastUsed: string;
+    }>();
+
+    const formatLastUsed = (d: Date) => {
+      const now = new Date();
+      const diffHours = (now.getTime() - d.getTime()) / (1000 * 3600);
+      if (diffHours < 24 && now.getDate() === d.getDate()) return 'Today';
+      if (diffHours < 48 && (now.getDate() - d.getDate() === 1 || now.getDate() - d.getDate() === -30)) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    // Filter trips belonging strictly to the selected customer
+    const customerTrips = recentTrips.filter((t) => t.customer_id === contractCustomer || t.customer?.id === contractCustomer);
+
+    customerTrips.forEach((t) => {
+      const stops = t.stops || [];
+      const pickupStop = stops.find((s) => s.stop_type === 'Pickup' || s.sequence === 1) || stops[0];
+      const dropoffStops = stops.filter((s) => s.stop_type === 'Dropoff');
+      const dropoffStop = dropoffStops.length > 0 ? dropoffStops[dropoffStops.length - 1] : (stops.length > 1 ? stops[stops.length - 1] : null);
+
+      const origName = pickupStop?.source_label || pickupStop?.location?.name || t.rateCard?.route_origin || '';
+      const destName = dropoffStop?.source_label || dropoffStop?.location?.name || t.rateCard?.route_destination || '';
+
+      if (!origName || !destName) return;
+
+      const key = `${origName.toLowerCase()}->${destName.toLowerCase()}`;
+      const tripDate = t.createdAt ? new Date(t.createdAt) : new Date();
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+        if (tripDate > existing.lastUsedDate) {
+          existing.lastUsedDate = tripDate;
+          existing.formattedLastUsed = formatLastUsed(tripDate);
+        }
+      } else {
+        map.set(key, {
+          key,
+          origin: origName,
+          originLocationId: pickupStop?.locationId || pickupStop?.location?.id || null,
+          originLat: pickupStop?.location?.lat,
+          originLng: pickupStop?.location?.lng,
+          destination: destName,
+          destinationLocationId: dropoffStop?.locationId || dropoffStop?.location?.id || null,
+          destinationLat: dropoffStop?.location?.lat,
+          destinationLng: dropoffStop?.location?.lng,
+          stopsCount: stops.length > 0 ? stops.length : 2,
+          count: 1,
+          lastUsedDate: tripDate,
+          formattedLastUsed: formatLastUsed(tripDate),
+        });
+      }
+    });
+
+    // If customer has configured quotation rate cards, include those lanes as well
+    if (map.size === 0 && customerRateCards.length > 0) {
+      customerRateCards.forEach((rc) => {
+        const stops = rc.stops || [];
+        const pickupStop = stops[0];
+        const dropoffStop = stops.length > 1 ? stops[stops.length - 1] : null;
+
+        const origName = pickupStop?.source_label || pickupStop?.location?.name || rc.route_origin || rc.origin_name || '';
+        const destName = dropoffStop?.source_label || dropoffStop?.location?.name || rc.route_destination || rc.destination_name || '';
+
+        if (!origName || !destName) return;
+        const key = `${origName.toLowerCase()}->${destName.toLowerCase()}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            key,
+            origin: origName,
+            originLocationId: pickupStop?.locationId || pickupStop?.location?.id || rc.originLocationId || null,
+            destination: destName,
+            destinationLocationId: dropoffStop?.locationId || dropoffStop?.location?.id || rc.destinationLocationId || null,
+            stopsCount: stops.length > 0 ? stops.length : 2,
+            count: 1,
+            lastUsedDate: new Date(),
+            formattedLastUsed: 'Quotation Lane',
+          });
+        }
+      });
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count || b.lastUsedDate.getTime() - a.lastUsedDate.getTime())
+      .slice(0, 4);
+  }, [recentTrips, contractCustomer, customerRateCards]);
+
+  const handleApplyRecentRoute = (route: typeof recentRoutesList[0]) => {
+    const targetSlot = contractSlots[0];
+    if (!targetSlot) return;
+
+    handleSlotLocationChange(targetSlot.id, 'origin', route.origin, {
+      id: route.originLocationId,
+      name: route.origin,
+      lat: route.originLat,
+      lng: route.originLng,
+    });
+
+    handleSlotLocationChange(targetSlot.id, 'destination', route.destination, {
+      id: route.destinationLocationId,
+      name: route.destination,
+      lat: route.destinationLat,
+      lng: route.destinationLng,
+    });
+
+    toast.success(`Loaded route: ${route.origin} → ${route.destination}`);
+  };
+
+  // ── 2. STEP 3 ACCELERATOR: RECENT DRIVERS FOR THIS ROUTE ONLY ──
+  const recentDriversList = useMemo(() => {
+    const currentSlot = contractSlots[0];
+    const originName = currentSlot?.origin?.toLowerCase().trim() || '';
+    const destName = currentSlot?.destination?.toLowerCase().trim() || '';
+    const originLocId = currentSlot?.originLocationId;
+    const destLocId = currentSlot?.destinationLocationId;
+
+    if (!originName && !originLocId) return [];
+    if (!destName && !destLocId) return [];
+
+    const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+    const oNorm = norm(originName);
+    const dNorm = norm(destName);
+
+    const map = new Map<string, {
+      driverId: string;
+      driverObj: any;
+      vehicleObj: any;
+      count: number;
+      lastUsedDate: Date;
+      formattedLastUsed: string;
+    }>();
+
+    const formatLastUsed = (d: Date) => {
+      const now = new Date();
+      const diffHours = (now.getTime() - d.getTime()) / (1000 * 3600);
+      if (diffHours < 24 && now.getDate() === d.getDate()) return 'Today';
+      if (diffHours < 48 && (now.getDate() - d.getDate() === 1 || now.getDate() - d.getDate() === -30)) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    // Filter trips strictly matching the selected route and customer
+    recentTrips.forEach((t) => {
+      if (!t.driver) return;
+      if (contractCustomer && t.customer_id && t.customer_id !== contractCustomer) return;
+
+      const stops = t.stops || [];
+      const pickupStop = stops[0];
+      const dropoffStop = stops.length > 1 ? stops[stops.length - 1] : null;
+
+      const tOrigId = pickupStop?.locationId || pickupStop?.location?.id;
+      const tDestId = dropoffStop?.locationId || dropoffStop?.location?.id;
+
+      const tOrigName = norm(pickupStop?.source_label || pickupStop?.location?.name || t.rateCard?.route_origin || '');
+      const tDestName = norm(dropoffStop?.source_label || dropoffStop?.location?.name || t.rateCard?.route_destination || '');
+
+      let isMatch = false;
+      if (originLocId && destLocId && tOrigId && tDestId) {
+        if (tOrigId === originLocId && tDestId === destLocId) isMatch = true;
+      }
+      if (!isMatch && oNorm && dNorm && tOrigName && tDestName) {
+        if ((tOrigName.includes(oNorm) || oNorm.includes(tOrigName)) && (tDestName.includes(dNorm) || dNorm.includes(tDestName))) {
+          isMatch = true;
+        }
+      }
+
+      if (!isMatch) return;
+
+      const dId = t.driver.id;
+      const tripDate = t.createdAt ? new Date(t.createdAt) : new Date();
+
+      const existing = map.get(dId);
+      if (existing) {
+        existing.count += 1;
+        if (tripDate > existing.lastUsedDate) {
+          existing.lastUsedDate = tripDate;
+          existing.formattedLastUsed = formatLastUsed(tripDate);
+        }
+        if (!existing.vehicleObj && t.vehicle) {
+          existing.vehicleObj = t.vehicle;
+        }
+      } else {
+        const dObj = drivers.find((d) => d.id === dId) || t.driver;
+        const vObj = t.vehicle || vehicles.find((v) => v.id === dObj?.assignedVehicleId);
+        map.set(dId, {
+          driverId: dId,
+          driverObj: dObj,
+          vehicleObj: vObj,
+          count: 1,
+          lastUsedDate: tripDate,
+          formattedLastUsed: formatLastUsed(tripDate),
+        });
+      }
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count || b.lastUsedDate.getTime() - a.lastUsedDate.getTime())
+      .slice(0, 4);
+  }, [recentTrips, contractSlots, contractCustomer, drivers, vehicles]);
+
+  const handleApplyRecentDriver = (item: typeof recentDriversList[0]) => {
+    handleDriverChange(item.driverId);
+    if (item.vehicleObj?.id) {
+      if (!masterVehicle || masterVehicle === 'unassigned') {
+        setMasterVehicle(item.vehicleObj.id);
+        toast.success(`Assigned ${item.driverObj.first_name} ${item.driverObj.last_name} and suggested vehicle ${item.vehicleObj.plate_number}`);
+      } else {
+        toast.success(`Assigned driver ${item.driverObj.first_name} ${item.driverObj.last_name}`);
+      }
+    } else {
+      toast.success(`Assigned driver ${item.driverObj.first_name} ${item.driverObj.last_name}`);
+    }
+  };
 
   // Dynamic Quotation rate lookup connected to Customer, Lane, Vehicle (Tonnage), Billing Type, Line Type & Multi-Stops
   const triggerRateLookupForSlots = useCallback(
@@ -1848,9 +2153,9 @@ export default function CreateTripPage() {
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {[
                 { step: 1, label: '1. Customer', icon: User },
-                { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignment & Billing', icon: undefined },
-                { step: 4, label: '4. Review', icon: undefined },
+                { step: 2, label: '2. Trip / Route', icon: MapPin },
+                { step: 3, label: '3. Service & Assignment', icon: Layers },
+                { step: 4, label: '4. Review', icon: CheckCircle2 },
               ].map((s) => {
                 const IconComp = s.icon;
                 const isActive = contractStep === s.step;
@@ -1929,8 +2234,8 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {/* Local Draft Auto-Save Recovery Alert Banner */}
-        {hasSavedDraft && !submissionResult && (
+        {/* Local Draft Auto-Save Recovery Alert Banner (Only shown on Step 1 Customer) */}
+        {hasSavedDraft && !submissionResult && contractStep === 1 && (
           <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
             <div className="flex items-center gap-2 text-amber-900 font-medium">
               <Clock className="w-4 h-4 text-amber-600 shrink-0" />
@@ -2028,7 +2333,7 @@ export default function CreateTripPage() {
             <>
               {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
               {activeTab === 'contract' && (
-                <div>
+                <div className="pb-80">
                   {/* STEP 1: CUSTOMER & CATEGORY */}
                   {contractStep === 1 && (
                     <div className="space-y-3.5 animate-fade-in">
@@ -2037,9 +2342,6 @@ export default function CreateTripPage() {
                           <Building2 className="w-4 h-4 text-brand" />
                           Select Customer Account
                         </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Pick the client responsible for freight billing and contracted lane rates.
-                        </p>
                       </div>
 
                       {/* Frequent Shippers Cards */}
@@ -2078,7 +2380,6 @@ export default function CreateTripPage() {
                                 </div>
                                 <div className="space-y-0.5">
                                   <p className="text-xs font-bold text-[#111111] leading-tight line-clamp-1" title={c.name}>{c.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-medium leading-normal">Commercial Account</p>
                                 </div>
                               </button>
                             );
@@ -2107,10 +2408,11 @@ export default function CreateTripPage() {
                           if (!selectedCust) return null;
                           const initials = selectedCust.name.substring(0, 2).toUpperCase();
                           return (
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
+                            <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-300 space-y-2 animate-fade-in mt-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80 overflow-hidden">
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                                  <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-extrabold text-xs grid place-items-center shrink-0 border border-emerald-700 overflow-hidden">
                                     {selectedCust.logo_url || selectedCust.avatar_url ? (
                                       <img src={selectedCust.logo_url || selectedCust.avatar_url || ''} alt={selectedCust.name} className="w-full h-full object-cover" />
                                     ) : (
@@ -2118,8 +2420,9 @@ export default function CreateTripPage() {
                                     )}
                                   </span>
                                   <div>
-                                    <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
-                                    <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
+                                    <h5 className="text-sm font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                      ✓ {selectedCust.name}
+                                    </h5>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1.5">
@@ -2139,37 +2442,10 @@ export default function CreateTripPage() {
                                   >
                                     <Edit2 className="w-3 h-3" /> Edit
                                   </button>
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                     Active Account
                                   </Badge>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <Phone className="w-2.5 h-2.5 text-slate-400" /> CONTACT PHONE
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.phone || '966500000007'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <CreditCard className="w-2.5 h-2.5 text-slate-400" /> PAYMENT TERMS
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.payment_terms || 'Net 30'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <ShieldCheck className="w-2.5 h-2.5 text-slate-400" /> ACCOUNT CREDIT
-                                  </span>
-                                  <span className="text-xs font-bold text-emerald-600">
-                                    Good Standing
-                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -2179,84 +2455,47 @@ export default function CreateTripPage() {
                     </div>
                   )}
 
-                  {/* STEP 2: ROUTE & TRIPS SLOTS */}
+                  {/* STEP 2: TRIP / ROUTE */}
                   {contractStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Operational Category & Vehicle Class (Option 1 Ultra-Compact Bar) */}
-                      <ServiceVehicleSelector
-                        contractRateCategory={contractRateCategory}
-                        contractVehicleType={contractVehicleType}
-                        contractBillingType={contractBillingType}
-                        onUpdateRateCategory={(cat) => {
-                          setContractRateCategory(cat);
-                          triggerRateLookupForSlots(undefined, cat);
-                        }}
-                        onUpdateVehicleType={(veh) => {
-                          setContractVehicleType(veh);
-                          triggerRateLookupForSlots(veh);
-                        }}
-                        onUpdateBillingType={(bType) => {
-                          setContractBillingType(bType);
-                          triggerRateLookupForSlots(undefined, undefined, undefined, bType);
-                        }}
-                        matchStatus={
-                          contractSlots.some(s => s.originLocationId && s.destinationLocationId)
-                            ? contractSlots.some(s => Boolean(s.rateMatched))
-                              ? 'matched'
-                              : 'unmatched'
-                            : 'idle'
-                        }
-                      />
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-extrabold text-[#111111] dark:text-slate-100 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-brand" />
+                          Trip / Route
+                        </h4>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0 cursor-pointer"
+                          onClick={() => handleAddSlotIntermediate(contractSlots[0]?.id)}
+                        >
+                          <Plus className="w-3 h-3 text-white stroke-[2.5]" />
+                          Add Stop
+                        </Button>
+                      </div>
 
                       {/* Daily Route Stop Cards (Full-Width Primary Focal Point) */}
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
-                            </span>
-                            {contractSlots.length > 1 && (
-                              <Badge className="bg-orange-50 text-brand border-orange-200 text-[10px] font-bold">
-                                {contractSlots.length} Slots / Day
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
                         {contractSlots.map((slot, slotIdx) => (
                           <div
                             key={slot.id}
                             className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
                           >
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                              <div className="flex items-center gap-2">
+                            {contractSlots.length > 1 && (
+                              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                                 <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                  Trip Slot #{slotIdx + 1}
+                                  Trip #{slotIdx + 1}
                                 </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-
-                                <Button
+                                <button
                                   type="button"
-                                  size="sm"
-                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                  onClick={() => handleAddSlotIntermediate(slot.id)}
+                                  onClick={() => handleRemoveTripSlot(slot.id)}
+                                  className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                                  title="Remove trip slot"
                                 >
-                                  <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                  Add Stop
-                                </Button>
-                                {contractSlots.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTripSlot(slot.id)}
-                                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
-                                    title="Remove trip slot"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
-                            </div>
+                            )}
 
                             {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
                             {isRoundTripCategory(contractRateCategory) ? (
@@ -2680,6 +2919,39 @@ export default function CreateTripPage() {
                             ) : (
                               /* Option 2: Split Side-by-Side (Origin | Destination) with Middle Intermediate List */
                               <div className="space-y-3 pt-0.5">
+                                {/* 0. RECENT ROUTES ACCELERATOR CHIPS */}
+                                {recentRoutesList.length > 0 && (
+                                  <div className="p-2.5 rounded-xl bg-[#EEF1F6]/70 border border-slate-200/80 space-y-1.5 animate-fade-in mb-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-extrabold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
+                                        <RotateCcw className="w-3 h-3 text-[#FA634E]" />
+                                        RECENT ROUTES
+                                      </span>
+                                      <span className="text-[10px] font-bold text-[#6E6E80]">Click to prefill lane stops</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+                                      {recentRoutesList.map((route) => (
+                                        <button
+                                          key={route.key}
+                                          type="button"
+                                          onClick={() => handleApplyRecentRoute(route)}
+                                          className="p-2 rounded-xl bg-white border border-slate-200/90 hover:border-[#FA634E] hover:bg-orange-50/40 transition-all text-left group shadow-2xs cursor-pointer flex flex-col justify-between"
+                                        >
+                                          <div className="flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+                                            <span className="text-xs font-extrabold text-[#3E3C3D] group-hover:text-[#FA634E] truncate">
+                                              {route.origin} → {route.destination}
+                                            </span>
+                                          </div>
+                                          <p className="text-[10px] font-semibold text-[#6E6E80] mt-1">
+                                            {route.stopsCount} Stops · Used {route.count} {route.count === 1 ? 'time' : 'times'} · {route.formattedLastUsed}
+                                          </p>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* 1. TOP ROW: Side-by-Side Pickup (Origin) & Dropoff (Destination) Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
@@ -2788,40 +3060,18 @@ export default function CreateTripPage() {
                                         </div>
                                         <div className="space-y-1">
                                           <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
+                                            <Clock className="w-3 h-3 text-brand" /> Drop-off Time (Estimated) *
                                           </label>
-                                          <div className="flex items-center gap-1">
-                                            <TimePicker
-                                              value={slot.dropoffTime}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
-                                                slot.isOvernight
-                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-orange-200 bg-white text-slate-800'
-                                              }`}
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
-                                                const newHour = (hh + 1) % 24;
-                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
-                                                handleUpdateTripSlot(slot.id, {
-                                                  dropoffTime: newTime,
-                                                  dropoffDate: newDate,
-                                                  isOvernight: newHour === 0 ? true : slot.isOvernight
-                                                });
-                                              }}
-                                              className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
-                                              title="Add 1 Hour"
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
+                                          <TimePicker
+                                            value={slot.dropoffTime}
+                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
+                                            placeholder="Select time..."
+                                            buttonClassName={`w-full h-8.5 text-xs font-semibold shadow-2xs ${
+                                              slot.isOvernight
+                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                : 'border-orange-200 bg-white text-slate-800'
+                                            }`}
+                                          />
                                         </div>
                                       </div>
                                     </div>
@@ -2955,77 +3205,6 @@ export default function CreateTripPage() {
                                     </div>
                                   </div>
                                 )}
-                                 {/* AGREED QUOTATION COMBOS FOR THIS ROUTE */}
-                                 {(() => {
-                                   if (!slot.origin || !slot.destination) return null;
-                                   const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
-                                   if (laneRateCards.length === 0) return null;
-
-                                   return (
-                                     <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 dark:bg-blue-950/20 dark:border-blue-900/50 space-y-2 mt-2">
-                                       <div className="flex items-center justify-between flex-wrap gap-2">
-                                         <span className="text-[11px] font-black uppercase text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
-                                           <Tag className="w-3.5 h-3.5 text-blue-600" />
-                                           Agreed Quotation Combos for this Route ({laneRateCards.length} Available)
-                                         </span>
-                                         <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                           Click any combo chip to auto-apply vehicle, category & operation type
-                                         </span>
-                                       </div>
-
-                                       <div className="flex items-center gap-2 flex-wrap">
-                                         {laneRateCards.map((rc) => {
-                                           const vLabel = rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label || '10 TON';
-                                           const cLabel = rc.line_type || rc.rate_category || 'Single Trip';
-                                           const bLabel = rc.billing_type || 'Monthly';
-                                           const rateVal = rc.rate ?? rc.base_price ?? 0;
-                                           const payoutVal = rc.driver_payout ?? (rc as any).driver_charge;
-
-                                           const isCurrentlyActive =
-                                             (contractVehicleType || '').toLowerCase() === vLabel.toLowerCase() &&
-                                             (contractRateCategory || '').toLowerCase() === cLabel.toLowerCase() &&
-                                             (contractBillingType || '').toLowerCase() === bLabel.toLowerCase();
-
-                                           return (
-                                             <button
-                                               key={rc.id}
-                                               type="button"
-                                               onClick={() => {
-                                                 setContractVehicleType(vLabel);
-                                                 setContractRateCategory(cLabel);
-                                                 setContractBillingType(bLabel);
-                                                 triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
-                                               }}
-                                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                                                 isCurrentlyActive
-                                                   ? 'bg-blue-600 text-white border-blue-700 shadow-xs ring-2 ring-blue-300'
-                                                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-blue-200 dark:border-blue-800 hover:bg-blue-100/60 shadow-2xs'
-                                               }`}
-                                             >
-                                               <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
-                                                 SAR {rateVal.toLocaleString()}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {bLabel}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {vLabel}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {cLabel}
-                                               </span>
-                                               {payoutVal != null && (
-                                                 <span className="text-[10px] font-medium opacity-80">
-                                                   (Driver: SAR {payoutVal})
-                                                 </span>
-                                               )}
-                                             </button>
-                                           );
-                                         })}
-                                       </div>
-                                     </div>
-                                   );
-                                 })()}
                               </div>
                             )}
                           </div>
@@ -3034,486 +3213,612 @@ export default function CreateTripPage() {
                     </div>
                   )}
 
-                  {/* STEP 3: ASSIGNMENT & BILLING */}
+                  {/* STEP 3: SERVICE & ASSIGNMENT */}
                   {contractStep === 3 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Title & Assignment Switcher */}
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h4 className="text-sm font-extrabold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-brand" />
-                          Assignment & Billing
+                    <div className="space-y-3.5 animate-fade-in text-[#3E3C3D]">
+                      <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+                        <h4 className="text-base font-semibold text-[#3E3C3D] flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-[#FA634E]" />
+                          SERVICE & ASSIGNMENT
                         </h4>
-
-                        {/* Assignment Source Switcher: Own Fleet vs. Third Party */}
-                        <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('own')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'own'
-                                ? 'bg-white dark:bg-slate-900 text-brand shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Truck className="w-3.5 h-3.5" />
-                            Own Fleet
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('third_party')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'third_party'
-                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Building2 className="w-3.5 h-3.5" />
-                            Third-Party Vehicle (3PL)
-                          </button>
-                        </div>
                       </div>
 
-                      {/* Live Financial Margin Indicator (Compact 1-Liner) */}
-                      <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-extrabold text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>Customer Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
-                          <span className="text-slate-300 dark:text-slate-700">|</span>
-                          <span>Driver/3PL Payout: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
-                        </div>
-
-                        <Badge
-                          className={`px-2.5 py-0.5 rounded-lg font-mono font-extrabold text-xs gap-1 shadow-2xs border ${
-                            marginMetrics.isHigh
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : marginMetrics.isMedium
-                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                              : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                          }`}
-                        >
-                          <Zap className="w-3 h-3" />
-                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}%)
-                        </Badge>
-                      </div>
-
-                      {/* OPTION A: OWN FLEET SELECTORS */}
-                      {assignmentType === 'own' && (
-                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-2xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-brand" />
-                              Select Driver & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateDriverOpen(true)}
-                              className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Driver
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...driverOptions
-                                ]}
-                                value={masterDriver}
-                                onChange={handleDriverChange}
-                                placeholder="Select driver"
-                                searchPlaceholder="Search driver..."
-                                emptyText="No drivers found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                              {driverConflictWarning && (
-                                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5 mt-1">
-                                  <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                                  <span>{driverConflictWarning}</span>
+                      {/* TWO-COLUMN WORKSPACE: LEFT (Decisions & Entry ~72-75%) and RIGHT (Financial Feedback ~25-28%) */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+                        
+                        {/* LEFT COLUMN: SERVICE + QUOTATIONS + ASSIGNMENT (~75% / col-span-8 or 9) */}
+                        <div className="lg:col-span-8 xl:col-span-9 space-y-3">
+                          
+                          {/* 1. COMBINED SERVICE + QUOTATIONS CARD */}
+                          <div className="p-3.5 rounded-xl bg-white border border-[#E5E7EB] shadow-2xs space-y-2.5">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-start">
+                              
+                              {/* Left Sub-Box: SERVICE CONFIG */}
+                              <div className="md:col-span-5 space-y-2 border-b md:border-b-0 md:border-r border-[#E5E7EB] pb-3 md:pb-0 md:pr-3.5">
+                                <div className="flex items-center justify-between pb-1 border-b border-[#E5E7EB]">
+                                  <span className="text-[11px] font-extrabold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
+                                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#FA634E]" />
+                                    SERVICE CONFIG
+                                  </span>
                                 </div>
-                              )}
-                            </div>
 
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...vehicleOptions
-                                ]}
-                                value={masterVehicle}
-                                onChange={handleVehicleChange}
-                                placeholder="Select vehicle"
-                                searchPlaceholder="Search vehicle..."
-                                emptyText="No vehicles found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {!isVehicleTypeEditable && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsVehicleTypeEditable(true)}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                              <Select
-                                value={contractVehicleType}
-                                onValueChange={(val) => {
-                                  setContractVehicleType(val);
-                                  setIsVehicleTypeEditable(false);
-                                  triggerRateLookupForSlots(val);
-                                }}
-                                disabled={!isVehicleTypeEditable}
-                              >
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 disabled:opacity-80" title="Vehicle Type">
-                                  <SelectValue placeholder="Vehicle Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {VEHICLE_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                      {type}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* OPTION B: THIRD-PARTY / 3PL SUBCONTRACTOR SELECTORS */}
-                      {assignmentType === 'third_party' && (
-                        <div className="p-3 rounded-xl bg-purple-50/20 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-2.5">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                              Assign 3PL Carrier & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateProviderOpen(true)}
-                              className="h-6 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Provider
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Provider *</label>
-                              <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold">
-                                  <SelectValue placeholder="Select provider" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {thirdPartyProviders.map((p) => (
-                                    <SelectItem key={p.id} value={p.id} className="text-xs font-semibold">
-                                      {p.name} {p.phone ? `(${p.phone})` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Plate *</label>
-                              <input
-                                type="text"
-                                value={thirdPartyVehiclePlate}
-                                onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
-                                placeholder="e.g. 1234 ABC"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {isCustomThirdPartyVehicleType && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsCustomThirdPartyVehicleType(false);
-                                      setContractVehicleType(VEHICLE_TYPES[0] || 'Flatbed');
-                                    }}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Select
-                                  </button>
-                                )}
-                              </div>
-                              {isCustomThirdPartyVehicleType ? (
-                                <input
-                                  type="text"
-                                  value={contractVehicleType}
-                                  onChange={(e) => setContractVehicleType(e.target.value)}
-                                  placeholder="Custom type..."
-                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              ) : (
-                                <Select
-                                  value={contractVehicleType}
-                                  onValueChange={(val) => {
-                                    if (val === 'custom') {
-                                      setIsCustomThirdPartyVehicleType(true);
-                                      setContractVehicleType('');
-                                    } else {
-                                      setContractVehicleType(val);
-                                      triggerRateLookupForSlots(val);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100" title="Vehicle Type">
-                                    <SelectValue placeholder="Vehicle Type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {VEHICLE_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                        {type}
-                                      </SelectItem>
-                                    ))}
-                                    <SelectItem value="custom" className="text-xs font-semibold text-purple-700">
-                                      Custom...
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5 border-t border-purple-100 dark:border-purple-900/30">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Driver Name</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverName}
-                                onChange={(e) => setThirdPartyDriverName(e.target.value)}
-                                placeholder="e.g. Tariq Mahmoud"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Phone</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverPhone}
-                                onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
-                                placeholder="e.g. +966 50 123 4567"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Cost (SAR)</label>
-                              <div className="relative">
-                                <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                <input
-                                  type="number"
-                                  value={thirdPartyCost}
-                                  onChange={(e) => setThirdPartyCost(e.target.value)}
-                                  placeholder="0.00"
-                                  className="w-full h-8 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-right bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Per-slot Billing Amount & Trip Charge */}
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Trip Rates & Payout</span>
-                          </div>
-                          {contractVehicleType && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 flex items-center gap-1">
-                              <Truck className="w-3 h-3" />
-                              Tier: {contractVehicleType}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-2.5">
-                          {contractSlots.map((slot, idx) => {
-                            const dateObj = slot.date ? new Date(slot.date) : new Date();
-                            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-                            const stopFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-                            const baseAmount = Number(slot.billingAmount) || 0;
-                            const totalBillingAmount = baseAmount + stopFeesSum;
-                            const driverPayout = Number(slot.tripCharges) || 0;
-                            const marginAmount = totalBillingAmount - driverPayout;
-                            const marginPercent = totalBillingAmount > 0 ? Math.round((marginAmount / totalBillingAmount) * 100) : 0;
-
-                            return (
-                              <div key={slot.id} className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-2xs">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                    <span className="text-xs font-semibold text-slate-500">({slot.origin || '—'} → {slot.destination || '—'})</span>
+                                <div className="space-y-2">
+                                  {/* Operation */}
+                                  <div className="space-y-0.5">
+                                    <label className="text-[11px] font-semibold text-[#3E3C3D] flex items-center gap-1">
+                                      <CalendarDays className="w-3 h-3 text-emerald-600" />
+                                      Operation
+                                    </label>
+                                    <Select
+                                      value={normalizeBillingType(contractBillingType)}
+                                      onValueChange={(val) => {
+                                        setContractBillingType(val);
+                                        triggerRateLookupForSlots(undefined, undefined, undefined, val);
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-1 focus:ring-emerald-500">
+                                        <SelectValue placeholder="Select Operation" />
+                                      </SelectTrigger>
+                                      <SelectContent className="z-[9999]">
+                                        <SelectItem value="Monthly" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#10B981' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-950 font-bold border border-emerald-200">
+                                              Monthly
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="Extra" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#14B8A6' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-teal-50 text-teal-950 font-bold border border-teal-200">
+                                              Extra (Spot)
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                  {slot.rateMatched ? (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[11px] font-black text-white bg-emerald-600 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
-                                        <CheckCircle2 className="w-3.5 h-3.5" /> QUOTATION MATCHED
-                                      </span>
-                                      {slot.rateCardName && (
-                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md truncate max-w-xs">
-                                          {slot.rateCardName}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Custom Rate / No Quotation
-                                    </span>
-                                  )}
-                                </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                  {/* Customer Billing Charge */}
-                                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 flex flex-col justify-between">
-                                    <div>
-                                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
-                                        <span>Customer Billing (SAR)</span>
-                                        {slot.rateCardBasePrice != null && slot.rateMatched && (
-                                          <span className="text-emerald-600 dark:text-emerald-400 font-mono">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
-                                        )}
+                                  {/* Line Type */}
+                                  <div className="space-y-0.5">
+                                    <label className="text-[11px] font-semibold text-[#3E3C3D] flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-sky-600" />
+                                      Line Type
+                                    </label>
+                                    <Select
+                                      value={normalizeRateCategory(contractRateCategory)}
+                                      onValueChange={(val) => {
+                                        setContractRateCategory(val);
+                                        triggerRateLookupForSlots(undefined, val);
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-1 focus:ring-sky-500">
+                                        <SelectValue placeholder="Select Line Type" />
+                                      </SelectTrigger>
+                                      <SelectContent className="z-[9999]">
+                                        <SelectItem value="Single Trip" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#0284C7' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-950 font-bold border border-sky-200">
+                                              Single Trip
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="Round Trip" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#6366F1' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-950 font-bold border border-indigo-200">
+                                              Round Trip
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="10 Hours Duty" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#3B82F6' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-950 font-bold border border-blue-200">
+                                              10 Hours Shift
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="12 Hours Duty" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#1D4ED8' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-950 font-bold border border-blue-300">
+                                              12 Hours Shift
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {/* Vehicle Class */}
+                                  <div className="space-y-0.5">
+                                    <label className="text-[11px] font-semibold text-[#3E3C3D] flex items-center gap-1">
+                                      <Truck className="w-3 h-3 text-amber-600" />
+                                      Vehicle Class
+                                    </label>
+                                    <Select
+                                      value={normalizeVehicleClass(contractVehicleType)}
+                                      onValueChange={(val) => {
+                                        setContractVehicleType(val);
+                                        setIsVehicleTypeEditable(false);
+                                        triggerRateLookupForSlots(val);
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-1 focus:ring-amber-500">
+                                        <SelectValue placeholder="Select Vehicle Class" />
+                                      </SelectTrigger>
+                                      <SelectContent className="z-[9999]">
+                                        <SelectItem value="3-4 TON" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#06B6D4' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-950 font-bold border border-cyan-200">
+                                              3-4 TON
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="5 TON" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#FA634E' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-orange-50 text-red-950 font-bold border border-orange-200">
+                                              5 TON
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="10 TON" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#F59E0B' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-950 font-bold border border-amber-200">
+                                              10 TON
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="20 TON" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#0F172A' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white font-bold border border-slate-800">
+                                              20 TON
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="40 FEET" className="text-xs font-semibold py-1.5 cursor-pointer">
+                                          <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#A855F7' }} />
+                                            <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-950 font-bold border border-purple-200">
+                                              40 FEET
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Sub-Box: QUOTATIONS */}
+                              <div className="md:col-span-7 space-y-2">
+                                {contractSlots.map((slot) => {
+                                  const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+
+                                  return (
+                                    <div key={slot.id} className="space-y-2">
+                                      <div className="flex items-center justify-between pb-1 border-b border-[#E5E7EB]">
+                                        <span className="text-[11px] font-bold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
+                                          <Tag className="w-3.5 h-3.5 text-[#FA634E]" />
+                                          QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})
+                                        </span>
+                                        <div>
+                                          {slot.rateMatched ? (
+                                            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200 flex items-center gap-1">
+                                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                              Matched
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.2 rounded-full border border-amber-200 flex items-center gap-1">
+                                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                                              No Match
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
-                                      <div className="relative mt-1">
-                                        <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                        <input
-                                          type="number"
-                                          value={slot.billingAmount}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
-                                          placeholder="0.00"
-                                          className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
-                                            slot.rateMatched
-                                              ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
-                                              : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
-                                          }`}
-                                        />
-                                      </div>
-                                      {stopFeesSum > 0 && (
-                                        <div className="text-[10px] text-right font-semibold text-slate-500 mt-1">
-                                          + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
+
+                                      {/* Horizontal Scrollable Quotes Row */}
+                                      {laneRateCards.length > 0 ? (
+                                        <div className="flex items-stretch gap-2 overflow-x-auto py-0.5">
+                                          {laneRateCards.map((rc) => {
+                                            const vLabel = normalizeVehicleClass(rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label);
+                                            const cLabel = normalizeRateCategory(rc.line_type || rc.rate_category);
+                                            const bLabel = normalizeBillingType(rc.billing_type);
+                                            const rateVal = rc.rate ?? rc.base_price ?? 0;
+                                            const driverPayoutVal = rc.driver_charge ?? rc.default_trip_charge ?? rc.trip_charge ?? 149;
+                                            const isSelected = normalizeVehicleClass(contractVehicleType) === vLabel &&
+                                                               normalizeRateCategory(contractRateCategory) === cLabel &&
+                                                               normalizeBillingType(contractBillingType) === bLabel;
+
+                                            return (
+                                              <div
+                                                key={rc.id}
+                                                onClick={() => {
+                                                  setContractVehicleType(vLabel);
+                                                  setContractRateCategory(cLabel);
+                                                  setContractBillingType(bLabel);
+                                                  triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
+                                                  setIsManualRateOverride(false);
+                                                }}
+                                                className={cn(
+                                                  "w-[145px] min-w-[145px] p-2 rounded-xl border transition-all flex flex-col justify-between space-y-1 bg-white shadow-2xs select-none cursor-pointer hover:shadow-xs",
+                                                  isSelected
+                                                    ? "border-[#FA634E] ring-2 ring-[#FA634E]/20 bg-orange-50/20"
+                                                    : "border-[#E5E7EB] hover:border-[#FA634E]/60 hover:bg-slate-50/80"
+                                                )}
+                                              >
+                                                <div className="space-y-1">
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-[#EEF1F6] text-[#3E3C3D]">
+                                                      {bLabel}
+                                                    </span>
+                                                    {isSelected && (
+                                                      <span className="text-[9px] font-extrabold text-[#FA634E] bg-orange-100 px-1 py-0.2 rounded-full">
+                                                        Applied ✓
+                                                      </span>
+                                                    )}
+                                                  </div>
+
+                                                  <div className="text-base font-bold font-mono text-[#3E3C3D]">
+                                                    SAR {rateVal.toLocaleString()}
+                                                  </div>
+
+                                                  <div className="text-[11px] text-[#6E6E80] space-y-0.2 leading-tight">
+                                                    <div className="font-medium truncate">{cLabel}</div>
+                                                    <div className="font-semibold text-[#3E3C3D] truncate">{vLabel}</div>
+                                                  </div>
+                                                </div>
+
+                                                <div className="pt-1 border-t border-[#E5E7EB] flex items-center justify-between text-[10px]">
+                                                  <span className="font-medium text-[#6E6E80]">
+                                                    Driver {driverPayoutVal > 0 ? `SAR ${driverPayoutVal}` : '—'}
+                                                  </span>
+                                                  <span className={cn("font-extrabold", isSelected ? "text-[#FA634E]" : "text-slate-400")}>
+                                                    {isSelected ? 'Applied ✓' : 'Apply →'}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div className="p-3.5 rounded-xl bg-slate-50/80 border border-dashed border-[#E5E7EB] flex flex-col items-center justify-center text-center gap-1.5 my-1">
+                                          <div className="text-xs font-semibold text-[#3E3C3D] flex items-center gap-1.5">
+                                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                                            No quotation template registered for this lane ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'}).
+                                          </div>
+                                          <p className="text-[11px] text-[#6E6E80] max-w-sm">
+                                            Create a commercial quotation rate line for this customer to lock pricing and driver payout rules.
+                                          </p>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={() => handleOpenCreateQuotation(slot)}
+                                            className="h-8 rounded-lg bg-[#FA634E] hover:bg-[#e0533e] text-white text-xs font-bold px-3.5 gap-1.5 shadow-2xs mt-1 cursor-pointer"
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Create Quotation
+                                          </Button>
                                         </div>
                                       )}
                                     </div>
+                                  );
+                                })}
+                              </div>
 
-                                    {/* Option A: Direct Integration inside Customer Billing Box */}
-                                    {!slot.rateMatched && (
-                                      <label className="mt-2 flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/90 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-200 cursor-pointer shadow-2xs hover:bg-amber-100/70 transition-all select-none">
-                                        <span className="flex items-center gap-1.5 text-[11px]">
-                                          <input
-                                            type="checkbox"
-                                            checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                            className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                          />
-                                          <span>Save rate as Quotation</span>
-                                        </span>
-                                        <span className="text-[9px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-700">
-                                          {contractVehicleType || '10 TON'}
-                                        </span>
-                                      </label>
-                                    )}
+                            </div>
+                          </div>
+
+                          {/* 3. ASSIGNMENT & DISPATCH */}
+                          <div className="p-3.5 rounded-xl bg-gradient-to-r from-orange-50/40 via-white to-slate-50/50 border border-orange-200/90 shadow-xs space-y-3">
+                            <div className="flex items-center justify-between border-b border-orange-100 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-lg bg-[#FA634E] text-white flex items-center justify-center font-bold shadow-2xs">
+                                  <UserCheck className="w-3.5 h-3.5" />
+                                </span>
+                                <div>
+                                  <h5 className="text-xs font-extrabold text-[#3E3C3D] uppercase tracking-wider">ASSIGNMENT & DISPATCH</h5>
+                                  <p className="text-[11px] text-[#6E6E80]">Assign driver & vehicle or 3PL fleet provider to dispatch this trip</p>
+                                </div>
+                              </div>
+
+                              <div className="inline-flex items-center p-0.5 bg-white rounded-lg border border-orange-200 text-xs shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignmentType('own')}
+                                  className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                                    assignmentType === 'own' ? 'bg-[#FA634E] text-white shadow-2xs' : 'text-[#6E6E80] hover:text-[#3E3C3D]'
+                                  }`}
+                                >
+                                  Own Fleet
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignmentType('third_party')}
+                                  className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                                    assignmentType === 'third_party' ? 'bg-purple-700 text-white shadow-2xs' : 'text-[#6E6E80] hover:text-[#3E3C3D]'
+                                  }`}
+                                >
+                                  3PL Vehicle
+                                </button>
+                              </div>
+                            </div>
+
+                            {assignmentType === 'own' ? (
+                              <div className="space-y-3">
+                                {/* RECENT DRIVERS FOR THIS ROUTE ACCELERATOR CHIPS */}
+                                {recentDriversList.length > 0 && (
+                                  <div className="p-2.5 rounded-xl bg-[#EEF1F6]/70 border border-slate-200/90 space-y-1.5 animate-fade-in mb-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-extrabold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
+                                        <UserCheck className="w-3.5 h-3.5 text-[#FA634E]" />
+                                        RECENT DRIVERS FOR {contractSlots[0]?.origin?.toUpperCase() || 'ORIGIN'} → {contractSlots[0]?.destination?.toUpperCase() || 'DESTINATION'}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-[#6E6E80]">Click to select driver & suggested vehicle</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                      {recentDriversList.map((item) => {
+                                        const isSelected = masterDriver === item.driverId;
+                                        const dObj = item.driverObj;
+                                        const vObj = item.vehicleObj;
+                                        const vehClass = vObj ? (vObj.asset_type || getVehicleTypeFromCapacity(vObj.capacity_kg) || contractVehicleType) : contractVehicleType;
+                                        const plate = vObj?.plate_number || 'ESA-4244';
+
+                                        return (
+                                          <button
+                                            key={item.driverId}
+                                            type="button"
+                                            onClick={() => handleApplyRecentDriver(item)}
+                                            className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2.5 cursor-pointer shadow-2xs ${
+                                              isSelected
+                                                ? 'bg-orange-50/80 border-[#FA634E] ring-1 ring-[#FA634E]/30'
+                                                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                                            }`}
+                                          >
+                                            <DriverAvatar
+                                              src={dObj?.avatar_url || dObj?.photo_url || dObj?.profile_photo}
+                                              firstName={dObj?.first_name || 'Driver'}
+                                              lastName={dObj?.last_name || ''}
+                                              size="sm"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                              <p className="text-xs font-extrabold text-[#3E3C3D] truncate">
+                                                {dObj?.first_name} {dObj?.last_name}
+                                              </p>
+                                              <p className="text-[10px] font-bold text-[#6E6E80] truncate">
+                                                {plate} · {vehClass}
+                                              </p>
+                                              <p className="text-[9px] font-semibold text-slate-400 truncate">
+                                                Used {item.count} {item.count === 1 ? 'time' : 'times'} · {item.formattedLastUsed}
+                                              </p>
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
+                                )}
 
-                                  {/* Driver Trip Charge */}
-                                  <div className="space-y-1 p-2.5 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                                      <span>Driver Payout (SAR)</span>
-                                      {slot.rateCardDefaultTripCharge != null && slot.rateMatched && (
-                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
-                                      )}
-                                    </div>
-                                    <div className="relative">
-                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                      <input
-                                        type="number"
-                                        value={slot.tripCharges}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { tripCharges: e.target.value })}
-                                        placeholder="0.00"
-                                        className="w-full h-8.5 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 focus:border-amber-400 text-slate-900 dark:text-slate-100"
-                                      />
-                                    </div>
-                                    {/* Presets */}
-                                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                                      {LOCAL_TRIP_CHARGE_PRESETS.map((preset) => (
-                                        <button
-                                          key={preset.label}
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, {
-                                            tripCharges: String(preset.amount),
-                                            ...(!slot.rateMatched ? { saveAsRateCard: true } : {}),
-                                          })}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                                            Number(slot.tripCharges) === preset.amount
-                                              ? 'bg-amber-500 border-amber-500 text-white'
-                                              : 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/40'
-                                          }`}
-                                        >
-                                          {preset.label} {preset.amount}
-                                        </button>
-                                      ))}
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-start">
+                                {/* Driver Field */}
+                                <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-1.5 focus-within:border-[#FA634E] transition-all">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-[#3E3C3D] flex items-center gap-1.5">
+                                      <User className="w-3.5 h-3.5 text-[#FA634E]" />
+                                      Driver Selection
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => setIsCreateDriverOpen(true)}
+                                      className="text-[11px] font-bold bg-[#FA634E] text-white hover:bg-[#e04f3b] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                                    >
+                                      + Add Driver
+                                    </button>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {(() => {
+                                      const selDriver = drivers.find((d) => d.id === masterDriver);
+                                      const initials = selDriver ? `${selDriver.first_name?.[0] || ''}${selDriver.last_name?.[0] || ''}`.toUpperCase() : null;
+                                      return (
+                                        <>
+                                          {initials && (
+                                            <div className="w-8 h-8 rounded-full bg-[#FA634E] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                              {initials}
+                                            </div>
+                                          )}
+                                          <Combobox
+                                            options={[{ value: 'unassigned', label: '-- Unassigned --' }, ...driverOptions]}
+                                            value={masterDriver}
+                                            onChange={handleDriverChange}
+                                            placeholder="Select driver..."
+                                            searchPlaceholder="Search driver..."
+                                            emptyText="No drivers found."
+                                            triggerClassName="h-9 rounded-lg bg-slate-50/50 border-[#E5E7EB] text-xs font-semibold w-full"
+                                          />
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
 
-                                {/* Slot Margin Pill Bar */}
-                                {totalBillingAmount > 0 && driverPayout > 0 && (
-                                  <div className="flex flex-wrap items-center justify-between text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 gap-2">
-                                    <span>Billed: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">SAR {totalBillingAmount.toLocaleString()}</strong></span>
-                                    <span>Payout: <strong className="text-amber-700 dark:text-amber-400 font-mono">SAR {driverPayout.toLocaleString()}</strong></span>
-                                    <span>
-                                      Margin:{' '}
-                                      <strong className={`font-mono ${marginAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        SAR {marginAmount.toLocaleString()} ({marginPercent}%)
-                                      </strong>
-                                    </span>
-                                  </div>
-                                )}
+                                {/* Vehicle Field */}
+                                <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-1.5 focus-within:border-[#FA634E] transition-all">
+                                  <label className="text-xs font-bold text-[#3E3C3D] flex items-center gap-1.5">
+                                    <Truck className="w-3.5 h-3.5 text-[#FA634E]" />
+                                    Vehicle Selection
+                                  </label>
+                                  <Combobox
+                                    options={[{ value: 'unassigned', label: '-- Unassigned --' }, ...vehicleOptions]}
+                                    value={masterVehicle}
+                                    onChange={handleVehicleChange}
+                                    placeholder="Select vehicle..."
+                                    searchPlaceholder="Search vehicle..."
+                                    emptyText="No vehicles found."
+                                    triggerClassName="h-9 rounded-lg bg-slate-50/50 border-[#E5E7EB] text-xs font-semibold w-full"
+                                  />
+                                  {(() => {
+                                    const selVeh = vehicles.find((v) => v.id === masterVehicle);
+                                    const actualClass = selVeh ? (selVeh.asset_type || getVehicleTypeFromCapacity(selVeh.capacity_kg)) : null;
+                                    const isMismatch = actualClass && contractVehicleType && actualClass.toLowerCase() !== contractVehicleType.toLowerCase();
+                                    if (isMismatch) {
+                                      return (
+                                        <div className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 flex items-center gap-1 mt-1">
+                                          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                          <span>Vehicle is {actualClass} · Required {contractVehicleType}</span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
                               </div>
-                            );
-                          })}
+                            </div>
+                          ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start p-3 rounded-lg bg-white border border-purple-200 shadow-2xs">
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold text-[#3E3C3D] block">3PL Provider *</label>
+                                  <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
+                                    <SelectTrigger className="h-9 w-full rounded-lg bg-slate-50/50 border-[#E5E7EB] text-xs font-semibold">
+                                      <SelectValue placeholder="Select provider..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {thirdPartyProviders.map((p) => (
+                                        <SelectItem key={p.id} value={p.id} className="text-xs font-semibold">
+                                          {p.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold text-[#3E3C3D] block">3PL Plate *</label>
+                                  <input
+                                    type="text"
+                                    value={thirdPartyVehiclePlate}
+                                    onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
+                                    placeholder="Plate number..."
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#E5E7EB] text-xs font-semibold bg-slate-50/50 outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs font-bold text-[#3E3C3D] block">3PL Driver Name</label>
+                                  <input
+                                    type="text"
+                                    value={thirdPartyDriverName}
+                                    onChange={(e) => setThirdPartyDriverName(e.target.value)}
+                                    placeholder="Driver name..."
+                                    className="w-full h-9 px-2.5 rounded-lg border border-[#E5E7EB] text-xs font-semibold bg-slate-50/50 outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                         </div>
+
+                        {/* RIGHT COLUMN: PERSISTENT FINANCIAL SUMMARY (~25% / col-span-4 or 3) */}
+                        <div className="lg:col-span-4 xl:col-span-3">
+                          <div className="p-3.5 rounded-xl bg-white border border-[#E5E7EB] shadow-2xs space-y-3 sticky top-4">
+                            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+                              <span className="text-[11px] font-extrabold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
+                                <DollarSign className="w-3.5 h-3.5 text-[#FA634E]" />
+                                FINANCIAL SUMMARY
+                              </span>
+                            </div>
+
+                            <div className="space-y-3 divide-y divide-[#E5E7EB]">
+                              {/* Customer Billing */}
+                              <div className="space-y-0.5 pt-1">
+                                <span className="text-[11px] font-semibold text-[#6E6E80] uppercase tracking-wider block">CUSTOMER BILLING</span>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-xl font-bold font-mono text-[#3E3C3D]">
+                                    SAR {marginMetrics.totalBilling.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-[#6E6E80] font-mono font-medium">
+                                    {contractBillingType === 'Monthly' ? '/month' : '/trip'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Driver Payout */}
+                              <div className="space-y-0.5 pt-2.5">
+                                <span className="text-[11px] font-semibold text-[#6E6E80] uppercase tracking-wider block">DRIVER PAYOUT</span>
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-xl font-bold font-mono text-[#3E3C3D]">
+                                    SAR {marginMetrics.totalCost.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-[#6E6E80] font-mono font-medium">
+                                    /trip
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Additional Charges */}
+                              <div className="space-y-1 pt-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-semibold text-[#6E6E80] uppercase tracking-wider">ADDITIONAL CHARGES</span>
+                                  <button
+                                    type="button"
+                                    className="text-[11px] font-bold text-[#FA634E] hover:underline cursor-pointer"
+                                  >
+                                    + Add Charge
+                                  </button>
+                                </div>
+                                <div className="text-base font-bold font-mono text-[#3E3C3D]">
+                                  SAR 0.00
+                                </div>
+                              </div>
+
+                              {/* Balance / Margin */}
+                              <div className="space-y-1 pt-2.5">
+                                <span className="text-[11px] font-extrabold text-[#3E3C3D] uppercase tracking-wider block">BALANCE / MARGIN</span>
+                                <div className="flex items-baseline justify-between">
+                                  <span className={`text-xl font-bold font-mono ${marginMetrics.profit >= 0 ? 'text-[#10B981]' : 'text-[#FA634E]'}`}>
+                                    SAR {marginMetrics.profit.toLocaleString()}
+                                  </span>
+                                  <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${marginMetrics.profit >= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                    {marginMetrics.marginPct.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 4: REVIEW */}
+                  {/* STEP 4: REVIEW & CONFIRM */}
                   {contractStep === 4 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                        <h4 className="text-sm font-bold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-brand" />
-                          Review & Confirm
-                        </h4>
-                        <span className="text-xs font-bold text-slate-500">
-                          {contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''} Ready to Create
-                        </span>
+                    <div className="space-y-3.5 animate-fade-in text-[#3E3C3D]">
+                      {/* Step Header */}
+                      <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+                        <div>
+                          <h4 className="text-base font-bold text-[#3E3C3D] flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-[#FA634E]" />
+                            REVIEW & CONFIRM
+                          </h4>
+                          <p className="text-xs font-semibold text-[#6E6E80]">
+                            {contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''} Ready to Create
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Summary Header Cards */}
                       {(() => {
                         const customerObj = customers.find((c) => c.id === contractCustomer);
                         const driverObj = drivers.find((d) => d.id === masterDriver);
                         const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
                         const providerObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
+
+                        const isMonthly = normalizeBillingType(contractBillingType) === 'Monthly';
                         const baseBillingSum = contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0);
                         const additionalChargesSum = contractSlots.reduce((sum, s) => {
                           return sum + (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
@@ -3527,330 +3832,367 @@ export default function CreateTripPage() {
                           return sum + (Number(s.tripCharges) || 0);
                         }, 0);
 
-                        const balanceAmount = totalAmountSum - totalTripCharges;
+                        const contractualBalance = totalAmountSum - totalTripCharges;
+                        const marginPct = totalAmountSum > 0 ? (contractualBalance / totalAmountSum) * 100 : 0;
 
                         return (
-                          <div className="space-y-3">
-                            {/* Financial Ledger Breakdown Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                              {[
-                                { label: 'Customer', value: customerObj?.name || '—', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Provider', value: providerObj?.name || (thirdPartyDriverName ? `3PL (${thirdPartyDriverName})` : 'Third-Party'), icon: Building2 }
-                                  : { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
-                                  : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Billing Rate', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
-                                { label: 'Total Billed (inc. Stops)', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
-                                { label: 'Driver Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'Balance', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
-                              ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                  <div key={item.label} className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <Icon className="w-3 h-3 text-slate-400" />
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.label}</span>
-                                    </div>
-                                    <div className={`text-xs font-extrabold truncate ${item.accent || 'text-[#111111] dark:text-slate-100'}`}>{item.value}</div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {/* NEW QUOTATIONS CREATION CONFIRMATION BAR */}
-                            {contractSlots.some((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0) && (
-                              <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 shadow-2xs space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
-                                      New Quotation(s) Will Be Saved ({contractSlots.filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0).length})
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold">
-                                    Saved to Quotations ledger for future automatic matching
-                                  </span>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  {contractSlots
-                                    .filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0)
-                                    .map((slot) => {
-                                      const custObj = customers.find((c) => c.id === contractCustomer);
-                                      return (
-                                        <div key={slot.id} className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                                          <div className="flex items-center gap-2 font-extrabold text-amber-950 dark:text-amber-100 min-w-0">
-                                            <span className="truncate">{slot.origin || 'Origin'} ➔ {slot.destination || 'Destination'}</span>
-                                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-[10px] text-amber-800 dark:text-amber-200 border border-amber-200">
-                                              {contractVehicleType || 'Standard'} • {contractRateCategory || 'Standard'}
-                                            </span>
-                                          </div>
-
-                                          <div className="flex items-center gap-4 shrink-0">
-                                            <div className="flex items-center gap-3 text-[11px] font-bold">
-                                              <span className="text-emerald-700 dark:text-emerald-400">Billing: SAR {Number(slot.billingAmount).toLocaleString()}</span>
-                                              {Number(slot.tripCharges) > 0 && (
-                                                <span className="text-indigo-700 dark:text-indigo-300">Driver Payout: SAR {Number(slot.tripCharges).toLocaleString()}</span>
-                                              )}
-                                            </div>
-
-                                            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-100 select-none hover:text-amber-700 transition-colors bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-md border border-amber-300 dark:border-amber-800">
-                                              <input
-                                                type="checkbox"
-                                                checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                                onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                                className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                              />
-                                              <span>Save as Quotation</span>
-                                            </label>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Per-slot review */}
-                            <div className="space-y-2">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Trip Slots</div>
-                              {contractSlots.map((slot, idx) => {
-                                const dateObj = slot.date ? new Date(slot.date) : new Date();
-                                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-                                const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                                const base = Number(slot.billingAmount) || 0;
-                                const total = base + stopFeesSum;
-                                const slotTripCharge = assignmentType === 'third_party'
-                                  ? (thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0))
-                                  : (Number(slot.tripCharges) || 0);
-
-                                const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
-                                const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
-
-                                const points: [number, number][] = [];
-                                if (slot.originLat && slot.originLng) points.push([slot.originLat, slot.originLng]);
-                                if (slot.destinationLat && slot.destinationLng) points.push([slot.destinationLat, slot.destinationLng]);
-                                if (contractRateCategory === 'Round Trip') {
-                                  const retLat = slot.returnOriginLat ?? slot.destinationLat;
-                                  const retLng = slot.returnOriginLng ?? slot.destinationLng;
-                                  const retDestLat = slot.returnDestinationLat ?? slot.originLat;
-                                  const retDestLng = slot.returnDestinationLng ?? slot.originLng;
-                                  if (retLat && retLng) points.push([retLat, retLng]);
-                                  if (retDestLat && retDestLng) points.push([retDestLat, retDestLng]);
-                                }
-
-                                return (
-                                  <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch hover:border-brand/40 transition-colors">
-                                    {/* Left details */}
-                                    <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3">
-                                      {/* Header Row */}
-                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-                                          <span className="text-xs font-bold text-[#111111] dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                          {slot.rateMatched && (
-                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Card {slot.rateCardName ? `(${slot.rateCardName})` : ''}
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-extrabold">
-                                          <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-lg" title="Base customer billing rate">
-                                            BILLING: SAR {base.toLocaleString()}
-                                          </span>
-                                          {stopFeesSum > 0 && (
-                                            <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-lg" title="Additional stop fees">
-                                              + EXTRAS: SAR {stopFeesSum.toLocaleString()}
-                                            </span>
-                                          )}
-                                          <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg font-black" title="Total gross revenue">
-                                            TOTAL: SAR {total.toLocaleString()}
-                                          </span>
-                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver charge payout">
-                                            DRIVER CHARGE: SAR {slotTripCharge.toLocaleString()}
-                                          </span>
-                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting driver charge and additional charges">
-                                            BALANCE: SAR {(total - slotTripCharge).toLocaleString()}
-                                          </span>
-                                        </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                            
+                            {/* LEFT COLUMN (~68%): OPERATIONAL TRIP REVIEW */}
+                            <div className="lg:col-span-8 space-y-3.5">
+                              
+                              {/* 1. TRIP OVERVIEW (CUSTOMER | DRIVER | VEHICLE) */}
+                              <div className="p-3 rounded-xl bg-white border border-[#E5E7EB] shadow-2xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB]">
+                                  
+                                  {/* CUSTOMER */}
+                                  <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                                    {customerObj?.logo_url || customerObj?.avatar_url || customerObj?.image_url ? (
+                                      <img
+                                        src={customerObj.logo_url || customerObj.avatar_url || customerObj.image_url}
+                                        alt={customerObj.name}
+                                        className="w-9 h-9 rounded-full object-cover border border-[#E5E7EB] shadow-2xs shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-full bg-[#FA634E] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                        {customerObj?.name ? customerObj.name.substring(0, 2).toUpperCase() : 'CU'}
                                       </div>
-
-                                      {/* Route */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="flex flex-col items-center shrink-0">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                            <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                            <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
-                                          </div>
-                                          <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                            <div className="truncate">{slot.origin || '—'} (Outbound Pickup)</div>
-                                            <div className="truncate">{slot.destination || '—'} (Outbound Dropoff)</div>
-                                          </div>
-                                        </div>
-
-                                        {outboundStops.length > 0 && (
-                                          <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
-                                        )}
-
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="flex items-center gap-2.5 border-t border-slate-100 pt-2">
-                                              <div className="flex flex-col items-center shrink-0">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-100" />
-                                                <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200" />
-                                              </div>
-                                              <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                                <div className="truncate">{slot.returnOrigin || slot.destination || '—'} (Return Pickup)</div>
-                                                <div className="truncate">{slot.returnDestination || slot.origin || '—'} (Return Dropoff)</div>
-                                              </div>
-                                            </div>
-
-                                            {returnStops.length > 0 && (
-                                              <div className="text-[11px] text-slate-400 font-semibold pl-5">via {returnStops.join(' → ')}</div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-
-                                      {/* Timing + crew */}
-                                      <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-100 pt-2.5">
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Pickup</span>
-                                          <span className="font-bold text-[#111111]">{slot.pickupTime || '—'}</span>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Dropoff</span>
-                                          <span className="font-bold text-[#111111]">
-                                            {slot.dropoffTime || '—'}
-                                            {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                          </span>
-                                        </div>
-
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Pickup</span>
-                                              <span className="font-bold text-[#111111]">{slot.returnPickupTime || '—'}</span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Dropoff</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {slot.returnDropoffTime || '—'}
-                                                {slot.returnIsOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-
-                                        {assignmentType === 'third_party' ? (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Provider & Driver</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {providerObj?.name || '3PL'} {thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Vehicle</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {thirdPartyVehiclePlate || '3PL Truck'} ({contractVehicleType})
-                                              </span>
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                     </div>
-                                    {/* Right minimap */}
-                                    <div className="md:col-span-5 lg:col-span-4 min-h-[105px] h-[105px] z-0">
-                                      {points.length >= 2 ? (
-                                        <div className="w-full h-full min-h-[105px] h-[105px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 z-0">
-                                          <MapContainer
-                                            center={points[0]}
-                                            zoom={10}
-                                            scrollWheelZoom={false}
-                                            zoomControl={false}
-                                            attributionControl={false}
-                                            style={{ height: '100%', width: '100%', zIndex: 0 }}
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-extrabold text-[#6E6E80] uppercase tracking-wider block">CUSTOMER</span>
+                                        {customerObj && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPreviewCustomer(customerObj)}
+                                            className="text-[#6E6E80] hover:text-[#FA634E] cursor-pointer"
+                                            title="View Customer Profile"
                                           >
-                                            <TileLayer
-                                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; Esri'
-                                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                            />
-                                            <TileLayer
-                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                                            />
-                                            <MapBoundsAdjuster points={points} />
-                                            
-                                            {/* Outbound Markers */}
-                                            {slot.originLat && slot.originLng && (
-                                              <Marker position={[slot.originLat, slot.originLng]} icon={pickupMarkerIcon} />
-                                            )}
-                                            {slot.destinationLat && slot.destinationLng && (
-                                              <Marker position={[slot.destinationLat, slot.destinationLng]} icon={dropoffMarkerIcon} />
-                                            )}
-
-                                            {/* Return Leg Markers */}
-                                            {contractRateCategory === 'Round Trip' && (
-                                              <>
-                                                {(slot.returnOriginLat ?? slot.destinationLat) && (slot.returnOriginLng ?? slot.destinationLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnOriginLat ?? slot.destinationLat!,
-                                                      slot.returnOriginLng ?? slot.destinationLng!
-                                                    ]}
-                                                    icon={returnPickupMarkerIcon}
-                                                  />
-                                                )}
-                                                {(slot.returnDestinationLat ?? slot.originLat) && (slot.returnDestinationLng ?? slot.originLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnDestinationLat ?? slot.originLat!,
-                                                      slot.returnDestinationLng ?? slot.originLng!
-                                                    ]}
-                                                    icon={returnDropoffMarkerIcon}
-                                                  />
-                                                )}
-                                              </>
-                                            )}
-
-                                            {/* Route Polyline */}
-                                            <Polyline
-                                              positions={points}
-                                              pathOptions={{ color: '#FF5500', weight: 3, opacity: 0.8 }}
-                                            />
-                                          </MapContainer>
-                                        </div>
+                                            <User className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                      {customerObj ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewCustomer(customerObj)}
+                                          className="text-xs font-bold text-[#3E3C3D] hover:text-[#FA634E] hover:underline cursor-pointer block text-left truncate w-full"
+                                          title={customerObj.name}
+                                        >
+                                          {customerObj.name}
+                                        </button>
                                       ) : (
-                                        <div className="w-full h-full min-h-[140px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
-                                          <MapPin className="w-5 h-5 text-slate-300" />
-                                          Map Preview Unavailable
-                                        </div>
+                                        <span className="text-xs font-bold text-[#3E3C3D] block truncate">Unassigned Customer</span>
                                       )}
                                     </div>
                                   </div>
-                                );
-                              })}
+
+                                  {/* DRIVER */}
+                                  <div className="flex items-center gap-2.5 min-w-0 sm:pl-3 pr-1 pt-2 sm:pt-0">
+                                    {assignmentType === 'third_party' ? (
+                                      <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-extrabold flex items-center justify-center shrink-0 shadow-2xs border border-purple-200">
+                                        <Building2 className="w-4.5 h-4.5" />
+                                      </div>
+                                    ) : (
+                                      <DriverAvatar
+                                        src={driverObj?.avatar_url || driverObj?.photo_url || driverObj?.profile_photo || driverObj?.image_url}
+                                        firstName={driverObj?.first_name}
+                                        lastName={driverObj?.last_name}
+                                        size="md"
+                                      />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-extrabold text-[#6E6E80] uppercase tracking-wider block">
+                                          {assignmentType === 'third_party' ? '3PL DRIVER' : 'DRIVER'}
+                                        </span>
+                                        {driverObj && assignmentType !== 'third_party' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPreviewDriver(driverObj)}
+                                            className="text-[#6E6E80] hover:text-[#FA634E] cursor-pointer"
+                                            title="View Driver Profile"
+                                          >
+                                            <User className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                      {assignmentType === 'third_party' ? (
+                                        <span className="text-xs font-bold text-[#3E3C3D] block truncate" title={`${providerObj?.name || '3PL Provider'} ${thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}`}>
+                                          {providerObj?.name || '3PL Provider'} {thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}
+                                        </span>
+                                      ) : driverObj ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewDriver(driverObj)}
+                                          className="text-xs font-bold text-[#3E3C3D] hover:text-[#FA634E] hover:underline cursor-pointer block text-left truncate w-full"
+                                          title={`${driverObj.first_name} ${driverObj.last_name}`}
+                                        >
+                                          {driverObj.first_name} {driverObj.last_name}
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs font-bold text-[#3E3C3D] block truncate">Unassigned Driver</span>
+                                      )}
+                                      {(assignmentType === 'third_party' || (driverObj?.phone || driverObj?.phone_number || driverObj?.mobile)) && (
+                                        <span className="text-[10px] text-[#6E6E80] block font-medium truncate">
+                                          {assignmentType === 'third_party' ? 'Third-Party Logistics' : (driverObj?.phone || driverObj?.phone_number || driverObj?.mobile)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* VEHICLE */}
+                                  <div className="flex items-center gap-2.5 min-w-0 sm:pl-3 pt-2 sm:pt-0">
+                                    <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 font-extrabold flex items-center justify-center shrink-0 shadow-2xs border border-amber-200">
+                                      <Truck className="w-4.5 h-4.5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-extrabold text-[#6E6E80] uppercase tracking-wider block">VEHICLE</span>
+                                        {vehicleObj && assignmentType !== 'third_party' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPreviewVehicle(vehicleObj)}
+                                            className="text-[#6E6E80] hover:text-[#FA634E] cursor-pointer"
+                                            title="View Truck Profile"
+                                          >
+                                            <Truck className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                      {assignmentType === 'third_party' ? (
+                                        <span className="text-xs font-bold text-[#3E3C3D] block truncate" title={thirdPartyVehiclePlate || '3PL Truck'}>
+                                          {thirdPartyVehiclePlate || '3PL Truck'}
+                                        </span>
+                                      ) : vehicleObj ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewVehicle(vehicleObj)}
+                                          className="text-xs font-bold text-[#3E3C3D] hover:text-[#FA634E] hover:underline cursor-pointer block text-left truncate w-full"
+                                          title={vehicleObj.plate_number}
+                                        >
+                                          {vehicleObj.plate_number}
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs font-bold text-[#3E3C3D] block truncate">Unassigned Vehicle</span>
+                                      )}
+                                      <span className="text-[10px] text-[#6E6E80] block font-medium truncate">
+                                        {vehicleObj ? (vehicleObj.asset_type || getVehicleTypeFromCapacity(vehicleObj.capacity_kg) || contractVehicleType) : contractVehicleType}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                </div>
+                              </div>
+
+                              {/* 2. TRIP DETAILS (ROUTE TIMELINE + COMPACT MAP SIDE-BY-SIDE) */}
+                              <div className="space-y-3">
+                                {contractSlots.map((slot, idx) => {
+                                  const dateObj = slot.date ? new Date(slot.date) : new Date();
+                                  const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+                                  const points: [number, number][] = [];
+                                  if (slot.originLat && slot.originLng) points.push([slot.originLat, slot.originLng]);
+                                  if (slot.destinationLat && slot.destinationLng) points.push([slot.destinationLat, slot.destinationLng]);
+
+                                  return (
+                                    <div key={slot.id} className="p-3.5 rounded-xl border border-[#E5E7EB] bg-white shadow-2xs space-y-3">
+                                      
+                                      {/* Slot Header */}
+                                      <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+                                        <div className="flex items-center gap-2">
+                                          <Calendar className="w-4 h-4 text-[#FA634E] shrink-0" />
+                                          <span className="text-sm font-bold text-[#3E3C3D]">TRIP {idx + 1} • {formattedDate}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Content Grid: Route Timeline (Left ~55%) & Compact Map (Right ~45%) */}
+                                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                                        
+                                        {/* ROUTE TIMELINE */}
+                                        <div className="md:col-span-7 space-y-2">
+                                          
+                                          {/* Pickup */}
+                                          <div className="flex items-start gap-2.5">
+                                            <div className="w-3 h-3 rounded-full bg-[#10B981] ring-4 ring-emerald-100 shrink-0 mt-0.5" />
+                                            <div>
+                                              <div className="text-xs font-bold text-[#3E3C3D]">
+                                                {slot.origin ? slot.origin.toUpperCase() : 'ORIGIN LOCATION'}
+                                              </div>
+                                              <div className="text-[11px] font-semibold text-[#6E6E80]">
+                                                Pickup • {slot.pickupTime || '08:00 AM'}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Line Connector */}
+                                          <div className="pl-1 flex items-center gap-2.5">
+                                            <div className="w-0.5 h-6 bg-dashed border-l border-slate-300" />
+                                            <span className="text-[11px] font-medium text-[#6E6E80] px-2 py-0.5 rounded bg-[#EEF1F6]">
+                                              892 km • ~11h 09m
+                                            </span>
+                                          </div>
+
+                                          {/* Drop-off */}
+                                          <div className="flex items-start gap-2.5">
+                                            <div className="w-3 h-3 rounded-full bg-[#FA634E] ring-4 ring-orange-100 shrink-0 mt-0.5" />
+                                            <div>
+                                              <div className="text-xs font-bold text-[#3E3C3D]">
+                                                {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION LOCATION'}
+                                              </div>
+                                              <div className="text-[11px] font-semibold text-[#6E6E80]">
+                                                Drop-off • {slot.dropoffTime || '07:09 PM'}
+                                                {slot.isOvernight && <span className="ml-1.5 text-[9px] font-extrabold text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">+1 Day</span>}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                        </div>
+
+                                        {/* COMPACT MAP */}
+                                        <div className="md:col-span-5 min-h-[160px] h-[160px]">
+                                          {points.length >= 2 ? (
+                                            <div className="w-full h-full min-h-[160px] h-[160px] rounded-xl overflow-hidden border border-[#E5E7EB] shadow-2xs relative bg-slate-50 z-0">
+                                              <MapContainer
+                                                center={points[0]}
+                                                zoom={10}
+                                                scrollWheelZoom={false}
+                                                zoomControl={false}
+                                                attributionControl={false}
+                                                style={{ height: '100%', width: '100%', zIndex: 0 }}
+                                              >
+                                                <TileLayer
+                                                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; Esri'
+                                                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                />
+                                                <TileLayer
+                                                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                                                />
+                                                <MapBoundsAdjuster points={points} />
+                                                
+                                                {/* Outbound Markers */}
+                                                {slot.originLat && slot.originLng && (
+                                                  <Marker position={[slot.originLat, slot.originLng]} icon={pickupMarkerIcon} />
+                                                )}
+                                                {slot.destinationLat && slot.destinationLng && (
+                                                  <Marker position={[slot.destinationLat, slot.destinationLng]} icon={dropoffMarkerIcon} />
+                                                )}
+
+                                                {/* Polyline */}
+                                                <Polyline
+                                                  positions={points}
+                                                  pathOptions={{ color: '#FA634E', weight: 3, opacity: 0.8 }}
+                                                />
+                                              </MapContainer>
+                                            </div>
+                                          ) : (
+                                            <div className="w-full h-full min-h-[160px] rounded-xl bg-slate-50 border border-dashed border-[#E5E7EB] flex flex-col items-center justify-center text-slate-400 gap-1 text-xs font-semibold">
+                                              <MapPin className="w-5 h-5 text-slate-300" />
+                                              Map Preview
+                                            </div>
+                                          )}
+                                        </div>
+
+                                      </div>
+
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
                             </div>
+
+                            {/* RIGHT COLUMN (~32%): STICKY FINANCIAL STATEMENT PANEL */}
+                            <div className="lg:col-span-4 sticky top-4 space-y-3">
+                              
+                              <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] shadow-sm space-y-3.5">
+                                <div className="border-b border-[#E5E7EB] pb-2">
+                                  <span className="font-extrabold text-[#3E3C3D] tracking-wider uppercase text-xs block">
+                                    FINANCIAL SUMMARY
+                                  </span>
+                                </div>
+
+                                <div className="space-y-3 text-xs font-semibold">
+                                  {isMonthly ? (
+                                    <>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[#6E6E80]">Monthly Contract</span>
+                                        <span className="font-bold font-mono text-[#3E3C3D] text-sm">SAR {baseBillingSum.toLocaleString()} / month</span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[#6E6E80]">Additional Charges</span>
+                                          <button type="button" className="text-[10px] font-bold text-[#FA634E] hover:underline cursor-pointer">+ Add</button>
+                                        </div>
+                                        <span className="font-bold font-mono text-[#3E3C3D]">+ SAR {additionalChargesSum.toLocaleString()}</span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-1 border-t border-[#E5E7EB]">
+                                        <span className="text-[#6E6E80]">Driver Payout</span>
+                                        <span className="font-bold font-mono text-rose-600">- SAR {totalTripCharges.toLocaleString()} / trip</span>
+                                      </div>
+
+                                      <div className="pt-2.5 border-t-2 border-[#3E3C3D] space-y-1">
+                                        <div className="flex items-baseline justify-between">
+                                          <span className="font-extrabold text-[#3E3C3D] uppercase text-[11px] tracking-wider">Contractual Balance</span>
+                                          <span className={`text-xl font-bold font-mono ${contractualBalance >= 0 ? 'text-[#10B981]' : 'text-[#FA634E]'}`}>
+                                            SAR {contractualBalance.toLocaleString()}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[11px]">
+                                          <span className="text-[#6E6E80]">/ month</span>
+                                          <span className={`font-extrabold px-1.5 py-0.2 rounded-full ${contractualBalance >= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                            {marginPct.toFixed(1)}% margin
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[#6E6E80]">Customer Billing</span>
+                                        <span className="font-bold font-mono text-[#3E3C3D] text-sm">SAR {baseBillingSum.toLocaleString()}</span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[#6E6E80]">Additional Charges</span>
+                                          <button type="button" className="text-[10px] font-bold text-[#FA634E] hover:underline cursor-pointer">+ Add</button>
+                                        </div>
+                                        <span className="font-bold font-mono text-[#3E3C3D]">+ SAR {additionalChargesSum.toLocaleString()}</span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-1.5 border-t border-[#E5E7EB]">
+                                        <span className="font-bold text-[#3E3C3D]">Total Customer Billing</span>
+                                        <span className="font-bold font-mono text-[#3E3C3D] text-sm">SAR {totalAmountSum.toLocaleString()}</span>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-1.5 border-t border-[#E5E7EB]">
+                                        <span className="text-[#6E6E80]">Driver Payout</span>
+                                        <span className="font-bold font-mono text-rose-600">- SAR {totalTripCharges.toLocaleString()}</span>
+                                      </div>
+
+                                      <div className="pt-2.5 border-t-2 border-[#3E3C3D] space-y-1">
+                                        <div className="flex items-baseline justify-between">
+                                          <span className="font-extrabold text-[#3E3C3D] uppercase text-[11px] tracking-wider">Trip Margin</span>
+                                          <span className={`text-xl font-bold font-mono ${contractualBalance >= 0 ? 'text-[#10B981]' : 'text-[#FA634E]'}`}>
+                                            SAR {contractualBalance.toLocaleString()}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-end">
+                                          <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${contractualBalance >= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                            {marginPct.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                            </div>
+
                           </div>
                         );
                       })()}

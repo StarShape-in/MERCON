@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import VehicleCompatibilitySection from '@/components/taxonomy/VehicleCompatibilitySection';
 import { Label } from '@/components/ui/label';
 
 export default function TaxonomyManagementPage() {
@@ -136,6 +137,10 @@ export default function TaxonomyManagementPage() {
     const lt = options.filter(o => o.category === 'LINE_TYPE').length;
     const bt = options.filter(o => o.category === 'BILLING_TYPE' || o.category === 'OPERATION_TYPE').length;
     return { vc, lt, bt };
+  }, [options]);
+
+  const vehicleClassOptions = useMemo(() => {
+    return options.filter((o) => o.category === 'VEHICLE_CLASS');
   }, [options]);
 
   const activeCategoryMeta = useMemo(() => {
@@ -436,11 +441,12 @@ export default function TaxonomyManagementPage() {
                       </tr>
                     );
                   })
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
+
+        {/* Vehicle Operational Assignment Rules Section */}
+        {activeTab === 'VEHICLE_CLASS' && (
+          <VehicleCompatibilitySection vehicleClassOptions={vehicleClassOptions} />
+        )}
       </div>
 
       {/* Add / Edit Option Dialog Modal */}

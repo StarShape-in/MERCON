@@ -132,7 +132,7 @@ export function TaxonomySelect({
           <SelectValue placeholder={defaultPlaceholder} />
         </SelectTrigger>
 
-        <SelectContent className="z-[9999] max-h-64 shadow-xl border-slate-200 dark:border-slate-800">
+        <SelectContent className="z-[9999] max-h-64 shadow-xl border-slate-200 dark:border-slate-800 w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]">
           {allowClear && (
             <SelectItem value={NONE_VALUE} className="text-xs font-medium text-slate-400">
               None / Unspecified

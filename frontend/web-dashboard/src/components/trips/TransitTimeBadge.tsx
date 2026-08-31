@@ -65,6 +65,14 @@ export default function TransitTimeBadge({
     };
   }, [origin, destination, originLat, originLng, destinationLat, destinationLng]);
 
+  // Auto-update dropoff time when estimate or pickupTime changes
+  useEffect(() => {
+    if (estimate && onAutoSetDropoffTime && pickupTime) {
+      const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
+      onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
+    }
+  }, [estimate, pickupTime, onAutoSetDropoffTime]);
+
   if (!origin.trim() || !destination.trim()) {
     return null;
   }
@@ -83,14 +91,6 @@ export default function TransitTimeBadge({
   }
 
   const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
-
-  const handleApply = () => {
-    if (onAutoSetDropoffTime) {
-      onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
-      setApplied(true);
-      setTimeout(() => setApplied(false), 2000);
-    }
-  };
 
   return (
     <div className={cn('mt-2.5 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-2', className)}>
@@ -111,32 +111,6 @@ export default function TransitTimeBadge({
             via {estimate.source === 'google_maps' ? 'Google Maps' : 'Saudi Highway Network'}
           </span>
         </div>
-
-        {/* Right Side: Set Arrival Action Button */}
-        {onAutoSetDropoffTime && (
-          <Button
-            type="button"
-            variant={applied ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleApply}
-            className={cn(
-              'h-7.5 px-3 text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-              applied
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
-                : 'border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
-            )}
-            title={`Set dropoff time to calculated arrival ${arrivalCalc.formattedArrival}`}
-          >
-            {applied ? (
-              <>
-                <Check className="w-3.5 h-3.5 mr-1" />
-                <span>Applied</span>
-              </>
-            ) : (
-              <span>Set Arrival: {arrivalCalc.formattedArrival}</span>
-            )}
-          </Button>
-        )}
       </div>
 
       {/* Subtext Detail Line */}

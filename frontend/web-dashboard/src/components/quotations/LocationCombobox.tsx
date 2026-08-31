@@ -251,8 +251,10 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
 
       <PopoverContent
         align="start"
+        side="bottom"
         sideOffset={4}
-        className="w-[--radix-popover-trigger-width] min-w-[320px] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50"
+        avoidCollisions={false}
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50"
       >
         <Command shouldFilter={false} className="w-full overflow-hidden">
           <CommandInput
