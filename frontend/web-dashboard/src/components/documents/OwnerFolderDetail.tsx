@@ -209,389 +209,355 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
       {/* ── 3. Master / Detail Workspace Split Grid ──────────────── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
         
-        {/* LEFT SIDE COLUMN: Box 1 (Inspector Card) + Box 2 (Validity Registry Box - 4 / 12 width) */}
-        <div className="lg:col-span-4 h-full flex flex-col justify-between space-y-3 overflow-hidden">
+        {/* LEFT SIDE COLUMN: Single Coherent Enterprise ERP Document Details Panel (4 / 12 width) */}
+        <div className="lg:col-span-4 h-full flex flex-col justify-between overflow-hidden">
           {activeSlot ? (
-            <>
-              {/* 📦 BOX 1: Active Selected Document Details (Clean Enterprise ERP Panel) */}
-              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-3.5 shrink-0">
+            /* Single Outer Coherent Panel Box (No nested cards inside) */
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-4.5 shadow-2xs h-full flex flex-col justify-between overflow-hidden">
+              
+              {/* Scrollable Content Area for the 4 Logical Sections */}
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
                 
-                {/* Document Title & Status Bar */}
-                <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
-                        {activeSlot.documentType.name}
-                      </h2>
-                      
+                {/* ── 1. DOCUMENT ── */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      1. Document
+                    </span>
+                    <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                      {activeSlot.documentType.name}
+                    </span>
+                  </div>
+
+                  {/* 2-Column Key-Value Grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Doc Number / Ref
+                      </span>
+                      <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
+                        {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '7024295474'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Issuing Authority
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                        {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-slate-800/80" />
+
+                {/* ── 2. VALIDITY ── */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        2. Validity
+                      </span>
                       {activeDoc ? (
-                        <Badge variant="outline" className={cn('text-[10px] font-extrabold px-2 py-0.5 shadow-3xs', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
+                        <Badge variant="outline" className={cn('text-[9.5px] font-extrabold px-1.5 py-0.2 shadow-3xs', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
                           {(CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).label}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-extrabold text-[10px] px-2 py-0.5 shadow-3xs">
+                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-extrabold text-[9.5px] px-1.5 py-0.2">
                           🔴 Missing
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-450 mt-1 font-mono">
-                      {activeDoc
-                        ? activeDoc.expiry_date
-                          ? `Expiry: ${formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')}`
-                          : 'No expiry date required'
-                        : 'Document file not uploaded'}
-                    </p>
+
+                    {!isEditingDates && activeDoc && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDates(true)}
+                        className="text-xs font-bold text-[#FA634E] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" /> Edit Dates
+                      </button>
+                    )}
                   </div>
 
-                  {!isEditingDates && activeDoc && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingDates(true)}
-                      className="text-xs font-bold text-[#FA634E] hover:underline flex items-center gap-1 cursor-pointer shrink-0"
-                    >
-                      <Edit2 className="w-3 h-3" /> Edit Dates
-                    </button>
+                  {/* Dates Key-Value Grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Issue Date
+                      </span>
+                      {isEditingDates ? (
+                        <div className="mt-1">
+                          <DatePicker
+                            value={editIssueDate}
+                            onChange={(_, dateStr) => setEditIssueDate(dateStr)}
+                            placeholder="Issue Date..."
+                          />
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
+                          {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Expiry Date
+                      </span>
+                      {isEditingDates ? (
+                        <div className="mt-1">
+                          <DatePicker
+                            value={editExpiryDate}
+                            onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
+                            placeholder="Expiry Date..."
+                          />
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs font-black block">
+                          {activeDoc?.expiry_date
+                            ? formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')
+                            : activeSlot.documentType.requiresExpiryDate
+                            ? <span className="text-rose-600 font-extrabold">Expiry Missing</span>
+                            : <span className="text-slate-400 font-semibold">No Expiry Required</span>}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save / Cancel buttons when editing dates */}
+                  {isEditingDates && (
+                    <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800 mt-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs font-bold text-slate-650 cursor-pointer"
+                        onClick={() => setIsEditingDates(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-xs font-bold gap-1 bg-[#FA634E] text-white hover:bg-[#FA634E]/90 cursor-pointer"
+                        onClick={handleSaveDates}
+                        disabled={isSavingDates}
+                      >
+                        {isSavingDates ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        Save Changes
+                      </Button>
+                    </div>
                   )}
                 </div>
 
-                {/* Active Document Key-Value Information Grid (No Inner Cards or Borders) */}
-                {activeDoc ? (
-                  <div className="space-y-3.5">
-                    
-                    {/* 2-Column Key-Value Grid */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      
-                      {/* Doc Number / Reference */}
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                          Doc Number / Ref
-                        </span>
-                        <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
-                          {activeDoc.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '7024295474'}
-                        </span>
-                      </div>
+                <div className="border-t border-slate-100 dark:border-slate-800/80" />
 
-                      {/* Issuing Authority */}
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                          Issuing Authority
-                        </span>
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                          {formatBilingualAuthority(activeDoc.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
-                        </span>
-                      </div>
-
-                      {/* Issue Date */}
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                          Issue Date
-                        </span>
-                        {isEditingDates ? (
-                          <div className="w-full mt-1">
-                            <DatePicker
-                              value={editIssueDate}
-                              onChange={(_, dateStr) => setEditIssueDate(dateStr)}
-                              placeholder="Issue Date..."
-                            />
-                          </div>
-                        ) : (
-                          <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
-                            {activeDoc.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Expiry Date */}
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">
-                          Expiry Date
-                        </span>
-                        {isEditingDates ? (
-                          <div className="w-full mt-1">
-                            <DatePicker
-                              value={editExpiryDate}
-                              onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
-                              placeholder="Expiry Date..."
-                            />
-                          </div>
-                        ) : (
-                          <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-200 block">
-                            {activeDoc.expiry_date
-                              ? formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')
-                              : activeSlot.documentType.requiresExpiryDate
-                              ? <span className="text-rose-600 font-bold">Expiry Missing</span>
-                              : 'No Expiry'}
-                          </span>
-                        )}
-                      </div>
-
-                    </div>
-
-                    {/* Save / Cancel buttons when editing dates */}
-                    {isEditingDates && (
-                      <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800 mt-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs font-bold text-slate-650 cursor-pointer"
-                          onClick={() => setIsEditingDates(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-7 text-xs font-bold gap-1 bg-[#FA634E] text-white hover:bg-[#FA634E]/90 cursor-pointer"
-                          onClick={handleSaveDates}
-                          disabled={isSavingDates}
-                        >
-                          {isSavingDates ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                          Save Changes
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* AI OCR Accuracy Indicator (Clean Inline Text) */}
-                    {activeDoc.ai_extracted_json && (
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[10.5px]">
-                        <span className="font-bold text-slate-400 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-amber-500" /> AI OCR Accuracy
-                        </span>
-                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">
-                          {typeof activeDoc.ai_extracted_json.confidence === 'number' ? `${Math.round(activeDoc.ai_extracted_json.confidence * 100)}% Verified` : '98% High Accuracy'}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Document Completeness & Validation Checklist (Clean Checklist Rows - No Nested Cards) */}
+                {/* ── 3. VALIDATION ── */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                      3. Validation Checks
+                    </span>
                     {(() => {
                       const status = activeDoc ? getSlotStatusFromDoc(activeDoc) : 'MISSING';
                       const hasDocNum = !!(activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number);
                       const hasIssueDate = !!activeDoc?.issue_date;
                       const isExpiryValid = status === 'VALID' || status === 'NO_EXPIRY';
+                      const allPassed = !!activeDoc && hasDocNum && hasIssueDate && isExpiryValid;
 
-                      const checks = [
-                        {
-                          id: 'file',
-                          label: 'File Attachment',
-                          passed: !!activeDoc,
-                          msg: activeDoc ? 'Uploaded' : 'Missing File',
-                        },
-                        {
-                          id: 'number',
-                          label: 'Reference Serial Number',
-                          passed: hasDocNum,
-                          msg: hasDocNum ? 'Verified' : 'Ref Missing',
-                        },
-                        {
-                          id: 'issue_date',
-                          label: 'Issue Date Record',
-                          passed: hasIssueDate,
-                          msg: hasIssueDate ? 'Recorded' : 'Not Set',
-                        },
-                        {
-                          id: 'expiry',
-                          label: 'Expiry Validity Status',
-                          passed: isExpiryValid,
-                          msg: status === 'EXPIRED'
-                            ? 'Expired'
-                            : status === 'EXPIRING_SOON'
-                            ? 'Expiring Soon'
-                            : activeSlot.documentType.requiresExpiryDate && !activeDoc?.expiry_date
-                            ? 'Date Required'
-                            : isExpiryValid
-                            ? 'Valid & Active'
-                            : 'Missing',
-                        },
-                      ];
+                      return allPassed ? (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Passed
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Review Needed
+                        </span>
+                      );
+                    })()}
+                  </div>
 
-                      const allPassed = checks.every((c) => c.passed);
+                  {/* Compact Checklist Rows */}
+                  {(() => {
+                    const hasDocNum = !!(activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number);
+                    const hasIssueDate = !!activeDoc?.issue_date;
+
+                    const checks = [
+                      {
+                        id: 'file',
+                        label: 'File Attachment',
+                        passed: !!activeDoc,
+                        msg: activeDoc ? 'Uploaded' : 'Missing File',
+                      },
+                      {
+                        id: 'number',
+                        label: 'Reference Serial Number',
+                        passed: hasDocNum,
+                        msg: hasDocNum ? 'Verified' : 'Ref Missing',
+                      },
+                      {
+                        id: 'issue_date',
+                        label: 'Issue Date Record',
+                        passed: hasIssueDate,
+                        msg: hasIssueDate ? 'Recorded' : 'Not Set',
+                      },
+                    ];
+
+                    return (
+                      <div className="space-y-1 pt-0.5">
+                        {checks.map((chk) => (
+                          <div key={chk.id} className="flex items-center justify-between text-xs py-0.5">
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              {chk.passed ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              ) : (
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              )}
+                              <span className={cn("text-[11px] truncate", chk.passed ? "text-slate-700 dark:text-slate-300" : "font-bold text-rose-700 dark:text-rose-400")}>
+                                {chk.label}
+                              </span>
+                            </span>
+
+                            <span className={cn(
+                              "text-[10.5px] font-mono shrink-0 ml-2",
+                              chk.passed ? "text-slate-400 dark:text-slate-500" : "font-bold text-rose-600 dark:text-rose-400"
+                            )}>
+                              {chk.msg}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-slate-800/80" />
+
+                {/* ── 4. OTHER VEHICLE DOCUMENTS ── */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                      4. Other Vehicle Documents
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 font-bold">
+                      {folder.slots.length} Records
+                    </span>
+                  </div>
+
+                  {/* Compact Table/List Rows (No inner cards!) */}
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800/80 pr-0.5">
+                    {folder.slots.map((s) => {
+                      const isSelected = activeSlot?.documentType.id === s.documentType.id;
+                      const d = s.document;
+                      const code = getSlotStatusFromDoc(d);
+                      const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+                      const isExpiring = code === 'EXPIRING_SOON';
+
+                      const expFormatted = d?.expiry_date 
+                        ? formatInDeploymentTz(d.expiry_date, tz, 'dd/MM/yyyy') 
+                        : s.documentType.requiresExpiryDate 
+                        ? 'No Date' 
+                        : 'No Expiry';
 
                       return (
-                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                              Document Validation Checks
+                        <div
+                          key={s.documentType.id}
+                          onClick={() => setSelectedSlotId(s.documentType.id)}
+                          className={cn(
+                            "py-2 px-2 flex items-center justify-between gap-3 text-xs cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg my-0.5",
+                            isSelected 
+                              ? "bg-slate-50 dark:bg-slate-800/80 font-black text-slate-900 border-l-2 border-l-[#FA634E]" 
+                              : "text-slate-700 dark:text-slate-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={cn(
+                              "w-2 h-2 rounded-full shrink-0",
+                              isExpiredOrMissing ? "bg-rose-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
+                            )} />
+                            <span className={cn(
+                              "text-xs truncate",
+                              isSelected ? "font-black text-slate-900 dark:text-slate-100" : "font-extrabold text-slate-800 dark:text-slate-200"
+                            )}>
+                              {s.documentType.name}
                             </span>
-                            {allPassed ? (
-                              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Passed All Checks
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Needs Attention
-                              </span>
-                            )}
                           </div>
 
-                          {/* Clean Checklist Rows (No Inner Boxes) */}
-                          <div className="space-y-1">
-                            {checks.map((chk) => (
-                              <div key={chk.id} className="flex items-center justify-between text-xs py-0.5">
-                                <span className="flex items-center gap-1.5 min-w-0">
-                                  {chk.passed ? (
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                  ) : (
-                                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                  )}
-                                  <span className={cn("text-[11px] truncate", chk.passed ? "text-slate-700 dark:text-slate-300" : "font-bold text-rose-700 dark:text-rose-400")}>
-                                    {chk.label}
-                                  </span>
-                                </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={cn(
+                              "text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md",
+                              isExpiredOrMissing
+                                ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40"
+                                : isExpiring
+                                  ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
+                                  : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
+                            )}>
+                              {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
+                            </span>
 
-                                <span className={cn(
-                                  "text-[10.5px] font-mono shrink-0 ml-2",
-                                  chk.passed ? "text-slate-400 dark:text-slate-500" : "font-bold text-rose-600 dark:text-rose-400"
-                                )}>
-                                  {chk.msg}
-                                </span>
-                              </div>
-                            ))}
+                            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 w-20 text-right">
+                              {expFormatted}
+                            </span>
                           </div>
                         </div>
                       );
-                    })()}
-
-                    {/* Action Buttons Bar: Delete (Subtle Destructive) & Re-upload (Primary Action) */}
-                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
-                        onClick={async () => {
-                          if (!activeDoc) return;
-                          if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
-                            try {
-                              toast.loading('Deleting document file...', { id: 'delete-doc' });
-                              await documentService.delete(activeDoc.id);
-                              toast.success('Document file deleted successfully', { id: 'delete-doc' });
-                              await refresh();
-                            } catch (err: any) {
-                              toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-                            }
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                      </Button>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
-                        onClick={() => setIsReplaceOpen(true)}
-                      >
-                        <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
-                      </Button>
-                    </div>
-
+                    })}
                   </div>
-                ) : (
-                  /* Missing Document State */
-                  <div className="p-4 text-center space-y-2.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200/60">
-                      <FileQuestion className="w-4.5 h-4.5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                        No document uploaded for {activeSlot.documentType.name}
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Upload required compliance document to complete this record.
-                      </p>
-                    </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Actions Bar (Inside same single panel) */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 mt-3">
+                {activeDoc ? (
+                  <>
                     <Button
+                      type="button"
+                      variant="ghost"
                       size="sm"
-                      className="h-8 px-4 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-xs rounded-xl cursor-pointer"
-                      onClick={() => setUploadSlot(activeSlot)}
+                      className="h-8 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+                      onClick={async () => {
+                        if (!activeDoc) return;
+                        if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}? This action cannot be undone.`)) {
+                          try {
+                            toast.loading('Deleting document file...', { id: 'delete-doc' });
+                            await documentService.delete(activeDoc.id);
+                            toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                            await refresh();
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
+                          }
+                        }
+                      }}
                     >
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                     </Button>
-                  </div>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer px-4"
+                      onClick={() => setIsReplaceOpen(true)}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Re-upload Document
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full h-8.5 text-xs font-extrabold gap-1.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs cursor-pointer"
+                    onClick={() => setUploadSlot(activeSlot!)}
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" /> Upload Document
+                  </Button>
                 )}
               </div>
 
-              {/* 📦 BOX 2: Related Vehicle Documents / Document Validity Summary (Compact List Layout - No Inner Cards) */}
-              <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex-1 min-h-0 flex flex-col overflow-hidden">
-                
-                {/* Box 2 Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                  <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#FA634E]" />
-                    <span>Document Validity Summary</span>
-                  </h3>
-                  <span className="text-[10px] font-mono text-slate-400 font-bold">
-                    {folder.slots.length} Records
-                  </span>
-                </div>
-
-                {/* Compact Document List Rows (Subtle Dividers, No Separate Inner Cards) */}
-                <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 pr-0.5 scrollbar-thin">
-                  {folder.slots.map((s) => {
-                    const isSelected = activeSlot?.documentType.id === s.documentType.id;
-                    const d = s.document;
-                    const code = getSlotStatusFromDoc(d);
-                    const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
-                    const isExpiring = code === 'EXPIRING_SOON';
-
-                    const expFormatted = d?.expiry_date 
-                      ? formatInDeploymentTz(d.expiry_date, tz, 'dd/MM/yyyy') 
-                      : s.documentType.requiresExpiryDate 
-                      ? 'No Date' 
-                      : 'No Expiry Needed';
-
-                    return (
-                      <div
-                        key={s.documentType.id}
-                        onClick={() => setSelectedSlotId(s.documentType.id)}
-                        className={cn(
-                          "py-2.5 px-2 flex items-center justify-between gap-3 text-xs cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg my-0.5",
-                          isSelected 
-                            ? "bg-slate-50 dark:bg-slate-800/80 font-black text-slate-900 border-l-2 border-l-[#FA634E]" 
-                            : "text-slate-700 dark:text-slate-300"
-                        )}
-                      >
-                        {/* 1. Document Name (Primary Element) */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={cn(
-                            "w-2 h-2 rounded-full shrink-0",
-                            isExpiredOrMissing ? "bg-rose-500" : isExpiring ? "bg-amber-500" : "bg-emerald-500"
-                          )} />
-                          <span className={cn(
-                            "text-xs truncate",
-                            isSelected ? "font-black text-slate-900 dark:text-slate-100" : "font-extrabold text-slate-800 dark:text-slate-200"
-                          )}>
-                            {s.documentType.name}
-                          </span>
-                        </div>
-
-                        {/* 2. Status → 3. Expiry / Validity Info */}
-                        <div className="flex items-center gap-2.5 shrink-0">
-                          {/* Status Indicator Tag */}
-                          <span className={cn(
-                            "text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md",
-                            isExpiredOrMissing
-                              ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40"
-                              : isExpiring
-                                ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
-                                : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
-                          )}>
-                            {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
-                          </span>
-
-                          {/* Expiry Date */}
-                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 w-20 text-right">
-                            {expFormatted}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
+            </div>
           ) : (
             <div className="p-8 text-center text-slate-400 text-xs font-bold">
               Select a document tab above to inspect details.
