@@ -230,18 +230,18 @@ export default function DriverDetailsPage() {
   };
 
   const licenseCheck = getDocCheck(['License', 'Driver License']);
-  const idCheck = getDocCheck(['ID', 'Iqama', 'National ID']);
-  const medicalCheck = getDocCheck(['Medical', 'Health']);
-  const permitCheck = getDocCheck(['Permit', 'Work Permit', 'Contract', 'Passport']);
-
-  // Recent Trips List: Most recent 2 completed trips
+  const driverCardCheck = getDocCheck(['Card', 'Driver Card']);
+  const iqamaCheck = getDocCheck(['IQAMA', 'Iqama', 'ID', 'National ID']);
+  const passportCheck = getDocCheck(['Passport']);
+ 
+  // Recent Trips List: Most recent 5 completed trips
   const recentTripsList = (() => {
     const completed = historyTrips.filter(t => (t.status || '').toLowerCase() === 'completed');
     return [...completed].sort((a, b) => {
       const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
       const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
       return dateB - dateA;
-    }).slice(0, 2);
+    }).slice(0, 5);
   })();
 
   return (
@@ -542,9 +542,9 @@ export default function DriverDetailsPage() {
               <div className="divide-y divide-slate-200/60 dark:divide-slate-800/80 text-xs">
                 {[
                   { name: 'Driver License', check: licenseCheck },
-                  { name: 'ID Document', check: idCheck },
-                  { name: 'Medical Certificate', check: medicalCheck },
-                  { name: 'Work Permit', check: permitCheck }
+                  { name: 'Driver Card', check: driverCardCheck },
+                  { name: 'IQAMA', check: iqamaCheck },
+                  { name: 'Passport', check: passportCheck }
                 ].map((item, idx) => {
                   const isOk = item.check.label.includes('Valid');
                   return (
@@ -567,128 +567,91 @@ export default function DriverDetailsPage() {
 
         </div>
 
-        {/* ── 4. DOCUMENTS ── */}
+        {/* ── 4. RECENT TRIPS ── */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-3xs p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-955/20 text-indigo-650 dark:text-indigo-400">
-                <FileText className="w-5 h-5" />
+              <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-955/20 text-[#FA634E]">
+                <Truck className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-xs font-black text-slate-855 dark:text-slate-200 uppercase tracking-widest">
-                  Documents
+                  Recent Trips
                 </h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-505 font-bold uppercase tracking-wider mt-0.5">
-                  Important documents and their status
+                <p className="text-[10px] text-slate-405 dark:text-slate-505 font-bold uppercase tracking-wider mt-0.5">
+                  Overview of trips completed by this driver
                 </p>
               </div>
             </div>
             
             <Button
               variant="link"
-              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="p-0 h-auto text-xs font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-705 flex items-center gap-1 cursor-pointer"
+              onClick={() => navigate(`/trips?driverId=${driver.id}`)}
+              className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
             >
-              View All Documents →
+              See More →
             </Button>
           </div>
 
-          <div className="overflow-x-auto scrollbar-none">
-            <table className="w-full text-xs text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  <th className="pb-3 font-black pl-3">Document</th>
-                  <th className="pb-3 font-black w-[120px]">Status</th>
-                  <th className="pb-3 font-black w-[150px]">Issue Date</th>
-                  <th className="pb-3 font-black w-[150px]">Expiry Date</th>
-                  <th className="pb-3 font-black w-[120px]">Days Left</th>
-                  <th className="pb-3 font-black text-right pr-3 w-[100px]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-105 dark:divide-slate-800/80">
-                {[
-                  { name: 'Driver License', check: licenseCheck, issueDate: '20 Oct 2022', expiryDate: '20 Oct 2027', daysLeft: '730 Days', daysColor: 'text-emerald-600 dark:text-emerald-400' },
-                  { name: 'ID Document', check: idCheck, issueDate: '15 Nov 2021', expiryDate: '15 Nov 2024', daysLeft: '45 Days', daysColor: 'text-amber-600 dark:text-amber-400' },
-                  { name: 'Medical Certificate', check: medicalCheck, issueDate: '10 May 2024', expiryDate: '10 May 2025', daysLeft: '15 Days', daysColor: 'text-rose-600 dark:text-rose-400' }
-                ].map((item, idx) => {
-                  const isOk = item.check.label.includes('Valid');
-                  return (
-                    <tr 
-                      key={idx} 
-                      className="group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
-                    >
-                      <td className="py-3.5 pl-3 flex items-center gap-3">
-                        <div className={cn(
-                          "p-1.5 rounded-lg flex items-center justify-center shrink-0 border shadow-3xs",
-                          isOk 
-                            ? "bg-emerald-50/50 text-emerald-600 border-emerald-150/40 dark:bg-emerald-955/20 dark:text-emerald-400" 
-                            : "bg-amber-50/50 text-amber-600 border-amber-150/40 dark:bg-amber-955/20 dark:text-amber-400"
-                        )}>
-                          {isOk ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                        </div>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {item.name}
-                        </span>
-                      </td>
-                      <td className="py-3.5">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOk ? 'bg-emerald-500' : 'bg-amber-500')} />
-                          <span className={isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                            {isOk ? 'Valid' : 'Due'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {item.issueDate}
-                      </td>
-                      <td className="py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {item.expiryDate}
-                      </td>
-                      <td className={cn("py-3.5 font-bold", item.daysColor)}>
-                        {item.daysLeft}
-                      </td>
-                      <td className="py-3.5 text-right pr-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {item.check.id ? (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setSelectedDocIdForPreview(item.check.id!)}
-                                className="w-7.5 h-7.5 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-slate-505" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => {
-                                  if (item.check.id) {
-                                    documentService.getById(item.check.id).then((doc) => {
-                                      if (doc.file_url) {
-                                        window.open(resolveFileUrl(doc.file_url), '_blank');
-                                      }
-                                    });
-                                  }
-                                }}
-                                className="w-7.5 h-7.5 border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5 text-slate-550" />
-                              </Button>
-                            </>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-bold uppercase italic pr-2">Missing</span>
-                          )}
-                        </div>
-                      </td>
+          {recentTripsList.length === 0 ? (
+            <div className="text-xs text-slate-405 py-6 italic text-center">
+              No completed trips yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto scrollbar-none">
+                <table className="w-full text-xs text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-808 text-[10px] font-black text-slate-405 uppercase tracking-wider">
+                      <th className="pb-3 font-black pl-3 w-[120px]">Trip No.</th>
+                      <th className="pb-3 font-black w-[130px]">Vehicle</th>
+                      <th className="pb-3 font-black">Route</th>
+                      <th className="pb-3 font-black w-[160px]">Date</th>
+                      <th className="pb-3 font-black w-[130px]">Status</th>
+                      <th className="pb-3 font-black text-right pr-3 w-[40px]"></th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-808/80">
+                    {recentTripsList.map((trip) => {
+                      const route = getTripRouteInfo(trip);
+                      const dateVal = trip.planned_start || trip.createdAt;
+                      const dateStr = dateVal ? formatInDeploymentTz(dateVal, tz, 'dd MMM yyyy') : '—';
+                      return (
+                        <tr 
+                          key={trip.id} 
+                          onClick={() => navigate(`/trips/${trip.id}`)}
+                          className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                        >
+                          <td className="py-3.5 font-mono font-bold text-slate-805 dark:text-slate-205 pl-3">
+                            {trip.ref_id || 'TRIP'}
+                          </td>
+                          <td className="py-3.5 font-mono font-bold text-slate-705 dark:text-slate-300">
+                            {assignedVehicle?.plate_number || '—'}
+                          </td>
+                          <td className="py-3.5 font-bold text-slate-808 dark:text-slate-200">
+                            {route.pickup} &nbsp;→&nbsp; {route.dropoff}
+                          </td>
+                          <td className="py-3.5 text-slate-505 font-bold flex items-center gap-1.5 mt-0.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{dateStr}</span>
+                          </td>
+                          <td className="py-3.5">
+                            <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-150 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-0.5 shadow-3xs gap-1.5 rounded-lg">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              Completed
+                            </Badge>
+                          </td>
+                          <td className="py-3.5 text-right pr-3 text-slate-405 group-hover:text-slate-808 dark:group-hover:text-slate-202 transition-colors">
+                            <ChevronRight className="w-4 h-4 ml-auto" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
       {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
