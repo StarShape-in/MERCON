@@ -228,44 +228,68 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                   </span>
                 </div>
 
-                {/* 2-Column Grid (Showing 4 necessary fields!) */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Doc Number / Ref
-                    </span>
-                    <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
-                      {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '---'}
-                    </span>
-                  </div>
+                {/* Key-Value Grid (Simplified for Operation Card) */}
+                {activeSlot.documentType.name.toLowerCase().includes('operation card') ? (
+                  /* 📦 Operation Card: Simplified to 2 meaningful metadata fields (No Doc Number / Ref, No Attachment File) */
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-0.5">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Issuing Authority
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                        {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Transport Authority (TGA - النقل)')}
+                      </span>
+                    </div>
 
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Issuing Authority
-                    </span>
-                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                      {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
-                    </span>
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Requirement Status
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                        {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
+                      </span>
+                    </div>
                   </div>
+                ) : (
+                  /* Standard 4-Field Grid for other documents */
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 pt-0.5">
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Doc Number / Ref
+                      </span>
+                      <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight block truncate">
+                        {activeDoc?.ai_extracted_json?.document_number || (activeDoc as any)?.document_number || '---'}
+                      </span>
+                    </div>
 
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Requirement Status
-                    </span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
-                    </span>
-                  </div>
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Issuing Authority
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                        {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || 'Saudi Traffic Dept (المرور)')}
+                      </span>
+                    </div>
 
-                  <div>
-                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                      Attachment File
-                    </span>
-                    <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 block truncate">
-                      {activeDoc ? (activeDoc.file_url ? activeDoc.file_url.split('/').pop() || 'document.pdf' : 'File Uploaded') : 'No File Attached'}
-                    </span>
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Requirement Status
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                        {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                        Attachment File
+                      </span>
+                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                        {activeDoc ? (activeDoc.file_url ? activeDoc.file_url.split('/').pop() || 'document.pdf' : 'File Uploaded') : 'No File Attached'}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="border-t border-slate-100 dark:border-slate-800/80" />
