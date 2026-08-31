@@ -249,7 +249,7 @@ export default function DriverDetailsPage() {
       <div className="pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
         
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
-        <div className="rounded-2xl border border-emerald-100/60 dark:border-emerald-950/50 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-gradient-to-r from-emerald-50/40 via-emerald-50/10 to-teal-50/15 dark:from-emerald-950/10 dark:via-slate-900/50 dark:to-slate-950/40">
+        <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-900/60 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-emerald-50/70 dark:bg-emerald-950/30">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-5 min-w-0 flex-1">
             {/* Driver Avatar with overlay status dot */}
             <div className="relative shrink-0">
