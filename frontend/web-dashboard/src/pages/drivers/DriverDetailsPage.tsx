@@ -256,80 +256,67 @@ export default function DriverDetailsPage() {
           </Button>
         </div>
 
-        {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
-          <div className="flex items-start gap-4.5 min-w-0 flex-1">
+        {/* ── 1. DRIVER PROFILE HEADER ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-805">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
             {/* Driver Avatar */}
             <DriverAvatar
               src={driver.avatar_url}
               firstName={driver.first_name}
               lastName={driver.last_name}
-              size="2xl"
+              size="xl"
               status={driver.status}
-              showStatusDot
+              showStatusDot={false}
               previewable
-              className="[&>img]:w-20 [&>img]:h-20 [&>div]:w-20 [&>div]:h-20 [&>div]:text-2xl w-20 h-20 shrink-0 shadow-3xs cursor-pointer hover:opacity-90 transition-opacity rounded-xl"
+              className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 shadow-3xs cursor-pointer hover:opacity-90 transition-opacity rounded-xl"
               onPreview={() => setIsPhotoFullViewOpen(true)}
             />
             
-            <div className="min-w-0 flex-1 space-y-2.5">
+            <div className="min-w-0 flex-1 space-y-1.5">
               {/* Name & Availability */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   {driver.first_name} {driver.last_name}
                 </h1>
                 
                 {/* Available Status Badge */}
                 <Badge variant="outline" className={cn(
-                  'text-[10px] font-extrabold px-2.5 py-0.5 border gap-1 shadow-3xs uppercase tracking-wider',
+                  'text-[9.5px] font-extrabold px-1.5 py-0.2 border gap-1 shadow-3xs uppercase tracking-wider',
                   (driver.status || '').toLowerCase() === 'available' 
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-250/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 border-amber-250/50 dark:bg-amber-950/40 dark:text-amber-400'
                 )}>
-                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                  <span className={cn('w-1.2 h-1.2 rounded-full shrink-0', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
                   {driver.status}
                 </Badge>
               </div>
 
               {/* ID & Phone line */}
-              <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-450 tracking-tight flex items-center gap-1.5">
-                <span>{driver.ref_id || 'DRV-123'}</span>
-                <span>·</span>
-                <span>{driver.phone_primary}</span>
+              <p className="text-xs font-mono font-bold text-slate-505 dark:text-slate-450 tracking-tight">
+                {driver.ref_id || 'DRV-123'} · {driver.phone_primary}
               </p>
 
               {/* Assigned Vehicle */}
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Assigned Vehicle:</span>
+              <p className="text-xs text-slate-700 dark:text-slate-350 font-medium flex items-center gap-1">
+                <span className="text-slate-400">Assigned Vehicle:</span>
                 {assignedVehicle ? (
-                  <div className="text-xs font-black text-slate-850 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{assignedVehicle.plate_number}</span>
-                    <span>·</span>
-                    <span className="font-semibold text-slate-500">{assignedVehicle.asset_type || 'Box'}</span>
-                    {assignedVehicle.capacity_kg && (
-                      <>
-                        <span>·</span>
-                        <span className="font-semibold text-slate-500">{assignedVehicle.capacity_kg.toLocaleString()} KG</span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mt-0.5">
-                    <Truck className="w-3.5 h-3.5 text-slate-300" /> Unassigned
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {assignedVehicle.plate_number} · {assignedVehicle.asset_type || 'Box'} · {assignedVehicle.capacity_kg ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
                   </span>
+                ) : (
+                  <span className="text-slate-405 italic">Unassigned</span>
                 )}
-              </div>
+              </p>
             </div>
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+          <div className="flex items-center gap-2 shrink-0 md:self-center">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-8.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer"
+              className="h-8 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-805 dark:text-slate-300 shadow-3xs cursor-pointer"
             >
               Edit
             </Button>
@@ -337,14 +324,14 @@ export default function DriverDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-8.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-3xs cursor-pointer"
+              className="h-8 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-805 dark:text-slate-300 shadow-3xs cursor-pointer"
             >
               Vault
             </Button>
             <Button
               size="sm"
               onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-8.5 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-lg px-4 cursor-pointer"
+              className="h-8 text-xs font-black bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs rounded-lg px-3.5 cursor-pointer"
             >
               New Trip
             </Button>
@@ -352,8 +339,8 @@ export default function DriverDetailsPage() {
             {/* Dropdown Menu for Delete/Export */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8.5 w-8.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-                  <MoreVertical className="w-4 h-4 text-slate-500" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
+                  <MoreVertical className="w-4 h-4 text-slate-505" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44 p-1 shadow-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl z-50">
