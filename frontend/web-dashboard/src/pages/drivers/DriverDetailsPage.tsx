@@ -246,7 +246,7 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in max-w-[1200px] mx-auto">
+      <div className="pt-4 px-4 sm:px-6 pb-10 w-full flex flex-col gap-6 animate-fade-in">
         
         {/* ── 1. DRIVER PROFILE HEADER CARD ── */}
         <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-900/60 shadow-xs p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden bg-emerald-50/70 dark:bg-emerald-950/30">
