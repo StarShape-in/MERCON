@@ -198,32 +198,6 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
   },
 ];
 
-const TRIP_EXPORT_FILTERS: ExportFilter<Trip>[] = [
-  {
-    id: 'status_group',
-    label: 'Status Group',
-    options: [
-      { label: 'All Trips', value: 'All' },
-      { label: 'Completed / Delivered Only', value: 'Completed' },
-      { label: 'In Transit Right Now', value: 'InTransit' },
-      { label: 'Not Completed', value: 'NotCompleted' },
-    ],
-    filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
-  },
-  {
-    id: 'is_3pl',
-    label: 'Provider Type',
-    options: [
-      { label: 'All Providers', value: 'All' },
-      { label: 'MERCON Fleet Only', value: 'Mercon' },
-      { label: 'Third-Party (3PL) Only', value: '3PL' },
-    ],
-    filterFn: (t, val) => {
-      const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
-      return val === '3PL' ? is3PL : !is3PL;
-    },
-  },
-];
 
 /**
  * Normalises a place or search string for tolerant phonetic matching:
@@ -858,16 +832,16 @@ export default function TripListPage() {
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
   const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
-  const { data: exportDriversRes } = useQuery({
-    queryKey: ['drivers-for-export'],
-    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
-  const { data: exportVehiclesRes } = useQuery({
-    queryKey: ['vehicles-for-export'],
-    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
+   const { data: exportDriversRes } = useQuery({
+     queryKey: ['drivers-for-export'],
+     queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
+   const { data: exportVehiclesRes } = useQuery({
+     queryKey: ['vehicles-for-export'],
+     queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
 
@@ -1006,6 +980,82 @@ export default function TripListPage() {
     });
     return opts;
   }, [customerFilterOptions]);
+
+  const tripExportFilters = useMemo(() => {
+    const filters: ExportFilter<Trip>[] = [
+      {
+        id: 'status_group',
+        label: 'Status Group',
+        options: [
+          { label: 'All Trips', value: 'All' },
+          { label: 'Completed / Delivered Only', value: 'Completed' },
+          { label: 'In Transit Right Now', value: 'InTransit' },
+          { label: 'Not Completed', value: 'NotCompleted' },
+        ],
+        filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
+      },
+      {
+        id: 'is_3pl',
+        label: 'Provider Type',
+        options: [
+          { label: 'All Providers', value: 'All' },
+          { label: 'MERCON Fleet Only', value: 'Mercon' },
+          { label: 'Third-Party (3PL) Only', value: '3PL' },
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
+          return val === '3PL' ? is3PL : !is3PL;
+        },
+      },
+      {
+        id: 'driver',
+        label: 'Driver',
+        options: [
+          { label: 'All Drivers', value: 'All' },
+          ...exportDrivers.map((d) => ({
+            label: `${d.first_name} ${d.last_name}`,
+            value: d.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.driver?.id === val;
+        },
+      },
+      {
+        id: 'vehicle',
+        label: 'Vehicle',
+        options: [
+          { label: 'All Vehicles', value: 'All' },
+          ...exportVehicles.map((v) => ({
+            label: v.plate_number,
+            value: v.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.vehicle?.id === val;
+        },
+      },
+      {
+        id: 'customer',
+        label: 'Customer / Company',
+        options: [
+          { label: 'All Companies', value: 'All' },
+          ...customerFilterOptions.map((c) => ({
+            label: c.name,
+            value: c.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.customer?.id === val;
+        },
+      },
+    ];
+    return filters;
+  }, [exportDrivers, exportVehicles, customerFilterOptions]);
 
 
 
@@ -1936,6 +1986,17 @@ export default function TripListPage() {
                   <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
                   <span>Export to PDF</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTripsForExport([]);
+                    setExportMenuOpen(false);
+                    setIsCustomExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
+                >
+                  <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
+                  <span>Custom Export...</span>
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
@@ -2615,7 +2676,7 @@ export default function TripListPage() {
           totalCount={allTripsRes?.meta?.total || allTripsRes?.data?.length || 0}
           selectedData={selectedTripsForExport}
           columns={TRIP_EXPORT_COLUMNS}
-          filters={TRIP_EXPORT_FILTERS}
+          filters={tripExportFilters}
           formats={['xlsx', 'csv', 'pdf']}
           rowDateAccessor={(t) => t.planned_start || t.createdAt}
         />
