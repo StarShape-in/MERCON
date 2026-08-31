@@ -421,100 +421,95 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── 3. FOUR DETAILS & COMPLIANCE CARDS GRID ── */}
+        {/* ── 3. DETAILS & COMPLIANCE GRID ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           
-          {/* Card 1: Driver Details */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Driver Details</h3>
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Phone</span>
-                  <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
+          {/* Left Column: Driver & License + Documents */}
+          <div className="space-y-5">
+            {/* Card 1: Driver & License */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Driver & License</h3>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                  <span className="font-semibold text-slate-400 dark:text-slate-500">Phone</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100">{driver.phone_primary}</span>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Joining Date</span>
-                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                  <span className="font-semibold text-slate-400 dark:text-slate-500">Joining Date</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200">
                     {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
                   </span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: License Details */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">License</h3>
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">License Number</span>
-                  <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wider font-semibold">
-                    {driver.license_number || 'N/A'}
+                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Number</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100 tracking-wider">
+                    {driver.license_number || '—'}
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Expiry</span>
-                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
+                <div className="flex items-center justify-between py-1 border-b border-slate-105 dark:border-slate-800/60">
+                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Expiry</span>
+                  <span className="font-mono font-black text-slate-800 dark:text-slate-200">
+                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : '—'}
                   </span>
                 </div>
-                <div className="pt-1.5 flex items-center gap-1.5">
-                  <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
-                  <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600' : 'text-emerald-600')}>
-                    {isLicenseExpired ? 'Expired' : 'Valid'}
-                  </span>
+                <div className="flex items-center justify-between py-1">
+                  <span className="font-semibold text-slate-400 dark:text-slate-500">License Status</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn('w-2 h-2 rounded-full', isLicenseExpired ? 'bg-rose-500' : 'bg-emerald-500')} />
+                    <span className={cn('font-black uppercase tracking-wider text-[10px]', isLicenseExpired ? 'text-rose-600 dark:text-rose-455' : 'text-emerald-600 dark:text-emerald-455')}>
+                      {isLicenseExpired ? 'Expired' : 'Valid'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Card 3: Documents Vault Checklist */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full space-y-4">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Documents</h3>
+            {/* Card 2: Documents Vault Checklist */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Documents</h3>
+                
+                <div className="space-y-3">
+                  {[
+                    { name: 'Driver License', check: licenseCheck },
+                    { name: 'ID Document', check: idCheck },
+                    { name: 'Medical Certificate', check: medicalCheck }
+                  ].map((item, idx) => {
+                    return (
+                      <div 
+                        key={idx} 
+                        onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
+                        className={cn(
+                          "flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80 last:border-0",
+                          item.check.id && "cursor-pointer hover:text-brand"
+                        )}
+                      >
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
+                        <span className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
+                          item.check.className
+                        )}>
+                          {item.check.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               
-              <div className="space-y-3">
-                {[
-                  { name: 'Driver License', check: licenseCheck },
-                  { name: 'ID Document', check: idCheck },
-                  { name: 'Medical Certificate', check: medicalCheck }
-                ].map((item, idx) => {
-                  return (
-                    <div 
-                      key={idx} 
-                      onClick={() => item.check.id && setSelectedDocIdForPreview(item.check.id)}
-                      className={cn(
-                        "flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80 last:border-0",
-                        item.check.id && "cursor-pointer hover:text-brand"
-                      )}
-                    >
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
-                      <span className={cn(
-                        'text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-3xs',
-                        item.check.className
-                      )}>
-                        {item.check.label}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  variant="link"
+                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                  className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
+                >
+                  View Vault →
+                </Button>
               </div>
-            </div>
-            
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="link"
-                onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                className="p-0 h-auto text-xs font-black text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-1 cursor-pointer"
-              >
-                View Vault →
-              </Button>
             </div>
           </div>
 
-          {/* Card 4: Recent Trips Ledger */}
+          {/* Right Column: Recent Trips Ledger */}
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col justify-between h-full space-y-4">
             <div className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Trips</h3>
@@ -535,7 +530,7 @@ export default function DriverDetailsPage() {
                           </span>
                           <span className="truncate ml-2">{route.pickup} → {route.dropoff}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-450 font-bold uppercase tracking-wider">
+                        <div className="flex items-center justify-between text-[10px] text-slate-455 font-bold uppercase tracking-wider">
                           <span>{dateStr}</span>
                           <span className="text-emerald-600 dark:text-emerald-455 font-bold">Completed</span>
                         </div>
