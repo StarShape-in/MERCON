@@ -228,21 +228,34 @@ export function useCreateTripForm() {
     const selDriver = drivers.find((d) => d.id === masterDriver);
     const driverVehId = selDriver ? (selDriver.assignedVehicleId || (selDriver.assignedVehicle as any)?.id) : null;
 
-    const filtered = vehicles.filter((v) => {
+    const getVehicleClass = (v: any): string => {
+      if (v.capacity_kg && v.capacity_kg > 0) {
+        return getVehicleTypeFromCapacity(v.capacity_kg);
+      }
+      return normalizeVehicleClass(v.asset_type);
+    };
+
+    let filtered = vehicles.filter((v) => {
       if (v.isActive === false) return false;
       if (v.id === masterVehicle) return true; // Keep currently selected vehicle visible
 
       if (!isRuleConfigured) return true; // If rule not configured, keep all vehicles available
 
-      const vClass = v.asset_type || getVehicleTypeFromCapacity(v.capacity_kg ?? 0);
+      const vClass = getVehicleClass(v);
       const isAllowed = allowedCodes.some((c) => c === vClass.toLowerCase());
       return isAllowed;
     });
 
+    let isFallback = false;
+    if (filtered.length === 0) {
+      filtered = vehicles.filter((v) => v.isActive !== false);
+      isFallback = true;
+    }
+
     const mapped = filtered.map((v) => {
-      const vClass = v.asset_type || getVehicleTypeFromCapacity(v.capacity_kg ?? 0);
+      const vClass = getVehicleClass(v);
       const actualCapLabel = getActualCapacityLabel(v.capacity_kg ?? 0);
-      const typeLabel = v.asset_type && actualCapLabel ? `${v.asset_type} • ${actualCapLabel}` : (v.asset_type || actualCapLabel);
+      const typeLabel = v.asset_type && actualCapLabel ? `${v.asset_type} • ${actualCapLabel}` : (v.asset_type || actualCapLabel || vClass);
 
       const isDriverUsual = Boolean(driverVehId && driverVehId === v.id);
       const isPreferred = !isRuleConfigured || preferredCodes.some((c) => c === vClass.toLowerCase());
@@ -251,7 +264,10 @@ export function useCreateTripForm() {
       let group = 'Compatible';
       let hint = '';
 
-      if (isDriverUsual && isAllowed) {
+      if (isFallback) {
+        group = 'Available Vehicles';
+        hint = `Class: ${vClass}`;
+      } else if (isDriverUsual && isAllowed) {
         group = 'Recommended';
         hint = `Usual vehicle for ${selDriver?.first_name || 'driver'}`;
       } else if (isPreferred) {
@@ -276,6 +292,7 @@ export function useCreateTripForm() {
       'Recommended': 0,
       'Compatible': 1,
       'Allowed Alternatives': 2,
+      'Available Vehicles': 3,
     };
 
     return mapped.sort((a, b) => {
@@ -369,7 +386,9 @@ export function useCreateTripForm() {
 
     const rule = getCompatibilityRuleForClass(contractVehicleType);
     const isRuleConfigured = Boolean(rule && rule.isActive !== false && rule.allowedVehicleClassCodes.length > 0);
-    const vClass = matchedVehicle.asset_type || getVehicleTypeFromCapacity(matchedVehicle.capacity_kg ?? 0);
+    const vClass = (matchedVehicle.capacity_kg && matchedVehicle.capacity_kg > 0)
+      ? getVehicleTypeFromCapacity(matchedVehicle.capacity_kg)
+      : normalizeVehicleClass(matchedVehicle.asset_type);
 
     let isAllowed = true;
     if (isRuleConfigured && rule) {

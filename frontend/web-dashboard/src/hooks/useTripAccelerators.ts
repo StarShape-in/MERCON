@@ -5,7 +5,7 @@ import { tripService, Trip } from '@/services/tripService';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import { getCompatibilityRuleForClass } from '@/utils/vehicleCompatibilityRegistry';
-import { getVehicleTypeFromCapacity } from './useCreateTripForm';
+import { getVehicleTypeFromCapacity, normalizeVehicleClass } from './useCreateTripForm';
 
 export function useTripAccelerators(
   contractCustomer: string,
@@ -219,7 +219,14 @@ export function useTripAccelerators(
       const dObj = drivers.find((d) => d.id === dId) || t.driver;
       const vObj = t.vehicle || vehicles.find((v) => v.id === (dObj as any)?.assignedVehicleId);
 
-      const vClass = vObj ? (vObj.asset_type || getVehicleTypeFromCapacity(vObj.capacity_kg ?? 0)) : contractVehicleType;
+      const getVehicleClass = (v: any): string => {
+        if (v?.capacity_kg && v.capacity_kg > 0) {
+          return getVehicleTypeFromCapacity(v.capacity_kg);
+        }
+        return normalizeVehicleClass(v?.asset_type);
+      };
+
+      const vClass = vObj ? getVehicleClass(vObj) : contractVehicleType;
 
       let compScore = 1;
       if (isRuleConfigured && rule) {
@@ -267,7 +274,9 @@ export function useTripAccelerators(
     if (item.vehicleObj?.id) {
       const rule = getCompatibilityRuleForClass(contractVehicleType);
       const isRuleConfigured = Boolean(rule && rule.isActive !== false && rule.allowedVehicleClassCodes.length > 0);
-      const vClass = item.vehicleObj.asset_type || getVehicleTypeFromCapacity(item.vehicleObj.capacity_kg ?? 0);
+      const vClass = (item.vehicleObj.capacity_kg && item.vehicleObj.capacity_kg > 0)
+        ? getVehicleTypeFromCapacity(item.vehicleObj.capacity_kg)
+        : normalizeVehicleClass(item.vehicleObj.asset_type);
       const isAllowed = !isRuleConfigured || (rule && rule.allowedVehicleClassCodes.some((c: string) => c.toLowerCase() === vClass.toLowerCase()));
 
       if (isAllowed) {
