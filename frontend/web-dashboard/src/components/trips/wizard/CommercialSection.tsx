@@ -80,7 +80,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
         {/* TOP RIGHT: SCROLL ARROWS + CREATE COMMERCIAL QUOTATION BUTTON */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {sortedRateCards.length > 3 && (
+          {sortedRateCards.length > 2 && (
             <div className="flex items-center gap-1">
               <button
                 type="button"

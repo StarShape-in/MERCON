@@ -125,25 +125,17 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           </button>
         </div>
 
-        {/* RIGHT: TRANSIT TIME ESTIMATE BADGE & REMOVE SLOT */}
-        <div className="flex items-center gap-2">
-          <TransitTimeBadge
-            origin={slot.origin}
-            destination={slot.destination}
-            pickupTime={slot.pickupTime}
-            dropoffTime={slot.dropoffTime}
-          />
-          {canRemoveSlot && (
-            <button
-              type="button"
-              onClick={() => handleRemoveTripSlot(slot.id)}
-              className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
-              title="Remove trip slot"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        {/* RIGHT: REMOVE SLOT (IF MULTI-SLOT) */}
+        {canRemoveSlot && (
+          <button
+            type="button"
+            onClick={() => handleRemoveTripSlot(slot.id)}
+            className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+            title="Remove trip slot"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* UNIFIED ROUTE & SCHEDULE FLOW (LINE 1: ORIGIN + UNIFIED PICKUP DATETIME) */}
