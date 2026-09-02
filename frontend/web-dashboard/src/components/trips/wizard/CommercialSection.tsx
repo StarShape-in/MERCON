@@ -105,29 +105,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             )}
           </div>
 
-          {/* TOP RIGHT: SCROLL ARROWS + CREATE COMMERCIAL QUOTATION BUTTON */}
+          {/* TOP RIGHT: CREATE COMMERCIAL QUOTATION BUTTON */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {sortedRateCards.length > 2 && (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handleScrollLeft}
-                  className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
-                  title="Scroll Left"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleScrollRight}
-                  className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
-                  title="Scroll Right"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
             {handleOpenCreateQuotation && (
               <Button
                 type="button"
@@ -189,9 +168,34 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
       </div>
 
-      {/* VISUAL QUOTATION RATE CARDS HORIZONTAL SLIDER / ROW */}
+      {/* VISUAL QUOTATION RATE CARDS CAROUSEL WITH OVERLAY SCROLL ARROWS */}
       {sortedRateCards.length > 0 ? (
-        <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
+        <div className="relative group">
+          {/* CAROUSEL LEFT SCROLL BUTTON */}
+          {sortedRateCards.length > 2 && (
+            <button
+              type="button"
+              onClick={handleScrollLeft}
+              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+              title="Scroll Left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* CAROUSEL RIGHT SCROLL BUTTON */}
+          {sortedRateCards.length > 2 && (
+            <button
+              type="button"
+              onClick={handleScrollRight}
+              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+              title="Scroll Right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
+          <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
             {sortedRateCards.map((rc, idx) => {
               const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
               const rateVal = rc.rate ?? rc.base_price ?? 0;
@@ -308,6 +312,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               );
             })}
           </div>
+        </div>
       ) : (
         /* NO QUOTATION MATCHED */
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-center">
