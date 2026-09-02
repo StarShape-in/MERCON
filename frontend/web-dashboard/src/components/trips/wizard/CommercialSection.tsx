@@ -64,13 +64,13 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         )}
       </div>
 
-      {/* VISUAL QUOTATION RATE CARDS GRID / CAROUSEL */}
+      {/* VISUAL QUOTATION RATE CARDS HORIZONTAL SLIDER / ROW */}
       {sortedRateCards.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-1">
           <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-            Select Active Rate Card:
+            Select Active Commercial Rate Card:
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+          <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
             {sortedRateCards.map((rc, idx) => {
               const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
               const rateVal = rc.rate ?? rc.base_price ?? 0;
@@ -129,7 +129,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     });
                   }}
                   className={cn(
-                    "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none",
+                    "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-w-[220px] max-w-[260px] shrink-0",
                     isSelected
                       ? "border-brand ring-2 ring-brand/20 bg-orange-50/30 dark:bg-amber-950/20"
                       : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"

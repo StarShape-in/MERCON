@@ -111,8 +111,23 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   const primarySlot = contractSlots[0] || {};
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
-      {/* 60% / 40% 2-COLUMN DESYNAMIC COMMAND CENTER GRID */}
+    <div className="space-y-3.5 animate-fade-in max-w-full text-[#3E3C3D]">
+      {/* 1. TOP FULL-WIDTH COMMERCIAL QUOTATIONS BAR */}
+      <CommercialSection
+        contractSlots={contractSlots}
+        contractRateCategory={contractRateCategory}
+        contractBillingType={contractBillingType}
+        contractVehicleType={contractVehicleType}
+        getAvailableRateCardsForLane={getAvailableRateCardsForLane}
+        handleOpenCreateQuotation={handleOpenCreateQuotation}
+        setIsManualRateOverride={setIsManualRateOverride}
+        handleUpdateTripSlot={handleUpdateTripSlot}
+        handleSlotLocationChange={handleSlotLocationChange}
+        setContractRateCategory={setContractRateCategory}
+        setContractVehicleType={setContractVehicleType}
+      />
+
+      {/* 2. 60% / 40% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
         {/* LEFT WORKSPACE (60% / lg:col-span-7): CUSTOMER + ROUTE & TIMING WORKSPACE */}
@@ -149,23 +164,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           </div>
         </div>
 
-        {/* RIGHT WORKSPACE (40% / lg:col-span-5): UNIFIED COMMERCIAL, EXECUTION & ECONOMICS PANEL */}
+        {/* RIGHT WORKSPACE (40% / lg:col-span-5): EXECUTION ASSIGNMENT & ECONOMICS PANEL */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3 bg-slate-50/70 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
-            <CommercialSection
-              contractSlots={contractSlots}
-              contractRateCategory={contractRateCategory}
-              contractBillingType={contractBillingType}
-              contractVehicleType={contractVehicleType}
-              getAvailableRateCardsForLane={getAvailableRateCardsForLane}
-              handleOpenCreateQuotation={handleOpenCreateQuotation}
-              setIsManualRateOverride={setIsManualRateOverride}
-              handleUpdateTripSlot={handleUpdateTripSlot}
-              handleSlotLocationChange={handleSlotLocationChange}
-              setContractRateCategory={setContractRateCategory}
-              setContractVehicleType={setContractVehicleType}
-            />
-
             <ExecutionAssignmentSection
               assignmentType={assignmentType}
               setAssignmentType={setAssignmentType}
