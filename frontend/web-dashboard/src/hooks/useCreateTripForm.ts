@@ -119,36 +119,55 @@ export function useCreateTripForm() {
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 150 }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
     queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
     queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: thirdPartyRes } = useQuery({
     queryKey: ['third-party-providers-select'],
     queryFn: () => thirdPartyService.getAll({ per_page: 1000 }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
-  const customers = customersRes?.data ?? [];
+  const customers = Array.isArray(customersRes?.data)
+    ? customersRes.data
+    : Array.isArray(customersRes)
+    ? (customersRes as any)
+    : [];
+
   const rawDriversData = (driversRes as any)?.data;
   const drivers: Driver[] = Array.isArray(rawDriversData)
     ? rawDriversData
     : Array.isArray(rawDriversData?.data)
     ? rawDriversData.data
+    : Array.isArray(driversRes)
+    ? (driversRes as any)
     : [];
-  const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
-  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyRes?.data?.data ?? [];
+
+  const vehicles: Vehicle[] = Array.isArray(vehiclesRes?.data)
+    ? vehiclesRes.data
+    : Array.isArray(vehiclesRes)
+    ? (vehiclesRes as any)
+    : [];
+
+  const thirdPartyProviders: ThirdPartyProvider[] = Array.isArray(thirdPartyRes?.data?.data)
+    ? thirdPartyRes.data.data
+    : Array.isArray(thirdPartyRes?.data)
+    ? (thirdPartyRes.data as any)
+    : Array.isArray(thirdPartyRes)
+    ? (thirdPartyRes as any)
+    : [];
 
   const customerOptions = useMemo<ComboboxOption[]>(() => {
     return customers.map((c) => ({
@@ -215,7 +234,7 @@ export function useCreateTripForm() {
           keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
         };
       });
-  }, [drivers]);
+  }, [drivers, vehicles]);
 
   const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
