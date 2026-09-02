@@ -809,6 +809,117 @@ export function useCreateTripForm() {
     isSubmitting: bulkMutation.isPending,
   });
 
+  const handleRepeatTrip = useCallback(
+    (historicalTrip: Trip) => {
+      if (!historicalTrip) return;
+
+      const custId = historicalTrip.customer_id || historicalTrip.customer?.id;
+      if (custId) {
+        setContractCustomer(custId);
+      }
+
+      const stops = historicalTrip.stops || [];
+      const pickupStop = stops.find((s: any) => s.stop_type === 'Pickup' || s.sequence === 1) || stops[0];
+      const dropoffStops = stops.filter((s: any) => s.stop_type === 'Dropoff');
+      const dropoffStop =
+        dropoffStops.length > 0
+          ? dropoffStops[dropoffStops.length - 1]
+          : stops.length > 1
+          ? stops[stops.length - 1]
+          : null;
+
+      const origName =
+        (pickupStop as any)?.source_label ||
+        pickupStop?.location?.name ||
+        historicalTrip.rateCard?.route_origin ||
+        '';
+      const destName =
+        (dropoffStop as any)?.source_label ||
+        dropoffStop?.location?.name ||
+        historicalTrip.rateCard?.route_destination ||
+        '';
+
+      const origLocId = pickupStop?.locationId || pickupStop?.location?.id || null;
+      const destLocId = dropoffStop?.locationId || dropoffStop?.location?.id || null;
+
+      const intermediateStops = stops.filter(
+        (s: any) => s.stop_type === 'Intermediate' || (s.sequence > 1 && s !== dropoffStop)
+      );
+      const intermediateNames = intermediateStops.map((s: any) => s.source_label || s.location?.name || '');
+      const intermediateIds = intermediateStops.map((s: any) => s.locationId || s.location?.id || null);
+
+      const billingType =
+        historicalTrip.quotation_billing_type || (historicalTrip as any).billing_type || 'Extra';
+      const lineType =
+        historicalTrip.quotation_line_type ||
+        (historicalTrip as any).line_type ||
+        (historicalTrip.rateCard as any)?.line_type ||
+        'Single Trip';
+      const vehicleClass =
+        historicalTrip.quotation_vehicle_class ||
+        (historicalTrip as any).vehicle_class ||
+        (historicalTrip.vehicle ? getVehicleTypeFromCapacity(historicalTrip.vehicle.capacity_kg) : '10 TON');
+
+      setContractBillingType(normalizeBillingType(billingType));
+      setContractRateCategory(normalizeRateCategory(lineType));
+      setContractVehicleType(normalizeVehicleClass(vehicleClass));
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setContractSlots([
+        {
+          id: `slot-${Date.now()}`,
+          origin: origName,
+          destination: destName,
+          originLocationId: origLocId,
+          destinationLocationId: destLocId,
+          pickupTime: '08:00',
+          dropoffTime: '14:00',
+          date: todayStr,
+          dropoffDate: todayStr,
+          billingAmount: '',
+          tripCharges: '',
+          isOvernight: false,
+          intermediateLocations: intermediateNames,
+          intermediateLocationIds: intermediateIds,
+          intermediateStopFees: intermediateNames.map(() => ''),
+          originLat: (pickupStop?.location as any)?.lat ?? null,
+          originLng: (pickupStop?.location as any)?.lng ?? null,
+          destinationLat: (dropoffStop?.location as any)?.lat ?? null,
+          destinationLng: (dropoffStop?.location as any)?.lng ?? null,
+        },
+      ]);
+
+      const histDriver = historicalTrip.driver;
+      const histVehicle = historicalTrip.vehicle;
+
+      if (histDriver && histDriver.id) {
+        setMasterDriver(histDriver.id);
+      }
+      if (histVehicle && histVehicle.id) {
+        setMasterVehicle(histVehicle.id);
+      }
+
+      setContractStep(4);
+
+      const formattedDate = historicalTrip.createdAt
+        ? new Date(historicalTrip.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'recent';
+      toast.success(
+        `Trip configuration copied from ${formattedDate} trip (${origName || 'Origin'} → ${destName || 'Destination'})`
+      );
+    },
+    [
+      setContractCustomer,
+      setContractBillingType,
+      setContractRateCategory,
+      setContractVehicleType,
+      setContractSlots,
+      setMasterDriver,
+      setMasterVehicle,
+      setContractStep,
+    ]
+  );
+
   return {
     navigate,
     queryClient,
@@ -876,6 +987,7 @@ export function useCreateTripForm() {
     setEditThirdParty,
     editDriver,
     setEditDriver,
+    handleRepeatTrip,
     recentRoutesList,
     recentDriversList,
     handleApplyRecentRoute,

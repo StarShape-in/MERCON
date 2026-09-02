@@ -75,9 +75,80 @@ const dropoffMarkerIcon = L.divIcon({
 export default function CreateTripPage() {
   const form = useCreateTripForm();
 
+  // Step Transition Focus Management
+  React.useEffect(() => {
+    if (form.submissionResult) return;
+    const timer = setTimeout(() => {
+      let target: HTMLElement | null = null;
+      if (form.contractStep === 1) {
+        target = document.getElementById('step1-customer-combobox');
+      } else if (form.contractStep === 2) {
+        target = document.getElementById('step2-first-field') || document.getElementById('step2-first-field-oneway');
+      } else if (form.contractStep === 3) {
+        target = document.getElementById('step3-first-field');
+      } else if (form.contractStep === 4) {
+        target = document.getElementById('wizard-submit-btn');
+      }
+
+      if (!target) {
+        const stepContainer = document.querySelector('.custom-scrollbar');
+        target = stepContainer?.querySelector('button:not([tabindex="-1"]), input:not([tabindex="-1"]), select:not([tabindex="-1"]), [tabindex="0"]') as HTMLElement;
+      }
+
+      if (target) {
+        target.focus();
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [form.contractStep, form.submissionResult]);
+
+  // Global Keyboard Shortcuts (Alt+1..4, Ctrl+Enter, Ctrl+S)
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Alt + 1..4 Step Direct Navigation
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          const targetStep = parseInt(e.key, 10) as 1 | 2 | 3 | 4;
+          if (form.canNavigateToStep(targetStep)) {
+            e.preventDefault();
+            form.setContractStep(targetStep);
+            return;
+          }
+        }
+      }
+
+      // Ctrl + Enter or Cmd + Enter (Final Submit on Step 4)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const hasOpenPopover = !!document.querySelector('[data-state="open"]');
+        if (form.contractStep === 4 && !hasOpenPopover && form.isStepValid(3) && !form.bulkMutation.isPending) {
+          e.preventDefault();
+          form.handleContractSubmit();
+          return;
+        }
+      }
+
+      // Ctrl + S (Next step or Save)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const hasOpenPopover = !!document.querySelector('[data-state="open"]');
+        if (!hasOpenPopover) {
+          if (form.contractStep < 4 && form.isStepValid(form.contractStep)) {
+            form.setContractStep((prev) => (prev + 1) as any);
+          } else if (form.contractStep === 4 && form.isStepValid(3) && !form.bulkMutation.isPending) {
+            form.handleContractSubmit();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [form.contractStep, form.canNavigateToStep, form.isStepValid, form.handleContractSubmit, form.bulkMutation.isPending]);
+
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1300px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
+      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
           {/* Combined Navigation & Stepper Bar */}
@@ -203,6 +274,7 @@ export default function CreateTripPage() {
                         setPreviewCustomer={form.setPreviewCustomer}
                         setEditCustomer={form.setEditCustomer}
                         setIsCreateCustomerOpen={form.setIsCreateCustomerOpen}
+                        onRepeatTrip={form.handleRepeatTrip}
                       />
                     )}
 
@@ -212,6 +284,8 @@ export default function CreateTripPage() {
                         contractSlots={form.contractSlots}
                         contractCustomer={form.contractCustomer}
                         contractRateCategory={form.contractRateCategory}
+                        setContractRateCategory={form.setContractRateCategory}
+                        triggerRateLookupForSlots={form.triggerRateLookupForSlots}
                         handleAddSlotIntermediate={form.handleAddSlotIntermediate}
                         handleRemoveTripSlot={form.handleRemoveTripSlot}
                         handleSlotLocationChange={form.handleSlotLocationChange}
@@ -226,6 +300,7 @@ export default function CreateTripPage() {
                         recentRoutesList={form.recentRoutesList}
                         handleApplyRecentRoute={form.handleApplyRecentRoute}
                         isRoundTripCategory={isRoundTripCategory}
+                        normalizeRateCategory={normalizeRateCategory}
                       />
                     )}
 

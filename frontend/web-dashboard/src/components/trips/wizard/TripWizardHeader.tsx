@@ -107,10 +107,11 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
       <div className="flex items-center gap-2 shrink-0">
         {contractStep < 4 ? (
           <Button
+            id="wizard-next-btn"
             type="button"
             disabled={!isStepValid(contractStep)}
             onClick={() => setContractStep((prev) => (prev + 1) as any)}
-            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1 cursor-pointer"
+            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
           >
             Next
             <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -118,10 +119,11 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
           </Button>
         ) : (
           <Button
+            id="wizard-submit-btn"
             type="button"
             disabled={isPending || batchTripRowsCount === 0 || !isStepValid(3)}
             onClick={handleContractSubmit}
-            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 cursor-pointer"
+            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
           >
             {isPending ? (
               <>
@@ -130,7 +132,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               </>
             ) : (
               <>
-                Done <KbdBadge keys="Ctrl+S" />
+                Done <KbdBadge keys="Ctrl+Enter" />
               </>
             )}
           </Button>
