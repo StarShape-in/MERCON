@@ -17,10 +17,10 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    // Proxy /api → live mercon.tech backend so local dev works without a local API server
+    // Proxy /api -> local API server by default (port 3000), or VITE_API_URL if specified
     proxy: {
       '/api': {
-        target: 'https://dev.mercon.tech',
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
       },
