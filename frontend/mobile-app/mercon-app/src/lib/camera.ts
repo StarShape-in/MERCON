@@ -52,10 +52,12 @@ export async function getDeviceLocationTag(): Promise<LocationTag | null> {
 }
 
 export interface CapturedPhoto {
+  id?: string;
   uri: string;
   mimeType?: string | null;
   fileName?: string | null;
   location?: LocationTag | null;
+  geotag?: LocationTag | null;
 }
 
 /**

@@ -62,6 +62,7 @@ function RootNavigator() {
         {isLoggedIn && <Stack.Screen name="trip/details" />}
         {isLoggedIn && <Stack.Screen name="trip/pickup" />}
         {isLoggedIn && <Stack.Screen name="trip/navigate" />}
+        {isLoggedIn && <Stack.Screen name="trip/stop" />}
         {isLoggedIn && <Stack.Screen name="trip/delivery" />}
         {isLoggedIn && <Stack.Screen name="trip/completed" />}
         {isLoggedIn && <Stack.Screen name="cargo-pod-photos" />}

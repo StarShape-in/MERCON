@@ -66,7 +66,7 @@ const LiveNavigationScreen = () => {
   const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || ws === 'RETURN_LOADING';
 
   // Leg index: 0 for first leg, 1 for return leg
-  const legIndex = (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FIRST_DELIVERY_COMPLETED') ? 1 : 0;
+  const legIndex = (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
 
   // Find target stop based on current state and leg
   const activeStop = React.useMemo(() => {
@@ -93,7 +93,13 @@ const LiveNavigationScreen = () => {
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      if (isHeadingToPickup) {
+      if (ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION') {
+        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_RETURN_STOP');
+        router.replace({ pathname: '/trip/stop', params: { legIndex: '1' } } as any);
+      } else if (ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'STOP_VERIFICATION') {
+        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_STOP');
+        router.replace({ pathname: '/trip/stop', params: { legIndex: '0' } } as any);
+      } else if (isHeadingToPickup) {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {

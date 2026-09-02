@@ -3,7 +3,7 @@ import { View, Image, StyleSheet, ImageSourcePropType, ViewStyle } from 'react-n
 
 export interface FadedBottomIllustrationProps {
   imageSource?: ImageSourcePropType;
-  type?: 'start_loading' | 'loading' | 'delivery' | 'home';
+  type?: 'start_loading' | 'loading' | 'delivery' | 'home' | 'stop';
   height?: number;
   backgroundColor?: string;
   imageOpacity?: number;
@@ -22,7 +22,9 @@ export const FadedBottomIllustration: React.FC<FadedBottomIllustrationProps> = (
   style,
 }) => {
   const source = imageSource || (
-    type === 'delivery'
+    type === 'stop'
+      ? require('../../assets/images/stop.png')
+      : type === 'delivery'
       ? require('../../assets/images/delivery.png')
       : type === 'loading'
       ? require('../../assets/images/loading.png')

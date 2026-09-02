@@ -9,7 +9,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import {
   MapPin, Globe, Clock, ChevronRight, ChevronDown, Building2, Navigation,
-  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, Route, House, Camera, Settings,
+  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, Route, House, Camera, Settings, RotateCcw,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
@@ -18,6 +18,7 @@ import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
+import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
 
 import { getTripChargeValue } from './DriverChargesScreen';
 
@@ -178,202 +179,6 @@ const HomeScreen = () => {
 
   const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
-  interface TimelineStop {
-    id: string;
-    typeUrdu: string;
-    typeEn: string;
-    name: string;
-    address: string | null;
-    iconType: 'House' | 'MapPin' | 'Route';
-  }
-
-  function getTripTimelineStops(trip: MobileTrip | null): TimelineStop[] {
-    if (!trip) return [];
-
-    const isRoundTrip =
-      trip.trip_type?.toLowerCase().includes('round') ||
-      (trip.stops && trip.stops.length >= 3) ||
-      (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name) ||
-      (trip.destination && (trip.destination.includes('[RETURN:') || trip.destination.toLowerCase().includes('return')));
-
-    // If trip has 3+ explicit stops objects from backend
-    if (trip.stops && trip.stops.length >= 3) {
-      return trip.stops.map((s, idx) => {
-        let typeEn = `Stop #${idx}`;
-        let typeUrdu = `اسٹاپ #${idx}`;
-        let iconType: 'House' | 'MapPin' | 'Route' = 'Route';
-
-        if (idx === 0) {
-          typeEn = 'Pickup';
-          typeUrdu = 'پک اپ';
-          iconType = 'House';
-        } else if (idx === trip.stops.length - 1) {
-          typeEn = isRoundTrip ? 'Return Delivery' : 'Delivery';
-          typeUrdu = isRoundTrip ? 'واپسی ڈلیوری' : 'ڈلیوری';
-          iconType = 'MapPin';
-        } else {
-          if (s.stop_type === 'Pickup') {
-            typeEn = 'Return Loading';
-            typeUrdu = 'واپسی لوڈنگ';
-            iconType = 'House';
-          } else if (s.stop_type === 'Dropoff') {
-            typeEn = 'Delivery';
-            typeUrdu = 'ڈلیوری';
-            iconType = 'MapPin';
-          } else {
-            typeEn = `Intermediate Stop #${idx}`;
-            typeUrdu = `انٹرمیڈیٹ اسٹاپ #${idx}`;
-            iconType = 'Route';
-          }
-        }
-
-        return {
-          id: s.id || `stop-${idx}`,
-          typeUrdu,
-          typeEn,
-          name: stopLabel(s) ?? 'Location',
-          address: stopAddress(s),
-          iconType,
-        };
-      });
-    }
-
-    // Parse origin and destination string representations
-    const originStr = trip.origin || (trip.stops?.[0] ? stopLabel(trip.stops[0]) : '') || 'Pickup Location';
-    const destStr = trip.destination || (trip.stops?.[1] ? stopLabel(trip.stops[1]) : '') || 'Delivery Location';
-
-    // Parse [RETURN: ...] if present in destination string
-    let outboundText = destStr;
-    let returnText = '';
-
-    if (destStr.includes('[RETURN:')) {
-      const parts = destStr.split(/\[RETURN:\s*/i);
-      outboundText = parts[0].trim();
-      returnText = parts[1] ? parts[1].replace(/\]$/, '').trim() : '';
-    }
-
-    // Split location chain like "AL BAHA -> Khamis Mushait"
-    const splitChain = (str: string): string[] => {
-      if (!str) return [];
-      return str
-        .split(/\s*(?:→|->|-->)\s*/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-    };
-
-    const outboundStops = splitChain(outboundText);
-    const returnStops = splitChain(returnText);
-
-    const result: TimelineStop[] = [];
-
-    // 1. Pickup Node
-    result.push({
-      id: 'pickup-0',
-      typeEn: 'Pickup',
-      typeUrdu: 'پک اپ',
-      name: originStr,
-      address: null,
-      iconType: 'House',
-    });
-
-    // 2. Outbound Intermediate & Delivery Stops
-    if (outboundStops.length > 1) {
-      const intermediateList = outboundStops.slice(0, -1);
-      const finalOutboundDest = outboundStops[outboundStops.length - 1];
-
-      intermediateList.forEach((stopName, idx) => {
-        result.push({
-          id: `outbound-inter-${idx}`,
-          typeEn: `Outbound Stop #${idx + 1}`,
-          typeUrdu: `آؤٹ باؤنڈ اسٹاپ #${idx + 1}`,
-          name: stopName,
-          address: null,
-          iconType: 'Route',
-        });
-      });
-
-      result.push({
-        id: 'outbound-delivery',
-        typeEn: 'Delivery',
-        typeUrdu: 'ڈلیوری',
-        name: finalOutboundDest,
-        address: null,
-        iconType: 'MapPin',
-      });
-    } else if (outboundStops.length === 1) {
-      result.push({
-        id: 'outbound-delivery',
-        typeEn: 'Delivery',
-        typeUrdu: 'ڈلیوری',
-        name: outboundStops[0],
-        address: null,
-        iconType: 'MapPin',
-      });
-    }
-
-    // 3. Return Leg Stops if Round Trip
-    if (isRoundTrip || returnStops.length > 0) {
-      if (returnStops.length > 0) {
-        // Return Loading (First location in return leg)
-        result.push({
-          id: 'return-pickup',
-          typeEn: 'Return Loading',
-          typeUrdu: 'واپسی لوڈنگ',
-          name: returnStops[0],
-          address: null,
-          iconType: 'House',
-        });
-
-        // Return Intermediate Stops
-        if (returnStops.length > 2) {
-          const returnIntermediates = returnStops.slice(1, -1);
-          returnIntermediates.forEach((stopName, idx) => {
-            result.push({
-              id: `return-inter-${idx}`,
-              typeEn: `Return Stop #${idx + 1}`,
-              typeUrdu: `واپسی اسٹاپ #${idx + 1}`,
-              name: stopName,
-              address: null,
-              iconType: 'Route',
-            });
-          });
-        }
-
-        // Return Final Delivery
-        if (returnStops.length >= 2) {
-          result.push({
-            id: 'return-delivery',
-            typeEn: 'Return Delivery',
-            typeUrdu: 'واپسی ڈلیوری',
-            name: returnStops[returnStops.length - 1],
-            address: null,
-            iconType: 'MapPin',
-          });
-        }
-      } else if (isRoundTrip) {
-        const lastOutbound = result[result.length - 1]?.name || destStr;
-        result.push({
-          id: 'return-pickup',
-          typeEn: 'Return Loading',
-          typeUrdu: 'واپسی لوڈنگ',
-          name: lastOutbound,
-          address: null,
-          iconType: 'House',
-        });
-        result.push({
-          id: 'return-delivery',
-          typeEn: 'Return Delivery',
-          typeUrdu: 'واپسی ڈلیوری',
-          name: originStr,
-          address: null,
-          iconType: 'MapPin',
-        });
-      }
-    }
-
-    return result;
-  }
-
   interface WorkflowStateInfo {
     badgeLabel: string;
     btnLabel: string;
@@ -382,6 +187,11 @@ const HomeScreen = () => {
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
     const ws = t.driver_workflow_state || 'ASSIGNED';
+    const outboundStops = getOutboundIntermediateStops(t);
+    const returnStops = getReturnIntermediateStops(t);
+    const hasStops = outboundStops.length > 0;
+    const hasReturnStops = returnStops.length > 0;
+
     switch (ws) {
       case 'ASSIGNED':
       case 'GOING_TO_PICKUP':
@@ -409,9 +219,28 @@ const HomeScreen = () => {
           onPress: () => router.push('/trip/pickup'),
         };
       case 'LOADING_COMPLETED':
-      case 'IN_TRANSIT':
         return {
           badgeLabel: 'Loading Completed',
+          btnLabel: hasStops ? 'Go to Intermediate Stop' : 'Go to Delivery',
+          onPress: () => {
+            if (hasStops) {
+              router.push('/trip/stop');
+            } else {
+              router.push('/trip/navigate');
+            }
+          },
+        };
+      case 'GOING_TO_STOP':
+      case 'ARRIVED_AT_STOP':
+      case 'STOP_VERIFICATION':
+        return {
+          badgeLabel: 'At Intermediate Stop',
+          btnLabel: 'Verify Stop & Upload Photo',
+          onPress: () => router.push('/trip/stop'),
+        };
+      case 'IN_TRANSIT':
+        return {
+          badgeLabel: 'In Transit',
           btnLabel: 'Go to Delivery',
           onPress: () => router.push('/trip/navigate'),
         };
@@ -431,9 +260,28 @@ const HomeScreen = () => {
           onPress: () => router.push('/trip/pickup'),
         };
       case 'RETURN_LOADING_COMPLETED':
-      case 'IN_TRANSIT_RETURN':
         return {
           badgeLabel: 'Return Loading Completed',
+          btnLabel: hasReturnStops ? 'Go to Return Intermediate Stop' : 'Go to Return Delivery',
+          onPress: () => {
+            if (hasReturnStops) {
+              router.push({ pathname: '/trip/stop', params: { legIndex: '1' } });
+            } else {
+              router.push('/trip/navigate');
+            }
+          },
+        };
+      case 'GOING_TO_RETURN_STOP':
+      case 'ARRIVED_AT_RETURN_STOP':
+      case 'RETURN_STOP_VERIFICATION':
+        return {
+          badgeLabel: 'At Return Stop',
+          btnLabel: 'Verify Return Stop & Upload Photo',
+          onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '1' } }),
+        };
+      case 'IN_TRANSIT_RETURN':
+        return {
+          badgeLabel: 'In Transit (Return)',
           btnLabel: 'Go to Return Delivery',
           onPress: () => router.push('/trip/navigate'),
         };
@@ -582,65 +430,118 @@ const HomeScreen = () => {
 
               <View style={styles.cardDivider} />
 
-              {/* Route Vertical Timeline */}
+              {/* Route Vertical Timeline — unified row layout */}
               {(() => {
-                const timelineStops = getTripTimelineStops(displayTrip);
+                const timelineStops = parseTripRouteNodes(displayTrip);
+                const returnLegStartIdx = timelineStops.findIndex((s) => s.legIndex === 1);
+                const isReturnLeg = (idx: number) => returnLegStartIdx !== -1 && idx >= returnLegStartIdx;
+
+                const handleStopPress = (st: TimelineStop) => {
+                  if (st.isIntermediate) {
+                    router.push({ pathname: '/trip/stop', params: { legIndex: String(st.legIndex ?? 0) } } as any);
+                  } else {
+                    router.push('/trip/navigate');
+                  }
+                };
+
                 return (
                   <View style={styles.routeContainer}>
-                    {/* Left Timeline Line & Nodes */}
-                    <View style={styles.timelineCol}>
-                      {timelineStops.map((st, idx) => (
-                        <React.Fragment key={`node-${st.id}-${idx}`}>
-                          {idx === 0 ? (
-                            <View style={styles.pickupNodeOuter}>
-                              <View style={styles.pickupNodeInner} />
-                            </View>
-                          ) : (
-                            <View style={styles.stopNodeDot} />
-                          )}
-                          {idx < timelineStops.length - 1 && <View style={styles.dashedLine} />}
-                        </React.Fragment>
-                      ))}
-                    </View>
+                    {timelineStops.map((st, idx) => {
+                      const isFirst = idx === 0;
+                      const isLast = idx === timelineStops.length - 1;
+                      const isReturnStart = returnLegStartIdx !== -1 && idx === returnLegStartIdx;
+                      const returnLeg = isReturnLeg(idx);
+                      const dotColor = returnLeg ? '#3E3C3D' : '#FA634E';
+                      const lineColor = returnLeg ? '#3E3C3D' : '#D8D8DC';
+                      const iconColor = returnLeg ? '#3E3C3D' : '#FA634E';
 
-                    {/* Right Route Items */}
-                    <View style={styles.routeItemsCol}>
-                      {timelineStops.map((st) => (
-                        <View key={`item-${st.id}`} style={styles.routeRowItem}>
-                          <View style={styles.iconCircleBadge}>
-                            {st.iconType === 'House' ? (
-                              <House size={20} color="#FA634E" strokeWidth={2} />
-                            ) : st.iconType === 'MapPin' ? (
-                              <MapPin size={20} color="#FA634E" strokeWidth={2} />
-                            ) : (
-                              <Route size={20} color="#FA634E" strokeWidth={2} />
-                            )}
+                      return (
+                        <React.Fragment key={`row-${st.id}-${idx}`}>
+                          {/* Return Leg Pill Divider */}
+                          {isReturnStart && (
+                            <View style={styles.returnLegDividerRow}>
+                              <View style={styles.timelineDotCol}>
+                                <View style={styles.returnLegConnector} />
+                              </View>
+                              <View style={styles.returnLegDivider}>
+                                <View style={styles.returnLegDividerLine} />
+                                <View style={styles.returnLegPill}>
+                                  <RotateCcw size={11} color="#FA634E" strokeWidth={2.5} />
+                                  <Text style={styles.returnLegPillText}>Return Leg</Text>
+                                </View>
+                                <View style={styles.returnLegDividerLine} />
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Stop Row */}
+                          <View style={styles.timelineRow}>
+                            {/* Left: dot + connector line */}
+                            <View style={styles.timelineDotCol}>
+                              {isFirst ? (
+                                <View style={[styles.pickupNodeOuter, { borderColor: dotColor }]}>
+                                  <View style={[styles.pickupNodeInner, { backgroundColor: dotColor }]} />
+                                </View>
+                              ) : (
+                                <View style={[
+                                  styles.stopNodeDot,
+                                  { borderColor: dotColor },
+                                  returnLeg && { backgroundColor: dotColor },
+                                ]} />
+                              )}
+                              {!isLast && (
+                                <View style={[styles.dashedLine, { borderColor: lineColor, opacity: returnLeg ? 0.4 : 1 }]} />
+                              )}
+                            </View>
+
+                            {/* Right: icon + text + nav button — all in one flat row */}
+                            <View style={styles.routeRowItem}>
+                              <View style={[styles.iconCircleBadge, returnLeg && { backgroundColor: '#F0F0F0' }]}>
+                                {st.iconType === 'House' ? (
+                                  <House size={20} color={iconColor} strokeWidth={2} />
+                                ) : st.iconType === 'MapPin' ? (
+                                  <MapPin size={20} color={iconColor} strokeWidth={2} />
+                                ) : (
+                                  /* Stop node — circle with "STOP" text */
+                                  <View style={[styles.stopLetterCircle, { borderColor: iconColor }]}>
+                                    <Text style={[styles.stopLetterText, { color: iconColor }]}>STOP</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <View style={styles.routeTextCol}>
+                                <BilingualText
+                                  ur={st.typeUrdu}
+                                  en={st.typeEn}
+                                  primaryStyle={styles.stageUrduPrimary}
+                                  subStyle={styles.stageSubEn}
+                                />
+                                <Text style={styles.routePlaceName} numberOfLines={1}>
+                                  {st.name}
+                                </Text>
+                                {st.address ? (
+                                  <Text style={styles.routeAddressText} numberOfLines={1}>
+                                    {st.address}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <TouchableOpacity
+                                style={styles.navCircleBtn}
+                                activeOpacity={0.7}
+                                onPress={() => handleStopPress(st)}
+                              >
+                                <Navigation size={15} color="#3E3C3D" strokeWidth={2} />
+                              </TouchableOpacity>
+                            </View>
                           </View>
-                          <View style={styles.routeTextCol}>
-                            <BilingualText
-                              ur={st.typeUrdu}
-                              en={st.typeEn}
-                              primaryStyle={styles.stageUrduPrimary}
-                              subStyle={styles.stageSubEn}
-                            />
-                            <Text style={styles.routePlaceName} numberOfLines={1}>
-                              {st.name}
-                            </Text>
-                            {st.address ? (
-                              <Text style={styles.routeAddressText} numberOfLines={1}>
-                                {st.address}
-                              </Text>
-                            ) : null}
-                          </View>
-                          <TouchableOpacity style={styles.navCircleBtn} onPress={() => router.push('/trip/navigate')}>
-                            <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
+                        </React.Fragment>
+                      );
+                    })}
                   </View>
                 );
               })()}
+
+
+
 
               {/* Primary Action CTA & Secondary Delay Button Below */}
               {(() => {
@@ -1073,15 +974,34 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
 
-  /* Route Timeline */
+  /* Route Timeline — unified per-row layout */
   routeContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginVertical: 4,
   },
-  timelineCol: {
-    width: 24,
+  /* A single timeline row: dot column on left, content on right */
+  timelineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  /* The Return Leg divider row (has same dot-col on left for line continuity) */
+  returnLegDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  /* Fixed-width column that holds the dot + the connector line below it */
+  timelineDotCol: {
+    width: 28,
     alignItems: 'center',
     paddingTop: 14,
+  },
+  /* Short dashed line that runs through the divider row to bridge the two legs */
+  returnLegConnector: {
+    width: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: '#D8D8DC',
+    borderStyle: 'dashed',
   },
   pickupNodeOuter: {
     width: 16,
@@ -1101,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   dashedLine: {
     width: 1,
-    height: 42,
+    height: 46,
     borderWidth: 1,
     borderColor: '#D8D8DC',
     borderStyle: 'dashed',
@@ -1121,9 +1041,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   routeRowItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    paddingVertical: 6,
   },
   iconCircleBadge: {
     width: 44,
@@ -1159,6 +1081,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F7',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* Stop label — "STOP" text inside icon badge, no border */
+  stopLetterCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stopLetterText: {
+    fontSize: 10,
+    fontWeight: '900',
+    lineHeight: 12,
+    letterSpacing: 0.6,
+  },
+
+  /* Return Leg Divider */
+  returnLegDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 6,
+    paddingVertical: 2,
+  },
+  returnLegDividerLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#EAEAF0',
+    borderRadius: 1,
+  },
+  returnLegPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FFF0ED',
+    borderWidth: 1.5,
+    borderColor: '#FFD0C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  returnLegPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FA634E',
+    letterSpacing: 0.2,
   },
 
   /* Actions */

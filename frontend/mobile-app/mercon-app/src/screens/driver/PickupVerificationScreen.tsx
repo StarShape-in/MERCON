@@ -15,6 +15,7 @@ import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
+import { getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops } from '../../lib/routeParser';
 
 // Orange Camera Icon with Plus Badge for Photo Upload Slots
 const OrangeCameraPlusIcon = () => (
@@ -205,7 +206,12 @@ const PickupVerificationScreen = () => {
           }
         }
       }
-      const nextWorkflowState = isReturnLoading ? 'IN_TRANSIT_RETURN' : 'IN_TRANSIT';
+      const outboundStops = getOutboundIntermediateStops(trip);
+      const returnStops = getReturnIntermediateStops(trip);
+      const hasStopsForLeg = isReturnLoading ? returnStops.length > 0 : outboundStops.length > 0;
+      const nextWorkflowState = isReturnLoading
+        ? (hasStopsForLeg ? 'GOING_TO_RETURN_STOP' : 'IN_TRANSIT_RETURN')
+        : (hasStopsForLeg ? 'GOING_TO_STOP' : 'IN_TRANSIT');
 
       try {
         const updated = await tripService.updateStatus(trip.id, 'InTransit', nextWorkflowState);
@@ -214,7 +220,20 @@ const PickupVerificationScreen = () => {
         console.warn('Status update warning:', statusErr);
       }
       triggerGPayHapticsAndSound();
-      router.replace('/trip/delivery');
+
+      if (isReturnLoading) {
+        if (returnStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '1', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/delivery');
+        }
+      } else {
+        if (outboundStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '0', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/delivery');
+        }
+      }
     } catch (err) {
       console.error('Pickup completion error:', err);
       triggerGPayHapticsAndSound();

@@ -154,6 +154,8 @@ export interface MobileTrip {
   trip_type?: string | null;
   customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
+  origin?: string | null;
+  destination?: string | null;
   stops: TripStop[];
 }
 

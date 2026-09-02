@@ -830,14 +830,50 @@ export const createTrip = async (req: Request, res: Response) => {
 /** One trip per CSV row, matched to existing customers/drivers/vehicles by
  *  name/plate (the sheet can't know internal ids). Rows are independent —
  *  a bad row is reported and skipped rather than failing the whole import. */
+function parseFullTripStops(originStr: string, destinationStr: string) {
+  const stopsList: Array<{ stop_sequence: number; stop_type: 'Pickup' | 'Dropoff'; location_name: string }> = [];
+  let seq = 1;
+
+  const originClean = originStr.trim();
+  if (originClean) {
+    stopsList.push({ stop_sequence: seq++, stop_type: 'Pickup', location_name: originClean });
+  }
+
+  let outboundStr = destinationStr.trim();
+  let returnStr = '';
+
+  if (destinationStr.includes('[RETURN:')) {
+    const parts = destinationStr.split(/\[RETURN:\s*/i);
+    outboundStr = parts[0].trim();
+    returnStr = parts[1].replace(']', '').trim();
+  }
+
+  const splitChain = (str: string) => str.split(/\s*(?:→|->|-->)\s*/).map(s => s.trim()).filter(Boolean);
+
+  const outboundItems = splitChain(outboundStr);
+  outboundItems.forEach((item) => {
+    stopsList.push({ stop_sequence: seq++, stop_type: 'Dropoff', location_name: item });
+  });
+
+  if (returnStr) {
+    const returnItems = splitChain(returnStr);
+    if (returnItems.length > 0) {
+      stopsList.push({ stop_sequence: seq++, stop_type: 'Pickup', location_name: returnItems[0] });
+      returnItems.slice(1).forEach((item) => {
+        stopsList.push({ stop_sequence: seq++, stop_type: 'Dropoff', location_name: item });
+      });
+    }
+  }
+
+  return stopsList;
+}
+
 function parseDestinationAndStops(destinationStr: string): { destinationName: string; returnDestinationName: string | null } {
   if (destinationStr.includes('[RETURN:')) {
     const parts = destinationStr.split('[RETURN:');
     const destinationName = parts[0].trim();
     const returnContent = parts[1].replace(']', '').trim();
-    const returnParts = returnContent.split('→').map(s => s.trim());
-    const returnDestinationName = returnParts[returnParts.length - 1];
-    return { destinationName, returnDestinationName };
+    return { destinationName, returnDestinationName: returnContent };
   }
   return { destinationName: destinationStr, returnDestinationName: null };
 }
@@ -1031,35 +1067,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               carrier_name: carrierName,
               ...((row.origin || row.destination) ? {
                 stops: {
-                  create: [
-                    ...(row.origin ? [{
-                      stop_sequence: 1,
-                      stop_type: 'Pickup' as any,
-                      location_lat: originCoords?.lat ?? 0,
-                      location_lng: originCoords?.lng ?? 0,
-                      location_name: originCoords?.name || row.origin.trim(),
-                      location_address: originCoords?.address ?? null,
-                      locationId: originCoords?.locationId ?? null,
-                    }] : []),
-                    ...(parsedDest.destinationName ? [{
-                      stop_sequence: row.origin ? 2 : 1,
-                      stop_type: 'Dropoff' as any,
-                      location_lat: destinationCoords?.lat ?? 0,
-                      location_lng: destinationCoords?.lng ?? 0,
-                      location_name: destinationCoords?.name || parsedDest.destinationName.trim(),
-                      location_address: destinationCoords?.address ?? null,
-                      locationId: destinationCoords?.locationId ?? null,
-                    }] : []),
-                    ...(parsedDest.returnDestinationName ? [{
-                      stop_sequence: (row.origin ? 2 : 1) + 1,
-                      stop_type: 'Dropoff' as any,
-                      location_lat: returnDestinationCoords?.lat ?? 0,
-                      location_lng: returnDestinationCoords?.lng ?? 0,
-                      location_name: returnDestinationCoords?.name || parsedDest.returnDestinationName.trim(),
-                      location_address: returnDestinationCoords?.address ?? null,
-                      locationId: returnDestinationCoords?.locationId ?? null,
-                    }] : []),
-                  ]
+                  create: parseFullTripStops(row.origin || '', row.destination || '').map((st) => ({
+                    stop_sequence: st.stop_sequence,
+                    stop_type: st.stop_type as any,
+                    location_name: st.location_name,
+                    location_lat: 0,
+                    location_lng: 0,
+                  }))
                 }
               } : {})
             },
