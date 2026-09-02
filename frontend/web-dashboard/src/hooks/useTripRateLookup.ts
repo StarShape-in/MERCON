@@ -130,7 +130,7 @@ export function useTripRateLookup(
   }, [customerRateCards]);
 
   const getAvailableRateCardsForLane = useCallback((
-    origin?: string,
+    originOrSlot?: any,
     destination?: string,
     originLocationId?: string | null,
     destinationLocationId?: string | null,
@@ -138,21 +138,53 @@ export function useTripRateLookup(
     returnDestination?: string | null,
     returnDestinationLocationId?: string | null
   ): RateCard[] => {
-    if ((!origin && !originLocationId) || (!destination && !destinationLocationId) || customerRateCards.length === 0) return [];
+    if (!customerRateCards || customerRateCards.length === 0) return [];
 
-    const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
-    const targetCategory = norm(rateCategory);
+    let orig = originOrSlot;
+    let dest = destination;
+    let origLocId = originLocationId;
+    let destLocId = destinationLocationId;
+    let rCat = rateCategory;
+    let retDest = returnDestination;
+    let retDestLocId = returnDestinationLocationId;
+
+    // Handle single object slot argument (e.g. getAvailableRateCardsForLane(primarySlot))
+    if (originOrSlot && typeof originOrSlot === 'object') {
+      const slot = originOrSlot;
+      orig = slot.origin;
+      dest = slot.destination;
+      origLocId = slot.originLocationId;
+      destLocId = slot.destinationLocationId;
+      rCat = slot.contractRateCategory || rateCategory;
+      retDest = slot.returnDestination;
+      retDestLocId = slot.returnDestinationLocationId;
+    }
+
+    const norm = (s?: any) => String(s?.name || s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+
+    // If no origin or destination has been set yet, show all active quotations for the selected customer!
+    const hasOrigin = Boolean(orig || origLocId);
+    const hasDestination = Boolean(dest || destLocId);
+    if (!hasOrigin && !hasDestination) {
+      return customerRateCards;
+    }
+
+    const targetCategory = norm(rCat);
     const isRoundTrip = targetCategory.includes('roundtrip') || targetCategory.includes('round');
 
-    const matchLocation = (cardLocRaw: string, targetLocRaw: string) => {
+    const matchLocation = (cardLocRaw: any, targetLocRaw: any) => {
       if (!cardLocRaw || !targetLocRaw) return false;
       const cleanCard = norm(cardLocRaw);
       const cleanTarget = norm(targetLocRaw);
+      if (!cleanCard || !cleanTarget) return false;
       if (cleanCard === cleanTarget) return true;
       if (cleanCard.includes(cleanTarget) || cleanTarget.includes(cleanCard)) return true;
 
-      const getTokens = (s: string) =>
-        s.toLowerCase().split(/[\s,_()[\]\/{}\-.]+/).filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'center' && t !== 'centre' && t !== 'hub');
+      const getTokens = (s: any) =>
+        String(s?.name || s || '')
+          .toLowerCase()
+          .split(/[\s,_()[\]\/{}\-.]+/)
+          .filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'center' && t !== 'centre' && t !== 'hub');
 
       const cardTokens = getTokens(cardLocRaw);
       const targetTokens = getTokens(targetLocRaw);
@@ -174,13 +206,13 @@ export function useTripRateLookup(
       const rcOriginLocId = firstStop?.locationId || firstStop?.location?.id || (rc as any).origin_location_id || rc.originLocationId;
       const rcDestLocId = lastStop?.locationId || lastStop?.location?.id || (rc as any).destination_location_id || rc.destinationLocationId;
 
-      if (originLocationId && rcOriginLocId && rcOriginLocId === originLocationId) {
-        if (destinationLocationId && rcDestLocId === destinationLocationId) return true;
-        if (returnDestinationLocationId && rcDestLocId === returnDestinationLocationId) return true;
+      if (origLocId && rcOriginLocId && rcOriginLocId === origLocId) {
+        if (destLocId && rcDestLocId === destLocId) return true;
+        if (retDestLocId && rcDestLocId === retDestLocId) return true;
       }
 
-      const originMatches = matchLocation(rcO, origin || '');
-      const destMatches = matchLocation(rcD, destination || '') || (returnDestination ? matchLocation(rcD, returnDestination) : false);
+      const originMatches = matchLocation(rcO, orig || '');
+      const destMatches = matchLocation(rcD, dest || '') || (retDest ? matchLocation(rcD, retDest) : false);
 
       if (!originMatches) return false;
 

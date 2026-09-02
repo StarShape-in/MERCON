@@ -140,7 +140,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               onClick={() => setShowCoDriver(true)}
               className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer pt-0.5"
             >
-              <Plus className="w-3 h-3" /> + Add Co-Driver / Reliever
+              <Plus className="w-3 h-3" /> Add Co-Driver / Reliever
             </button>
           )}
 

@@ -8,9 +8,25 @@ import {
   CheckCircle2,
   Loader2,
   X,
+  Compass,
+  ChevronDown,
+  Truck,
+  CalendarRange,
+  Users,
+  Car,
+  Building2,
+  Wrench,
 } from 'lucide-react';
-import { useLayoutMeta } from '@/context/LayoutContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TripWizardHeaderProps {
   contractStep: 1 | 2;
@@ -37,7 +53,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   batchTripRowsCount,
   KbdBadge,
 }) => {
-  const { isHeaderCollapsed, toggleHeaderCollapsed } = useLayoutMeta();
+  const navigate = useNavigate();
 
   if (submissionResult) return null;
 
@@ -47,9 +63,9 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   ];
 
   return (
-    <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-5 py-2.5 gap-3">
-      {/* Top Left: Cancel / Back Actions & Header Toggle */}
-      <div className="flex items-center gap-2 shrink-0">
+    <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 grid grid-cols-3 items-center px-5 py-2.5 gap-3 w-full">
+      {/* Top Left: Cancel / Back Actions & Navigation Launcher */}
+      <div className="flex items-center gap-2 justify-start shrink-0">
         {contractStep > 1 ? (
           <Button
             type="button"
@@ -72,20 +88,48 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
           </Button>
         )}
 
-        {/* HEADER COLLAPSE / MAXIMIZE WORKSPACE TOGGLE */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={toggleHeaderCollapsed}
-          className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-2xs cursor-pointer"
-          title={isHeaderCollapsed ? "Restore navigation header" : "Maximize vertical workspace height"}
-        >
-          {isHeaderCollapsed ? '⤡ Restore Header' : '⤢ Maximize Workspace'}
-        </Button>
+        {/* SOLUTION 1: INLINE MODULE NAVIGATION LAUNCHER DROPDOWN */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
+            >
+              <Compass className="w-3.5 h-3.5 text-brand" />
+              <span>Navigate Page</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-52 z-[9999]">
+            <DropdownMenuLabel className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              Quick Module Navigation
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/trips?view=kanban')} className="text-xs font-bold gap-2 cursor-pointer">
+              <Truck className="w-3.5 h-3.5 text-orange-500" /> Trips Kanban Board
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/trips/monthly')} className="text-xs font-bold gap-2 cursor-pointer">
+              <CalendarRange className="w-3.5 h-3.5 text-purple-600" /> Monthly Board
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/drivers')} className="text-xs font-bold gap-2 cursor-pointer">
+              <Users className="w-3.5 h-3.5 text-emerald-600" /> Drivers Directory
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/vehicles')} className="text-xs font-bold gap-2 cursor-pointer">
+              <Car className="w-3.5 h-3.5 text-blue-600" /> Fleet Vehicles
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/customers')} className="text-xs font-bold gap-2 cursor-pointer">
+              <Building2 className="w-3.5 h-3.5 text-indigo-600" /> Customer Accounts
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/maintenance')} className="text-xs font-bold gap-2 cursor-pointer">
+              <Wrench className="w-3.5 h-3.5 text-rose-500" /> Fleet Maintenance
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Center: Stepper Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto">
+      {/* Center: Stepper Pills — Mathematically Centered */}
+      <div className="flex items-center justify-center gap-2">
         {steps.map((s) => {
           const IconComp = s.icon;
           const isActive = contractStep === s.step;
@@ -97,7 +141,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               type="button"
               disabled={!canNavigateToStep(s.step)}
               onClick={() => setContractStep(s.step)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 isActive
                   ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                   : isPassed
@@ -115,9 +159,9 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
         })}
       </div>
 
-      {/* Top Right: Next / Done Primary Action & Close */}
-      <div className="flex items-center gap-2 shrink-0">
-        {contractStep < 4 ? (
+      {/* Top Right: Next / Submit Primary Action */}
+      <div className="flex items-center gap-2 justify-end shrink-0">
+        {contractStep < 2 ? (
           <Button
             id="wizard-next-btn"
             type="button"
@@ -133,18 +177,18 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
           <Button
             id="wizard-submit-btn"
             type="button"
-            disabled={isPending || batchTripRowsCount === 0 || !isStepValid(3)}
+            disabled={isPending || !isStepValid(1)}
             onClick={handleContractSubmit}
             className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
           >
             {isPending ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                Saving...
+                Submitting...
               </>
             ) : (
               <>
-                Done <KbdBadge keys="Ctrl+Enter" />
+                Submit Trip <KbdBadge keys="Ctrl+Enter" />
               </>
             )}
           </Button>

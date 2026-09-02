@@ -108,23 +108,20 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   const currentCategory = (normalizeRateCategory ? normalizeRateCategory(contractRateCategory) : contractRateCategory) || 'Single Trip';
   const isRoundTrip = isRoundTripCategory(contractRateCategory) || currentCategory === 'Round Trip';
 
+  const primarySlot = contractSlots[0] || {};
+
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
-      {/* 45 / 25 / 30 3-COLUMN DESKTOP GRID LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+      {/* 60% / 40% 2-COLUMN DESYNAMIC COMMAND CENTER GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
-        {/* COLUMN 1 (~45% / lg:col-span-5): CUSTOMER + ACCELERATORS + ROUTE WORKSPACE */}
-        <div className="lg:col-span-5 space-y-3">
+        {/* LEFT WORKSPACE (60% / lg:col-span-7): CUSTOMER + ROUTE & TIMING WORKSPACE */}
+        <div className="lg:col-span-7 space-y-3.5">
           <CustomerSelectionHeader
             contractCustomer={contractCustomer}
             setContractCustomer={setContractCustomer}
             customers={customers}
             customerOptions={customerOptions}
-          />
-
-          <RecentRoutesAccelerator
-            recentRoutesList={recentRoutesList}
-            handleApplyRecentRoute={handleApplyRecentRoute}
           />
 
           <div className="space-y-3">
@@ -135,6 +132,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 contractCustomer={contractCustomer}
                 isRoundTrip={isRoundTrip}
                 canRemoveSlot={contractSlots.length > 1}
+                contractRateCategory={contractRateCategory}
+                setContractRateCategory={setContractRateCategory}
+                triggerRateLookupForSlots={triggerRateLookupForSlots}
                 handleAddSlotIntermediate={handleAddSlotIntermediate}
                 handleRemoveTripSlot={handleRemoveTripSlot}
                 handleSlotLocationChange={handleSlotLocationChange}
@@ -149,26 +149,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           </div>
         </div>
 
-        {/* COLUMN 2 (~25% / lg:col-span-3): SCHEDULE & SERVICE */}
-        <div className="lg:col-span-3">
-          <div className="sticky top-4 space-y-3">
-            {contractSlots.map((slot) => (
-              <ScheduleServicePanel
-                key={slot.id}
-                slot={slot}
-                currentCategory={currentCategory}
-                isRoundTrip={isRoundTrip}
-                setContractRateCategory={setContractRateCategory}
-                triggerRateLookupForSlots={triggerRateLookupForSlots}
-                handleUpdateTripSlot={handleUpdateTripSlot}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* COLUMN 3 (~30% / lg:col-span-4): COMMERCIAL + EXECUTION ASSIGNMENT + TRIP ECONOMICS */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-4 space-y-3">
+        {/* RIGHT WORKSPACE (40% / lg:col-span-5): UNIFIED COMMERCIAL, EXECUTION & ECONOMICS PANEL */}
+        <div className="lg:col-span-5">
+          <div className="sticky top-4 space-y-3 bg-slate-50/70 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
             <CommercialSection
               contractSlots={contractSlots}
               contractRateCategory={contractRateCategory}
@@ -178,6 +161,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
               handleOpenCreateQuotation={handleOpenCreateQuotation}
               setIsManualRateOverride={setIsManualRateOverride}
               handleUpdateTripSlot={handleUpdateTripSlot}
+              handleSlotLocationChange={handleSlotLocationChange}
+              setContractRateCategory={setContractRateCategory}
+              setContractVehicleType={setContractVehicleType}
             />
 
             <ExecutionAssignmentSection
