@@ -27,6 +27,62 @@ export interface TripChargeInput {
   save_as_rule?: boolean;
 }
 
+export type DriverTripRole = 'PRIMARY' | 'CO_DRIVER' | 'RELIEVER';
+export type AssignmentEntityType = 'DRIVER' | 'VEHICLE';
+
+export interface TripDriver {
+  id: string;
+  tripId: string;
+  driverId: string;
+  role: DriverTripRole;
+  driver_charge?: number | null;
+  extra_driver_payment?: number | null;
+  payment_reason?: string | null;
+  payment_status?: string | null;
+  assignedAt: string;
+  removedAt?: string | null;
+  driver?: {
+    id: string;
+    ref_id?: string | null;
+    first_name: string;
+    last_name: string;
+    phone_primary?: string | null;
+    avatar_url?: string | null;
+  };
+}
+
+export interface TripAssignmentEvent {
+  id: string;
+  tripId: string;
+  entityType: AssignmentEntityType;
+  fromId?: string | null;
+  toId?: string | null;
+  reason: string;
+  changedBy?: string | null;
+  changedAt: string;
+}
+
+export interface DriverRecommendation {
+  driverId: string;
+  driverName: string;
+  phone?: string | null;
+  assignmentType: 'PRIMARY' | 'BACKUP' | 'TEMPORARY';
+  priority: number;
+  isAvailable: boolean;
+  unavailabilityReason?: string;
+}
+
+export interface VehicleRecommendation {
+  vehicleId: string;
+  plateNumber: string;
+  assetType: string;
+  capacityKg: number;
+  assignmentType: 'PRIMARY' | 'BACKUP' | 'TEMPORARY';
+  priority: number;
+  isAvailable: boolean;
+  unavailabilityReason?: string;
+}
+
 export interface Trip {
   id: string;
   ref_id: string;
@@ -77,6 +133,12 @@ export interface Trip {
   customer?: { id: string; name: string; company_name?: string | null; avatar_url?: string | null; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; ai_risk_score?: number; deletedAt?: string | null } | null;
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null; resolved_location?: ResolvedLocation } | null;
+  tripDrivers?: TripDriver[];
+  is_contingency_dispatch?: boolean;
+  original_vehicle_id?: string | null;
+  original_driver_id?: string | null;
+  contingency_reason?: string | null;
+  assignmentEvents?: TripAssignmentEvent[];
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
   vehicle_type?: string | null;
@@ -567,4 +629,12 @@ export async function downloadTripExport(params: TripExportParams): Promise<{ bl
   const filename = match ? match[1] : `MERCON_trips_${params.type}_export.${params.format}`;
 
   return { blob: response.data as Blob, filename };
+}
+
+export async function getDriverRecommendations(vehicleId: string, plannedStart?: string): Promise<ApiResponse<DriverRecommendation[]>> {
+  return api.get<DriverRecommendation[]>('/trips/recommendations/drivers', { params: { vehicleId, plannedStart } });
+}
+
+export async function getVehicleRecommendations(driverId: string): Promise<ApiResponse<VehicleRecommendation[]>> {
+  return api.get<VehicleRecommendation[]>('/trips/recommendations/vehicles', { params: { driverId } });
 }

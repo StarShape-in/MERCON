@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
-import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus, DriverTripRole, AssignmentEntityType } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
@@ -12,6 +12,8 @@ import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
+import { validateTripDrivers, TripDriverInput } from '../services/tripValidationService';
+import { recordAssignmentEvent } from '../services/fleetDispatchService';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -364,6 +366,20 @@ export const getTrips = async (req: Request, res: Response) => {
               name: true,
             }
           },
+          tripDrivers: {
+            where: { removedAt: null },
+            include: {
+              driver: {
+                select: {
+                  id: true,
+                  ref_id: true,
+                  first_name: true,
+                  last_name: true,
+                  phone_primary: true,
+                },
+              },
+            },
+          },
           stops: {
             orderBy: { stop_sequence: 'asc' },
             select: {
@@ -472,6 +488,15 @@ export const getTripById = async (req: Request, res: Response) => {
           }
         },
         thirdPartyProvider: true,
+        tripDrivers: {
+          include: {
+            driver: true,
+          },
+          orderBy: { assignedAt: 'asc' },
+        },
+        assignmentEvents: {
+          orderBy: { changedAt: 'desc' },
+        },
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
