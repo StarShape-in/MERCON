@@ -172,7 +172,7 @@ export function useCreateTripForm() {
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
-      .filter((d) => d.isActive !== false)
+      .filter((d) => d.isActive !== false && !(d.first_name || '').toLowerCase().includes('audit'))
       .map((d) => {
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
@@ -195,14 +195,13 @@ export function useCreateTripForm() {
           : '';
 
         const detailsStr = [capacityLabel, statusTag].filter(Boolean).join(' • ');
-        const label = detailsStr
-          ? `${d.first_name} ${d.last_name} (${detailsStr})`
-          : `${d.first_name} ${d.last_name}`;
+        const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || 'Driver';
+        const label = detailsStr ? `${fullName} (${detailsStr})` : fullName;
 
         return {
           value: d.id,
           label,
-          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
+          keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
         };
       });
   }, [drivers]);
