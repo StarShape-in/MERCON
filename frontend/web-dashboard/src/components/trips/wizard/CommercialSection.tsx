@@ -117,7 +117,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 onClick={handleOpenCreateQuotation}
                 className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
               >
-                <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
+                <Plus className="w-3.5 h-3.5" /> Create Quotation
               </Button>
             )}
           </div>
