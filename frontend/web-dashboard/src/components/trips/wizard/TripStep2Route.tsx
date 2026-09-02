@@ -129,36 +129,8 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
               </div>
             )}
 
-            {/* A. SHIFT DUTY WORKSPACE (10 HOURS / 12 HOURS DUTY) */}
-            {isDuty ? (
-              <div className="p-4 rounded-xl border border-blue-200/90 bg-blue-50/30 space-y-3">
-                <div className="flex items-center justify-between border-b border-blue-100 pb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-600 text-white font-bold text-[10px] uppercase">
-                      {currentCategory} Workspace
-                    </Badge>
-                    <span className="text-xs font-bold text-slate-800">Shift Duty Service Config</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                      Duty Station Location *
-                    </label>
-                    <LocationCombobox
-                      id="step2-first-field"
-                      customerId={contractCustomer}
-                      value={slot.origin}
-                      onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                      placeholder="Search duty station (e.g. Riyadh Hub)..."
-                      triggerClassName="h-9.5 border-slate-200 bg-white shadow-2xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : isRoundTrip ? (
-              /* B. ROUND TRIP DUAL-LEG WORKSPACE (LEG 1 + LEG 2 SIDE-BY-SIDE 2 COLUMNS) */
+            {isRoundTrip ? (
+              /* A. ROUND TRIP DUAL-LEG WORKSPACE (LEG 1 + LEG 2 SIDE-BY-SIDE 2 COLUMNS) */
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 items-start">
                 {/* LEG 1: OUTBOUND JOURNEY */}
                 <div className="p-3.5 rounded-xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-3">
