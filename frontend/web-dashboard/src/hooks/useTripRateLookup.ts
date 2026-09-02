@@ -14,12 +14,14 @@ export function useTripRateLookup(
   const navigate = useNavigate();
 
   const { data: rateCardsRes } = useQuery({
-    queryKey: ['quotations-select', contractCustomer],
-    queryFn: () => quotationService.getAll({ customerId: contractCustomer, active_only: true }),
-    enabled: Boolean(contractCustomer),
+    queryKey: ['quotations-select-all', contractCustomer],
+    queryFn: () => quotationService.getAll({ active_only: true }),
   });
 
-  const customerRateCards: RateCard[] = rateCardsRes?.data ?? [];
+  const allRateCards: RateCard[] = rateCardsRes?.data ?? [];
+  const customerRateCards: RateCard[] = contractCustomer
+    ? allRateCards.filter((rc) => rc.customer_id === contractCustomer || rc.customerId === contractCustomer)
+    : allRateCards;
 
   const handleOpenCreateQuotation = (slot?: any) => {
     const originId = slot?.originLocationId || '';
@@ -162,11 +164,11 @@ export function useTripRateLookup(
 
     const norm = (s?: any) => String(s?.name || s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
 
-    // If no origin or destination has been set yet, show all active quotations for the selected customer!
+    // If no origin or destination has been set yet, show all active quotations across all companies!
     const hasOrigin = Boolean(orig || origLocId);
     const hasDestination = Boolean(dest || destLocId);
     if (!hasOrigin && !hasDestination) {
-      return customerRateCards;
+      return allRateCards.length > 0 ? allRateCards : customerRateCards;
     }
 
     const targetCategory = norm(rCat);

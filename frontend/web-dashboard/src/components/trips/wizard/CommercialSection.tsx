@@ -33,44 +33,54 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   const availableRateCards = getAvailableRateCardsForLane(primarySlot) || [];
   const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
 
-  // Sort quotations with historical trip usage to the top
+  // Sort quotations: Most used / trip history first, then all remaining active quotations
   const sortedRateCards = React.useMemo(() => {
     if (!availableRateCards) return [];
     return [...availableRateCards].sort((a, b) => {
-      const aHasHistory = Boolean(a.driver_name || a.recent_driver || a.vehicle_plate || a.recent_vehicle || a.last_used_at || a.usage_count);
-      const bHasHistory = Boolean(b.driver_name || b.recent_driver || b.vehicle_plate || b.recent_vehicle || b.last_used_at || b.usage_count);
+      const aUsage = Number(a.usage_count || 0) + (a.driver_name || a.recent_driver ? 10 : 0);
+      const bUsage = Number(b.usage_count || 0) + (b.driver_name || b.recent_driver ? 10 : 0);
 
-      if (aHasHistory && !bHasHistory) return -1;
-      if (!aHasHistory && bHasHistory) return 1;
+      if (aUsage !== bUsage) return bUsage - aUsage;
       return 0;
     });
   }, [availableRateCards]);
 
   return (
-    <div className="p-3.5 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
-      {/* SECTION HEADER */}
-      <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900">
-        <h4 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
-          <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" /> COMMERCIAL QUOTATIONS ({sortedRateCards.length})
-        </h4>
-        {matchedRateCard ? (
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
-          </span>
+    <div className="p-3 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
+      {/* SECTION HEADER WITH CREATE BUTTON IN TOP RIGHT */}
+      <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900 gap-2">
+        <div className="flex items-center gap-2">
+          <h4 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
+            <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" /> COMMERCIAL QUOTATIONS ({sortedRateCards.length})
+          </h4>
+          {matchedRateCard ? (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
+            </span>
+          )}
+        </div>
+
+        {/* TOP RIGHT: CREATE COMMERCIAL QUOTATION BUTTON */}
+        {handleOpenCreateQuotation && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleOpenCreateQuotation}
+            className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
+          >
+            <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
+          </Button>
         )}
       </div>
 
       {/* VISUAL QUOTATION RATE CARDS HORIZONTAL SLIDER / ROW */}
       {sortedRateCards.length > 0 ? (
-        <div className="space-y-1">
-          <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-            Select Active Commercial Rate Card:
-          </span>
-          <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
+        <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
             {sortedRateCards.map((rc, idx) => {
               const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
               const rateVal = rc.rate ?? rc.base_price ?? 0;
@@ -182,7 +192,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               );
             })}
           </div>
-        </div>
       ) : (
         /* NO QUOTATION MATCHED — ACTIONABLE CREATE BUTTON */
         <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-2">

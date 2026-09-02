@@ -91,17 +91,11 @@ export const CustomerSelectionHeader: React.FC<CustomerSelectionHeaderProps> = (
                       cInitials
                     )}
                   </span>
-                  <div className="min-w-0 max-w-[90px]">
+                  <div className="min-w-0">
                     <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight" title={c.name}>
                       {c.name.split(' ')[0]}
                     </div>
-                    <div className="text-[9px] font-mono text-slate-400 truncate leading-none">
-                      {c.code || 'SYS'}
-                    </div>
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded shrink-0">
-                    Key {idx + 1}
-                  </span>
                 </button>
               );
             })}
