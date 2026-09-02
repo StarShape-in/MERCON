@@ -91,7 +91,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-brand shrink-0" />
-              <span>CUSTOMER ACCOUNT & COMMERCIAL QUOTATIONS</span>
+              <span>CUSTOMERS & QUOTATIONS</span>
               <span className="text-brand font-extrabold">({sortedRateCards.length})</span>
               <span className="text-brand">*</span>
             </h4>
