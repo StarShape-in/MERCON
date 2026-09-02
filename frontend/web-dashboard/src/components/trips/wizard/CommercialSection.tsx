@@ -65,16 +65,18 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }));
   }, [customerOptions, customers]);
 
-  // Sort quotations: Most used / trip history first, then all remaining active quotations
+  // Sort quotations: Most used / trip history first, then all remaining active quotations (max 50)
   const sortedRateCards = React.useMemo(() => {
     if (!availableRateCards) return [];
-    return [...availableRateCards].sort((a, b) => {
-      const aUsage = Number(a.usage_count || 0) + (a.driver_name || a.recent_driver ? 10 : 0);
-      const bUsage = Number(b.usage_count || 0) + (b.driver_name || b.recent_driver ? 10 : 0);
+    return [...availableRateCards]
+      .sort((a, b) => {
+        const aUsage = Number(a.usage_count || 0) + (a.driver_name || a.recent_driver ? 10 : 0);
+        const bUsage = Number(b.usage_count || 0) + (b.driver_name || b.recent_driver ? 10 : 0);
 
-      if (aUsage !== bUsage) return bUsage - aUsage;
-      return 0;
-    });
+        if (aUsage !== bUsage) return bUsage - aUsage;
+        return 0;
+      })
+      .slice(0, 50);
   }, [availableRateCards]);
 
   const selectedCust = customers.find((c) => c.id === contractCustomer);
