@@ -140,8 +140,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
       {/* UNIFIED ROUTE & SCHEDULE FLOW (LINE 1: ORIGIN + UNIFIED PICKUP DATETIME) */}
       <div className="space-y-2.5">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          {/* ORIGIN LOCATION (REDUCED TO 7 COLS) */}
-          <div className="md:col-span-7 space-y-1">
+          {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
+          <div className="md:col-span-8 space-y-1">
             <label className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-brand">*</span>
@@ -157,8 +157,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             />
           </div>
 
-          {/* COMBINED PICKUP DATE & TIME (5 COLS) */}
-          <div className="md:col-span-5 space-y-1">
+          {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
+          <div className="md:col-span-4 space-y-1">
             <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
               <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
             </label>
@@ -221,8 +221,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
         {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end pt-1 border-t border-slate-100 dark:border-slate-800">
-          {/* DESTINATION LOCATION (REDUCED TO 7 COLS) */}
-          <div className="md:col-span-7 space-y-1">
+          {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
+          <div className="md:col-span-8 space-y-1">
             <label className="text-xs font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {isRoundTrip ? 'OUTBOUND DESTINATION *' : 'DESTINATION LOCATION *'}
@@ -237,8 +237,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             />
           </div>
 
-          {/* COMBINED DROPOFF DATE & TIME (5 COLS) */}
-          <div className="md:col-span-5 space-y-1">
+          {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
+          <div className="md:col-span-4 space-y-1">
             <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
               <Calendar className="w-3 h-3 text-brand shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
             </label>
