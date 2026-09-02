@@ -191,12 +191,12 @@ export function useTripSubmission(
         const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
         const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
 
-        const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
-        const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+        const outboundChain = outboundStops.length > 0 ? ` → ${outboundStops.join(' → ')}` : '';
+        const returnChain = returnStops.length > 0 ? ` → ${returnStops.join(' → ')}` : '';
 
-        destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+        destString = `${slot.destination.trim()}${outboundChain} [RETURN: ${returnStart}${returnChain} → ${returnEnd}]`;
       } else if (outboundStops.length > 0) {
-        destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+        destString = `${slot.destination.trim()} → ${outboundStops.join(' → ')}`;
       }
 
       const dropoffDateVal = slot.dropoffDate || date;
