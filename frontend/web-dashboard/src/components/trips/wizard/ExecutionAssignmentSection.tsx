@@ -143,21 +143,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               <Plus className="w-3 h-3" /> Add Co-Driver / Reliever
             </button>
           )}
-
-          {/* BACKUP RECOMMENDATIONS ACCELERATOR PILLS */}
-          <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-1">
-              <ShieldAlert className="w-3 h-3 text-emerald-600" /> Backup Options:
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                ✓ Truck 51 Available
-              </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                ✓ Ibrahim Available
-              </span>
-            </div>
-          </div>
         </div>
       ) : (
         /* 3PL PARTNER ASSIGNMENT WORKSPACE */
