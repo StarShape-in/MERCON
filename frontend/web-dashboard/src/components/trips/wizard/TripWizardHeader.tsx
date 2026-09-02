@@ -39,6 +39,9 @@ interface TripWizardHeaderProps {
   isPending: boolean;
   batchTripRowsCount: number;
   KbdBadge: React.ComponentType<{ keys: string }>;
+  hasSavedDraft?: boolean;
+  restoreDraft?: () => void;
+  discardDraft?: () => void;
 }
 
 export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
@@ -52,6 +55,9 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   isPending,
   batchTripRowsCount,
   KbdBadge,
+  hasSavedDraft,
+  restoreDraft,
+  discardDraft,
 }) => {
   const navigate = useNavigate();
 
@@ -159,8 +165,31 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
         })}
       </div>
 
-      {/* Top Right: Next / Submit Primary Action */}
+      {/* Top Right: Restore Draft (if any) + Next / Submit Primary Action */}
       <div className="flex items-center gap-2 justify-end shrink-0">
+        {hasSavedDraft && contractStep === 1 && restoreDraft && discardDraft && (
+          <div className="flex items-center gap-1.5 mr-1">
+            <Button
+              type="button"
+              size="sm"
+              tabIndex={-1}
+              onClick={restoreDraft}
+              className="h-8 text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-3 border-0 shadow-2xs cursor-pointer"
+            >
+              Restore Draft
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              tabIndex={-1}
+              onClick={discardDraft}
+              className="h-8 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 rounded-xl px-2 cursor-pointer"
+            >
+              Discard
+            </Button>
+          </div>
+        )}
         {contractStep < 2 ? (
           <Button
             id="wizard-next-btn"
