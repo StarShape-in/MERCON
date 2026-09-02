@@ -102,13 +102,13 @@ export default function CreateTripPage() {
     return () => clearTimeout(timer);
   }, [form.contractStep, form.submissionResult]);
 
-  // Global Keyboard Shortcuts (Alt+1..4, Ctrl+Enter, Ctrl+S)
+  // Global Keyboard Shortcuts (Alt+1..3, Ctrl+Enter, Ctrl+S)
   React.useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Alt + 1..4 Step Direct Navigation
+      // Alt + 1..3 Step Direct Navigation
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        if (['1', '2', '3', '4'].includes(e.key)) {
-          const targetStep = parseInt(e.key, 10) as 1 | 2 | 3 | 4;
+        if (['1', '2', '3'].includes(e.key)) {
+          const targetStep = parseInt(e.key, 10) as 1 | 2 | 3;
           if (form.canNavigateToStep(targetStep)) {
             e.preventDefault();
             form.setContractStep(targetStep);
@@ -117,10 +117,10 @@ export default function CreateTripPage() {
         }
       }
 
-      // Ctrl + Enter or Cmd + Enter (Final Submit on Step 4)
+      // Ctrl + Enter or Cmd + Enter (Final Submit on Step 3)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         const hasOpenPopover = !!document.querySelector('[data-state="open"]');
-        if (form.contractStep === 4 && !hasOpenPopover && form.isStepValid(3) && !form.bulkMutation.isPending) {
+        if (form.contractStep === 3 && !hasOpenPopover && form.isStepValid(2) && !form.bulkMutation.isPending) {
           e.preventDefault();
           form.handleContractSubmit();
           return;
@@ -132,9 +132,9 @@ export default function CreateTripPage() {
         e.preventDefault();
         const hasOpenPopover = !!document.querySelector('[data-state="open"]');
         if (!hasOpenPopover) {
-          if (form.contractStep < 4 && form.isStepValid(form.contractStep)) {
+          if (form.contractStep < 3 && form.isStepValid(form.contractStep)) {
             form.setContractStep((prev) => (prev + 1) as any);
-          } else if (form.contractStep === 4 && form.isStepValid(3) && !form.bulkMutation.isPending) {
+          } else if (form.contractStep === 3 && form.isStepValid(2) && !form.bulkMutation.isPending) {
             form.handleContractSubmit();
           }
         }
@@ -147,7 +147,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
+      <div className="px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full h-[calc(100dvh-80px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
           {/* Combined Navigation & Stepper Bar */}

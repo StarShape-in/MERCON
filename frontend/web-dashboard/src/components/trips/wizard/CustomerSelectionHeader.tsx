@@ -42,7 +42,7 @@ export const CustomerSelectionHeader: React.FC<CustomerSelectionHeaderProps> = (
       </div>
 
       {/* Customer Search Combobox */}
-      <div className="space-y-1">
+      <div className="space-y-1 max-w-lg">
         <label className="text-xs font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
           <span className="flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-brand" /> CUSTOMER ACCOUNT <span className="text-brand">*</span>

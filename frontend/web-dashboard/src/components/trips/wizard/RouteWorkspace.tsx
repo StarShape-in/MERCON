@@ -228,7 +228,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
           <div className="space-y-3 relative">
             {/* Origin */}
-            <div className="space-y-1">
+            <div className="space-y-1 max-w-lg">
               <label className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
                 ORIGIN LOCATION *
@@ -244,7 +244,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
 
             {/* Route Connector Line & Intermediate Stops */}
-            <div className="pl-3.5 border-l-2 border-slate-200 dark:border-slate-800 my-2 space-y-2.5">
+            <div className="pl-3.5 border-l-2 border-slate-200 dark:border-slate-800 my-2 space-y-2.5 max-w-lg">
               {slot.intermediateLocations?.map((loc: string, idx: number) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -281,7 +281,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
 
             {/* Destination */}
-            <div className="space-y-1">
+            <div className="space-y-1 max-w-lg">
               <label className="text-xs font-extrabold text-orange-800 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
                 DESTINATION LOCATION *
