@@ -20,7 +20,7 @@ export function useTripRateLookup(
 
   const allRateCards: RateCard[] = rateCardsRes?.data ?? [];
   const customerRateCards: RateCard[] = contractCustomer
-    ? allRateCards.filter((rc) => rc.customer_id === contractCustomer || rc.customerId === contractCustomer)
+    ? allRateCards.filter((rc) => rc.customerId === contractCustomer || (rc as any).customer_id === contractCustomer)
     : allRateCards;
 
   const handleOpenCreateQuotation = (slot?: any) => {
