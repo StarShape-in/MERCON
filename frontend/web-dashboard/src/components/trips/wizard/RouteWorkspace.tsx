@@ -65,22 +65,86 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
   return (
     <div className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
-      {/* SLOT HEADER (IF MULTI-SLOT) */}
-      {canRemoveSlot && (
-        <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-          <span className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider">
-            TRIP SLOT #{slot.slotNumber || 1}
-          </span>
+      {/* TOP HEADER: LINE TYPE SELECTOR + OVERNIGHT TOGGLE + TRANSIT TIME BADGE (ABOVE ROUTE SELECTION) */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 gap-3 flex-wrap">
+        {/* LEFT: LINE TYPE SELECTOR & OVERNIGHT TOGGLE */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Line Type:</span>
+            <Select
+              value={contractRateCategory}
+              onValueChange={(val) => {
+                if (setContractRateCategory) setContractRateCategory(val);
+                if (triggerRateLookupForSlots) triggerRateLookupForSlots(undefined, val);
+              }}
+            >
+              <SelectTrigger className="h-8.5 rounded-lg border-slate-200 bg-white text-xs font-bold text-slate-800 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  {selectedTaxonomyOption ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-extrabold border",
+                        selectedTaxonomyOption.colorTheme.bg,
+                        selectedTaxonomyOption.colorTheme.text,
+                        selectedTaxonomyOption.colorTheme.border
+                      )}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }} />
+                      <span>{selectedTaxonomyOption.label}</span>
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Select Line Type" />
+                  )}
+                </div>
+              </SelectTrigger>
+              <SelectContent className="z-[9999]">
+                {lineTypeTaxonomyOptions.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.label} className="text-xs font-bold py-1.5 cursor-pointer">
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* OVERNIGHT TOGGLE */}
           <button
             type="button"
-            onClick={() => handleRemoveTripSlot(slot.id)}
-            className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
-            title="Remove trip slot"
+            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              slot.isOvernight
+                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
+            }`}
           >
-            <Trash2 className="w-4 h-4" />
+            <Moon className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Overnight</span>
+            <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${slot.isOvernight ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+              {slot.isOvernight ? 'ON' : 'OFF'}
+            </span>
           </button>
         </div>
-      )}
+
+        {/* RIGHT: TRANSIT TIME ESTIMATE BADGE & REMOVE SLOT */}
+        <div className="flex items-center gap-2">
+          <TransitTimeBadge
+            origin={slot.origin}
+            destination={slot.destination}
+            pickupTime={slot.pickupTime}
+            dropoffTime={slot.dropoffTime}
+          />
+          {canRemoveSlot && (
+            <button
+              type="button"
+              onClick={() => handleRemoveTripSlot(slot.id)}
+              className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+              title="Remove trip slot"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* UNIFIED ROUTE & SCHEDULE FLOW (LINE 1: ORIGIN + UNIFIED PICKUP DATETIME) */}
       <div className="space-y-2.5">
@@ -225,7 +289,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   value={slot.returnDestination || slot.origin}
                   onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
                   placeholder="Search return destination (defaults to Origin)..."
-                  triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                  triggerClassName="h-9 border-slate-200 bg-[#FFFFFF] text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
                 />
               </div>
 
@@ -278,74 +342,6 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             )}
           </div>
         )}
-
-        {/* LINE 3: LINE TYPE & OVERNIGHT RIBBON & TRANSIT ESTIMATE */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap">
-          {/* LINE TYPE SELECTOR */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Line Type:</span>
-            <Select
-              value={contractRateCategory}
-              onValueChange={(val) => {
-                if (setContractRateCategory) setContractRateCategory(val);
-                if (triggerRateLookupForSlots) triggerRateLookupForSlots(undefined, val);
-              }}
-            >
-              <SelectTrigger className="h-8.5 rounded-lg border-slate-200 bg-white text-xs font-bold text-slate-800 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  {selectedTaxonomyOption ? (
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-extrabold border",
-                        selectedTaxonomyOption.colorTheme.bg,
-                        selectedTaxonomyOption.colorTheme.text,
-                        selectedTaxonomyOption.colorTheme.border
-                      )}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }} />
-                      <span>{selectedTaxonomyOption.label}</span>
-                    </span>
-                  ) : (
-                    <SelectValue placeholder="Select Line Type" />
-                  )}
-                </div>
-              </SelectTrigger>
-              <SelectContent className="z-[9999]">
-                {lineTypeTaxonomyOptions.map((opt) => (
-                  <SelectItem key={opt.id} value={opt.label} className="text-xs font-bold py-1.5 cursor-pointer">
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* OVERNIGHT TOGGLE & TRANSIT TIME */}
-          <div className="flex items-center gap-3">
-            <TransitTimeBadge
-              origin={slot.origin}
-              destination={slot.destination}
-              pickupTime={slot.pickupTime}
-              dropoffTime={slot.dropoffTime}
-            />
-            <button
-              type="button"
-              onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-              className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                slot.isOvernight
-                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Overnight Trip</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${slot.isOvernight ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                {slot.isOvernight ? 'ON' : 'OFF'}
-              </span>
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
   );
