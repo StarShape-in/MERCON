@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { buildSearchAnd } from '../utils/search';
+import { logger } from '../utils/logger';
 
 const CUSTOMER_SEARCH_FIELDS = ['name', 'contact_phone'];
 
@@ -116,6 +117,7 @@ export const getCustomerById = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: customer });
   } catch (error) {
+    logger.error({ err: error, id: req.params.id }, 'Failed to fetch customer by ID');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch customer' } });
   }
 };
