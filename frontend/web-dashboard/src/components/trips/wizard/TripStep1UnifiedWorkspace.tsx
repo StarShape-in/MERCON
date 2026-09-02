@@ -116,7 +116,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         
         {/* LEFT WORKSPACE (60% / lg:col-span-7): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
         <div className="lg:col-span-7 space-y-3.5">
-          {/* COMMERCIAL QUOTATIONS BAR (TOP LEFT ~60% WIDTH) */}
+          {/* COMMERCIAL QUOTATIONS BAR WITH INTEGRATED CUSTOMER SELECTION (TOP LEFT ~60% WIDTH) */}
           <CommercialSection
             contractSlots={contractSlots}
             contractRateCategory={contractRateCategory}
@@ -129,9 +129,6 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             handleSlotLocationChange={handleSlotLocationChange}
             setContractRateCategory={setContractRateCategory}
             setContractVehicleType={setContractVehicleType}
-          />
-
-          <CustomerSelectionHeader
             contractCustomer={contractCustomer}
             setContractCustomer={setContractCustomer}
             customers={customers}

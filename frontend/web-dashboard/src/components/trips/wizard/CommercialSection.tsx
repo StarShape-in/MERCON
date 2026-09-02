@@ -1,6 +1,7 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 
 interface CommercialSectionProps {
@@ -15,6 +16,10 @@ interface CommercialSectionProps {
   handleSlotLocationChange?: (slotId: string, field: 'origin' | 'destination', locName: string, locObj: any) => void;
   setContractRateCategory?: (cat: string) => void;
   setContractVehicleType?: (vType: string) => void;
+  contractCustomer?: string;
+  setContractCustomer?: (customerId: string) => void;
+  customers?: any[];
+  customerOptions?: ComboboxOption[];
 }
 
 export const CommercialSection: React.FC<CommercialSectionProps> = ({
@@ -28,6 +33,10 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   handleSlotLocationChange,
   setContractRateCategory,
   setContractVehicleType,
+  contractCustomer = '',
+  setContractCustomer,
+  customers = [],
+  customerOptions = [],
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -47,6 +56,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }
   };
 
+  const derivedCustomerOptions = React.useMemo(() => {
+    if (customerOptions && customerOptions.length > 0) return customerOptions;
+    return customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      keywords: `${c.code || ''} ${c.city || ''} ${c.name}`,
+    }));
+  }, [customerOptions, customers]);
+
   // Sort quotations: Most used / trip history first, then all remaining active quotations
   const sortedRateCards = React.useMemo(() => {
     if (!availableRateCards) return [];
@@ -60,9 +78,59 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   }, [availableRateCards]);
 
   return (
-    <div className="p-3 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-      {/* SECTION HEADER WITH SCROLL ARROWS & CREATE BUTTON IN TOP RIGHT */}
-      <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900 gap-2">
+    <div className="p-3 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
+      {/* LINE 1: HIGH-PRIORITY CUSTOMER SELECTION STRIP + QUICK CHIPS */}
+      {setContractCustomer && (
+        <div className="flex items-center justify-between gap-3 pb-2 border-b border-blue-100 dark:border-blue-900 flex-wrap sm:flex-nowrap">
+          {/* CUSTOMER SEARCH & LABEL */}
+          <div className="flex items-center gap-2 w-full sm:w-[320px] shrink-0">
+            <label className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-brand shrink-0" /> CUSTOMER ACCOUNT <span className="text-brand">*</span>
+            </label>
+            <div className="flex-1 min-w-0">
+              <Combobox
+                options={derivedCustomerOptions}
+                value={contractCustomer}
+                onChange={setContractCustomer}
+                placeholder="Select customer account..."
+                searchPlaceholder="Search customer name or code..."
+                triggerClassName="h-8 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+              />
+            </div>
+          </div>
+
+          {/* QUICK PICK COMPANY TILES */}
+          {customers && customers.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar flex-1">
+              {customers.slice(0, 5).map((c) => {
+                const isSelected = contractCustomer === c.id;
+                const cInitials = c.name.substring(0, 2).toUpperCase();
+
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setContractCustomer(c.id)}
+                    className={`px-2.5 py-1 rounded-lg border text-left transition-all flex items-center gap-1.5 h-8 shrink-0 cursor-pointer text-xs font-bold ${
+                      isSelected
+                        ? 'bg-orange-50 border-brand text-brand ring-2 ring-brand/20 shadow-2xs font-extrabold'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-md font-extrabold text-[9px] grid place-items-center shrink-0 ${isSelected ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'}`}>
+                      {cInitials}
+                    </span>
+                    <span className="truncate max-w-[90px]">{c.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* LINE 2: COMMERCIAL QUOTATIONS TITLE + STATUS + ACTIONS */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pb-0.5">
         <div className="flex items-center gap-2">
           <h4 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" /> COMMERCIAL QUOTATIONS ({sortedRateCards.length})
