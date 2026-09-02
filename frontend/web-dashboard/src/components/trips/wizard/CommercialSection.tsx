@@ -123,6 +123,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               const rateVal = rc.rate ?? rc.base_price ?? 0;
               const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
               const rCat = rc.rate_category || rc.line_type || contractRateCategory;
+              const hasHistory = Boolean(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle);
 
               const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
               const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
@@ -182,15 +183,23 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                   )}
                 >
+                  {/* TOP CARD HEADER: QUOTATION NO. + TOP RIGHT CHIPS (NEW RATE & APPLIED) */}
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
                       {rc.quotation_number || `QUO-${idx + 1}`}
                     </span>
-                    {isSelected && (
-                      <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
-                        Applied ✓
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {!hasHistory && (
+                        <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60">
+                          ✨ New Rate
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
+                          Applied ✓
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -202,18 +211,14 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* RECENT DRIVER & VEHICLE PROFILE TAG OR LIGHT ORANGE NEW PILL */}
-                  {(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle) ? (
+                  {/* RECENT DRIVER & VEHICLE PROFILE TAG */}
+                  {hasHistory && (
                     <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
                       <span className="shrink-0">👤</span>
                       <span className="truncate">{rc.driver_name || rc.recent_driver || 'Recent Driver'}</span>
                       {(rc.vehicle_plate || rc.recent_vehicle) && (
                         <span className="font-mono font-bold text-slate-500 shrink-0">({rc.vehicle_plate || rc.recent_vehicle})</span>
                       )}
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1 text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/70 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60 w-max">
-                      <span>✨ New Rate</span>
                     </div>
                   )}
 
