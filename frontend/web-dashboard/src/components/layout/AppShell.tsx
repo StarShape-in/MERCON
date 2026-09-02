@@ -80,7 +80,7 @@ function ShellInner() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [sidebarOpen]);
 
-  const { meta, isHeaderCollapsed, toggleHeaderCollapsed } = useLayoutMeta();
+  const { isHeaderCollapsed, toggleHeaderCollapsed } = useLayoutMeta();
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F8FAFC]">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useLayoutMeta } from '@/context/LayoutContext';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';

@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { useLayoutMeta } from '@/context/LayoutContext';
+import { Button } from '@/components/ui/button';
 
 interface TripWizardHeaderProps {
   contractStep: 1 | 2;
