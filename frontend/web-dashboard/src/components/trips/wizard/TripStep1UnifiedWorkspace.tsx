@@ -38,6 +38,7 @@ interface TripStep1UnifiedWorkspaceProps {
   getAvailableRateCardsForLane: (slot: any) => any[];
   handleOpenCreateQuotation?: () => void;
   setIsManualRateOverride?: (override: boolean) => void;
+  isRoundTrip?: boolean;
   assignmentType: 'own' | 'third_party' | '3pl' | 'fleet' | any;
   setAssignmentType: (type: any) => void;
   masterVehicle: string;
@@ -86,7 +87,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   getAvailableRateCardsForLane,
   handleOpenCreateQuotation,
   setIsManualRateOverride,
-  isRoundTrip,
+  isRoundTrip: isRoundTripProp,
   assignmentType,
   setAssignmentType,
   masterVehicle,
@@ -106,6 +107,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   marginMetrics,
 }) => {
   const primarySlot = contractSlots[0] || {};
+  const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
 
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
