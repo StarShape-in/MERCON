@@ -16,8 +16,7 @@ import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
 import TripWizardHeader from '@/components/trips/wizard/TripWizardHeader';
-import TripStep1CustomerRoute from '@/components/trips/wizard/TripStep1CustomerRoute';
-import TripStep3Assignment from '@/components/trips/wizard/TripStep3Assignment';
+import TripStep1UnifiedWorkspace from '@/components/trips/wizard/TripStep1UnifiedWorkspace';
 import TripStep4Summary from '@/components/trips/wizard/TripStep4Summary';
 import TripBatchGeneratorTab from '@/components/trips/wizard/TripBatchGeneratorTab';
 import TripBulkImportTab from '@/components/trips/wizard/TripBulkImportTab';
@@ -102,13 +101,13 @@ export default function CreateTripPage() {
     return () => clearTimeout(timer);
   }, [form.contractStep, form.submissionResult]);
 
-  // Global Keyboard Shortcuts (Alt+1..3, Ctrl+Enter, Ctrl+S)
+  // Global Keyboard Shortcuts (Alt+1..2, Ctrl+Enter, Ctrl+S)
   React.useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Alt + 1..3 Step Direct Navigation
+      // Alt + 1..2 Step Direct Navigation
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        if (['1', '2', '3'].includes(e.key)) {
-          const targetStep = parseInt(e.key, 10) as 1 | 2 | 3;
+        if (['1', '2'].includes(e.key)) {
+          const targetStep = parseInt(e.key, 10) as 1 | 2;
           if (form.canNavigateToStep(targetStep)) {
             e.preventDefault();
             form.setContractStep(targetStep);
@@ -117,10 +116,10 @@ export default function CreateTripPage() {
         }
       }
 
-      // Ctrl + Enter or Cmd + Enter (Final Submit on Step 3)
+      // Ctrl + Enter or Cmd + Enter (Final Submit on Step 2)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         const hasOpenPopover = !!document.querySelector('[data-state="open"]');
-        if (form.contractStep === 3 && !hasOpenPopover && form.isStepValid(2) && !form.bulkMutation.isPending) {
+        if (form.contractStep === 2 && !hasOpenPopover && form.isStepValid(1) && !form.bulkMutation.isPending) {
           e.preventDefault();
           form.handleContractSubmit();
           return;
@@ -132,9 +131,9 @@ export default function CreateTripPage() {
         e.preventDefault();
         const hasOpenPopover = !!document.querySelector('[data-state="open"]');
         if (!hasOpenPopover) {
-          if (form.contractStep < 3 && form.isStepValid(form.contractStep)) {
+          if (form.contractStep < 2 && form.isStepValid(form.contractStep)) {
             form.setContractStep((prev) => (prev + 1) as any);
-          } else if (form.contractStep === 3 && form.isStepValid(2) && !form.bulkMutation.isPending) {
+          } else if (form.contractStep === 2 && form.isStepValid(1) && !form.bulkMutation.isPending) {
             form.handleContractSubmit();
           }
         }
@@ -164,7 +163,7 @@ export default function CreateTripPage() {
             KbdBadge={KbdBadge}
           />
 
-          {/* Local Draft Auto-Save Recovery Alert Banner (Only shown on Step 1 Customer) */}
+          {/* Local Draft Auto-Save Recovery Alert Banner (Only shown on Step 1) */}
           {form.hasSavedDraft && !form.submissionResult && form.contractStep === 1 && (
             <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
               <div className="flex items-center gap-2 text-amber-900 font-medium">
@@ -218,61 +217,42 @@ export default function CreateTripPage() {
                         .filter((r) => !r.success)
                         .slice(0, 5)
                         .map((f, idx) => (
-                          <li key={idx}>Row {f.row}: {f.error}</li>
+                          <li key={idx}>
+                            Row #{f.row}: {f.errors?.join(', ') || 'Unknown error'}
+                          </li>
                         ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Reference ID chips */}
-                <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-black/[0.06] max-w-xl w-full text-left">
-                  <p className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider mb-2">
-                    Generated Trip References
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                    {form.submissionResult.results
-                      .filter((r) => r.success && r.ref_id)
-                      .map((r, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-black/10 text-xs font-bold text-[#111111]"
-                        >
-                          {r.ref_id}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 mt-8">
+                <div className="flex items-center gap-3 mt-6">
                   <Button
-                    variant="outline"
-                    onClick={form.resetAll}
-                    className="rounded-xl border-black/10 text-xs font-semibold h-10 px-5"
-                  >
-                    Create More Trips
-                  </Button>
-                  <Button
+                    type="button"
                     onClick={form.handleDialogClose}
-                    className="rounded-xl bg-brand hover:bg-[#d13d0d] text-white text-xs font-bold h-10 px-6"
+                    className="h-9 px-4 rounded-xl bg-brand hover:bg-brand/90 text-white font-bold text-xs"
                   >
-                    Close & View Board
+                    Go to Operations Board
                   </Button>
                 </div>
               </div>
             ) : (
               <>
-                {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
+                {/* TAB 1: SINGLE-SCREEN UNIFIED TRIP COMMAND CENTER */}
                 {form.activeTab === 'contract' && (
                   <div className="pb-4">
-                    {/* STEP 1: CUSTOMER, ROUTE & SCHEDULE */}
+                    {/* STEP 1: CONFIGURE & DISPATCH WORKSPACE */}
                     {form.contractStep === 1 && (
-                      <TripStep1CustomerRoute
+                      <TripStep1UnifiedWorkspace
                         contractCustomer={form.contractCustomer}
                         setContractCustomer={form.setContractCustomer}
                         customers={form.customers}
                         contractSlots={form.contractSlots}
                         contractRateCategory={form.contractRateCategory}
                         setContractRateCategory={form.setContractRateCategory}
+                        contractBillingType={form.contractBillingType}
+                        setContractBillingType={form.setContractBillingType}
+                        contractVehicleType={form.contractVehicleType}
+                        setContractVehicleType={form.setContractVehicleType}
                         triggerRateLookupForSlots={form.triggerRateLookupForSlots}
                         handleAddSlotIntermediate={form.handleAddSlotIntermediate}
                         handleRemoveTripSlot={form.handleRemoveTripSlot}
@@ -287,43 +267,17 @@ export default function CreateTripPage() {
                         handleApplyRecentRoute={form.handleApplyRecentRoute}
                         isRoundTripCategory={isRoundTripCategory}
                         normalizeRateCategory={normalizeRateCategory}
-                      />
-                    )}
-
-                    {/* STEP 2: SERVICE & ASSIGNMENT */}
-                    {form.contractStep === 2 && (
-                      <TripStep3Assignment
-                        contractBillingType={form.contractBillingType}
-                        setContractBillingType={form.setContractBillingType}
-                        contractRateCategory={form.contractRateCategory}
-                        setContractRateCategory={form.setContractRateCategory}
-                        contractVehicleType={form.contractVehicleType}
-                        setContractVehicleType={form.setContractVehicleType}
-                        setIsVehicleTypeEditable={form.setIsVehicleTypeEditable}
-                        triggerRateLookupForSlots={form.triggerRateLookupForSlots}
-                        normalizeBillingType={normalizeBillingType}
-                        normalizeRateCategory={normalizeRateCategory}
-                        normalizeVehicleClass={normalizeVehicleClass}
-                        contractSlots={form.contractSlots}
                         getAvailableRateCardsForLane={form.getAvailableRateCardsForLane}
-                        setIsManualRateOverride={form.setIsManualRateOverride}
                         handleOpenCreateQuotation={form.handleOpenCreateQuotation}
+                        setIsManualRateOverride={form.setIsManualRateOverride}
                         assignmentType={form.assignmentType}
                         setAssignmentType={form.setAssignmentType}
-                        recentDriversList={form.recentDriversList}
-                        contractCustomer={form.contractCustomer}
-                        masterDriver={form.masterDriver}
                         masterVehicle={form.masterVehicle}
-                        handleApplyRecentDriver={form.handleApplyRecentDriver}
-                        getVehicleTypeFromCapacity={getVehicleTypeFromCapacity}
-                        setIsCreateDriverOpen={form.setIsCreateDriverOpen}
-                        drivers={form.drivers}
-                        driverOptions={form.driverOptions}
-                        handleDriverChange={form.handleDriverChange}
-                        vehicles={form.vehicles}
-                        vehicleOptions={form.vehicleOptions}
+                        masterDriver={form.masterDriver}
                         handleVehicleChange={form.handleVehicleChange}
-                        getCompatibilityRuleForClass={form.getCompatibilityRuleForClass as any}
+                        handleDriverChange={form.handleDriverChange}
+                        vehicleOptions={form.vehicleOptions}
+                        driverOptions={form.driverOptions}
                         thirdPartyProviderId={form.thirdPartyProviderId}
                         setThirdPartyProviderId={form.setThirdPartyProviderId}
                         thirdPartyProviders={form.thirdPartyProviders}
@@ -331,12 +285,13 @@ export default function CreateTripPage() {
                         setThirdPartyVehiclePlate={form.setThirdPartyVehiclePlate}
                         thirdPartyDriverName={form.thirdPartyDriverName}
                         setThirdPartyDriverName={form.setThirdPartyDriverName}
+                        thirdPartyCost={form.thirdPartyCost}
                         marginMetrics={form.marginMetrics}
                       />
                     )}
 
-                    {/* STEP 3: REVIEW & CONFIRM */}
-                    {form.contractStep === 3 && (
+                    {/* STEP 2: REVIEW & CONFIRM */}
+                    {form.contractStep === 2 && (
                       <TripStep4Summary
                         contractSlots={form.contractSlots}
                         contractCustomer={form.contractCustomer}

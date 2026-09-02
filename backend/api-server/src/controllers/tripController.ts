@@ -2008,8 +2008,12 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 const MONTHLY_BOARD_TRIP_CAP = 5000;
 
 /** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
-const toDayKey = (d: Date): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const toDayKey = (d: Date | string | null | undefined): string => {
+  if (!d) return '1970-01-01';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) return '1970-01-01';
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+};
 
 /**
  * The month the board is showing. Accepts `YYYY-MM`; anything else (including
@@ -2193,17 +2197,25 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
 
     for (const trip of trips) {
       const boardTrip = toBoardTrip(trip);
+      const custId = trip.customerId || 'unassigned';
+      const custObj = trip.customer || {
+        id: custId,
+        name: 'Unassigned Customer',
+        contact_phone: '',
+        avatar_url: null,
+        logo_url: null,
+      };
 
-      let group = companies.get(trip.customerId);
+      let group = companies.get(custId);
       if (!group) {
         group = {
-          customer: trip.customer,
+          customer: custObj,
           trips: [],
           drivers: new Map(),
           vehicles: new Map(),
           categories: new Map(),
         };
-        companies.set(trip.customerId, group);
+        companies.set(custId, group);
       }
 
       group.trips.push(boardTrip);
@@ -2266,7 +2278,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         };
       })
       // Busiest company first — that's the one the month is really about.
-      .sort((a, b) => b.total_trips - a.total_trips || a.customer.name.localeCompare(b.customer.name));
+      .sort((a, b) => b.total_trips - a.total_trips || (a.customer?.name || '').localeCompare(b.customer?.name || ''));
 
     res.json({
       success: true,

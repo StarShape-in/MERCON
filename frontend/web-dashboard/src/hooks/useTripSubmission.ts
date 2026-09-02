@@ -23,7 +23,7 @@ export function useTripSubmission(
   thirdPartyVehiclePlate: string,
   thirdPartyCost: string,
   dayAssignments: Record<string, any>,
-  setContractStep: (step: 1 | 2 | 3 | ((prev: 1 | 2 | 3) => 1 | 2 | 3)) => void,
+  setContractStep: (step: 1 | 2 | ((prev: 1 | 2) => 1 | 2)) => void,
   setSelectedDates: (dates: string[]) => void,
   setDayAssignments: (assignments: any) => void,
   setParsedRows: (rows: any[]) => void,

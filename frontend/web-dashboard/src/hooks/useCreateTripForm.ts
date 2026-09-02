@@ -209,9 +209,9 @@ export function useCreateTripForm() {
 
   const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
-  const initialStep = (urlStepParam && [1, 2, 3].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3) : 1;
+  const initialStep = (urlStepParam && [1, 2].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2) : 1;
 
-  const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
+  const [contractStep, setContractStep] = useState<1 | 2>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
@@ -305,8 +305,8 @@ export function useCreateTripForm() {
   useEffect(() => {
     if (urlStepParam) {
       const parsed = Number(urlStepParam);
-      if ([1, 2, 3].includes(parsed)) {
-        setContractStep(parsed as 1 | 2 | 3);
+      if ([1, 2].includes(parsed)) {
+        setContractStep(parsed as 1 | 2);
       }
     }
   }, [urlStepParam]);
@@ -897,7 +897,7 @@ export function useCreateTripForm() {
         setMasterVehicle(histVehicle.id);
       }
 
-      setContractStep(3);
+      setContractStep(2);
 
       const formattedDate = historicalTrip.createdAt
         ? new Date(historicalTrip.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
