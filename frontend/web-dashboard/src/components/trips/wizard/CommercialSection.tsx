@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +29,23 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   setContractRateCategory,
   setContractVehicleType,
 }) => {
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
   const primarySlot = contractSlots[0] || {};
   const availableRateCards = getAvailableRateCardsForLane(primarySlot) || [];
   const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
+
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
 
   // Sort quotations: Most used / trip history first, then all remaining active quotations
   const sortedRateCards = React.useMemo(() => {
@@ -47,7 +61,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   return (
     <div className="p-3 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
-      {/* SECTION HEADER WITH CREATE BUTTON IN TOP RIGHT */}
+      {/* SECTION HEADER WITH SCROLL ARROWS & CREATE BUTTON IN TOP RIGHT */}
       <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900 gap-2">
         <div className="flex items-center gap-2">
           <h4 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -64,23 +78,46 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           )}
         </div>
 
-        {/* TOP RIGHT: CREATE COMMERCIAL QUOTATION BUTTON */}
-        {handleOpenCreateQuotation && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleOpenCreateQuotation}
-            className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
-          >
-            <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
-          </Button>
-        )}
+        {/* TOP RIGHT: SCROLL ARROWS + CREATE COMMERCIAL QUOTATION BUTTON */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {sortedRateCards.length > 3 && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleScrollLeft}
+                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
+                title="Scroll Left"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleScrollRight}
+                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
+                title="Scroll Right"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {handleOpenCreateQuotation && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenCreateQuotation}
+              className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* VISUAL QUOTATION RATE CARDS HORIZONTAL SLIDER / ROW */}
       {sortedRateCards.length > 0 ? (
-        <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
+        <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
             {sortedRateCards.map((rc, idx) => {
               const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
               const rateVal = rc.rate ?? rc.base_price ?? 0;
