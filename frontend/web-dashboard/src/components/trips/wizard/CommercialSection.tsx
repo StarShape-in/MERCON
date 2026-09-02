@@ -123,25 +123,25 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           </div>
         </div>
 
-        {/* ROW 2: UNIFIED CUSTOMER ACCOUNT SEARCH & QUICK COMPANY PROFILES */}
+        {/* ROW 2: UNIFIED CUSTOMER ACCOUNT SEARCH & TOP 2 QUICK COMPANY TILES */}
         {setContractCustomer && (
-          <div className="flex items-center gap-2.5 pt-1 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 pt-0.5 flex-wrap sm:flex-nowrap">
             {/* CUSTOMER SEARCH COMBOBOX */}
-            <div className="w-full sm:w-[260px] shrink-0">
+            <div className="w-full sm:w-[240px] shrink-0">
               <Combobox
                 options={derivedCustomerOptions}
                 value={contractCustomer}
                 onChange={(val) => setContractCustomer?.(val)}
                 placeholder="Select customer account..."
                 searchPlaceholder="Search customer name or code..."
-                triggerClassName="h-9 rounded-xl border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+                triggerClassName="h-8 rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
               />
             </div>
 
-            {/* QUICK COMPANY PROFILE TILES (CLEAN & VIEWABLE) */}
+            {/* TOP 2 QUICK COMPANY TILES (CLEAN, STANDARD ROUNDED & SIDE-BY-SIDE) */}
             {customers && customers.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
-                {customers.slice(0, 4).map((c) => {
+              <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
+                {customers.slice(0, 2).map((c) => {
                   const isSelected = contractCustomer === c.id;
                   const cInitials = c.name.substring(0, 2).toUpperCase();
 
@@ -150,19 +150,16 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       key={c.id}
                       type="button"
                       onClick={() => setContractCustomer?.(c.id)}
-                      className={`px-2.5 py-1 rounded-xl border text-left transition-all flex items-center gap-2 h-9 shrink-0 cursor-pointer text-xs font-bold ${
+                      className={`px-2.5 py-1 rounded-lg border text-left transition-all flex items-center gap-2 h-8 shrink-0 cursor-pointer text-xs font-bold ${
                         isSelected
-                          ? 'bg-orange-50/90 dark:bg-orange-950/40 border-brand text-brand ring-2 ring-brand/20 shadow-xs font-black'
+                          ? 'bg-orange-50/90 dark:bg-orange-950/40 border-brand text-brand ring-1 ring-brand/30 shadow-2xs'
                           : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`w-6 h-6 rounded-lg font-black text-[10px] grid place-items-center shrink-0 shadow-2xs ${isSelected ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                      <span className={`w-5 h-5 rounded font-black text-[9px] grid place-items-center shrink-0 shadow-2xs ${isSelected ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}>
                         {cInitials}
                       </span>
-                      <div className="flex flex-col text-left leading-tight truncate">
-                        <span className="truncate max-w-[100px] font-bold">{c.name.split(' ')[0]}</span>
-                        <span className="text-[9px] text-slate-400 font-mono font-medium">{c.code || 'CUST'}</span>
-                      </div>
+                      <span className="truncate max-w-[110px] font-bold text-xs">{c.name.split(' ')[0]}</span>
                     </button>
                   );
                 })}
