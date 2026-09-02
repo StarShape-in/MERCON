@@ -393,7 +393,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                   const selectedOpt = resolveTaxonomyOption('LINE_TYPE', currentCategory);
 
                   return (
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap max-h-28 overflow-y-auto p-0.5 custom-scrollbar">
                       {lineTypeTaxonomyOptions.map((opt) => {
                         const isSelected = selectedOpt?.id === opt.id || selectedOpt?.code === opt.code;
 
@@ -410,7 +410,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                               }
                             }}
                             className={cn(
-                              "h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center justify-between transition-all cursor-pointer",
+                              "h-7 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0",
                               isSelected
                                 ? cn(
                                     "shadow-2xs ring-1",
@@ -423,15 +423,13 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                                 : "bg-slate-50/70 hover:bg-slate-100 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800"
                             )}
                           >
-                            <span className="flex items-center gap-1.5 truncate">
-                              <span
-                                className="w-1.5 h-1.5 rounded-full shrink-0"
-                                style={{ backgroundColor: opt.colorTheme.hex }}
-                              />
-                              <span className="truncate">{opt.label}</span>
-                            </span>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: opt.colorTheme.hex }}
+                            />
+                            <span>{opt.label}</span>
                             {isSelected && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 animate-pulse" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 animate-pulse ml-0.5" />
                             )}
                           </button>
                         );

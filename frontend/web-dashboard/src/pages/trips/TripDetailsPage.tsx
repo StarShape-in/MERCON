@@ -917,6 +917,25 @@ export default function TripDetailsPage() {
                         <p className="text-[12px] font-normal text-[#6E6E80] font-mono truncate">
                           {trip.driver?.phone_primary || 'Internal Fleet'}
                         </p>
+                        
+                        {/* Multi-Driver Team Badges */}
+                        {trip.tripDrivers && trip.tripDrivers.length > 1 && (
+                          <div className="flex items-center gap-1 mt-1 flex-wrap">
+                            {trip.tripDrivers.map((td) => (
+                              <span
+                                key={td.id}
+                                className={cn(
+                                  "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
+                                  td.role === 'PRIMARY'
+                                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                                    : "bg-blue-50 text-blue-700 border-blue-200"
+                                )}
+                              >
+                                {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

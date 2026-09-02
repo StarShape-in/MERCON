@@ -452,12 +452,15 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-start">
                   {/* Driver Field */}
-                  <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-1.5 focus-within:border-[#FA634E] transition-all">
+                  <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-2 focus-within:border-[#FA634E] transition-all">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[#3E3C3D] flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-[#FA634E]" />
-                        Driver Selection
+                        Primary Driver
                       </label>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full">
+                        Required
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {(() => {
@@ -474,7 +477,7 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                               options={[{ value: 'unassigned', label: '-- Unassigned --' }, ...driverOptions]}
                               value={masterDriver}
                               onChange={handleDriverChange}
-                              placeholder="Select driver..."
+                              placeholder="Select primary driver..."
                               searchPlaceholder="Search driver..."
                               emptyText="No drivers found."
                               triggerClassName="h-9 rounded-lg bg-slate-50/50 border-[#E5E7EB] text-xs font-semibold w-full"
@@ -482,6 +485,20 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                           </>
                         );
                       })()}
+                    </div>
+
+                    {/* Secondary / Co-Driver Option (Extensible Multi-Driver Support) */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[#6E6E80] flex items-center gap-1">
+                          <UserCheck className="w-3 h-3 text-[#FA634E]" />
+                          Secondary Driver (Co-Driver / Reliever)
+                        </span>
+                        <span className="text-[9px] font-medium text-slate-400">Optional</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        For long-haul trips requiring 2 drivers. Synchronizes itinerary to both driver mobile apps.
+                      </p>
                     </div>
                   </div>
 

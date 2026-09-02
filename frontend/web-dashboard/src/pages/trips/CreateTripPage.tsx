@@ -264,7 +264,7 @@ export default function CreateTripPage() {
               <>
                 {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
                 {form.activeTab === 'contract' && (
-                  <div className="pb-80">
+                  <div className="pb-4">
                     {/* STEP 1: CUSTOMER & CATEGORY */}
                     {form.contractStep === 1 && (
                       <TripStep1Customer
