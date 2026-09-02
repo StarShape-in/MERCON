@@ -45,7 +45,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
     <div className="p-3 rounded-xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
       <div className="flex items-center justify-between pb-1.5 border-b border-emerald-100 dark:border-emerald-900">
         <h4 className="text-xs font-extrabold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
-          <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> EXECUTION ASSIGNMENT
+          <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> ASSIGNMENT
         </h4>
         {/* ASSIGNMENT MODE TOGGLE */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -77,22 +77,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
       {assignmentType === 'own' ? (
         /* OWN FLEET ASSIGNMENT WORKSPACE */
         <div className="space-y-2">
-          {/* VEHICLE SELECTION */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-              <span>VEHICLE ASSET {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Driver/Vehicle Pending</span>}</span>
-            </label>
-            <Combobox
-              options={vehicleOptions}
-              value={masterVehicle}
-              onChange={handleVehicleChange}
-              placeholder="Select primary vehicle..."
-              searchPlaceholder="Search plate, asset code..."
-              triggerClassName="h-8.5 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs"
-            />
-          </div>
-
-          {/* PRIMARY DRIVER SELECTION */}
+          {/* PRIMARY DRIVER SELECTION (TOP) */}
           <div className="space-y-1">
             <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
               <User className="w-3 h-3 text-emerald-600" /> PRIMARY DRIVER
@@ -103,6 +88,21 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               onChange={handleDriverChange}
               placeholder="Select primary driver..."
               searchPlaceholder="Search driver name, phone..."
+              triggerClassName="h-8.5 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs"
+            />
+          </div>
+
+          {/* VEHICLE ASSET (BELOW DRIVER) */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+              <span>VEHICLE ASSET {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Driver/Vehicle Pending</span>}</span>
+            </label>
+            <Combobox
+              options={vehicleOptions}
+              value={masterVehicle}
+              onChange={handleVehicleChange}
+              placeholder="Select primary vehicle..."
+              searchPlaceholder="Search plate, asset code..."
               triggerClassName="h-8.5 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs"
             />
           </div>
