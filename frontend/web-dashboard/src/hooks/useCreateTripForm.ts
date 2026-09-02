@@ -177,7 +177,13 @@ export function useCreateTripForm() {
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
-      .filter((d) => d && d.id)
+      .filter((d) => {
+        if (!d || !d.id) return false;
+        const fn = (d.first_name || '').toLowerCase();
+        const ln = (d.last_name || '').toLowerCase();
+        if (fn.includes('audit') || ln.includes('audit')) return false;
+        return true;
+      })
       .map((d) => {
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
