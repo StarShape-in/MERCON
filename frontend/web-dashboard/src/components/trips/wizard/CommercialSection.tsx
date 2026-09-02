@@ -77,8 +77,34 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
               const rCat = rc.rate_category || rc.line_type || contractRateCategory;
 
-              const origName = rc.origin_name || rc.originLocation?.name || rc.route_origin || '';
-              const destName = rc.destination_name || rc.destinationLocation?.name || rc.route_destination || '';
+              const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+              const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
+
+              const origName = String(
+                firstStop?.source_label ||
+                firstStop?.location?.name ||
+                (firstStop as any)?.location_name ||
+                rc.route_origin ||
+                rc.origin_name ||
+                rc.originLocation?.name ||
+                rc.origin_city ||
+                rc.origin ||
+                rc.from ||
+                ''
+              );
+
+              const destName = String(
+                lastStop?.source_label ||
+                lastStop?.location?.name ||
+                (lastStop as any)?.location_name ||
+                rc.route_destination ||
+                rc.destination_name ||
+                rc.destinationLocation?.name ||
+                rc.destination_city ||
+                rc.destination ||
+                rc.to ||
+                ''
+              );
 
               return (
                 <button
@@ -86,10 +112,10 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   type="button"
                   onClick={() => {
                     if (origName && handleSlotLocationChange) {
-                      handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || null);
+                      handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
                     }
                     if (destName && handleSlotLocationChange) {
-                      handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || null);
+                      handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
                     }
                     if (rc.line_type && setContractRateCategory) {
                       setContractRateCategory(rc.line_type);
@@ -144,9 +170,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     </div>
                   )}
 
-                  <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>{rc.origin_name || 'Origin'} → {rc.destination_name || 'Dest'}</span>
-                    <span className={cn("font-bold", isSelected ? "text-brand" : "text-slate-500")}>
+                  <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
+                    <span className="truncate max-w-[130px] font-medium" title={`${origName || 'Origin'} → ${destName || 'Destination'}`}>
+                      {origName || 'Origin'} → {destName || 'Destination'}
+                    </span>
+                    <span className={cn("font-bold shrink-0", isSelected ? "text-brand" : "text-slate-500")}>
                       {isSelected ? 'Active' : 'Apply →'}
                     </span>
                   </div>
