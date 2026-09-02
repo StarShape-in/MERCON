@@ -218,7 +218,7 @@ export default function CreateTripPage() {
                         .slice(0, 5)
                         .map((f, idx) => (
                           <li key={idx}>
-                            Row #{f.row}: {f.errors?.join(', ') || 'Unknown error'}
+                            Row #{f.row}: {f.error || 'Unknown error'}
                           </li>
                         ))}
                     </ul>

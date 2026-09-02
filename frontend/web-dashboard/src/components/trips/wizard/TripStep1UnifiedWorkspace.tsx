@@ -39,8 +39,8 @@ interface TripStep1UnifiedWorkspaceProps {
   getAvailableRateCardsForLane: (slot: any) => any[];
   handleOpenCreateQuotation?: () => void;
   setIsManualRateOverride?: (override: boolean) => void;
-  assignmentType: 'own' | '3pl';
-  setAssignmentType: (type: 'own' | '3pl') => void;
+  assignmentType: 'own' | 'third_party' | '3pl';
+  setAssignmentType: (type: 'own' | 'third_party') => void;
   masterVehicle: string;
   masterDriver: string;
   handleVehicleChange: (vId: string) => void;

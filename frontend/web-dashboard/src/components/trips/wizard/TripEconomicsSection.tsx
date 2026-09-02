@@ -4,7 +4,7 @@ import { TrendingUp, Info } from 'lucide-react';
 interface TripEconomicsSectionProps {
   contractSlots: any[];
   masterDriver: string;
-  assignmentType: 'own' | '3pl';
+  assignmentType: 'own' | 'third_party' | '3pl';
   thirdPartyCost?: string;
   marginMetrics?: any;
 }

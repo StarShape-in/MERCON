@@ -4,8 +4,8 @@ import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ExecutionAssignmentSectionProps {
-  assignmentType: 'own' | '3pl';
-  setAssignmentType: (type: 'own' | '3pl') => void;
+  assignmentType: 'own' | 'third_party' | '3pl';
+  setAssignmentType: (type: 'own' | 'third_party') => void;
   masterVehicle: string;
   masterDriver: string;
   handleVehicleChange: (vId: string) => void;
@@ -62,9 +62,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           </button>
           <button
             type="button"
-            onClick={() => setAssignmentType('3pl')}
+            onClick={() => setAssignmentType('third_party')}
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-              assignmentType === '3pl'
+              assignmentType === 'third_party'
                 ? 'bg-indigo-600 text-white shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
