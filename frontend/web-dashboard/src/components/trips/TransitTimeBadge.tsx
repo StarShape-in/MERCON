@@ -119,8 +119,8 @@ export default function TransitTimeBadge({
         </span>
       </div>
 
-      {/* Prominently Highlighted Selected Route Path (2-Row Loop for Round Trips) */}
-      <div className="pt-2 border-t border-[#FFDCD6] space-y-1.5">
+      {/* Prominently Highlighted Selected Route Path (2-Column Side-by-Side Layout for Round Trips) */}
+      <div className="pt-2 border-t border-[#FFDCD6] space-y-1">
         <span className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider block">
           EVALUATED ROUTE PATH:
         </span>
@@ -134,52 +134,67 @@ export default function TransitTimeBadge({
             : returnDestination;
 
           return (
-            <div className="space-y-2 py-1">
-              {/* ROW 1: LEG 1 OUTBOUND SEQUENCE */}
-              <div className="flex items-center gap-1.5 flex-wrap text-xs font-extrabold">
-                <span className="px-2.5 py-1 rounded-xl bg-white border border-[#FFDCD6] text-[#3E3C3D] shadow-2xs flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>{cleanOriginName || 'Origin'}</span>
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 py-0.5">
+              {/* COLUMN 1: LEG 1 OUTBOUND JOURNEY */}
+              <div className="p-2 rounded-xl bg-white/80 border border-[#FFDCD6] space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] uppercase font-extrabold tracking-wider">
+                    Outbound Journey
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap text-[11px] font-extrabold">
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[#3E3C3D] flex items-center gap-1 max-w-[130px] truncate">
+                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span className="truncate">{cleanOriginName || 'Origin'}</span>
+                  </span>
 
-                {intermediateLocations.map((stopName, idx) => (
-                  <React.Fragment key={idx}>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
-                    <span className="px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center gap-1">
-                      <span>Stop #{idx + 1}: {isUuid(stopName) ? `Stop ${idx + 1}` : stopName}</span>
-                    </span>
-                  </React.Fragment>
-                ))}
+                  {intermediateLocations.map((stopName, idx) => (
+                    <React.Fragment key={idx}>
+                      <ArrowRight className="w-3 h-3 text-[#FA634E] shrink-0" />
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold max-w-[100px] truncate">
+                        Stop #{idx + 1}: {isUuid(stopName) ? `Stop ${idx + 1}` : stopName}
+                      </span>
+                    </React.Fragment>
+                  ))}
 
-                <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
 
-                <span className="px-2.5 py-1 rounded-xl bg-white border border-[#FFDCD6] text-[#3E3C3D] shadow-2xs flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
-                  <span>{cleanDestName || 'Destination'}</span>
-                </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[#3E3C3D] flex items-center gap-1 max-w-[130px] truncate">
+                    <MapPin className="w-3 h-3 text-brand shrink-0" />
+                    <span className="truncate">{cleanDestName || 'Destination'}</span>
+                  </span>
+                </div>
               </div>
 
-              {/* ROW 2: LEG 2 RETURN SEQUENCE */}
-              <div className="flex items-center gap-1.5 flex-wrap text-xs font-extrabold pl-3">
-                <span className="px-2.5 py-0.5 rounded-full bg-orange-100/90 border border-[#FFDCD6] text-[#FA634E] text-[10px] uppercase font-extrabold tracking-wider">
-                  Return Loop
-                </span>
+              {/* COLUMN 2: LEG 2 RETURN JOURNEY LOOP */}
+              <div className="p-2 rounded-xl bg-white/80 border border-purple-200 space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200 text-[10px] uppercase font-extrabold tracking-wider">
+                    Return Loop
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap text-[11px] font-extrabold">
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[#3E3C3D] flex items-center gap-1 max-w-[130px] truncate">
+                    <MapPin className="w-3 h-3 text-brand shrink-0" />
+                    <span className="truncate">{cleanDestName || 'Destination'}</span>
+                  </span>
 
-                {returnIntermediateLocations.map((stopName, idx) => (
-                  <React.Fragment key={idx}>
-                    <ArrowRight className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                    <span className="px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-[11px] font-bold flex items-center gap-1">
-                      <span>Ret Stop #{idx + 1}: {isUuid(stopName) ? `Ret Stop ${idx + 1}` : stopName}</span>
-                    </span>
-                  </React.Fragment>
-                ))}
+                  {returnIntermediateLocations.map((stopName, idx) => (
+                    <React.Fragment key={idx}>
+                      <ArrowRight className="w-3 h-3 text-purple-600 shrink-0" />
+                      <span className="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-800 text-[10px] font-bold max-w-[100px] truncate">
+                        Ret Stop #{idx + 1}: {isUuid(stopName) ? `Ret Stop ${idx + 1}` : stopName}
+                      </span>
+                    </React.Fragment>
+                  ))}
 
-                <ArrowRight className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <ArrowRight className="w-3.5 h-3.5 text-purple-600 shrink-0" />
 
-                <span className="px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-[#3E3C3D] shadow-2xs flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span>{cleanReturnDestName}</span>
-                </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-slate-50 border border-purple-200 text-[#3E3C3D] flex items-center gap-1 max-w-[130px] truncate">
+                    <MapPin className="w-3 h-3 text-purple-600 shrink-0" />
+                    <span className="truncate">{cleanReturnDestName}</span>
+                  </span>
+                </div>
               </div>
             </div>
           );

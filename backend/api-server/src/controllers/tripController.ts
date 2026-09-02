@@ -1367,7 +1367,7 @@ export const dispatchTrip = async (req: Request, res: Response) => {
 
 export const replaceDriver = async (req: Request, res: Response) => {
   try {
-    const { new_driver_id } = req.body;
+    const { new_driver_id, reason } = req.body;
     const rawId = req.params.id as string;
     const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
     if (!tripId) {
@@ -1382,23 +1382,74 @@ export const replaceDriver = async (req: Request, res: Response) => {
       const trip = await tx.trip.findUnique({ where: { id: tripId } });
       if (!trip || !trip.driverId) throw new Error('TRIP_OR_DRIVER_NOT_FOUND');
 
-      // Atomically claim the new driver — see createTrip for why this must be
-      // a conditional UPDATE rather than SELECT-then-UPDATE.
-      const claim = await tx.driver.updateMany({
-        where: { id: new_driver_id, status: 'Available' },
-        data: { status: 'OnTrip' },
+      const oldDriverId = trip.driverId;
+
+      // Atomically claim the new driver if trip status is active
+      if (trip.status === 'InTransit' || trip.status === 'Loading' || trip.status === 'Delayed') {
+        const claim = await tx.driver.updateMany({
+          where: { id: new_driver_id, status: 'Available' },
+          data: { status: 'OnTrip' },
+        });
+        if (claim.count === 0) throw new Error('NEW_DRIVER_UNAVAILABLE');
+
+        // Free old driver
+        await tx.driver.update({ where: { id: oldDriverId }, data: { status: 'Available' } });
+      }
+
+      const now = new Date();
+
+      // 1. Mark existing PRIMARY TripDriver as removedAt
+      await tx.tripDriver.updateMany({
+        where: {
+          tripId,
+          driverId: oldDriverId,
+          role: DriverTripRole.PRIMARY,
+          removedAt: null,
+        },
+        data: {
+          removedAt: now,
+        },
       });
-      if (claim.count === 0) throw new Error('NEW_DRIVER_UNAVAILABLE');
 
-      // Free old driver
-      await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
+      // 2. Create new PRIMARY TripDriver record
+      await tx.tripDriver.create({
+        data: {
+          tripId,
+          driverId: new_driver_id,
+          role: DriverTripRole.PRIMARY,
+          assignedAt: now,
+          driver_charge: trip.driver_charge,
+        },
+      });
 
+      // 3. Log TripAssignmentEvent audit record
+      const changeReason = reason || 'Driver replaced by dispatcher';
+      await tx.tripAssignmentEvent.create({
+        data: {
+          tripId,
+          entityType: AssignmentEntityType.DRIVER,
+          fromId: oldDriverId,
+          toId: new_driver_id,
+          reason: changeReason,
+          changedBy: (req as any).user?.id || null,
+          changedAt: now,
+        },
+      });
+
+      // 4. Update Trip summary fields & legacy driverId pointer
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
           driverId: new_driver_id,
-          updated_by: (req as any).user?.id
-        }
+          is_contingency_dispatch: true,
+          original_driver_id: trip.original_driver_id || oldDriverId,
+          contingency_reason: changeReason,
+          updated_by: (req as any).user?.id,
+        },
+        include: {
+          tripDrivers: { include: { driver: true } },
+          assignmentEvents: true,
+        },
       });
 
       return updatedTrip;

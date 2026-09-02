@@ -632,9 +632,11 @@ export async function downloadTripExport(params: TripExportParams): Promise<{ bl
 }
 
 export async function getDriverRecommendations(vehicleId: string, plannedStart?: string): Promise<ApiResponse<DriverRecommendation[]>> {
-  return api.get<DriverRecommendation[]>('/trips/recommendations/drivers', { params: { vehicleId, plannedStart } });
+  const res = await api.get<ApiResponse<DriverRecommendation[]>>('/trips/recommendations/drivers', { params: { vehicleId, plannedStart } });
+  return res.data;
 }
 
 export async function getVehicleRecommendations(driverId: string): Promise<ApiResponse<VehicleRecommendation[]>> {
-  return api.get<VehicleRecommendation[]>('/trips/recommendations/vehicles', { params: { driverId } });
+  const res = await api.get<ApiResponse<VehicleRecommendation[]>>('/trips/recommendations/vehicles', { params: { driverId } });
+  return res.data;
 }

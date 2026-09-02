@@ -158,13 +158,13 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                 </div>
               </div>
             ) : isRoundTrip ? (
-              /* B. ROUND TRIP DUAL-LEG WORKSPACE (LEG 1 + LEG 2) */
-              <div className="space-y-4">
+              /* B. ROUND TRIP DUAL-LEG WORKSPACE (LEG 1 + LEG 2 SIDE-BY-SIDE 2 COLUMNS) */
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 items-start">
                 {/* LEG 1: OUTBOUND JOURNEY */}
-                <div className="p-4.5 rounded-2xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-3.5">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-emerald-100 dark:border-emerald-900">
+                <div className="p-3.5 rounded-xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-emerald-100 dark:border-emerald-900">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-extrabold text-[10px] tracking-wider uppercase">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-extrabold text-[10px] tracking-wider uppercase">
                         LEG 1
                       </span>
                       <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100">Outbound Journey</span>
@@ -174,9 +174,9 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleAddSlotIntermediate(slot.id)}
-                      className="h-7 text-xs font-bold border-emerald-200 text-brand hover:bg-orange-50 gap-1 cursor-pointer"
+                      className="h-6.5 text-xs font-bold border-emerald-200 text-emerald-800 hover:bg-emerald-50 gap-1 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5 text-brand" /> Add Stop
+                      <Plus className="w-3 h-3 text-emerald-600" /> Add Stop
                     </Button>
                   </div>
 
@@ -191,13 +191,13 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                       value={slot.origin}
                       onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                       placeholder="Search Leg 1 origin (e.g. Riyadh Distribution Centre)..."
-                      triggerClassName="h-9.5 border-slate-200 bg-white text-xs font-semibold shadow-2xs"
+                      triggerClassName="h-9 border-slate-200 bg-white text-xs font-semibold shadow-2xs"
                     />
                   </div>
 
                   {/* Leg 1 Intermediate Stops */}
                   {slot.intermediateLocations.length > 0 && (
-                    <div className="pl-3.5 border-l-2 border-emerald-200 dark:border-emerald-900 my-2 space-y-2.5">
+                    <div className="pl-3 border-l-2 border-emerald-200 dark:border-emerald-900 my-1.5 space-y-2">
                       {slot.intermediateLocations.map((loc: string, idx: number) => (
                         <div key={idx} className="space-y-1">
                           <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                             value={loc}
                             onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                             placeholder={`Search Leg 1 Stop #${idx + 1}...`}
-                            triggerClassName="h-9.5 border-slate-200 bg-white text-xs font-medium shadow-2xs"
+                            triggerClassName="h-9 border-slate-200 bg-white text-xs font-medium shadow-2xs"
                           />
                         </div>
                       ))}
@@ -234,16 +234,16 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                       value={slot.destination}
                       onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                       placeholder="Search Leg 1 destination (e.g. Al Baha Station)..."
-                      triggerClassName="h-9.5 border-slate-200 bg-white text-xs font-semibold shadow-2xs"
+                      triggerClassName="h-9 border-slate-200 bg-white text-xs font-semibold shadow-2xs"
                     />
                   </div>
                 </div>
 
                 {/* LEG 2: RETURN JOURNEY LOOP */}
-                <div className="p-4.5 rounded-2xl border border-indigo-200/90 dark:border-indigo-900 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-2xs space-y-3.5">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-indigo-100 dark:border-indigo-900">
+                <div className="p-3.5 rounded-xl border border-indigo-200/90 dark:border-indigo-900 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-indigo-100 dark:border-indigo-900">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] tracking-wider uppercase">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-extrabold text-[10px] tracking-wider uppercase">
                         LEG 2
                       </span>
                       <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200">Return Journey Loop</span>
@@ -253,23 +253,24 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleAddSlotReturnIntermediate(slot.id)}
-                      className="h-7 text-xs font-bold border-indigo-200 text-brand hover:bg-orange-50 gap-1 cursor-pointer"
+                      className="h-6.5 text-xs font-bold border-indigo-200 text-brand hover:bg-orange-50 gap-1 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5 text-brand" /> Add Stop
+                      <Plus className="w-3 h-3 text-brand" /> Add Stop
                     </Button>
                   </div>
 
                   {/* Return Pickup Banner */}
-                  <div className="p-2.5 rounded-xl bg-white/90 border border-indigo-200/80 flex items-center justify-between text-xs shadow-2xs">
-                    <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                      <RotateCcw className="w-3.5 h-3.5 text-indigo-600" /> Return Pickup: {slot.destination || 'Leg 1 Destination'}
+                  <div className="p-2 rounded-lg bg-white/90 border border-indigo-200/80 flex items-center justify-between text-xs shadow-2xs">
+                    <span className="font-extrabold text-slate-800 flex items-center gap-1.5 truncate">
+                      <RotateCcw className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span className="truncate">Return Pickup: {slot.destination || 'Leg 1 Destination'}</span>
                     </span>
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Auto-Linked Loop</span>
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 shrink-0">Auto-Linked Loop</span>
                   </div>
 
                   {/* Leg 2 Return Intermediate Stops */}
                   {slot.returnIntermediateLocations?.length > 0 && (
-                    <div className="pl-3.5 border-l-2 border-indigo-300 dark:border-indigo-900 my-2 space-y-2.5">
+                    <div className="pl-3 border-l-2 border-indigo-300 dark:border-indigo-900 my-1.5 space-y-2">
                       {slot.returnIntermediateLocations.map((loc: string, idx: number) => (
                         <div key={idx} className="space-y-1">
                           <div className="flex items-center justify-between">
@@ -289,7 +290,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                             value={loc}
                             onChange={(locId, locObj) => handleUpdateSlotReturnIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
                             placeholder={`Search Leg 2 Stop #${idx + 1}...`}
-                            triggerClassName="h-9.5 border-slate-200 bg-white text-xs font-medium shadow-2xs"
+                            triggerClassName="h-9 border-slate-200 bg-white text-xs font-medium shadow-2xs"
                           />
                         </div>
                       ))}
@@ -310,7 +311,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                         returnDestinationLng: locObj?.lng ?? null
                       })}
                       placeholder="Search final home destination..."
-                      triggerClassName="h-9.5 border-purple-200 bg-white text-xs font-semibold shadow-2xs"
+                      triggerClassName="h-9 border-purple-200 bg-white text-xs font-semibold shadow-2xs"
                     />
                   </div>
                 </div>
@@ -398,139 +399,123 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
           </div>
 
           {/* RIGHT COLUMN: SCHEDULE & LINE TYPE PANEL (lg:col-span-4 ~30-35% WIDTH) */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="p-4 rounded-2xl border-2 border-[#FFDCD6] bg-white dark:bg-slate-900 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between pb-2.5 border-b border-[#FFDCD6]">
+          <div className="lg:col-span-4 space-y-3">
+            <div className="p-3 rounded-xl border border-[#FFDCD6] bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between pb-1.5 border-b border-[#FFDCD6]">
                 <h4 className="text-xs font-extrabold text-[#FA634E] uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#FA634E] shrink-0" /> SCHEDULE & SERVICE
+                  <Clock className="w-3.5 h-3.5 text-[#FA634E] shrink-0" /> SCHEDULE & SERVICE
                 </h4>
                 <span className="text-[10px] font-bold text-[#FA634E] bg-[#FFF5F2] border border-[#FFDCD6] px-2 py-0.5 rounded-full">
                   Service Config
                 </span>
               </div>
 
-              {/* 1. LINE TYPE DROPDOWN (INSIDE SCHEDULE PANEL ON RIGHT SIDE!) */}
+              {/* 1. LINE TYPE SEGMENTED SELECTOR (CLEAN & ERGONOMIC) */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <label className="text-[10px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
                   <span>Line Type <span className="text-brand">*</span></span>
-                  <span className="text-[10px] text-slate-400 font-normal normal-case">Controls route structure</span>
+                  <span className="text-[9px] text-slate-400 font-normal normal-case">Controls route structure</span>
                 </label>
                 {(() => {
                   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
-                  const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', currentCategory);
+                  const selectedOpt = resolveTaxonomyOption('LINE_TYPE', currentCategory);
 
                   return (
-                    <Select
-                      value={currentCategory}
-                      onValueChange={(val) => {
-                        if (setContractRateCategory) {
-                          setContractRateCategory(val);
-                        }
-                        if (triggerRateLookupForSlots) {
-                          triggerRateLookupForSlots(undefined, val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-10 w-full rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs focus:ring-2 focus:ring-brand">
-                        <div className="flex items-center gap-2 truncate">
-                          {selectedTaxonomyOption ? (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border shadow-2xs",
-                                selectedTaxonomyOption.colorTheme.bg,
-                                selectedTaxonomyOption.colorTheme.text,
-                                selectedTaxonomyOption.colorTheme.border,
-                                selectedTaxonomyOption.colorTheme.darkBg,
-                                selectedTaxonomyOption.colorTheme.darkText
-                              )}
-                            >
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {lineTypeTaxonomyOptions.map((opt) => {
+                        const isSelected = selectedOpt?.id === opt.id || selectedOpt?.code === opt.code;
+
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              if (setContractRateCategory) {
+                                setContractRateCategory(opt.label);
+                              }
+                              if (triggerRateLookupForSlots) {
+                                triggerRateLookupForSlots(undefined, opt.label);
+                              }
+                            }}
+                            className={cn(
+                              "h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center justify-between transition-all cursor-pointer",
+                              isSelected
+                                ? cn(
+                                    "shadow-2xs ring-1",
+                                    opt.colorTheme.bg,
+                                    opt.colorTheme.text,
+                                    opt.colorTheme.border,
+                                    opt.colorTheme.darkBg,
+                                    opt.colorTheme.darkText
+                                  )
+                                : "bg-slate-50/70 hover:bg-slate-100 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                            )}
+                          >
+                            <span className="flex items-center gap-1.5 truncate">
                               <span
-                                className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }}
+                                className="w-1.5 h-1.5 rounded-full shrink-0"
+                                style={{ backgroundColor: opt.colorTheme.hex }}
                               />
-                              <span>{selectedTaxonomyOption.label}</span>
+                              <span className="truncate">{opt.label}</span>
                             </span>
-                          ) : (
-                            <SelectValue placeholder="Select Line Type" />
-                          )}
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        {lineTypeTaxonomyOptions.map((opt) => (
-                          <SelectItem key={opt.id} value={opt.label} className="text-xs font-bold py-2 cursor-pointer">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border shadow-2xs",
-                                  opt.colorTheme.bg,
-                                  opt.colorTheme.text,
-                                  opt.colorTheme.border,
-                                  opt.colorTheme.darkBg,
-                                  opt.colorTheme.darkText
-                                )}
-                              >
-                                <span
-                                  className="w-2 h-2 rounded-full shrink-0"
-                                  style={{ backgroundColor: opt.colorTheme.hex }}
-                                />
-                                <span>{opt.label}</span>
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                            {isSelected && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 animate-pulse" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   );
                 })()}
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-4">
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-2">
                 {/* 2. PICKUP SCHEDULE */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-600" /> PICKUP SCHEDULE
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-emerald-600" /> PICKUP SCHEDULE
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <DatePicker
                       value={slot.date || ''}
                       onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
                       placeholder="Select date..."
-                      buttonClassName="h-9 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                      buttonClassName="h-8 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
                       minDate={new Date()}
                     />
                     <TimePicker
                       value={slot.pickupTime}
                       onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
                       placeholder="Select time..."
-                      buttonClassName="h-9 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                      buttonClassName="h-8 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
                     />
                   </div>
                 </div>
 
                 {/* 3. DROPOFF SCHEDULE */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-brand" /> DROPOFF SCHEDULE
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-brand" /> DROPOFF SCHEDULE
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <DatePicker
                       value={slot.dropoffDate || ''}
                       onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
                       placeholder="Select date..."
-                      buttonClassName="h-9 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                      buttonClassName="h-8 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
                       minDate={slot.date ? new Date(slot.date) : new Date()}
                     />
                     <TimePicker
                       value={slot.dropoffTime}
                       onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
                       placeholder="Select time..."
-                      buttonClassName="h-9 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
+                      buttonClassName="h-8 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
                     />
                   </div>
                 </div>
 
                 {/* 4. OVERNIGHT STATUS INDICATOR (AUTO-CALCULATED) */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 flex items-center gap-1.5">
                     <Moon className="w-3.5 h-3.5 text-indigo-500" /> Overnight Trip
                   </span>
@@ -548,7 +533,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                 </div>
 
                 {/* 5. TRANSIT ESTIMATE BADGE (MERCON CORAL ORANGE STYLING) */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
                   <TransitTimeBadge
                     origin={slot.origin}
                     destination={slot.destination}
