@@ -219,12 +219,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
         </div>
       ) : (
         /* B. STANDARD 1-WAY ROUTE WORKSPACE (SINGLE TRIP / SHIFT DUTY) */
-        <div className="p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-3.5">
-          <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
-            <h4 className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-brand shrink-0" /> ROUTE LOCATION PATH
-            </h4>
-          </div>
+        <div className="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-3">
 
           <div className="space-y-3 relative">
             {/* Origin */}

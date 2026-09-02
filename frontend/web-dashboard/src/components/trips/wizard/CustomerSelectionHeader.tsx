@@ -27,29 +27,23 @@ export const CustomerSelectionHeader: React.FC<CustomerSelectionHeaderProps> = (
   }, [customerOptions, customers]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-        <h3 className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-brand shrink-0" />
-          ACCOUNT SELECTION
-        </h3>
-        {selectedCust && (
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-            Code: <span className="font-mono text-slate-800 dark:text-slate-100">{selectedCust.code || 'SYS'}</span>
-            {selectedCust.city ? ` • ${selectedCust.city}` : ''}
-          </span>
-        )}
-      </div>
-
-      {/* Customer Search Combobox */}
+    <div className="space-y-2">
+      {/* 1 SINGLE UNIFIED CUSTOMER ACCOUNT LABEL */}
       <div className="space-y-1 max-w-lg">
         <label className="text-xs font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
           <span className="flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-brand" /> CUSTOMER ACCOUNT <span className="text-brand">*</span>
+            <Building2 className="w-4 h-4 text-brand shrink-0" /> CUSTOMER ACCOUNT <span className="text-brand">*</span>
           </span>
-          <span className="text-[11px] text-slate-400 font-normal normal-case">
-            Search by company name, code or city
-          </span>
+          {selectedCust ? (
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+              Code: <span className="font-mono text-slate-800 dark:text-slate-100">{selectedCust.code || 'SYS'}</span>
+              {selectedCust.city ? ` • ${selectedCust.city}` : ''}
+            </span>
+          ) : (
+            <span className="text-[11px] text-slate-400 font-normal normal-case">
+              Search by company name, code or city
+            </span>
+          )}
         </label>
 
         <Combobox
@@ -57,23 +51,19 @@ export const CustomerSelectionHeader: React.FC<CustomerSelectionHeaderProps> = (
           options={derivedOptions}
           value={contractCustomer}
           onChange={setContractCustomer}
-          placeholder="Search or select account..."
+          placeholder="Search or select customer account..."
           searchPlaceholder="Type customer name or code (e.g. iMile, AKS)..."
-          emptyText="No account matching your search."
+          emptyText="No customer matching your search."
           triggerClassName="h-9.5 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold shadow-2xs w-full focus-visible:ring-2 focus-visible:ring-brand"
         />
       </div>
 
-      {/* RECENT ACCOUNTS QUICK PICK TILES */}
-      <div className="space-y-1.5 pt-0.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" /> RECENT ACCOUNTS
-          </span>
-          <span className="text-[10px] text-slate-400 font-medium">Quick Pick</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* QUICK PICK TILES (NO SEPARATE HEADER ROW) */}
+      <div className="flex items-center gap-2 pt-0.5 max-w-xl overflow-x-auto">
+        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
+          <Zap className="w-3 h-3 text-amber-500 fill-amber-500/20" /> Quick Pick:
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
           {customers.slice(0, 4).map((c, idx) => {
             const isSelected = contractCustomer === c.id;
             const cInitials = c.name.substring(0, 2).toUpperCase();
