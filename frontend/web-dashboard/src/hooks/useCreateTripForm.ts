@@ -141,7 +141,12 @@ export function useCreateTripForm() {
   });
 
   const customers = customersRes?.data ?? [];
-  const drivers: Driver[] = driversRes?.data ?? [];
+  const rawDriversData = (driversRes as any)?.data;
+  const drivers: Driver[] = Array.isArray(rawDriversData)
+    ? rawDriversData
+    : Array.isArray(rawDriversData?.data)
+    ? rawDriversData.data
+    : [];
   const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
   const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyRes?.data?.data ?? [];
 
@@ -172,7 +177,7 @@ export function useCreateTripForm() {
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
-      .filter((d) => d.isActive !== false && !(d.first_name || '').toLowerCase().includes('audit'))
+      .filter((d) => d && d.id)
       .map((d) => {
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
@@ -195,7 +200,7 @@ export function useCreateTripForm() {
           : '';
 
         const detailsStr = [capacityLabel, statusTag].filter(Boolean).join(' • ');
-        const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || 'Driver';
+        const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
         const label = detailsStr ? `${fullName} (${detailsStr})` : fullName;
 
         return {

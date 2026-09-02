@@ -178,31 +178,38 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           {/* RIGHT COLUMN: SELECTED DRIVER & VEHICLE PROFILE + RECOMMENDED DRIVERS */}
           <div className="md:col-span-6 space-y-2.5 pl-0 md:pl-0.5">
             {/* ASSIGNED DRIVER & VEHICLE PROFILE CARD */}
-            {selectedDriverObj ? (
-              <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-1.5 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-extrabold uppercase text-emerald-800 dark:text-emerald-300 tracking-wider">
-                    ASSIGNED DRIVER PROFILE
-                  </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
-                    Assigned ✓
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs">
-                    {selectedDriverObj.label.substring(0, 2).toUpperCase()}
+            {selectedDriverObj ? (() => {
+              const dLabel = typeof selectedDriverObj.label === 'string' ? selectedDriverObj.label : String(selectedDriverObj.label || '');
+              const vLabel = selectedVehicleObj ? (typeof selectedVehicleObj.label === 'string' ? selectedVehicleObj.label : String(selectedVehicleObj.label || '')) : 'Vehicle Pending';
+              const initials = dLabel.substring(0, 2).toUpperCase() || 'DR';
+              const nameOnly = dLabel.split('(')[0].trim() || 'Primary Driver';
+
+              return (
+                <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-1.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold uppercase text-emerald-800 dark:text-emerald-300 tracking-wider">
+                      ASSIGNED DRIVER PROFILE
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
+                      Assigned ✓
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                      {selectedDriverObj.label.split('(')[0].trim()}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs">
+                      {initials}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-medium truncate">
-                      🚛 {selectedVehicleObj ? selectedVehicleObj.label : 'Vehicle Pending'}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                        {nameOnly}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">
+                        🚛 {vLabel}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 bg-slate-50/40 dark:bg-slate-900/40">
                 👤 Select driver & vehicle to view profile
               </div>
@@ -217,6 +224,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 <div className="grid grid-cols-2 gap-1.5 opacity-75 hover:opacity-100 transition-opacity">
                   {driverOptions.slice(0, 4).map((dOpt) => {
                     const isSelected = masterDriver === dOpt.value;
+                    const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
+                    const optNameOnly = optLabelStr.split('(')[0].trim() || 'Driver';
+
                     return (
                       <button
                         key={dOpt.value}
@@ -227,9 +237,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                             ? 'bg-emerald-100/80 border-emerald-500 text-emerald-900 font-black shadow-2xs'
                             : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-100'
                         }`}
-                        title={dOpt.label}
+                        title={optLabelStr}
                       >
-                        👤 {dOpt.label.split('(')[0].trim()}
+                        👤 {optNameOnly}
                       </button>
                     );
                   })}
