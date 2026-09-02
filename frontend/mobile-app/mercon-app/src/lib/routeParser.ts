@@ -208,7 +208,7 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
 
     if (returnChain) {
       const returnNodes = splitChain(returnChain);
-      if (deduped.length >= 2 && returnNodes.length >= 2) {
+      if (deduped.length >= 2 && returnNodes.length >= 1) {
         return buildTimeline(deduped, returnNodes, dbStops);
       }
     }

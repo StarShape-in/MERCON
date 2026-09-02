@@ -75,7 +75,12 @@ function resolveStopName(stop: any, fallback: string): string {
     rawLabel ||
     fallback;
 
-  return String(result).replace(/🔁\s*/g, '').trim();
+  const cleanedStr = String(result)
+    .replace(/\[RETURN:.*?\]/gi, '')
+    .replace(/🔁\s*/g, '')
+    .trim();
+
+  return cleanedStr || fallback;
 }
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -976,86 +981,90 @@ export default function TripDetailsPage() {
 
                     <ScrollArea className="max-h-[230px] pr-1 pt-1">
                       <div className="space-y-1.5">
-                        {(trip.stops || []).map((stop, sIdx) => {
-                          const totalStops = (trip.stops || []).length;
-                          const isFirst = sIdx === 0;
-                          const isLast = sIdx === totalStops - 1;
-                          const stType = String(stop.stop_type || '');
+                        {(() => {
+                          const parsedNodes = parseTripRouteNodes(trip as any);
+                          const timelineStops = parsedNodes.length > 0 ? parsedNodes : (trip.stops || []).map((stop, sIdx) => ({
+                            id: stop.id || `stop-${sIdx}`,
+                            typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
+                            name: resolveStopName(stop, 'Location'),
+                            address: cleanAddressStr(stop.location_address || stop.location?.address),
+                            isIntermediate: sIdx > 0 && sIdx < (trip.stops || []).length - 1,
+                            isReturnStop: false,
+                            actual_arrival: stop.actual_arrival,
+                            planned_arrival: stop.planned_arrival,
+                          }));
 
-                          let stopCategoryLabel = 'STOP';
-                          if (stType === 'Pickup' || (isFirst && stType !== 'Dropoff')) {
-                            stopCategoryLabel = 'PICKUP';
-                          } else if (stType === 'Dropoff' || (isLast && stType !== 'Pickup')) {
-                            stopCategoryLabel = 'DESTINATION';
-                          } else {
-                            stopCategoryLabel = `STOP ${sIdx}`;
-                          }
+                          return timelineStops.map((stop: any, sIdx: number) => {
+                            const totalStops = timelineStops.length;
+                            const isFirst = sIdx === 0;
+                            const isLast = sIdx === totalStops - 1;
+                            const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
 
-                          const defaultFallback = stopCategoryLabel === 'PICKUP' ? 'Pickup Location' : stopCategoryLabel === 'DESTINATION' ? 'Destination' : 'Intermediate Stop';
-                          const nameStr = resolveStopName(stop, defaultFallback);
-                          const cleanAddress = cleanAddressStr(stop.location_address || stop.location?.address);
+                            const nameStr = stop.name || resolveStopName(stop, 'Location');
+                            const cleanAddress = stop.address || cleanAddressStr(stop.location_address || stop.location?.address);
 
-                          const isCompleted = !!stop.actual_arrival;
-                          const isCurrent = !isCompleted && (!isFirst ? !!trip.stops![sIdx - 1]?.actual_departure : true);
+                            const isCompleted = !!stop.actual_arrival;
+                            const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
 
-                          return (
-                            <React.Fragment key={stop.id || sIdx}>
-                              {/* Compact Stop Row */}
-                              <div className={cn(
-                                "p-2 rounded-lg border transition-all flex items-center justify-between gap-3 text-xs",
-                                isCompleted
-                                  ? "bg-emerald-50/40 border-emerald-200/60"
-                                  : isCurrent
-                                  ? "bg-rose-50/30 border-rose-200/50"
-                                  : "bg-slate-50/50 border-[#E5E7EB]"
-                              )}>
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <span className={cn(
-                                    "w-2 h-2 rounded-full shrink-0",
-                                    isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
-                                  )} />
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className={cn(
-                                        "text-[10px] font-bold uppercase tracking-wider shrink-0",
-                                        isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
-                                      )}>
-                                        {stopCategoryLabel}
-                                      </span>
-                                      <span className="text-xs font-semibold text-[#3E3C3D] truncate">
-                                        {nameStr}
-                                      </span>
+                            return (
+                              <React.Fragment key={stop.id || sIdx}>
+                                {/* Compact Stop Row */}
+                                <div className={cn(
+                                  "p-2 rounded-lg border transition-all flex items-center justify-between gap-3 text-xs",
+                                  isCompleted
+                                    ? "bg-emerald-50/40 border-emerald-200/60"
+                                    : isCurrent
+                                    ? "bg-rose-50/30 border-rose-200/50"
+                                    : "bg-slate-50/50 border-[#E5E7EB]"
+                                )}>
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={cn(
+                                      "w-2 h-2 rounded-full shrink-0",
+                                      isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
+                                    )} />
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className={cn(
+                                          "text-[10px] font-bold uppercase tracking-wider shrink-0",
+                                          isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
+                                        )}>
+                                          {stopCategoryLabel}
+                                        </span>
+                                        <span className="text-xs font-semibold text-[#3E3C3D] truncate">
+                                          {nameStr}
+                                        </span>
+                                      </div>
+                                      {cleanAddress && (
+                                        <p className="text-[11px] font-normal text-[#6E6E80] truncate max-w-[200px]">
+                                          {cleanAddress}
+                                        </p>
+                                      )}
                                     </div>
-                                    {cleanAddress && (
-                                      <p className="text-[11px] font-normal text-[#6E6E80] truncate max-w-[200px]">
-                                        {cleanAddress}
-                                      </p>
-                                    )}
                                   </div>
+
+                                  {stop.actual_arrival ? (
+                                    <span className="text-[11px] text-emerald-700 font-mono font-semibold shrink-0">
+                                      {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                    </span>
+                                  ) : stop.planned_arrival ? (
+                                    <span className="text-[11px] text-[#6E6E80] font-mono shrink-0">
+                                      {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
+                                    </span>
+                                  ) : null}
                                 </div>
 
-                                {stop.actual_arrival ? (
-                                  <span className="text-[11px] text-emerald-700 font-mono font-semibold shrink-0">
-                                    {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                  </span>
-                                ) : stop.planned_arrival ? (
-                                  <span className="text-[11px] text-[#6E6E80] font-mono shrink-0">
-                                    {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
-                                  </span>
-                                ) : null}
-                              </div>
-
-                              {/* Down Arrow Connector between stops */}
-                              {!isLast && (
-                                <div className="flex items-center justify-center py-0.5">
-                                  <div className="w-4 h-4 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center text-slate-400">
-                                    <ArrowDown size={10} />
+                                {/* Down Arrow Connector between stops */}
+                                {!isLast && (
+                                  <div className="flex items-center justify-center py-0.5">
+                                    <div className="w-4 h-4 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center text-slate-400">
+                                      <ArrowDown size={10} />
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
+                                )}
+                              </React.Fragment>
+                            );
+                          });
+                        })()}
                       </div>
                     </ScrollArea>
                   </div>
