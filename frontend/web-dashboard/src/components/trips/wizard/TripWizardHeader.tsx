@@ -12,11 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 
 interface TripWizardHeaderProps {
-  contractStep: 1 | 2 | 3 | 4;
+  contractStep: 1 | 2 | 3;
   submissionResult: any;
   isStepValid: (step: number) => boolean;
   canNavigateToStep: (step: number) => boolean;
-  setContractStep: (step: 1 | 2 | 3 | 4 | ((prev: 1 | 2 | 3 | 4) => 1 | 2 | 3 | 4)) => void;
+  setContractStep: (step: 1 | 2 | 3 | ((prev: 1 | 2 | 3) => 1 | 2 | 3)) => void;
   handleContractSubmit: () => void;
   handleDialogClose: () => void;
   isPending: boolean;
@@ -39,10 +39,9 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   if (submissionResult) return null;
 
   const steps = [
-    { step: 1 as const, label: '1. Customer', icon: User },
-    { step: 2 as const, label: '2. Trip / Route', icon: MapPin },
-    { step: 3 as const, label: '3. Service & Assignment', icon: Layers },
-    { step: 4 as const, label: '4. Review', icon: CheckCircle2 },
+    { step: 1 as const, label: '1. Customer & Route', icon: MapPin },
+    { step: 2 as const, label: '2. Service & Assignment', icon: Layers },
+    { step: 3 as const, label: '3. Review & Submit', icon: CheckCircle2 },
   ];
 
   return (

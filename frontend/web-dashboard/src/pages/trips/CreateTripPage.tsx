@@ -16,8 +16,7 @@ import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
 import TripWizardHeader from '@/components/trips/wizard/TripWizardHeader';
-import TripStep1Customer from '@/components/trips/wizard/TripStep1Customer';
-import TripStep2Route from '@/components/trips/wizard/TripStep2Route';
+import TripStep1CustomerRoute from '@/components/trips/wizard/TripStep1CustomerRoute';
 import TripStep3Assignment from '@/components/trips/wizard/TripStep3Assignment';
 import TripStep4Summary from '@/components/trips/wizard/TripStep4Summary';
 import TripBatchGeneratorTab from '@/components/trips/wizard/TripBatchGeneratorTab';
@@ -265,24 +264,13 @@ export default function CreateTripPage() {
                 {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
                 {form.activeTab === 'contract' && (
                   <div className="pb-4">
-                    {/* STEP 1: CUSTOMER & CATEGORY */}
+                    {/* STEP 1: CUSTOMER, ROUTE & SCHEDULE */}
                     {form.contractStep === 1 && (
-                      <TripStep1Customer
+                      <TripStep1CustomerRoute
                         contractCustomer={form.contractCustomer}
                         setContractCustomer={form.setContractCustomer}
                         customers={form.customers}
-                        setPreviewCustomer={form.setPreviewCustomer}
-                        setEditCustomer={form.setEditCustomer}
-                        setIsCreateCustomerOpen={form.setIsCreateCustomerOpen}
-                        onRepeatTrip={form.handleRepeatTrip}
-                      />
-                    )}
-
-                    {/* STEP 2: TRIP / ROUTE */}
-                    {form.contractStep === 2 && (
-                      <TripStep2Route
                         contractSlots={form.contractSlots}
-                        contractCustomer={form.contractCustomer}
                         contractRateCategory={form.contractRateCategory}
                         setContractRateCategory={form.setContractRateCategory}
                         triggerRateLookupForSlots={form.triggerRateLookupForSlots}
@@ -292,11 +280,9 @@ export default function CreateTripPage() {
                         handleUpdateTripSlot={form.handleUpdateTripSlot}
                         handleRemoveSlotIntermediate={form.handleRemoveSlotIntermediate}
                         handleUpdateSlotIntermediate={form.handleUpdateSlotIntermediate}
-                        handleUpdateSlotIntermediateFee={form.handleUpdateSlotIntermediateFee}
                         handleAddSlotReturnIntermediate={form.handleAddSlotReturnIntermediate}
                         handleRemoveSlotReturnIntermediate={form.handleRemoveSlotReturnIntermediate}
                         handleUpdateSlotReturnIntermediate={form.handleUpdateSlotReturnIntermediate}
-                        handleUpdateSlotReturnIntermediateFee={form.handleUpdateSlotReturnIntermediateFee}
                         recentRoutesList={form.recentRoutesList}
                         handleApplyRecentRoute={form.handleApplyRecentRoute}
                         isRoundTripCategory={isRoundTripCategory}
@@ -304,8 +290,8 @@ export default function CreateTripPage() {
                       />
                     )}
 
-                    {/* STEP 3: SERVICE & ASSIGNMENT */}
-                    {form.contractStep === 3 && (
+                    {/* STEP 2: SERVICE & ASSIGNMENT */}
+                    {form.contractStep === 2 && (
                       <TripStep3Assignment
                         contractBillingType={form.contractBillingType}
                         setContractBillingType={form.setContractBillingType}
@@ -349,8 +335,8 @@ export default function CreateTripPage() {
                       />
                     )}
 
-                    {/* STEP 4: REVIEW & CONFIRM */}
-                    {form.contractStep === 4 && (
+                    {/* STEP 3: REVIEW & CONFIRM */}
+                    {form.contractStep === 3 && (
                       <TripStep4Summary
                         contractSlots={form.contractSlots}
                         contractCustomer={form.contractCustomer}

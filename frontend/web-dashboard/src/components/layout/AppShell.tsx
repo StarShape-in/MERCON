@@ -92,18 +92,20 @@ function ShellInner() {
       />
 
       <div className="flex flex-col flex-1 min-w-0 bg-[#F8FAFC]">
-        <Header
-          title={meta.title}
-          breadcrumb={meta.breadcrumb}
-          hideBackButton={meta.hideBackButton}
-          onBackClick={meta.onBackClick}
-          onMenuClick={() => setSidebarOpen(true)}
-        />
+        {!meta.hideHeader && (
+          <Header
+            title={meta.title}
+            breadcrumb={meta.breadcrumb}
+            hideBackButton={meta.hideBackButton}
+            onBackClick={meta.onBackClick}
+            onMenuClick={() => setSidebarOpen(true)}
+          />
+        )}
 
         {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
         <div
           ref={contentRef}
-          className={`flex-1 min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+          className={`flex-1 min-h-0 relative ${meta.hideHeader ? 'pt-2 px-2 sm:px-4 sm:pt-3' : 'pt-4 sm:pt-6'} bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense

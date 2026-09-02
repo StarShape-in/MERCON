@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
 import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus, DriverTripRole, AssignmentEntityType } from '@prisma/client';

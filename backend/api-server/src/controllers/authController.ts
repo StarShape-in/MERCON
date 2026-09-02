@@ -4,7 +4,7 @@ import { Role } from '@prisma/client';
 import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { createNotification } from './notificationController';
 
 /* ─── Unified Login (username + password) ──────────────────────────────────── */

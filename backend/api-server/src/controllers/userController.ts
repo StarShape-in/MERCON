@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import bcrypt from 'bcrypt';
 
 // Get all users (except drivers if we only want dashboard users, but let's just return all non-drivers for now, or all)

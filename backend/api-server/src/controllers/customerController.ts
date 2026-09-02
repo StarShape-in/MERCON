@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { buildSearchAnd } from '../utils/search';
 
 const CUSTOMER_SEARCH_FIELDS = ['name', 'contact_phone'];

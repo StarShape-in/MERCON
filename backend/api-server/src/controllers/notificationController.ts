@@ -1,8 +1,16 @@
 import { Request, Response } from 'express';
 import { Role } from '@prisma/client';
 import { logger } from '../utils/logger';
-import { prisma, io } from '../index';
+import { prisma } from '../db';
 import type { DelayDetection } from '../services/tripLifecycle';
+
+const getIO = () => {
+  try {
+    return require('../index').io;
+  } catch {
+    return null;
+  }
+};
 
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -94,7 +102,7 @@ export const createNotification = async (
     });
 
     // Send to just this user's private room (they auto-join it on socket connect)
-    io.to(`user:${userId}`).emit(`user:notification:${userId}`, notification);
+    getIO()?.to(`user:${userId}`).emit(`user:notification:${userId}`, notification);
 
     return notification;
   } catch (error) {
@@ -166,7 +174,7 @@ export const createDriverNotification = async (
       data: { driverId, title, message, type, entity_type, entity_id }
     });
 
-    io.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
+    getIO()?.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
 
     return notification;
   } catch (error) {

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { env } from '../config/env';
 
 export const mobileLogin = async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { REPORT_SCHEMA } from '../reportEngine/schema';
 import { runReportQuery, ReportEngineError } from '../reportEngine/resolver';
 
