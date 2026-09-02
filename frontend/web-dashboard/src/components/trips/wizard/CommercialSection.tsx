@@ -15,6 +15,7 @@ interface CommercialSectionProps {
   handleUpdateTripSlot: (slotId: string, patch: any) => void;
   handleSlotLocationChange?: (slotId: string, field: 'origin' | 'destination', locName: string, locObj: any) => void;
   setContractRateCategory?: (cat: string) => void;
+  setContractBillingType?: (bType: string) => void;
   setContractVehicleType?: (vType: string) => void;
   contractCustomer?: string;
   setContractCustomer?: (customerId: string) => void;
@@ -32,6 +33,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   handleUpdateTripSlot,
   handleSlotLocationChange,
   setContractRateCategory,
+  setContractBillingType,
   setContractVehicleType,
   contractCustomer = '',
   setContractCustomer,
@@ -123,11 +125,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           </div>
         </div>
 
-        {/* ROW 2: UNIFIED CUSTOMER ACCOUNT SEARCH & TOP 2 QUICK COMPANY TILES */}
-        {setContractCustomer && (
-          <div className="flex items-center gap-2 pt-0.5 flex-wrap sm:flex-nowrap">
-            {/* CUSTOMER SEARCH COMBOBOX */}
-            <div className="w-full sm:w-[240px] shrink-0">
+        {/* ROW 2: CUSTOMER ACCOUNT + QUICK COMPANY TILES + BILLING TYPE + TON SELECTION */}
+        <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+          {/* CUSTOMER SEARCH COMBOBOX */}
+          {setContractCustomer && (
+            <div className="w-full sm:w-[220px] shrink-0">
               <Combobox
                 options={derivedCustomerOptions}
                 value={contractCustomer}
@@ -137,36 +139,87 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 triggerClassName="h-8 rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
               />
             </div>
+          )}
 
-            {/* TOP 2 QUICK COMPANY TILES (CLEAN, STANDARD ROUNDED & SIDE-BY-SIDE) */}
-            {customers && customers.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
-                {customers.slice(0, 2).map((c) => {
-                  const isSelected = contractCustomer === c.id;
-                  const cInitials = c.name.substring(0, 2).toUpperCase();
+          {/* TOP 2 QUICK COMPANY TILES */}
+          {customers && customers.length > 0 && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {customers.slice(0, 2).map((c) => {
+                const isSelected = contractCustomer === c.id;
+                const cInitials = c.name.substring(0, 2).toUpperCase();
 
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setContractCustomer?.(c.id)}
-                      className={`px-2.5 py-1 rounded-lg border text-left transition-all flex items-center gap-2 h-8 shrink-0 cursor-pointer text-xs font-bold ${
-                        isSelected
-                          ? 'bg-orange-50/90 dark:bg-orange-950/40 border-brand text-brand ring-1 ring-brand/30 shadow-2xs'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded font-black text-[9px] grid place-items-center shrink-0 shadow-2xs ${isSelected ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                        {cInitials}
-                      </span>
-                      <span className="truncate max-w-[110px] font-bold text-xs">{c.name.split(' ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setContractCustomer?.(c.id)}
+                    className={`px-2 py-1 rounded-lg border text-left transition-all flex items-center gap-1.5 h-8 shrink-0 cursor-pointer text-xs font-bold ${
+                      isSelected
+                        ? 'bg-orange-50/90 dark:bg-orange-950/40 border-brand text-brand ring-1 ring-brand/30 shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`w-4.5 h-4.5 rounded font-black text-[9px] grid place-items-center shrink-0 shadow-2xs ${isSelected ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                      {cInitials}
+                    </span>
+                    <span className="truncate max-w-[90px] font-bold text-xs">{c.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* BILLING TYPE SELECTION (MONTHLY / EXTRA) */}
+          {setContractBillingType && (
+            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
+              <button
+                type="button"
+                onClick={() => setContractBillingType('Monthly')}
+                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                  contractBillingType === 'Monthly'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setContractBillingType('Extra')}
+                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                  contractBillingType === 'Extra'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Extra
+              </button>
+            </div>
+          )}
+
+          {/* TON SELECTION (VEHICLE CLASS CHIPS) */}
+          {setContractVehicleType && (
+            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
+              {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => {
+                const isSelected = contractVehicleType === vClass;
+                return (
+                  <button
+                    key={vClass}
+                    type="button"
+                    onClick={() => setContractVehicleType(vClass)}
+                    className={`px-2 py-0.5 rounded-lg border text-[11px] font-extrabold transition-all h-7.5 shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-600 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    {vClass}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
       </div>
 

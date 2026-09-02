@@ -128,6 +128,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             handleUpdateTripSlot={handleUpdateTripSlot}
             handleSlotLocationChange={handleSlotLocationChange}
             setContractRateCategory={setContractRateCategory}
+            setContractBillingType={setContractBillingType}
             setContractVehicleType={setContractVehicleType}
             contractCustomer={contractCustomer}
             setContractCustomer={setContractCustomer}
