@@ -382,59 +382,77 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                 </span>
               </div>
 
-              {/* 1. LINE TYPE SEGMENTED SELECTOR (CLEAN & ERGONOMIC) */}
-              <div className="space-y-1.5">
+              {/* 1. LINE TYPE DROPDOWN (CLEAN & PROPERLY ARRANGED) */}
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
                   <span>Line Type <span className="text-brand">*</span></span>
                   <span className="text-[9px] text-slate-400 font-normal normal-case">Controls route structure</span>
                 </label>
                 {(() => {
                   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
-                  const selectedOpt = resolveTaxonomyOption('LINE_TYPE', currentCategory);
+                  const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', currentCategory);
 
                   return (
-                    <div className="flex items-center gap-1.5 flex-wrap max-h-28 overflow-y-auto p-0.5 custom-scrollbar">
-                      {lineTypeTaxonomyOptions.map((opt) => {
-                        const isSelected = selectedOpt?.id === opt.id || selectedOpt?.code === opt.code;
-
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              if (setContractRateCategory) {
-                                setContractRateCategory(opt.label);
-                              }
-                              if (triggerRateLookupForSlots) {
-                                triggerRateLookupForSlots(undefined, opt.label);
-                              }
-                            }}
-                            className={cn(
-                              "h-7 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0",
-                              isSelected
-                                ? cn(
-                                    "shadow-2xs ring-1",
-                                    opt.colorTheme.bg,
-                                    opt.colorTheme.text,
-                                    opt.colorTheme.border,
-                                    opt.colorTheme.darkBg,
-                                    opt.colorTheme.darkText
-                                  )
-                                : "bg-slate-50/70 hover:bg-slate-100 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800"
-                            )}
-                          >
+                    <Select
+                      value={currentCategory}
+                      onValueChange={(val) => {
+                        if (setContractRateCategory) {
+                          setContractRateCategory(val);
+                        }
+                        if (triggerRateLookupForSlots) {
+                          triggerRateLookupForSlots(undefined, val);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs focus:ring-2 focus:ring-brand">
+                        <div className="flex items-center gap-2 truncate">
+                          {selectedTaxonomyOption ? (
                             <span
-                              className="w-1.5 h-1.5 rounded-full shrink-0"
-                              style={{ backgroundColor: opt.colorTheme.hex }}
-                            />
-                            <span>{opt.label}</span>
-                            {isSelected && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 animate-pulse ml-0.5" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                              className={cn(
+                                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border shadow-2xs",
+                                selectedTaxonomyOption.colorTheme.bg,
+                                selectedTaxonomyOption.colorTheme.text,
+                                selectedTaxonomyOption.colorTheme.border,
+                                selectedTaxonomyOption.colorTheme.darkBg,
+                                selectedTaxonomyOption.colorTheme.darkText
+                              )}
+                            >
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }}
+                              />
+                              <span>{selectedTaxonomyOption.label}</span>
+                            </span>
+                          ) : (
+                            <SelectValue placeholder="Select Line Type" />
+                          )}
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]">
+                        {lineTypeTaxonomyOptions.map((opt) => (
+                          <SelectItem key={opt.id} value={opt.label} className="text-xs font-bold py-2 cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border shadow-2xs",
+                                  opt.colorTheme.bg,
+                                  opt.colorTheme.text,
+                                  opt.colorTheme.border,
+                                  opt.colorTheme.darkBg,
+                                  opt.colorTheme.darkText
+                                )}
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: opt.colorTheme.hex }}
+                                />
+                                <span>{opt.label}</span>
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   );
                 })()}
               </div>

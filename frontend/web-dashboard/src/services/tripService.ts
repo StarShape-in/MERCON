@@ -459,8 +459,8 @@ export const tripService = {
   },
 
   /** Swap the assigned driver mid-trip. */
-  async replaceDriver(id: string, driverId: string): Promise<Trip> {
-    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { driver_id: driverId });
+  async replaceDriver(id: string, driverId: string, reason?: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { new_driver_id: driverId, reason });
     return res.data.data;
   },
 

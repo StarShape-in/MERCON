@@ -133,11 +133,17 @@ export function useTripRateLookup(
     origin?: string,
     destination?: string,
     originLocationId?: string | null,
-    destinationLocationId?: string | null
+    destinationLocationId?: string | null,
+    rateCategory?: string | null,
+    returnDestination?: string | null,
+    returnDestinationLocationId?: string | null
   ): RateCard[] => {
     if ((!origin && !originLocationId) || (!destination && !destinationLocationId) || customerRateCards.length === 0) return [];
 
     const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+    const targetCategory = norm(rateCategory);
+    const isRoundTrip = targetCategory.includes('roundtrip') || targetCategory.includes('round');
+
     const matchLocation = (cardLocRaw: string, targetLocRaw: string) => {
       if (!cardLocRaw || !targetLocRaw) return false;
       const cleanCard = norm(cardLocRaw);
@@ -159,22 +165,33 @@ export function useTripRateLookup(
       const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
 
       const rcO = String(
-        firstStop?.source_label || firstStop?.location?.name || firstStop?.location?.address || rc.route_origin || rc.origin_name || rc.originLocation?.name || ''
+        firstStop?.source_label || firstStop?.location?.name || firstStop?.location?.address || (firstStop as any)?.location_name || rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId || ''
       );
       const rcD = String(
-        lastStop?.source_label || lastStop?.location?.name || lastStop?.location?.address || rc.route_destination || rc.destination_name || rc.destinationLocation?.name || ''
+        lastStop?.source_label || lastStop?.location?.name || lastStop?.location?.address || (lastStop as any)?.location_name || rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId || ''
       );
 
       const rcOriginLocId = firstStop?.locationId || firstStop?.location?.id || (rc as any).origin_location_id || rc.originLocationId;
       const rcDestLocId = lastStop?.locationId || lastStop?.location?.id || (rc as any).destination_location_id || rc.destinationLocationId;
 
-      if (originLocationId && destinationLocationId && rcOriginLocId && rcDestLocId) {
-        if (rcOriginLocId === originLocationId && rcDestLocId === destinationLocationId) {
+      if (originLocationId && rcOriginLocId && rcOriginLocId === originLocationId) {
+        if (destinationLocationId && rcDestLocId === destinationLocationId) return true;
+        if (returnDestinationLocationId && rcDestLocId === returnDestinationLocationId) return true;
+      }
+
+      const originMatches = matchLocation(rcO, origin || '');
+      const destMatches = matchLocation(rcD, destination || '') || (returnDestination ? matchLocation(rcD, returnDestination) : false);
+
+      if (!originMatches) return false;
+
+      if (isRoundTrip) {
+        const rcLineType = norm(rc.line_type || rc.rate_category);
+        if (rcLineType.includes('roundtrip') || rcLineType.includes('round')) {
           return true;
         }
       }
 
-      return matchLocation(rcO, origin || '') && matchLocation(rcD, destination || '');
+      return destMatches;
     });
   }, [customerRateCards]);
 

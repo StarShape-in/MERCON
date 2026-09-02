@@ -33,7 +33,7 @@ interface TripStep3AssignmentProps {
   normalizeRateCategory: (val?: string | null) => string;
   normalizeVehicleClass: (val?: string | null) => string;
   contractSlots: any[];
-  getAvailableRateCardsForLane: (orig: string, dest: string, origId?: string | null, destId?: string | null) => any[];
+  getAvailableRateCardsForLane: (orig: string, dest: string, origId?: string | null, destId?: string | null, rCat?: string | null, retDest?: string | null, retDestId?: string | null) => any[];
   setIsManualRateOverride: (override: boolean) => void;
   handleOpenCreateQuotation: (slot: any) => void;
   assignmentType: 'own' | 'third_party';
@@ -236,14 +236,30 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
               {/* Right Sub-Box: QUOTATIONS */}
               <div className="md:col-span-7 space-y-2">
                 {contractSlots.map((slot) => {
-                  const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+                  const isRoundTrip = normalizeRateCategory(contractRateCategory) === 'Round Trip';
+                  const returnDest = slot.returnDestination || slot.origin;
+                  const returnDestId = slot.returnDestinationLocationId || slot.originLocationId;
+
+                  const laneRateCards = getAvailableRateCardsForLane(
+                    slot.origin,
+                    slot.destination,
+                    slot.originLocationId,
+                    slot.destinationLocationId,
+                    contractRateCategory,
+                    returnDest,
+                    returnDestId
+                  );
 
                   return (
                     <div key={slot.id} className="space-y-2">
                       <div className="flex items-center justify-between pb-1 border-b border-[#E5E7EB]">
-                        <span className="text-[11px] font-bold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
-                          <Tag className="w-3.5 h-3.5 text-[#FA634E]" />
-                          QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})
+                        <span className="text-[11px] font-bold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5 truncate">
+                          <Tag className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+                          {isRoundTrip ? (
+                            <span>ROUND TRIP QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} ↔ {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})</span>
+                          ) : (
+                            <span>QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})</span>
+                          )}
                         </span>
                         <div>
                           {slot.rateMatched ? (
