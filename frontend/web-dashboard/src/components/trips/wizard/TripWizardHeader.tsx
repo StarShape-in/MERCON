@@ -9,7 +9,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useLayoutMeta } from '@/context/LayoutContext';
 
 interface TripWizardHeaderProps {
   contractStep: 1 | 2;
@@ -36,6 +36,8 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   batchTripRowsCount,
   KbdBadge,
 }) => {
+  const { isHeaderCollapsed, toggleHeaderCollapsed } = useLayoutMeta();
+
   if (submissionResult) return null;
 
   const steps = [
@@ -45,8 +47,8 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
 
   return (
     <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-5 py-2.5 gap-3">
-      {/* Top Left: Cancel / Back Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      {/* Top Left: Cancel / Back Actions & Header Toggle */}
+      <div className="flex items-center gap-2 shrink-0">
         {contractStep > 1 ? (
           <Button
             type="button"
@@ -68,6 +70,17 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
             Cancel <KbdBadge keys="Esc" />
           </Button>
         )}
+
+        {/* HEADER COLLAPSE / MAXIMIZE WORKSPACE TOGGLE */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={toggleHeaderCollapsed}
+          className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-2xs cursor-pointer"
+          title={isHeaderCollapsed ? "Restore navigation header" : "Maximize vertical workspace height"}
+        >
+          {isHeaderCollapsed ? '⤡ Restore Header' : '⤢ Maximize Workspace'}
+        </Button>
       </div>
 
       {/* Center: Stepper Pills */}

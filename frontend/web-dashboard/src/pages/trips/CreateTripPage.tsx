@@ -144,9 +144,11 @@ export default function CreateTripPage() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [form.contractStep, form.canNavigateToStep, form.isStepValid, form.handleContractSubmit, form.bulkMutation.isPending]);
 
+  const { isHeaderCollapsed } = useLayoutMeta();
+
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full h-[calc(100dvh-80px)] flex flex-col min-h-0">
+      <div className={`px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full ${isHeaderCollapsed ? 'h-[calc(100dvh-28px)]' : 'h-[calc(100dvh-80px)]'} flex flex-col min-h-0`}>
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
           {/* Combined Navigation & Stepper Bar */}
