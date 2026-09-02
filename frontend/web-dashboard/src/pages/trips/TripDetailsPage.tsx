@@ -982,8 +982,7 @@ export default function TripDetailsPage() {
                     <ScrollArea className="max-h-[230px] pr-1 pt-1">
                       <div className="space-y-1.5">
                         {(() => {
-                          const parsedNodes = parseTripRouteNodes(trip as any);
-                          const timelineStops = parsedNodes.length > 0 ? parsedNodes : (trip.stops || []).map((stop, sIdx) => ({
+                          const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
                             id: stop.id || `stop-${sIdx}`,
                             typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
                             name: resolveStopName(stop, 'Location'),
