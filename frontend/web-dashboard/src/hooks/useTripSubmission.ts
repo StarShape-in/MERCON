@@ -1,0 +1,308 @@
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { tripService, BulkImportTripRow, BulkImportResult, TripStatus } from '@/services/tripService';
+import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import { isUuid } from '@/lib/utils';
+import { localDateTimeToUtcIso, useDeploymentTimezone } from '@/lib/datetime';
+import { isRoundTripCategory } from './useCreateTripForm';
+
+export function useTripSubmission(
+  contractCustomer: string,
+  contractSlots: any[],
+  contractVehicleType: string,
+  contractRateCategory: string,
+  contractBillingType: string,
+  assignmentType: string,
+  masterDriver: string,
+  masterVehicle: string,
+  thirdPartyProviderId: string,
+  thirdPartyDriverName: string,
+  thirdPartyDriverPhone: string,
+  thirdPartyVehiclePlate: string,
+  thirdPartyCost: string,
+  dayAssignments: Record<string, any>,
+  setContractStep: (step: 1 | 2 | 3 | 4) => void,
+  setSelectedDates: (dates: string[]) => void,
+  setDayAssignments: (assignments: any) => void,
+  setParsedRows: (rows: any[]) => void,
+  setImportedFile: (file: File | null) => void,
+  setParseError: (err: string | null) => void
+) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
+
+  const [submissionResult, setSubmissionResult] = useState<BulkImportResult | null>(null);
+  const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
+  const [pendingRows, setPendingRows] = useState<BulkImportTripRow[] | null>(null);
+  const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+
+  const bulkMutation = useMutation({
+    mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
+    onSuccess: (data) => {
+      setSubmissionResult(data);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
+      toast.success('Trips generated successfully.');
+    },
+  });
+
+  const executeBulkSubmit = (rows: BulkImportTripRow[]) => {
+    const analysis = analyzePastDateRows(rows);
+    if (analysis.hasPastTrips) {
+      setPendingRows(rows);
+      setPastDateAnalysis(analysis);
+      setPastDateModalOpen(true);
+    } else {
+      bulkMutation.mutate(rows);
+    }
+  };
+
+  const handlePastDateConfirm = (selectedStatus: TripStatus) => {
+    if (!pendingRows) return;
+    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus);
+    setPastDateModalOpen(false);
+    setPendingRows(null);
+    bulkMutation.mutate(finalRows);
+  };
+
+  const handleContractSubmit = async () => {
+    if (!contractCustomer || contractSlots.length === 0) return;
+    const slotsToSaveAsQuotation = contractSlots.filter(
+      (slot) => (slot.saveAsQuotation || slot.saveAsRateCard) && Number(slot.billingAmount) > 0
+    );
+    if (slotsToSaveAsQuotation.length > 0) {
+      const { quotationService } = await import('@/services/quotationService');
+      const { locationService } = await import('@/services/locationService');
+
+      await Promise.all(
+        slotsToSaveAsQuotation.map(async (slot) => {
+          let origId = slot.originLocationId;
+          let destId = slot.destinationLocationId;
+
+          if (!origId && slot.origin.trim()) {
+            try {
+              const createdOrig = await locationService.create({
+                customerId: contractCustomer || 'default-customer-id',
+                name: slot.origin.trim(),
+                lat: slot.originLat ?? null,
+                lng: slot.originLng ?? null,
+              });
+              origId = createdOrig.id;
+            } catch (err) {
+              console.error(`Failed to ensure origin location '${slot.origin}':`, err);
+            }
+          }
+
+          if (!destId && slot.destination.trim()) {
+            try {
+              const createdDest = await locationService.create({
+                customerId: contractCustomer || 'default-customer-id',
+                name: slot.destination.trim(),
+                lat: slot.destinationLat ?? null,
+                lng: slot.destinationLng ?? null,
+              });
+              destId = createdDest.id;
+            } catch (err) {
+              console.error(`Failed to ensure destination location '${slot.destination}':`, err);
+            }
+          }
+
+          const intermediateStops = (slot.intermediateLocations || []).map((locVal: string, idx: number) => {
+            const locId = slot.intermediateLocationIds?.[idx] || (isUuid(locVal) ? locVal : null);
+            return {
+              sequence: idx + 2,
+              location_id: locId || null,
+              source_label: locVal || null,
+              stop_type: 'Dropoff',
+            };
+          });
+
+          const quotationStops = [
+            { sequence: 1, location_id: origId || null, source_label: slot.origin.trim() || null, stop_type: 'Pickup' },
+            ...intermediateStops,
+            { sequence: intermediateStops.length + 2, location_id: destId || null, source_label: slot.destination.trim() || null, stop_type: 'Dropoff' },
+          ];
+
+          return quotationService
+            .create({
+              name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
+              rate: Number(slot.billingAmount),
+              base_price: Number(slot.billingAmount),
+              driver_payout: Number(slot.tripCharges) || null,
+              customerId: contractCustomer,
+              origin_location_id: origId || null,
+              destination_location_id: destId || null,
+              origin_name: origId ? null : slot.origin.trim() || null,
+              destination_name: destId ? null : slot.destination.trim() || null,
+              origin_lat: slot.originLat ?? null,
+              origin_lng: slot.originLng ?? null,
+              destination_lat: slot.destinationLat ?? null,
+              destination_lng: slot.destinationLng ?? null,
+              vehicle_type: contractVehicleType || null,
+              line_type: contractRateCategory || null,
+              billing_type: contractBillingType || null,
+              pricing_basis: 'Flat Rate',
+              stops: quotationStops,
+              reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
+              source: 'TRIP_CREATION',
+            })
+            .then((res) => {
+              toast.success(`Quotation '${res.name || slot.origin + ' → ' + slot.destination}' saved to Quotations ledger!`);
+              return res;
+            })
+            .catch((err: any) => {
+              const errMsg = err.response?.data?.error?.message || err.message || 'Unknown error';
+              console.error(`Failed to save quotation for slot ${slot.id}:`, err);
+              toast.error(`Couldn't save quotation for ${slot.origin} → ${slot.destination}: ${errMsg}`);
+            });
+        })
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['locations-list'] });
+    }
+
+    const rows: BulkImportTripRow[] = [];
+
+    contractSlots.forEach((slot) => {
+      const date = slot.date || new Date().toISOString().slice(0, 10);
+      const assignment = dayAssignments[slot.id] || { driverId: '', vehicleId: '' };
+
+      const outboundStops = slot.intermediateLocations.map((s: string) => s.trim()).filter(Boolean);
+      const returnStops = (slot.returnIntermediateLocations || []).map((s: string) => s.trim()).filter(Boolean);
+
+      const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
+      const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
+      const baseAmount = Number(slot.billingAmount) || 0;
+      const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+
+      let destString = slot.destination.trim();
+
+      if (isRoundTripCategory(contractRateCategory)) {
+        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+
+        const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+        const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+
+        destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+      } else if (outboundStops.length > 0) {
+        destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+      }
+
+      const dropoffDateVal = slot.dropoffDate || date;
+      const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
+
+      if (assignmentType === 'third_party') {
+        const costVal = thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0);
+        rows.push({
+          customer_id: contractCustomer,
+          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
+          planned_end: planned_end_val,
+          is_third_party: true,
+          third_party_provider_id: thirdPartyProviderId || undefined,
+          third_party_driver_name: thirdPartyDriverName.trim() || undefined,
+          third_party_driver_phone: thirdPartyDriverPhone.trim() || undefined,
+          third_party_vehicle_plate: thirdPartyVehiclePlate.trim() || undefined,
+          third_party_vehicle_type: contractVehicleType || undefined,
+          third_party_cost: costVal,
+          trip_charges: costVal,
+          rate_category: contractRateCategory || undefined,
+          billing_type: contractBillingType || undefined,
+          vehicle_type: contractVehicleType || undefined,
+          origin: slot.origin.trim() || undefined,
+          destination: destString || undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          rate_card_id: slot.rateCardId || undefined,
+          status: 'Draft',
+        });
+      } else {
+        const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
+        const vehicleId = masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : (assignment.vehicleId || undefined);
+        const slotTripCharges = Number(slot.tripCharges) || 0;
+        rows.push({
+          customer_id: contractCustomer,
+          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
+          planned_end: planned_end_val,
+          driver_id: driverId,
+          vehicle_id: vehicleId,
+          rate_category: contractRateCategory || undefined,
+          billing_type: contractBillingType || undefined,
+          vehicle_type: contractVehicleType || undefined,
+          origin: slot.origin.trim() || undefined,
+          destination: destString || undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
+          trip_charges: slotTripCharges > 0 ? slotTripCharges : undefined,
+          rate_card_id: slot.rateCardId || undefined,
+          status: 'Draft',
+        });
+      }
+    });
+
+    executeBulkSubmit(rows);
+  };
+
+  const handleGridSubmit = (gridRows: any[]) => {
+    const validRows = gridRows.filter((r) => r.customerId && r.date);
+    if (validRows.length === 0) return;
+
+    const rows: BulkImportTripRow[] = validRows.map((r) => ({
+      customer_id: r.customerId,
+      planned_start: r.date,
+      driver_id: r.driverId || undefined,
+      vehicle_id: r.vehicleId || undefined,
+      rate_category: r.rateCategory || undefined,
+      vehicle_type: r.vehicleType || undefined,
+      origin: r.origin.trim() || undefined,
+      destination: r.destination.trim() || undefined,
+      billing_amount: r.amount ? Number(r.amount) : undefined,
+      status: 'Draft',
+    }));
+
+    executeBulkSubmit(rows);
+  };
+
+  const handleFileSubmit = (parsedRows: any[]) => {
+    if (parsedRows.length === 0) return;
+    executeBulkSubmit(parsedRows);
+  };
+
+  const resetAll = () => {
+    setContractStep(1);
+    setSelectedDates([]);
+    setDayAssignments({});
+    setSubmissionResult(null);
+    setParsedRows([]);
+    setImportedFile(null);
+    setParseError(null);
+    bulkMutation.reset();
+  };
+
+  const handleDialogClose = () => {
+    resetAll();
+    navigate('/trips');
+  };
+
+  return {
+    submissionResult,
+    pastDateModalOpen,
+    setPastDateModalOpen,
+    pastDateAnalysis,
+    handlePastDateConfirm,
+    bulkMutation,
+    handleContractSubmit,
+    handleGridSubmit,
+    handleFileSubmit,
+    resetAll,
+    handleDialogClose,
+  };
+}

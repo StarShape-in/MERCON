@@ -9,6 +9,8 @@ export interface LayoutMeta {
   actions?: ReactNode;
   hideBackButton?: boolean;
   onBackClick?: () => void;
+  /** When true, the AppShell content area switches to overflow-hidden for a locked one-page viewport */
+  fixedViewport?: boolean;
 }
 
 interface LayoutContextValue {

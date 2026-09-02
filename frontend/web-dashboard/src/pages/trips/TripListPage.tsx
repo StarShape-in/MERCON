@@ -69,12 +69,8 @@ type TripSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id
 const TRIP_SORT_OPTIONS: SortOption<TripSortOption>[] = [
   { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
   { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
-  { value: 'ref_id_asc', label: 'Ref ID (Ascending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
-  { value: 'ref_id_desc', label: 'Ref ID (Descending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
   { value: 'price_desc', label: 'Billing Price (High → Low)', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
   { value: 'price_asc', label: 'Billing Price (Low → High)', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'customer_asc', label: 'Customer (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'status', label: 'Trip Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
 ];
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
@@ -202,32 +198,6 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
   },
 ];
 
-const TRIP_EXPORT_FILTERS: ExportFilter<Trip>[] = [
-  {
-    id: 'status_group',
-    label: 'Status Group',
-    options: [
-      { label: 'All Trips', value: 'All' },
-      { label: 'Completed / Delivered Only', value: 'Completed' },
-      { label: 'In Transit Right Now', value: 'InTransit' },
-      { label: 'Not Completed', value: 'NotCompleted' },
-    ],
-    filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
-  },
-  {
-    id: 'is_3pl',
-    label: 'Provider Type',
-    options: [
-      { label: 'All Providers', value: 'All' },
-      { label: 'MERCON Fleet Only', value: 'Mercon' },
-      { label: 'Third-Party (3PL) Only', value: '3PL' },
-    ],
-    filterFn: (t, val) => {
-      const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
-      return val === '3PL' ? is3PL : !is3PL;
-    },
-  },
-];
 
 /**
  * Normalises a place or search string for tolerant phonetic matching:
@@ -600,6 +570,19 @@ const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
   { label: 'Issues', value: 'Issues' },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  All: 'All Statuses',
+  Active: 'Active',
+  Draft: 'Draft',
+  Dispatched: 'Dispatched',
+  AtPickup: 'Loading',
+  InTransit: 'In Transit',
+  AtDelivery: 'At Delivery',
+  Completed: 'Completed',
+  Invoiced: 'Invoiced',
+  Cancelled: 'Cancelled'
+};
+
 const EXACT_SERVER_STATUSES = new Set<TripStatusFilter>([
   'Draft',
   'Dispatched',
@@ -849,16 +832,16 @@ export default function TripListPage() {
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
   const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
-  const { data: exportDriversRes } = useQuery({
-    queryKey: ['drivers-for-export'],
-    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
-  const { data: exportVehiclesRes } = useQuery({
-    queryKey: ['vehicles-for-export'],
-    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
+   const { data: exportDriversRes } = useQuery({
+     queryKey: ['drivers-for-export'],
+     queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
+   const { data: exportVehiclesRes } = useQuery({
+     queryKey: ['vehicles-for-export'],
+     queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
 
@@ -997,6 +980,82 @@ export default function TripListPage() {
     });
     return opts;
   }, [customerFilterOptions]);
+
+  const tripExportFilters = useMemo(() => {
+    const filters: ExportFilter<Trip>[] = [
+      {
+        id: 'status_group',
+        label: 'Status Group',
+        options: [
+          { label: 'All Trips', value: 'All' },
+          { label: 'Completed / Delivered Only', value: 'Completed' },
+          { label: 'In Transit Right Now', value: 'InTransit' },
+          { label: 'Not Completed', value: 'NotCompleted' },
+        ],
+        filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
+      },
+      {
+        id: 'is_3pl',
+        label: 'Provider Type',
+        options: [
+          { label: 'All Providers', value: 'All' },
+          { label: 'MERCON Fleet Only', value: 'Mercon' },
+          { label: 'Third-Party (3PL) Only', value: '3PL' },
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
+          return val === '3PL' ? is3PL : !is3PL;
+        },
+      },
+      {
+        id: 'driver',
+        label: 'Driver',
+        options: [
+          { label: 'All Drivers', value: 'All' },
+          ...exportDrivers.map((d) => ({
+            label: `${d.first_name} ${d.last_name}`,
+            value: d.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.driver?.id === val;
+        },
+      },
+      {
+        id: 'vehicle',
+        label: 'Vehicle',
+        options: [
+          { label: 'All Vehicles', value: 'All' },
+          ...exportVehicles.map((v) => ({
+            label: v.plate_number,
+            value: v.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.vehicle?.id === val;
+        },
+      },
+      {
+        id: 'customer',
+        label: 'Customer / Company',
+        options: [
+          { label: 'All Companies', value: 'All' },
+          ...customerFilterOptions.map((c) => ({
+            label: c.name,
+            value: c.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.customer?.id === val;
+        },
+      },
+    ];
+    return filters;
+  }, [exportDrivers, exportVehicles, customerFilterOptions]);
 
 
 
@@ -1901,194 +1960,59 @@ export default function TripListPage() {
                   <ChevronDown className="h-3 w-3 text-slate-400" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                {/* Format toggle — applies to every option below */}
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
-                  <span>Export Trips</span>
-                  <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Operations
                 </DropdownMenuLabel>
-
-                 <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
-                   <button
-                     onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                   >
-                     <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                     Excel
-                   </button>
-                   <button
-                     onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                   >
-                     <FileText className="h-3.5 w-3.5 text-rose-600" />
-                     PDF
-                   </button>
-                 </div>
-
+                
                 <DropdownMenuItem
                   onClick={() => {
-                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All' });
-                    else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
+                    setExportMenuOpen(false);
+                    triggerExport({ type: 'all', format: 'xlsx' });
                   }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Export All Trips
+                  <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
+                  <span>Export to Excel</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={() => {
-                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', thirdPartyOnly: true });
-                    else { setExportMenuOpen(false); triggerExport({ type: '3pl', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
+                    setExportMenuOpen(false);
+                    runExport('pdf', { statusGroup: 'All' });
                   }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                  Third-Party (3PL) Trips Only
+                  <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
+                  <span>Export to PDF</span>
                 </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Status
-                </DropdownMenuLabel>
-
-                {/* Completed — 12-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'completed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Completed
-                </DropdownMenuItem>
-
-                {/* Loading — 8-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'loading', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Loading
-                </DropdownMenuItem>
-
-                {/* In Transit Right Now — 11-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'in-transit', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  In Transit Right Now
-                </DropdownMenuItem>
-
-                {/* Delayed — 9-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'delayed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Delayed
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Driver / Vehicle / Date
-                </DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Driver
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportDrivers.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
-                      ) : (
-                        exportDrivers.map(d => (
-                          <DropdownMenuItem
-                            key={d.id}
-                            onClick={() => {
-                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', driverId: d.id });
-                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', driver_id: d.id }); }
-                            }}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                          >
-                            {d.first_name} {d.last_name}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Vehicle
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportVehicles.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
-                      ) : (
-                        exportVehicles.map(v => (
-                          <DropdownMenuItem
-                            key={v.id}
-                            onClick={() => {
-                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', vehicleId: v.id });
-                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', vehicle_id: v.id }); }
-                            }}
-                            className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
-                          >
-                            {v.plate_number}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setExportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  A Date Range...
-                </DropdownMenuItem>
-
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedTripsForExport([]);
                     setExportMenuOpen(false);
                     setIsCustomExportOpen(true);
                   }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
                 >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Custom Export Settings...
+                  <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
+                  <span>Custom Export...</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
-                {/* Import Section */}
                 <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Trips
+                  Import Operations
                 </DropdownMenuLabel>
+
                 <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    setImportDialogOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
                 >
-                  <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Import File (Excel / CSV)
+                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
+                  <span>Import File (Excel / CSV)</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2369,29 +2293,15 @@ export default function TripListPage() {
                       className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
                     >
                       <option value="All">All Statuses</option>
-                      <optgroup label="Status Group">
-                        {STATUS_TABS.map((tab) => (
-                          <option key={tab.value} value={tab.value}>
-                            {tab.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Exact State">
-                        {[
-                          ['Draft', 'Scheduled (Draft)'],
-                          ['Dispatched', 'Dispatched'],
-                          ['AtPickup', 'Loading'],
-                          ['InTransit', 'In Transit'],
-                          ['AtDelivery', 'At Delivery'],
-                          ['Completed', 'Completed'],
-                          ['Invoiced', 'Invoiced'],
-                          ['Cancelled', 'Cancelled'],
-                        ].map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </optgroup>
+                      <option value="Active">Active</option>
+                      <option value="Draft">Draft</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="AtPickup">Loading</option>
+                      <option value="InTransit">In Transit</option>
+                      <option value="AtDelivery">At Delivery</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Invoiced">Invoiced</option>
+                      <option value="Cancelled">Cancelled</option>
                     </select>
                   </div>
 
@@ -2525,7 +2435,7 @@ export default function TripListPage() {
                 <div className="flex items-center gap-2">
                   <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
                   <span>
-                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_LABELS[selectedStatus] || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
                   </span>
                 </div>
                 <button
@@ -2766,7 +2676,7 @@ export default function TripListPage() {
           totalCount={allTripsRes?.meta?.total || allTripsRes?.data?.length || 0}
           selectedData={selectedTripsForExport}
           columns={TRIP_EXPORT_COLUMNS}
-          filters={TRIP_EXPORT_FILTERS}
+          filters={tripExportFilters}
           formats={['xlsx', 'csv', 'pdf']}
           rowDateAccessor={(t) => t.planned_start || t.createdAt}
         />

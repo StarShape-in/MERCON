@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
   actions?: React.ReactNode;
   hideBackButton?: boolean;
   onBackClick?: () => void;
+  fixedViewport?: boolean;
   children: React.ReactNode;
 }
 
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   actions,
   hideBackButton,
   onBackClick,
+  fixedViewport,
   children,
 }: DashboardLayoutProps) {
   const { isInsideShell, setMeta } = useLayoutMeta();
@@ -34,7 +36,7 @@ export default function DashboardLayout({
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (isInsideShell) {
-      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, onBackClick });
+      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, onBackClick, fixedViewport });
     }
   }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, onBackClick]);
 

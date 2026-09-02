@@ -1,52 +1,6 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  CalendarDays,
-  Sparkles,
-  Table2,
-  UploadCloud,
-  CheckCircle2,
-  AlertCircle,
-  Plus,
-  Trash2,
-  Copy,
-  ChevronRight,
-  ChevronLeft,
-  Loader2,
-  Calendar,
-  Layers,
-  FileSpreadsheet,
-  Download,
-  RotateCcw,
-  Clock,
-  Moon,
-  RefreshCw,
-  User,
-  Building2,
-  Tag,
-  CreditCard,
-  MapPin,
-  Truck,
-  DollarSign,
-  Search,
-  Link2,
-  Phone,
-  ShieldCheck,
-  X,
-  Zap,
-  Check,
-  Eye,
-  ArrowRight,
-  Edit2,
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
-} from 'lucide-react';
-
-import { cn, isUuid } from '@/lib/utils';
-
+import React from 'react';
+import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ServiceVehicleSelector from '@/components/trips/ServiceVehicleSelector';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
 import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
@@ -59,19 +13,34 @@ import EditCustomerModal from '@/components/customers/EditCustomerModal';
 import EditVehicleModal from '@/components/fleet/EditVehicleModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
-import { RateCategorySelect } from '@/components/quotations/RateCategorySelect';
-import { BillingTypeSelect } from '@/components/quotations/BillingTypeSelect';
-import { quotationService, RateCard } from '@/services/quotationService';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import DriverAvatar from '@/components/ui/DriverAvatar';
+import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
+import TripWizardHeader from '@/components/trips/wizard/TripWizardHeader';
+import TripStep1Customer from '@/components/trips/wizard/TripStep1Customer';
+import TripStep2Route from '@/components/trips/wizard/TripStep2Route';
+import TripStep3Assignment from '@/components/trips/wizard/TripStep3Assignment';
+import TripStep4Summary from '@/components/trips/wizard/TripStep4Summary';
+import TripBatchGeneratorTab from '@/components/trips/wizard/TripBatchGeneratorTab';
+import TripBulkImportTab from '@/components/trips/wizard/TripBulkImportTab';
+import { Button } from '@/components/ui/button';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
-import { KbdBadge } from '@/components/ui/KbdBadge';
+import {
+  useCreateTripForm,
+  normalizeBillingType,
+  normalizeRateCategory,
+  normalizeVehicleClass,
+  getVehicleTypeFromCapacity,
+  isRoundTripCategory,
+  getActualCapacityLabel,
+} from '@/hooks/useCreateTripForm';
+
+export { getActualCapacityLabel };
 
 function MapBoundsAdjuster({ points }: { points: [number, number][] }) {
   const map = useMap();
-  useEffect(() => {
+  React.useEffect(() => {
     if (points && points.length > 0) {
       map.fitBounds(points, { padding: [15, 15], maxZoom: 12 });
     }
@@ -102,112 +71,6 @@ const dropoffMarkerIcon = L.divIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 12],
 });
-
-const returnPickupMarkerIcon = L.divIcon({
-  html: `
-    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(59, 130, 246, 0.2);" class="animate-ping"></div>
-      <div style="width: 12px; height: 12px; border-radius: 50%; background: #3B82F6; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-    </div>
-  `,
-  className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
-
-const returnDropoffMarkerIcon = L.divIcon({
-  html: `
-    <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(139, 92, 246, 0.2);" class="animate-ping"></div>
-      <div style="width: 12px; height: 12px; border-radius: 50%; background: #8B5CF6; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-    </div>
-  `,
-  className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import LocationCombobox from '@/components/quotations/LocationCombobox';
-import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
-import { Combobox, ComboboxOption } from '@/components/ui/combobox';
-import { DatePicker } from '@/components/ui/date-picker';
-import { TimePicker } from '@/components/ui/time-picker';
-import { customerService } from '@/services/customerService';
-import { driverService, Driver } from '@/services/driverService';
-import { vehicleService, Vehicle } from '@/services/vehicleService';
-import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
-import { tripService, BulkImportTripRow, BulkImportResult, TripStatus } from '@/services/tripService';
-import { useDeploymentTimezone, localDateTimeToUtcIso } from '@/lib/datetime';
-import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
-import { monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
-import { estimateTravelTimeByName, calculateArrivalDropoffTime } from '@/services/travelTimeService';
-import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
-import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
-import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
-
-const addDays = (dateStr: string, days: number): string => {
-  if (!dateStr) return dateStr;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-};
-
-// Client-confirmed driver payout rates for the 3 recurring local job types —
-// real numbers pulled from 6 months of actual trips (Local 10 Hrs: 103
-// matching trips, zero exceptions; Local Single Trip and Local Airport
-// similarly confirmed), not guesses. Quick-select chips next to the Trip
-// Charge field so dispatchers don't retype these from memory every time.
-const LOCAL_TRIP_CHARGE_PRESETS = [
-  { label: 'Local 10 Hrs', amount: 60 },
-  { label: 'Local Single Trip', amount: 35 },
-  { label: 'Local Airport', amount: 45 },
-];
-
-const REMOVED_MODAL_CATEGORIES = ['10 Hrs Duty', '12 Hrs Duty'];
-
-const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat as any)).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
-
-const isRoundTripCategory = (cat: string) => {
-  const c = (cat || '').toLowerCase().trim();
-  return c === 'round trip' || c === 'trip/round trip';
-};
-
-const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
-  if (capacityKg == null || capacityKg <= 0) return '40 FEET';
-  const tons = capacityKg / 1000;
-  if (tons <= 4) return '3-4 TON';
-  if (tons <= 5) return '5 TON';
-  if (tons <= 10) return '10 TON';
-  if (tons <= 20) return '20 TON';
-  return '40 FEET';
-};
-
-export const getActualCapacityLabel = (capacityKg?: number | null): string => {
-  if (capacityKg == null || capacityKg <= 0) return '';
-  const tons = capacityKg / 1000;
-  return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
-};
-
-
-
-
-type TabMode = 'contract' | 'grid' | 'file';
-
-interface GridTripRow {
-  id: string;
-  customerId: string;
-  date: string;
-  driverId: string;
-  vehicleId: string;
-  rateCategory: string;
-  vehicleType: string;
-  origin: string;
-  destination: string;
-  amount: string;
-}
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -1816,2460 +1679,358 @@ export default function CreateTripPage() {
       <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1300px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
-        {/* Combined Sleek Navigation & Stepper Bar */}
-        {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-5 py-2.5 gap-3">
-            {/* Top Left: Cancel / Back Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {contractStep > 1 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                  className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-                  Back <KbdBadge keys="Esc" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDialogClose}
-                  className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-                  Cancel <KbdBadge keys="Esc" />
-                </Button>
-              )}
-            </div>
+          {/* Combined Navigation & Stepper Bar */}
+          <TripWizardHeader
+            contractStep={form.contractStep}
+            submissionResult={form.submissionResult}
+            isStepValid={form.isStepValid}
+            canNavigateToStep={form.canNavigateToStep}
+            setContractStep={form.setContractStep}
+            handleContractSubmit={form.handleContractSubmit}
+            handleDialogClose={form.handleDialogClose}
+            isPending={form.bulkMutation.isPending}
+            batchTripRowsCount={form.batchTripRows.length}
+            KbdBadge={KbdBadge}
+          />
 
-            {/* Center: Stepper Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {[
-                { step: 1, label: '1. Customer', icon: User },
-                { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignment & Billing', icon: undefined },
-                { step: 4, label: '4. Review', icon: undefined },
-              ].map((s) => {
-                const IconComp = s.icon;
-                const isActive = contractStep === s.step;
-                const isPassed = contractStep > s.step;
-
-                return (
-                  <button
-                    key={s.step}
-                    type="button"
-                    disabled={!canNavigateToStep(s.step)}
-                    onClick={() => setContractStep(s.step as any)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
-                      isActive
-                        ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
-                        : isPassed
-                        ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
-                        : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
-                    }`}
-                  >
-                    {IconComp && (
-                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
-                    )}
-                    <span>{s.label}</span>
-                    {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Top Right: Next / Done Primary Action & Close */}
-            <div className="flex items-center gap-2 shrink-0">
-              {contractStep < 4 ? (
-                <Button
-                  type="button"
-                  disabled={!isStepValid(contractStep)}
-                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
-                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
-                >
-                  Next
-                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  <KbdBadge keys="Ctrl+S" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={
-                    bulkMutation.isPending || 
-                    batchTripRows.length === 0 ||
-                    !isStepValid(3)
-                  }
-                  onClick={handleContractSubmit}
-                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                >
-                  {bulkMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      Done <KbdBadge keys="Ctrl+S" />
-                    </>
-                  )}
-                </Button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleDialogClose}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Local Draft Auto-Save Recovery Alert Banner */}
-        {hasSavedDraft && !submissionResult && (
-          <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
-            <div className="flex items-center gap-2 text-amber-900 font-medium">
-              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Unsaved trip draft detected from your previous session.</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                size="sm"
-                tabIndex={-1}
-                onClick={restoreDraft}
-                className="h-7 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 border-0 shadow-2xs"
-              >
-                Restore Draft
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                tabIndex={-1}
-                onClick={discardDraft}
-                className="h-7 text-xs font-bold text-amber-800 hover:bg-amber-100 rounded-lg px-2"
-              >
-                Discard
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 custom-scrollbar">
-          {/* Submission Result Screen */}
-          {submissionResult ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
-              <h3 className="text-xl font-bold text-[#111111]">
-                {submissionResult.imported} {submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
-              </h3>
-              <p className="text-xs text-[#6E6E80] mt-1.5 max-w-md">
-                All trips have been added to the database and are now populated on the Monthly Board view.
-              </p>
-
-              {submissionResult.failed > 0 && (
-                <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left max-w-lg w-full">
-                  <p className="font-bold flex items-center gap-1.5 mb-1 text-amber-900">
-                    <AlertCircle className="h-4 w-4" /> {submissionResult.failed} rows failed validation:
-                  </p>
-                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-700">
-                    {submissionResult.results
-                      .filter((r) => !r.success)
-                      .slice(0, 5)
-                      .map((f, idx) => (
-                        <li key={idx}>Row {f.row}: {f.error}</li>
-                      ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Reference ID chips */}
-              <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-black/[0.06] max-w-xl w-full text-left">
-                <p className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider mb-2">
-                  Generated Trip References
-                </p>
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                  {submissionResult.results
-                    .filter((r) => r.success && r.ref_id)
-                    .map((r, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-black/10 text-xs font-bold text-[#111111]"
-                      >
-                        {r.ref_id}
-                      </span>
-                    ))}
-                </div>
+          {/* Local Draft Auto-Save Recovery Alert Banner (Only shown on Step 1 Customer) */}
+          {form.hasSavedDraft && !form.submissionResult && form.contractStep === 1 && (
+            <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
+              <div className="flex items-center gap-2 text-amber-900 font-medium">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Unsaved trip draft detected from your previous session.</span>
               </div>
-
-              <div className="flex items-center gap-3 mt-8">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
-                  variant="outline"
-                  onClick={resetAll}
-                  className="rounded-xl border-black/10 text-xs font-semibold h-10 px-5"
+                  type="button"
+                  size="sm"
+                  tabIndex={-1}
+                  onClick={form.restoreDraft}
+                  className="h-7 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 border-0 shadow-2xs"
                 >
-                  Create More Trips
+                  Restore Draft
                 </Button>
                 <Button
-                  onClick={handleDialogClose}
-                  className="rounded-xl bg-brand hover:bg-[#d13d0d] text-white text-xs font-bold h-10 px-6"
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  tabIndex={-1}
+                  onClick={form.discardDraft}
+                  className="h-7 text-xs font-bold text-amber-800 hover:bg-amber-100 rounded-lg px-2"
                 >
-                  Close & View Board
+                  Discard
                 </Button>
               </div>
             </div>
-          ) : (
-            <>
-              {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
-              {activeTab === 'contract' && (
-                <div>
-                  {/* STEP 1: CUSTOMER & CATEGORY */}
-                  {contractStep === 1 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-brand" />
-                          Select Customer Account
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Pick the client responsible for freight billing and contracted lane rates.
-                        </p>
-                      </div>
-
-                      {/* Frequent Shippers Cards */}
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                          <Zap className="w-3.5 h-3.5 text-amber-500" /> Frequent Shippers
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                          {customers.slice(0, 4).map((c, idx) => {
-                            const isSelected = contractCustomer === c.id;
-                            const initials = c.name.substring(0, 2).toUpperCase();
-                            return (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => setContractCustomer(c.id)}
-                                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[84px] h-auto space-y-2 ${
-                  isSelected
-                                    ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
-                                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 overflow-hidden ${
-                                    isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
-                                  }`}>
-                                    {c.logo_url || c.avatar_url ? (
-                                      <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      initials
-                                    )}
-                                  </span>
-                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
-                                    Key {idx + 1}
-                                  </span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-xs font-bold text-[#111111] leading-tight line-clamp-1" title={c.name}>{c.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-medium leading-normal">Commercial Account</p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Search All Accounts (Full Width) */}
-                      <div className="space-y-1.5 pt-2 border-t border-black/[0.06]">
-                        <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
-                          <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
-                        </label>
-                        <Combobox
-                          options={customerOptions}
-                          value={contractCustomer}
-                          onChange={setContractCustomer}
-                          placeholder="-- Select or search customer account --"
-                          searchPlaceholder="Search customer account by name e.g. AKS, Al-Marai..."
-                          emptyText="No customer matching your search."
-                          triggerClassName="h-9.5 rounded-xl border-slate-200 bg-white text-xs font-semibold shadow-2xs w-full"
-                        />
-
-                        {/* Selected Customer Details Card */}
-                        {(() => {
-                          const selectedCust = customers.find((c) => c.id === contractCustomer);
-                          if (!selectedCust) return null;
-                          const initials = selectedCust.name.substring(0, 2).toUpperCase();
-                          return (
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80 overflow-hidden">
-                                    {selectedCust.logo_url || selectedCust.avatar_url ? (
-                                      <img src={selectedCust.logo_url || selectedCust.avatar_url || ''} alt={selectedCust.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      initials
-                                    )}
-                                  </span>
-                                  <div>
-                                    <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
-                                    <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    tabIndex={-1}
-                                    onClick={() => setPreviewCustomer(selectedCust)}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Eye className="w-3 h-3" /> Preview
-                                  </button>
-                                  <button
-                                    type="button"
-                                    tabIndex={-1}
-                                    onClick={() => setEditCustomer(selectedCust)}
-                                    className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Edit2 className="w-3 h-3" /> Edit
-                                  </button>
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    Active Account
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <Phone className="w-2.5 h-2.5 text-slate-400" /> CONTACT PHONE
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.phone || '966500000007'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <CreditCard className="w-2.5 h-2.5 text-slate-400" /> PAYMENT TERMS
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.payment_terms || 'Net 30'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <ShieldCheck className="w-2.5 h-2.5 text-slate-400" /> ACCOUNT CREDIT
-                                  </span>
-                                  <span className="text-xs font-bold text-emerald-600">
-                                    Good Standing
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 2: ROUTE & TRIPS SLOTS */}
-                  {contractStep === 2 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Operational Category & Vehicle Class (Option 1 Ultra-Compact Bar) */}
-                      <ServiceVehicleSelector
-                        contractRateCategory={contractRateCategory}
-                        contractVehicleType={contractVehicleType}
-                        contractBillingType={contractBillingType}
-                        onUpdateRateCategory={(cat) => {
-                          setContractRateCategory(cat);
-                          triggerRateLookupForSlots(undefined, cat);
-                        }}
-                        onUpdateVehicleType={(veh) => {
-                          setContractVehicleType(veh);
-                          triggerRateLookupForSlots(veh);
-                        }}
-                        onUpdateBillingType={(bType) => {
-                          setContractBillingType(bType);
-                          triggerRateLookupForSlots(undefined, undefined, undefined, bType);
-                        }}
-                        matchStatus={
-                          contractSlots.some(s => s.originLocationId && s.destinationLocationId)
-                            ? contractSlots.some(s => Boolean(s.rateMatched))
-                              ? 'matched'
-                              : 'unmatched'
-                            : 'idle'
-                        }
-                      />
-
-                      {/* Daily Route Stop Cards (Full-Width Primary Focal Point) */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
-                            </span>
-                            {contractSlots.length > 1 && (
-                              <Badge className="bg-orange-50 text-brand border-orange-200 text-[10px] font-bold">
-                                {contractSlots.length} Slots / Day
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {contractSlots.map((slot, slotIdx) => (
-                          <div
-                            key={slot.id}
-                            className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
-                          >
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                  Trip Slot #{slotIdx + 1}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                  onClick={() => handleAddSlotIntermediate(slot.id)}
-                                >
-                                  <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                  Add Stop
-                                </Button>
-                                {contractSlots.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTripSlot(slot.id)}
-                                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
-                                    title="Remove trip slot"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
-                            {isRoundTripCategory(contractRateCategory) ? (
-                              <div className="space-y-3 pt-0.5">
-                                {/* LEG 1: OUTBOUND JOURNEY */}
-                                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2.5">
-                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
-                                        Leg 1: Outbound Journey
-                                      </Badge>
-                                      <span className="text-xs font-bold text-slate-800">Origin → Destination</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                      onClick={() => handleAddSlotIntermediate(slot.id)}
-                                    >
-                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                      Add Outbound Stop
-                                    </Button>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {/* SECTION 1: Outbound Pickup (Start) */}
-                                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                                          <span className="text-xs font-bold text-emerald-950">1. Outbound Pickup (Start)</span>
-                                        </div>
-                                        <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
-                                          Starting Point
-                                        </span>
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
-                                            Outbound Pickup Location *
-                                          </label>
-                                          <LocationCombobox
-                                            customerId={contractCustomer}
-                                            value={slot.origin}
-                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                                            placeholder="Search starting origin (e.g. Riyadh)..."
-                                            triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 text-emerald-600" /> Outbound Date *
-                                            </label>
-                                            <DatePicker
-                                              value={slot.date || ''}
-                                              onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
-                                              placeholder="Select date..."
-                                              buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              minDate={new Date()}
-                                            />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Clock className="w-3 h-3 text-emerald-600" /> Outbound Time *
-                                            </label>
-                                            <TimePicker
-                                              value={slot.pickupTime}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* SECTION 2: Outbound Dropoff (Destination) */}
-                                    <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
-                                          <span className="text-xs font-bold text-orange-950">2. Outbound Dropoff (Destination)</span>
-                                        </div>
-                                        <span className="text-[9px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-1.5 py-0.5 rounded">
-                                          Delivery Point
-                                        </span>
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider block">
-                                            Outbound Dropoff Location *
-                                          </label>
-                                          <LocationCombobox
-                                            customerId={contractCustomer}
-                                            value={slot.destination}
-                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-                                            placeholder="Search delivery destination (e.g. Dammam)..."
-                                            triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 text-brand" /> Outbound Date *
-                                            </label>
-                                            <DatePicker
-                                              value={slot.dropoffDate || ''}
-                                              onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
-                                              placeholder="Select date..."
-                                              buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              minDate={slot.date ? new Date(slot.date) : new Date()}
-                                            />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Clock className="w-3 h-3 text-brand" /> Outbound Time *
-                                            </label>
-                                            <div className="flex items-center gap-1">
-                                              <TimePicker
-                                                value={slot.dropoffTime}
-                                                onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
-                                                placeholder="Select time..."
-                                                buttonClassName="flex-1 h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              />
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                  const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
-                                                  const newHour = (hh + 1) % 24;
-                                                  const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                  const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
-                                                  handleUpdateTripSlot(slot.id, {
-                                                    dropoffTime: newTime,
-                                                    dropoffDate: newDate,
-                                                    isOvernight: newHour === 0 ? true : slot.isOvernight
-                                                  });
-                                                }}
-                                                className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
-                                                title="Add 1 Hour"
-                                              >
-                                                <Plus className="w-3.5 h-3.5" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <TransitTimeBadge
-                                    origin={slot.origin}
-                                    destination={slot.destination}
-                                    originLat={slot.originLat}
-                                    originLng={slot.originLng}
-                                    destinationLat={slot.destinationLat}
-                                    destinationLng={slot.destinationLng}
-                                    pickupTime={slot.pickupTime}
-                                    dropoffTime={slot.dropoffTime}
-                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                      handleUpdateTripSlot(slot.id, {
-                                        dropoffTime: suggestedTime,
-                                        ...(isOvernight ? { isOvernight: true } : {}),
-                                      });
-                                    }}
-                                  />
-
-                                  {/* Outbound Intermediate Stops & Fees */}
-                                  {slot.intermediateLocations.length > 0 && (
-                                    <div className="space-y-2 pt-1.5 border-t border-slate-200/60">
-                                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                                        Outbound Intermediate Stops & Fees ({slot.intermediateLocations.length})
-                                      </span>
-                                      <div className="space-y-2">
-                                        {slot.intermediateLocations.map((loc, idx) => (
-                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1.5">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3 text-emerald-600" />
-                                                Outbound Stop #{idx + 1}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
-                                              >
-                                                Remove Stop
-                                              </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                              <div className="sm:col-span-2">
-                                                <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={loc}
-                                                  onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
-                                                  placeholder={`Search Outbound Stop #${idx + 1}...`}
-                                                  triggerClassName="h-8 border-slate-200 bg-white"
-                                                />
-                                              </div>
-                                              <div className="relative">
-                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
-                                                <input
-                                                  type="number"
-                                                  value={slot.intermediateStopFees?.[idx] || ''}
-                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                                  placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                           {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
-                                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200/80 space-y-2.5">
-                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
-                                        <RefreshCw className="w-2.5 h-2.5 animate-spin-slow" />
-                                        Leg 2: Return Journey Loop
-                                      </Badge>
-                                      <span className="text-xs font-bold text-indigo-950">Destination &rarr; Return to Origin</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                      onClick={() => handleAddSlotReturnIntermediate(slot.id)}
-                                    >
-                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                      Add Return Stop
-                                    </Button>
-                                  </div>
-
-                                  {/* Curved Dual-Arrow Loop Banner */}
-                                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-indigo-200/80 shadow-2xs">
-                                    <div className="flex items-center gap-2">
-                                      <RotateCcw className="w-4 h-4 text-indigo-600 shrink-0" />
-                                      <span className="text-xs font-extrabold text-slate-800">
-                                        Return Loop automatically starts from Outbound Dropoff ({slot.destination || 'Destination'})
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-indigo-50 rounded-lg text-xs font-black text-indigo-900 border border-indigo-200">
-                                      <span>{slot.destination || 'Dropoff'}</span>
-                                      <div className="flex flex-col items-center px-1">
-                                        <svg className="w-6 h-2 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M 2 8 C 10 2, 22 2, 30 8" />
-                                          <path d="M 25 3 L 30 8 L 24 9" />
-                                        </svg>
-                                        <svg className="w-6 h-2 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M 30 2 C 22 8, 10 8, 2 2" />
-                                          <path d="M 7 7 L 2 2 L 8 1" />
-                                        </svg>
-                                      </div>
-                                      <span>{slot.origin || 'Pickup'}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 gap-3">                            </div>
-
-                                    {/* SECTION 4: Return Dropoff (Final Home Destination) */}
-                                    <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
-                                          <span className="text-xs font-bold text-purple-950">4. Return Dropoff (Final Home)</span>
-                                        </div>
-                                        {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdateTripSlot(slot.id, { returnIsOvernight: !slot.returnIsOvernight })}
-                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
-                                              slot.returnIsOvernight
-                                                ? 'bg-indigo-600 text-white shadow-2xs'
-                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                            }`}
-                                            title="Toggle Return Overnight (+1 Day)"
-                                          >
-                                            <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            {slot.returnIsOvernight ? '+1 Day (Overnight)' : '+1 Day'}
-                                          </button>
-                                        )}
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
-                                            <span>Return Dropoff (Home) *</span>
-                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[9px] gap-1 px-1.5 py-0.5 rounded shadow-2xs">
-                                              <RotateCcw className="w-2.5 h-2.5 text-emerald-600" />
-                                              Auto-Linked Home Origin
-                                            </Badge>
-                                          </label>
-                                          <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.returnDestination || slot.origin}
-                                            onChange={(locName, locObj) => handleUpdateTripSlot(slot.id, {
-                                              returnDestination: locName,
-                                              returnDestinationLat: locObj?.lat ?? null,
-                                              returnDestinationLng: locObj?.lng ?? null
-                                            })}
-                                            placeholder="Search final home destination..."
-                                            triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
-                                          </label>
-                                          <div className="flex items-center gap-1.5">
-                                            <TimePicker
-                                              value={slot.returnDropoffTime || '22:00'}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { returnDropoffTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
-                                                slot.returnIsOvernight
-                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-purple-200 bg-white text-slate-800'
-                                              }`}
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                const [hh, mm] = (slot.returnDropoffTime || '22:00').split(':').map(Number);
-                                                const newHour = (hh + 1) % 24;
-                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                handleUpdateTripSlot(slot.id, {
-                                                  returnDropoffTime: newTime,
-                                                  returnIsOvernight: newHour === 0 ? true : slot.returnIsOvernight
-                                                });
-                                              }}
-                                              className="h-8.5 w-8.5 p-0 rounded-lg border-purple-200 bg-white text-[#7c3aed] hover:bg-purple-50 shrink-0"
-                                              title="Add 1 Hour"
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <TransitTimeBadge
-                                    origin={slot.returnOrigin || slot.destination}
-                                    destination={slot.returnDestination || slot.origin}
-                                    originLat={slot.returnOriginLat || slot.destinationLat}
-                                    originLng={slot.returnOriginLng || slot.destinationLng}
-                                    destinationLat={slot.returnDestinationLat || slot.originLat}
-                                    destinationLng={slot.returnDestinationLng || slot.originLng}
-                                    pickupTime={slot.returnPickupTime || '14:00'}
-                                    dropoffTime={slot.returnDropoffTime}
-                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                      handleUpdateTripSlot(slot.id, {
-                                        returnDropoffTime: suggestedTime,
-                                        ...(isOvernight ? { returnIsOvernight: true } : {}),
-                                      });
-                                    }}
-                                  />
-
-                                  {/* Return Intermediate Stops & Fees */}
-                                  {(slot.returnIntermediateLocations || []).length > 0 && (
-                                    <div className="space-y-2 pt-1.5 border-t border-indigo-100">
-                                      <span className="text-[10px] font-bold text-indigo-950 uppercase tracking-wider block">
-                                        Return Intermediate Stops & Fees ({(slot.returnIntermediateLocations || []).length})
-                                      </span>
-                                      <div className="space-y-2">
-                                        {(slot.returnIntermediateLocations || []).map((loc, idx) => (
-                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-indigo-200 space-y-1.5">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3 text-purple-600" />
-                                                Return Stop #{idx + 1}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemoveSlotReturnIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
-                                              >
-                                                Remove Stop
-                                              </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                              <div className="sm:col-span-2">
-                                                <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={loc}
-                                                  onChange={(locId, locObj) => handleUpdateSlotReturnIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
-                                                  placeholder={`Search Return Stop #${idx + 1}...`}
-                                                  triggerClassName="h-8 border-indigo-200 bg-white"
-                                                />
-                                              </div>
-                                              <div className="relative">
-                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
-                                                <input
-                                                  type="number"
-                                                  value={slot.returnIntermediateStopFees?.[idx] || ''}
-                                                  onChange={(e) => handleUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
-                                                  placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              /* Option 2: Split Side-by-Side (Origin | Destination) with Middle Intermediate List */
-                              <div className="space-y-3 pt-0.5">
-                                {/* 1. TOP ROW: Side-by-Side Pickup (Origin) & Dropoff (Destination) Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
-                                  <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/40 dark:bg-emerald-950/20 p-2.5 space-y-2 shadow-2xs">
-                                    <div className="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-emerald-950 dark:text-emerald-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" /> Pickup Stop (Origin)
-                                      </span>
-                                      <span className="text-[9px] font-bold text-emerald-700 bg-white dark:bg-slate-900 border border-emerald-200 px-2 py-0.5 rounded">
-                                        Route Start
-                                      </span>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
-                                          Pickup Location *
-                                        </label>
-                                        <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.origin}
-                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                                          placeholder="Search or select pickup location..."
-                                          triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
-                                        />
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Calendar className="w-3 h-3 text-emerald-600" /> Pickup Date *
-                                          </label>
-                                          <DatePicker
-                                            value={slot.date || ''}
-                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
-                                            placeholder="Select date..."
-                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            minDate={new Date()}
-                                          />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
-                                          </label>
-                                          <TimePicker
-                                            value={slot.pickupTime}
-                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
-                                            placeholder="Select time..."
-                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
-                                  <div className="rounded-xl border border-orange-200/90 bg-orange-50/40 dark:bg-orange-950/20 p-2.5 space-y-2 shadow-2xs">
-                                    <div className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-orange-950 dark:text-orange-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-brand fill-orange-100" /> Dropoff Stop (Destination)
-                                      </span>
-
-                                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                          className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
-                                            slot.isOvernight
-                                              ? 'bg-indigo-600 text-white shadow-2xs'
-                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                          }`}
-                                          title="Toggle Overnight / Next-Day Return trip (+1 Day)"
-                                        >
-                                          <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                          +1 Day
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider block">
-                                          Dropoff Location *
-                                        </label>
-                                        <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.destination}
-                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-                                          placeholder="Search or select dropoff location..."
-                                          triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
-                                        />
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Calendar className="w-3 h-3 text-brand" /> Drop-off Date *
-                                          </label>
-                                          <DatePicker
-                                            value={slot.dropoffDate || ''}
-                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
-                                            placeholder="Select date..."
-                                            buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            minDate={slot.date ? new Date(slot.date) : new Date()}
-                                          />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
-                                          </label>
-                                          <div className="flex items-center gap-1">
-                                            <TimePicker
-                                              value={slot.dropoffTime}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
-                                                slot.isOvernight
-                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-orange-200 bg-white text-slate-800'
-                                              }`}
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
-                                                const newHour = (hh + 1) % 24;
-                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
-                                                handleUpdateTripSlot(slot.id, {
-                                                  dropoffTime: newTime,
-                                                  dropoffDate: newDate,
-                                                  isOvernight: newHour === 0 ? true : slot.isOvernight
-                                                });
-                                              }}
-                                              className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
-                                              title="Add 1 Hour"
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* 2. TRANSIT TIME & MARGIN BADGE */}
-                                <TransitTimeBadge
-                                  origin={slot.origin}
-                                  destination={slot.destination}
-                                  originLat={slot.originLat}
-                                  originLng={slot.originLng}
-                                  destinationLat={slot.destinationLat}
-                                  destinationLng={slot.destinationLng}
-                                  pickupTime={slot.pickupTime}
-                                  dropoffTime={slot.dropoffTime}
-                                  onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                    handleUpdateTripSlot(slot.id, {
-                                      dropoffTime: suggestedTime,
-                                      ...(isOvernight ? { isOvernight: true } : {}),
-                                    });
-                                  }}
-                                />
-
-                                {/* 3. MIDDLE SECTION: COMPACT INTERMEDIATE STOPS LIST */}
-                                {slot.intermediateLocations.length > 0 && (
-                                  <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/20 dark:bg-indigo-950/20 p-2.5 space-y-2">
-                                    <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-indigo-950 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                                        Intermediate Stops ({slot.intermediateLocations.length})
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddSlotIntermediate(slot.id)}
-                                        className="text-[10px] font-bold text-indigo-700 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950 flex items-center gap-1 transition-all cursor-pointer"
-                                      >
-                                        <Plus className="w-3 h-3 text-indigo-600" />
-                                        Add Stop
-                                      </button>
-                                    </div>
-
-                                    {/* COMPACT SINGLE-LINE ROWS */}
-                                    <div className="space-y-1.5">
-                                      {slot.intermediateLocations.map((loc, idx) => (
-                                        <div
-                                          key={idx}
-                                          draggable
-                                          onDragStart={(e) => e.dataTransfer.setData('text/plain', String(idx))}
-                                          onDragOver={(e) => e.preventDefault()}
-                                          onDrop={(e) => {
-                                            e.preventDefault();
-                                            const fromIdx = Number(e.dataTransfer.getData('text/plain'));
-                                            if (!isNaN(fromIdx) && fromIdx !== idx) {
-                                              handleMoveSlotIntermediate(slot.id, fromIdx, idx);
-                                            }
-                                          }}
-                                          className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs group hover:border-indigo-300 transition-all"
-                                        >
-                                          {/* Drag Handle & Index */}
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            <span className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600" title="Drag to reorder stop">
-                                              <GripVertical className="w-3.5 h-3.5" />
-                                            </span>
-                                            <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] font-extrabold flex items-center justify-center">
-                                              #{idx + 1}
-                                            </span>
-                                          </div>
-
-                                          {/* Location Combobox (Flex Fill) */}
-                                          <div className="flex-1 min-w-[200px]">
-                                            <LocationCombobox
-                                              customerId={contractCustomer}
-                                              value={loc}
-                                              onChange={(locId, locObj) => {
-                                                const displayName = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
-                                                const resolvedId = locObj?.id || (isUuid(locId) ? locId : null);
-                                                handleUpdateSlotIntermediate(slot.id, idx, displayName, resolvedId);
-                                                setTimeout(() => triggerRateLookupForSlots(), 50);
-                                              }}
-                                              placeholder={`Intermediate Stop #${idx + 1}...`}
-                                              triggerClassName="h-8 border-slate-200 bg-white shadow-2xs text-xs font-medium"
-                                            />
-                                          </div>
-
-                                          {/* Stop Fee Input (Compact) */}
-                                          <div className="w-32 relative shrink-0">
-                                            <span className="absolute left-2 top-1.5 text-[10px] font-bold text-slate-400">SAR</span>
-                                            <input
-                                              type="number"
-                                              value={slot.intermediateStopFees?.[idx] || ''}
-                                              onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                              placeholder="Stop Fee"
-                                              className="w-full h-8 pl-8 pr-2 rounded-md border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white"
-                                            />
-                                          </div>
-
-                                          {/* Reorder Up / Down Micro-Buttons */}
-                                          <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100">
-                                            <button
-                                              type="button"
-                                              disabled={idx === 0}
-                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx - 1)}
-                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
-                                              title="Move stop up"
-                                            >
-                                              <ChevronUp className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              disabled={idx === slot.intermediateLocations.length - 1}
-                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx + 1)}
-                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
-                                              title="Move stop down"
-                                            >
-                                              <ChevronDown className="w-3.5 h-3.5" />
-                                            </button>
-                                          </div>
-
-                                          {/* Trash Remove Button */}
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors shrink-0 cursor-pointer"
-                                            title="Remove stop"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                 {/* AGREED QUOTATION COMBOS FOR THIS ROUTE */}
-                                 {(() => {
-                                   if (!slot.origin || !slot.destination) return null;
-                                   const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
-                                   if (laneRateCards.length === 0) return null;
-
-                                   return (
-                                     <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 dark:bg-blue-950/20 dark:border-blue-900/50 space-y-2 mt-2">
-                                       <div className="flex items-center justify-between flex-wrap gap-2">
-                                         <span className="text-[11px] font-black uppercase text-blue-900 dark:text-blue-300 tracking-wider flex items-center gap-1.5">
-                                           <Tag className="w-3.5 h-3.5 text-blue-600" />
-                                           Agreed Quotation Combos for this Route ({laneRateCards.length} Available)
-                                         </span>
-                                         <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
-                                           Click any combo chip to auto-apply vehicle, category & operation type
-                                         </span>
-                                       </div>
-
-                                       <div className="flex items-center gap-2 flex-wrap">
-                                         {laneRateCards.map((rc) => {
-                                           const vLabel = rc.vehicle_class || rc.vehicle_type || rc.source_vehicle_label || '10 TON';
-                                           const cLabel = rc.line_type || rc.rate_category || 'Single Trip';
-                                           const bLabel = rc.billing_type || 'Monthly';
-                                           const rateVal = rc.rate ?? rc.base_price ?? 0;
-                                           const payoutVal = rc.driver_payout ?? (rc as any).driver_charge;
-
-                                           const isCurrentlyActive =
-                                             (contractVehicleType || '').toLowerCase() === vLabel.toLowerCase() &&
-                                             (contractRateCategory || '').toLowerCase() === cLabel.toLowerCase() &&
-                                             (contractBillingType || '').toLowerCase() === bLabel.toLowerCase();
-
-                                           return (
-                                             <button
-                                               key={rc.id}
-                                               type="button"
-                                               onClick={() => {
-                                                 setContractVehicleType(vLabel);
-                                                 setContractRateCategory(cLabel);
-                                                 setContractBillingType(bLabel);
-                                                 triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
-                                               }}
-                                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
-                                                 isCurrentlyActive
-                                                   ? 'bg-blue-600 text-white border-blue-700 shadow-xs ring-2 ring-blue-300'
-                                                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-blue-200 dark:border-blue-800 hover:bg-blue-100/60 shadow-2xs'
-                                               }`}
-                                             >
-                                               <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
-                                                 SAR {rateVal.toLocaleString()}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {bLabel}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {vLabel}
-                                               </span>
-                                               <span className="text-[10px] font-extrabold opacity-90 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-200">
-                                                 {cLabel}
-                                               </span>
-                                               {payoutVal != null && (
-                                                 <span className="text-[10px] font-medium opacity-80">
-                                                   (Driver: SAR {payoutVal})
-                                                 </span>
-                                               )}
-                                             </button>
-                                           );
-                                         })}
-                                       </div>
-                                     </div>
-                                   );
-                                 })()}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 3: ASSIGNMENT & BILLING */}
-                  {contractStep === 3 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Title & Assignment Switcher */}
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h4 className="text-sm font-extrabold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-brand" />
-                          Assignment & Billing
-                        </h4>
-
-                        {/* Assignment Source Switcher: Own Fleet vs. Third Party */}
-                        <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('own')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'own'
-                                ? 'bg-white dark:bg-slate-900 text-brand shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Truck className="w-3.5 h-3.5" />
-                            Own Fleet
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('third_party')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'third_party'
-                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Building2 className="w-3.5 h-3.5" />
-                            Third-Party Vehicle (3PL)
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Live Financial Margin Indicator (Compact 1-Liner) */}
-                      <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-extrabold text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>Customer Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
-                          <span className="text-slate-300 dark:text-slate-700">|</span>
-                          <span>Driver/3PL Payout: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
-                        </div>
-
-                        <Badge
-                          className={`px-2.5 py-0.5 rounded-lg font-mono font-extrabold text-xs gap-1 shadow-2xs border ${
-                            marginMetrics.isHigh
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : marginMetrics.isMedium
-                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                              : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                          }`}
-                        >
-                          <Zap className="w-3 h-3" />
-                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}%)
-                        </Badge>
-                      </div>
-
-                      {/* OPTION A: OWN FLEET SELECTORS */}
-                      {assignmentType === 'own' && (
-                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-2xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-brand" />
-                              Select Driver & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateDriverOpen(true)}
-                              className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Driver
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...driverOptions
-                                ]}
-                                value={masterDriver}
-                                onChange={handleDriverChange}
-                                placeholder="Select driver"
-                                searchPlaceholder="Search driver..."
-                                emptyText="No drivers found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                              {driverConflictWarning && (
-                                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5 mt-1">
-                                  <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                                  <span>{driverConflictWarning}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...vehicleOptions
-                                ]}
-                                value={masterVehicle}
-                                onChange={handleVehicleChange}
-                                placeholder="Select vehicle"
-                                searchPlaceholder="Search vehicle..."
-                                emptyText="No vehicles found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {!isVehicleTypeEditable && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsVehicleTypeEditable(true)}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                              <Select
-                                value={contractVehicleType}
-                                onValueChange={(val) => {
-                                  setContractVehicleType(val);
-                                  setIsVehicleTypeEditable(false);
-                                  triggerRateLookupForSlots(val);
-                                }}
-                                disabled={!isVehicleTypeEditable}
-                              >
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 disabled:opacity-80" title="Vehicle Type">
-                                  <SelectValue placeholder="Vehicle Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {VEHICLE_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                      {type}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* OPTION B: THIRD-PARTY / 3PL SUBCONTRACTOR SELECTORS */}
-                      {assignmentType === 'third_party' && (
-                        <div className="p-3 rounded-xl bg-purple-50/20 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-2.5">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                              Assign 3PL Carrier & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateProviderOpen(true)}
-                              className="h-6 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Provider
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Provider *</label>
-                              <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold">
-                                  <SelectValue placeholder="Select provider" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {thirdPartyProviders.map((p) => (
-                                    <SelectItem key={p.id} value={p.id} className="text-xs font-semibold">
-                                      {p.name} {p.phone ? `(${p.phone})` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Plate *</label>
-                              <input
-                                type="text"
-                                value={thirdPartyVehiclePlate}
-                                onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
-                                placeholder="e.g. 1234 ABC"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {isCustomThirdPartyVehicleType && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsCustomThirdPartyVehicleType(false);
-                                      setContractVehicleType(VEHICLE_TYPES[0] || 'Flatbed');
-                                    }}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Select
-                                  </button>
-                                )}
-                              </div>
-                              {isCustomThirdPartyVehicleType ? (
-                                <input
-                                  type="text"
-                                  value={contractVehicleType}
-                                  onChange={(e) => setContractVehicleType(e.target.value)}
-                                  placeholder="Custom type..."
-                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              ) : (
-                                <Select
-                                  value={contractVehicleType}
-                                  onValueChange={(val) => {
-                                    if (val === 'custom') {
-                                      setIsCustomThirdPartyVehicleType(true);
-                                      setContractVehicleType('');
-                                    } else {
-                                      setContractVehicleType(val);
-                                      triggerRateLookupForSlots(val);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100" title="Vehicle Type">
-                                    <SelectValue placeholder="Vehicle Type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {VEHICLE_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                        {type}
-                                      </SelectItem>
-                                    ))}
-                                    <SelectItem value="custom" className="text-xs font-semibold text-purple-700">
-                                      Custom...
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5 border-t border-purple-100 dark:border-purple-900/30">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Driver Name</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverName}
-                                onChange={(e) => setThirdPartyDriverName(e.target.value)}
-                                placeholder="e.g. Tariq Mahmoud"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Phone</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverPhone}
-                                onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
-                                placeholder="e.g. +966 50 123 4567"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Cost (SAR)</label>
-                              <div className="relative">
-                                <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                <input
-                                  type="number"
-                                  value={thirdPartyCost}
-                                  onChange={(e) => setThirdPartyCost(e.target.value)}
-                                  placeholder="0.00"
-                                  className="w-full h-8 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-right bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Per-slot Billing Amount & Trip Charge */}
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Trip Rates & Payout</span>
-                          </div>
-                          {contractVehicleType && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 flex items-center gap-1">
-                              <Truck className="w-3 h-3" />
-                              Tier: {contractVehicleType}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-2.5">
-                          {contractSlots.map((slot, idx) => {
-                            const dateObj = slot.date ? new Date(slot.date) : new Date();
-                            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-                            const stopFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-                            const baseAmount = Number(slot.billingAmount) || 0;
-                            const totalBillingAmount = baseAmount + stopFeesSum;
-                            const driverPayout = Number(slot.tripCharges) || 0;
-                            const marginAmount = totalBillingAmount - driverPayout;
-                            const marginPercent = totalBillingAmount > 0 ? Math.round((marginAmount / totalBillingAmount) * 100) : 0;
-
-                            return (
-                              <div key={slot.id} className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-2xs">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                    <span className="text-xs font-semibold text-slate-500">({slot.origin || '—'} → {slot.destination || '—'})</span>
-                                  </div>
-                                  {slot.rateMatched ? (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[11px] font-black text-white bg-emerald-600 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
-                                        <CheckCircle2 className="w-3.5 h-3.5" /> QUOTATION MATCHED
-                                      </span>
-                                      {slot.rateCardName && (
-                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md truncate max-w-xs">
-                                          {slot.rateCardName}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Custom Rate / No Quotation
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                  {/* Customer Billing Charge */}
-                                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 flex flex-col justify-between">
-                                    <div>
-                                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
-                                        <span>Customer Billing (SAR)</span>
-                                        {slot.rateCardBasePrice != null && slot.rateMatched && (
-                                          <span className="text-emerald-600 dark:text-emerald-400 font-mono">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
-                                        )}
-                                      </div>
-                                      <div className="relative mt-1">
-                                        <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                        <input
-                                          type="number"
-                                          value={slot.billingAmount}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
-                                          placeholder="0.00"
-                                          className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
-                                            slot.rateMatched
-                                              ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
-                                              : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
-                                          }`}
-                                        />
-                                      </div>
-                                      {stopFeesSum > 0 && (
-                                        <div className="text-[10px] text-right font-semibold text-slate-500 mt-1">
-                                          + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Option A: Direct Integration inside Customer Billing Box */}
-                                    {!slot.rateMatched && (
-                                      <label className="mt-2 flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/90 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-200 cursor-pointer shadow-2xs hover:bg-amber-100/70 transition-all select-none">
-                                        <span className="flex items-center gap-1.5 text-[11px]">
-                                          <input
-                                            type="checkbox"
-                                            checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                            className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                          />
-                                          <span>Save rate as Quotation</span>
-                                        </span>
-                                        <span className="text-[9px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-700">
-                                          {contractVehicleType || '10 TON'}
-                                        </span>
-                                      </label>
-                                    )}
-                                  </div>
-
-                                  {/* Driver Trip Charge */}
-                                  <div className="space-y-1 p-2.5 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                                      <span>Driver Payout (SAR)</span>
-                                      {slot.rateCardDefaultTripCharge != null && slot.rateMatched && (
-                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
-                                      )}
-                                    </div>
-                                    <div className="relative">
-                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                      <input
-                                        type="number"
-                                        value={slot.tripCharges}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { tripCharges: e.target.value })}
-                                        placeholder="0.00"
-                                        className="w-full h-8.5 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 focus:border-amber-400 text-slate-900 dark:text-slate-100"
-                                      />
-                                    </div>
-                                    {/* Presets */}
-                                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                                      {LOCAL_TRIP_CHARGE_PRESETS.map((preset) => (
-                                        <button
-                                          key={preset.label}
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, {
-                                            tripCharges: String(preset.amount),
-                                            ...(!slot.rateMatched ? { saveAsRateCard: true } : {}),
-                                          })}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                                            Number(slot.tripCharges) === preset.amount
-                                              ? 'bg-amber-500 border-amber-500 text-white'
-                                              : 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/40'
-                                          }`}
-                                        >
-                                          {preset.label} {preset.amount}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Slot Margin Pill Bar */}
-                                {totalBillingAmount > 0 && driverPayout > 0 && (
-                                  <div className="flex flex-wrap items-center justify-between text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 gap-2">
-                                    <span>Billed: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">SAR {totalBillingAmount.toLocaleString()}</strong></span>
-                                    <span>Payout: <strong className="text-amber-700 dark:text-amber-400 font-mono">SAR {driverPayout.toLocaleString()}</strong></span>
-                                    <span>
-                                      Margin:{' '}
-                                      <strong className={`font-mono ${marginAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        SAR {marginAmount.toLocaleString()} ({marginPercent}%)
-                                      </strong>
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 4: REVIEW */}
-                  {contractStep === 4 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                        <h4 className="text-sm font-bold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-brand" />
-                          Review & Confirm
-                        </h4>
-                        <span className="text-xs font-bold text-slate-500">
-                          {contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''} Ready to Create
-                        </span>
-                      </div>
-
-                      {/* Summary Header Cards */}
-                      {(() => {
-                        const customerObj = customers.find((c) => c.id === contractCustomer);
-                        const driverObj = drivers.find((d) => d.id === masterDriver);
-                        const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
-                        const providerObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
-                        const baseBillingSum = contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0);
-                        const additionalChargesSum = contractSlots.reduce((sum, s) => {
-                          return sum + (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                        }, 0);
-                        const totalAmountSum = baseBillingSum + additionalChargesSum;
-
-                        const totalTripCharges = contractSlots.reduce((sum, s) => {
-                          if (assignmentType === 'third_party') {
-                            return sum + (thirdPartyCost ? Number(thirdPartyCost) : (Number(s.tripCharges) || 0));
-                          }
-                          return sum + (Number(s.tripCharges) || 0);
-                        }, 0);
-
-                        const balanceAmount = totalAmountSum - totalTripCharges;
-
-                        return (
-                          <div className="space-y-3">
-                            {/* Financial Ledger Breakdown Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                              {[
-                                { label: 'Customer', value: customerObj?.name || '—', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Provider', value: providerObj?.name || (thirdPartyDriverName ? `3PL (${thirdPartyDriverName})` : 'Third-Party'), icon: Building2 }
-                                  : { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
-                                  : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Billing Rate', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
-                                { label: 'Total Billed (inc. Stops)', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
-                                { label: 'Driver Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'Balance', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
-                              ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                  <div key={item.label} className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <Icon className="w-3 h-3 text-slate-400" />
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.label}</span>
-                                    </div>
-                                    <div className={`text-xs font-extrabold truncate ${item.accent || 'text-[#111111] dark:text-slate-100'}`}>{item.value}</div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {/* NEW QUOTATIONS CREATION CONFIRMATION BAR */}
-                            {contractSlots.some((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0) && (
-                              <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 shadow-2xs space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
-                                      New Quotation(s) Will Be Saved ({contractSlots.filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0).length})
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold">
-                                    Saved to Quotations ledger for future automatic matching
-                                  </span>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  {contractSlots
-                                    .filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0)
-                                    .map((slot) => {
-                                      const custObj = customers.find((c) => c.id === contractCustomer);
-                                      return (
-                                        <div key={slot.id} className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                                          <div className="flex items-center gap-2 font-extrabold text-amber-950 dark:text-amber-100 min-w-0">
-                                            <span className="truncate">{slot.origin || 'Origin'} ➔ {slot.destination || 'Destination'}</span>
-                                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-[10px] text-amber-800 dark:text-amber-200 border border-amber-200">
-                                              {contractVehicleType || 'Standard'} • {contractRateCategory || 'Standard'}
-                                            </span>
-                                          </div>
-
-                                          <div className="flex items-center gap-4 shrink-0">
-                                            <div className="flex items-center gap-3 text-[11px] font-bold">
-                                              <span className="text-emerald-700 dark:text-emerald-400">Billing: SAR {Number(slot.billingAmount).toLocaleString()}</span>
-                                              {Number(slot.tripCharges) > 0 && (
-                                                <span className="text-indigo-700 dark:text-indigo-300">Driver Payout: SAR {Number(slot.tripCharges).toLocaleString()}</span>
-                                              )}
-                                            </div>
-
-                                            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-100 select-none hover:text-amber-700 transition-colors bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-md border border-amber-300 dark:border-amber-800">
-                                              <input
-                                                type="checkbox"
-                                                checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                                onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                                className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                              />
-                                              <span>Save as Quotation</span>
-                                            </label>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Per-slot review */}
-                            <div className="space-y-2">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Trip Slots</div>
-                              {contractSlots.map((slot, idx) => {
-                                const dateObj = slot.date ? new Date(slot.date) : new Date();
-                                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-                                const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                                const base = Number(slot.billingAmount) || 0;
-                                const total = base + stopFeesSum;
-                                const slotTripCharge = assignmentType === 'third_party'
-                                  ? (thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0))
-                                  : (Number(slot.tripCharges) || 0);
-
-                                const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
-                                const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
-
-                                const points: [number, number][] = [];
-                                if (slot.originLat && slot.originLng) points.push([slot.originLat, slot.originLng]);
-                                if (slot.destinationLat && slot.destinationLng) points.push([slot.destinationLat, slot.destinationLng]);
-                                if (contractRateCategory === 'Round Trip') {
-                                  const retLat = slot.returnOriginLat ?? slot.destinationLat;
-                                  const retLng = slot.returnOriginLng ?? slot.destinationLng;
-                                  const retDestLat = slot.returnDestinationLat ?? slot.originLat;
-                                  const retDestLng = slot.returnDestinationLng ?? slot.originLng;
-                                  if (retLat && retLng) points.push([retLat, retLng]);
-                                  if (retDestLat && retDestLng) points.push([retDestLat, retDestLng]);
-                                }
-
-                                return (
-                                  <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch hover:border-brand/40 transition-colors">
-                                    {/* Left details */}
-                                    <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3">
-                                      {/* Header Row */}
-                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-                                          <span className="text-xs font-bold text-[#111111] dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                          {slot.rateMatched && (
-                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Card {slot.rateCardName ? `(${slot.rateCardName})` : ''}
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-extrabold">
-                                          <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-lg" title="Base customer billing rate">
-                                            BILLING: SAR {base.toLocaleString()}
-                                          </span>
-                                          {stopFeesSum > 0 && (
-                                            <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-lg" title="Additional stop fees">
-                                              + EXTRAS: SAR {stopFeesSum.toLocaleString()}
-                                            </span>
-                                          )}
-                                          <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg font-black" title="Total gross revenue">
-                                            TOTAL: SAR {total.toLocaleString()}
-                                          </span>
-                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver charge payout">
-                                            DRIVER CHARGE: SAR {slotTripCharge.toLocaleString()}
-                                          </span>
-                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting driver charge and additional charges">
-                                            BALANCE: SAR {(total - slotTripCharge).toLocaleString()}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      {/* Route */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="flex flex-col items-center shrink-0">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                            <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                            <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
-                                          </div>
-                                          <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                            <div className="truncate">{slot.origin || '—'} (Outbound Pickup)</div>
-                                            <div className="truncate">{slot.destination || '—'} (Outbound Dropoff)</div>
-                                          </div>
-                                        </div>
-
-                                        {outboundStops.length > 0 && (
-                                          <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
-                                        )}
-
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="flex items-center gap-2.5 border-t border-slate-100 pt-2">
-                                              <div className="flex flex-col items-center shrink-0">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-100" />
-                                                <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200" />
-                                              </div>
-                                              <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                                <div className="truncate">{slot.returnOrigin || slot.destination || '—'} (Return Pickup)</div>
-                                                <div className="truncate">{slot.returnDestination || slot.origin || '—'} (Return Dropoff)</div>
-                                              </div>
-                                            </div>
-
-                                            {returnStops.length > 0 && (
-                                              <div className="text-[11px] text-slate-400 font-semibold pl-5">via {returnStops.join(' → ')}</div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-
-                                      {/* Timing + crew */}
-                                      <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-100 pt-2.5">
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Pickup</span>
-                                          <span className="font-bold text-[#111111]">{slot.pickupTime || '—'}</span>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Dropoff</span>
-                                          <span className="font-bold text-[#111111]">
-                                            {slot.dropoffTime || '—'}
-                                            {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                          </span>
-                                        </div>
-
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Pickup</span>
-                                              <span className="font-bold text-[#111111]">{slot.returnPickupTime || '—'}</span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Dropoff</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {slot.returnDropoffTime || '—'}
-                                                {slot.returnIsOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-
-                                        {assignmentType === 'third_party' ? (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Provider & Driver</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {providerObj?.name || '3PL'} {thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Vehicle</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {thirdPartyVehiclePlate || '3PL Truck'} ({contractVehicleType})
-                                              </span>
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                     </div>
-                                    {/* Right minimap */}
-                                    <div className="md:col-span-5 lg:col-span-4 min-h-[105px] h-[105px] z-0">
-                                      {points.length >= 2 ? (
-                                        <div className="w-full h-full min-h-[105px] h-[105px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 z-0">
-                                          <MapContainer
-                                            center={points[0]}
-                                            zoom={10}
-                                            scrollWheelZoom={false}
-                                            zoomControl={false}
-                                            attributionControl={false}
-                                            style={{ height: '100%', width: '100%', zIndex: 0 }}
-                                          >
-                                            <TileLayer
-                                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; Esri'
-                                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                            />
-                                            <TileLayer
-                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                                            />
-                                            <MapBoundsAdjuster points={points} />
-                                            
-                                            {/* Outbound Markers */}
-                                            {slot.originLat && slot.originLng && (
-                                              <Marker position={[slot.originLat, slot.originLng]} icon={pickupMarkerIcon} />
-                                            )}
-                                            {slot.destinationLat && slot.destinationLng && (
-                                              <Marker position={[slot.destinationLat, slot.destinationLng]} icon={dropoffMarkerIcon} />
-                                            )}
-
-                                            {/* Return Leg Markers */}
-                                            {contractRateCategory === 'Round Trip' && (
-                                              <>
-                                                {(slot.returnOriginLat ?? slot.destinationLat) && (slot.returnOriginLng ?? slot.destinationLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnOriginLat ?? slot.destinationLat!,
-                                                      slot.returnOriginLng ?? slot.destinationLng!
-                                                    ]}
-                                                    icon={returnPickupMarkerIcon}
-                                                  />
-                                                )}
-                                                {(slot.returnDestinationLat ?? slot.originLat) && (slot.returnDestinationLng ?? slot.originLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnDestinationLat ?? slot.originLat!,
-                                                      slot.returnDestinationLng ?? slot.originLng!
-                                                    ]}
-                                                    icon={returnDropoffMarkerIcon}
-                                                  />
-                                                )}
-                                              </>
-                                            )}
-
-                                            {/* Route Polyline */}
-                                            <Polyline
-                                              positions={points}
-                                              pathOptions={{ color: '#FF5500', weight: 3, opacity: 0.8 }}
-                                            />
-                                          </MapContainer>
-                                        </div>
-                                      ) : (
-                                        <div className="w-full h-full min-h-[140px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
-                                          <MapPin className="w-5 h-5 text-slate-300" />
-                                          Map Preview Unavailable
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-
-                </div>
-              )}
-
-              {/* TAB 2: QUICK GRID ENTRY */}
-              {activeTab === 'grid' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <h4 className="text-sm font-bold text-[#111111]">Interactive Grid Entry</h4>
-                      <p className="text-xs text-[#6E6E80]">
-                        Enter multiple trip records directly. You can set individual dates, drivers, and trucks per row.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setGridRows((prev) => [...prev, generateEmptyRow()])}
-                        className="h-8 rounded-lg border-black/10 text-xs font-semibold"
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Row
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setGridRows((prev) => [
-                            ...prev,
-                            generateEmptyRow(),
-                            generateEmptyRow(),
-                            generateEmptyRow(),
-                          ])
-                        }
-                        className="h-8 rounded-lg border-black/10 text-xs font-semibold"
-                      >
-                        + Add 3 Rows
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Grid Table */}
-                  <div className="rounded-xl border border-black/[0.08] overflow-x-auto max-h-[500px] overflow-y-auto">
-                    <table className="w-full text-left text-xs min-w-[760px]">
-                      <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
-                        <tr>
-                          <th className="px-3 py-2 w-8">#</th>
-                          <th className="px-3 py-2">Customer *</th>
-                          <th className="px-3 py-2">Date *</th>
-                          <th className="px-3 py-2">Driver</th>
-                          <th className="px-3 py-2">Vehicle</th>
-                          <th className="px-3 py-2">Category</th>
-                          <th className="px-3 py-2">Amount</th>
-                          <th className="px-3 py-2 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/[0.04]">
-                        {gridRows.map((row, idx) => (
-                          <tr key={row.id} className="hover:bg-slate-50/50">
-                            <td className="px-3 py-1.5 text-[#9898A4] font-medium">{idx + 1}</td>
-                            <td className="px-3 py-1.5">
-                              <select
-                                value={row.customerId}
-                                onChange={(e) => updateGridRow(row.id, { customerId: e.target.value })}
-                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              >
-                                {customers.map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    {c.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-3 py-1.5">
-                              <DatePicker
-                                value={row.date}
-                                onChange={(_, dateStr) => updateGridRow(row.id, { date: dateStr })}
-                                placeholder="Select date..."
-                                buttonClassName="h-7.5 w-32 px-2 text-xs font-medium border-black/10 bg-white"
-                                clearable={false}
-                                showPresets={false}
-                                minDate={new Date()}
-                              />
-                            </td>
-                            <td className="px-3 py-1.5">
-                              <select
-                                value={row.driverId}
-                                onChange={(e) => updateGridRow(row.id, { driverId: e.target.value })}
-                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              >
-                                <option value="">-- Unassigned --</option>
-                                {drivers.map((d) => {
-                                  const embeddedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object' ? (d.assignedVehicle as any) : null;
-                                  const vId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
-                                  const matchedVeh = vId ? vehicles.find((v) => v.id === vId) : null;
-                                  const capKg = embeddedVeh?.capacity_kg ?? embeddedVeh?.capacityKg ?? matchedVeh?.capacity_kg ?? (matchedVeh as any)?.capacityKg;
-                                  const capLabel = capKg != null ? getVehicleTypeFromCapacity(capKg) : '';
-                                  return (
-                                    <option key={d.id} value={d.id}>
-                                      {d.first_name} {d.last_name}{capLabel ? ` (${capLabel})` : ''}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            </td>
-                            <td className="px-3 py-1.5">
-                              <select
-                                value={row.vehicleId}
-                                onChange={(e) => updateGridRow(row.id, { vehicleId: e.target.value })}
-                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              >
-                                <option value="">-- Unassigned --</option>
-                                {vehicles.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.plate_number}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-3 py-1.5">
-                              <RateCategorySelect
-                                value={row.rateCategory}
-                                onValueChange={(val) => updateGridRow(row.id, { rateCategory: val })}
-                                size="sm"
-                                allowClear={false}
-                                showBadgesInOptions={false}
-                                className="w-32 h-7.5 bg-white text-xs font-medium"
-                              />
-                            </td>
-                            <td className="px-3 py-1.5">
-                              <input
-                                type="number"
-                                value={row.amount}
-                                onChange={(e) => updateGridRow(row.id, { amount: e.target.value })}
-                                placeholder="SAR"
-                                className="w-20 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
-                              />
-                            </td>
-                            <td className="px-3 py-1.5 text-right">
-                              <div className="inline-flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => duplicateGridRow(row)}
-                                  className="p-1 rounded-md text-[#9898A4] hover:text-[#111111] hover:bg-black/[0.05]"
-                                  title="Duplicate Row"
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteGridRow(row.id)}
-                                  className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50"
-                                  title="Delete Row"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Grid Footer */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
-                    <p className="text-xs text-[#6E6E80]">
-                      Total rows: <span className="font-bold text-[#111111]">{gridRows.length}</span>
-                    </p>
-                    <Button
-                      disabled={bulkMutation.isPending || gridRows.length === 0}
-                      onClick={handleGridSubmit}
-                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                    >
-                      {bulkMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Creating Trips...
-                        </>
-                      ) : (
-                        `Create ${gridRows.length} Trips`
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: CSV / EXCEL FILE IMPORT */}
-              {activeTab === 'file' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <h4 className="text-sm font-bold text-[#111111]">Upload Spreadsheet</h4>
-                      <p className="text-xs text-[#6E6E80]">
-                        Upload your trip batch via CSV or Excel workbook with per-row dates, drivers, and vehicles.
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={downloadSampleCsv}
-                      className="h-8 rounded-lg border-black/10 text-xs font-semibold"
-                    >
-                      <Download className="h-3.5 w-3.5 mr-1" /> Download Sample CSV
-                    </Button>
-                  </div>
-
-                  {/* Dropzone */}
-                  {!importedFile ? (
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-black/10 hover:border-brand/50 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50"
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file);
-                        }}
-                      />
-                      <FileSpreadsheet className="h-8 w-8 text-[#9898A4] mx-auto mb-2" />
-                      <p className="text-xs font-bold text-[#111111]">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-[10px] text-[#9898A4] mt-0.5">
-                        CSV (.csv) or Microsoft Excel (.xlsx) files
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-xl border border-black/[0.08] bg-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileSpreadsheet className="h-5 w-5 text-brand" />
-                        <div>
-                          <p className="text-xs font-bold text-[#111111]">{importedFile.name}</p>
-                          <p className="text-[10px] text-[#6E6E80]">
-                            {parsedRows.length} valid rows parsed
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setImportedFile(null);
-                          setParsedRows([]);
-                        }}
-                        className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-
-                  {parseError && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      {parseError}
-                    </div>
-                  )}
-
-                  {/* Parsed Preview Table */}
-                  {parsedRows.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">
-                        Parsed File Preview ({parsedRows.length} Rows)
-                      </p>
-                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[340px] overflow-y-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0">
-                            <tr>
-                              <th className="px-3 py-2">Company</th>
-                              <th className="px-3 py-2">Date</th>
-                              <th className="px-3 py-2">Driver</th>
-                              <th className="px-3 py-2">Vehicle</th>
-                              <th className="px-3 py-2">Category</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-black/[0.04]">
-                            {parsedRows.slice(0, 15).map((row, idx) => (
-                              <tr key={idx} className="hover:bg-slate-50/50">
-                                <td className="px-3 py-1.5 font-semibold text-[#111111]">{row.customer_name}</td>
-                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.planned_start || '—'}</td>
-                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.driver_name || 'Unassigned'}</td>
-                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.vehicle_plate || 'Unassigned'}</td>
-                                <td className="px-3 py-1.5 text-[#6E6E80]">{row.rate_category || 'Standard'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* File Import Footer */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
-                    <p className="text-xs text-[#6E6E80]">
-                      {parsedRows.length > 0 ? `${parsedRows.length} trips ready for import` : 'Upload a valid file to proceed'}
-                    </p>
-                    <Button
-                      disabled={bulkMutation.isPending || parsedRows.length === 0}
-                      onClick={handleFileSubmit}
-                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                    >
-                      {bulkMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Importing Trips...
-                        </>
-                      ) : (
-                        `Import ${parsedRows.length} Trips`
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
           )}
-        </div>
 
+          {/* Modal Body */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 custom-scrollbar">
+            {/* Submission Result Screen */}
+            {form.submissionResult ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
+                <h3 className="text-xl font-bold text-[#111111]">
+                  {form.submissionResult.imported} {form.submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
+                </h3>
+                <p className="text-xs text-[#6E6E80] mt-1.5 max-w-md">
+                  All trips have been added to the database and are now populated on the Monthly Board view.
+                </p>
+
+                {form.submissionResult.failed > 0 && (
+                  <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left max-w-lg w-full">
+                    <p className="font-bold flex items-center gap-1.5 mb-1 text-amber-900">
+                      <AlertCircle className="h-4 w-4" /> {form.submissionResult.failed} rows failed validation:
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-700">
+                      {form.submissionResult.results
+                        .filter((r) => !r.success)
+                        .slice(0, 5)
+                        .map((f, idx) => (
+                          <li key={idx}>Row {f.row}: {f.error}</li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Reference ID chips */}
+                <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-black/[0.06] max-w-xl w-full text-left">
+                  <p className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider mb-2">
+                    Generated Trip References
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    {form.submissionResult.results
+                      .filter((r) => r.success && r.ref_id)
+                      .map((r, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-black/10 text-xs font-bold text-[#111111]"
+                        >
+                          {r.ref_id}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={form.resetAll}
+                    className="rounded-xl border-black/10 text-xs font-semibold h-10 px-5"
+                  >
+                    Create More Trips
+                  </Button>
+                  <Button
+                    onClick={form.handleDialogClose}
+                    className="rounded-xl bg-brand hover:bg-[#d13d0d] text-white text-xs font-bold h-10 px-6"
+                  >
+                    Close & View Board
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
+                {form.activeTab === 'contract' && (
+                  <div className="pb-80">
+                    {/* STEP 1: CUSTOMER & CATEGORY */}
+                    {form.contractStep === 1 && (
+                      <TripStep1Customer
+                        contractCustomer={form.contractCustomer}
+                        setContractCustomer={form.setContractCustomer}
+                        customers={form.customers}
+                        setPreviewCustomer={form.setPreviewCustomer}
+                        setEditCustomer={form.setEditCustomer}
+                        setIsCreateCustomerOpen={form.setIsCreateCustomerOpen}
+                      />
+                    )}
+
+                    {/* STEP 2: TRIP / ROUTE */}
+                    {form.contractStep === 2 && (
+                      <TripStep2Route
+                        contractSlots={form.contractSlots}
+                        contractCustomer={form.contractCustomer}
+                        contractRateCategory={form.contractRateCategory}
+                        handleAddSlotIntermediate={form.handleAddSlotIntermediate}
+                        handleRemoveTripSlot={form.handleRemoveTripSlot}
+                        handleSlotLocationChange={form.handleSlotLocationChange}
+                        handleUpdateTripSlot={form.handleUpdateTripSlot}
+                        handleRemoveSlotIntermediate={form.handleRemoveSlotIntermediate}
+                        handleUpdateSlotIntermediate={form.handleUpdateSlotIntermediate}
+                        handleUpdateSlotIntermediateFee={form.handleUpdateSlotIntermediateFee}
+                        handleAddSlotReturnIntermediate={form.handleAddSlotReturnIntermediate}
+                        handleRemoveSlotReturnIntermediate={form.handleRemoveSlotReturnIntermediate}
+                        handleUpdateSlotReturnIntermediate={form.handleUpdateSlotReturnIntermediate}
+                        handleUpdateSlotReturnIntermediateFee={form.handleUpdateSlotReturnIntermediateFee}
+                        recentRoutesList={form.recentRoutesList}
+                        handleApplyRecentRoute={form.handleApplyRecentRoute}
+                        isRoundTripCategory={isRoundTripCategory}
+                      />
+                    )}
+
+                    {/* STEP 3: SERVICE & ASSIGNMENT */}
+                    {form.contractStep === 3 && (
+                      <TripStep3Assignment
+                        contractBillingType={form.contractBillingType}
+                        setContractBillingType={form.setContractBillingType}
+                        contractRateCategory={form.contractRateCategory}
+                        setContractRateCategory={form.setContractRateCategory}
+                        contractVehicleType={form.contractVehicleType}
+                        setContractVehicleType={form.setContractVehicleType}
+                        setIsVehicleTypeEditable={form.setIsVehicleTypeEditable}
+                        triggerRateLookupForSlots={form.triggerRateLookupForSlots}
+                        normalizeBillingType={normalizeBillingType}
+                        normalizeRateCategory={normalizeRateCategory}
+                        normalizeVehicleClass={normalizeVehicleClass}
+                        contractSlots={form.contractSlots}
+                        getAvailableRateCardsForLane={form.getAvailableRateCardsForLane}
+                        setIsManualRateOverride={form.setIsManualRateOverride}
+                        handleOpenCreateQuotation={form.handleOpenCreateQuotation}
+                        assignmentType={form.assignmentType}
+                        setAssignmentType={form.setAssignmentType}
+                        recentDriversList={form.recentDriversList}
+                        contractCustomer={form.contractCustomer}
+                        masterDriver={form.masterDriver}
+                        masterVehicle={form.masterVehicle}
+                        handleApplyRecentDriver={form.handleApplyRecentDriver}
+                        getVehicleTypeFromCapacity={getVehicleTypeFromCapacity}
+                        setIsCreateDriverOpen={form.setIsCreateDriverOpen}
+                        drivers={form.drivers}
+                        driverOptions={form.driverOptions}
+                        handleDriverChange={form.handleDriverChange}
+                        vehicles={form.vehicles}
+                        vehicleOptions={form.vehicleOptions}
+                        handleVehicleChange={form.handleVehicleChange}
+                        getCompatibilityRuleForClass={form.getCompatibilityRuleForClass as any}
+                        thirdPartyProviderId={form.thirdPartyProviderId}
+                        setThirdPartyProviderId={form.setThirdPartyProviderId}
+                        thirdPartyProviders={form.thirdPartyProviders}
+                        thirdPartyVehiclePlate={form.thirdPartyVehiclePlate}
+                        setThirdPartyVehiclePlate={form.setThirdPartyVehiclePlate}
+                        thirdPartyDriverName={form.thirdPartyDriverName}
+                        setThirdPartyDriverName={form.setThirdPartyDriverName}
+                        marginMetrics={form.marginMetrics}
+                      />
+                    )}
+
+                    {/* STEP 4: REVIEW & CONFIRM */}
+                    {form.contractStep === 4 && (
+                      <TripStep4Summary
+                        contractSlots={form.contractSlots}
+                        contractCustomer={form.contractCustomer}
+                        masterDriver={form.masterDriver}
+                        masterVehicle={form.masterVehicle}
+                        assignmentType={form.assignmentType}
+                        thirdPartyProviderId={form.thirdPartyProviderId}
+                        thirdPartyDriverName={form.thirdPartyDriverName}
+                        thirdPartyVehiclePlate={form.thirdPartyVehiclePlate}
+                        thirdPartyCost={form.thirdPartyCost}
+                        contractBillingType={form.contractBillingType}
+                        contractVehicleType={form.contractVehicleType}
+                        customers={form.customers}
+                        drivers={form.drivers}
+                        vehicles={form.vehicles}
+                        thirdPartyProviders={form.thirdPartyProviders}
+                        normalizeBillingType={normalizeBillingType}
+                        getVehicleTypeFromCapacity={getVehicleTypeFromCapacity}
+                        setPreviewCustomer={form.setPreviewCustomer}
+                        setPreviewDriver={form.setPreviewDriver}
+                        setPreviewVehicle={form.setPreviewVehicle}
+                        DriverAvatar={DriverAvatar}
+                        MapBoundsAdjuster={MapBoundsAdjuster}
+                        pickupMarkerIcon={pickupMarkerIcon}
+                        dropoffMarkerIcon={dropoffMarkerIcon}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 2: QUICK GRID ENTRY */}
+                {form.activeTab === 'grid' && (
+                  <TripBatchGeneratorTab
+                    gridRows={form.gridRows}
+                    setGridRows={form.setGridRows}
+                    generateEmptyRow={form.generateEmptyRow}
+                    updateGridRow={form.updateGridRow}
+                    duplicateGridRow={form.duplicateGridRow}
+                    deleteGridRow={form.deleteGridRow}
+                    handleGridSubmit={form.handleGridSubmit}
+                    customers={form.customers}
+                    drivers={form.drivers}
+                    vehicles={form.vehicles}
+                    getVehicleTypeFromCapacity={getVehicleTypeFromCapacity}
+                    isPending={form.bulkMutation.isPending}
+                  />
+                )}
+
+                {/* TAB 3: CSV / EXCEL FILE IMPORT */}
+                {form.activeTab === 'file' && (
+                  <TripBulkImportTab
+                    downloadSampleCsv={form.downloadSampleCsv}
+                    fileInputRef={form.fileInputRef}
+                    handleFileUpload={form.handleFileUpload}
+                    importedFile={form.importedFile}
+                    setImportedFile={form.setImportedFile}
+                    parsedRows={form.parsedRows}
+                    setParsedRows={form.setParsedRows}
+                    parseError={form.parseError}
+                    handleFileSubmit={form.handleFileSubmit}
+                    isPending={form.bulkMutation.isPending}
+                  />
+                )}
+              </>
+            )}
+          </div>
 
         </div>
       </div>
+
       <CreateDriverModal
-        isOpen={isCreateDriverOpen}
-        onClose={() => setIsCreateDriverOpen(false)}
-        onSuccess={handleDriverCreated}
+        isOpen={form.isCreateDriverOpen}
+        onClose={() => form.setIsCreateDriverOpen(false)}
+        onSuccess={form.handleDriverCreated}
       />
       <CreateVehicleModal
-        isOpen={isCreateVehicleOpen}
-        onClose={() => setIsCreateVehicleOpen(false)}
+        isOpen={form.isCreateVehicleOpen}
+        onClose={() => form.setIsCreateVehicleOpen(false)}
         onSuccess={(v) => {
-          setMasterVehicle(v.id);
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          form.setMasterVehicle(v.id);
+          form.queryClient.invalidateQueries({ queryKey: ['vehicles'] });
         }}
       />
       <CreateCustomerModal
-        isOpen={isCreateCustomerOpen}
-        onClose={() => setIsCreateCustomerOpen(false)}
+        isOpen={form.isCreateCustomerOpen}
+        onClose={() => form.setIsCreateCustomerOpen(false)}
         onSuccess={(c) => {
-          setContractCustomer(c.name);
-          queryClient.invalidateQueries({ queryKey: ['customers'] });
+          form.setContractCustomer(c.name);
+          form.queryClient.invalidateQueries({ queryKey: ['customers'] });
         }}
       />
       <PastDateTripConfirmModal
-        open={pastDateModalOpen}
-        onClose={() => setPastDateModalOpen(false)}
-        onConfirm={handlePastDateConfirm}
-        analysis={pastDateAnalysis}
-        isSubmitting={bulkMutation.isPending}
+        open={form.pastDateModalOpen}
+        onClose={() => form.setPastDateModalOpen(false)}
+        onConfirm={form.handlePastDateConfirm}
+        analysis={form.pastDateAnalysis}
+        isSubmitting={form.bulkMutation.isPending}
       />
-
       <CreateThirdPartyModal
-        isOpen={isCreateProviderOpen}
-        onClose={() => setIsCreateProviderOpen(false)}
+        isOpen={form.isCreateProviderOpen}
+        onClose={() => form.setIsCreateProviderOpen(false)}
         onSuccess={(provider) => {
-          setThirdPartyProviderId(provider.id);
-          queryClient.invalidateQueries({ queryKey: ['third-party-providers-select'] });
+          form.setThirdPartyProviderId(provider.id);
+          form.queryClient.invalidateQueries({ queryKey: ['third-party-providers-select'] });
         }}
       />
-
       <VehiclePreviewModal
-        vehicle={previewVehicle}
-        isOpen={!!previewVehicle}
-        onClose={() => setPreviewVehicle(null)}
-        onEdit={(v) => setEditVehicle(v)}
+        vehicle={form.previewVehicle}
+        isOpen={!!form.previewVehicle}
+        onClose={() => form.setPreviewVehicle(null)}
+        onEdit={(v) => form.setEditVehicle(v)}
       />
       <CustomerPreviewModal
-        customer={previewCustomer}
-        isOpen={!!previewCustomer}
-        onClose={() => setPreviewCustomer(null)}
-        onEdit={(c) => setEditCustomer(c)}
+        customer={form.previewCustomer}
+        isOpen={!!form.previewCustomer}
+        onClose={() => form.setPreviewCustomer(null)}
+        onEdit={(c) => form.setEditCustomer(c)}
       />
       <ThirdPartyPreviewModal
-        provider={previewThirdParty}
-        isOpen={!!previewThirdParty}
-        onClose={() => setPreviewThirdParty(null)}
-        onEdit={(p) => setEditThirdParty(p)}
+        provider={form.previewThirdParty}
+        isOpen={!!form.previewThirdParty}
+        onClose={() => form.setPreviewThirdParty(null)}
+        onEdit={(p) => form.setEditThirdParty(p)}
       />
       <DriverPreviewModal
-        driver={previewDriver}
-        isOpen={!!previewDriver}
-        onClose={() => setPreviewDriver(null)}
-        onEdit={(d) => setEditDriver(d)}
+        driver={form.previewDriver}
+        isOpen={!!form.previewDriver}
+        onClose={() => form.setPreviewDriver(null)}
+        onEdit={(d) => form.setEditDriver(d)}
       />
-
-      {editCustomer && (
+      {form.editCustomer && (
         <EditCustomerModal
-          isOpen={!!editCustomer}
-          customer={editCustomer}
-          onClose={() => setEditCustomer(null)}
+          isOpen={!!form.editCustomer}
+          customer={form.editCustomer}
+          onClose={() => form.setEditCustomer(null)}
         />
       )}
-      {editThirdParty && (
+      {form.editThirdParty && (
         <EditThirdPartyModal
-          isOpen={!!editThirdParty}
-          provider={editThirdParty}
-          onClose={() => setEditThirdParty(null)}
+          isOpen={!!form.editThirdParty}
+          provider={form.editThirdParty}
+          onClose={() => form.setEditThirdParty(null)}
         />
       )}
-      {editDriver && (
+      {form.editDriver && (
         <EditDriverModal
-          isOpen={!!editDriver}
-          driver={editDriver}
-          onClose={() => setEditDriver(null)}
+          isOpen={!!form.editDriver}
+          driver={form.editDriver}
+          onClose={() => form.setEditDriver(null)}
         />
       )}
-      {editVehicle && (
+      {form.editVehicle && (
         <EditVehicleModal
-          isOpen={!!editVehicle}
-          vehicle={editVehicle}
-          onClose={() => setEditVehicle(null)}
+          isOpen={!!form.editVehicle}
+          vehicle={form.editVehicle}
+          onClose={() => form.setEditVehicle(null)}
         />
       )}
     </DashboardLayout>

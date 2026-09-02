@@ -92,8 +92,11 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        side="bottom"
+        sideOffset={4}
+        avoidCollisions={false}
         className={cn(
-          'w-[--radix-popover-trigger-width] min-w-[280px] p-0 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden',
+          'w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden',
           popoverClassName
         )}
       >

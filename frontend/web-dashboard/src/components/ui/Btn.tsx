@@ -77,12 +77,12 @@ export default function Btn({
 
   // Keep one dominant brand CTA per page; secondary actions stay quiet and neutral.
   const variantStyles: Record<BtnVariant, string> = {
-    primary: 'bg-brand hover:bg-[#d03e0d] text-white font-bold shadow-xs border border-orange-600/30 rounded-md transition-all',
+    primary: 'bg-brand hover:!bg-[#d03e0d] text-white font-bold shadow-xs border border-orange-600/30 rounded-md transition-all',
     secondary: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md shadow-xs transition-all',
-    success: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 font-semibold rounded-md shadow-xs transition-all',
-    warning: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 hover:bg-amber-100 dark:hover:bg-amber-950/70 font-semibold rounded-md shadow-xs transition-all',
-    info: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-950/70 font-semibold rounded-md shadow-xs transition-all',
-    danger: 'bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-md shadow-xs border border-rose-600/30 transition-all',
+    success: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 hover:!bg-emerald-100 dark:hover:!bg-emerald-950/70 font-semibold rounded-md shadow-xs transition-all',
+    warning: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 hover:!bg-amber-100 dark:hover:!bg-amber-950/70 font-semibold rounded-md shadow-xs transition-all',
+    info: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 hover:!bg-blue-100 dark:hover:!bg-blue-950/70 font-semibold rounded-md shadow-xs transition-all',
+    danger: 'bg-rose-600 hover:!bg-rose-700 text-white font-bold rounded-md shadow-xs border border-rose-700/40 transition-all',
     outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md shadow-xs transition-all',
     ghost: 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md transition-all',
   };
