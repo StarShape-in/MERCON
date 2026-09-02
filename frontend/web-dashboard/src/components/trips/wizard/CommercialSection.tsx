@@ -77,110 +77,116 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     });
   }, [availableRateCards]);
 
+  const selectedCust = customers.find((c) => c.id === contractCustomer);
+
   return (
-    <div className="p-3 rounded-xl border border-blue-200/90 dark:border-blue-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
-      {/* LINE 1: HIGH-PRIORITY CUSTOMER SELECTION STRIP + QUICK CHIPS */}
-      {setContractCustomer && (
-        <div className="flex items-center justify-between gap-3 pb-2 border-b border-blue-100 dark:border-blue-900 flex-wrap sm:flex-nowrap">
-          {/* CUSTOMER SEARCH & LABEL */}
-          <div className="flex items-center gap-2 w-full sm:w-[320px] shrink-0">
-            <label className="text-xs font-extrabold text-[#3E3C3D] dark:text-slate-200 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-brand shrink-0" /> CUSTOMER ACCOUNT <span className="text-brand">*</span>
-            </label>
-            <div className="flex-1 min-w-0">
+    <div className="p-3 rounded-2xl border-2 border-orange-200/80 dark:border-orange-900/60 bg-white dark:bg-slate-900 shadow-xs space-y-2.5 text-[#3E3C3D]">
+      {/* UNIFIED SINGLE HEADER: CUSTOMER ACCOUNT & COMMERCIAL QUOTATIONS */}
+      <div className="space-y-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+        
+        {/* ROW 1: UNIFIED SINGLE TITLE + STATUS BADGE + SCROLL ARROWS + CREATE BUTTON */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-brand shrink-0" />
+              <span>CUSTOMER ACCOUNT & COMMERCIAL QUOTATIONS</span>
+              <span className="text-brand font-extrabold">({sortedRateCards.length})</span>
+              <span className="text-brand">*</span>
+            </h4>
+
+            {matchedRateCard ? (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
+              </span>
+            )}
+          </div>
+
+          {/* TOP RIGHT: SCROLL ARROWS + CREATE COMMERCIAL QUOTATION BUTTON */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {sortedRateCards.length > 2 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleScrollLeft}
+                  className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
+                  title="Scroll Left"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleScrollRight}
+                  className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
+                  title="Scroll Right"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {handleOpenCreateQuotation && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleOpenCreateQuotation}
+                className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
+              >
+                <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ROW 2: INLINE CUSTOMER SEARCH COMBOBOX + TOP 3 QUICK PICK TILES */}
+        {setContractCustomer && (
+          <div className="flex items-center gap-2 pt-0.5 flex-wrap sm:flex-nowrap">
+            {/* CUSTOMER SEARCH COMBOBOX */}
+            <div className="w-full sm:w-[260px] shrink-0">
               <Combobox
                 options={derivedCustomerOptions}
                 value={contractCustomer}
-                onChange={setContractCustomer}
+                onChange={(val) => setContractCustomer?.(val)}
                 placeholder="Select customer account..."
                 searchPlaceholder="Search customer name or code..."
-                triggerClassName="h-8 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+                triggerClassName="h-8 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-extrabold text-slate-900 dark:text-slate-100 shadow-2xs w-full focus:ring-2 focus:ring-brand"
               />
             </div>
+
+            {/* TOP 3 QUICK PICK CUSTOMER TILES */}
+            {customers && customers.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
+                {customers.slice(0, 3).map((c) => {
+                  const isSelected = contractCustomer === c.id;
+                  const cInitials = c.name.substring(0, 2).toUpperCase();
+
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setContractCustomer?.(c.id)}
+                      className={`px-2.5 py-1 rounded-lg border text-left transition-all flex items-center gap-1.5 h-8 shrink-0 cursor-pointer text-xs font-bold ${
+                        isSelected
+                          ? 'bg-orange-50 border-brand text-brand ring-2 ring-brand/20 shadow-2xs font-extrabold'
+                          : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-md font-extrabold text-[9px] grid place-items-center shrink-0 ${isSelected ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'}`}>
+                        {cInitials}
+                      </span>
+                      <span className="truncate max-w-[90px]">{c.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+        )}
 
-          {/* QUICK PICK COMPANY TILES */}
-          {customers && customers.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar flex-1">
-              {customers.slice(0, 5).map((c) => {
-                const isSelected = contractCustomer === c.id;
-                const cInitials = c.name.substring(0, 2).toUpperCase();
-
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setContractCustomer(c.id)}
-                    className={`px-2.5 py-1 rounded-lg border text-left transition-all flex items-center gap-1.5 h-8 shrink-0 cursor-pointer text-xs font-bold ${
-                      isSelected
-                        ? 'bg-orange-50 border-brand text-brand ring-2 ring-brand/20 shadow-2xs font-extrabold'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                    }`}
-                  >
-                    <span className={`w-5 h-5 rounded-md font-extrabold text-[9px] grid place-items-center shrink-0 ${isSelected ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'}`}>
-                      {cInitials}
-                    </span>
-                    <span className="truncate max-w-[90px]">{c.name.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* LINE 2: COMMERCIAL QUOTATIONS TITLE + STATUS + ACTIONS */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pb-0.5">
-        <div className="flex items-center gap-2">
-          <h4 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider flex items-center gap-1.5">
-            <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" /> COMMERCIAL QUOTATIONS ({sortedRateCards.length})
-          </h4>
-          {matchedRateCard ? (
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
-            </span>
-          ) : (
-            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
-            </span>
-          )}
-        </div>
-
-        {/* TOP RIGHT: SCROLL ARROWS + CREATE COMMERCIAL QUOTATION BUTTON */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {sortedRateCards.length > 2 && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleScrollLeft}
-                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
-                title="Scroll Left"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleScrollRight}
-                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer shadow-2xs"
-                title="Scroll Right"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {handleOpenCreateQuotation && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenCreateQuotation}
-              className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
-            >
-              <Plus className="w-3.5 h-3.5" /> Create Commercial Quotation
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* VISUAL QUOTATION RATE CARDS HORIZONTAL SLIDER / ROW */}
