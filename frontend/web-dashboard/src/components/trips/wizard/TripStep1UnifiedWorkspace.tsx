@@ -180,6 +180,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
               setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
               thirdPartyDriverName={thirdPartyDriverName}
               setThirdPartyDriverName={setThirdPartyDriverName}
+              contractVehicleType={contractVehicleType}
+              setContractVehicleType={setContractVehicleType}
             />
 
             {/* ROUTE EVALUATION & TRANSIT TIME ESTIMATE BADGE (MOVED TO RIGHT COLUMN) */}

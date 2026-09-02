@@ -175,7 +175,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setContractBillingType('Monthly')}
-                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
                   contractBillingType === 'Monthly'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
@@ -186,7 +186,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setContractBillingType('Extra')}
-                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
                   contractBillingType === 'Extra'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
@@ -194,29 +194,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               >
                 Extra
               </button>
-            </div>
-          )}
-
-          {/* TON SELECTION (VEHICLE CLASS CHIPS) */}
-          {setContractVehicleType && (
-            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar flex-1 pb-0.5">
-              {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => {
-                const isSelected = contractVehicleType === vClass;
-                return (
-                  <button
-                    key={vClass}
-                    type="button"
-                    onClick={() => setContractVehicleType(vClass)}
-                    className={`px-2 py-0.5 rounded-lg border text-[11px] font-extrabold transition-all h-7.5 shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-600 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                    }`}
-                  >
-                    {vClass}
-                  </button>
-                );
-              })}
             </div>
           )}
         </div>

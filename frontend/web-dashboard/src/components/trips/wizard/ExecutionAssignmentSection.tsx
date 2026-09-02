@@ -19,6 +19,8 @@ interface ExecutionAssignmentSectionProps {
   setThirdPartyVehiclePlate: (plate: string) => void;
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (name: string) => void;
+  contractVehicleType?: string;
+  setContractVehicleType?: (vType: string) => void;
 }
 
 export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProps> = ({
@@ -37,6 +39,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   setThirdPartyVehiclePlate,
   thirdPartyDriverName,
   setThirdPartyDriverName,
+  contractVehicleType = '10 TON',
+  setContractVehicleType,
 }) => {
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
@@ -77,6 +81,27 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
       {assignmentType === 'own' ? (
         /* OWN FLEET ASSIGNMENT WORKSPACE */
         <div className="space-y-2">
+          {/* VEHICLE CLASS / TON DROPDOWN */}
+          {setContractVehicleType && (
+            <div className="space-y-1">
+              <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                REQUIRED VEHICLE CLASS (TON)
+              </label>
+              <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
+                <SelectTrigger className="h-8.5 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
+                  <SelectValue placeholder="Select Ton / Vehicle Class..." />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
+                    <SelectItem key={vClass} value={vClass} className="text-xs font-bold py-1.5 cursor-pointer">
+                      {vClass}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* PRIMARY DRIVER SELECTION (TOP) */}
           <div className="space-y-1">
             <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
