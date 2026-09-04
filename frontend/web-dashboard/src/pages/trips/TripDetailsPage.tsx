@@ -460,6 +460,26 @@ export default function TripDetailsPage() {
   const invoice = trip.invoices?.[0];
   const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
 
+  // Resolve effective lat/lng for a stop: direct fields first, then Location master record fallback
+  const resolveStopCoord = (stop: typeof pickup) => {
+    if (!stop) return { lat: undefined, lng: undefined };
+    const isZero = (lat?: number | null, lng?: number | null) => lat === 0 && lng === 0;
+    const isReal = (lat?: number | null, lng?: number | null) =>
+      typeof lat === 'number' && isFinite(lat) && typeof lng === 'number' && isFinite(lng) && !isZero(lat, lng);
+    if (isReal(stop.location_lat, stop.location_lng)) {
+      return { lat: stop.location_lat ?? undefined, lng: stop.location_lng ?? undefined };
+    }
+    const loc = (stop as any).location;
+    if (loc && isReal(loc.lat, loc.lng)) {
+      return { lat: loc.lat as number, lng: loc.lng as number };
+    }
+    return { lat: undefined, lng: undefined };
+  };
+
+  const pickupCoords = resolveStopCoord(pickup);
+  const dropoffCoords = resolveStopCoord(dropoff);
+
+
   // Compute Financial Totals & Balance
   const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
   const totalAmount = baseRate + chargesTotal;
@@ -818,12 +838,13 @@ export default function TripDetailsPage() {
                   <TripLiveMapCard
                     tripId={trip.id}
                     refId={trip.ref_id || trip.id}
-                    pickupLat={pickup?.location_lat}
-                    pickupLng={pickup?.location_lng}
-                    dropoffLat={dropoff?.location_lat}
-                    dropoffLng={dropoff?.location_lng}
+                    pickupLat={pickupCoords.lat}
+                    pickupLng={pickupCoords.lng}
+                    dropoffLat={dropoffCoords.lat}
+                    dropoffLng={dropoffCoords.lng}
                     pickupLabel={pickup?.location_name || undefined}
                     dropoffLabel={dropoff?.location_name || undefined}
+                    stops={trip.stops}
                     resolvedLocation={trip.vehicle?.resolved_location}
                     showHeader={false}
                     showTelemetryBar={false}
@@ -1349,10 +1370,11 @@ export default function TripDetailsPage() {
             <TripLiveMapCard
               tripId={trip.id}
               refId={trip.ref_id || trip.id}
-              pickupLat={pickup?.location_lat}
-              pickupLng={pickup?.location_lng}
-              dropoffLat={dropoff?.location_lat}
-              dropoffLng={dropoff?.location_lng}
+              pickupLat={pickupCoords.lat}
+              pickupLng={pickupCoords.lng}
+              dropoffLat={dropoffCoords.lat}
+              dropoffLng={dropoffCoords.lng}
+              stops={trip.stops}
               resolvedLocation={trip.vehicle?.resolved_location}
               showOnlyTelemetry={true}
             />
@@ -1484,15 +1506,17 @@ export default function TripDetailsPage() {
             <TripLiveMapCard
               tripId={trip.id}
               refId={trip.ref_id || trip.id}
-              pickupLat={pickup?.location_lat}
-              pickupLng={pickup?.location_lng}
-              dropoffLat={dropoff?.location_lat}
-              dropoffLng={dropoff?.location_lng}
+              pickupLat={pickupCoords.lat}
+              pickupLng={pickupCoords.lng}
+              dropoffLat={dropoffCoords.lat}
+              dropoffLng={dropoffCoords.lng}
               pickupLabel={pickup?.location_name || undefined}
               dropoffLabel={dropoff?.location_name || undefined}
+              stops={trip.stops}
               resolvedLocation={trip.vehicle?.resolved_location}
               showHeader={false}
               showTelemetryBar={true}
+              isExpanded={true}
               mapHeightClassName="h-[650px]"
             />
           </div>

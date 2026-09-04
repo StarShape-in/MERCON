@@ -1,9 +1,12 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, Maximize2, X, MapPin, Route, Clock, ShieldCheck } from 'lucide-react';
+import {
+  Navigation, Gauge, Maximize2, X, MapPin, Route, Clock, ShieldCheck,
+  Play, Pause, RotateCcw, FastForward, CheckCircle2, ChevronRight, Truck
+} from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
@@ -21,7 +24,44 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
-// High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
+// ─── Comprehensive Saudi Hubs & Cities Coordinate Dictionary ───────────────────
+export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
+  riyadh: [24.7136, 46.6753],
+  jeddah: [21.5433, 39.1728],
+  dammam: [26.4207, 50.0888],
+  khobar: [26.2172, 50.1971],
+  jubail: [27.0046, 49.6601],
+  makkah: [21.3891, 39.8579],
+  mecca: [21.3891, 39.8579],
+  madinah: [24.5247, 39.5692],
+  medina: [24.5247, 39.5692],
+  qassim: [26.3260, 43.9750],
+  buraidah: [26.3260, 43.9750],
+  unaizah: [26.0858, 43.9936],
+  taif: [21.4373, 40.5127],
+  tabuk: [28.3835, 36.5662],
+  abha: [18.2164, 42.5053],
+  khamis: [18.3000, 42.7333],
+  'khamis mushait': [18.3000, 42.7333],
+  jizan: [16.8892, 42.5706],
+  jazan: [16.8892, 42.5706],
+  yanbu: [24.0895, 38.0618],
+  hofuf: [25.3835, 49.5864],
+  ahsa: [25.3835, 49.5864],
+  hail: [27.5236, 41.6966],
+  najran: [17.5656, 44.2289],
+  kharj: [24.1555, 47.3119],
+  'al kharj': [24.1555, 47.3119],
+  bisha: [20.0005, 42.6036],
+  arar: [30.9753, 41.0381],
+  sakaka: [29.9697, 40.2064],
+  dawadmi: [24.5072, 44.4088],
+  majmaah: [25.9042, 45.3438],
+  rabigh: [22.7986, 39.0349],
+};
+
+// ─── Marker Icons ─────────────────────────────────────────────────────────────
+
 const pickupMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
@@ -34,7 +74,6 @@ const pickupMarkerIcon = L.divIcon({
   iconAnchor: [22, 22],
 });
 
-// High-Tech Neon Dropoff Marker (Orange LED with 3D Warehouse)
 const dropoffMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
@@ -46,6 +85,24 @@ const dropoffMarkerIcon = L.divIcon({
   iconSize: [44, 44],
   iconAnchor: [22, 22],
 });
+
+function createStopIcon(letter: string, isCompleted: boolean = false, isCurrent: boolean = false) {
+  const bg = isCompleted ? '#10B981' : isCurrent ? '#FA634E' : '#7C3AED';
+  const glow = isCompleted ? 'rgba(16, 185, 129, 0.5)' : isCurrent ? 'rgba(250, 99, 78, 0.6)' : 'rgba(124, 58, 237, 0.5)';
+  return L.divIcon({
+    html: `
+      <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+        ${isCurrent ? `<div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${glow};"></div>` : ''}
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bg}; border: 2.5px solid #FFFFFF; box-shadow: 0 0 14px ${glow}; display: flex; align-items: center; justify-content: center; z-index: 2; transition: all 0.2s ease;">
+          <span style="font-size: 11px; font-weight: 900; color: #FFFFFF; font-family: monospace; line-height: 1;">${letter}</span>
+        </div>
+      </div>
+    `,
+    className: '',
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+  });
+}
 
 function createLiveTruckIcon(heading: number = 0) {
   const adjustedHeading = heading || 0;
@@ -88,26 +145,19 @@ function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 
   });
 }
 
-function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo([lat, lng], map.getZoom(), { animate: true });
-  }, [lat, lng, map]);
-  return null;
-}
+// ─── Map Helpers ──────────────────────────────────────────────────────────────
 
 function MapResizeTrigger({ isFullscreen }: { isFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize({ animate: true });
-    }, 100);
+    }, 120);
     return () => clearTimeout(timer);
   }, [isFullscreen, map]);
   return null;
 }
 
-/** Fits map bounds once to include pickup, dropoff, and vehicle location without camera jumping on polling updates */
 function FitAllBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
   const hasFittedRef = useRef(false);
@@ -117,11 +167,55 @@ function FitAllBounds({ points }: { points: [number, number][] }) {
     const validPoints = points.filter(([lat, lng]) => typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng));
     if (validPoints.length === 0) return;
 
-    map.fitBounds(L.latLngBounds(validPoints), { padding: [60, 60], maxZoom: 12 });
+    map.fitBounds(L.latLngBounds(validPoints), { padding: [50, 50], maxZoom: 12 });
     hasFittedRef.current = true;
   }, [map, points]);
 
   return null;
+}
+
+function getHeadingBetween(p1: [number, number], p2: [number, number]): number {
+  const dLng = (p2[1] - p1[1]) * (Math.PI / 180);
+  const lat1 = p1[0] * (Math.PI / 180);
+  const lat2 = p2[0] * (Math.PI / 180);
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  const brng = Math.atan2(y, x) * (180 / Math.PI);
+  return (brng + 360) % 360;
+}
+
+function generateCurvedWaypoints(pts: [number, number][]): [number, number][] {
+  if (pts.length < 2) return pts;
+  const result: [number, number][] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i];
+    const p1 = pts[i + 1];
+    const steps = 18;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const lat = p0[0] + (p1[0] - p0[0]) * t;
+      const lng = p0[1] + (p1[1] - p0[1]) * t;
+      const curvature = Math.sin(t * Math.PI) * 0.08;
+      result.push([lat + curvature, lng - curvature * 0.4]);
+    }
+  }
+  return result;
+}
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
+
+export interface FormattedTripStop {
+  id?: string;
+  sequence: number;
+  label: string;
+  letter?: string;
+  isOrigin: boolean;
+  isDestination: boolean;
+  coords: [number, number];
+  name: string;
+  actual_arrival?: string | null;
+  planned_arrival?: string | null;
+  isCompleted: boolean;
 }
 
 interface TripLiveMapCardProps {
@@ -133,22 +227,21 @@ interface TripLiveMapCardProps {
   dropoffLng?: number;
   pickupLabel?: string;
   dropoffLabel?: string;
+  stops?: any[];
   resolvedLocation?: ResolvedLocation;
   /** Optional custom stop sequence header component rendered inside map canvas */
   stopsSequenceHeader?: React.ReactNode;
-  /** Show the title/theme-selector/"Full Radar" header row. Default true. */
   showHeader?: boolean;
-  /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
   showTelemetryBar?: boolean;
-  /** Show only the Live Vehicle Status HUD box (no map canvas). Useful for placing telemetry at page bottom. */
+  /** Show only the Live Vehicle Status HUD box (no map canvas). */
   showOnlyTelemetry?: boolean;
-  /** Card corner radius + map inset height — lets embedding pages match their own layout. */
   className?: string;
   mapHeightClassName?: string;
+  isExpanded?: boolean;
 }
 
-const DEMO_PICKUP: GeoPoint = { lat: 24.6432, lng: 46.7214 };
-const DEMO_DROPOFF: GeoPoint = { lat: 21.5433, lng: 39.1728 };
+const DEFAULT_PICKUP: [number, number] = [24.7136, 46.6753]; // Riyadh Central
+const DEFAULT_DROPOFF: [number, number] = [21.5433, 39.1728]; // Jeddah Gateway
 
 export default function TripLiveMapCard({
   tripId,
@@ -159,6 +252,7 @@ export default function TripLiveMapCard({
   dropoffLng,
   pickupLabel,
   dropoffLabel,
+  stops,
   resolvedLocation,
   stopsSequenceHeader,
   showHeader = true,
@@ -166,86 +260,253 @@ export default function TripLiveMapCard({
   showOnlyTelemetry = false,
   className,
   mapHeightClassName = 'h-[400px]',
+  isExpanded = false,
 }: TripLiveMapCardProps) {
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Road geometry state
   const [roadPolyline, setRoadPolyline] = useState<[number, number][] | null>(null);
   const [remainingRoadPolyline, setRemainingRoadPolyline] = useState<[number, number][] | null>(null);
   const [isRoutingFallback, setIsRoutingFallback] = useState(false);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
 
+  // Reverse geocoding & display state
   const [currentPlaceName, setCurrentPlaceName] = useState<string | null>(null);
   const [remainingDistanceKm, setRemainingDistanceKm] = useState<number | null>(null);
   const [remainingEtaText, setRemainingEtaText] = useState<string | null>(null);
+  const [routeUnavailable, setRouteUnavailable] = useState(false);
 
+  // ─── Animation Engine State ─────────────────────────────────────────────────
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationIndex, setAnimationIndex] = useState(0);
+  const [animationSpeed, setAnimationSpeed] = useState<1 | 2 | 4>(2);
+  const animationFrameRef = useRef<number | null>(null);
+
+  const effectiveExpanded = isExpanded || isFullscreen;
+
+  // ─── 1. Build & Resolve Structured Stops (Pickup -> Stop A -> Stop B -> Dropoff)
+  const resolvedStops = useMemo<FormattedTripStop[]>(() => {
+    const rawStops = stops && stops.length > 0 ? stops : [];
+
+    const isCoordValid = (lat?: number | null, lng?: number | null): boolean =>
+      typeof lat === 'number' && Number.isFinite(lat) && typeof lng === 'number' && Number.isFinite(lng) && !(lat === 0 && lng === 0);
+
+    const lookupCity = (txt: string): [number, number] | null => {
+      const clean = txt.toLowerCase();
+      for (const [city, c] of Object.entries(SAUDI_CITY_COORDS)) {
+        if (clean.includes(city)) return c;
+      }
+      return null;
+    };
+
+    if (rawStops.length === 0) {
+      const pCoord: [number, number] = isCoordValid(pickupLat, pickupLng)
+        ? [pickupLat!, pickupLng!]
+        : (pickupLabel && lookupCity(pickupLabel)) || DEFAULT_PICKUP;
+
+      const dCoord: [number, number] = isCoordValid(dropoffLat, dropoffLng)
+        ? [dropoffLat!, dropoffLng!]
+        : (dropoffLabel && lookupCity(dropoffLabel)) || DEFAULT_DROPOFF;
+
+      return [
+        {
+          sequence: 1,
+          label: 'Pickup',
+          isOrigin: true,
+          isDestination: false,
+          coords: pCoord,
+          name: pickupLabel || 'Pickup Location',
+          isCompleted: true,
+        },
+        {
+          sequence: 2,
+          label: 'Dropoff',
+          isOrigin: false,
+          isDestination: true,
+          coords: dCoord,
+          name: dropoffLabel || 'Destination',
+          isCompleted: false,
+        },
+      ];
+    }
+
+    const total = rawStops.length;
+    let intermediateIdx = 0;
+
+    return rawStops.map((st, idx) => {
+      const isFirst = idx === 0;
+      const isLast = idx === total - 1;
+      const letter = !isFirst && !isLast ? String.fromCharCode(65 + intermediateIdx++) : undefined;
+      const label = isFirst ? 'Pickup' : isLast ? 'Dropoff' : `Stop ${letter}`;
+
+      let c: [number, number] | null = null;
+      if (isCoordValid(st.location_lat, st.location_lng)) {
+        c = [st.location_lat, st.location_lng];
+      } else if (st.location && isCoordValid(st.location.lat, st.location.lng)) {
+        c = [st.location.lat, st.location.lng];
+      } else {
+        const textToSearch = `${st.location_name || ''} ${st.location?.name || ''} ${st.location?.city || ''} ${st.location_address || ''}`;
+        c = lookupCity(textToSearch);
+      }
+
+      if (!c) {
+        const frac = total > 1 ? idx / (total - 1) : 0;
+        const lat = DEFAULT_PICKUP[0] + (DEFAULT_DROPOFF[0] - DEFAULT_PICKUP[0]) * frac;
+        const lng = DEFAULT_PICKUP[1] + (DEFAULT_DROPOFF[1] - DEFAULT_PICKUP[1]) * frac;
+        c = [lat, lng];
+      }
+
+      const placeName = st.location_name || st.location?.name || (isFirst ? pickupLabel : isLast ? dropoffLabel : `Stop ${letter}`) || `Waypoint ${idx + 1}`;
+
+      return {
+        id: st.id || `stop-${idx}`,
+        sequence: idx + 1,
+        label,
+        letter,
+        isOrigin: isFirst,
+        isDestination: isLast,
+        coords: c,
+        name: placeName,
+        actual_arrival: st.actual_arrival,
+        planned_arrival: st.planned_arrival,
+        isCompleted: !!st.actual_arrival,
+      };
+    });
+  }, [stops, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLabel, dropoffLabel]);
+
+  const originStop = resolvedStops[0];
+  const destStop = resolvedStops[resolvedStops.length - 1];
+  const intermediateStops = resolvedStops.filter((s) => !s.isOrigin && !s.isDestination);
+
+  // ─── 2. Physical GPS / Telemetry Resolution ──────────────────────────────────
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
-
   const resLat = resolvedLocation?.latitude;
   const resLng = resolvedLocation?.longitude;
   const displayState = resolvedLocation?.display_state;
+
   const hasResolvedCoords =
     typeof resLat === 'number' &&
     typeof resLng === 'number' &&
     Number.isFinite(resLat) &&
     Number.isFinite(resLng) &&
+    !(resLat === 0 && resLng === 0) &&
     (displayState === 'CURRENT' || displayState === 'LAST_KNOWN');
 
-  const hasRealCoords = pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null;
   const matchedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId);
-  const simulatedTruck = hasResolvedCoords ? undefined : (matchedTruck || (hasRealCoords ? undefined : fleet[0]));
+  const simulatedTruck = hasResolvedCoords ? undefined : (matchedTruck || fleet[0]);
 
-  const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
-  const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
+  const activeTruckLat = hasResolvedCoords ? resLat! : (simulatedTruck ? simulatedTruck.currentCoords.lat : originStop.coords[0]);
+  const activeTruckLng = hasResolvedCoords ? resLng! : (simulatedTruck ? simulatedTruck.currentCoords.lng : originStop.coords[1]);
+  const activeSpeed = hasResolvedCoords ? (resolvedLocation?.speed_kph ?? 0) : (simulatedTruck ? simulatedTruck.speedKmH : 0);
+  const activeHeading = hasResolvedCoords ? (resolvedLocation?.heading_deg ?? 0) : (simulatedTruck ? simulatedTruck.heading : 0);
+  const sourceText = resolvedLocation?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLocation?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
 
-  // OSRM Driving Route for Map Polyline (Pickup -> Dropoff) — runs ONLY when pickup/dropoff coordinates change
+  // ─── 3. Multi-Stop OSRM Driving Route Generation ────────────────────────────
   useEffect(() => {
-    if (!hasRealCoords) {
-      setRoadPolyline(null);
-      setIsRoutingFallback(false);
-      return;
-    }
-
     let isMounted = true;
-    const fromLng = pickupPoint.lng;
-    const fromLat = pickupPoint.lat;
-    const toLng = dropoffPoint.lng;
-    const toLat = dropoffPoint.lat;
+    const waypoints = resolvedStops.map((s) => s.coords);
+    if (waypoints.length < 2) return;
 
-    const fetchOsrmRoute = async () => {
+    const fetchMultiStopRoute = async () => {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+        const coordsParam = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';');
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordsParam}?overview=full&geometries=geojson`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
         const data = await res.json();
+
         if (data?.code === 'Ok' && Array.isArray(data?.routes?.[0]?.geometry?.coordinates)) {
           const rawCoords: [number, number][] = data.routes[0].geometry.coordinates;
           const leafletCoords: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
+          const distKm = Math.round((Number(data.routes[0].distance) || 0) / 1000);
+
           if (isMounted) {
             setRoadPolyline(leafletCoords);
+            setRouteDistanceKm(distKm);
             setIsRoutingFallback(false);
           }
           return;
         }
-        throw new Error('Invalid OSRM geometry response');
+        throw new Error('OSRM empty geometry');
       } catch (err) {
-        console.warn('OSRM road routing fallback active:', err);
+        console.warn('[TripLiveMapCard] Multi-stop OSRM route fallback active:', err);
         if (isMounted) {
-          setRoadPolyline(null);
+          const curved = generateCurvedWaypoints(waypoints);
+          setRoadPolyline(curved);
           setIsRoutingFallback(true);
         }
       }
     };
 
-    fetchOsrmRoute();
-
+    fetchMultiStopRoute();
     return () => {
       isMounted = false;
     };
-  }, [pickupPoint.lat, pickupPoint.lng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
+  }, [resolvedStops]);
 
-  // 1. Reverse Geocode current physical vehicle coordinates
+  // ─── 4. Live Remaining Route: Current Truck GPS -> Destination ──────────────
+  useEffect(() => {
+    if (!hasResolvedCoords || !resLat || !resLng) {
+      setRemainingRoadPolyline(null);
+      setRemainingDistanceKm(null);
+      setRemainingEtaText(null);
+      setRouteUnavailable(false);
+      return;
+    }
+
+    let isMounted = true;
+    const dest = destStop.coords;
+
+    const fetchRemainingRoute = async () => {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${resLng},${resLat};${dest[1]},${dest[0]}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data?.code === 'Ok' && Array.isArray(data?.routes?.[0]?.geometry?.coordinates)) {
+          const rawCoords: [number, number][] = data.routes[0].geometry.coordinates;
+          const leafletRemainingCoords: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
+          const distKm = Math.round((Number(data.routes[0].distance) || 0) / 1000);
+          const durSec = Number(data.routes[0].duration) || 0;
+          const hours = Math.floor(durSec / 3600);
+          const mins = Math.round((durSec % 3600) / 60);
+          const etaText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+          if (isMounted) {
+            setRemainingRoadPolyline(leafletRemainingCoords);
+            setRemainingDistanceKm(distKm);
+            setRemainingEtaText(etaText);
+            setRouteUnavailable(false);
+          }
+          return;
+        }
+        throw new Error('Invalid remaining route');
+      } catch (err) {
+        console.warn('[TripLiveMapCard] OSRM remaining route calculation fallback:', err);
+        if (isMounted) {
+          const directCurve = generateCurvedWaypoints([[resLat, resLng], dest]);
+          setRemainingRoadPolyline(directCurve);
+          const dLat = (dest[0] - resLat) * 111;
+          const dLng = (dest[1] - resLng) * 100;
+          const approxKm = Math.round(Math.hypot(dLat, dLng));
+          setRemainingDistanceKm(approxKm);
+          setRemainingEtaText(`~${Math.round(approxKm / 75)}h`);
+          setRouteUnavailable(false);
+        }
+      }
+    };
+
+    fetchRemainingRoute();
+    return () => {
+      isMounted = false;
+    };
+  }, [hasResolvedCoords, resLat, resLng, destStop.coords]);
+
+  // ─── 5. Reverse Geocode for Place Name ───────────────────────────────────────
   useEffect(() => {
     if (!hasResolvedCoords || !resLat || !resLng) {
       setCurrentPlaceName(null);
@@ -264,176 +525,164 @@ export default function TripLiveMapCard({
     };
   }, [hasResolvedCoords, resLat, resLng]);
 
-  // 2. Fetch OSRM remaining road route, distance & ETA: CURRENT VEHICLE POSITION -> DESTINATION
+  // ─── 6. ROUTE JOURNEY ANIMATION ENGINE ──────────────────────────────────────
+  const fullPolyline = roadPolyline || resolvedStops.map((s) => s.coords);
+
+  const startAnimation = useCallback(() => {
+    setAnimationIndex(0);
+    setIsAnimating(true);
+  }, []);
+
+  const pauseAnimation = useCallback(() => {
+    setIsAnimating(false);
+  }, []);
+
+  const resetAnimation = useCallback(() => {
+    setIsAnimating(false);
+    setAnimationIndex(0);
+  }, []);
+
+  const prevExpandedRef = useRef(false);
   useEffect(() => {
-    if (!hasResolvedCoords || !resLat || !resLng || !hasRealCoords) {
-      setRemainingRoadPolyline(null);
-      setRemainingDistanceKm(null);
-      setRemainingEtaText(null);
+    if (effectiveExpanded && !prevExpandedRef.current) {
+      const timer = setTimeout(() => {
+        startAnimation();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    prevExpandedRef.current = effectiveExpanded;
+  }, [effectiveExpanded, startAnimation]);
+
+  useEffect(() => {
+    if (!isAnimating || fullPolyline.length === 0) {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       return;
     }
 
-    let isMounted = true;
-    const fetchRemainingRoute = async () => {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${resLng},${resLat};${dropoffPoint.lng},${dropoffPoint.lat}?overview=full&geometries=geojson`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
-        const data = await res.json();
-        if (data?.code === 'Ok' && Array.isArray(data?.routes) && data.routes.length > 0) {
-          const route = data.routes[0];
-          const distKm = Math.round((Number(route.distance) || 0) / 1000);
-          const durSec = Number(route.duration) || 0;
-          const hours = Math.floor(durSec / 3600);
-          const mins = Math.round((durSec % 3600) / 60);
-          const etaText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    let lastTime = performance.now();
+    const stepInterval = 35 / animationSpeed;
 
-          let leafletRemainingCoords: [number, number][] | null = null;
-          if (Array.isArray(route.geometry?.coordinates)) {
-            const rawCoords: [number, number][] = route.geometry.coordinates;
-            leafletRemainingCoords = rawCoords.map(([lng, lat]) => [lat, lng]);
+    const animateLoop = (now: number) => {
+      if (now - lastTime >= stepInterval) {
+        lastTime = now;
+        setAnimationIndex((prev) => {
+          if (prev >= fullPolyline.length - 1) {
+            setIsAnimating(false);
+            return fullPolyline.length - 1;
           }
-
-          if (isMounted) {
-            setRemainingRoadPolyline(leafletRemainingCoords);
-            setRemainingDistanceKm(distKm);
-            setRemainingEtaText(etaText);
-          }
-          return;
-        }
-      } catch (err) {
-        console.warn('[TripLiveMapCard] OSRM remaining route calculation failed:', err);
-        if (isMounted) {
-          setRemainingRoadPolyline(null);
-          setRemainingDistanceKm(null);
-          setRemainingEtaText(null);
-        }
+          return prev + 1;
+        });
       }
+      animationFrameRef.current = requestAnimationFrame(animateLoop);
     };
 
-    fetchRemainingRoute();
+    animationFrameRef.current = requestAnimationFrame(animateLoop);
     return () => {
-      isMounted = false;
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [hasResolvedCoords, resLat, resLng, dropoffPoint.lat, dropoffPoint.lng, hasRealCoords]);
+  }, [isAnimating, fullPolyline.length, animationSpeed]);
 
-  const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
-  const plannedPolylineWaypoints: [number, number][] = roadPolyline
-    ? roadPolyline
-    : hasRealCoords
-      ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
-      : demoRoute
-        ? demoRoute.waypoints.map((w) => [w.lat, w.lng])
-        : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]];
+  const currentAnimCoord: [number, number] = fullPolyline[animationIndex] || originStop.coords;
+  const nextAnimCoord: [number, number] = fullPolyline[Math.min(animationIndex + 1, fullPolyline.length - 1)] || currentAnimCoord;
+  const animHeading = getHeadingBetween(currentAnimCoord, nextAnimCoord);
 
-  const activeTruckLat = hasResolvedCoords ? resLat! : (simulatedTruck ? simulatedTruck.currentCoords.lat : pickupPoint.lat);
-  const activeTruckLng = hasResolvedCoords ? resLng! : (simulatedTruck ? simulatedTruck.currentCoords.lng : pickupPoint.lng);
-  const activeSpeed = hasResolvedCoords ? (resolvedLocation?.speed_kph ?? 0) : (simulatedTruck ? simulatedTruck.speedKmH : 0);
-  const activeHeading = hasResolvedCoords ? (resolvedLocation?.heading_deg ?? 0) : (simulatedTruck ? simulatedTruck.heading : 0);
-  const progress = simulatedTruck ? simulatedTruck.progressPercentage : 0;
-  const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 0;
-  const sourceText = resolvedLocation?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLocation?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
+  const animatedVisiblePolyline = useMemo(() => {
+    if (!isAnimating && animationIndex === 0) return fullPolyline;
+    return fullPolyline.slice(0, animationIndex + 1);
+  }, [isAnimating, animationIndex, fullPolyline]);
 
-  const remainingPolylineWaypoints: [number, number][] | null = remainingRoadPolyline
-    ? remainingRoadPolyline
-    : hasResolvedCoords
-      ? [[activeTruckLat, activeTruckLng], [dropoffPoint.lat, dropoffPoint.lng]]
-      : null;
+  const animProgressPct = fullPolyline.length > 1
+    ? Math.round((animationIndex / (fullPolyline.length - 1)) * 100)
+    : 0;
 
+  const currentLegText = useMemo(() => {
+    if (animProgressPct === 100) return `Arrived at ${destStop.name}`;
+    if (intermediateStops.length === 0) return `En route to ${destStop.name}`;
+    const segmentFrac = 100 / (intermediateStops.length + 1);
+    const stopIdx = Math.floor(animProgressPct / segmentFrac);
+    if (stopIdx === 0) return `Approaching Stop ${intermediateStops[0]?.letter} (${intermediateStops[0]?.name})`;
+    if (stopIdx <= intermediateStops.length) {
+      const nextS = intermediateStops[stopIdx] || destStop;
+      return `En route to ${nextS.label} (${nextS.name})`;
+    }
+    return `Approaching Destination (${destStop.name})`;
+  }, [animProgressPct, intermediateStops, destStop]);
+
+  const allBoundsPoints = useMemo<[number, number][]>(() => {
+    const pts = resolvedStops.map((s) => s.coords);
+    if (hasResolvedCoords) pts.push([resLat!, resLng!]);
+    return pts;
+  }, [resolvedStops, hasResolvedCoords, resLat, resLng]);
+
+  // ─── Render: Telemetry Only View (for bottom HUD banner) ───────────────────
   if (showOnlyTelemetry) {
     return (
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-          <div className="flex items-center gap-2.5">
+      <div className={cn('bg-white dark:bg-slate-900 border border-[#E5E7EB] dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3', className)}>
+        <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/60 pb-2.5">
+          <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-            <h3 className="text-base font-semibold text-[#3E3C3D]">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-200">
               Live Vehicle Status
-            </h3>
+            </h4>
           </div>
           {resolvedLocation?.plate_number && (
-            <span className="text-xs font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+            <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
               {resolvedLocation.plate_number}
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-1">
-          {/* 1. CURRENT LOCATION */}
-          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* 1. Location */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
               <MapPin className="w-4 h-4" />
             </div>
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-                  Current Location
-                </span>
-                <span className={cn(
-                  "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
-                  displayState === 'CURRENT'
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : displayState === 'LAST_KNOWN'
-                    ? "bg-amber-100 text-amber-800 border border-amber-300"
-                    : "bg-slate-100 text-slate-600 border border-slate-200"
-                )}>
-                  {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-[#3E3C3D] truncate" title={currentPlaceName || undefined}>
-                {displayState === 'UNAVAILABLE' || !hasResolvedCoords
-                  ? 'Location unavailable'
-                  : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Current Location</span>
+              <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate" title={currentPlaceName || undefined}>
+                {currentPlaceName || `${activeTruckLat.toFixed(4)}, ${activeTruckLng.toFixed(4)}`}
               </span>
             </div>
           </div>
 
-          {/* 2. DISTANCE REMAINING */}
-          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
-            <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 shrink-0">
+          {/* 2. Distance */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/80 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
               <Route className="w-4 h-4" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-                Distance Remaining
-              </span>
-              <span className="text-xs font-mono font-bold text-[#3E3C3D] truncate">
-                {remainingDistanceKm != null
-                  ? `${remainingDistanceKm} km`
-                  : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Distance Remaining</span>
+              <span className="text-xs font-mono font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
+                {remainingDistanceKm != null ? `${remainingDistanceKm} km` : routeDistanceKm != null ? `${routeDistanceKm} km` : 'Calculating...'}
               </span>
             </div>
           </div>
 
-          {/* 3. ETA REMAINING */}
-          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
-            <div className="w-9 h-9 rounded-lg bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-600 shrink-0">
+          {/* 3. ETA */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
               <Clock className="w-4 h-4" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-                ETA Remaining
-              </span>
-              <span className="text-xs font-mono font-bold text-[#3E3C3D] truncate">
-                {remainingEtaText != null
-                  ? remainingEtaText
-                  : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">ETA Remaining</span>
+              <span className="text-xs font-mono font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
+                {remainingEtaText || (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : 'Calculating...')}
               </span>
             </div>
           </div>
 
-          {/* 4. SOURCE & UPDATED */}
-          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
-            <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600 shrink-0">
+          {/* 4. Source */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
-                Source & Updated
-              </span>
-              <span className="text-xs font-bold text-[#3E3C3D] truncate">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Source & Updated</span>
+              <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 truncate">
                 {hasResolvedCoords
                   ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
-                  : 'No Live Telemetry'}
+                  : 'Simulated Telemetry'}
               </span>
             </div>
           </div>
@@ -450,23 +699,26 @@ export default function TripLiveMapCard({
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
-                <CardTitle className="text-sm font-extrabold text-[#111]">Live Trip Route Tracking</CardTitle>
+                <CardTitle className="text-sm font-extrabold text-[#111]">Live Multi-Stop Route Radar</CardTitle>
                 <Badge variant="outline" className={`text-[10px] font-mono ${currentTheme.badgeColor}`}>
                   {currentTheme.name}
                 </Badge>
+                {intermediateStops.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] font-bold bg-purple-100 text-purple-800">
+                    {intermediateStops.length} Intermediate Stop{intermediateStops.length > 1 ? 's' : ''}
+                  </Badge>
+                )}
               </div>
               <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-                Live GPS telemetry positioning along Expressway Route 40
+                {originStop.name} → {intermediateStops.map((s) => `${s.label} (${s.name}) → `).join('')}{destStop.name}
               </CardDescription>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Map Theme Dropdown Selector */}
               <MapThemeSelector
                 currentThemeId={mapThemeId}
                 onThemeChange={(newTheme) => setMapThemeId(newTheme)}
               />
-
               <Button
                 size="sm"
                 variant="outline"
@@ -482,14 +734,14 @@ export default function TripLiveMapCard({
       )}
 
       <CardContent className="p-4">
-        {/* Map View */}
-        <div 
+        {/* ─── MAP VIEW CONTAINER ─────────────────────────────────────────── */}
+        <div
           className={cn(
             'overflow-hidden relative shadow-xl transition-all duration-300',
-            isFullscreen 
-              ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0' 
+            isFullscreen
+              ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0'
               : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
-          )} 
+          )}
           style={{ background: currentTheme.previewColor }}
         >
           {/* Floating Stop Sequence Panel Overlay Component inside Map (Right Side) */}
@@ -523,8 +775,71 @@ export default function TripLiveMapCard({
             )}
           </button>
 
+          {/* ─── ROUTE ANIMATION FLOATING CONTROLLER BAR ────────────────────── */}
+          <div className={cn(
+            "absolute z-[400] rounded-xl border shadow-xl backdrop-blur-xl p-2 flex items-center gap-2.5 transition-all text-xs",
+            stopsSequenceHeader ? "bottom-3 left-3" : "top-3 left-14",
+            currentTheme.isDark
+              ? "bg-[#090A0F]/90 border-white/10 text-white"
+              : "bg-white/95 border-black/[0.08] text-[#111]"
+          )}>
+            <div className="flex items-center gap-1">
+              {isAnimating ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={pauseAnimation}
+                  className="h-7 px-2 text-xs font-bold text-amber-500 hover:text-amber-600 gap-1"
+                >
+                  <Pause size={13} />
+                  <span>Pause</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={startAnimation}
+                  className="h-7 px-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 gap-1"
+                >
+                  <Play size={13} className="fill-emerald-600" />
+                  <span>{animationIndex > 0 && animationIndex < fullPolyline.length - 1 ? 'Resume' : 'Play Route'}</span>
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={resetAnimation}
+                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700"
+                title="Reset Animation"
+              >
+                <RotateCcw size={12} />
+              </Button>
+            </div>
+
+            <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
+
+            <div className="flex flex-col min-w-[150px] max-w-[240px]">
+              <div className="flex items-center justify-between text-[10px] font-bold">
+                <span className="text-slate-500 dark:text-slate-400 truncate">{currentLegText}</span>
+                <span className="font-mono text-[#FF5500] ml-1">{animProgressPct}%</span>
+              </div>
+              <Progress value={animProgressPct} className="h-1.5 mt-1 bg-slate-200 dark:bg-white/10" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAnimationSpeed((s) => (s === 1 ? 2 : s === 2 ? 4 : 1))}
+              className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-extrabold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Change Speed"
+            >
+              {animationSpeed}x
+            </button>
+          </div>
+
+          {/* ─── LEAFLET MAP CONTAINER ───────────────────────────────────────── */}
           <MapContainer
-            center={[activeTruckLat, activeTruckLng]}
+            center={activeTruckLat && activeTruckLng ? [activeTruckLat, activeTruckLng] : originStop.coords}
             zoom={8}
             minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
             maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
@@ -544,74 +859,110 @@ export default function TripLiveMapCard({
               url={currentTheme.url}
             />
 
-            <FitAllBounds
-              points={
-                hasResolvedCoords
-                  ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng], [resLat!, resLng!]]
-                  : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
-              }
-            />
+            <FitAllBounds points={allBoundsPoints} />
 
-            {/* Original Planned Route (Pickup -> Dropoff) */}
+            {/* Full Planned Highway Polyline (Dashed background track) */}
             <Polyline
-              positions={plannedPolylineWaypoints}
+              positions={fullPolyline}
               pathOptions={{
                 color: '#94A3B8',
                 weight: 4,
-                opacity: 0.45,
+                opacity: 0.35,
                 dashArray: '6, 8',
               }}
             />
 
-            {/* Live Navigation Remaining Road Route (Current Truck GPS -> Destination) */}
-            {remainingPolylineWaypoints ? (
+            {/* Active / Animated Driving Polyline (Dynamic road trace) */}
+            <Polyline
+              positions={animatedVisiblePolyline}
+              pathOptions={{
+                color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                weight: 5,
+                opacity: 0.95,
+              }}
+            />
+
+            {/* Real-time GPS Remaining Polyline (When real vehicle GPS is present) */}
+            {remainingRoadPolyline && !isAnimating && (
               <Polyline
-                positions={remainingPolylineWaypoints}
+                positions={remainingRoadPolyline}
                 pathOptions={{
-                  color: isRoutingFallback ? '#94A3B8' : '#FF5500',
-                  weight: 5,
-                  opacity: isRoutingFallback ? 0.6 : 0.95,
-                  dashArray: isRoutingFallback ? '6, 10' : undefined,
-                }}
-              />
-            ) : !hasResolvedCoords && (
-              <Polyline
-                positions={plannedPolylineWaypoints}
-                pathOptions={{
-                  color: isRoutingFallback ? '#94A3B8' : '#FF5500',
-                  weight: 5,
-                  opacity: isRoutingFallback ? 0.6 : 0.95,
-                  dashArray: isRoutingFallback ? '6, 10' : undefined,
+                  color: '#10B981',
+                  weight: 4,
+                  opacity: 0.85,
+                  dashArray: '4, 8',
                 }}
               />
             )}
 
-            <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
+            {/* ─── MARKERS ─────────────────────────────────────────────────── */}
+
+            {/* Origin Stop (Pickup) */}
+            <Marker position={originStop.coords} icon={pickupMarkerIcon}>
               <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                 <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#10B981]">Pickup</p>
-                  <p className="text-[10px] text-gray-500">{pickupLabel || `${pickupPoint.lat.toFixed(4)}, ${pickupPoint.lng.toFixed(4)}`}</p>
+                  <p className="font-bold text-[#10B981]">Pickup (Origin)</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{originStop.name}</p>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">{originStop.coords[0].toFixed(4)}, {originStop.coords[1].toFixed(4)}</p>
                 </div>
               </Popup>
             </Marker>
 
-            <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
+            {/* Intermediate Stops (Stop A, Stop B, etc.) */}
+            {intermediateStops.map((stop) => (
+              <Marker
+                key={stop.id || stop.sequence}
+                position={stop.coords}
+                icon={createStopIcon(stop.letter || `${stop.sequence - 1}`, stop.isCompleted, false)}
+              >
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-400">
+                      <span className="w-2 h-2 rounded-full bg-purple-600" />
+                      <span>{stop.label} (Intermediate)</span>
+                    </div>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{stop.name}</p>
+                    <p className="text-[10px] text-gray-400 font-mono">{stop.coords[0].toFixed(4)}, {stop.coords[1].toFixed(4)}</p>
+                    {stop.actual_arrival ? (
+                      <p className="text-[10px] text-emerald-600 font-bold">Arrived: {stop.actual_arrival}</p>
+                    ) : stop.planned_arrival ? (
+                      <p className="text-[10px] text-slate-500">Planned: {stop.planned_arrival}</p>
+                    ) : null}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* Destination Stop (Dropoff) */}
+            <Marker position={destStop.coords} icon={dropoffMarkerIcon}>
               <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                 <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#F43F5E]">Drop-off</p>
-                  <p className="text-[10px] text-gray-500">{dropoffLabel || `${dropoffPoint.lat.toFixed(4)}, ${dropoffPoint.lng.toFixed(4)}`}</p>
+                  <p className="font-bold text-[#F43F5E]">Drop-off (Destination)</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{destStop.name}</p>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">{destStop.coords[0].toFixed(4)}, {destStop.coords[1].toFixed(4)}</p>
                 </div>
               </Popup>
             </Marker>
 
-            {hasResolvedCoords ? (
+            {/* Animated Moving Truck Marker (When animation is running) */}
+            {isAnimating ? (
+              <Marker position={currentAnimCoord} icon={createLiveTruckIcon(animHeading)}>
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1">
+                    <p className="font-bold text-[#FF5500]">Animated Truck Simulation</p>
+                    <p className="text-[10px] text-gray-500">{currentLegText}</p>
+                    <p className="text-[10px] font-mono text-emerald-600">Progress: {animProgressPct}%</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ) : hasResolvedCoords ? (
               <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                   <div className="text-xs font-sans p-1 space-y-1">
                     <div className="flex items-center gap-1.5 font-bold">
                       <span className={cn("w-2 h-2 rounded-full", displayState === 'CURRENT' ? "bg-emerald-500" : "bg-amber-500")} />
                       <span className="text-[#111] dark:text-white">
-                        {displayState === 'CURRENT' ? 'Current location' : 'Last known location'}
+                        {displayState === 'CURRENT' ? 'Current vehicle location' : 'Last known location'}
                       </span>
                     </div>
                     {resolvedLocation?.plate_number && (
@@ -631,190 +982,18 @@ export default function TripLiveMapCard({
                   </div>
                 </Popup>
               </Marker>
-            ) : simulatedTruck ? (
-              <Marker position={[simulatedTruck.currentCoords.lat, simulatedTruck.currentCoords.lng]} icon={createLiveTruckIcon(simulatedTruck.heading)}>
+            ) : (
+              <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading)}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                   <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
-                    <p className="text-[10px] text-gray-500">Speed: {simulatedTruck.speedKmH} km/h</p>
+                    <p className="font-bold text-[#FF5500]">{simulatedTruck?.plateNumber || 'MERCON Fleet'}</p>
+                    <p className="text-[10px] text-gray-500">Speed: {activeSpeed || 85} km/h</p>
                   </div>
                 </Popup>
               </Marker>
-            ) : null}
+            )}
           </MapContainer>
-
-          {/* Bottom Telemetry Bar */}
-          {showTelemetryBar && (
-          <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3 rounded-xl shadow-xl border text-xs space-y-2 ${
-            currentTheme.isDark 
-              ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' 
-              : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={cn(
-                  "p-2 rounded-lg border shrink-0",
-                  hasResolvedCoords && displayState === 'CURRENT'
-                    ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
-                    : hasResolvedCoords && displayState === 'LAST_KNOWN'
-                    ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
-                    : "bg-[#FF5500]/20 text-[#FF5500] border-[#FF5500]/30"
-                )}>
-                  {hasResolvedCoords ? <Navigation size={18} /> : <Gauge size={18} />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider truncate">
-                    {hasResolvedCoords
-                      ? (displayState === 'CURRENT' ? 'Current location' : 'Last known location')
-                      : resolvedLocation?.display_state === 'UNAVAILABLE'
-                      ? 'Location unavailable'
-                      : 'Telemetry Stream'}
-                  </p>
-                  <p className="text-xs font-bold truncate">
-                    {hasResolvedCoords ? (
-                      <>
-                        <span className="font-mono text-[11px] text-emerald-500 dark:text-emerald-400">
-                          {resLat!.toFixed(4)}, {resLng!.toFixed(4)}
-                        </span>
-                        {activeSpeed > 0 && ` • ${activeSpeed} km/h`}
-                        {sourceText && ` • ${sourceText}`}
-                        {resolvedLocation?.formatted_time_ago && ` (${resolvedLocation.formatted_time_ago})`}
-                      </>
-                    ) : resolvedLocation?.display_state === 'UNAVAILABLE' ? (
-                      <span className="text-slate-400 dark:text-slate-500 italic">No GPS telemetry available</span>
-                    ) : (
-                      <>
-                        {activeSpeed} km/h • <span className="font-mono text-[11px] text-orange-500">{activeTruckLat.toFixed(4)}, {activeTruckLng.toFixed(4)}</span>
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {hasResolvedCoords && (remainingDistanceKm != null || remainingEtaText) ? (
-                <div className="text-right shrink-0">
-                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Distance / ETA</p>
-                  <p className="text-xs font-bold text-[#FF5500]">
-                    {remainingDistanceKm != null && `${remainingDistanceKm} km`}
-                    {remainingDistanceKm != null && remainingEtaText && ' • '}
-                    {remainingEtaText && `~${remainingEtaText}`}
-                  </p>
-                </div>
-              ) : !hasResolvedCoords ? (
-                <div className="text-right shrink-0">
-                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
-                  <p className="text-xs font-bold text-[#FF5500]">
-                    {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            {!hasResolvedCoords && <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />}
-          </div>
-          )}
         </div>
-
-        {/* LIVE VEHICLE STATUS HUD SUMMARY — Placed at the bottom */}
-        {showTelemetryBar && (
-          <div className="bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs mt-3 space-y-2.5">
-            <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/60 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                  Live Vehicle Status
-                </h4>
-              </div>
-              {resolvedLocation?.plate_number && (
-                <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
-                  {resolvedLocation.plate_number}
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* 1. CURRENT LOCATION */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                      Current Location
-                    </span>
-                    <span className={cn(
-                      "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
-                      displayState === 'CURRENT'
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                        : displayState === 'LAST_KNOWN'
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                    )}>
-                      {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate" title={currentPlaceName || undefined}>
-                    {displayState === 'UNAVAILABLE' || !hasResolvedCoords
-                      ? 'Location unavailable'
-                      : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. DISTANCE REMAINING */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/80 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                  <Route className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                    Distance Remaining
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {remainingDistanceKm != null
-                      ? `${remainingDistanceKm} km`
-                      : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
-                  </span>
-                </div>
-              </div>
-
-              {/* 3. ETA REMAINING */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                    ETA Remaining
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {remainingEtaText != null
-                      ? remainingEtaText
-                      : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
-                  </span>
-                </div>
-              </div>
-
-              {/* 4. SOURCE & UPDATED */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                    Source & Updated
-                  </span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                    {hasResolvedCoords
-                      ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
-                      : 'No Live Telemetry'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
