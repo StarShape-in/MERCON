@@ -105,23 +105,6 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               ))}
             </SelectContent>
           </Select>
-
-          {/* OVERNIGHT TOGGLE */}
-          <button
-            type="button"
-            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer h-7.5 ${
-              slot.isOvernight
-                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Moon className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Overnight</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${slot.isOvernight ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-              {slot.isOvernight ? 'ON' : 'OFF'}
-            </span>
-          </button>
         </div>
 
         {/* RIGHT: REMOVE SLOT (IF MULTI-SLOT) */}
