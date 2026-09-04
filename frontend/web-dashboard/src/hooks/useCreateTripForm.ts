@@ -45,8 +45,8 @@ export const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter(
 ).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 export const isRoundTripCategory = (cat: string) => {
-  const c = (cat || '').toLowerCase().trim();
-  return c === 'round trip' || c === 'trip/round trip';
+  const c = (cat || '').toLowerCase().replace(/_/g, ' ').trim();
+  return c.includes('round');
 };
 
 export const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
@@ -232,6 +232,8 @@ export function useCreateTripForm() {
           value: d.id,
           label,
           keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
+          avatar_url: d.avatar_url || (d as any).photo_url || (d as any).profile_picture || (d as any).avatarUrl || (d as any).photoUrl || (d as any).image_url || null,
+          raw: d,
         };
       });
   }, [drivers, vehicles]);

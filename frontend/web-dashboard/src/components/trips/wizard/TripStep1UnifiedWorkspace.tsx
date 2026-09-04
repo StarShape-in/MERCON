@@ -159,9 +159,23 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
               />
             ))}
           </div>
+
+          {/* ROUTE EVALUATION & TRANSIT TIME ESTIMATE BADGE (PLACED IN LEFT BOTTOM SECTION) */}
+          {primarySlot.origin && primarySlot.destination && (
+            <TransitTimeBadge
+              origin={primarySlot.origin}
+              destination={primarySlot.destination}
+              returnDestination={primarySlot.returnDestination}
+              isRoundTrip={isRoundTrip}
+              intermediateLocations={primarySlot.intermediateLocations}
+              returnIntermediateLocations={primarySlot.returnIntermediateLocations}
+              pickupTime={primarySlot.pickupTime}
+              dropoffTime={primarySlot.dropoffTime}
+            />
+          )}
         </div>
 
-        {/* RIGHT WORKSPACE (40% / lg:col-span-5): EXECUTION ASSIGNMENT, ROUTE ESTIMATE & ECONOMICS PANEL */}
+        {/* RIGHT WORKSPACE (40% / lg:col-span-5): EXECUTION ASSIGNMENT & ECONOMICS PANEL */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3 bg-slate-50/70 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
             <ExecutionAssignmentSection
@@ -183,20 +197,6 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
               contractVehicleType={contractVehicleType}
               setContractVehicleType={setContractVehicleType}
             />
-
-            {/* ROUTE EVALUATION & TRANSIT TIME ESTIMATE BADGE (MOVED TO RIGHT COLUMN) */}
-            {primarySlot.origin && primarySlot.destination && (
-              <TransitTimeBadge
-                origin={primarySlot.origin}
-                destination={primarySlot.destination}
-                returnDestination={primarySlot.returnDestination}
-                isRoundTrip={isRoundTrip}
-                intermediateLocations={primarySlot.intermediateLocations}
-                returnIntermediateLocations={primarySlot.returnIntermediateLocations}
-                pickupTime={primarySlot.pickupTime}
-                dropoffTime={primarySlot.dropoffTime}
-              />
-            )}
 
             <TripEconomicsSection
               contractSlots={contractSlots}

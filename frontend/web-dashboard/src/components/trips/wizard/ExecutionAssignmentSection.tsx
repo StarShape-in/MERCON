@@ -204,7 +204,21 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
                 const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
                 const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
-                const avatarUrl = selectedOpt ? (selectedOpt as any).avatar_url : null;
+                const avatarUrl = selectedOpt ? (
+                  (selectedOpt as any).avatar_url ||
+                  (selectedOpt as any).photo_url ||
+                  (selectedOpt as any).profile_picture ||
+                  (selectedOpt as any).avatarUrl ||
+                  (selectedOpt as any).photoUrl ||
+                  (selectedOpt as any).image_url ||
+                  (selectedOpt as any).raw?.avatar_url ||
+                  (selectedOpt as any).raw?.photo_url ||
+                  (selectedOpt as any).raw?.profile_picture ||
+                  (selectedOpt as any).raw?.avatarUrl ||
+                  (selectedOpt as any).raw?.photoUrl ||
+                  (selectedOpt as any).raw?.image_url ||
+                  null
+                ) : null;
 
                 return (
                   <div className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 text-center flex flex-col items-center justify-center space-y-1.5 relative border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 shadow-xs animate-fade-in transition-all duration-300">
@@ -249,7 +263,20 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
                     const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
                     const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
-                    const avatarUrl = (dOpt as any).avatar_url;
+                    const avatarUrl =
+                      (dOpt as any).avatar_url ||
+                      (dOpt as any).photo_url ||
+                      (dOpt as any).profile_picture ||
+                      (dOpt as any).avatarUrl ||
+                      (dOpt as any).photoUrl ||
+                      (dOpt as any).image_url ||
+                      (dOpt as any).raw?.avatar_url ||
+                      (dOpt as any).raw?.photo_url ||
+                      (dOpt as any).raw?.profile_picture ||
+                      (dOpt as any).raw?.avatarUrl ||
+                      (dOpt as any).raw?.photoUrl ||
+                      (dOpt as any).raw?.image_url ||
+                      null;
                     const isFirst = idx === 0;
 
                     return (
