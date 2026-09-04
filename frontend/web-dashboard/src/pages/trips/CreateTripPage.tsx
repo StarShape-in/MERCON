@@ -37,9 +37,13 @@ import {
   Eye,
   ArrowRight,
   Edit2,
+  Edit3,
   GripVertical,
   ChevronUp,
   ChevronDown,
+  FileText,
+  ClipboardList,
+  Info,
 } from 'lucide-react';
 
 import { cn, isUuid } from '@/lib/utils';
@@ -189,8 +193,117 @@ export const getActualCapacityLabel = (capacityKg?: number | null): string => {
   return Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
 };
 
+const MOCK_CUSTOMERS = [
+  { id: 'cust-aramco', name: 'Saudi Aramco', phone: '+966 13 872 0123', payment_terms: 'NET 30' },
+  { id: 'cust-almarai', name: 'Almarai Logistics Co.', phone: '+966 11 470 0000', payment_terms: 'NET 60' },
+  { id: 'cust-naqel', name: 'Naqel Express', phone: '+966 9200 20505', payment_terms: 'NET 30' },
+  { id: 'cust-sec', name: 'Saudi Electricity Co (SEC)', phone: '+966 11 807 7777', payment_terms: 'NET 90' },
+  { id: 'cust-flow', name: 'Flow Progressive Logistics', phone: '+966 9200 03569', payment_terms: 'NET 45' },
+  { id: 'cust-panda', name: 'Panda Retail Company', phone: '+966 12 691 0000', payment_terms: 'NET 60' },
+  { id: 'cust-bindawood', name: 'BinDawood Holding', phone: '+966 12 653 3333', payment_terms: 'NET 30' },
+  { id: 'cust-agility', name: 'Agility Logistics KSA', phone: '+966 13 812 3456', payment_terms: 'NET 30' },
+  { id: 'cust-sabic', name: 'Sabic Petrochemicals', phone: '+966 11 225 8000', payment_terms: 'NET 60' },
+  { id: 'cust-dhl', name: 'DHL Supply Chain Saudi', phone: '+966 9200 03451', payment_terms: 'NET 30' },
+  { id: 'cust-aramex', name: 'Aramex Freight KSA', phone: '+966 9200 27447', payment_terms: 'NET 30' },
+  { id: 'cust-hala', name: 'HALA Supply Chain Services', phone: '+966 13 887 7788', payment_terms: 'NET 45' },
+  { id: 'cust-aks', name: 'AKS Logistics', phone: '+966 50 111 2222', payment_terms: 'NET 30' },
+  { id: 'cust-gfs', name: 'GFS Logistics', phone: '+966 50 333 4444', payment_terms: 'NET 30' },
+  { id: 'cust-horizon', name: 'Horizon Informatics', phone: '+966 50 555 6666', payment_terms: 'NET 30' },
+  { id: 'cust-imile', name: 'iMile Delivery KSA', phone: '+966 50 777 8888', payment_terms: 'NET 30' },
+];
+
+const MOCK_DRIVERS: any[] = [
+  { id: 'drv-1', first_name: 'Tariq', last_name: 'Mahmoud', phone_primary: '+966 50 123 4567', status: 'Available', isActive: true, license_number: 'SA-90123' },
+  { id: 'drv-2', first_name: 'Mohammed', last_name: 'Al-Harbi', phone_primary: '+966 55 987 6543', status: 'Available', isActive: true, license_number: 'SA-88219' },
+  { id: 'drv-3', first_name: 'Fahad', last_name: 'Al-Otaibi', phone_primary: '+966 54 321 0987', status: 'Available', isActive: true, license_number: 'SA-77341' },
+  { id: 'drv-4', first_name: 'Youssef', last_name: 'Al-Zahrani', phone_primary: '+966 56 112 2334', status: 'Available', isActive: true, license_number: 'SA-55412' },
+  { id: 'drv-5', first_name: 'Khalid', last_name: 'Al-Ghamdi', phone_primary: '+966 50 445 5667', status: 'Available', isActive: true, license_number: 'SA-44109' },
+];
+
+const MOCK_VEHICLES: any[] = [
+  { id: 'veh-1', plate_number: '7841 KSA', asset_type: 'Reefer Truck', capacity_kg: 5000 },
+  { id: 'veh-2', plate_number: '3920 LMN', asset_type: 'Flatbed Trailer', capacity_kg: 20000 },
+  { id: 'veh-3', plate_number: '1049 DEF', asset_type: 'Curtainsider', capacity_kg: 10000 },
+  { id: 'veh-4', plate_number: '6218 GHI', asset_type: 'Dry Box Truck', capacity_kg: 4000 },
+  { id: 'veh-5', plate_number: '9512 JKL', asset_type: 'Heavy Container 40FT', capacity_kg: 40000 },
+];
+
+const MOCK_RATE_CARDS = [
+  {
+    id: 'rc-1',
+    title: 'Standard Single Trip',
+    vehicleClass: '5 TON',
+    lineType: 'Single Trip',
+    operation: 'Extra (Spot)',
+    billingRate: 1200,
+    driverPayout: 400,
+    badge: 'Popular',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300',
+  },
+  {
+    id: 'rc-2',
+    title: 'Express Reefer Lane',
+    vehicleClass: '10 TON',
+    lineType: 'Single Trip',
+    operation: 'Extra (Spot)',
+    billingRate: 1850,
+    driverPayout: 650,
+    badge: 'Reefer',
+    badgeClass: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300',
+  },
+  {
+    id: 'rc-3',
+    title: 'Dedicated Round Trip',
+    vehicleClass: '20 TON',
+    lineType: 'Round Trip',
+    operation: 'Extra (Spot)',
+    billingRate: 2900,
+    driverPayout: 950,
+    badge: 'Round Trip',
+    badgeClass: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/60 dark:text-orange-300',
+  },
+  {
+    id: 'rc-4',
+    title: 'Monthly Dedicated Fleet',
+    vehicleClass: '40 FEET',
+    lineType: 'Single Trip',
+    operation: 'Monthly',
+    billingRate: 16500,
+    driverPayout: 5500,
+    badge: 'Monthly',
+    badgeClass: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300',
+  },
+];
 
 
+
+
+const MOCK_CUSTOMER_RECENT_TRIPS: Record<string, Array<{
+  id: string;
+  ref_id: string;
+  route: string;
+  vehicle_type: string;
+  billing_amount: number;
+  date: string;
+  status: string;
+  driver_name: string;
+}>> = {
+  'cust-aramco': [
+    { id: 't-101', ref_id: 'TRIP-9042', route: 'RUH Hub → JED Port', vehicle_type: '20 TON Flatbed', billing_amount: 2900, date: '28 Aug 2026', status: 'Completed', driver_name: 'Tariq Mahmoud' },
+    { id: 't-102', ref_id: 'TRIP-8910', route: 'DMM Hub → RUH Hub', vehicle_type: '10 TON Reefer', billing_amount: 1850, date: '24 Aug 2026', status: 'Completed', driver_name: 'Mohammed Al-Harbi' },
+    { id: 't-103', ref_id: 'TRIP-8755', route: 'JUBAIL → RUH Hub', vehicle_type: '40 FEET Heavy', billing_amount: 3400, date: '19 Aug 2026', status: 'Completed', driver_name: 'Fahad Al-Otaibi' },
+  ],
+  'cust-almarai': [
+    { id: 't-201', ref_id: 'TRIP-9112', route: 'ALKHARJ → RUH Hub', vehicle_type: '5 TON Reefer', billing_amount: 1200, date: '30 Aug 2026', status: 'Completed', driver_name: 'Youssef Al-Zahrani' },
+    { id: 't-202', ref_id: 'TRIP-9008', route: 'ALKHARJ → DMM Hub', vehicle_type: '10 TON Reefer', billing_amount: 2100, date: '26 Aug 2026', status: 'Completed', driver_name: 'Khalid Al-Ghamdi' },
+  ],
+  'cust-naqel': [
+    { id: 't-301', ref_id: 'TRIP-9204', route: 'RUH Airport → JED Hub', vehicle_type: '3-4 TON Box', billing_amount: 1450, date: '31 Aug 2026', status: 'Completed', driver_name: 'Tariq Mahmoud' },
+  ],
+  'cust-sec': [
+    { id: 't-401', ref_id: 'TRIP-8890', route: 'RUH Dry Port → QASSIM', vehicle_type: '40 FEET Flatbed', billing_amount: 4200, date: '22 Aug 2026', status: 'Completed', driver_name: 'Fahad Al-Otaibi' },
+  ],
+};
 
 type TabMode = 'contract' | 'grid' | 'file';
 
@@ -244,9 +357,23 @@ export default function CreateTripPage() {
     enabled: true,
   });
 
-  const customers = customersRes?.data ?? [];
-  const drivers: Driver[] = driversRes?.data ?? [];
-  const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
+  const customers = useMemo(() => {
+    const db = customersRes?.data ?? [];
+    const names = new Set(db.map((c) => c.name.toLowerCase()));
+    return [...db, ...MOCK_CUSTOMERS.filter((m) => !names.has(m.name.toLowerCase()))];
+  }, [customersRes?.data]);
+
+  const drivers: Driver[] = useMemo(() => {
+    const db = driversRes?.data ?? [];
+    const ids = new Set(db.map((d) => d.id));
+    return [...db, ...(MOCK_DRIVERS as Driver[]).filter((m) => !ids.has(m.id))];
+  }, [driversRes?.data]);
+
+  const vehicles: Vehicle[] = useMemo(() => {
+    const db = vehiclesRes?.data ?? [];
+    const ids = new Set(db.map((v) => v.id));
+    return [...db, ...(MOCK_VEHICLES as Vehicle[]).filter((m) => !ids.has(m.id))];
+  }, [vehiclesRes?.data]);
   const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyRes?.data?.data ?? [];
 
   const customerOptions = useMemo<ComboboxOption[]>(() => {
@@ -262,6 +389,25 @@ export default function CreateTripPage() {
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
   const [isCustomThirdPartyVehicleType, setIsCustomThirdPartyVehicleType] = useState(false);
+
+  // Rate cards & Monthly calendar state
+  const [selectedRateCard, setSelectedRateCard] = useState<string>('rc-1');
+  const [monthlySelectedDays, setMonthlySelectedDays] = useState<number[]>([1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29]);
+
+  const handleSelectRateCard = (card: typeof MOCK_RATE_CARDS[0]) => {
+    setSelectedRateCard(card.id);
+    setContractVehicleType(card.vehicleClass);
+    setContractRateCategory(card.lineType);
+    setContractBillingType(card.operation);
+    if (contractSlots && contractSlots[0]?.id) {
+      handleUpdateTripSlot(contractSlots[0].id, {
+        billingAmount: String(card.billingRate),
+        tripCharges: String(card.driverPayout),
+        rateMatched: true,
+        rateCardName: card.title,
+      });
+    }
+  };
 
   // Third-party vehicle assignment fields
   const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
@@ -367,6 +513,45 @@ export default function CreateTripPage() {
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(1);
   const [contractCustomer, setContractCustomer] = useState('');
+
+  // Quadrant Collapse States
+  const [isQ1Collapsed, setIsQ1Collapsed] = useState<boolean>(false);
+  const [isQ2Collapsed, setIsQ2Collapsed] = useState<boolean>(false);
+  const [isQ3Collapsed, setIsQ3Collapsed] = useState<boolean>(false);
+  const [isQ4Collapsed, setIsQ4Collapsed] = useState<boolean>(false);
+
+  const handleSelectCustomer = (customerId: string) => {
+    setContractCustomer(customerId);
+    setIsQ1Collapsed(true);
+  };
+
+  // Fetch recent trips for selected customer
+  const { data: customerRecentTripsRes } = useQuery({
+    queryKey: ['customer-recent-trips', contractCustomer],
+    queryFn: () => tripService.getAll({ customer_id: contractCustomer, per_page: 5 }),
+    enabled: !!contractCustomer,
+  });
+
+  const recentTripsForCustomer = useMemo(() => {
+    if (!contractCustomer) return [];
+    const dbTrips = customerRecentTripsRes?.data ?? [];
+    if (dbTrips.length > 0) {
+      return dbTrips.map((t) => ({
+        id: t.id,
+        ref_id: t.ref_id || `TRIP-${t.id.slice(0, 4)}`,
+        route: `${(t as any).origin || (t as any).origin_location_name || 'Riyadh Hub'} → ${(t as any).destination || (t as any).destination_location_name || 'Jeddah Hub'}`,
+        vehicle_type: (t as any).vehicle_type || t.quotation_vehicle_class || '5 TON',
+        billing_amount: Number(t.billing_amount || 1200),
+        date: t.planned_start ? String(t.planned_start).slice(0, 10) : 'Recent',
+        status: t.status || 'Completed',
+        driver_name: (t as any).driver ? `${(t as any).driver.first_name} ${(t as any).driver.last_name}` : 'Assigned Driver',
+      }));
+    }
+    return MOCK_CUSTOMER_RECENT_TRIPS[contractCustomer] || [
+      { id: 't-default-1', ref_id: 'TRIP-9301', route: 'RUH Hub → JED Hub', vehicle_type: '5 TON Box', billing_amount: 1200, date: '01 Sep 2026', status: 'Completed', driver_name: 'Tariq Mahmoud' },
+      { id: 't-default-2', ref_id: 'TRIP-9182', route: 'RUH Hub → DMM Port', vehicle_type: '10 TON Reefer', billing_amount: 1850, date: '29 Aug 2026', status: 'Completed', driver_name: 'Mohammed Al-Harbi' },
+    ];
+  }, [contractCustomer, customerRecentTripsRes?.data]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractBillingType, setContractBillingType] = useState<string>('');
@@ -401,6 +586,8 @@ export default function CreateTripPage() {
     // Return Leg fields for Round Trip
     returnOrigin?: string;
     returnDestination?: string;
+    returnDate?: string;
+    returnDropoffDate?: string;
     returnPickupTime?: string;
     returnDropoffTime?: string;
     returnIsOvernight?: boolean;
@@ -556,21 +743,35 @@ export default function CreateTripPage() {
   // Rate-card auto-lookup: fires when origin/destination location IDs are set on a slot
   const handleSlotLocationChange = (
     slotId: string,
-    field: 'origin' | 'destination',
+    field: 'origin' | 'destination' | 'returnOrigin' | 'returnDestination',
     locIdOrName: string,
     locObj: import('@/services/locationService').Location | null
   ) => {
     const locationId = locObj?.id ?? (isUuid(locIdOrName) ? locIdOrName : null);
     const displayName = locObj?.name || locObj?.address || (isUuid(locIdOrName) ? '' : locIdOrName);
-    const isOrigin = field === 'origin';
 
-    handleUpdateTripSlot(slotId, {
+    const updates: Record<string, any> = {
       [field]: displayName,
-      [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
-      [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
-      [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
       rateMatched: false,
-    });
+    };
+
+    if (field === 'origin') {
+      updates.originLocationId = locationId;
+      updates.originLat = locObj?.lat ?? null;
+      updates.originLng = locObj?.lng ?? null;
+    } else if (field === 'destination') {
+      updates.destinationLocationId = locationId;
+      updates.destinationLat = locObj?.lat ?? null;
+      updates.destinationLng = locObj?.lng ?? null;
+    } else if (field === 'returnOrigin') {
+      updates.returnOriginLat = locObj?.lat ?? null;
+      updates.returnOriginLng = locObj?.lng ?? null;
+    } else if (field === 'returnDestination') {
+      updates.returnDestinationLat = locObj?.lat ?? null;
+      updates.returnDestinationLng = locObj?.lng ?? null;
+    }
+
+    handleUpdateTripSlot(slotId, updates);
 
     // Trigger rate lookup for slots after setting location IDs
     setTimeout(() => {
@@ -1618,12 +1819,12 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip" hideBackButton>
-      <div className="px-3 sm:px-6 pb-3 sm:pb-4 animate-fade-in max-w-[1300px] mx-auto w-full h-[calc(100dvh-105px)] flex flex-col min-h-0">
-        <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
+      <div className="w-full h-full flex flex-col min-h-0 animate-fade-in bg-slate-50/40 dark:bg-slate-950">
+        <div className="w-full flex-1 flex flex-col min-h-0">
 
         {/* Combined Sleek Navigation & Stepper Bar */}
         {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-5 py-2.5 gap-3">
+          <div className="border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-6 py-3 gap-3 shadow-2xs">
             {/* Top Left: Cancel / Back Actions */}
             <div className="flex items-center gap-1.5 shrink-0">
               {contractStep > 1 ? (
@@ -1649,78 +1850,56 @@ export default function CreateTripPage() {
               )}
             </div>
 
-            {/* Center: Stepper Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {[
-                { step: 1, label: '1. Customer', icon: User },
-                { step: 2, label: '2. Route Slots', icon: MapPin },
-                { step: 3, label: '3. Assignment & Billing', icon: undefined },
-                { step: 4, label: '4. Review', icon: undefined },
-              ].map((s) => {
-                const IconComp = s.icon;
-                const isActive = contractStep === s.step;
-                const isPassed = contractStep > s.step;
+            {/* Useful Live Operational & Financial Margin Header Bar */}
+            <div className="flex items-center gap-3 overflow-x-auto text-xs font-bold text-[#3E3C3D] dark:text-slate-200">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-800 shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-[#FA634E]" />
+                <span>Account: <strong className="text-slate-900 dark:text-slate-100">{customers.find((c) => c.id === contractCustomer)?.name || 'Saudi Aramco'}</strong></span>
+              </div>
 
-                return (
-                  <button
-                    key={s.step}
-                    type="button"
-                    disabled={!canNavigateToStep(s.step)}
-                    onClick={() => setContractStep(s.step as any)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${
-                      isActive
-                        ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
-                        : isPassed
-                        ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
-                        : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
-                    }`}
-                  >
-                    {IconComp && (
-                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
-                    )}
-                    <span>{s.label}</span>
-                    {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
-                  </button>
-                );
-              })}
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Route: <strong className="text-slate-900 dark:text-slate-100">{contractSlots[0]?.origin || 'Riyadh Hub'} ➔ {contractSlots[0]?.destination || 'Jeddah Hub'}</strong></span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800 shrink-0">
+                <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Assignment: <strong className="text-slate-900 dark:text-slate-100">{masterVehicle ? vehicles.find(v => v.id === masterVehicle)?.plate_number : '7841 KSA'} ({masterDriver ? drivers.find(d => d.id === masterDriver)?.first_name : 'Tariq M.'})</strong></span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shrink-0 font-mono">
+                <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Billing: <strong>SAR {Number(contractSlots[0]?.billingAmount || 1200).toLocaleString()}</strong></span>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <span>Margin: <strong>SAR {(Number(contractSlots[0]?.billingAmount || 1200) - Number(contractSlots[0]?.tripCharges || 400)).toLocaleString()}</strong></span>
+              </div>
             </div>
 
             {/* Top Right: Next / Done Primary Action & Close */}
             <div className="flex items-center gap-2 shrink-0">
-              {contractStep < 4 ? (
-                <Button
-                  type="button"
-                  disabled={!isStepValid(contractStep)}
-                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
-                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
-                >
-                  Next
-                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  <KbdBadge keys="Ctrl+S" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={
-                    bulkMutation.isPending || 
-                    batchTripRows.length === 0 ||
-                    !isStepValid(3)
+              <Button
+                type="button"
+                disabled={bulkMutation.isPending || (contractStep === 4 && (!isStepValid(1) || !isStepValid(2) || !isStepValid(3)))}
+                onClick={() => {
+                  if (contractStep < 4) {
+                    setContractStep((prev) => (prev + 1) as any);
+                  } else {
+                    handleContractSubmit();
                   }
-                  onClick={handleContractSubmit}
-                  className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                >
-                  {bulkMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      Done <KbdBadge keys="Ctrl+S" />
-                    </>
-                  )}
-                </Button>
-              )}
+                }}
+                className="h-8 rounded-xl px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-none disabled:opacity-50 gap-1 border-0"
+              >
+                {bulkMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Done <KbdBadge keys="Ctrl+S" />
+                  </>
+                )}
+              </Button>
 
               <button
                 type="button"
@@ -1736,7 +1915,7 @@ export default function CreateTripPage() {
 
         {/* Local Draft Auto-Save Recovery Alert Banner */}
         {hasSavedDraft && !submissionResult && (
-          <div className="bg-amber-50 border-b border-amber-200 px-5 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center justify-between gap-3 text-xs shrink-0 animate-fade-in">
             <div className="flex items-center gap-2 text-amber-900 font-medium">
               <Clock className="w-4 h-4 text-amber-600 shrink-0" />
               <span>Unsaved trip draft detected from your previous session.</span>
@@ -1765,7 +1944,7 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {/* Modal Body */}
+        {/* Page Content Body — Fits inside viewport */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 custom-scrollbar">
           {/* Submission Result Screen */}
           {submissionResult ? (
@@ -1831,1756 +2010,905 @@ export default function CreateTripPage() {
             </div>
           ) : (
             <>
-              {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
+              {/* TAB 1: REDESIGNED CREATE TRIP 2x2 QUADRANT DASHBOARD */}
               {activeTab === 'contract' && (
-                <div>
-                  {/* STEP 1: CUSTOMER & CATEGORY */}
-                  {contractStep === 1 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-brand" />
-                          Select Customer Account
-                        </h4>
-                        <p className="text-xs text-[#6E6E80]">
-                          Pick the client responsible for freight billing and contracted lane rates.
-                        </p>
-                      </div>
-
-                      {/* Frequent Shippers Cards */}
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                          <Zap className="w-3.5 h-3.5 text-amber-500" /> Frequent Shippers
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                          {customers.slice(0, 4).map((c, idx) => {
-                            const isSelected = contractCustomer === c.id;
-                            const initials = c.name.substring(0, 2).toUpperCase();
-                            return (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => setContractCustomer(c.id)}
-                                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[84px] h-auto space-y-2 ${
-                  isSelected
-                                    ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
-                                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 overflow-hidden ${
-                                    isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
-                                  }`}>
-                                    {c.logo_url || c.avatar_url ? (
-                                      <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      initials
-                                    )}
-                                  </span>
-                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
-                                    Key {idx + 1}
-                                  </span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-xs font-bold text-[#111111] leading-tight line-clamp-1" title={c.name}>{c.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-medium leading-normal">Commercial Account</p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Search All Accounts (Full Width) */}
-                      <div className="space-y-1.5 pt-2 border-t border-black/[0.06]">
-                        <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
-                          <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
-                        </label>
-                        <Combobox
-                          options={customerOptions}
-                          value={contractCustomer}
-                          onChange={setContractCustomer}
-                          placeholder="-- Select or search customer account --"
-                          searchPlaceholder="Search customer account by name e.g. AKS, Al-Marai..."
-                          emptyText="No customer matching your search."
-                          triggerClassName="h-9.5 rounded-xl border-slate-200 bg-white text-xs font-semibold shadow-2xs w-full"
-                        />
-
-                        {/* Selected Customer Details Card */}
-                        {(() => {
-                          const selectedCust = customers.find((c) => c.id === contractCustomer);
-                          if (!selectedCust) return null;
-                          const initials = selectedCust.name.substring(0, 2).toUpperCase();
-                          return (
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80 overflow-hidden">
-                                    {selectedCust.logo_url || selectedCust.avatar_url ? (
-                                      <img src={selectedCust.logo_url || selectedCust.avatar_url || ''} alt={selectedCust.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      initials
-                                    )}
-                                  </span>
-                                  <div>
-                                    <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
-                                    <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    tabIndex={-1}
-                                    onClick={() => setPreviewCustomer(selectedCust)}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-md flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Eye className="w-3 h-3" /> Preview
-                                  </button>
-                                  <button
-                                    type="button"
-                                    tabIndex={-1}
-                                    onClick={() => setEditCustomer(selectedCust)}
-                                    className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 font-semibold px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Edit2 className="w-3 h-3" /> Edit
-                                  </button>
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    Active Account
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <Phone className="w-2.5 h-2.5 text-slate-400" /> CONTACT PHONE
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.phone || '966500000007'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <CreditCard className="w-2.5 h-2.5 text-slate-400" /> PAYMENT TERMS
-                                  </span>
-                                  <span className="text-xs font-bold text-[#111111]">
-                                    {selectedCust.payment_terms || 'Net 30'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <ShieldCheck className="w-2.5 h-2.5 text-slate-400" /> ACCOUNT CREDIT
-                                  </span>
-                                  <span className="text-xs font-bold text-emerald-600">
-                                    Good Standing
-                                  </span>
-                                </div>
-                              </div>
+                <div className="space-y-4 animate-fade-in">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                    {/* LEFT COLUMN: CUSTOMER SELECTION & TRIP ROUTE */}
+                    <div className="space-y-4 flex flex-col">
+                      {/* QUADRANT 1 (TOP-LEFT): CUSTOMER SELECTION */}
+                      {isQ1Collapsed && contractCustomer ? (
+                        <div
+                          onClick={() => setIsQ1Collapsed(false)}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 shadow-xs flex items-center justify-between transition-all animate-fade-in cursor-pointer hover:border-[#FA634E] group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#FA634E] text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                              {customers.find(c => c.id === contractCustomer)?.name.substring(0, 2).toUpperCase() || 'CU'}
                             </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                  <Building2 className="w-3 h-3 text-[#FA634E]" /> CUSTOMER SELECTION
+                                </span>
+                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0.2">
+                                  Active Account
+                                </Badge>
+                              </div>
+                              <h4 className="text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight">
+                                {customers.find(c => c.id === contractCustomer)?.name || 'Selected Customer'}
+                              </h4>
+                            </div>
+                          </div>
 
-                  {/* STEP 2: ROUTE & TRIPS SLOTS */}
-                  {contractStep === 2 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Operational Category & Vehicle Class (Option 1 Ultra-Compact Bar) */}
-                      <ServiceVehicleSelector
-                        contractRateCategory={contractRateCategory}
-                        contractVehicleType={contractVehicleType}
-                        onUpdateRateCategory={(cat) => {
-                          setContractRateCategory(cat);
-                          triggerRateLookupForSlots(undefined, cat);
-                        }}
-                        onUpdateVehicleType={(veh) => {
-                          setContractVehicleType(veh);
-                          triggerRateLookupForSlots(veh);
-                        }}
-                        matchStatus={
-                          contractSlots.some(s => s.originLocationId && s.destinationLocationId)
-                            ? contractSlots.some(s => Boolean(s.rateMatched))
-                              ? 'matched'
-                              : 'unmatched'
-                            : 'idle'
-                        }
-                      />
-
-                      {/* Daily Route Stop Cards (Full-Width Primary Focal Point) */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-black/[0.06] pb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              Daily Route Stop Cards ({contractSlots.length} Slot{contractSlots.length > 1 ? 's' : ''})
-                            </span>
-                            {contractSlots.length > 1 && (
-                              <Badge className="bg-orange-50 text-brand border-orange-200 text-[10px] font-bold">
-                                {contractSlots.length} Slots / Day
-                              </Badge>
-                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsQ1Collapsed(false);
+                              }}
+                              className="h-7 text-xs font-bold border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-[#FA634E] rounded-xl px-2.5 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" /> Edit
+                            </Button>
                           </div>
                         </div>
-
-                        {contractSlots.map((slot, slotIdx) => (
-                          <div
-                            key={slot.id}
-                            className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
-                          >
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                  Trip Slot #{slotIdx + 1}
-                                </span>
+                      ) : (
+                        <div className={cn(
+                          "p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between transition-all",
+                          contractStep === 1 && "ring-2 ring-[#FA634E]"
+                        )}>
+                          <div className="space-y-3.5">
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                              <div className="flex items-center gap-2 text-xs font-black text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider">
+                                <Building2 className="w-4 h-4 text-[#FA634E]" />
+                                <span>CUSTOMER SELECTION</span>
                               </div>
-                              <div className="flex items-center gap-2">
-
+                              {contractCustomer && (
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                  onClick={() => handleAddSlotIntermediate(slot.id)}
+                                  variant="ghost"
+                                  onClick={() => setIsQ1Collapsed(true)}
+                                  className="h-6 text-[10px] font-bold text-slate-500 hover:text-[#FA634E] px-2 rounded-lg"
                                 >
-                                  <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                  Add Stop
+                                  <ChevronUp className="w-3.5 h-3.5 mr-1" /> Collapse
                                 </Button>
-                                {contractSlots.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTripSlot(slot.id)}
-                                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
-                                    title="Remove trip slot"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
-                            {isRoundTripCategory(contractRateCategory) ? (
-                              <div className="space-y-3 pt-0.5">
-                                {/* LEG 1: OUTBOUND JOURNEY */}
-                                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2.5">
-                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
-                                        Leg 1: Outbound Journey
-                                      </Badge>
-                                      <span className="text-xs font-bold text-slate-800">Origin → Destination</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                      onClick={() => handleAddSlotIntermediate(slot.id)}
-                                    >
-                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                      Add Outbound Stop
-                                    </Button>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {/* SECTION 1: Outbound Pickup (Start) */}
-                                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                                          <span className="text-xs font-bold text-emerald-950">1. Outbound Pickup (Start)</span>
-                                        </div>
-                                        <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
-                                          Starting Point
-                                        </span>
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
-                                            Outbound Pickup Location *
-                                          </label>
-                                          <LocationCombobox
-                                            customerId={contractCustomer}
-                                            value={slot.origin}
-                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                                            placeholder="Search starting origin (e.g. Riyadh)..."
-                                            triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 text-emerald-600" /> Outbound Date *
-                                            </label>
-                                            <DatePicker
-                                              value={slot.date || ''}
-                                              onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
-                                              placeholder="Select date..."
-                                              buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              minDate={new Date()}
-                                            />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Clock className="w-3 h-3 text-emerald-600" /> Outbound Time *
-                                            </label>
-                                            <TimePicker
-                                              value={slot.pickupTime}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* SECTION 2: Outbound Dropoff (Destination) */}
-                                    <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
-                                          <span className="text-xs font-bold text-orange-950">2. Outbound Dropoff (Destination)</span>
-                                        </div>
-                                        <span className="text-[9px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-1.5 py-0.5 rounded">
-                                          Delivery Point
-                                        </span>
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider block">
-                                            Outbound Dropoff Location *
-                                          </label>
-                                          <LocationCombobox
-                                            customerId={contractCustomer}
-                                            value={slot.destination}
-                                            onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-                                            placeholder="Search delivery destination (e.g. Dammam)..."
-                                            triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 text-brand" /> Outbound Date *
-                                            </label>
-                                            <DatePicker
-                                              value={slot.dropoffDate || ''}
-                                              onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
-                                              placeholder="Select date..."
-                                              buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              minDate={slot.date ? new Date(slot.date) : new Date()}
-                                            />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                              <Clock className="w-3 h-3 text-brand" /> Outbound Time *
-                                            </label>
-                                            <div className="flex items-center gap-1">
-                                              <TimePicker
-                                                value={slot.dropoffTime}
-                                                onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
-                                                placeholder="Select time..."
-                                                buttonClassName="flex-1 h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                              />
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                  const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
-                                                  const newHour = (hh + 1) % 24;
-                                                  const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                  const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
-                                                  handleUpdateTripSlot(slot.id, {
-                                                    dropoffTime: newTime,
-                                                    dropoffDate: newDate,
-                                                    isOvernight: newHour === 0 ? true : slot.isOvernight
-                                                  });
-                                                }}
-                                                className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
-                                                title="Add 1 Hour"
-                                              >
-                                                <Plus className="w-3.5 h-3.5" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <TransitTimeBadge
-                                    origin={slot.origin}
-                                    destination={slot.destination}
-                                    originLat={slot.originLat}
-                                    originLng={slot.originLng}
-                                    destinationLat={slot.destinationLat}
-                                    destinationLng={slot.destinationLng}
-                                    pickupTime={slot.pickupTime}
-                                    dropoffTime={slot.dropoffTime}
-                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                      handleUpdateTripSlot(slot.id, {
-                                        dropoffTime: suggestedTime,
-                                        ...(isOvernight ? { isOvernight: true } : {}),
-                                      });
-                                    }}
-                                  />
-
-                                  {/* Outbound Intermediate Stops & Fees */}
-                                  {slot.intermediateLocations.length > 0 && (
-                                    <div className="space-y-2 pt-1.5 border-t border-slate-200/60">
-                                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                                        Outbound Intermediate Stops & Fees ({slot.intermediateLocations.length})
-                                      </span>
-                                      <div className="space-y-2">
-                                        {slot.intermediateLocations.map((loc, idx) => (
-                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1.5">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3 text-emerald-600" />
-                                                Outbound Stop #{idx + 1}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
-                                              >
-                                                Remove Stop
-                                              </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                              <div className="sm:col-span-2">
-                                                <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={loc}
-                                                  onChange={(locId, locObj) => handleUpdateSlotIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
-                                                  placeholder={`Search Outbound Stop #${idx + 1}...`}
-                                                  triggerClassName="h-8 border-slate-200 bg-white"
-                                                />
-                                              </div>
-                                              <div className="relative">
-                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
-                                                <input
-                                                  type="number"
-                                                  value={slot.intermediateStopFees?.[idx] || ''}
-                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                                  placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                           {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
-                                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200/80 space-y-2.5">
-                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
-                                        <RefreshCw className="w-2.5 h-2.5 animate-spin-slow" />
-                                        Leg 2: Return Journey Loop
-                                      </Badge>
-                                      <span className="text-xs font-bold text-indigo-950">Destination &rarr; Return to Origin</span>
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
-                                      onClick={() => handleAddSlotReturnIntermediate(slot.id)}
-                                    >
-                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
-                                      Add Return Stop
-                                    </Button>
-                                  </div>
-
-                                  {/* Curved Dual-Arrow Loop Banner */}
-                                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-indigo-200/80 shadow-2xs">
-                                    <div className="flex items-center gap-2">
-                                      <RotateCcw className="w-4 h-4 text-indigo-600 shrink-0" />
-                                      <span className="text-xs font-extrabold text-slate-800">
-                                        Return Loop automatically starts from Outbound Dropoff ({slot.destination || 'Destination'})
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-indigo-50 rounded-lg text-xs font-black text-indigo-900 border border-indigo-200">
-                                      <span>{slot.destination || 'Dropoff'}</span>
-                                      <div className="flex flex-col items-center px-1">
-                                        <svg className="w-6 h-2 text-emerald-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M 2 8 C 10 2, 22 2, 30 8" />
-                                          <path d="M 25 3 L 30 8 L 24 9" />
-                                        </svg>
-                                        <svg className="w-6 h-2 text-indigo-500" viewBox="0 0 32 10" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M 30 2 C 22 8, 10 8, 2 2" />
-                                          <path d="M 7 7 L 2 2 L 8 1" />
-                                        </svg>
-                                      </div>
-                                      <span>{slot.origin || 'Pickup'}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 gap-3">                            </div>
-
-                                    {/* SECTION 4: Return Dropoff (Final Home Destination) */}
-                                    <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">
-                                      <div className="p-2 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2 h-2 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
-                                          <span className="text-xs font-bold text-purple-950">4. Return Dropoff (Final Home)</span>
-                                        </div>
-                                        {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdateTripSlot(slot.id, { returnIsOvernight: !slot.returnIsOvernight })}
-                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
-                                              slot.returnIsOvernight
-                                                ? 'bg-indigo-600 text-white shadow-2xs'
-                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                            }`}
-                                            title="Toggle Return Overnight (+1 Day)"
-                                          >
-                                            <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            {slot.returnIsOvernight ? '+1 Day (Overnight)' : '+1 Day'}
-                                          </button>
-                                        )}
-                                      </div>
-
-                                      <div className="p-2.5 space-y-2">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
-                                            <span>Return Dropoff (Home) *</span>
-                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[9px] gap-1 px-1.5 py-0.5 rounded shadow-2xs">
-                                              <RotateCcw className="w-2.5 h-2.5 text-emerald-600" />
-                                              Auto-Linked Home Origin
-                                            </Badge>
-                                          </label>
-                                          <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.returnDestination || slot.origin}
-                                            onChange={(locName, locObj) => handleUpdateTripSlot(slot.id, {
-                                              returnDestination: locName,
-                                              returnDestinationLat: locObj?.lat ?? null,
-                                              returnDestinationLng: locObj?.lng ?? null
-                                            })}
-                                            placeholder="Search final home destination..."
-                                            triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
-                                          />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
-                                          </label>
-                                          <div className="flex items-center gap-1.5">
-                                            <TimePicker
-                                              value={slot.returnDropoffTime || '22:00'}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { returnDropoffTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
-                                                slot.returnIsOvernight
-                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-purple-200 bg-white text-slate-800'
-                                              }`}
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                const [hh, mm] = (slot.returnDropoffTime || '22:00').split(':').map(Number);
-                                                const newHour = (hh + 1) % 24;
-                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                handleUpdateTripSlot(slot.id, {
-                                                  returnDropoffTime: newTime,
-                                                  returnIsOvernight: newHour === 0 ? true : slot.returnIsOvernight
-                                                });
-                                              }}
-                                              className="h-8.5 w-8.5 p-0 rounded-lg border-purple-200 bg-white text-[#7c3aed] hover:bg-purple-50 shrink-0"
-                                              title="Add 1 Hour"
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <TransitTimeBadge
-                                    origin={slot.returnOrigin || slot.destination}
-                                    destination={slot.returnDestination || slot.origin}
-                                    originLat={slot.returnOriginLat || slot.destinationLat}
-                                    originLng={slot.returnOriginLng || slot.destinationLng}
-                                    destinationLat={slot.returnDestinationLat || slot.originLat}
-                                    destinationLng={slot.returnDestinationLng || slot.originLng}
-                                    pickupTime={slot.returnPickupTime || '14:00'}
-                                    dropoffTime={slot.returnDropoffTime}
-                                    onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                      handleUpdateTripSlot(slot.id, {
-                                        returnDropoffTime: suggestedTime,
-                                        ...(isOvernight ? { returnIsOvernight: true } : {}),
-                                      });
-                                    }}
-                                  />
-
-                                  {/* Return Intermediate Stops & Fees */}
-                                  {(slot.returnIntermediateLocations || []).length > 0 && (
-                                    <div className="space-y-2 pt-1.5 border-t border-indigo-100">
-                                      <span className="text-[10px] font-bold text-indigo-950 uppercase tracking-wider block">
-                                        Return Intermediate Stops & Fees ({(slot.returnIntermediateLocations || []).length})
-                                      </span>
-                                      <div className="space-y-2">
-                                        {(slot.returnIntermediateLocations || []).map((loc, idx) => (
-                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-indigo-200 space-y-1.5">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3 text-purple-600" />
-                                                Return Stop #{idx + 1}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleRemoveSlotReturnIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
-                                              >
-                                                Remove Stop
-                                              </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                              <div className="sm:col-span-2">
-                                                <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={loc}
-                                                  onChange={(locId, locObj) => handleUpdateSlotReturnIntermediate(slot.id, idx, locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId))}
-                                                  placeholder={`Search Return Stop #${idx + 1}...`}
-                                                  triggerClassName="h-8 border-indigo-200 bg-white"
-                                                />
-                                              </div>
-                                              <div className="relative">
-                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
-                                                <input
-                                                  type="number"
-                                                  value={slot.returnIntermediateStopFees?.[idx] || ''}
-                                                  onChange={(e) => handleUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
-                                                  placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              /* Option 2: Split Side-by-Side (Origin | Destination) with Middle Intermediate List */
-                              <div className="space-y-3 pt-0.5">
-                                {/* 1. TOP ROW: Side-by-Side Pickup (Origin) & Dropoff (Destination) Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
-                                  <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/40 dark:bg-emerald-950/20 p-2.5 space-y-2 shadow-2xs">
-                                    <div className="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-emerald-950 dark:text-emerald-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" /> Pickup Stop (Origin)
-                                      </span>
-                                      <span className="text-[9px] font-bold text-emerald-700 bg-white dark:bg-slate-900 border border-emerald-200 px-2 py-0.5 rounded">
-                                        Route Start
-                                      </span>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider block">
-                                          Pickup Location *
-                                        </label>
-                                        <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.origin}
-                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                                          placeholder="Search or select pickup location..."
-                                          triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
-                                        />
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Calendar className="w-3 h-3 text-emerald-600" /> Pickup Date *
-                                          </label>
-                                          <DatePicker
-                                            value={slot.date || ''}
-                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
-                                            placeholder="Select date..."
-                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            minDate={new Date()}
-                                          />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
-                                          </label>
-                                          <TimePicker
-                                            value={slot.pickupTime}
-                                            onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
-                                            placeholder="Select time..."
-                                            buttonClassName="h-8.5 border-emerald-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
-                                  <div className="rounded-xl border border-orange-200/90 bg-orange-50/40 dark:bg-orange-950/20 p-2.5 space-y-2 shadow-2xs">
-                                    <div className="flex items-center justify-between border-b border-orange-100 dark:border-orange-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-orange-950 dark:text-orange-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-brand fill-orange-100" /> Dropoff Stop (Destination)
-                                      </span>
-
-                                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                          className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
-                                            slot.isOvernight
-                                              ? 'bg-indigo-600 text-white shadow-2xs'
-                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                          }`}
-                                          title="Toggle Overnight / Next-Day Return trip (+1 Day)"
-                                        >
-                                          <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                          +1 Day
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider block">
-                                          Dropoff Location *
-                                        </label>
-                                        <LocationCombobox
-                                          customerId={contractCustomer}
-                                          value={slot.destination}
-                                          onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-                                          placeholder="Search or select dropoff location..."
-                                          triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
-                                        />
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Calendar className="w-3 h-3 text-brand" /> Drop-off Date *
-                                          </label>
-                                          <DatePicker
-                                            value={slot.dropoffDate || ''}
-                                            onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { dropoffDate: dateStr })}
-                                            placeholder="Select date..."
-                                            buttonClassName="h-8.5 border-orange-200 bg-white shadow-2xs font-semibold text-xs text-slate-800"
-                                            minDate={slot.date ? new Date(slot.date) : new Date()}
-                                          />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
-                                          </label>
-                                          <div className="flex items-center gap-1">
-                                            <TimePicker
-                                              value={slot.dropoffTime}
-                                              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { dropoffTime: timeStr })}
-                                              placeholder="Select time..."
-                                              buttonClassName={`flex-1 h-8.5 text-xs font-semibold shadow-2xs ${
-                                                slot.isOvernight
-                                                  ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                                  : 'border-orange-200 bg-white text-slate-800'
-                                              }`}
-                                            />
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                const [hh, mm] = (slot.dropoffTime || '12:00').split(':').map(Number);
-                                                const newHour = (hh + 1) % 24;
-                                                const newTime = `${String(newHour).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-                                                const newDate = newHour === 0 ? addDays(slot.dropoffDate || slot.date, 1) : (slot.dropoffDate || slot.date);
-                                                handleUpdateTripSlot(slot.id, {
-                                                  dropoffTime: newTime,
-                                                  dropoffDate: newDate,
-                                                  isOvernight: newHour === 0 ? true : slot.isOvernight
-                                                });
-                                              }}
-                                              className="h-8.5 w-8.5 p-0 rounded-lg border-orange-200 bg-white text-brand hover:bg-orange-50 shrink-0"
-                                              title="Add 1 Hour"
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* 2. TRANSIT TIME & MARGIN BADGE */}
-                                <TransitTimeBadge
-                                  origin={slot.origin}
-                                  destination={slot.destination}
-                                  originLat={slot.originLat}
-                                  originLng={slot.originLng}
-                                  destinationLat={slot.destinationLat}
-                                  destinationLng={slot.destinationLng}
-                                  pickupTime={slot.pickupTime}
-                                  dropoffTime={slot.dropoffTime}
-                                  onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                    handleUpdateTripSlot(slot.id, {
-                                      dropoffTime: suggestedTime,
-                                      ...(isOvernight ? { isOvernight: true } : {}),
-                                    });
-                                  }}
-                                />
-
-                                {/* 3. MIDDLE SECTION: COMPACT INTERMEDIATE STOPS LIST */}
-                                {slot.intermediateLocations.length > 0 && (
-                                  <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/20 dark:bg-indigo-950/20 p-2.5 space-y-2">
-                                    <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-1.5">
-                                      <span className="text-xs font-black text-indigo-950 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                                        Intermediate Stops ({slot.intermediateLocations.length})
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddSlotIntermediate(slot.id)}
-                                        className="text-[10px] font-bold text-indigo-700 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950 flex items-center gap-1 transition-all cursor-pointer"
-                                      >
-                                        <Plus className="w-3 h-3 text-indigo-600" />
-                                        Add Stop
-                                      </button>
-                                    </div>
-
-                                    {/* COMPACT SINGLE-LINE ROWS */}
-                                    <div className="space-y-1.5">
-                                      {slot.intermediateLocations.map((loc, idx) => (
-                                        <div
-                                          key={idx}
-                                          draggable
-                                          onDragStart={(e) => e.dataTransfer.setData('text/plain', String(idx))}
-                                          onDragOver={(e) => e.preventDefault()}
-                                          onDrop={(e) => {
-                                            e.preventDefault();
-                                            const fromIdx = Number(e.dataTransfer.getData('text/plain'));
-                                            if (!isNaN(fromIdx) && fromIdx !== idx) {
-                                              handleMoveSlotIntermediate(slot.id, fromIdx, idx);
-                                            }
-                                          }}
-                                          className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs group hover:border-indigo-300 transition-all"
-                                        >
-                                          {/* Drag Handle & Index */}
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            <span className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600" title="Drag to reorder stop">
-                                              <GripVertical className="w-3.5 h-3.5" />
-                                            </span>
-                                            <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] font-extrabold flex items-center justify-center">
-                                              #{idx + 1}
-                                            </span>
-                                          </div>
-
-                                          {/* Location Combobox (Flex Fill) */}
-                                          <div className="flex-1 min-w-[200px]">
-                                            <LocationCombobox
-                                              customerId={contractCustomer}
-                                              value={loc}
-                                              onChange={(locId, locObj) => {
-                                                const displayName = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
-                                                const resolvedId = locObj?.id || (isUuid(locId) ? locId : null);
-                                                handleUpdateSlotIntermediate(slot.id, idx, displayName, resolvedId);
-                                                setTimeout(() => triggerRateLookupForSlots(), 50);
-                                              }}
-                                              placeholder={`Intermediate Stop #${idx + 1}...`}
-                                              triggerClassName="h-8 border-slate-200 bg-white shadow-2xs text-xs font-medium"
-                                            />
-                                          </div>
-
-                                          {/* Stop Fee Input (Compact) */}
-                                          <div className="w-32 relative shrink-0">
-                                            <span className="absolute left-2 top-1.5 text-[10px] font-bold text-slate-400">SAR</span>
-                                            <input
-                                              type="number"
-                                              value={slot.intermediateStopFees?.[idx] || ''}
-                                              onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                              placeholder="Stop Fee"
-                                              className="w-full h-8 pl-8 pr-2 rounded-md border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white"
-                                            />
-                                          </div>
-
-                                          {/* Reorder Up / Down Micro-Buttons */}
-                                          <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100">
-                                            <button
-                                              type="button"
-                                              disabled={idx === 0}
-                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx - 1)}
-                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
-                                              title="Move stop up"
-                                            >
-                                              <ChevronUp className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              disabled={idx === slot.intermediateLocations.length - 1}
-                                              onClick={() => handleMoveSlotIntermediate(slot.id, idx, idx + 1)}
-                                              className="p-1 rounded text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-20 cursor-pointer"
-                                              title="Move stop down"
-                                            >
-                                              <ChevronDown className="w-3.5 h-3.5" />
-                                            </button>
-                                          </div>
-
-                                          {/* Trash Remove Button */}
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors shrink-0 cursor-pointer"
-                                            title="Remove stop"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 3: ASSIGNMENT & BILLING */}
-                  {contractStep === 3 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      {/* Top Bar: Title & Assignment Switcher */}
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h4 className="text-sm font-extrabold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-brand" />
-                          Assignment & Billing
-                        </h4>
-
-                        {/* Assignment Source Switcher: Own Fleet vs. Third Party */}
-                        <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('own')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'own'
-                                ? 'bg-white dark:bg-slate-900 text-brand shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Truck className="w-3.5 h-3.5" />
-                            Own Fleet
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAssignmentType('third_party')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                              assignmentType === 'third_party'
-                                ? 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-2xs'
-                                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                            }`}
-                          >
-                            <Building2 className="w-3.5 h-3.5" />
-                            Third-Party Vehicle (3PL)
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Live Financial Margin Indicator (Compact 1-Liner) */}
-                      <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs font-extrabold text-slate-800 dark:text-slate-200">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>Customer Billing: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalBilling.toLocaleString()}</strong></span>
-                          <span className="text-slate-300 dark:text-slate-700">|</span>
-                          <span>Driver/3PL Payout: <strong className="font-mono text-slate-900 dark:text-slate-100">SAR {marginMetrics.totalCost.toLocaleString()}</strong></span>
-                        </div>
-
-                        <Badge
-                          className={`px-2.5 py-0.5 rounded-lg font-mono font-extrabold text-xs gap-1 shadow-2xs border ${
-                            marginMetrics.isHigh
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : marginMetrics.isMedium
-                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                              : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                          }`}
-                        >
-                          <Zap className="w-3 h-3" />
-                          Profit: SAR {marginMetrics.profit.toLocaleString()} ({marginMetrics.marginPct.toFixed(1)}%)
-                        </Badge>
-                      </div>
-
-                      {/* OPTION A: OWN FLEET SELECTORS */}
-                      {assignmentType === 'own' && (
-                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-2xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-brand" />
-                              Select Driver & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateDriverOpen(true)}
-                              className="h-6 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Driver
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Driver</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...driverOptions
-                                ]}
-                                value={masterDriver}
-                                onChange={handleDriverChange}
-                                placeholder="Select driver"
-                                searchPlaceholder="Search driver..."
-                                emptyText="No drivers found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                              {driverConflictWarning && (
-                                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5 mt-1">
-                                  <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                                  <span>{driverConflictWarning}</span>
-                                </div>
                               )}
                             </div>
 
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Truck</label>
-                              <Combobox
-                                options={[
-                                  { value: 'unassigned', label: '-- Unassigned --' },
-                                  ...vehicleOptions
-                                ]}
-                                value={masterVehicle}
-                                onChange={handleVehicleChange}
-                                placeholder="Select vehicle"
-                                searchPlaceholder="Search vehicle..."
-                                emptyText="No vehicles found."
-                                triggerClassName="h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold w-full"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {!isVehicleTypeEditable && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsVehicleTypeEditable(true)}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                              <Select
-                                value={contractVehicleType}
-                                onValueChange={(val) => {
-                                  setContractVehicleType(val);
-                                  setIsVehicleTypeEditable(false);
-                                  triggerRateLookupForSlots(val);
-                                }}
-                                disabled={!isVehicleTypeEditable}
-                              >
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 disabled:opacity-80" title="Vehicle Type">
-                                  <SelectValue placeholder="Vehicle Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {VEHICLE_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                      {type}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* OPTION B: THIRD-PARTY / 3PL SUBCONTRACTOR SELECTORS */}
-                      {assignmentType === 'third_party' && (
-                        <div className="p-3 rounded-xl bg-purple-50/20 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-2.5">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                              Assign 3PL Carrier & Vehicle
-                            </span>
-                            <Button
-                              type="button"
-                              onClick={() => setIsCreateProviderOpen(true)}
-                              className="h-6 px-2 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition-all border-none cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3 text-white" />
-                              Add Provider
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Provider *</label>
-                              <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold">
-                                  <SelectValue placeholder="Select provider" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {thirdPartyProviders.map((p) => (
-                                    <SelectItem key={p.id} value={p.id} className="text-xs font-semibold">
-                                      {p.name} {p.phone ? `(${p.phone})` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Plate *</label>
-                              <input
-                                type="text"
-                                value={thirdPartyVehiclePlate}
-                                onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
-                                placeholder="e.g. 1234 ABC"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Vehicle Type</label>
-                                {isCustomThirdPartyVehicleType && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsCustomThirdPartyVehicleType(false);
-                                      setContractVehicleType(VEHICLE_TYPES[0] || 'Flatbed');
-                                    }}
-                                    className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                  >
-                                    Select
-                                  </button>
-                                )}
-                              </div>
-                              {isCustomThirdPartyVehicleType ? (
-                                <input
-                                  type="text"
-                                  value={contractVehicleType}
-                                  onChange={(e) => setContractVehicleType(e.target.value)}
-                                  placeholder="Custom type..."
-                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              ) : (
-                                <Select
-                                  value={contractVehicleType}
-                                  onValueChange={(val) => {
-                                    if (val === 'custom') {
-                                      setIsCustomThirdPartyVehicleType(true);
-                                      setContractVehicleType('');
-                                    } else {
-                                      setContractVehicleType(val);
-                                      triggerRateLookupForSlots(val);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 w-full rounded-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100" title="Vehicle Type">
-                                    <SelectValue placeholder="Vehicle Type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {VEHICLE_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type} className="text-xs font-semibold">
-                                        {type}
-                                      </SelectItem>
-                                    ))}
-                                    <SelectItem value="custom" className="text-xs font-semibold text-purple-700">
-                                      Custom...
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5 border-t border-purple-100 dark:border-purple-900/30">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Driver Name</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverName}
-                                onChange={(e) => setThirdPartyDriverName(e.target.value)}
-                                placeholder="e.g. Tariq Mahmoud"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Phone</label>
-                              <input
-                                type="text"
-                                value={thirdPartyDriverPhone}
-                                onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
-                                placeholder="e.g. +966 50 123 4567"
-                                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">3PL Cost (SAR)</label>
-                              <div className="relative">
-                                <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                <input
-                                  type="number"
-                                  value={thirdPartyCost}
-                                  onChange={(e) => setThirdPartyCost(e.target.value)}
-                                  placeholder="0.00"
-                                  className="w-full h-8 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-right bg-white dark:bg-slate-800 outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Per-slot Billing Amount & Trip Charge */}
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Trip Rates & Payout</span>
-                          </div>
-                          {contractVehicleType && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 flex items-center gap-1">
-                              <Truck className="w-3 h-3" />
-                              Tier: {contractVehicleType}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-2.5">
-                          {contractSlots.map((slot, idx) => {
-                            const dateObj = slot.date ? new Date(slot.date) : new Date();
-                            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-                            const stopFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
-                            const baseAmount = Number(slot.billingAmount) || 0;
-                            const totalBillingAmount = baseAmount + stopFeesSum;
-                            const driverPayout = Number(slot.tripCharges) || 0;
-                            const marginAmount = totalBillingAmount - driverPayout;
-                            const marginPercent = totalBillingAmount > 0 ? Math.round((marginAmount / totalBillingAmount) * 100) : 0;
-
-                            return (
-                              <div key={slot.id} className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-2xs">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                    <span className="text-xs font-semibold text-slate-500">({slot.origin || '—'} → {slot.destination || '—'})</span>
-                                  </div>
-                                  {slot.rateMatched ? (
-                                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Quotation Matched {slot.rateCardName ? `(${slot.rateCardName})` : ''}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Custom Rate / No Quotation
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                  {/* Customer Billing Charge */}
-                                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 flex flex-col justify-between">
-                                    <div>
-                                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
-                                        <span>Customer Billing (SAR)</span>
-                                        {slot.rateCardBasePrice != null && slot.rateMatched && (
-                                          <span className="text-emerald-600 dark:text-emerald-400 font-mono">Rate Card: SAR {slot.rateCardBasePrice.toLocaleString()}</span>
+                            {/* FREQUENT SHIPPERS */}
+                            <div className="space-y-2">
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 text-amber-500" /> FREQUENT SHIPPERS
+                              </span>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                {customers.slice(0, 4).map((c, idx) => {
+                                  const isSelected = contractCustomer === c.id;
+                                  const initials = c.name.substring(0, 2).toUpperCase();
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={() => handleSelectCustomer(c.id)}
+                                      className={cn(
+                                        "p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[82px] space-y-2 relative cursor-pointer",
+                                        isSelected
+                                          ? "bg-orange-50/50 border-[#FA634E] ring-1 ring-[#FA634E]/30"
+                                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between w-full">
+                                        <span className={cn(
+                                          "w-6 h-6 rounded-md font-bold text-[10px] grid place-items-center shrink-0",
+                                          isSelected ? "bg-[#FA634E] text-white" : "bg-slate-100 text-slate-700"
+                                        )}>
+                                          {initials}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1 py-0.5 rounded">
+                                          Key {idx + 1}
+                                        </span>
+                                        {isSelected && (
+                                          <div className="w-4 h-4 rounded-full bg-[#FA634E] text-white grid place-items-center shrink-0">
+                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                          </div>
                                         )}
                                       </div>
-                                      <div className="relative mt-1">
-                                        <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                        <input
-                                          type="number"
-                                          value={slot.billingAmount}
-                                          onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value, rateMatched: false })}
-                                          placeholder="0.00"
-                                          className={`w-full h-8.5 pl-9 pr-2.5 rounded-lg border text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 transition-colors ${
-                                            slot.rateMatched
-                                              ? 'border-emerald-300 focus:border-emerald-500 text-emerald-950 dark:text-emerald-100'
-                                              : 'border-slate-200 dark:border-slate-700 focus:border-emerald-400 text-slate-900 dark:text-slate-100'
-                                          }`}
-                                        />
-                                      </div>
-                                      {stopFeesSum > 0 && (
-                                        <div className="text-[10px] text-right font-semibold text-slate-500 mt-1">
-                                          + {stopFeesSum.toLocaleString()} SAR stops = <strong className="text-brand">{totalBillingAmount.toLocaleString()} SAR</strong> Total
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Option A: Direct Integration inside Customer Billing Box */}
-                                    {!slot.rateMatched && (
-                                      <label className="mt-2 flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/90 dark:border-amber-800 text-[11px] font-bold text-amber-950 dark:text-amber-200 cursor-pointer shadow-2xs hover:bg-amber-100/70 transition-all select-none">
-                                        <span className="flex items-center gap-1.5 text-[11px]">
-                                          <input
-                                            type="checkbox"
-                                            checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                            onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                            className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                          />
-                                          <span>Save rate as Quotation</span>
-                                        </span>
-                                        <span className="text-[9px] font-mono text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-700">
-                                          {contractVehicleType || '10 TON'}
-                                        </span>
-                                      </label>
-                                    )}
-                                  </div>
-
-                                  {/* Driver Trip Charge */}
-                                  <div className="space-y-1 p-2.5 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                                      <span>Driver Payout (SAR)</span>
-                                      {slot.rateCardDefaultTripCharge != null && slot.rateMatched && (
-                                        <span className="text-emerald-600 dark:text-emerald-400">Rate Card: SAR {slot.rateCardDefaultTripCharge.toLocaleString()}</span>
-                                      )}
-                                    </div>
-                                    <div className="relative">
-                                      <span className="absolute left-2.5 top-2 text-[10px] font-bold text-slate-400">SAR</span>
-                                      <input
-                                        type="number"
-                                        value={slot.tripCharges}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { tripCharges: e.target.value })}
-                                        placeholder="0.00"
-                                        className="w-full h-8.5 pl-9 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono font-extrabold text-right focus:outline-none bg-white dark:bg-slate-900 focus:border-amber-400 text-slate-900 dark:text-slate-100"
-                                      />
-                                    </div>
-                                    {/* Presets */}
-                                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                                      {LOCAL_TRIP_CHARGE_PRESETS.map((preset) => (
-                                        <button
-                                          key={preset.label}
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, {
-                                            tripCharges: String(preset.amount),
-                                            ...(!slot.rateMatched ? { saveAsRateCard: true } : {}),
-                                          })}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                                            Number(slot.tripCharges) === preset.amount
-                                              ? 'bg-amber-500 border-amber-500 text-white'
-                                              : 'bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/40'
-                                          }`}
-                                        >
-                                          {preset.label} {preset.amount}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Slot Margin Pill Bar */}
-                                {totalBillingAmount > 0 && driverPayout > 0 && (
-                                  <div className="flex flex-wrap items-center justify-between text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 gap-2">
-                                    <span>Billed: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">SAR {totalBillingAmount.toLocaleString()}</strong></span>
-                                    <span>Payout: <strong className="text-amber-700 dark:text-amber-400 font-mono">SAR {driverPayout.toLocaleString()}</strong></span>
-                                    <span>
-                                      Margin:{' '}
-                                      <strong className={`font-mono ${marginAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        SAR {marginAmount.toLocaleString()} ({marginPercent}%)
-                                      </strong>
-                                    </span>
-                                  </div>
-                                )}
+                                      <p className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 leading-tight line-clamp-2" title={c.name}>
+                                        {c.name}
+                                      </p>
+                                    </button>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* STEP 4: REVIEW */}
-                  {contractStep === 4 && (
-                    <div className="space-y-3.5 animate-fade-in">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                        <h4 className="text-sm font-bold text-[#111111] dark:text-slate-100 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-brand" />
-                          Review & Confirm
-                        </h4>
-                        <span className="text-xs font-bold text-slate-500">
-                          {contractSlots.length} Trip{contractSlots.length > 1 ? 's' : ''} Ready to Create
-                        </span>
-                      </div>
-
-                      {/* Summary Header Cards */}
-                      {(() => {
-                        const customerObj = customers.find((c) => c.id === contractCustomer);
-                        const driverObj = drivers.find((d) => d.id === masterDriver);
-                        const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
-                        const providerObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
-                        const baseBillingSum = contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0);
-                        const additionalChargesSum = contractSlots.reduce((sum, s) => {
-                          return sum + (s.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                        }, 0);
-                        const totalAmountSum = baseBillingSum + additionalChargesSum;
-
-                        const totalTripCharges = contractSlots.reduce((sum, s) => {
-                          if (assignmentType === 'third_party') {
-                            return sum + (thirdPartyCost ? Number(thirdPartyCost) : (Number(s.tripCharges) || 0));
-                          }
-                          return sum + (Number(s.tripCharges) || 0);
-                        }, 0);
-
-                        const balanceAmount = totalAmountSum - totalTripCharges;
-
-                        return (
-                          <div className="space-y-3">
-                            {/* Financial Ledger Breakdown Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                              {[
-                                { label: 'Customer', value: customerObj?.name || '—', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Provider', value: providerObj?.name || (thirdPartyDriverName ? `3PL (${thirdPartyDriverName})` : 'Third-Party'), icon: Building2 }
-                                  : { label: 'Driver', value: driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned', icon: User },
-                                assignmentType === 'third_party'
-                                  ? { label: '3PL Vehicle', value: thirdPartyVehiclePlate ? `${thirdPartyVehiclePlate} (${contractVehicleType})` : '3PL Vehicle', icon: Truck }
-                                  : { label: 'Truck', value: vehicleObj ? `${vehicleObj.plate_number} (${vehicleObj.asset_type})` : 'Unassigned', icon: Truck },
-                                { label: 'Billing Rate', value: baseBillingSum > 0 ? `SAR ${baseBillingSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-700' },
-                                { label: 'Total Billed (inc. Stops)', value: totalAmountSum > 0 ? `SAR ${totalAmountSum.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-emerald-800 font-extrabold' },
-                                { label: 'Driver Charge', value: totalTripCharges > 0 ? `SAR ${totalTripCharges.toLocaleString()}` : '—', icon: DollarSign, accent: 'text-indigo-700' },
-                                { label: 'Balance', value: totalAmountSum > 0 ? `SAR ${balanceAmount.toLocaleString()}` : '—', icon: DollarSign, accent: balanceAmount >= 0 ? 'text-emerald-600 font-extrabold' : 'text-rose-600 font-extrabold' },
-                              ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                  <div key={item.label} className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <Icon className="w-3 h-3 text-slate-400" />
-                                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.label}</span>
-                                    </div>
-                                    <div className={`text-xs font-extrabold truncate ${item.accent || 'text-[#111111] dark:text-slate-100'}`}>{item.value}</div>
-                                  </div>
-                                );
-                              })}
                             </div>
+                          </div>
 
-                            {/* NEW QUOTATIONS CREATION CONFIRMATION BAR */}
-                            {contractSlots.some((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0) && (
-                              <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 shadow-2xs space-y-2">
+                          {/* SEARCH ALL ACCOUNTS */}
+                          <div className="space-y-1.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                              <Search className="w-3 h-3 text-slate-400" /> SEARCH ALL ACCOUNTS *
+                            </label>
+                            <Combobox
+                              options={customerOptions}
+                              value={contractCustomer}
+                              onChange={handleSelectCustomer}
+                              placeholder="-- Select or search customer account --"
+                              searchPlaceholder="Search customer account by name..."
+                              emptyText="No customer matching search."
+                              triggerClassName="h-9.5 rounded-xl border-slate-200 bg-white text-xs font-semibold w-full"
+                            />
+
+                            {/* RECENT COMPLETED TRIPS FOR SELECTED CUSTOMER — COMPACT SQUARES */}
+                            {contractCustomer && (
+                              <div className="pt-2 space-y-1.5 animate-fade-in">
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <span className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
-                                      New Quotation(s) Will Be Saved ({contractSlots.filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0).length})
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold">
-                                    Saved to Quotations ledger for future automatic matching
+                                  <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-[#FA634E]" />
+                                    RECENT TRIPS ({customers.find(c => c.id === contractCustomer)?.name || 'Account'})
+                                  </span>
+                                  <span className="text-[9px] font-bold text-slate-400">
+                                    {recentTripsForCustomer.length} Records
                                   </span>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                  {contractSlots
-                                    .filter((s) => (s.saveAsQuotation || s.saveAsRateCard) && Number(s.billingAmount) > 0)
-                                    .map((slot) => {
-                                      const custObj = customers.find((c) => c.id === contractCustomer);
-                                      return (
-                                        <div key={slot.id} className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                                          <div className="flex items-center gap-2 font-extrabold text-amber-950 dark:text-amber-100 min-w-0">
-                                            <span className="truncate">{slot.origin || 'Origin'} ➔ {slot.destination || 'Destination'}</span>
-                                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-[10px] text-amber-800 dark:text-amber-200 border border-amber-200">
-                                              {contractVehicleType || 'Standard'} • {contractRateCategory || 'Standard'}
-                                            </span>
-                                          </div>
-
-                                          <div className="flex items-center gap-4 shrink-0">
-                                            <div className="flex items-center gap-3 text-[11px] font-bold">
-                                              <span className="text-emerald-700 dark:text-emerald-400">Billing: SAR {Number(slot.billingAmount).toLocaleString()}</span>
-                                              {Number(slot.tripCharges) > 0 && (
-                                                <span className="text-indigo-700 dark:text-indigo-300">Driver Payout: SAR {Number(slot.tripCharges).toLocaleString()}</span>
-                                              )}
-                                            </div>
-
-                                            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-100 select-none hover:text-amber-700 transition-colors bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-md border border-amber-300 dark:border-amber-800">
-                                              <input
-                                                type="checkbox"
-                                                checked={!!slot.saveAsQuotation || !!slot.saveAsRateCard}
-                                                onChange={(e) => handleUpdateTripSlot(slot.id, { saveAsQuotation: e.target.checked, saveAsRateCard: e.target.checked })}
-                                                className="w-3.5 h-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer shrink-0"
-                                              />
-                                              <span>Save as Quotation</span>
-                                            </label>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                                {/* Compact Square Grid */}
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {recentTripsForCustomer.slice(0, 3).map((trip) => (
+                                    <button
+                                      key={trip.id}
+                                      type="button"
+                                      onClick={() => {
+                                        const [orig, dest] = trip.route.split('→').map(s => s.trim());
+                                        if (orig && dest && contractSlots[0]?.id) {
+                                          handleUpdateTripSlot(contractSlots[0].id, {
+                                            origin: orig,
+                                            destination: dest,
+                                            billingAmount: String(trip.billing_amount),
+                                          });
+                                          toast.success(`Applied trip route "${orig} → ${dest}" (SAR ${trip.billing_amount})`);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:border-[#FA634E] hover:bg-orange-50/40 text-left transition-all flex flex-col justify-between h-[62px] cursor-pointer relative group"
+                                    >
+                                      <div className="flex items-center justify-between w-full">
+                                        <span className="font-mono font-bold text-[#FA634E] text-[10px]">{trip.ref_id}</span>
+                                        <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">SAR {trip.billing_amount}</span>
+                                      </div>
+                                      <p className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate leading-tight" title={trip.route}>
+                                        {trip.route}
+                                      </p>
+                                      <div className="flex items-center justify-between text-[8px] font-medium text-slate-400 w-full">
+                                        <span className="truncate">{trip.vehicle_type}</span>
+                                        <span className="group-hover:text-[#FA634E] font-bold">Re-use ➔</span>
+                                      </div>
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
                             )}
+                          </div>
+                        </div>
+                      )}
 
-                            {/* Per-slot review */}
-                            <div className="space-y-2">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5">Trip Slots</div>
-                              {contractSlots.map((slot, idx) => {
-                                const dateObj = slot.date ? new Date(slot.date) : new Date();
-                                const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-                                const stopFeesSum = (slot.intermediateStopFees || []).reduce((a, f) => a + (Number(f) || 0), 0);
-                                const base = Number(slot.billingAmount) || 0;
-                                const total = base + stopFeesSum;
-                                const slotTripCharge = assignmentType === 'third_party'
-                                  ? (thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0))
-                                  : (Number(slot.tripCharges) || 0);
+                      {/* QUADRANT 3 (BOTTOM-LEFT): TRIP ROUTE */}
+                      <div className={cn(
+                        "p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 transition-all",
+                        contractStep === 2 && "ring-2 ring-[#FA634E]"
+                      )}>
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                          <div className="flex items-center gap-2 text-xs font-black text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider">
+                            <MapPin className="w-4 h-4 text-[#FA634E]" />
+                            <span>TRIP ROUTE</span>
+                          </div>
 
-                                const outboundStops = (slot.intermediateLocations || []).map((s) => s.trim()).filter(Boolean);
-                                const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
+                          {/* MOVED LINE TYPE SELECTOR INTO TRIP ROUTE HEADER */}
+                          <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Line Type</label>
+                            <Select value={contractRateCategory || 'Single Trip'} onValueChange={setContractRateCategory}>
+                              <SelectTrigger className="h-7 text-xs font-bold rounded-lg border-slate-200 bg-white w-[130px]">
+                                <SelectValue placeholder="Line Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Single Trip">Single Trip</SelectItem>
+                                <SelectItem value="Round Trip">Round Trip</SelectItem>
+                                <SelectItem value="10 Hours Duty">10 Hours Duty</SelectItem>
+                                <SelectItem value="12 Hours Duty">12 Hours Duty</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                                const points: [number, number][] = [];
-                                if (slot.originLat && slot.originLng) points.push([slot.originLat, slot.originLng]);
-                                if (slot.destinationLat && slot.destinationLng) points.push([slot.destinationLat, slot.destinationLng]);
-                                if (contractRateCategory === 'Round Trip') {
-                                  const retLat = slot.returnOriginLat ?? slot.destinationLat;
-                                  const retLng = slot.returnOriginLng ?? slot.destinationLng;
-                                  const retDestLat = slot.returnDestinationLat ?? slot.originLat;
-                                  const retDestLng = slot.returnDestinationLng ?? slot.originLng;
-                                  if (retLat && retLng) points.push([retLat, retLng]);
-                                  if (retDestLat && retDestLng) points.push([retDestLat, retDestLng]);
-                                }
+                        {/* PICKUP STOP */}
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/20 p-2.5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-emerald-600" /> PICKUP
+                            </span>
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
+                              Route Start
+                            </Badge>
+                          </div>
 
-                                return (
-                                  <div key={slot.id} className="p-4 rounded-2xl border border-slate-200/90 bg-white shadow-sm grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch hover:border-brand/40 transition-colors">
-                                    {/* Left details */}
-                                    <div className="md:col-span-7 lg:col-span-8 flex flex-col justify-between space-y-3">
-                                      {/* Header Row */}
-                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <Calendar className="w-3.5 h-3.5 text-brand shrink-0" />
-                                          <span className="text-xs font-bold text-[#111111] dark:text-slate-100">Slot {idx + 1} — {formattedDate}</span>
-                                          {slot.rateMatched && (
-                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Rate Card {slot.rateCardName ? `(${slot.rateCardName})` : ''}
-                                            </span>
-                                          )}
-                                        </div>
+                          {/* 50/50 SPLIT: Left (Location) | Right (Date & Time) */}
+                          <div className="grid grid-cols-2 gap-2.5 items-end">
+                            {/* LEFT 50%: PICKUP LOCATION */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
+                                PICKUP LOCATION *
+                              </label>
+                              <LocationCombobox
+                                customerId={contractCustomer}
+                                value={contractSlots[0]?.origin || ''}
+                                onChange={(locName, locObj) => handleSlotLocationChange(contractSlots[0]?.id || 'slot-1', 'origin', locName, locObj)}
+                                placeholder="Search origin location (e.g. RUH - Riyadh Hub)..."
+                                triggerClassName="h-8.5 border-emerald-200 bg-white"
+                              />
+                            </div>
 
-                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-extrabold">
-                                          <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-lg" title="Base customer billing rate">
-                                            BILLING: SAR {base.toLocaleString()}
-                                          </span>
-                                          {stopFeesSum > 0 && (
-                                            <span className="bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-lg" title="Additional stop fees">
-                                              + EXTRAS: SAR {stopFeesSum.toLocaleString()}
-                                            </span>
-                                          )}
-                                          <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg font-black" title="Total gross revenue">
-                                            TOTAL: SAR {total.toLocaleString()}
-                                          </span>
-                                          <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg" title="Driver trip charge payout">
-                                            TRIP CHARGES: SAR {slotTripCharge.toLocaleString()}
-                                          </span>
-                                          <span className={`px-2 py-0.5 rounded-lg border font-black ${total - slotTripCharge >= 0 ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'}`} title="Net margin balance after deducting trip charges and additional charges">
-                                            BALANCE: SAR {(total - slotTripCharge).toLocaleString()}
-                                          </span>
-                                        </div>
-                                      </div>
+                            {/* RIGHT 50%: PICKUP DATE & TIME */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-emerald-600" /> DATE *
+                                </label>
+                                <DatePicker
+                                  value={contractSlots[0]?.date || ''}
+                                  onChange={(_, dateStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { date: dateStr, dropoffDate: dateStr })}
+                                  placeholder="Select date..."
+                                  buttonClassName="h-8.5 border-emerald-200 bg-white font-semibold text-xs text-slate-800"
+                                  minDate={new Date()}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-emerald-600" /> TIME *
+                                </label>
+                                <TimePicker
+                                  value={contractSlots[0]?.pickupTime || '08:00'}
+                                  onChange={(timeStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { pickupTime: timeStr })}
+                                  placeholder="Select time..."
+                                  buttonClassName="h-8.5 border-emerald-200 bg-white font-semibold text-xs text-slate-800"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                                      {/* Route */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="flex flex-col items-center shrink-0">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
-                                            <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                            <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200" />
-                                          </div>
-                                          <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                            <div className="truncate">{slot.origin || '—'} (Outbound Pickup)</div>
-                                            <div className="truncate">{slot.destination || '—'} (Outbound Dropoff)</div>
-                                          </div>
-                                        </div>
+                        {/* INTERMEDIATE WAYSTOPS (IF ANY) */}
+                        {contractSlots[0]?.intermediateLocations?.map((locVal, idx) => (
+                          <div key={idx} className="rounded-xl border border-sky-200 bg-sky-50/30 p-2.5 space-y-2 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-sky-950 flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-sky-600" /> STOP #{idx + 1} (WAYSTOP)
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-[10px] font-bold">
+                                  Intermediate Stop
+                                </Badge>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveSlotIntermediate(contractSlots[0]?.id || 'slot-1', idx)}
+                                  className="h-6 w-6 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md"
+                                  title="Remove Stop"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2.5 items-end">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-sky-900 uppercase tracking-wider block">
+                                  STOP LOCATION *
+                                </label>
+                                <LocationCombobox
+                                  customerId={contractCustomer}
+                                  value={locVal}
+                                  onChange={(locName, locObj) => handleUpdateSlotIntermediate(contractSlots[0]?.id || 'slot-1', idx, locName, locObj?.id || null)}
+                                  placeholder="Search waystop location..."
+                                  triggerClassName="h-8.5 border-sky-200 bg-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-sky-900 uppercase tracking-wider block">
+                                  STOP FEE (SAR, OPTIONAL)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={contractSlots[0]?.intermediateStopFees?.[idx] || ''}
+                                  onChange={(e) => handleUpdateSlotIntermediateFee(contractSlots[0]?.id || 'slot-1', idx, e.target.value)}
+                                  placeholder="e.g. 150"
+                                  className="w-full h-8.5 px-2.5 rounded-xl border border-sky-200 bg-white text-xs font-bold"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
 
-                                        {outboundStops.length > 0 && (
-                                          <div className="text-[11px] text-slate-400 font-semibold pl-5">via {outboundStops.join(' → ')}</div>
-                                        )}
+                        {/* DROPOFF STOP */}
+                        <div className="rounded-xl border border-orange-200 bg-orange-50/20 p-2.5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-orange-950 flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-[#FA634E]" /> DROPOFF
+                            </span>
+                          </div>
 
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="flex items-center gap-2.5 border-t border-slate-100 pt-2">
-                                              <div className="flex flex-col items-center shrink-0">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-100" />
-                                                <span className="w-0.5 h-5 border-l border-dashed border-slate-300" />
-                                                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200" />
-                                              </div>
-                                              <div className="min-w-0 text-xs font-bold text-slate-800 space-y-2">
-                                                <div className="truncate">{slot.returnOrigin || slot.destination || '—'} (Return Pickup)</div>
-                                                <div className="truncate">{slot.returnDestination || slot.origin || '—'} (Return Dropoff)</div>
-                                              </div>
-                                            </div>
+                          {/* 50/50 SPLIT: Left (Location) | Right (Date & Time) */}
+                          <div className="grid grid-cols-2 gap-2.5 items-end">
+                            {/* LEFT 50%: DROPOFF LOCATION */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider block">
+                                DROPOFF LOCATION *
+                              </label>
+                              <LocationCombobox
+                                customerId={contractCustomer}
+                                value={contractSlots[0]?.destination || ''}
+                                onChange={(locName, locObj) => handleSlotLocationChange(contractSlots[0]?.id || 'slot-1', 'destination', locName, locObj)}
+                                placeholder="Search dropoff location (e.g. JED - Jeddah Hub)..."
+                                triggerClassName="h-8.5 border-orange-200 bg-white"
+                              />
+                            </div>
 
-                                            {returnStops.length > 0 && (
-                                              <div className="text-[11px] text-slate-400 font-semibold pl-5">via {returnStops.join(' → ')}</div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
+                            {/* RIGHT 50%: DROPOFF DATE & TIME */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-[#FA634E]" /> DATE *
+                                </label>
+                                <DatePicker
+                                  value={contractSlots[0]?.dropoffDate || contractSlots[0]?.date || ''}
+                                  onChange={(_, dateStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { dropoffDate: dateStr })}
+                                  placeholder="Select date..."
+                                  buttonClassName="h-8.5 border-orange-200 bg-white font-semibold text-xs text-slate-800"
+                                  minDate={contractSlots[0]?.date ? new Date(contractSlots[0].date) : new Date()}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-[#FA634E]" /> TIME *
+                                </label>
+                                <div className="flex items-center gap-1">
+                                  <TimePicker
+                                    value={contractSlots[0]?.dropoffTime || '20:53'}
+                                    onChange={(timeStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { dropoffTime: timeStr })}
+                                    placeholder="Select time..."
+                                    buttonClassName="flex-1 h-8.5 border-orange-200 bg-white font-semibold text-xs text-slate-800"
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleAddSlotIntermediate(contractSlots[0]?.id || 'slot-1')}
+                                    className="h-8.5 w-8.5 p-0 rounded-lg bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 border-0"
+                                    title="Add Waystop Location"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                                      {/* Timing + crew */}
-                                      <div className="grid grid-cols-2 gap-3 text-xs border-t border-slate-100 pt-2.5">
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Pickup</span>
-                                          <span className="font-bold text-[#111111]">{slot.pickupTime || '—'}</span>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Outbound Dropoff</span>
-                                          <span className="font-bold text-[#111111]">
-                                            {slot.dropoffTime || '—'}
-                                            {slot.isOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                          </span>
-                                        </div>
+                        {/* ROUND TRIP RETURN LEG SECTION */}
+                        {contractRateCategory === 'Round Trip' && (
+                          <div className="space-y-2 pt-2 border-t border-purple-200 dark:border-purple-900 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-purple-950 dark:text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
+                                <MapPin className="w-3.5 h-3.5 text-purple-600" /> RETURN LEG (ROUND TRIP)
+                              </span>
+                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] font-bold">
+                                Return Trip
+                              </Badge>
+                            </div>
 
-                                        {contractRateCategory === 'Round Trip' && (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Pickup</span>
-                                              <span className="font-bold text-[#111111]">{slot.returnPickupTime || '—'}</span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Return Dropoff</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {slot.returnDropoffTime || '—'}
-                                                {slot.returnIsOvernight && <span className="ml-1.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">+1 Day</span>}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
+                            {/* RETURN PICKUP */}
+                            <div className="rounded-xl border border-purple-200 bg-purple-50/20 p-2.5 space-y-2">
+                              <div className="grid grid-cols-2 gap-2.5 items-end">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
+                                    RETURN PICKUP LOCATION
+                                  </label>
+                                  <LocationCombobox
+                                    customerId={contractCustomer}
+                                    value={contractSlots[0]?.returnOrigin || contractSlots[0]?.destination || ''}
+                                    onChange={(locName, locObj) => handleSlotLocationChange(contractSlots[0]?.id || 'slot-1', 'returnOrigin', locName, locObj)}
+                                    placeholder="Return origin location..."
+                                    triggerClassName="h-8.5 border-purple-200 bg-white"
+                                  />
+                                </div>
 
-                                        {assignmentType === 'third_party' ? (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Provider & Driver</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {providerObj?.name || '3PL'} {thirdPartyDriverName ? `(${thirdPartyDriverName})` : ''}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">3PL Vehicle</span>
-                                              <span className="font-bold text-purple-700 truncate block">
-                                                {thirdPartyVehiclePlate || '3PL Truck'} ({contractVehicleType})
-                                              </span>
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Driver</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {driverObj ? `${driverObj.first_name} ${driverObj.last_name}` : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Truck</span>
-                                              <span className="font-bold text-[#111111]">
-                                                {vehicleObj ? vehicleObj.plate_number : 'Unassigned'}
-                                              </span>
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                     </div>
-                                    {/* Right minimap */}
-                                    <div className="md:col-span-5 lg:col-span-4 min-h-[105px] h-[105px] z-0">
-                                      {points.length >= 2 ? (
-                                        <div className="w-full h-full min-h-[105px] h-[105px] rounded-xl overflow-hidden border border-slate-200 shadow-2xs relative bg-slate-50 z-0">
-                                          <MapContainer
-                                            center={points[0]}
-                                            zoom={10}
-                                            scrollWheelZoom={false}
-                                            zoomControl={false}
-                                            attributionControl={false}
-                                            style={{ height: '100%', width: '100%', zIndex: 0 }}
-                                          >
-                                            <TileLayer
-                                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; Esri'
-                                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                            />
-                                            <TileLayer
-                                              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                                            />
-                                            <MapBoundsAdjuster points={points} />
-                                            
-                                            {/* Outbound Markers */}
-                                            {slot.originLat && slot.originLng && (
-                                              <Marker position={[slot.originLat, slot.originLng]} icon={pickupMarkerIcon} />
-                                            )}
-                                            {slot.destinationLat && slot.destinationLng && (
-                                              <Marker position={[slot.destinationLat, slot.destinationLng]} icon={dropoffMarkerIcon} />
-                                            )}
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-purple-600" /> DATE
+                                    </label>
+                                    <DatePicker
+                                      value={contractSlots[0]?.returnDate || contractSlots[0]?.dropoffDate || ''}
+                                      onChange={(_, dateStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { returnDate: dateStr })}
+                                      placeholder="Select date..."
+                                      buttonClassName="h-8.5 border-purple-200 bg-white font-semibold text-xs text-slate-800"
+                                      minDate={contractSlots[0]?.dropoffDate ? new Date(contractSlots[0].dropoffDate) : new Date()}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-purple-600" /> TIME
+                                    </label>
+                                    <TimePicker
+                                      value={contractSlots[0]?.returnPickupTime || '09:00'}
+                                      onChange={(timeStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { returnPickupTime: timeStr })}
+                                      placeholder="Select time..."
+                                      buttonClassName="h-8.5 border-purple-200 bg-white font-semibold text-xs text-slate-800"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
-                                            {/* Return Leg Markers */}
-                                            {contractRateCategory === 'Round Trip' && (
-                                              <>
-                                                {(slot.returnOriginLat ?? slot.destinationLat) && (slot.returnOriginLng ?? slot.destinationLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnOriginLat ?? slot.destinationLat!,
-                                                      slot.returnOriginLng ?? slot.destinationLng!
-                                                    ]}
-                                                    icon={returnPickupMarkerIcon}
-                                                  />
-                                                )}
-                                                {(slot.returnDestinationLat ?? slot.originLat) && (slot.returnDestinationLng ?? slot.originLng) && (
-                                                  <Marker
-                                                    position={[
-                                                      slot.returnDestinationLat ?? slot.originLat!,
-                                                      slot.returnDestinationLng ?? slot.originLng!
-                                                    ]}
-                                                    icon={returnDropoffMarkerIcon}
-                                                  />
-                                                )}
-                                              </>
-                                            )}
+                            {/* RETURN INTERMEDIATE STOPS */}
+                            {contractSlots[0]?.returnIntermediateLocations?.map((locVal, idx) => (
+                              <div key={idx} className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-2.5 space-y-2 animate-fade-in">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-indigo-600" /> RETURN STOP #{idx + 1}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleRemoveSlotReturnIntermediate(contractSlots[0]?.id || 'slot-1', idx)}
+                                    className="h-6 w-6 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2.5 items-end">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider block">STOP LOCATION</label>
+                                    <LocationCombobox
+                                      customerId={contractCustomer}
+                                      value={locVal}
+                                      onChange={(locName) => handleUpdateSlotReturnIntermediate(contractSlots[0]?.id || 'slot-1', idx, locName)}
+                                      placeholder="Return intermediate location..."
+                                      triggerClassName="h-8.5 border-indigo-200 bg-white"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider block">FEE (SAR)</label>
+                                    <input
+                                      type="number"
+                                      value={contractSlots[0]?.returnIntermediateStopFees?.[idx] || ''}
+                                      onChange={(e) => handleUpdateSlotReturnIntermediateFee(contractSlots[0]?.id || 'slot-1', idx, e.target.value)}
+                                      placeholder="e.g. 150"
+                                      className="w-full h-8.5 px-2.5 rounded-xl border border-indigo-200 bg-white text-xs font-bold"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
 
-                                            {/* Route Polyline */}
-                                            <Polyline
-                                              positions={points}
-                                              pathOptions={{ color: '#FF5500', weight: 3, opacity: 0.8 }}
-                                            />
-                                          </MapContainer>
-                                        </div>
-                                      ) : (
-                                        <div className="w-full h-full min-h-[140px] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1 text-[10px] font-bold">
-                                          <MapPin className="w-5 h-5 text-slate-300" />
-                                          Map Preview Unavailable
-                                        </div>
-                                      )}
+                            {/* RETURN DROPOFF */}
+                            <div className="rounded-xl border border-purple-200 bg-purple-50/20 p-2.5 space-y-2">
+                              <div className="grid grid-cols-2 gap-2.5 items-end">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider block">
+                                    RETURN DROPOFF LOCATION
+                                  </label>
+                                  <LocationCombobox
+                                    customerId={contractCustomer}
+                                    value={contractSlots[0]?.returnDestination || contractSlots[0]?.origin || ''}
+                                    onChange={(locName, locObj) => handleSlotLocationChange(contractSlots[0]?.id || 'slot-1', 'returnDestination', locName, locObj)}
+                                    placeholder="Return destination location..."
+                                    triggerClassName="h-8.5 border-purple-200 bg-white"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-purple-600" /> DATE
+                                    </label>
+                                    <DatePicker
+                                      value={contractSlots[0]?.returnDropoffDate || contractSlots[0]?.returnDate || ''}
+                                      onChange={(_, dateStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { returnDropoffDate: dateStr })}
+                                      placeholder="Select date..."
+                                      buttonClassName="h-8.5 border-purple-200 bg-white font-semibold text-xs text-slate-800"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-purple-600" /> TIME
+                                    </label>
+                                    <div className="flex items-center gap-1">
+                                      <TimePicker
+                                        value={contractSlots[0]?.returnDropoffTime || '21:00'}
+                                        onChange={(timeStr) => handleUpdateTripSlot(contractSlots[0]?.id || 'slot-1', { returnDropoffTime: timeStr })}
+                                        placeholder="Select time..."
+                                        buttonClassName="flex-1 h-8.5 border-purple-200 bg-white font-semibold text-xs text-slate-800"
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => handleAddSlotReturnIntermediate(contractSlots[0]?.id || 'slot-1')}
+                                        className="h-8.5 w-8.5 p-0 rounded-lg bg-purple-600 hover:bg-purple-700 text-white shrink-0 border-0"
+                                        title="Add Return Waystop"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </Button>
                                     </div>
                                   </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Transit Time Summary */}
+                        <div className="text-xs text-slate-500 space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
+                            <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>Transit: <strong>12h 53m (1030 km)</strong> via Saudi Highway Network</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-medium pl-5">
+                            Route: <strong>{contractSlots[0]?.origin || 'Riyadh Hub'} {'->'} {contractSlots[0]?.destination || 'Jeddah Hub'}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: QUOTATION & SERVICE TYPE */}
+                    <div className="space-y-4 flex flex-col">
+                      {/* QUADRANT 2 (TOP-RIGHT): QUOTATION */}
+                      <div className={cn(
+                        "p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 transition-all flex flex-col justify-between"
+                      )}>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <div className="flex items-center gap-2 text-xs font-black text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider">
+                              <FileText className="w-4 h-4 text-[#FA634E]" />
+                              <span>QUOTATION</span>
+                            </div>
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
+                              Auto Tariff Matched
+                            </Badge>
+                          </div>
+
+                          {/* RECENT RATE CARDS — COMPACT SQUARES */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {MOCK_RATE_CARDS.map((card) => {
+                              const isSelected = selectedRateCard === card.id;
+                              return (
+                                <button
+                                  key={card.id}
+                                  type="button"
+                                  onClick={() => handleSelectRateCard(card)}
+                                  className={cn(
+                                    "p-2 rounded-xl border text-center transition-all relative flex flex-col items-center justify-between h-20 cursor-pointer",
+                                    isSelected
+                                      ? "bg-orange-50/70 border-[#FA634E] ring-1 ring-[#FA634E]/30"
+                                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                                  )}
+                                >
+                                  <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate w-full leading-tight">
+                                    {card.title}
+                                  </span>
+                                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                    SAR {card.billingRate}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-slate-400">
+                                    {card.vehicleClass}
+                                  </span>
+                                  {isSelected && (
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FA634E] text-white grid place-items-center shadow-2xs">
+                                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* SEPARATE BOX FOR DRIVER & TRUCK ASSIGNMENT WITH FLEET SWITCH */}
+                          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-2.5">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-700">
+                              <span className="text-[11px] font-black text-[#3E3C3D] dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                                <Truck className="w-3.5 h-3.5 text-[#FA634E]" />
+                                DRIVER & TRUCK ASSIGNMENT
+                              </span>
+                              {/* Fleet Mode Switch Toggle */}
+                              <div className="flex items-center bg-slate-200/80 dark:bg-slate-700 p-0.5 rounded-lg text-[10px] font-bold">
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignmentType('own')}
+                                  className={cn(
+                                    "px-2.5 py-1 rounded-md transition-all cursor-pointer",
+                                    assignmentType === 'own'
+                                      ? "bg-[#FA634E] text-white shadow-2xs"
+                                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                                  )}
+                                >
+                                  Own Fleet
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignmentType('third_party')}
+                                  className={cn(
+                                    "px-2.5 py-1 rounded-md transition-all cursor-pointer",
+                                    assignmentType === 'third_party'
+                                      ? "bg-[#FA634E] text-white shadow-2xs"
+                                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
+                                  )}
+                                >
+                                  3rd Party Fleet
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* IF OWN FLEET */}
+                            {assignmentType === 'own' ? (
+                              <div className="grid grid-cols-2 gap-2.5 animate-fade-in">
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                      <User className="w-3 h-3 text-[#FA634E]" /> DRIVER
+                                    </label>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => setIsCreateDriverOpen(true)}
+                                      className="h-4 text-[9px] font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded px-1.5 border-0"
+                                    >
+                                      + Add
+                                    </Button>
+                                  </div>
+                                  <Combobox
+                                    options={driverOptions}
+                                    value={masterDriver}
+                                    onChange={handleDriverChange}
+                                    placeholder="Select driver..."
+                                    searchPlaceholder="Search driver..."
+                                    emptyText="No driver."
+                                    triggerClassName="h-8.5 rounded-xl border-slate-200 bg-white text-xs font-semibold w-full"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                    <Truck className="w-3 h-3 text-[#FA634E]" /> VEHICLE
+                                  </label>
+                                  <Combobox
+                                    options={vehicleOptions}
+                                    value={masterVehicle}
+                                    onChange={handleVehicleChange}
+                                    placeholder="Select vehicle..."
+                                    searchPlaceholder="Search vehicle..."
+                                    emptyText="No vehicle."
+                                    triggerClassName="h-8.5 rounded-xl border-slate-200 bg-white text-xs font-semibold w-full"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              /* IF 3RD PARTY FLEET */
+                              <div className="space-y-2 animate-fade-in">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">3rd Party Provider</label>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => setIsCreateProviderOpen(true)}
+                                        className="h-4 text-[9px] font-bold text-[#FA634E] hover:underline p-0 bg-transparent"
+                                      >
+                                        + Add
+                                      </Button>
+                                    </div>
+                                    <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
+                                      <SelectTrigger className="h-8 text-xs font-bold rounded-lg border-slate-200 bg-white">
+                                        <SelectValue placeholder="Select Provider..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {thirdPartyProviders.map((p) => (
+                                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Supplier Cost (SAR)</label>
+                                    <input
+                                      type="number"
+                                      value={thirdPartyCost}
+                                      onChange={(e) => setThirdPartyCost(e.target.value)}
+                                      placeholder="e.g. 850"
+                                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-bold"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Driver Name</label>
+                                    <input
+                                      type="text"
+                                      value={thirdPartyDriverName}
+                                      onChange={(e) => setThirdPartyDriverName(e.target.value)}
+                                      placeholder="Driver name..."
+                                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phone</label>
+                                    <input
+                                      type="text"
+                                      value={thirdPartyDriverPhone}
+                                      onChange={(e) => setThirdPartyDriverPhone(e.target.value)}
+                                      placeholder="+966..."
+                                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plate No.</label>
+                                    <input
+                                      type="text"
+                                      value={thirdPartyVehiclePlate}
+                                      onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
+                                      placeholder="Plate..."
+                                      className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-bold"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* QUADRANT 4 (BOTTOM-RIGHT): SERVICE TYPE & MONTHLY SCHEDULER */}
+                      <div className={cn(
+                        "p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 transition-all flex flex-col justify-between"
+                      )}>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <div className="flex items-center gap-2 text-xs font-black text-[#3E3C3D] dark:text-slate-100 uppercase tracking-wider">
+                              <ClipboardList className="w-4 h-4 text-[#FA634E]" />
+                              <span>SERVICE TYPE & MONTHLY SCHEDULER</span>
+                            </div>
+                          </div>
+
+                          {/* Operation Mode and Vehicle Class Switches */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Operation Mode</label>
+                              <Select value={contractBillingType || 'Extra (Spot)'} onValueChange={(val) => {
+                                setContractBillingType(val);
+                                if (val === 'Monthly') setSelectedRateCard('rc-4');
+                              }}>
+                                <SelectTrigger className="h-8 text-xs font-bold rounded-xl border-slate-200 bg-white">
+                                  <SelectValue placeholder="Operation" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Extra (Spot)">Extra (Spot)</SelectItem>
+                                  <SelectItem value="Monthly">Monthly Trips</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Vehicle Class</label>
+                              <Select value={contractVehicleType || '5 TON'} onValueChange={(val) => {
+                                setContractVehicleType(val);
+                                triggerRateLookupForSlots(val);
+                              }}>
+                                <SelectTrigger className="h-8 text-xs font-bold rounded-xl border-slate-200 bg-white">
+                                  <SelectValue placeholder="Vehicle Class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="3-4 TON">3-4 TON</SelectItem>
+                                  <SelectItem value="5 TON">5 TON</SelectItem>
+                                  <SelectItem value="10 TON">10 TON</SelectItem>
+                                  <SelectItem value="20 TON">20 TON</SelectItem>
+                                  <SelectItem value="40 FEET">40 FEET</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                        {/* IF MONTHLY IS SELECTED: COMPACT MONTHLY CALENDAR PICKER */}
+                        {contractBillingType === 'Monthly' ? (
+                          <div className="p-3 rounded-xl bg-orange-50/50 dark:bg-slate-800/80 border border-orange-200 dark:border-slate-700 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-[#FA634E]" />
+                                Monthly Schedule — September 2026
+                              </span>
+                              <Badge className="bg-[#FA634E] text-white text-[10px] font-bold">
+                                {monthlySelectedDays.length} Days Selected
+                              </Badge>
+                            </div>
+
+                            {/* Calendar Day Grid (1 - 30) */}
+                            <div className="grid grid-cols-7 gap-1 text-center">
+                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                                <span key={idx} className="text-[9px] font-extrabold text-slate-400 uppercase py-0.5">{day}</span>
+                              ))}
+                              {Array.from({ length: 30 }, (_, i) => i + 1).map((dayNum) => {
+                                const isSelected = monthlySelectedDays.includes(dayNum);
+                                return (
+                                  <button
+                                    key={dayNum}
+                                    type="button"
+                                    onClick={() => {
+                                      setMonthlySelectedDays((prev) =>
+                                        prev.includes(dayNum) ? prev.filter((d) => d !== dayNum) : [...prev, dayNum]
+                                      );
+                                    }}
+                                    className={cn(
+                                      "h-6 rounded-md text-[10px] font-extrabold transition-all grid place-items-center cursor-pointer",
+                                      isSelected
+                                        ? "bg-[#FA634E] text-white shadow-2xs"
+                                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                    )}
+                                  >
+                                    {dayNum}
+                                  </button>
                                 );
                               })}
                             </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
 
+                            {/* Presets & Action */}
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-orange-200/60">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setMonthlySelectedDays([1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 28, 29, 30])}
+                                  className="text-[9px] font-bold text-slate-600 hover:text-[#FA634E] underline cursor-pointer"
+                                >
+                                  Weekdays
+                                </button>
+                                <span className="text-slate-300">|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setMonthlySelectedDays(Array.from({ length: 30 }, (_, i) => i + 1))}
+                                  className="text-[9px] font-bold text-slate-600 hover:text-[#FA634E] underline cursor-pointer"
+                                >
+                                  Select All
+                                </button>
+                              </div>
+
+                              <Button
+                                type="button"
+                                disabled={monthlySelectedDays.length === 0}
+                                onClick={() => {
+                                  toast.success(`Generated ${monthlySelectedDays.length} Monthly Trips schedule!`);
+                                }}
+                                className="h-7 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-lg px-3 border-0 shadow-2xs"
+                              >
+                                Proceed ({monthlySelectedDays.length} Trips)
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-center">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed text-left">
+                              ⚡ <strong>Single Spot Operation Active:</strong> Rate is bound to single departure slot ({contractSlots[0]?.origin || 'RIYADH HUB'} {'->'} {contractSlots[0]?.destination || 'JEDDAH HUB'}). Select <strong>Monthly Trips</strong> to enable calendar multi-date batch scheduling.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {/* TAB 2: QUICK GRID ENTRY */}
               {activeTab === 'grid' && (

@@ -235,8 +235,19 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
       ? `📍 [GPS: ${location_lat}, ${location_lng}] Captured: ${captured_at || new Date().toISOString()}`
       : undefined;
 
-    // Compress image to save disk space & mobile data bandwidth
+    // Compress image if photo (compressUploadedImage safely skips videos and PDFs)
     await compressUploadedImage(req.file.path);
+
+    const ext = (req.file.originalname || req.file.filename).split('.').pop()?.toLowerCase() || '';
+    let mimeType = req.file.mimetype;
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      if (ext === 'mp4') mimeType = 'video/mp4';
+      else if (ext === 'mov') mimeType = 'video/quicktime';
+      else if (ext === 'webm') mimeType = 'video/webm';
+      else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+      else if (ext === 'png') mimeType = 'image/png';
+      else mimeType = 'image/jpeg';
+    }
 
     const userId = (req as any).user?.id;
     const isValidUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
@@ -248,7 +259,7 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         // No dedicated "cargo photo" enum value; POD for delivery, Waybill for pickup cargo.
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
-        mime_type: req.file.mimetype || 'image/jpeg',
+        mime_type: mimeType,
         ocr_raw_text: notes,
         ai_extracted_json: {
           gps: (location_lat && location_lng) ? { latitude: location_lat, longitude: location_lng, captured_at } : undefined,

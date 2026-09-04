@@ -51,11 +51,10 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
   return (
     <div
       onClick={onOpen}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 hover:shadow-lg transition-all duration-200 font-sans cursor-pointer group space-y-4"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 hover:shadow-lg transition-all duration-200 font-sans cursor-pointer group flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4"
     >
-      {/* ── TOP ROW: Identity + Summary Pill + Action Button ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-        {/* Left: Truck identity */}
+      {/* ── LEFT SIDE: Truck Identity & Info ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 min-w-0 shrink-0 lg:max-w-md">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">
             {isDriver ? (
@@ -89,22 +88,15 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
           </div>
         </div>
 
-        {/* Right: Health Badge & Open Action */}
-        <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+        {/* Health Badge & Open Folder Action */}
+        <div className="flex items-center gap-2.5 shrink-0 pt-1 sm:pt-0">
           {issueCount > 0 ? (
-            <div className="flex flex-col items-end shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900/60 font-mono">
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                {issueCount} Issue{issueCount > 1 ? 's' : ''}
-              </span>
-              {breakdownText && (
-                <span className="text-[10px] font-semibold text-rose-600/90 dark:text-rose-400/90 font-mono tracking-tight text-right mt-0.5">
-                  {breakdownText}
-                </span>
-              )}
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900/60 font-mono">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              {issueCount} Issue{issueCount > 1 ? 's' : ''}
+            </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900/60">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900/60">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               All Valid
             </span>
@@ -113,7 +105,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpen(); }}
-            className="h-8.5 px-3.5 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+            className="h-8 px-3 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
           >
             <FolderOpen className="w-3.5 h-3.5 text-white" />
             <span>Open Folder</span>
@@ -122,8 +114,8 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
         </div>
       </div>
 
-      {/* ── BOTTOM SECTION: UNIFIED HORIZONTAL ROW OF DOCUMENT SLOTS (SMALL GOOD ICONS & STATUS COLOURS) ── */}
-      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap">
+      {/* ── RIGHT SIDE: Document Status Pills Aligned Right ── */}
+      <div className="flex items-center justify-start lg:justify-end gap-2 flex-wrap flex-1 min-w-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
         {mandatorySlots.map((slot) => {
           const isExpired = slot.status === 'EXPIRED';
           const isExpiringSoon = slot.status === 'EXPIRING_SOON';
@@ -140,7 +132,7 @@ export default function OwnerFolderCard({ row, onOpen, onUploadMissing }: OwnerF
                 else { onUploadMissing?.(row, slot.code); }
               }}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer",
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer shrink-0",
                 isValid
                   ? "bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-900/50 hover:bg-emerald-100/70"
                   : isExpired
