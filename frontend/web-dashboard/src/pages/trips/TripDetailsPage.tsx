@@ -604,10 +604,11 @@ export default function TripDetailsPage() {
               </div>
             </div>
           )}
-          {/* ── UNIFIED TRIP OPERATIONAL WORKSPACE ── */}
+          {/* ── UNIFIED TRIP OPERATIONAL SURFACE ── */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-xs divide-y divide-[#E5E7EB] overflow-hidden">
 
-          {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 sm:p-4.5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+            {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
+            <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
               {/* Left: Primary Driver Avatar & Combined Trip/Resource Details */}
               <div className="flex items-center gap-4 min-w-0">
                 {/* Primary Driver Avatar (Bigger Profile) */}
@@ -791,14 +792,14 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-          {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-            
-            {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
-            <div className="lg:col-span-8 space-y-4 sm:space-y-6">
+            {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
               
-              {/* Route & Stop Sequence Timeline Card */}
-              <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-3">
+              {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
+              <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-6">
+                
+                {/* Route & Stop Sequence Timeline */}
+                <div className="space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
                     <h3 className="text-base font-semibold text-[#3E3C3D]">
                       Route & Stop Sequence
@@ -895,8 +896,8 @@ export default function TripDetailsPage() {
                   </ScrollArea>
                 </div>
 
-                {/* Live Route Map Card */}
-                <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-3">
+                {/* Live Route Map */}
+                <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
                     <h3 className="text-base font-semibold text-[#3E3C3D]">
                       Live Route Map
@@ -934,7 +935,7 @@ export default function TripDetailsPage() {
               </div>
 
               {/* Right Column (4 Cols): Customer Profile & Financials & Additional Charges */}
-              <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-5 shadow-2xs space-y-3.5">
+              <div className="lg:col-span-4 p-4.5 sm:p-5 space-y-3.5">
                 
                 {/* Section Header */}
                 <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
@@ -1358,6 +1359,7 @@ export default function TripDetailsPage() {
             </div>
           </div>
         </div>
+      </div>
 
       {/* ── Status Confirmation Modal ── */}
       <ConfirmModal
