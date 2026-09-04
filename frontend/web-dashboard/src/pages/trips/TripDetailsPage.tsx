@@ -798,106 +798,98 @@ export default function TripDetailsPage() {
               {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
               <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-6">
                 
-                {/* Unified Live Route Map with Top Integrated Stop Sequence */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <h3 className="text-base font-semibold text-[#3E3C3D]">
-                        Live Route Map & Stop Sequence
-                      </h3>
-                      <span className="text-xs font-normal text-[#6E6E80]">
-                        ({(trip.stops || []).length} { (trip.stops || []).length === 1 ? 'Stop' : 'Stops' })
-                      </span>
+                {/* Live Route Map with Integrated Floating Stop Sequence Overlay INSIDE Map */}
+                <div className="relative rounded-2xl overflow-hidden border border-[#E5E7EB] h-[560px] shadow-2xs group">
+                  
+                  {/* Floating Top Stop Sequence & Actions Bar INSIDE the Map */}
+                  <div className="absolute top-3 left-3 right-3 z-20 bg-white/95 backdrop-blur-md border border-[#E5E7EB]/80 rounded-xl p-2.5 shadow-md flex items-center justify-between gap-3">
+                    {/* Horizontal Stop Sequence Pills */}
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar min-w-0 flex-1">
+                      {(() => {
+                        const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
+                          id: stop.id || `stop-${sIdx}`,
+                          typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
+                          name: resolveStopName(stop, 'Location'),
+                          actual_arrival: stop.actual_arrival,
+                          planned_arrival: stop.planned_arrival,
+                        }));
+
+                        return timelineStops.map((stop: any, sIdx: number) => {
+                          const isFirst = sIdx === 0;
+                          const isLast = sIdx === timelineStops.length - 1;
+                          const isCompleted = !!stop.actual_arrival;
+                          const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
+                          const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
+
+                          return (
+                            <React.Fragment key={stop.id || sIdx}>
+                              <div className={cn(
+                                "px-2.5 py-1 rounded-lg border text-xs flex items-center gap-2 shrink-0 transition-all shadow-2xs",
+                                isCompleted
+                                  ? "bg-emerald-50/90 border-emerald-200 text-emerald-900"
+                                  : isCurrent
+                                  ? "bg-rose-50/95 border-rose-300 text-rose-900 font-bold ring-2 ring-rose-400/20"
+                                  : "bg-white/90 border-[#E5E7EB] text-[#3E3C3D]"
+                              )}>
+                                <span className={cn(
+                                  "w-2 h-2 rounded-full shrink-0",
+                                  isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
+                                )} />
+                                <div className="flex items-center gap-1.5">
+                                  <span className={cn(
+                                    "text-[9px] font-extrabold uppercase tracking-wider shrink-0",
+                                    isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
+                                  )}>
+                                    {stopCategoryLabel}:
+                                  </span>
+                                  <span className="font-bold text-xs truncate max-w-[120px]">
+                                    {stop.name}
+                                  </span>
+                                </div>
+                                {stop.actual_arrival ? (
+                                  <span className="text-[10px] text-emerald-700 font-mono font-semibold ml-1">
+                                    {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {!isLast && (
+                                <ArrowRight size={12} className="text-[#9898A4] shrink-0" />
+                              )}
+                            </React.Fragment>
+                          );
+                        });
+                      })()}
                     </div>
 
+                    {/* Expand Map Button Floating Inside */}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setIsExpandMapOpen(true)}
-                      className="h-7 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shadow-none"
+                      className="h-7.5 px-2.5 text-xs font-semibold text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shrink-0 shadow-2xs"
                     >
                       <Maximize2 size={12} className="text-[#6E6E80]" />
-                      Expand Map
+                      Expand
                     </Button>
                   </div>
 
-                  {/* Horizontal Compact Stop Sequence Bar directly at top of map */}
-                  <div className="bg-slate-50/90 rounded-xl border border-[#E5E7EB] p-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    {(() => {
-                      const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
-                        id: stop.id || `stop-${sIdx}`,
-                        typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
-                        name: resolveStopName(stop, 'Location'),
-                        actual_arrival: stop.actual_arrival,
-                        planned_arrival: stop.planned_arrival,
-                      }));
-
-                      return timelineStops.map((stop: any, sIdx: number) => {
-                        const isFirst = sIdx === 0;
-                        const isLast = sIdx === timelineStops.length - 1;
-                        const isCompleted = !!stop.actual_arrival;
-                        const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
-                        const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
-
-                        return (
-                          <React.Fragment key={stop.id || sIdx}>
-                            <div className={cn(
-                              "px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-2 shrink-0 transition-all",
-                              isCompleted
-                                ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-900"
-                                : isCurrent
-                                ? "bg-rose-50/80 border-rose-200 text-rose-900 font-semibold"
-                                : "bg-white border-[#E5E7EB] text-[#3E3C3D]"
-                            )}>
-                              <span className={cn(
-                                "w-2 h-2 rounded-full shrink-0",
-                                isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
-                              )} />
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn(
-                                  "text-[9px] font-bold uppercase tracking-wider shrink-0",
-                                  isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
-                                )}>
-                                  {stopCategoryLabel}:
-                                </span>
-                                <span className="font-semibold text-xs truncate max-w-[130px]">
-                                  {stop.name}
-                                </span>
-                              </div>
-                              {stop.actual_arrival ? (
-                                <span className="text-[10px] text-emerald-700 font-mono font-semibold ml-1">
-                                  {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                </span>
-                              ) : null}
-                            </div>
-
-                            {!isLast && (
-                              <ArrowRight size={12} className="text-[#9898A4] shrink-0" />
-                            )}
-                          </React.Fragment>
-                        );
-                      });
-                    })()}
-                  </div>
-
-                  {/* Live Route Map Container */}
-                  <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[480px]">
-                    <TripLiveMapCard
-                      tripId={trip.id}
-                      refId={trip.ref_id || trip.id}
-                      pickupLat={pickup?.location_lat}
-                      pickupLng={pickup?.location_lng}
-                      dropoffLat={dropoff?.location_lat}
-                      dropoffLng={dropoff?.location_lng}
-                      pickupLabel={pickup?.location_name || undefined}
-                      dropoffLabel={dropoff?.location_name || undefined}
-                      resolvedLocation={trip.vehicle?.resolved_location}
-                      showHeader={false}
-                      showTelemetryBar={true}
-                      className="rounded-none border-none h-full"
-                      mapHeightClassName="h-[480px]"
-                    />
-                  </div>
+                  {/* Live Route Map Viewport */}
+                  <TripLiveMapCard
+                    tripId={trip.id}
+                    refId={trip.ref_id || trip.id}
+                    pickupLat={pickup?.location_lat}
+                    pickupLng={pickup?.location_lng}
+                    dropoffLat={dropoff?.location_lat}
+                    dropoffLng={dropoff?.location_lng}
+                    pickupLabel={pickup?.location_name || undefined}
+                    dropoffLabel={dropoff?.location_name || undefined}
+                    resolvedLocation={trip.vehicle?.resolved_location}
+                    showHeader={false}
+                    showTelemetryBar={true}
+                    className="rounded-none border-none h-full"
+                    mapHeightClassName="h-[560px]"
+                  />
                 </div>
 
               </div>
