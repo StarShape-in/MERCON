@@ -941,8 +941,8 @@ export default function TripDetailsPage() {
                   </Button>
                 </div>
 
-                {/* Main Primary Customer Profile Card */}
-                <div className="p-3.5 rounded-xl bg-slate-50/90 border border-[#E5E7EB] space-y-2">
+                {/* Integrated Customer Profile Section */}
+                <div className="pb-3.5 border-b border-[#E5E7EB] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#6E6E80]">CUSTOMER PROFILE</span>
                     {trip.customer?.id && (
@@ -958,7 +958,7 @@ export default function TripDetailsPage() {
 
                   <div className="flex items-center gap-3.5 pt-0.5">
                     <Avatar
-                      className="w-11 h-11 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
+                      className="w-11 h-11 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
                       onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
                     >
                       {custAvatarUrl && (
