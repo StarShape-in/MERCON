@@ -7,7 +7,7 @@ import {
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, ArrowDown, SquarePen, MessageCircle, UserCheck, History,
-  Coins, Pencil, Plus, PlusCircle, Minus, Wallet, DollarSign, HardHat, X, Camera, Eye, Maximize2, Trash2, ShieldCheck,
+  Coins, Pencil, Plus, PlusCircle, Minus, Wallet, DollarSign, HardHat, X, Camera, Eye, Maximize2, Trash2, ShieldCheck, Clock,
 } from 'lucide-react';
 
 function resolveFileUrl(url?: string | null): string {
@@ -689,17 +689,24 @@ export default function TripDetailsPage() {
                     <span className="font-mono text-xs text-[#3E3C3D] font-medium">{trip.driver?.phone_primary || 'Internal Fleet'}</span>
 
                     <span className="text-[#9898A4]">•</span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#3E3C3D]">
-                      <Truck className="w-3.5 h-3.5 text-[#6E6E80]" />
-                      {trip.is_third_party
-                        ? trip.third_party_vehicle_plate || 'Rented Truck'
-                        : trip.vehicle?.plate_number || 'Unassigned'}
-                      {trip.vehicle?.asset_type ? ` (${trip.vehicle.asset_type})` : ''}
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/90 border border-slate-200/80 font-semibold text-xs text-[#3E3C3D]">
+                      <Truck className="w-3.5 h-3.5 text-[#FA634E]" />
+                      <span>
+                        {trip.is_third_party
+                          ? trip.third_party_vehicle_plate || 'Rented Truck'
+                          : trip.vehicle?.plate_number || 'Unassigned'}
+                        {trip.vehicle?.asset_type
+                          ? ` (${trip.vehicle.asset_type})`
+                          : trip.vehicle?.vehicle_class
+                          ? ` (${trip.vehicle.vehicle_class})`
+                          : ''}
+                      </span>
                     </span>
 
                     <span className="text-[#9898A4]">•</span>
-                    <span className="text-[11px] font-normal text-[#6E6E80]">
-                      Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')}
+                    <span className="text-xs font-normal text-[#6E6E80] inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#9898A4]" />
+                      Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd, yyyy · hh:mm a')}
                     </span>
                   </div>
 
