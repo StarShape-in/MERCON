@@ -353,21 +353,26 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       key={rc.id || idx}
                       type="button"
                       onClick={() => {
+                        const targetCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
+                        const targetVehicleClass = rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType;
+
                         if (origName && handleSlotLocationChange) {
                           handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
                         }
                         if (destName && handleSlotLocationChange) {
                           handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
                         }
-                        if (rc.line_type && setContractRateCategory) {
-                          setContractRateCategory(rc.line_type);
+                        if (targetCategory && setContractRateCategory) {
+                          setContractRateCategory(targetCategory);
                         }
-                        if (rc.vehicle_class && setContractVehicleType) {
-                          setContractVehicleType(rc.vehicle_class);
+                        if (targetVehicleClass && setContractVehicleType) {
+                          setContractVehicleType(targetVehicleClass);
                         }
                         handleUpdateTripSlot(primarySlot.id, {
                           matchedRateCard: rc,
                           billingAmount: String(rateVal),
+                          rateCategory: targetCategory,
+                          vehicleType: targetVehicleClass,
                         });
                       }}
                       className={cn(
