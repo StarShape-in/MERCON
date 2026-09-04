@@ -798,20 +798,19 @@ export default function TripDetailsPage() {
               {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
               <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-6">
                 
-                {/* Live Route Map with Stop Sequence Component Embedded inside Map */}
+                {/* Live Route Map (Full-Width Clean Map View) */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
                     <h3 className="text-base font-semibold text-[#3E3C3D]">
                       Live Route Map
                     </h3>
                     <Button
-                      variant="outline"
                       size="sm"
                       onClick={() => setIsExpandMapOpen(true)}
-                      className="h-7 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shadow-none"
+                      className="h-7.5 px-3 rounded-lg text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1.5 cursor-pointer shadow-none"
                     >
-                      <Maximize2 size={12} className="text-[#6E6E80]" />
-                      Expand
+                      <Route size={14} />
+                      Live Stops
                     </Button>
                   </div>
 
@@ -828,91 +827,8 @@ export default function TripDetailsPage() {
                     showHeader={false}
                     showTelemetryBar={false}
                     mapHeightClassName="h-[400px]"
-                    stopsSequenceHeader={
-                      <div className="w-56 sm:w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
-                        {/* Title Header */}
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#FA634E]" />
-                            <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-200">
-                              Stop Sequence
-                            </h4>
-                          </div>
-                          <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                            {(trip.stops || []).length} STOPS
-                          </span>
-                        </div>
-
-                        {/* Vertical Sequence Timeline (Clean Text Nodes, No Cards) */}
-                        <div className="space-y-1.5 max-h-[300px] overflow-y-auto no-scrollbar pr-0.5">
-                          {(() => {
-                            const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
-                              id: stop.id || `stop-${sIdx}`,
-                              typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
-                              name: resolveStopName(stop, 'Location'),
-                              actual_arrival: stop.actual_arrival,
-                              planned_arrival: stop.planned_arrival,
-                            }));
-
-                            return timelineStops.map((stop: any, sIdx: number) => {
-                              const isFirst = sIdx === 0;
-                              const isLast = sIdx === timelineStops.length - 1;
-                              const isCompleted = !!stop.actual_arrival;
-                              const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
-                              const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
-
-                              return (
-                                <div key={stop.id || sIdx} className="relative flex items-start gap-2.5 min-w-0 py-0.5">
-                                  {/* Connector dot and line */}
-                                  <div className="flex flex-col items-center shrink-0 w-3 pt-1">
-                                    <span className={cn(
-                                      "w-2.5 h-2.5 rounded-full shrink-0 z-10 transition-all",
-                                      isCompleted
-                                        ? "bg-emerald-500 ring-2 ring-emerald-200"
-                                        : isCurrent
-                                        ? "bg-[#FA634E] ring-2 ring-rose-300 animate-pulse"
-                                        : "bg-slate-300"
-                                    )} />
-                                    {!isLast && (
-                                      <div className="w-[1.5px] h-6 bg-slate-200 dark:bg-slate-700 my-0.5" />
-                                    )}
-                                  </div>
-
-                                  {/* Clean Text Content (No Outer Card Box) */}
-                                  <div className="min-w-0 flex-1 flex items-baseline justify-between gap-1">
-                                    <div className="min-w-0">
-                                      <span className={cn(
-                                        "text-[9px] font-extrabold uppercase tracking-wider block leading-none mb-0.5",
-                                        isCompleted ? "text-emerald-700 dark:text-emerald-400" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
-                                      )}>
-                                        {stopCategoryLabel}
-                                      </span>
-                                      <span className={cn(
-                                        "text-xs font-bold truncate block leading-tight",
-                                        isCurrent ? "text-rose-900 dark:text-rose-200" : "text-[#3E3C3D] dark:text-slate-100"
-                                      )} title={stop.name}>
-                                        {stop.name}
-                                      </span>
-                                    </div>
-
-                                    {stop.actual_arrival ? (
-                                      <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-mono font-bold shrink-0">
-                                        {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                      </span>
-                                    ) : isCurrent ? (
-                                      <span className="text-[8px] font-extrabold uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 px-1.5 py-0.5 rounded shrink-0">
-                                        IN PROGRESS
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              );
-                            });
-                          })()}
-                        </div>
-                      </div>
-                    }
                   />
+                </div>
                 </div>
 
               </div>
@@ -1469,29 +1385,144 @@ export default function TripDetailsPage() {
         />
       )}
 
-      {/* ── Expand Map Dialog ── */}
+      {/* ── Live Stops Full-Screen Operational Radar View ── */}
       <Dialog open={isExpandMapOpen} onOpenChange={setIsExpandMapOpen}>
-        <DialogContent className="max-w-5xl w-full p-0 overflow-hidden rounded-2xl border-none">
-          <DialogHeader className="p-4 border-b border-black/[0.06] bg-white flex flex-row items-center justify-between">
-            <DialogTitle className="text-sm font-bold text-[#3E3C3D]">
-              Full Route Radar — {trip.ref_id || trip.id} ({routeLabel})
-            </DialogTitle>
-          </DialogHeader>
-          <div className="w-full h-[650px]">
-            <TripLiveMapCard
-              tripId={trip.id}
-              refId={trip.ref_id || trip.id}
-              pickupLat={pickup?.location_lat}
-              pickupLng={pickup?.location_lng}
-              dropoffLat={dropoff?.location_lat}
-              dropoffLng={dropoff?.location_lng}
-              pickupLabel={pickup?.location_name || undefined}
-              dropoffLabel={dropoff?.location_name || undefined}
-              resolvedLocation={trip.vehicle?.resolved_location}
-              showHeader={false}
-              showTelemetryBar={true}
-              mapHeightClassName="h-[650px]"
-            />
+        <DialogContent className="max-w-[96vw] w-full h-[90vh] max-h-[90vh] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-900 flex flex-col">
+          {/* Top Control Header */}
+          <div className="px-5 py-3 border-b border-slate-800 bg-slate-900/95 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[#FA634E]/20 border border-[#FA634E]/30 flex items-center justify-center text-[#FA634E] shrink-0">
+                <Route size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-white">Live Route & Stops Radar</h3>
+                  <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                    {trip.ref_id || trip.id}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 font-medium truncate">
+                  {routeLabel} · {(trip.stops || []).length} Total Stops
+                </p>
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpandMapOpen(false)}
+              className="h-8 px-3 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 gap-1.5 cursor-pointer shrink-0"
+            >
+              <X size={16} /> Close Radar
+            </Button>
+          </div>
+
+          {/* Main Workspace: Map on Left (Flex-1) | Live Stops Sidebar on Right (Width 96) */}
+          <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
+            {/* Left: Map Viewport Canvas */}
+            <div className="flex-1 h-full min-w-0 relative">
+              <TripLiveMapCard
+                tripId={trip.id}
+                refId={trip.ref_id || trip.id}
+                pickupLat={pickup?.location_lat}
+                pickupLng={pickup?.location_lng}
+                dropoffLat={dropoff?.location_lat}
+                dropoffLng={dropoff?.location_lng}
+                pickupLabel={pickup?.location_name || undefined}
+                dropoffLabel={dropoff?.location_name || undefined}
+                resolvedLocation={trip.vehicle?.resolved_location}
+                showHeader={false}
+                showTelemetryBar={true}
+                mapHeightClassName="h-full"
+              />
+            </div>
+
+            {/* Right: Live Stops Sidebar */}
+            <div className="w-full lg:w-96 h-full shrink-0 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 p-5 space-y-4 overflow-y-auto no-scrollbar">
+              {/* Title Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FA634E] animate-ping" />
+                  <h4 className="text-sm font-extrabold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100">
+                    Live Stops Sequence
+                  </h4>
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                  {(trip.stops || []).length} STOPS
+                </span>
+              </div>
+
+              {/* Detailed Stops Timeline List */}
+              <div className="space-y-3 pt-1">
+                {(() => {
+                  const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
+                    id: stop.id || `stop-${sIdx}`,
+                    typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
+                    name: resolveStopName(stop, 'Location'),
+                    actual_arrival: stop.actual_arrival,
+                    planned_arrival: stop.planned_arrival,
+                  }));
+
+                  return timelineStops.map((stop: any, sIdx: number) => {
+                    const isFirst = sIdx === 0;
+                    const isLast = sIdx === timelineStops.length - 1;
+                    const isCompleted = !!stop.actual_arrival;
+                    const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
+                    const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
+
+                    return (
+                      <div key={stop.id || sIdx} className="relative flex items-start gap-3 min-w-0">
+                        {/* Connector dot and vertical guide line */}
+                        <div className="flex flex-col items-center shrink-0 w-4 pt-1">
+                          <span className={cn(
+                            "w-3 h-3 rounded-full shrink-0 z-10 transition-all",
+                            isCompleted
+                              ? "bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950"
+                              : isCurrent
+                              ? "bg-[#FA634E] ring-4 ring-rose-200 dark:ring-rose-950 animate-pulse"
+                              : "bg-slate-300 dark:bg-slate-700"
+                          )} />
+                          {!isLast && (
+                            <div className="w-[2px] h-10 bg-slate-200 dark:bg-slate-800 my-1" />
+                          )}
+                        </div>
+
+                        {/* Stop Information Box */}
+                        <div className={cn(
+                          "flex-1 min-w-0 p-3 rounded-xl border text-xs transition-all shadow-2xs space-y-1",
+                          isCompleted
+                            ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-900/50 text-emerald-900 dark:text-emerald-300"
+                            : isCurrent
+                            ? "bg-rose-50/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 ring-2 ring-rose-400/20"
+                            : "bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800 text-[#3E3C3D] dark:text-slate-200"
+                        )}>
+                          <div className="flex items-center justify-between gap-1 min-w-0">
+                            <span className={cn(
+                              "text-[10px] font-extrabold uppercase tracking-wider truncate",
+                              isCompleted ? "text-emerald-700 dark:text-emerald-400" : isCurrent ? "text-[#FA634E]" : "text-slate-500"
+                            )}>
+                              {stopCategoryLabel}
+                            </span>
+                            {stop.actual_arrival ? (
+                              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-bold shrink-0">
+                                {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                              </span>
+                            ) : isCurrent ? (
+                              <span className="text-[9px] font-extrabold uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 px-1.5 py-0.5 rounded shrink-0">
+                                IN PROGRESS
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="font-bold text-sm text-[#3E3C3D] dark:text-slate-100 truncate" title={stop.name}>
+                            {stop.name}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

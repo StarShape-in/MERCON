@@ -481,56 +481,46 @@ export default function TripLiveMapCard({
         </CardHeader>
       )}
 
-      <CardContent className="p-4">
-        {/* Side-by-side Layout: Left Stop Sequence Panel + Right Map Canvas */}
-        <div className="flex flex-col xl:flex-row items-stretch gap-3">
-          {/* Left: Stop Sequence Sidebar Panel (when not in fullscreen) */}
-          {stopsSequenceHeader && !isFullscreen && (
-            <div className="w-full xl:w-56 sm:xl:w-60 shrink-0 bg-slate-50/80 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs">
+      <CardContent className="p-0 overflow-hidden relative">
+        <div 
+          className={cn(
+            'overflow-hidden relative transition-all duration-300 w-full',
+            isFullscreen 
+              ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0' 
+              : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
+          )} 
+          style={{ background: currentTheme.previewColor }}
+        >
+          {/* Floating Stop Sequence Header Overlay (If passed) */}
+          {stopsSequenceHeader && (
+            <div className="absolute top-3 left-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
               {stopsSequenceHeader}
             </div>
           )}
 
-          {/* Right: Map Viewport Canvas */}
-          <div 
+          {/* Floating Fullscreen / Close Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
             className={cn(
-              'flex-1 overflow-hidden relative shadow-md transition-all duration-300 min-w-0',
-              isFullscreen 
-                ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0' 
-                : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
-            )} 
-            style={{ background: currentTheme.previewColor }}
-          >
-            {/* Floating Stop Sequence Header Overlay (ONLY when in Fullscreen) */}
-            {stopsSequenceHeader && isFullscreen && (
-              <div className="absolute top-3 left-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
-                {stopsSequenceHeader}
-              </div>
+              "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
+              isFullscreen
+                ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
+                : currentTheme.isDark
+                  ? "bg-[#090A0F]/85 backdrop-blur-xl border-white/10 hover:border-white/20 text-white hover:bg-[#090A0F] p-2"
+                  : "bg-white/95 backdrop-blur-xl border-black/[0.08] hover:border-black/[0.15] text-[#111] hover:bg-white p-2"
             )}
-
-            {/* Floating Fullscreen / Close Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={cn(
-                "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
-                isFullscreen
-                  ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
-                  : currentTheme.isDark
-                    ? "bg-[#090A0F]/85 backdrop-blur-xl border-white/10 hover:border-white/20 text-white hover:bg-[#090A0F] p-2"
-                    : "bg-white/95 backdrop-blur-xl border-black/[0.08] hover:border-black/[0.15] text-[#111] hover:bg-white p-2"
-              )}
-              title={isFullscreen ? "Close Fullscreen" : "Fullscreen Map"}
-            >
-              {isFullscreen ? (
-                <>
-                  <X size={14} />
-                  <span>Close</span>
-                </>
-              ) : (
-                <Maximize2 size={14} />
-              )}
-            </button>
+            title={isFullscreen ? "Close Fullscreen" : "Fullscreen Map"}
+          >
+            {isFullscreen ? (
+              <>
+                <X size={14} />
+                <span>Close</span>
+              </>
+            ) : (
+              <Maximize2 size={14} />
+            )}
+          </button>
 
           <MapContainer
             center={[activeTruckLat, activeTruckLng]}
@@ -722,7 +712,6 @@ export default function TripLiveMapCard({
             {!hasResolvedCoords && <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />}
           </div>
           )}
-        </div>
         </div>
 
         {/* LIVE VEHICLE STATUS HUD SUMMARY — Placed at the bottom */}
