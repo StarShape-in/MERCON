@@ -1047,29 +1047,6 @@ export default function TripDetailsPage() {
                     </div>
                   </div>
 
-                </div>
-              </div>
-            </Card>
-
-            {/* Right Panel (5 Cols): Financials & Additional Charges (TOP-RIGHT) */}
-            <Card className="lg:col-span-5 rounded-2xl border border-[#E5E7EB] bg-white p-4.5 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              {/* Section Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-                <h3 className="text-sm font-bold text-[#3E3C3D]">
-                  Financials & Additional Charges
-                </h3>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setChargeLines(chargesToInputs(trip.charges));
-                    setIsLaborModalOpen(true);
-                  }}
-                  className="h-7 px-3 rounded-lg text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1 cursor-pointer shadow-none"
-                >
-                  <Plus size={13} />
-                  Add Charge
-                </Button>
-              </div>
 
               {/* Financial Summary Top Rows */}
               <div className="space-y-2.5 py-3 border-b border-[#E5E7EB]">
