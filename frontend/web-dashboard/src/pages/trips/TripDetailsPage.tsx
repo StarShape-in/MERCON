@@ -604,11 +604,10 @@ export default function TripDetailsPage() {
               </div>
             </div>
           )}
-          {/* ── UNIFIED TRIP OPERATIONAL SURFACE ── */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-[#E5E7EB]">
+          {/* ── UNIFIED TRIP OPERATIONAL WORKSPACE ── */}
 
-            {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
-            <div className="p-4 sm:p-4.5 flex flex-wrap items-center justify-between gap-4 bg-slate-50/30">
+          {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 sm:p-4.5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
               {/* Left: Primary Driver Avatar & Combined Trip/Resource Details */}
               <div className="flex items-center gap-4 min-w-0">
                 {/* Primary Driver Avatar (Bigger Profile) */}
@@ -792,14 +791,14 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
+          {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+            
+            {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
+            <div className="lg:col-span-8 space-y-4 sm:space-y-6">
               
-              {/* Left Column (8 Cols): Route, Stop Sequence & Live Route Map */}
-              <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-6">
-                
-                {/* Route & Stop Sequence Timeline */}
-                <div className="space-y-3">
+              {/* Route & Stop Sequence Timeline Card */}
+              <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
                     <h3 className="text-base font-semibold text-[#3E3C3D]">
                       Route & Stop Sequence
@@ -896,8 +895,8 @@ export default function TripDetailsPage() {
                   </ScrollArea>
                 </div>
 
-                {/* Live Route Map */}
-                <div className="space-y-3 pt-2">
+                {/* Live Route Map Card */}
+                <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
                     <h3 className="text-base font-semibold text-[#3E3C3D]">
                       Live Route Map
@@ -935,7 +934,7 @@ export default function TripDetailsPage() {
               </div>
 
               {/* Right Column (4 Cols): Customer Profile & Financials & Additional Charges */}
-              <div className="lg:col-span-4 p-4 sm:p-4.5 space-y-3 bg-white">
+              <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-5 shadow-2xs space-y-3.5">
                 
                 {/* Section Header */}
                 <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
@@ -1127,66 +1126,66 @@ export default function TripDetailsPage() {
 
             </div>
 
-            {/* 4. SECONDARY OPERATIONAL WORKSPACE (ACTIVITY LOG ON LEFT | DOCUMENTS & ATTACHMENTS ON RIGHT) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
-              
-              {/* Left Column (4 Cols): Activity Log */}
-              <div className="lg:col-span-4 p-4.5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-                  <h3 className="text-base font-semibold text-[#3E3C3D]">
-                    Activity Log
-                  </h3>
-                </div>
+          {/* 3. SECONDARY OPERATIONAL WORKSPACE (ACTIVITY LOG ON LEFT | DOCUMENTS & ATTACHMENTS ON RIGHT) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+            
+            {/* Left Column (4 Cols): Activity Log Card */}
+            <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                <h3 className="text-base font-semibold text-[#3E3C3D]">
+                  Activity Log
+                </h3>
+              </div>
 
-                <div className="space-y-4 pt-1">
-                  {timelineSteps.map((step, i) => {
-                    const isLast = i === timelineSteps.length - 1;
-                    const status = timelineStatus[i];
+              <div className="space-y-4 pt-1">
+                {timelineSteps.map((step, i) => {
+                  const isLast = i === timelineSteps.length - 1;
+                  const status = timelineStatus[i];
 
-                    return (
-                      <div key={step.key} className="relative flex items-start gap-3">
-                        <div className="relative flex flex-col items-center shrink-0 w-3.5">
-                          <div className="relative z-10 mt-1 flex items-center justify-center">
-                            {status === 'done' ? (
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
-                            ) : status === 'active' ? (
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
-                            ) : (
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB] shrink-0" />
-                            )}
-                          </div>
-
-                          {!isLast && (
-                            <div className="absolute top-[14px] bottom-[-18px] w-[1px] bg-[#D9DCE3] z-0" />
+                  return (
+                    <div key={step.key} className="relative flex items-start gap-3">
+                      <div className="relative flex flex-col items-center shrink-0 w-3.5">
+                        <div className="relative z-10 mt-1 flex items-center justify-center">
+                          {status === 'done' ? (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
+                          ) : status === 'active' ? (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
+                          ) : (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB] shrink-0" />
                           )}
                         </div>
 
-                        <div className="min-w-0 flex-1 space-y-0.5">
-                          <p className={cn(
-                            "text-[13px] font-semibold",
-                            status === 'pending' ? "text-[#6E6E80]" : "text-[#3E3C3D]"
-                          )}>
-                            {step.label}
-                          </p>
-                          {step.time ? (
-                            <p className="text-xs font-mono font-medium text-[#6E6E80]">
-                              {fullDateTime(step.time, tz)}
-                            </p>
-                          ) : step.sub ? (
-                            <p className="text-xs font-normal text-[#6E6E80]">
-                              {step.sub}
-                            </p>
-                          ) : null}
-                        </div>
+                        {!isLast && (
+                          <div className="absolute top-[14px] bottom-[-18px] w-[1px] bg-[#D9DCE3] z-0" />
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {/* Right Column (8 Cols): Documents & Attachments */}
-              <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className={cn(
+                          "text-[13px] font-semibold",
+                          status === 'pending' ? "text-[#6E6E80]" : "text-[#3E3C3D]"
+                        )}>
+                          {step.label}
+                        </p>
+                        {step.time ? (
+                          <p className="text-xs font-mono font-medium text-[#6E6E80]">
+                            {fullDateTime(step.time, tz)}
+                          </p>
+                        ) : step.sub ? (
+                          <p className="text-xs font-normal text-[#6E6E80]">
+                            {step.sub}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column (8 Cols): Documents & Attachments Card */}
+            <div className="lg:col-span-8 bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
                   <h3 className="text-base font-semibold text-[#3E3C3D] flex items-center gap-2">
                     Documents & Attachments
                     <span className="text-xs font-medium text-[#6E6E80]">({documents.length})</span>
@@ -1356,13 +1355,9 @@ export default function TripDetailsPage() {
                   )}
                 </div>
               </div>
-
             </div>
-
           </div>
-
         </div>
-      </div>
 
       {/* ── Status Confirmation Modal ── */}
       <ConfirmModal
