@@ -88,30 +88,42 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {/* UNIFIED SINGLE HEADER: CUSTOMER ACCOUNT & COMMERCIAL QUOTATIONS */}
       <div className="space-y-2 pb-2 border-b border-slate-100 dark:border-slate-800">
         
-        {/* ROW 1: UNIFIED SINGLE TITLE + STATUS BADGE + SCROLL ARROWS + CREATE BUTTON */}
+        {/* ROW 1: HEADER TITLE + ACTIVE STATE / STATUS BADGES + CONTROLS */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-brand shrink-0" />
               <span>CUSTOMERS & QUOTATIONS</span>
-              <span className="text-brand font-extrabold">({sortedRateCards.length})</span>
+              {contractCustomer && (
+                <span className="text-brand font-extrabold">({sortedRateCards.length})</span>
+              )}
               <span className="text-brand">*</span>
             </h4>
 
-            {matchedRateCard ? (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
+            {/* STAGE STATUS INDICATORS */}
+            {!contractCustomer ? (
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-slate-500" /> Select Customer Account
               </span>
             ) : (
-              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
-              </span>
+              /* STAGE 2: CUSTOMER SELECTED - SHOW MATCHED OR UNSET RATE STATUS */
+              <>
+                {matchedRateCard ? (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Matched Rate Card
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 text-amber-600" /> Rate Unset
+                  </span>
+                )}
+              </>
             )}
           </div>
 
-          {/* TOP RIGHT: CREATE COMMERCIAL QUOTATION BUTTON */}
+          {/* TOP RIGHT: CONTROLS & CREATE QUOTATION BUTTON */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {handleOpenCreateQuotation && (
+            {handleOpenCreateQuotation && contractCustomer && (
               <Button
                 type="button"
                 variant="outline"
@@ -125,53 +137,45 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           </div>
         </div>
 
-        {/* ROW 2: CUSTOMER ACCOUNT + QUICK COMPANY TILES + BILLING TYPE + TON SELECTION */}
-        <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-          {/* CUSTOMER SEARCH COMBOBOX */}
-          {setContractCustomer && (
-            <div className="w-full sm:w-[220px] shrink-0">
-              <Combobox
-                options={derivedCustomerOptions}
-                value={contractCustomer}
-                onChange={(val) => setContractCustomer?.(val)}
-                placeholder="Select customer account..."
-                searchPlaceholder="Search customer name or code..."
-                triggerClassName="h-8 rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
-              />
-            </div>
-          )}
+        {/* ROW 2: SEARCH COMBOBOX & ACTIVE CUSTOMER CONTEXT / BILLING TYPE */}
+        <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
+          {/* LEFT SIDE: CUSTOMER SEARCH / ACTIVE CUSTOMER CHIP */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* CUSTOMER SEARCH COMBOBOX */}
+            {setContractCustomer && (
+              <div className="w-full sm:w-[220px] shrink-0">
+                <Combobox
+                  options={derivedCustomerOptions}
+                  value={contractCustomer}
+                  onChange={(val) => setContractCustomer?.(val)}
+                  placeholder="Select customer account..."
+                  searchPlaceholder="Search customer name or code..."
+                  triggerClassName="h-8 rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+                />
+              </div>
+            )}
 
-          {/* TOP 2 QUICK COMPANY TILES */}
-          {customers && customers.length > 0 && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              {customers.slice(0, 2).map((c) => {
-                const isSelected = contractCustomer === c.id;
-                const cInitials = c.name.substring(0, 2).toUpperCase();
+            {/* STAGE 2 ACTIVE CUSTOMER BADGE WITH CHANGE BUTTON */}
+            {contractCustomer && selectedCust && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-brand/50 text-brand ring-1 ring-brand/20 text-xs font-bold shrink-0">
+                <span className="w-4.5 h-4.5 rounded font-black text-[9px] grid place-items-center bg-brand text-white shrink-0 shadow-2xs">
+                  {selectedCust.name.substring(0, 2).toUpperCase()}
+                </span>
+                <span className="truncate max-w-[150px] font-extrabold">{selectedCust.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setContractCustomer?.('')}
+                  className="ml-1 text-[10px] underline hover:text-orange-800 dark:hover:text-orange-300 cursor-pointer font-bold shrink-0"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+          </div>
 
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setContractCustomer?.(c.id)}
-                    className={`px-2 py-1 rounded-lg border text-left transition-all flex items-center gap-1.5 h-8 shrink-0 cursor-pointer text-xs font-bold ${
-                      isSelected
-                        ? 'bg-orange-50/90 dark:bg-orange-950/40 border-brand text-brand ring-1 ring-brand/30 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className={`w-4.5 h-4.5 rounded font-black text-[9px] grid place-items-center shrink-0 shadow-2xs ${isSelected ? 'bg-brand text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                      {cInitials}
-                    </span>
-                    <span className="truncate max-w-[90px] font-bold text-xs">{c.name.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* BILLING TYPE SELECTION (MONTHLY / EXTRA) */}
+          {/* RIGHT SIDE: BILLING TYPE TOGGLE (MONTHLY / EXTRA) */}
           {setContractBillingType && (
-            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
+            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
               <button
                 type="button"
                 onClick={() => setContractBillingType('Monthly')}
@@ -200,159 +204,232 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
       </div>
 
-      {/* VISUAL QUOTATION RATE CARDS CAROUSEL WITH OVERLAY SCROLL ARROWS */}
-      {sortedRateCards.length > 0 ? (
-        <div className="relative group">
-          {/* CAROUSEL LEFT SCROLL BUTTON */}
-          {sortedRateCards.length > 2 && (
-            <button
-              type="button"
-              onClick={handleScrollLeft}
-              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
-              title="Scroll Left"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
+      {/* ========================================================================= */}
+      {/* STAGE 1: NO CUSTOMER SELECTED -> SHOW COMPANY QUICK SELECTION CARDS       */}
+      {/* ========================================================================= */}
+      {!contractCustomer ? (
+        <div className="space-y-1.5 pt-0.5">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <span>Quick Select Company Account:</span>
+            <span className="text-[10px] text-slate-400 font-medium">Click to select company & view quotations</span>
+          </div>
 
-          {/* CAROUSEL RIGHT SCROLL BUTTON */}
-          {sortedRateCards.length > 2 && (
-            <button
-              type="button"
-              onClick={handleScrollRight}
-              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
-              title="Scroll Right"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {customers && customers.length > 0 ? (
+              customers.slice(0, 8).map((c) => {
+                const cInitials = c.name.substring(0, 2).toUpperCase();
+                const cCode = c.code || `CUST-${c.id.substring(0, 4)}`;
 
-          <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
-            {sortedRateCards.map((rc, idx) => {
-              const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
-              const rateVal = rc.rate ?? rc.base_price ?? 0;
-              const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
-              const rCat = rc.rate_category || rc.line_type || contractRateCategory;
-              const hasHistory = Boolean(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle);
-
-              const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
-              const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
-
-              const origName = String(
-                firstStop?.source_label ||
-                firstStop?.location?.name ||
-                (firstStop as any)?.location_name ||
-                rc.route_origin ||
-                rc.origin_name ||
-                rc.originLocation?.name ||
-                rc.origin_city ||
-                rc.origin ||
-                rc.from ||
-                ''
-              );
-
-              const destName = String(
-                lastStop?.source_label ||
-                lastStop?.location?.name ||
-                (lastStop as any)?.location_name ||
-                rc.route_destination ||
-                rc.destination_name ||
-                rc.destinationLocation?.name ||
-                rc.destination_city ||
-                rc.destination ||
-                rc.to ||
-                ''
-              );
-
-              return (
-                <button
-                  key={rc.id || idx}
-                  type="button"
-                  onClick={() => {
-                    if (origName && handleSlotLocationChange) {
-                      handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                    }
-                    if (destName && handleSlotLocationChange) {
-                      handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                    }
-                    if (rc.line_type && setContractRateCategory) {
-                      setContractRateCategory(rc.line_type);
-                    }
-                    if (rc.vehicle_class && setContractVehicleType) {
-                      setContractVehicleType(rc.vehicle_class);
-                    }
-                    handleUpdateTripSlot(primarySlot.id, {
-                      matchedRateCard: rc,
-                      billingAmount: String(rateVal),
-                    });
-                  }}
-                  className={cn(
-                    "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-w-[220px] max-w-[260px] shrink-0",
-                    isSelected
-                      ? "border-brand ring-2 ring-brand/20 bg-orange-50/30 dark:bg-amber-950/20"
-                      : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  )}
-                >
-                  {/* TOP CARD HEADER: QUOTATION NO. + TOP RIGHT CHIPS (NEW RATE & APPLIED) */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                      {rc.quotation_number || `QUO-${idx + 1}`}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {!hasHistory && (
-                        <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60">
-                          ✨ New Rate
-                        </span>
-                      )}
-                      {isSelected && (
-                        <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
-                          Applied ✓
-                        </span>
-                      )}
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setContractCustomer?.(c.id)}
+                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand/70 hover:bg-orange-50/40 dark:hover:bg-slate-700/80 transition-all text-left flex flex-col justify-between space-y-2 cursor-pointer shadow-2xs group hover:scale-[1.01]"
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-brand font-black text-xs grid place-items-center shrink-0 border border-orange-200/60 dark:border-orange-900/40 group-hover:bg-brand group-hover:text-white transition-colors shadow-2xs">
+                        {cInitials}
+                      </div>
+                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">
+                        {cCode}
+                      </span>
                     </div>
-                  </div>
 
-                  <div>
-                    <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
-                      SAR {Number(rateVal).toLocaleString()}
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-brand transition-colors" title={c.name}>
+                        {c.name}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">
+                        {c.city || c.address || 'Active Account'}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-500 font-medium truncate">
-                      {rCat} • <span className="font-bold text-slate-700 dark:text-slate-300">{vClass}</span>
-                    </div>
-                  </div>
 
-                  {/* RECENT DRIVER & VEHICLE PROFILE TAG */}
-                  {hasHistory && (
-                    <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
-                      <span className="shrink-0">👤</span>
-                      <span className="truncate">{rc.driver_name || rc.recent_driver || 'Recent Driver'}</span>
-                      {(rc.vehicle_plate || rc.recent_vehicle) && (
-                        <span className="font-mono font-bold text-slate-500 shrink-0">({rc.vehicle_plate || rc.recent_vehicle})</span>
-                      )}
+                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] font-bold text-slate-400 group-hover:text-brand transition-colors">
+                      <span>Select Company</span>
+                      <span>→</span>
                     </div>
-                  )}
-
-                  <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
-                    <span className="truncate max-w-[130px] font-medium" title={`${origName || 'Origin'} → ${destName || 'Destination'}`}>
-                      {origName || 'Origin'} → {destName || 'Destination'}
-                    </span>
-                    <span className={cn("font-bold shrink-0", isSelected ? "text-brand" : "text-slate-500")}>
-                      {isSelected ? 'Active' : 'Apply →'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="col-span-full p-4 text-center rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 text-xs text-slate-500">
+                No customer accounts found. Use the search box above.
+              </div>
+            )}
           </div>
         </div>
       ) : (
-        /* NO QUOTATION MATCHED */
-        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            No active commercial quotation matched for this route lane.
-          </p>
-        </div>
+        /* ========================================================================= */
+        /* STAGE 2: CUSTOMER IS SELECTED -> SHOW QUOTATION RATE CARDS CAROUSEL      */
+        /* ========================================================================= */
+        <>
+          {sortedRateCards.length > 0 ? (
+            <div className="relative group">
+              {/* CAROUSEL LEFT SCROLL BUTTON */}
+              {sortedRateCards.length > 2 && (
+                <button
+                  type="button"
+                  onClick={handleScrollLeft}
+                  className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+                  title="Scroll Left"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* CAROUSEL RIGHT SCROLL BUTTON */}
+              {sortedRateCards.length > 2 && (
+                <button
+                  type="button"
+                  onClick={handleScrollRight}
+                  className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+                  title="Scroll Right"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+
+              <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
+                {sortedRateCards.map((rc, idx) => {
+                  const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
+                  const rateVal = rc.rate ?? rc.base_price ?? 0;
+                  const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
+                  const rCat = rc.rate_category || rc.line_type || contractRateCategory;
+                  const hasHistory = Boolean(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle);
+
+                  const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+                  const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
+
+                  const origName = String(
+                    firstStop?.source_label ||
+                    firstStop?.location?.name ||
+                    (firstStop as any)?.location_name ||
+                    rc.route_origin ||
+                    rc.origin_name ||
+                    rc.originLocation?.name ||
+                    rc.origin_city ||
+                    rc.origin ||
+                    rc.from ||
+                    ''
+                  );
+
+                  const destName = String(
+                    lastStop?.source_label ||
+                    lastStop?.location?.name ||
+                    (lastStop as any)?.location_name ||
+                    rc.route_destination ||
+                    rc.destination_name ||
+                    rc.destinationLocation?.name ||
+                    rc.destination_city ||
+                    rc.destination ||
+                    rc.to ||
+                    ''
+                  );
+
+                  return (
+                    <button
+                      key={rc.id || idx}
+                      type="button"
+                      onClick={() => {
+                        if (origName && handleSlotLocationChange) {
+                          handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
+                        }
+                        if (destName && handleSlotLocationChange) {
+                          handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
+                        }
+                        if (rc.line_type && setContractRateCategory) {
+                          setContractRateCategory(rc.line_type);
+                        }
+                        if (rc.vehicle_class && setContractVehicleType) {
+                          setContractVehicleType(rc.vehicle_class);
+                        }
+                        handleUpdateTripSlot(primarySlot.id, {
+                          matchedRateCard: rc,
+                          billingAmount: String(rateVal),
+                        });
+                      }}
+                      className={cn(
+                        "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-w-[220px] max-w-[260px] shrink-0",
+                        isSelected
+                          ? "border-brand ring-2 ring-brand/20 bg-orange-50/30 dark:bg-amber-950/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      )}
+                    >
+                      {/* TOP CARD HEADER: QUOTATION NO. + TOP RIGHT CHIPS (NEW RATE & APPLIED) */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                          {rc.quotation_number || `QUO-${idx + 1}`}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {!hasHistory && (
+                            <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60">
+                              ✨ New Rate
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
+                              Applied ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
+                          SAR {Number(rateVal).toLocaleString()}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium truncate">
+                          {rCat} • <span className="font-bold text-slate-700 dark:text-slate-300">{vClass}</span>
+                        </div>
+                      </div>
+
+                      {/* RECENT DRIVER & VEHICLE PROFILE TAG */}
+                      {hasHistory && (
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
+                          <span className="shrink-0">👤</span>
+                          <span className="truncate">{rc.driver_name || rc.recent_driver || 'Recent Driver'}</span>
+                          {(rc.vehicle_plate || rc.recent_vehicle) && (
+                            <span className="font-mono font-bold text-slate-500 shrink-0">({rc.vehicle_plate || rc.recent_vehicle})</span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
+                        <span className="truncate max-w-[130px] font-medium" title={`${origName || 'Origin'} → ${destName || 'Destination'}`}>
+                          {origName || 'Origin'} → {destName || 'Destination'}
+                        </span>
+                        <span className={cn("font-bold shrink-0", isSelected ? "text-brand" : "text-slate-500")}>
+                          {isSelected ? 'Active' : 'Apply →'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* NO QUOTATION MATCHED FOR SELECTED CUSTOMER */
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-center space-y-1.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                No active commercial quotation rates found for <span className="font-bold text-slate-800 dark:text-slate-100">{selectedCust?.name || 'this customer'}</span>.
+              </p>
+              {handleOpenCreateQuotation && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenCreateQuotation}
+                  className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 gap-1 mx-auto cursor-pointer rounded-lg"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Create Quotation for {selectedCust?.name?.split(' ')[0] || 'Customer'}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 };
+
