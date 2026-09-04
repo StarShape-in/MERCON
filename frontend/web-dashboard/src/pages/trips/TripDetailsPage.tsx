@@ -604,13 +604,10 @@ export default function TripDetailsPage() {
               </div>
             </div>
           )}
-
-
-
           {/* ── UNIFIED TRIP OPERATIONAL SURFACE ── */}
           <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-[#E5E7EB]">
 
-            {/* 1. TOP TRIP HEADER & PROFILES SECTION */}
+            {/* 1. TOP TRIP HEADER & DRIVER/VEHICLE PROFILES SECTION */}
             <div className="p-4.5 sm:p-5 space-y-4">
               {/* Top Row: Trip ID, Status, Route & Action Dropdown */}
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -697,158 +694,115 @@ export default function TripDetailsPage() {
                 </div>
               </div>
 
-              {/* Bottom Row: Customer Profile (Left, BIGGER) & Driver / Vehicle Profiles (Right, BIGGER) */}
-              <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                
-                {/* Customer Profile (Left, Big) */}
-                <div className="md:col-span-6 flex items-center gap-3.5 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB]">
+              {/* Bottom Row (Left Side): DRIVER & VEHICLE Profiles alongside Trip ID */}
+              <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+                {/* Driver */}
+                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
                   <Avatar
-                    className="w-11 h-11 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                    className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
                   >
-                    {custAvatarUrl && (
-                      <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                    {driverAvatarUrl && (
+                      <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
                     )}
                     <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
-                      {getInitials(custPersonName)}
+                      {getInitials(driverFullName)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">CUSTOMER</span>
-                    <div className="flex items-center gap-1.5 pt-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
+                      {trip.driver && !isClosed && !trip.is_third_party && (
+                        <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
+                          <PopoverTrigger asChild>
+                            <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
+                              <RefreshCcw size={12} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
+                            <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
+                            <Combobox
+                              value={replaceDriverId}
+                              onChange={setReplaceDriverId}
+                              options={driverOptions}
+                              placeholder="Choose replacement driver..."
+                              searchPlaceholder="Search drivers..."
+                              emptyText="No available drivers found."
+                            />
+                            <Btn
+                              label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
+                              size="sm"
+                              className="w-full bg-[#FA634E] text-white rounded-lg"
+                              disabled={!replaceDriverId || replaceDriverMutation.isPending}
+                              onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 min-w-0 pt-0.5">
                       <p
-                        onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                        className="text-base font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
+                        onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
+                        className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
                       >
-                        {custPersonName}
+                        {driverFullName}
                       </p>
-                      {trip.customer?.id && (
+                      {trip.driver?.id && (
                         <button
                           type="button"
-                          onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                          onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
                           className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                          title="View Customer Profile"
+                          title="View Driver Profile"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-3 h-3" />
                         </button>
                       )}
                     </div>
-                    <p className="text-xs font-medium text-[#6E6E80] truncate">
-                      {custCompanyName || trip.customer?.contact_phone || '—'}
+                    <p className="text-xs text-[#6E6E80] font-mono truncate">
+                      {trip.driver?.phone_primary || 'Internal Fleet'}
+                    </p>
+                    {trip.tripDrivers && trip.tripDrivers.length > 1 && (
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        {trip.tripDrivers.map((td) => (
+                          <span
+                            key={td.id}
+                            className={cn(
+                              "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
+                              td.role === 'PRIMARY'
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200"
+                            )}
+                          >
+                            {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehicle */}
+                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
+                    <p className="text-sm font-bold text-[#3E3C3D] truncate pt-0.5">
+                      {trip.is_third_party
+                        ? trip.third_party_vehicle_plate || 'Rented Truck'
+                        : trip.vehicle?.plate_number || 'Unassigned'}
+                    </p>
+                    <p className="text-xs text-[#6E6E80] truncate">
+                      {trip.vehicle?.asset_type || 'Fleet Truck'}
                     </p>
                   </div>
                 </div>
-
-                {/* Driver & Vehicle Profiles (Right, Big) */}
-                <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Driver */}
-                  <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
-                    <Avatar
-                      className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                    >
-                      {driverAvatarUrl && (
-                        <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
-                      )}
-                      <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
-                        {getInitials(driverFullName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
-                        {trip.driver && !isClosed && !trip.is_third_party && (
-                          <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
-                            <PopoverTrigger asChild>
-                              <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
-                                <RefreshCcw size={12} />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent align="end" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
-                              <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
-                              <Combobox
-                                value={replaceDriverId}
-                                onChange={setReplaceDriverId}
-                                options={driverOptions}
-                                placeholder="Choose replacement driver..."
-                                searchPlaceholder="Search drivers..."
-                                emptyText="No available drivers found."
-                              />
-                              <Btn
-                                label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
-                                size="sm"
-                                className="w-full bg-[#FA634E] text-white rounded-lg"
-                                disabled={!replaceDriverId || replaceDriverMutation.isPending}
-                                onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 min-w-0 pt-0.5">
-                        <p
-                          onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                          className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
-                        >
-                          {driverFullName}
-                        </p>
-                        {trip.driver?.id && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
-                            className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                            title="View Driver Profile"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-xs text-[#6E6E80] font-mono truncate">
-                        {trip.driver?.phone_primary || 'Internal Fleet'}
-                      </p>
-                      {trip.tripDrivers && trip.tripDrivers.length > 1 && (
-                        <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          {trip.tripDrivers.map((td) => (
-                            <span
-                              key={td.id}
-                              className={cn(
-                                "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
-                                td.role === 'PRIMARY'
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : "bg-blue-50 text-blue-700 border-blue-200"
-                              )}
-                            >
-                              {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vehicle */}
-                  <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
-                      <p className="text-sm font-bold text-[#3E3C3D] truncate pt-0.5">
-                        {trip.is_third_party
-                          ? trip.third_party_vehicle_plate || 'Rented Truck'
-                          : trip.vehicle?.plate_number || 'Unassigned'}
-                      </p>
-                      <p className="text-xs text-[#6E6E80] truncate">
-                        {trip.vehicle?.asset_type || 'Fleet Truck'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
               </div>
+
             </div>
 
-            {/* 3. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS & CHARGES ON RIGHT) */}
+            {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
               
               {/* Left Column (7 Cols): Route, Stop Sequence & Live Route Map */}
@@ -990,7 +944,7 @@ export default function TripDetailsPage() {
 
               </div>
 
-              {/* Right Column (5 Cols): Financials & Additional Charges */}
+              {/* Right Column (5 Cols): Financials, Charges & Customer Profile */}
               <div className="lg:col-span-5 p-4.5 sm:p-6 space-y-4 bg-white">
                 
                 <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
@@ -1008,6 +962,45 @@ export default function TripDetailsPage() {
                     <Plus size={13} />
                     Add Charge
                   </Button>
+                </div>
+
+                {/* Customer Profile & Details Box (Inside Financials & Charges) */}
+                <div className="flex items-center gap-3.5 bg-slate-50/80 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
+                  <Avatar
+                    className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                  >
+                    {custAvatarUrl && (
+                      <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                    )}
+                    <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
+                      {getInitials(custPersonName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">CUSTOMER DETAILS</span>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <p
+                        onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                        className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
+                      >
+                        {custPersonName}
+                      </p>
+                      {trip.customer?.id && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                          className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
+                          title="View Customer Profile"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-[#6E6E80] truncate">
+                      {custCompanyName || trip.customer?.contact_phone || '—'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Financial Summary Metric Cards */}
