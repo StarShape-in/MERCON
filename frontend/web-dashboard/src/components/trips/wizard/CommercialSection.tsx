@@ -205,55 +205,92 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* STAGE 1: NO CUSTOMER SELECTED -> SHOW COMPANY QUICK SELECTION CARDS       */}
+      {/* STAGE 1: NO CUSTOMER SELECTED -> SHOW COMPANY QUICK SELECTION CARDS CAROUSEL */}
       {/* ========================================================================= */}
       {!contractCustomer ? (
-        <div className="space-y-1.5 pt-0.5">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-            <span>Quick Select Company Account:</span>
-            <span className="text-[10px] text-slate-400 font-medium">Click to select company & view quotations</span>
-          </div>
+        <div className="relative group">
+          {/* CAROUSEL LEFT SCROLL BUTTON */}
+          {customers && customers.length > 2 && (
+            <button
+              type="button"
+              onClick={handleScrollLeft}
+              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+              title="Scroll Left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {/* CAROUSEL RIGHT SCROLL BUTTON */}
+          {customers && customers.length > 2 && (
+            <button
+              type="button"
+              onClick={handleScrollRight}
+              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 grid place-items-center transition-all cursor-pointer opacity-90 hover:scale-105"
+              title="Scroll Right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
+          <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
             {customers && customers.length > 0 ? (
-              customers.slice(0, 8).map((c) => {
+              customers.map((c, idx) => {
                 const cInitials = c.name.substring(0, 2).toUpperCase();
-                const cCode = c.code || `CUST-${c.id.substring(0, 4)}`;
+                const cCode = c.code || `CUST-${(c.id || `${idx + 1}`).substring(0, 4).toUpperCase()}`;
 
                 return (
                   <button
-                    key={c.id}
+                    key={c.id || idx}
                     type="button"
                     onClick={() => setContractCustomer?.(c.id)}
-                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand/70 hover:bg-orange-50/40 dark:hover:bg-slate-700/80 transition-all text-left flex flex-col justify-between space-y-2 cursor-pointer shadow-2xs group hover:scale-[1.01]"
+                    className={cn(
+                      "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-w-[220px] max-w-[260px] shrink-0 border-slate-200 dark:border-slate-700 hover:border-brand/70 hover:bg-orange-50/40 dark:hover:bg-slate-700/80 group"
+                    )}
                   >
+                    {/* TOP CARD HEADER: COMPANY INITIALS AVATAR + CUSTOMER CODE CHIP */}
                     <div className="flex items-center justify-between gap-1">
-                      <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-brand font-black text-xs grid place-items-center shrink-0 border border-orange-200/60 dark:border-orange-900/40 group-hover:bg-brand group-hover:text-white transition-colors shadow-2xs">
-                        {cInitials}
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5.5 h-5.5 rounded-md bg-orange-100 dark:bg-orange-950/60 text-brand font-black text-[10px] grid place-items-center shrink-0 border border-orange-200/60 dark:border-orange-900/40 group-hover:bg-brand group-hover:text-white transition-colors shadow-2xs">
+                          {cInitials}
+                        </div>
+                        <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                          Company Account
+                        </span>
                       </div>
-                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700/50">
+                      <span className="text-[9px] font-mono font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.2 rounded border border-slate-200/60 dark:border-slate-600">
                         {cCode}
                       </span>
                     </div>
 
+                    {/* MAIN COMPANY NAME & DETAILS */}
                     <div>
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-brand transition-colors" title={c.name}>
+                      <div className="text-sm font-extrabold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors" title={c.name}>
                         {c.name}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-medium truncate">
-                        {c.city || c.address || 'Active Account'}
+                      <div className="text-[11px] text-slate-500 font-medium truncate">
+                        {c.city || c.address || 'Saudi Arabia'} • <span className="font-bold text-slate-700 dark:text-slate-300">Commercial</span>
                       </div>
                     </div>
 
-                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] font-bold text-slate-400 group-hover:text-brand transition-colors">
-                      <span>Select Company</span>
-                      <span>→</span>
+                    {/* COMPANY PROFILE TAG & METADATA */}
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
+                      <span className="shrink-0">🏢</span>
+                      <span className="truncate">{c.payment_terms || c.billing_type || 'Active Rates Available'}</span>
+                    </div>
+
+                    {/* CARD FOOTER */}
+                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
+                      <span className="truncate font-medium text-slate-500">Quick Select</span>
+                      <span className="font-bold text-slate-500 group-hover:text-brand transition-colors shrink-0">
+                        Select Company →
+                      </span>
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="col-span-full p-4 text-center rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 text-xs text-slate-500">
+              <div className="w-full p-4 text-center rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 text-xs text-slate-500">
                 No customer accounts found. Use the search box above.
               </div>
             )}
