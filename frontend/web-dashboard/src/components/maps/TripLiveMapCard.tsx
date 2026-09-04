@@ -134,6 +134,8 @@ interface TripLiveMapCardProps {
   pickupLabel?: string;
   dropoffLabel?: string;
   resolvedLocation?: ResolvedLocation;
+  /** Optional custom stop sequence header component rendered inside map canvas */
+  stopsSequenceHeader?: React.ReactNode;
   /** Show the title/theme-selector/"Full Radar" header row. Default true. */
   showHeader?: boolean;
   /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
@@ -156,6 +158,7 @@ export default function TripLiveMapCard({
   pickupLabel,
   dropoffLabel,
   resolvedLocation,
+  stopsSequenceHeader,
   showHeader = true,
   showTelemetryBar = true,
   className,
@@ -482,6 +485,13 @@ export default function TripLiveMapCard({
           )} 
           style={{ background: currentTheme.previewColor }}
         >
+          {/* Floating Stop Sequence Header Overlay Component inside Map */}
+          {stopsSequenceHeader && (
+            <div className="absolute top-3 left-3 right-14 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-black/[0.08] dark:border-white/10 rounded-xl p-2 shadow-lg overflow-x-auto no-scrollbar">
+              {stopsSequenceHeader}
+            </div>
+          )}
+
           {/* Floating Fullscreen / Close Toggle Button */}
           <button
             type="button"
