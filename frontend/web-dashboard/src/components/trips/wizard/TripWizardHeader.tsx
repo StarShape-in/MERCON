@@ -16,6 +16,9 @@ import {
   Car,
   Building2,
   Wrench,
+  History,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -168,27 +171,32 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
       {/* Top Right: Restore Draft (if any) + Next / Submit Primary Action */}
       <div className="flex items-center gap-2 justify-end shrink-0">
         {hasSavedDraft && contractStep === 1 && restoreDraft && discardDraft && (
-          <div className="flex items-center gap-1.5 mr-1">
-            <Button
-              type="button"
-              size="sm"
-              tabIndex={-1}
-              onClick={restoreDraft}
-              className="h-8 text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-3 border-0 shadow-2xs cursor-pointer"
-            >
-              Restore Draft
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              tabIndex={-1}
-              onClick={discardDraft}
-              className="h-8 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 rounded-xl px-2 cursor-pointer"
-            >
-              Discard
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs font-bold border-amber-300/80 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 hover:bg-amber-100/80 rounded-xl px-2.5 gap-1.5 shadow-2xs cursor-pointer shrink-0"
+              >
+                <History className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Saved Draft</span>
+                <ChevronDown className="w-3 h-3 text-amber-500 shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 z-[9999]">
+              <DropdownMenuLabel className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Draft Options
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={restoreDraft} className="text-xs font-bold gap-2 text-emerald-700 dark:text-emerald-400 cursor-pointer">
+                <RotateCcw className="w-3.5 h-3.5 text-emerald-600" /> Restore Saved Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={discardDraft} className="text-xs font-bold gap-2 text-rose-600 dark:text-rose-400 cursor-pointer">
+                <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Discard Saved Draft
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         {contractStep < 2 ? (
           <Button

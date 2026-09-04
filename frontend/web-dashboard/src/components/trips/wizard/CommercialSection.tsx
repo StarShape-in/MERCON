@@ -101,11 +101,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             </h4>
 
             {/* STAGE STATUS INDICATORS */}
-            {!contractCustomer ? (
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-slate-500" /> Select Customer Account
-              </span>
-            ) : (
+            {contractCustomer && (
               /* STAGE 2: CUSTOMER SELECTED - SHOW MATCHED OR UNSET RATE STATUS */
               <>
                 {matchedRateCard ? (
