@@ -492,19 +492,19 @@ export default function TripLiveMapCard({
           )} 
           style={{ background: currentTheme.previewColor }}
         >
-          {/* Floating Stop Sequence Panel Overlay Component inside Map (Right Side) */}
+          {/* Floating Stop Sequence Panel Overlay Component inside Map (Left Side) */}
           {stopsSequenceHeader && (
-            <div className="absolute top-3 right-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
+            <div className="absolute top-3 left-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
               {stopsSequenceHeader}
             </div>
           )}
 
-          {/* Floating Fullscreen / Close Toggle Button (Left Side) */}
+          {/* Floating Fullscreen / Close Toggle Button (Right Side) */}
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
             className={cn(
-              "absolute top-3 left-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
+              "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
               isFullscreen
                 ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
                 : currentTheme.isDark
