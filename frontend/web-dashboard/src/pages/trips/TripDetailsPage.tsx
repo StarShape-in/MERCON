@@ -1334,12 +1334,12 @@ export default function TripDetailsPage() {
                               <div className="divide-y divide-[#E5E7EB]">
                                 {otherDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
                               </div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()
-                  )}
+                            </div>
+                          </>
+                        );
+                      })()
+                    )}
+                  </div>
                 </div>
               </div>
 
