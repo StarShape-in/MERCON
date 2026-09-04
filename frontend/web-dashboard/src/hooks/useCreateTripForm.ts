@@ -170,7 +170,7 @@ export function useCreateTripForm() {
     : [];
 
   const customerOptions = useMemo<ComboboxOption[]>(() => {
-    return customers.map((c) => ({
+    return customers.map((c: any) => ({
       value: c.id,
       label: c.name,
       keywords: `${c.name} ${c.phone || ''} ${c.payment_terms || ''}`,
