@@ -829,7 +829,6 @@ export default function TripDetailsPage() {
                     mapHeightClassName="h-[400px]"
                   />
                 </div>
-                </div>
 
               </div>
 
