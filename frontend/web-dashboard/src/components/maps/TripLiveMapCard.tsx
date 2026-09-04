@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Navigation, Gauge, Maximize2, X, MapPin, Route, Clock, ShieldCheck,
-  Play, Pause, RotateCcw, FastForward, CheckCircle2, ChevronRight, Truck
+  Play, Pause, RotateCcw, ChevronRight
 } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
@@ -277,7 +277,6 @@ export default function TripLiveMapCard({
   const [currentPlaceName, setCurrentPlaceName] = useState<string | null>(null);
   const [remainingDistanceKm, setRemainingDistanceKm] = useState<number | null>(null);
   const [remainingEtaText, setRemainingEtaText] = useState<string | null>(null);
-  const [routeUnavailable, setRouteUnavailable] = useState(false);
 
   // ─── Animation Engine State ─────────────────────────────────────────────────
   const [isAnimating, setIsAnimating] = useState(false);
@@ -453,7 +452,6 @@ export default function TripLiveMapCard({
       setRemainingRoadPolyline(null);
       setRemainingDistanceKm(null);
       setRemainingEtaText(null);
-      setRouteUnavailable(false);
       return;
     }
 
@@ -480,13 +478,12 @@ export default function TripLiveMapCard({
             setRemainingRoadPolyline(leafletRemainingCoords);
             setRemainingDistanceKm(distKm);
             setRemainingEtaText(etaText);
-            setRouteUnavailable(false);
           }
           return;
         }
         throw new Error('Invalid remaining route');
       } catch (err) {
-        console.warn('[TripLiveMapCard] OSRM remaining route calculation fallback:', err);
+        console.warn('[TripLiveMapCard] OSRM remaining route fallback:', err);
         if (isMounted) {
           const directCurve = generateCurvedWaypoints([[resLat, resLng], dest]);
           setRemainingRoadPolyline(directCurve);
@@ -495,7 +492,6 @@ export default function TripLiveMapCard({
           const approxKm = Math.round(Math.hypot(dLat, dLng));
           setRemainingDistanceKm(approxKm);
           setRemainingEtaText(`~${Math.round(approxKm / 75)}h`);
-          setRouteUnavailable(false);
         }
       }
     };
@@ -734,265 +730,279 @@ export default function TripLiveMapCard({
       )}
 
       <CardContent className="p-4">
-        {/* ─── MAP VIEW CONTAINER ─────────────────────────────────────────── */}
-        <div
-          className={cn(
-            'overflow-hidden relative shadow-xl transition-all duration-300',
-            isFullscreen
-              ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0'
-              : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
-          )}
-          style={{ background: currentTheme.previewColor }}
-        >
-          {/* Floating Stop Sequence Panel Overlay Component inside Map (Right Side) */}
-          {stopsSequenceHeader && (
-            <div className="absolute top-3 right-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
+        {/* Side-by-side Layout: Left Stop Sequence Panel + Right Map Canvas */}
+        <div className="flex flex-col xl:flex-row items-stretch gap-3">
+          {/* Left: Stop Sequence Sidebar Panel (when not in fullscreen) */}
+          {stopsSequenceHeader && !isFullscreen && (
+            <div className="w-full xl:w-56 sm:xl:w-60 shrink-0 bg-slate-50/80 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-2xs">
               {stopsSequenceHeader}
             </div>
           )}
 
-          {/* Floating Fullscreen / Close Toggle Button (Left Side) */}
-          <button
-            type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className={cn(
-              "absolute top-3 left-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
-              isFullscreen
-                ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
-                : currentTheme.isDark
-                  ? "bg-[#090A0F]/85 backdrop-blur-xl border-white/10 hover:border-white/20 text-white hover:bg-[#090A0F] p-2"
-                  : "bg-white/95 backdrop-blur-xl border-black/[0.08] hover:border-black/[0.15] text-[#111] hover:bg-white p-2"
-            )}
-            title={isFullscreen ? "Close Fullscreen" : "Fullscreen Map"}
-          >
-            {isFullscreen ? (
-              <>
-                <X size={14} />
-                <span>Close</span>
-              </>
-            ) : (
-              <Maximize2 size={14} />
-            )}
-          </button>
-
-          {/* ─── ROUTE ANIMATION FLOATING CONTROLLER BAR ────────────────────── */}
-          <div className={cn(
-            "absolute z-[400] rounded-xl border shadow-xl backdrop-blur-xl p-2 flex items-center gap-2.5 transition-all text-xs",
-            stopsSequenceHeader ? "bottom-3 left-3" : "top-3 left-14",
-            currentTheme.isDark
-              ? "bg-[#090A0F]/90 border-white/10 text-white"
-              : "bg-white/95 border-black/[0.08] text-[#111]"
-          )}>
-            <div className="flex items-center gap-1">
-              {isAnimating ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={pauseAnimation}
-                  className="h-7 px-2 text-xs font-bold text-amber-500 hover:text-amber-600 gap-1"
-                >
-                  <Pause size={13} />
-                  <span>Pause</span>
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={startAnimation}
-                  className="h-7 px-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 gap-1"
-                >
-                  <Play size={13} className="fill-emerald-600" />
-                  <span>{animationIndex > 0 && animationIndex < fullPolyline.length - 1 ? 'Resume' : 'Play Route'}</span>
-                </Button>
+          {/* Right: Map Canvas */}
+          <div className="flex-1 min-w-0">
+            <div
+              className={cn(
+                'overflow-hidden relative shadow-xl transition-all duration-300',
+                isFullscreen
+                  ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0'
+                  : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
+              )}
+              style={{ background: currentTheme.previewColor }}
+            >
+              {/* Floating Stop Sequence Header Overlay (ONLY when in Fullscreen) */}
+              {stopsSequenceHeader && isFullscreen && (
+                <div className="absolute top-3 left-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
+                  {stopsSequenceHeader}
+                </div>
               )}
 
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={resetAnimation}
-                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700"
-                title="Reset Animation"
+              {/* Floating Fullscreen / Close Toggle Button (Right Side) */}
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={cn(
+                  "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
+                  isFullscreen
+                    ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
+                    : currentTheme.isDark
+                      ? "bg-[#090A0F]/85 backdrop-blur-xl border-white/10 hover:border-white/20 text-white hover:bg-[#090A0F] p-2"
+                      : "bg-white/95 backdrop-blur-xl border-black/[0.08] hover:border-black/[0.15] text-[#111] hover:bg-white p-2"
+                )}
+                title={isFullscreen ? "Close Fullscreen" : "Fullscreen Map"}
               >
-                <RotateCcw size={12} />
-              </Button>
-            </div>
+                {isFullscreen ? (
+                  <>
+                    <X size={14} />
+                    <span>Close</span>
+                  </>
+                ) : (
+                  <Maximize2 size={14} />
+                )}
+              </button>
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
+              {/* ─── ROUTE ANIMATION FLOATING CONTROLLER BAR ────────────────────── */}
+              <div className={cn(
+                "absolute z-[400] rounded-xl border shadow-xl backdrop-blur-xl p-2 flex items-center gap-2.5 transition-all text-xs",
+                stopsSequenceHeader && isFullscreen ? "top-3 left-64" : "top-3 left-3",
+                currentTheme.isDark
+                  ? "bg-[#090A0F]/90 border-white/10 text-white"
+                  : "bg-white/95 border-black/[0.08] text-[#111]"
+              )}>
+                <div className="flex items-center gap-1">
+                  {isAnimating ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={pauseAnimation}
+                      className="h-7 px-2 text-xs font-bold text-amber-500 hover:text-amber-600 gap-1"
+                    >
+                      <Pause size={13} />
+                      <span>Pause</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={startAnimation}
+                      className="h-7 px-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 gap-1"
+                    >
+                      <Play size={13} className="fill-emerald-600" />
+                      <span>{animationIndex > 0 && animationIndex < fullPolyline.length - 1 ? 'Resume' : 'Play Route'}</span>
+                    </Button>
+                  )}
 
-            <div className="flex flex-col min-w-[150px] max-w-[240px]">
-              <div className="flex items-center justify-between text-[10px] font-bold">
-                <span className="text-slate-500 dark:text-slate-400 truncate">{currentLegText}</span>
-                <span className="font-mono text-[#FF5500] ml-1">{animProgressPct}%</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={resetAnimation}
+                    className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700"
+                    title="Reset Animation"
+                  >
+                    <RotateCcw size={12} />
+                  </Button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
+
+                <div className="flex flex-col min-w-[150px] max-w-[240px]">
+                  <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className="text-slate-500 dark:text-slate-400 truncate">{currentLegText}</span>
+                    <span className="font-mono text-[#FF5500] ml-1">{animProgressPct}%</span>
+                  </div>
+                  <Progress value={animProgressPct} className="h-1.5 mt-1 bg-slate-200 dark:bg-white/10" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAnimationSpeed((s) => (s === 1 ? 2 : s === 2 ? 4 : 1))}
+                  className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-extrabold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Change Speed"
+                >
+                  {animationSpeed}x
+                </button>
               </div>
-              <Progress value={animProgressPct} className="h-1.5 mt-1 bg-slate-200 dark:bg-white/10" />
-            </div>
 
-            <button
-              type="button"
-              onClick={() => setAnimationSpeed((s) => (s === 1 ? 2 : s === 2 ? 4 : 1))}
-              className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-extrabold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              title="Change Speed"
-            >
-              {animationSpeed}x
-            </button>
-          </div>
-
-          {/* ─── LEAFLET MAP CONTAINER ───────────────────────────────────────── */}
-          <MapContainer
-            center={activeTruckLat && activeTruckLng ? [activeTruckLat, activeTruckLng] : originStop.coords}
-            zoom={8}
-            minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
-            maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
-            maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
-            maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
-            scrollWheelZoom={true}
-            zoomControl={false}
-            attributionControl={false}
-            style={{ height: '100%', width: '100%', zIndex: 0 }}
-          >
-            <MapResizeTrigger isFullscreen={isFullscreen} />
-            <ZoomControl position="bottomright" />
-            <SaudiRedBorderOverlay />
-            <TileLayer
-              key={currentTheme.id}
-              attribution={currentTheme.attribution}
-              url={currentTheme.url}
-            />
-
-            <FitAllBounds points={allBoundsPoints} />
-
-            {/* Full Planned Highway Polyline (Dashed background track) */}
-            <Polyline
-              positions={fullPolyline}
-              pathOptions={{
-                color: '#94A3B8',
-                weight: 4,
-                opacity: 0.35,
-                dashArray: '6, 8',
-              }}
-            />
-
-            {/* Active / Animated Driving Polyline (Dynamic road trace) */}
-            <Polyline
-              positions={animatedVisiblePolyline}
-              pathOptions={{
-                color: isRoutingFallback ? '#94A3B8' : '#FF5500',
-                weight: 5,
-                opacity: 0.95,
-              }}
-            />
-
-            {/* Real-time GPS Remaining Polyline (When real vehicle GPS is present) */}
-            {remainingRoadPolyline && !isAnimating && (
-              <Polyline
-                positions={remainingRoadPolyline}
-                pathOptions={{
-                  color: '#10B981',
-                  weight: 4,
-                  opacity: 0.85,
-                  dashArray: '4, 8',
-                }}
-              />
-            )}
-
-            {/* ─── MARKERS ─────────────────────────────────────────────────── */}
-
-            {/* Origin Stop (Pickup) */}
-            <Marker position={originStop.coords} icon={pickupMarkerIcon}>
-              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#10B981]">Pickup (Origin)</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{originStop.name}</p>
-                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">{originStop.coords[0].toFixed(4)}, {originStop.coords[1].toFixed(4)}</p>
-                </div>
-              </Popup>
-            </Marker>
-
-            {/* Intermediate Stops (Stop A, Stop B, etc.) */}
-            {intermediateStops.map((stop) => (
-              <Marker
-                key={stop.id || stop.sequence}
-                position={stop.coords}
-                icon={createStopIcon(stop.letter || `${stop.sequence - 1}`, stop.isCompleted, false)}
+              {/* ─── LEAFLET MAP CONTAINER ───────────────────────────────────────── */}
+              <MapContainer
+                center={activeTruckLat && activeTruckLng ? [activeTruckLat, activeTruckLng] : originStop.coords}
+                zoom={8}
+                minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
+                scrollWheelZoom={true}
+                zoomControl={false}
+                attributionControl={false}
+                style={{ height: '100%', width: '100%', zIndex: 0 }}
               >
-                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                  <div className="text-xs font-sans p-1 space-y-1">
-                    <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-400">
-                      <span className="w-2 h-2 rounded-full bg-purple-600" />
-                      <span>{stop.label} (Intermediate)</span>
-                    </div>
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{stop.name}</p>
-                    <p className="text-[10px] text-gray-400 font-mono">{stop.coords[0].toFixed(4)}, {stop.coords[1].toFixed(4)}</p>
-                    {stop.actual_arrival ? (
-                      <p className="text-[10px] text-emerald-600 font-bold">Arrived: {stop.actual_arrival}</p>
-                    ) : stop.planned_arrival ? (
-                      <p className="text-[10px] text-slate-500">Planned: {stop.planned_arrival}</p>
-                    ) : null}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                <MapResizeTrigger isFullscreen={isFullscreen} />
+                <ZoomControl position="bottomright" />
+                <SaudiRedBorderOverlay />
+                <TileLayer
+                  key={currentTheme.id}
+                  attribution={currentTheme.attribution}
+                  url={currentTheme.url}
+                />
 
-            {/* Destination Stop (Dropoff) */}
-            <Marker position={destStop.coords} icon={dropoffMarkerIcon}>
-              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#F43F5E]">Drop-off (Destination)</p>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{destStop.name}</p>
-                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">{destStop.coords[0].toFixed(4)}, {destStop.coords[1].toFixed(4)}</p>
-                </div>
-              </Popup>
-            </Marker>
+                <FitAllBounds points={allBoundsPoints} />
 
-            {/* Animated Moving Truck Marker (When animation is running) */}
-            {isAnimating ? (
-              <Marker position={currentAnimCoord} icon={createLiveTruckIcon(animHeading)}>
-                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">Animated Truck Simulation</p>
-                    <p className="text-[10px] text-gray-500">{currentLegText}</p>
-                    <p className="text-[10px] font-mono text-emerald-600">Progress: {animProgressPct}%</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ) : hasResolvedCoords ? (
-              <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
-                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                  <div className="text-xs font-sans p-1 space-y-1">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <span className={cn("w-2 h-2 rounded-full", displayState === 'CURRENT' ? "bg-emerald-500" : "bg-amber-500")} />
-                      <span className="text-[#111] dark:text-white">
-                        {displayState === 'CURRENT' ? 'Current vehicle location' : 'Last known location'}
-                      </span>
+                {/* Full Planned Highway Polyline (Dashed background track) */}
+                <Polyline
+                  positions={fullPolyline}
+                  pathOptions={{
+                    color: '#94A3B8',
+                    weight: 4,
+                    opacity: 0.35,
+                    dashArray: '6, 8',
+                  }}
+                />
+
+                {/* Active / Animated Driving Polyline (Dynamic road trace) */}
+                <Polyline
+                  positions={animatedVisiblePolyline}
+                  pathOptions={{
+                    color: isRoutingFallback ? '#94A3B8' : '#FF5500',
+                    weight: 5,
+                    opacity: 0.95,
+                  }}
+                />
+
+                {/* Real-time GPS Remaining Polyline (When real vehicle GPS is present) */}
+                {remainingRoadPolyline && !isAnimating && (
+                  <Polyline
+                    positions={remainingRoadPolyline}
+                    pathOptions={{
+                      color: '#10B981',
+                      weight: 4,
+                      opacity: 0.85,
+                      dashArray: '4, 8',
+                    }}
+                  />
+                )}
+
+                {/* ─── MARKERS ─────────────────────────────────────────────────── */}
+
+                {/* Origin Stop (Pickup) */}
+                <Marker position={originStop.coords} icon={pickupMarkerIcon}>
+                  <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                    <div className="text-xs font-sans p-1">
+                      <p className="font-bold text-[#10B981]">Pickup (Origin)</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{originStop.name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono mt-0.5">{originStop.coords[0].toFixed(4)}, {originStop.coords[1].toFixed(4)}</p>
                     </div>
-                    {resolvedLocation?.plate_number && (
-                      <p className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {resolvedLocation.plate_number}
-                      </p>
-                    )}
-                    <p className="text-[10px] text-gray-500">
-                      {resLat!.toFixed(4)}, {resLng!.toFixed(4)}
-                      {resolvedLocation?.formatted_time_ago && ` · ${resolvedLocation.formatted_time_ago}`}
-                    </p>
-                    {sourceText && (
-                      <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
-                        Source: {sourceText}
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ) : (
-              <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading)}>
-                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">{simulatedTruck?.plateNumber || 'MERCON Fleet'}</p>
-                    <p className="text-[10px] text-gray-500">Speed: {activeSpeed || 85} km/h</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-          </MapContainer>
+                  </Popup>
+                </Marker>
+
+                {/* Intermediate Stops (Stop A, Stop B, etc.) */}
+                {intermediateStops.map((stop) => (
+                  <Marker
+                    key={stop.id || stop.sequence}
+                    position={stop.coords}
+                    icon={createStopIcon(stop.letter || `${stop.sequence - 1}`, stop.isCompleted, false)}
+                  >
+                    <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                      <div className="text-xs font-sans p-1 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-400">
+                          <span className="w-2 h-2 rounded-full bg-purple-600" />
+                          <span>{stop.label} (Intermediate)</span>
+                        </div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{stop.name}</p>
+                        <p className="text-[10px] text-gray-400 font-mono">{stop.coords[0].toFixed(4)}, {stop.coords[1].toFixed(4)}</p>
+                        {stop.actual_arrival ? (
+                          <p className="text-[10px] text-emerald-600 font-bold">Arrived: {stop.actual_arrival}</p>
+                        ) : stop.planned_arrival ? (
+                          <p className="text-[10px] text-slate-500">Planned: {stop.planned_arrival}</p>
+                        ) : null}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+
+                {/* Destination Stop (Dropoff) */}
+                <Marker position={destStop.coords} icon={dropoffMarkerIcon}>
+                  <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                    <div className="text-xs font-sans p-1">
+                      <p className="font-bold text-[#F43F5E]">Drop-off (Destination)</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{destStop.name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono mt-0.5">{destStop.coords[0].toFixed(4)}, {destStop.coords[1].toFixed(4)}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+
+                {/* Animated Moving Truck Marker (When animation is running) */}
+                {isAnimating ? (
+                  <Marker position={currentAnimCoord} icon={createLiveTruckIcon(animHeading)}>
+                    <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                      <div className="text-xs font-sans p-1">
+                        <p className="font-bold text-[#FF5500]">Animated Truck Simulation</p>
+                        <p className="text-[10px] text-gray-500">{currentLegText}</p>
+                        <p className="text-[10px] font-mono text-emerald-600">Progress: {animProgressPct}%</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ) : hasResolvedCoords ? (
+                  /* Live Telemetry Vehicle Pin */
+                  <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
+                    <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                      <div className="text-xs font-sans p-1 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className={cn("w-2 h-2 rounded-full", displayState === 'CURRENT' ? "bg-emerald-500" : "bg-amber-500")} />
+                          <span className="text-[#111] dark:text-white">
+                            {displayState === 'CURRENT' ? 'Current vehicle location' : 'Last known location'}
+                          </span>
+                        </div>
+                        {resolvedLocation?.plate_number && (
+                          <p className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {resolvedLocation.plate_number}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-gray-500">
+                          {resLat!.toFixed(4)}, {resLng!.toFixed(4)}
+                          {resolvedLocation?.formatted_time_ago && ` · ${resolvedLocation.formatted_time_ago}`}
+                        </p>
+                        {sourceText && (
+                          <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                            Source: {sourceText}
+                          </p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ) : (
+                  /* Default Simulated Truck Marker */
+                  <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading)}>
+                    <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                      <div className="text-xs font-sans p-1">
+                        <p className="font-bold text-[#FF5500]">{simulatedTruck?.plateNumber || 'MERCON Fleet'}</p>
+                        <p className="text-[10px] text-gray-500">Speed: {activeSpeed || 85} km/h</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+              </MapContainer>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

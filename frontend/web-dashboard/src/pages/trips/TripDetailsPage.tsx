@@ -848,7 +848,7 @@ export default function TripDetailsPage() {
                     resolvedLocation={trip.vehicle?.resolved_location}
                     showHeader={false}
                     showTelemetryBar={false}
-                    mapHeightClassName="h-[520px]"
+                    mapHeightClassName="h-[400px]"
                     stopsSequenceHeader={
                       <div className="w-56 sm:w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
                         {/* Title Header */}
@@ -864,8 +864,8 @@ export default function TripDetailsPage() {
                           </span>
                         </div>
 
-                        {/* Vertical Sequence Timeline */}
-                        <div className="space-y-2 max-h-[380px] overflow-y-auto no-scrollbar pr-0.5">
+                        {/* Vertical Sequence Timeline (Clean Text Nodes, No Cards) */}
+                        <div className="space-y-1.5 max-h-[300px] overflow-y-auto no-scrollbar pr-0.5">
                           {(() => {
                             const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
                               id: stop.id || `stop-${sIdx}`,
@@ -883,7 +883,7 @@ export default function TripDetailsPage() {
                               const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
 
                               return (
-                                <div key={stop.id || sIdx} className="relative flex items-start gap-2 min-w-0">
+                                <div key={stop.id || sIdx} className="relative flex items-start gap-2.5 min-w-0 py-0.5">
                                   {/* Connector dot and line */}
                                   <div className="flex flex-col items-center shrink-0 w-3 pt-1">
                                     <span className={cn(
@@ -895,39 +895,36 @@ export default function TripDetailsPage() {
                                         : "bg-slate-300"
                                     )} />
                                     {!isLast && (
-                                      <div className="w-[1.5px] h-7 bg-slate-200 dark:bg-slate-700 my-0.5" />
+                                      <div className="w-[1.5px] h-6 bg-slate-200 dark:bg-slate-700 my-0.5" />
                                     )}
                                   </div>
 
-                                  {/* Stop Content Box */}
-                                  <div className={cn(
-                                    "flex-1 min-w-0 p-2 rounded-lg border text-xs transition-all shadow-2xs space-y-0.5",
-                                    isCompleted
-                                      ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/60 text-emerald-900"
-                                      : isCurrent
-                                      ? "bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800 text-rose-900 ring-1 ring-rose-400/30"
-                                      : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800 text-[#3E3C3D]"
-                                  )}>
-                                    <div className="flex items-center justify-between gap-1 min-w-0">
+                                  {/* Clean Text Content (No Outer Card Box) */}
+                                  <div className="min-w-0 flex-1 flex items-baseline justify-between gap-1">
+                                    <div className="min-w-0">
                                       <span className={cn(
-                                        "text-[9px] font-extrabold uppercase tracking-wider truncate",
+                                        "text-[9px] font-extrabold uppercase tracking-wider block leading-none mb-0.5",
                                         isCompleted ? "text-emerald-700 dark:text-emerald-400" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
                                       )}>
                                         {stopCategoryLabel}
                                       </span>
-                                      {stop.actual_arrival ? (
-                                        <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-mono font-bold shrink-0">
-                                          {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                        </span>
-                                      ) : isCurrent ? (
-                                        <span className="text-[8px] font-extrabold uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 px-1 py-0.2 rounded shrink-0">
-                                          IN PROGRESS
-                                        </span>
-                                      ) : null}
+                                      <span className={cn(
+                                        "text-xs font-bold truncate block leading-tight",
+                                        isCurrent ? "text-rose-900 dark:text-rose-200" : "text-[#3E3C3D] dark:text-slate-100"
+                                      )} title={stop.name}>
+                                        {stop.name}
+                                      </span>
                                     </div>
-                                    <p className="font-bold text-xs text-[#3E3C3D] dark:text-slate-100 truncate" title={stop.name}>
-                                      {stop.name}
-                                    </p>
+
+                                    {stop.actual_arrival ? (
+                                      <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-mono font-bold shrink-0">
+                                        {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                      </span>
+                                    ) : isCurrent ? (
+                                      <span className="text-[8px] font-extrabold uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 px-1.5 py-0.5 rounded shrink-0">
+                                        IN PROGRESS
+                                      </span>
+                                    ) : null}
                                   </div>
                                 </div>
                               );
