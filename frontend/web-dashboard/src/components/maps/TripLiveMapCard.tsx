@@ -140,6 +140,8 @@ interface TripLiveMapCardProps {
   showHeader?: boolean;
   /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
   showTelemetryBar?: boolean;
+  /** Show only the Live Vehicle Status HUD box (no map canvas). Useful for placing telemetry at page bottom. */
+  showOnlyTelemetry?: boolean;
   /** Card corner radius + map inset height — lets embedding pages match their own layout. */
   className?: string;
   mapHeightClassName?: string;
@@ -161,6 +163,7 @@ export default function TripLiveMapCard({
   stopsSequenceHeader,
   showHeader = true,
   showTelemetryBar = true,
+  showOnlyTelemetry = false,
   className,
   mapHeightClassName = 'h-[400px]',
 }: TripLiveMapCardProps) {
@@ -337,6 +340,108 @@ export default function TripLiveMapCard({
       ? [[activeTruckLat, activeTruckLng], [dropoffPoint.lat, dropoffPoint.lng]]
       : null;
 
+  if (showOnlyTelemetry) {
+    return (
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-6 shadow-2xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+            <h3 className="text-base font-semibold text-[#3E3C3D]">
+              Live Vehicle Status
+            </h3>
+          </div>
+          {resolvedLocation?.plate_number && (
+            <span className="text-xs font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+              {resolvedLocation.plate_number}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-1">
+          {/* 1. CURRENT LOCATION */}
+          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                  Current Location
+                </span>
+                <span className={cn(
+                  "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
+                  displayState === 'CURRENT'
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : displayState === 'LAST_KNOWN'
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                    : "bg-slate-100 text-slate-600 border border-slate-200"
+                )}>
+                  {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
+                </span>
+              </div>
+              <span className="text-xs font-bold text-[#3E3C3D] truncate" title={currentPlaceName || undefined}>
+                {displayState === 'UNAVAILABLE' || !hasResolvedCoords
+                  ? 'Location unavailable'
+                  : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
+              </span>
+            </div>
+          </div>
+
+          {/* 2. DISTANCE REMAINING */}
+          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
+            <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 shrink-0">
+              <Route className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Distance Remaining
+              </span>
+              <span className="text-xs font-mono font-bold text-[#3E3C3D] truncate">
+                {remainingDistanceKm != null
+                  ? `${remainingDistanceKm} km`
+                  : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+              </span>
+            </div>
+          </div>
+
+          {/* 3. ETA REMAINING */}
+          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
+            <div className="w-9 h-9 rounded-lg bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-600 shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                ETA Remaining
+              </span>
+              <span className="text-xs font-mono font-bold text-[#3E3C3D] truncate">
+                {remainingEtaText != null
+                  ? remainingEtaText
+                  : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+              </span>
+            </div>
+          </div>
+
+          {/* 4. SOURCE & UPDATED */}
+          <div className="flex items-center gap-3 min-w-0 p-3 rounded-xl bg-slate-50/80 border border-[#E5E7EB]">
+            <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600 shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                Source & Updated
+              </span>
+              <span className="text-xs font-bold text-[#3E3C3D] truncate">
+                {hasResolvedCoords
+                  ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
+                  : 'No Live Telemetry'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card className={cn('border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden p-0 gap-0', className)}>
       {showHeader && (
@@ -377,104 +482,6 @@ export default function TripLiveMapCard({
       )}
 
       <CardContent className="p-4">
-        {/* LIVE VEHICLE STATUS HUD SUMMARY — Blended light/neutral card theme */}
-        <div className="bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs mb-3 space-y-2.5">
-          <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/60 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Live Vehicle Status
-              </h4>
-            </div>
-            {resolvedLocation?.plate_number && (
-              <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
-                {resolvedLocation.plate_number}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* 1. CURRENT LOCATION */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                    Current Location
-                  </span>
-                  <span className={cn(
-                    "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
-                    displayState === 'CURRENT'
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                      : displayState === 'LAST_KNOWN'
-                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                  )}>
-                    {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate" title={currentPlaceName || undefined}>
-                  {displayState === 'UNAVAILABLE' || !hasResolvedCoords
-                    ? 'Location unavailable'
-                    : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
-                </span>
-              </div>
-            </div>
-
-            {/* 2. DISTANCE REMAINING */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/80 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                <Route className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                  Distance Remaining
-                </span>
-                <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
-                  {remainingDistanceKm != null
-                    ? `${remainingDistanceKm} km`
-                    : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
-                </span>
-              </div>
-            </div>
-
-            {/* 3. ETA REMAINING */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                  ETA Remaining
-                </span>
-                <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
-                  {remainingEtaText != null
-                    ? remainingEtaText
-                    : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
-                </span>
-              </div>
-            </div>
-
-            {/* 4. SOURCE & UPDATED */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-                  Source & Updated
-                </span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                  {hasResolvedCoords
-                    ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
-                    : 'No Live Telemetry'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
         {/* Map View */}
         <div 
           className={cn(
@@ -485,19 +492,19 @@ export default function TripLiveMapCard({
           )} 
           style={{ background: currentTheme.previewColor }}
         >
-          {/* Floating Stop Sequence Header Overlay Component inside Map */}
+          {/* Floating Stop Sequence Panel Overlay Component inside Map (Right Side) */}
           {stopsSequenceHeader && (
-            <div className="absolute top-3 left-3 right-14 z-[400] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-black/[0.08] dark:border-white/10 rounded-xl p-2 shadow-lg overflow-x-auto no-scrollbar">
+            <div className="absolute top-3 right-3 z-[400] max-h-[calc(100%-24px)] overflow-y-auto no-scrollbar">
               {stopsSequenceHeader}
             </div>
           )}
 
-          {/* Floating Fullscreen / Close Toggle Button */}
+          {/* Floating Fullscreen / Close Toggle Button (Left Side) */}
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
             className={cn(
-              "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
+              "absolute top-3 left-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
               isFullscreen
                 ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
                 : currentTheme.isDark
@@ -707,6 +714,107 @@ export default function TripLiveMapCard({
           </div>
           )}
         </div>
+
+        {/* LIVE VEHICLE STATUS HUD SUMMARY — Placed at the bottom */}
+        {showTelemetryBar && (
+          <div className="bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs mt-3 space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/60 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                  Live Vehicle Status
+                </h4>
+              </div>
+              {resolvedLocation?.plate_number && (
+                <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  {resolvedLocation.plate_number}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* 1. CURRENT LOCATION */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+                      Current Location
+                    </span>
+                    <span className={cn(
+                      "text-[8px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0",
+                      displayState === 'CURRENT'
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                        : displayState === 'LAST_KNOWN'
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                    )}>
+                      {displayState === 'CURRENT' ? 'CURRENT' : displayState === 'LAST_KNOWN' ? 'LAST KNOWN' : 'UNAVAILABLE'}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate" title={currentPlaceName || undefined}>
+                    {displayState === 'UNAVAILABLE' || !hasResolvedCoords
+                      ? 'Location unavailable'
+                      : currentPlaceName || `${resLat!.toFixed(4)}, ${resLng!.toFixed(4)}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. DISTANCE REMAINING */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-800/80 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                  <Route className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+                    Distance Remaining
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
+                    {remainingDistanceKm != null
+                      ? `${remainingDistanceKm} km`
+                      : (simulatedTruck ? `${simulatedTruck.distanceRemainingKm} km` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. ETA REMAINING */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800/80 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+                    ETA Remaining
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 truncate">
+                    {remainingEtaText != null
+                      ? remainingEtaText
+                      : (simulatedTruck ? `${simulatedTruck.etaMinutes}m` : (displayState === 'UNAVAILABLE' ? 'Unavailable' : 'Calculating...'))}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4. SOURCE & UPDATED */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200/80 dark:border-purple-800/80 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+                    Source & Updated
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {hasResolvedCoords
+                      ? `${sourceText || 'Vehicle GPS'}${resolvedLocation?.formatted_time_ago ? ` · ${resolvedLocation.formatted_time_ago}` : ''}`
+                      : 'No Live Telemetry'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

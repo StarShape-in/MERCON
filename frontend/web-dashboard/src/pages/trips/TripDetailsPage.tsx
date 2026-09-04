@@ -826,65 +826,93 @@ export default function TripDetailsPage() {
                     dropoffLabel={dropoff?.location_name || undefined}
                     resolvedLocation={trip.vehicle?.resolved_location}
                     showHeader={false}
-                    showTelemetryBar={true}
+                    showTelemetryBar={false}
                     mapHeightClassName="h-[520px]"
                     stopsSequenceHeader={
-                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-                        {(() => {
-                          const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
-                            id: stop.id || `stop-${sIdx}`,
-                            typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
-                            name: resolveStopName(stop, 'Location'),
-                            actual_arrival: stop.actual_arrival,
-                            planned_arrival: stop.planned_arrival,
-                          }));
+                      <div className="w-56 sm:w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
+                        {/* Title Header */}
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#FA634E]" />
+                            <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[#3E3C3D] dark:text-slate-200">
+                              Stop Sequence
+                            </h4>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                            {(trip.stops || []).length} STOPS
+                          </span>
+                        </div>
 
-                          return timelineStops.map((stop: any, sIdx: number) => {
-                            const isFirst = sIdx === 0;
-                            const isLast = sIdx === timelineStops.length - 1;
-                            const isCompleted = !!stop.actual_arrival;
-                            const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
-                            const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
+                        {/* Vertical Sequence Timeline */}
+                        <div className="space-y-2 max-h-[380px] overflow-y-auto no-scrollbar pr-0.5">
+                          {(() => {
+                            const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
+                              id: stop.id || `stop-${sIdx}`,
+                              typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
+                              name: resolveStopName(stop, 'Location'),
+                              actual_arrival: stop.actual_arrival,
+                              planned_arrival: stop.planned_arrival,
+                            }));
 
-                            return (
-                              <React.Fragment key={stop.id || sIdx}>
-                                <div className={cn(
-                                  "px-2.5 py-1 rounded-lg border text-xs flex items-center gap-2 shrink-0 transition-all shadow-2xs",
-                                  isCompleted
-                                    ? "bg-emerald-50/90 border-emerald-200 text-emerald-900"
-                                    : isCurrent
-                                    ? "bg-rose-50/95 border-rose-300 text-rose-900 font-bold ring-2 ring-rose-400/20"
-                                    : "bg-white/90 border-[#E5E7EB] text-[#3E3C3D]"
-                                )}>
-                                  <span className={cn(
-                                    "w-2 h-2 rounded-full shrink-0",
-                                    isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
-                                  )} />
-                                  <div className="flex items-center gap-1.5">
+                            return timelineStops.map((stop: any, sIdx: number) => {
+                              const isFirst = sIdx === 0;
+                              const isLast = sIdx === timelineStops.length - 1;
+                              const isCompleted = !!stop.actual_arrival;
+                              const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
+                              const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
+
+                              return (
+                                <div key={stop.id || sIdx} className="relative flex items-start gap-2 min-w-0">
+                                  {/* Connector dot and line */}
+                                  <div className="flex flex-col items-center shrink-0 w-3 pt-1">
                                     <span className={cn(
-                                      "text-[9px] font-extrabold uppercase tracking-wider shrink-0",
-                                      isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
-                                    )}>
-                                      {stopCategoryLabel}:
-                                    </span>
-                                    <span className="font-bold text-xs truncate max-w-[120px]">
-                                      {stop.name}
-                                    </span>
+                                      "w-2.5 h-2.5 rounded-full shrink-0 z-10 transition-all",
+                                      isCompleted
+                                        ? "bg-emerald-500 ring-2 ring-emerald-200"
+                                        : isCurrent
+                                        ? "bg-[#FA634E] ring-2 ring-rose-300 animate-pulse"
+                                        : "bg-slate-300"
+                                    )} />
+                                    {!isLast && (
+                                      <div className="w-[1.5px] h-7 bg-slate-200 dark:bg-slate-700 my-0.5" />
+                                    )}
                                   </div>
-                                  {stop.actual_arrival ? (
-                                    <span className="text-[10px] text-emerald-700 font-mono font-semibold ml-1">
-                                      {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                    </span>
-                                  ) : null}
-                                </div>
 
-                                {!isLast && (
-                                  <ArrowRight size={12} className="text-[#9898A4] shrink-0" />
-                                )}
-                              </React.Fragment>
-                            );
-                          });
-                        })()}
+                                  {/* Stop Content Box */}
+                                  <div className={cn(
+                                    "flex-1 min-w-0 p-2 rounded-lg border text-xs transition-all shadow-2xs space-y-0.5",
+                                    isCompleted
+                                      ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/60 text-emerald-900"
+                                      : isCurrent
+                                      ? "bg-rose-50/90 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800 text-rose-900 ring-1 ring-rose-400/30"
+                                      : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800 text-[#3E3C3D]"
+                                  )}>
+                                    <div className="flex items-center justify-between gap-1 min-w-0">
+                                      <span className={cn(
+                                        "text-[9px] font-extrabold uppercase tracking-wider truncate",
+                                        isCompleted ? "text-emerald-700 dark:text-emerald-400" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
+                                      )}>
+                                        {stopCategoryLabel}
+                                      </span>
+                                      {stop.actual_arrival ? (
+                                        <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-mono font-bold shrink-0">
+                                          {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                        </span>
+                                      ) : isCurrent ? (
+                                        <span className="text-[8px] font-extrabold uppercase bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 px-1 py-0.2 rounded shrink-0">
+                                          IN PROGRESS
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="font-bold text-xs text-[#3E3C3D] dark:text-slate-100 truncate" title={stop.name}>
+                                      {stop.name}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
                     }
                   />
@@ -1314,10 +1342,20 @@ export default function TripDetailsPage() {
                   )}
                 </div>
               </div>
-            </div>
+
+            {/* 4. LIVE VEHICLE STATUS (BOTTOM OPERATIONAL TELEMETRY HUD SUMMARY) */}
+            <TripLiveMapCard
+              tripId={trip.id}
+              refId={trip.ref_id || trip.id}
+              pickupLat={pickup?.location_lat}
+              pickupLng={pickup?.location_lng}
+              dropoffLat={dropoff?.location_lat}
+              dropoffLng={dropoff?.location_lng}
+              resolvedLocation={trip.vehicle?.resolved_location}
+              showOnlyTelemetry={true}
+            />
           </div>
         </div>
-      </div>
 
       {/* ── Status Confirmation Modal ── */}
       <ConfirmModal
