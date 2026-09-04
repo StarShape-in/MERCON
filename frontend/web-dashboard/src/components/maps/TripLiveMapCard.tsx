@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Navigation, Gauge, Maximize2, X, MapPin, Route, Clock, ShieldCheck,
-  Play, Pause, RotateCcw, ChevronRight
+  Play, Pause, RotateCcw
 } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
@@ -962,7 +962,6 @@ export default function TripLiveMapCard({
                     </Popup>
                   </Marker>
                 ) : hasResolvedCoords ? (
-                  /* Live Telemetry Vehicle Pin */
                   <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
                     <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                       <div className="text-xs font-sans p-1 space-y-1">
@@ -990,7 +989,6 @@ export default function TripLiveMapCard({
                     </Popup>
                   </Marker>
                 ) : (
-                  /* Default Simulated Truck Marker */
                   <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading)}>
                     <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                       <div className="text-xs font-sans p-1">
