@@ -5,7 +5,7 @@ import {
   ChevronRight, ChevronDown, Copy, Check, Printer, Phone, RefreshCcw,
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
-  Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
+  Building2, User as UserIcon, Truck, FileText, Route, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, ArrowDown, SquarePen, MessageCircle, UserCheck, History,
   Coins, Pencil, Plus, PlusCircle, Minus, Wallet, DollarSign, HardHat, X, Camera, Eye, Maximize2, Trash2, ShieldCheck, Clock,
 } from 'lucide-react';
