@@ -919,12 +919,14 @@ export default function TripDetailsPage() {
 
               </div>
 
-              {/* Right Column (5 Cols): Financials, Charges & Customer Profile */}
+              {/* Right Column (5 Cols): Customer Profile & Financials & Additional Charges */}
               <div className="lg:col-span-5 p-4.5 sm:p-6 space-y-4 bg-white">
                 
+                {/* Section Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-                  <h3 className="text-base font-semibold text-[#3E3C3D]">
-                    Financials & Charges
+                  <h3 className="text-base font-bold text-[#3E3C3D] flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#FA634E]" />
+                    Customer & Financials
                   </h3>
                   <Button
                     size="sm"
@@ -939,42 +941,50 @@ export default function TripDetailsPage() {
                   </Button>
                 </div>
 
-                {/* Customer Profile & Details Box (Inside Financials & Charges) */}
-                <div className="flex items-center gap-3.5 bg-slate-50/80 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
-                  <Avatar
-                    className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                  >
-                    {custAvatarUrl && (
-                      <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                {/* Main Primary Customer Profile Card */}
+                <div className="p-3.5 rounded-xl bg-slate-50/90 border border-[#E5E7EB] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#6E6E80]">CUSTOMER PROFILE</span>
+                    {trip.customer?.id && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        View Profile <ExternalLink size={12} />
+                      </button>
                     )}
-                    <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
-                      {getInitials(custPersonName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">CUSTOMER DETAILS</span>
-                    <div className="flex items-center gap-1.5 pt-0.5">
+                  </div>
+
+                  <div className="flex items-center gap-3.5 pt-0.5">
+                    <Avatar
+                      className="w-11 h-11 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
+                      onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                    >
+                      {custAvatarUrl && (
+                        <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                      )}
+                      <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
+                        {getInitials(custPersonName)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="min-w-0 flex-1">
                       <p
                         onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                        className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
+                        className="text-base font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
                       >
                         {custPersonName}
                       </p>
-                      {trip.customer?.id && (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/customers/${trip.customer!.id}`)}
-                          className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                          title="View Customer Profile"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                      <p className="text-xs font-medium text-[#6E6E80] truncate mt-0.5">
+                        {custCompanyName || trip.customer?.contact_phone || '—'}
+                      </p>
+                      {trip.customer?.contact_phone && custCompanyName && (
+                        <p className="text-[11px] font-mono text-[#6E6E80] truncate mt-0.5">
+                          {trip.customer.contact_phone}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs font-medium text-[#6E6E80] truncate">
-                      {custCompanyName || trip.customer?.contact_phone || '—'}
-                    </p>
                   </div>
                 </div>
 
