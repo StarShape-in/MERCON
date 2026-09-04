@@ -607,14 +607,28 @@ export default function TripDetailsPage() {
           {/* ── UNIFIED TRIP OPERATIONAL SURFACE ── */}
           <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-[#E5E7EB]">
 
-            {/* 1. TOP TRIP HEADER & DRIVER/VEHICLE PROFILES SECTION */}
-            <div className="p-4.5 sm:p-5 space-y-4">
-              {/* Top Row: Trip ID, Status, Route & Action Dropdown */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                {/* Left: Trip ID, Route Label & Status */}
-                <div className="space-y-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="text-[22px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1.5">
+            {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
+            <div className="p-4.5 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+              {/* Left: Primary Driver Avatar & Combined Trip/Resource Details */}
+              <div className="flex items-center gap-3.5 min-w-0">
+                {/* Primary Driver Avatar */}
+                <Avatar
+                  className="w-12 h-12 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
+                >
+                  {driverAvatarUrl && (
+                    <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
+                  )}
+                  <AvatarFallback className="text-sm font-bold text-slate-700 bg-slate-100">
+                    {getInitials(driverFullName)}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Combined Metadata Lines */}
+                <div className="space-y-0.5 min-w-0">
+                  {/* Line 1: Trip ID, Route, Status Badge */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-[20px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1">
                       {trip.ref_id || trip.id}
                       <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
                         {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
@@ -623,12 +637,12 @@ export default function TripDetailsPage() {
 
                     <span className="text-[#9898A4]">•</span>
 
-                    <span className="text-[15px] font-semibold text-[#3E3C3D] truncate">
+                    <span className="text-sm font-semibold text-[#3E3C3D] truncate">
                       {routeLabel}
                     </span>
 
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ml-0.5 shrink-0"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0"
                       style={{ color: tone.color, backgroundColor: tone.bg }}
                     >
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
@@ -636,170 +650,131 @@ export default function TripDetailsPage() {
                     </span>
                   </div>
 
-                  <p className="text-xs font-normal text-[#6E6E80] pt-0.5">
-                    Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')} · Updated {formatInDeploymentTz(trip.updatedAt, tz, 'MMM dd')}
-                  </p>
-                </div>
+                  {/* Line 2: Driver Name, Driver Phone, Swap Button, Vehicle Plate/Asset */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#6E6E80] pt-0.5">
+                    <span className="font-semibold text-[#3E3C3D] flex items-center gap-1 cursor-pointer hover:text-violet-600 transition-colors" onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}>
+                      {driverFullName}
+                      {trip.driver?.id && <ExternalLink className="w-3 h-3 text-[#9898A4]" />}
+                    </span>
 
-                {/* Right: Consolidated More Actions Dropdown */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button className="h-9 px-4 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
-                        More Actions
-                        <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64 border-[#E5E7EB]">
-                      <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/edit`)}>
-                        <SquarePen size={14} className="mr-2 text-[#6E6E80]" /> Edit Trip Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleShareWhatsApp}>
-                        <WhatsAppIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Share to WhatsApp
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
-                        <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
-                        <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
-                        <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {trip.status === 'InTransit' && (
-                        <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
-                          <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live Map
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
-                        <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
-                      </DropdownMenuItem>
-                      {nextStatusOption && (
-                        <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
-                          <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
-                        </DropdownMenuItem>
-                      )}
-                      {canCancel && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600 hover:bg-red-50">
-                            <XCircle size={14} className="mr-2" /> Cancel Trip
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              {/* Bottom Row (Left Side): DRIVER & VEHICLE Profiles alongside Trip ID */}
-              <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-                {/* Driver */}
-                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
-                  <Avatar
-                    className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                  >
-                    {driverAvatarUrl && (
-                      <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
+                    {trip.driver && !isClosed && !trip.is_third_party && (
+                      <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
+                        <PopoverTrigger asChild>
+                          <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer" title="Swap Driver">
+                            <RefreshCcw size={11} />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
+                          <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
+                          <Combobox
+                            value={replaceDriverId}
+                            onChange={setReplaceDriverId}
+                            options={driverOptions}
+                            placeholder="Choose replacement driver..."
+                            searchPlaceholder="Search drivers..."
+                            emptyText="No available drivers found."
+                          />
+                          <Btn
+                            label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
+                            size="sm"
+                            className="w-full bg-[#FA634E] text-white rounded-lg"
+                            disabled={!replaceDriverId || replaceDriverMutation.isPending}
+                            onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     )}
-                    <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
-                      {getInitials(driverFullName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
-                      {trip.driver && !isClosed && !trip.is_third_party && (
-                        <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
-                          <PopoverTrigger asChild>
-                            <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
-                              <RefreshCcw size={12} />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
-                            <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
-                            <Combobox
-                              value={replaceDriverId}
-                              onChange={setReplaceDriverId}
-                              options={driverOptions}
-                              placeholder="Choose replacement driver..."
-                              searchPlaceholder="Search drivers..."
-                              emptyText="No available drivers found."
-                            />
-                            <Btn
-                              label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
-                              size="sm"
-                              className="w-full bg-[#FA634E] text-white rounded-lg"
-                              disabled={!replaceDriverId || replaceDriverMutation.isPending}
-                              onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 min-w-0 pt-0.5">
-                      <p
-                        onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                        className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
-                      >
-                        {driverFullName}
-                      </p>
-                      {trip.driver?.id && (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
-                          className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                          title="View Driver Profile"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#6E6E80] font-mono truncate">
-                      {trip.driver?.phone_primary || 'Internal Fleet'}
-                    </p>
-                    {trip.tripDrivers && trip.tripDrivers.length > 1 && (
-                      <div className="flex items-center gap-1 mt-1 flex-wrap">
-                        {trip.tripDrivers.map((td) => (
-                          <span
-                            key={td.id}
-                            className={cn(
-                              "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
-                              td.role === 'PRIMARY'
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
-                            )}
-                          >
-                            {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Vehicle */}
-                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
-                    <Truck className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
-                    <p className="text-sm font-bold text-[#3E3C3D] truncate pt-0.5">
+                    <span className="text-[#9898A4]">•</span>
+                    <span className="font-mono">{trip.driver?.phone_primary || 'Internal Fleet'}</span>
+
+                    <span className="text-[#9898A4]">•</span>
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#3E3C3D]">
+                      <Truck className="w-3.5 h-3.5 text-[#6E6E80]" />
                       {trip.is_third_party
                         ? trip.third_party_vehicle_plate || 'Rented Truck'
                         : trip.vehicle?.plate_number || 'Unassigned'}
-                    </p>
-                    <p className="text-xs text-[#6E6E80] truncate">
-                      {trip.vehicle?.asset_type || 'Fleet Truck'}
-                    </p>
+                      {trip.vehicle?.asset_type ? ` (${trip.vehicle.asset_type})` : ''}
+                    </span>
+
+                    <span className="text-[#9898A4]">•</span>
+                    <span className="text-[11px] font-normal text-[#6E6E80]">
+                      Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')}
+                    </span>
                   </div>
+
+                  {/* Multi-Driver Team Badges */}
+                  {trip.tripDrivers && trip.tripDrivers.length > 1 && (
+                    <div className="flex items-center gap-1 pt-1 flex-wrap">
+                      {trip.tripDrivers.map((td) => (
+                        <span
+                          key={td.id}
+                          className={cn(
+                            "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
+                            td.role === 'PRIMARY'
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-blue-50 text-blue-700 border-blue-200"
+                          )}
+                        >
+                          {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Right: Consolidated More Actions Dropdown */}
+              <div className="flex items-center gap-2 shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="h-9 px-4 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
+                      More Actions
+                      <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 border-[#E5E7EB]">
+                    <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/edit`)}>
+                      <SquarePen size={14} className="mr-2 text-[#6E6E80]" /> Edit Trip Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleShareWhatsApp}>
+                      <WhatsAppIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Share to WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
+                      <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
+                      <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
+                      <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {trip.status === 'InTransit' && (
+                      <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
+                        <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live Map
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
+                      <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
+                    </DropdownMenuItem>
+                    {nextStatusOption && (
+                      <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
+                        <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
+                      </DropdownMenuItem>
+                    )}
+                    {canCancel && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600 hover:bg-red-50">
+                          <XCircle size={14} className="mr-2" /> Cancel Trip
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             {/* 2. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS, CHARGES & CUSTOMER ON RIGHT) */}
