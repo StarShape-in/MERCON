@@ -229,7 +229,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             </button>
           )}
 
-          <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1">
+          <div ref={scrollContainerRef} className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar p-0.5 pb-1 transition-all duration-300 ease-in-out">
             {customers && customers.length > 0 ? (
               customers.map((c, idx) => {
                 const cInitials = c.name.substring(0, 2).toUpperCase();
@@ -241,37 +241,32 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     type="button"
                     onClick={() => setContractCustomer?.(c.id)}
                     className={cn(
-                      "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-2 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-w-[220px] max-w-[260px] shrink-0 border-slate-200 dark:border-slate-700 hover:border-brand/70 hover:bg-orange-50/40 dark:hover:bg-slate-700/80 group"
+                      "p-3 rounded-xl border transition-all duration-200 text-left flex flex-col justify-between h-[104px] min-w-[220px] max-w-[260px] shrink-0 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-orange-50/50 dark:hover:bg-slate-700/80 group"
                     )}
                   >
-                    {/* TOP ROW: PROFILE PIC / AVATAR + STATUS CHIP */}
-                    <div className="flex items-center justify-between gap-1">
+                    {/* TOP ROW: PROFILE PIC / AVATAR + FIRST NAME / SHORT NAME */}
+                    <div className="flex items-center gap-2.5">
                       {c.logo_url || c.avatar_url ? (
-                        <img src={c.logo_url || c.avatar_url} alt={c.name} className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0" />
+                        <img src={c.logo_url || c.avatar_url} alt={c.name} className="w-9 h-9 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs" />
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-brand font-black text-xs grid place-items-center shrink-0 border border-orange-200/60 dark:border-orange-900/40 group-hover:bg-brand group-hover:text-white transition-colors shadow-2xs">
+                        <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-brand font-black text-xs grid place-items-center shrink-0 border border-orange-200/60 dark:border-orange-900/40 group-hover:bg-brand group-hover:text-white transition-colors shadow-2xs">
                           {cInitials}
                         </div>
                       )}
-                      <span className="text-[9px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-600">
-                        Company Account
-                      </span>
-                    </div>
 
-                    {/* MIDDLE: FIRST NAME / SHORT NAME ONLY (NO CUST ID) */}
-                    <div>
-                      <div className="text-sm font-extrabold text-slate-900 dark:text-white truncate group-hover:text-brand transition-colors" title={c.name}>
-                        {firstName}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-medium truncate">
-                        {c.city || c.address || 'Saudi Arabia'} • <span className="font-bold text-slate-700 dark:text-slate-300">Commercial</span>
+                      <div className="truncate">
+                        <div className="text-sm font-black text-slate-800 dark:text-slate-100 truncate group-hover:text-brand transition-colors" title={c.name}>
+                          {firstName}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate">
+                          {c.name}
+                        </div>
                       </div>
                     </div>
 
-                    {/* FOOTER: ACTION LINK */}
-                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
-                      <span className="truncate font-medium text-slate-500">Quick Select</span>
-                      <span className="font-bold text-slate-500 group-hover:text-brand transition-colors shrink-0">
+                    {/* BOTTOM ROW: CLEAN ACTION LINK */}
+                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end text-[10px]">
+                      <span className="font-extrabold text-slate-500 group-hover:text-brand transition-colors flex items-center gap-1">
                         Select Company →
                       </span>
                     </div>
