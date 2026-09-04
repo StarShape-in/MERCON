@@ -1343,6 +1343,7 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
               </div>
+            </div>
 
             {/* 4. LIVE VEHICLE STATUS (BOTTOM OPERATIONAL TELEMETRY HUD SUMMARY) */}
             <TripLiveMapCard
