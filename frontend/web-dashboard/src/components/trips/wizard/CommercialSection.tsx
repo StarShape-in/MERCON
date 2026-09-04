@@ -139,14 +139,14 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             {/* CUSTOMER SEARCH COMBOBOX */}
             {setContractCustomer && (
-              <div className="w-full sm:w-[220px] shrink-0">
+              <div className="w-full sm:w-[320px] shrink-0">
                 <Combobox
                   options={derivedCustomerOptions}
                   value={contractCustomer}
                   onChange={(val) => setContractCustomer?.(val)}
                   placeholder="Select customer account..."
                   searchPlaceholder="Search customer name or code..."
-                  triggerClassName="h-8 rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+                  triggerClassName="h-9 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
                 />
               </div>
             )}
