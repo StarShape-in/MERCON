@@ -608,24 +608,24 @@ export default function TripDetailsPage() {
           <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-[#E5E7EB]">
 
             {/* 1. TOP COMBINED TRIP HEADER (DRIVER AVATAR + TRIP ID + DRIVER + VEHICLE + ROUTE + STATUS) */}
-            <div className="p-4.5 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 sm:p-4.5 flex flex-wrap items-center justify-between gap-4 bg-slate-50/30">
               {/* Left: Primary Driver Avatar & Combined Trip/Resource Details */}
-              <div className="flex items-center gap-3.5 min-w-0">
-                {/* Primary Driver Avatar */}
+              <div className="flex items-center gap-4 min-w-0">
+                {/* Primary Driver Avatar (Bigger Profile) */}
                 <Avatar
-                  className="w-12 h-12 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-13 h-13 sm:w-14 sm:h-14 shrink-0 border-2 border-white ring-1 ring-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                   onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
                 >
                   {driverAvatarUrl && (
                     <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
                   )}
-                  <AvatarFallback className="text-sm font-bold text-slate-700 bg-slate-100">
+                  <AvatarFallback className="text-base font-bold text-slate-700 bg-slate-100">
                     {getInitials(driverFullName)}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Combined Metadata Lines */}
-                <div className="space-y-0.5 min-w-0">
+                <div className="space-y-1 min-w-0">
                   {/* Line 1: Trip ID, Route, Status Badge */}
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-[20px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1">
@@ -650,18 +650,18 @@ export default function TripDetailsPage() {
                     </span>
                   </div>
 
-                  {/* Line 2: Driver Name, Driver Phone, Swap Button, Vehicle Plate/Asset */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#6E6E80] pt-0.5">
-                    <span className="font-semibold text-[#3E3C3D] flex items-center gap-1 cursor-pointer hover:text-violet-600 transition-colors" onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}>
+                  {/* Line 2: Driver Name (Bigger), Driver Phone, Swap Button, Vehicle Plate/Asset */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#6E6E80]">
+                    <span className="font-bold text-sm text-[#3E3C3D] flex items-center gap-1 cursor-pointer hover:text-violet-600 transition-colors" onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}>
                       {driverFullName}
-                      {trip.driver?.id && <ExternalLink className="w-3 h-3 text-[#9898A4]" />}
+                      {trip.driver?.id && <ExternalLink className="w-3.5 h-3.5 text-[#9898A4]" />}
                     </span>
 
                     {trip.driver && !isClosed && !trip.is_third_party && (
                       <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                         <PopoverTrigger asChild>
                           <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer" title="Swap Driver">
-                            <RefreshCcw size={11} />
+                            <RefreshCcw size={12} />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
@@ -686,7 +686,7 @@ export default function TripDetailsPage() {
                     )}
 
                     <span className="text-[#9898A4]">•</span>
-                    <span className="font-mono">{trip.driver?.phone_primary || 'Internal Fleet'}</span>
+                    <span className="font-mono text-xs text-[#3E3C3D] font-medium">{trip.driver?.phone_primary || 'Internal Fleet'}</span>
 
                     <span className="text-[#9898A4]">•</span>
                     <span className="inline-flex items-center gap-1 font-semibold text-[#3E3C3D]">
@@ -705,7 +705,7 @@ export default function TripDetailsPage() {
 
                   {/* Multi-Driver Team Badges */}
                   {trip.tripDrivers && trip.tripDrivers.length > 1 && (
-                    <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    <div className="flex items-center gap-1 pt-0.5 flex-wrap">
                       {trip.tripDrivers.map((td) => (
                         <span
                           key={td.id}
@@ -724,8 +724,16 @@ export default function TripDetailsPage() {
                 </div>
               </div>
 
-              {/* Right: Consolidated More Actions Dropdown */}
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Right: Quick Action Buttons (Prominent Share to WhatsApp & More Actions) */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <Button
+                  onClick={handleShareWhatsApp}
+                  className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold gap-2 shadow-none cursor-pointer"
+                >
+                  <WhatsAppIcon className="w-4 h-4 fill-current text-white shrink-0" />
+                  Share WhatsApp
+                </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button className="h-9 px-4 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
