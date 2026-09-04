@@ -605,924 +605,775 @@ export default function TripDetailsPage() {
             </div>
           )}
 
-          {/* ── 1. ACTION REQUIRED BANNER (OPERATIONAL & MINIMAL) ── */}
-          {!isClosed && (
-            <div className="bg-[#FA634E]/5 border border-[#FA634E]/20 text-[#3E3C3D] rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#FA634E]/15 text-[#FA634E] flex items-center justify-center shrink-0 border border-[#FA634E]/30">
-                  <CheckCircle2 className="w-4 h-4 text-[#FA634E]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#FA634E] bg-[#FA634E]/15 px-2 py-0.5 rounded border border-[#FA634E]/30">
-                      ACTION REQUIRED
+
+
+          {/* ── UNIFIED TRIP OPERATIONAL SURFACE ── */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-[#E5E7EB]">
+
+            {/* 1. TOP TRIP HEADER & PROFILES SECTION */}
+            <div className="p-4.5 sm:p-5 space-y-4">
+              {/* Top Row: Trip ID, Status, Route & Action Dropdown */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* Left: Trip ID, Route Label & Status */}
+                <div className="space-y-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h1 className="text-[22px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1.5">
+                      {trip.ref_id || trip.id}
+                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
+                        {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                    </h1>
+
+                    <span className="text-[#9898A4]">•</span>
+
+                    <span className="text-[15px] font-semibold text-[#3E3C3D] truncate">
+                      {routeLabel}
+                    </span>
+
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ml-0.5 shrink-0"
+                      style={{ color: tone.color, backgroundColor: tone.bg }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+                      {statusLabel(trip.status)}
                     </span>
                   </div>
-                  <span className="text-xs font-medium text-[#3E3C3D] mt-0.5 block">
-                    {needsAssignment && 'Resources assigned. Dispatch trip to begin pickup.'}
-                    {trip.status === 'Draft' && !needsAssignment && 'Trip ready to dispatch. Advance status to Dispatched.'}
-                    {trip.status === 'Dispatched' && 'Trip dispatched. Monitor driver arrival at origin facility.'}
-                    {trip.status === 'AtPickup' && 'Vehicle arrived at pickup. Await cargo loading and departure.'}
-                    {trip.status === 'InTransit' && 'Cargo in transit. Monitor live navigation progress to destination.'}
-                    {trip.status === 'AtDelivery' && 'Vehicle at delivery location. Complete trip and verify POD receipt.'}
-                    {trip.status === 'Completed' && 'Trip execution completed. Review POD documents and customer invoice.'}
-                  </span>
+
+                  <p className="text-xs font-normal text-[#6E6E80] pt-0.5">
+                    Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')} · Updated {formatInDeploymentTz(trip.updatedAt, tz, 'MMM dd')}
+                  </p>
+                </div>
+
+                {/* Right: Consolidated More Actions Dropdown */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="h-9 px-4 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
+                        More Actions
+                        <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64 border-[#E5E7EB]">
+                      <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/edit`)}>
+                        <SquarePen size={14} className="mr-2 text-[#6E6E80]" /> Edit Trip Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleShareWhatsApp}>
+                        <WhatsAppIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Share to WhatsApp
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
+                        <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
+                        <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
+                        <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {trip.status === 'InTransit' && (
+                        <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
+                          <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live Map
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
+                        <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
+                      </DropdownMenuItem>
+                      {nextStatusOption && (
+                        <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
+                          <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
+                        </DropdownMenuItem>
+                      )}
+                      {canCancel && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600 hover:bg-red-50">
+                            <XCircle size={14} className="mr-2" /> Cancel Trip
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
-              {needsAssignment ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" className="text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-none cursor-pointer border-none px-3.5 py-1.5 rounded-lg">
-                      Dispatch Trip →
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-80 p-4 space-y-3 bg-white text-[#3E3C3D] border-[#E5E7EB] shadow-lg rounded-2xl">
-                    <p className="text-xs font-semibold text-[#3E3C3D]">Assign Driver & Vehicle</p>
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-medium text-[#6E6E80]">Driver</label>
-                      <Combobox
-                        value={pendingDriverId}
-                        onChange={setPendingDriverId}
-                        options={driverOptions}
-                        placeholder="Select driver..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-medium text-[#6E6E80]">Vehicle</label>
-                      <Combobox
-                        value={pendingVehicleId}
-                        onChange={setPendingVehicleId}
-                        options={vehicleOptions}
-                        placeholder="Select vehicle..."
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-lg"
-                      disabled={(!pendingDriverId && !pendingVehicleId) || assignMutation.isPending}
-                      onClick={() => assignMutation.mutate({ driver_id: pendingDriverId || undefined, vehicle_id: pendingVehicleId || undefined })}
-                    >
-                      {assignMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
-                    </Button>
-                  </PopoverContent>
-                </Popover>
-              ) : (
-                nextStatusOption && (
-                  <Button
-                    size="sm"
-                    onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}
-                    className="text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white shrink-0 shadow-none cursor-pointer border-none px-3.5 py-1.5 rounded-lg"
+              {/* Bottom Row: Customer Profile (Left, BIGGER) & Driver / Vehicle Profiles (Right, BIGGER) */}
+              <div className="pt-3 border-t border-[#E5E7EB] grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                
+                {/* Customer Profile (Left, Big) */}
+                <div className="md:col-span-6 flex items-center gap-3.5 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB]">
+                  <Avatar
+                    className="w-11 h-11 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
                   >
-                    Advance to {nextStatusOption} →
-                  </Button>
-                )
-              )}
-            </div>
-          )}
-
-          {/* ── 2. TOP TRIP HEADER BAR ── */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4.5 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-4">
-            {/* Left Title, Route, Status & Metadata */}
-            <div className="space-y-1 min-w-0">
-              {/* Row 1: Trip ID, Route, Compact Status Badge */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-[22px] font-bold font-mono tracking-tight text-[#3E3C3D] flex items-center gap-1.5">
-                  {trip.ref_id || trip.id}
-                  <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#FA634E] transition-colors p-0.5">
-                    {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                  </button>
-                </h1>
-
-                <span className="text-[#9898A4]">•</span>
-
-                <span className="text-[15px] font-semibold text-[#3E3C3D] truncate">
-                  {routeLabel}
-                </span>
-
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ml-0.5 shrink-0"
-                  style={{ color: tone.color, backgroundColor: tone.bg }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
-                  {statusLabel(trip.status)}
-                </span>
-              </div>
-
-              {/* Row 2: Created / Updated Metadata Underneath */}
-              <p className="text-xs font-normal text-[#6E6E80] pt-0.5">
-                Created {formatInDeploymentTz(trip.createdAt, tz, 'MMM dd')} · Updated {formatInDeploymentTz(trip.updatedAt, tz, 'MMM dd')}
-              </p>
-            </div>
-
-            {/* Right Action Bar (Hierarchy: Primary = More Actions, Secondary = Share WhatsApp, Tertiary = Edit / Reassign) */}
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              {/* TERTIARY */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/trips/${trip.id}/edit`)}
-                className="h-8.5 px-3 rounded-xl text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
-              >
-                <SquarePen className="w-3.5 h-3.5 text-[#6E6E80]" />
-                Edit Trip
-              </Button>
-
-              {/* TERTIARY */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8.5 px-3 rounded-xl text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
-                  >
-                    <RefreshCcw className="w-3.5 h-3.5 text-[#6E6E80]" />
-                    Reassign
-                    <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 border-[#E5E7EB]">
-                  <DropdownMenuItem onClick={() => handleOpenReassign('driver')}>
-                    <UserIcon size={14} className="mr-2 text-[#6E6E80]" /> Reassign Driver
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleOpenReassign('truck')}>
-                    <Truck size={14} className="mr-2 text-[#6E6E80]" /> Reassign Truck
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleOpenReassign('both')}>
-                    <RefreshCcw size={14} className="mr-2 text-[#6E6E80]" /> Reassign Both
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* SECONDARY */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShareWhatsApp}
-                className="h-8.5 px-3 rounded-xl text-xs font-medium text-emerald-700 border-emerald-600 bg-white hover:bg-emerald-50 gap-1.5 cursor-pointer shadow-none"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
-                Share to WhatsApp
-              </Button>
-
-              {/* PRIMARY */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="h-8.5 px-3.5 rounded-xl bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-semibold gap-1.5 shadow-none cursor-pointer">
-                    More Actions
-                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60 border-[#E5E7EB]">
-                  {trip.status === 'InTransit' && (
-                    <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
-                      <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live Map
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
-                    <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
-                  </DropdownMenuItem>
-                  {nextStatusOption && (
-                    <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
-                      <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
-                    </DropdownMenuItem>
-                  )}
-                  {canCancel && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600 hover:bg-red-50">
-                        <XCircle size={14} className="mr-2" /> Cancel Trip
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* ── 3. TOP ROW BENTO GRID: OPERATIONAL HUB & FINANCIAL HUB ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-
-            {/* Left Panel (7 Cols): Resource Summary + Route & Stop Sequence + Live Route Map */}
-            <Card className="lg:col-span-7 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-              <div>
-                {/* Horizontal Resource Information Strip (Clean 5-Col Grid without cards) */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pb-5 border-b border-[#E5E7EB]">
-                  
-                  {/* Customer */}
-                  <div className="space-y-0.5 min-w-0 pr-2">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">CUSTOMER</span>
-                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
-                      <Avatar
-                        className="w-7 h-7 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                    {custAvatarUrl && (
+                      <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
+                    )}
+                    <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
+                      {getInitials(custPersonName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">CUSTOMER</span>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <p
                         onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+                        className="text-base font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
                       >
-                        {custAvatarUrl && (
-                          <AvatarImage src={resolveFileUrl(custAvatarUrl)} alt={custPersonName} />
-                        )}
-                        <AvatarFallback className="text-[10px] font-bold text-slate-700 bg-slate-100">
-                          {getInitials(custPersonName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
-                          <p
-                            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-                            className="text-[14px] font-semibold text-[#3E3C3D] truncate cursor-pointer hover:text-blue-600 transition-colors"
-                          >
-                            {custPersonName}
-                          </p>
-                          {trip.customer?.id && (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/customers/${trip.customer!.id}`)}
-                              className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                              title="View Customer Profile"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-[12px] font-normal text-[#6E6E80] truncate">
-                          {custCompanyName || trip.customer?.contact_phone || '—'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Driver */}
-                  <div className="space-y-0.5 min-w-0 px-2 sm:border-l border-[#E5E7EB]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
-                      {trip.driver && !isClosed && !trip.is_third_party && (
-                        <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
-                          <PopoverTrigger asChild>
-                            <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5">
-                              <RefreshCcw size={11} />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent align="start" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
-                            <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
-                            <Combobox
-                              value={replaceDriverId}
-                              onChange={setReplaceDriverId}
-                              options={driverOptions}
-                              placeholder="Choose replacement driver..."
-                              searchPlaceholder="Search drivers..."
-                              emptyText="No available drivers found."
-                            />
-                            <Btn
-                              label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
-                              size="sm"
-                              className="w-full bg-[#FA634E] text-white rounded-lg"
-                              disabled={!replaceDriverId || replaceDriverMutation.isPending}
-                              onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        {custPersonName}
+                      </p>
+                      {trip.customer?.id && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/customers/${trip.customer!.id}`)}
+                          className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
+                          title="View Customer Profile"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
-                      <Avatar
-                        className="w-7 h-7 shrink-0 border border-[#E5E7EB] bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                      >
-                        {driverAvatarUrl && (
-                          <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
-                        )}
-                        <AvatarFallback className="text-[10px] font-bold text-slate-700 bg-slate-100">
-                          {getInitials(driverFullName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
-                          <p
-                            onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
-                            className="text-[14px] font-semibold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
-                          >
-                            {driverFullName}
-                          </p>
-                          {trip.driver?.id && (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
-                              className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
-                              title="View Driver Profile"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-[12px] font-normal text-[#6E6E80] font-mono truncate">
-                          {trip.driver?.phone_primary || 'Internal Fleet'}
-                        </p>
-                        
-                        {/* Multi-Driver Team Badges */}
-                        {trip.tripDrivers && trip.tripDrivers.length > 1 && (
-                          <div className="flex items-center gap-1 mt-1 flex-wrap">
-                            {trip.tripDrivers.map((td) => (
-                              <span
-                                key={td.id}
-                                className={cn(
-                                  "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
-                                  td.role === 'PRIMARY'
-                                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                                    : "bg-blue-50 text-blue-700 border-blue-200"
-                                )}
-                              >
-                                {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
-                              </span>
-                            ))}
-                          </div>
+                    <p className="text-xs font-medium text-[#6E6E80] truncate">
+                      {custCompanyName || trip.customer?.contact_phone || '—'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Driver & Vehicle Profiles (Right, Big) */}
+                <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Driver */}
+                  <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
+                    <Avatar
+                      className="w-10 h-10 shrink-0 border border-[#E5E7EB] bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
+                    >
+                      {driverAvatarUrl && (
+                        <AvatarImage src={resolveFileUrl(driverAvatarUrl)} alt={driverFullName} />
+                      )}
+                      <AvatarFallback className="text-xs font-bold text-slate-700 bg-slate-100">
+                        {getInitials(driverFullName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80]">DRIVER</span>
+                        {trip.driver && !isClosed && !trip.is_third_party && (
+                          <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
+                            <PopoverTrigger asChild>
+                              <button type="button" aria-label="Replace driver" className="text-[#6E6E80] hover:text-[#FA634E] transition-colors p-0.5 cursor-pointer">
+                                <RefreshCcw size={12} />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-72 p-3 space-y-2 border-[#E5E7EB] shadow-lg rounded-2xl">
+                              <p className="text-xs font-semibold text-[#3E3C3D]">Swap driver</p>
+                              <Combobox
+                                value={replaceDriverId}
+                                onChange={setReplaceDriverId}
+                                options={driverOptions}
+                                placeholder="Choose replacement driver..."
+                                searchPlaceholder="Search drivers..."
+                                emptyText="No available drivers found."
+                              />
+                              <Btn
+                                label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
+                                size="sm"
+                                className="w-full bg-[#FA634E] text-white rounded-lg"
+                                disabled={!replaceDriverId || replaceDriverMutation.isPending}
+                                onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
+                              />
+                            </PopoverContent>
+                          </Popover>
                         )}
                       </div>
+                      <div className="flex items-center gap-1 min-w-0 pt-0.5">
+                        <p
+                          onClick={() => trip.driver?.id && navigate(`/drivers/${trip.driver.id}`)}
+                          className="text-sm font-bold text-[#3E3C3D] truncate cursor-pointer hover:text-violet-600 transition-colors"
+                        >
+                          {driverFullName}
+                        </p>
+                        {trip.driver?.id && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/drivers/${trip.driver!.id}`)}
+                            className="text-[#6E6E80] hover:text-[#3E3C3D] transition-colors shrink-0"
+                            title="View Driver Profile"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#6E6E80] font-mono truncate">
+                        {trip.driver?.phone_primary || 'Internal Fleet'}
+                      </p>
+                      {trip.tripDrivers && trip.tripDrivers.length > 1 && (
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          {trip.tripDrivers.map((td) => (
+                            <span
+                              key={td.id}
+                              className={cn(
+                                "text-[9px] font-extrabold px-1.5 py-0.2 rounded-md border",
+                                td.role === 'PRIMARY'
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
+                              )}
+                            >
+                              {td.driver ? `${td.driver.first_name} ${td.driver.last_name}` : 'Driver'} ({td.role})
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Vehicle */}
-                  <div className="space-y-0.5 min-w-0 px-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
-                    <div className="flex items-center gap-2 pt-0.5 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
-                        <Truck className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[14px] font-semibold text-[#3E3C3D] truncate">
-                          {trip.is_third_party
-                            ? trip.third_party_vehicle_plate || 'Rented Truck'
-                            : trip.vehicle?.plate_number || 'Unassigned'}
-                        </p>
-                        <p className="text-[12px] font-normal text-[#6E6E80] truncate">
-                          {trip.vehicle?.asset_type || 'Fleet Truck'}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-[#E5E7EB] min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center shrink-0 text-[#6E6E80]">
+                      <Truck className="w-4 h-4" />
                     </div>
-                  </div>
-
-                  {/* Rate */}
-                  <div className="space-y-0.5 min-w-0 px-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">RATE</span>
-                    <div className="min-w-0 pt-0.5">
-                      <p className="text-[14px] font-semibold text-[#3E3C3D] font-mono">
-                        SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E80] block">VEHICLE</span>
+                      <p className="text-sm font-bold text-[#3E3C3D] truncate pt-0.5">
+                        {trip.is_third_party
+                          ? trip.third_party_vehicle_plate || 'Rented Truck'
+                          : trip.vehicle?.plate_number || 'Unassigned'}
                       </p>
-                      <p className="text-[12px] font-normal text-[#6E6E80] truncate">Base Contract</p>
-                    </div>
-                  </div>
-
-                  {/* ETA */}
-                  <div className="space-y-0.5 min-w-0 pl-2 border-t sm:border-t-0 sm:border-l border-[#E5E7EB] pt-2 sm:pt-0">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#6E6E80] block">ETA</span>
-                    <div className="min-w-0 pt-0.5">
-                      <p className="text-[14px] font-semibold text-[#3E3C3D]">
-                        {trip.planned_end ? formatInDeploymentTz(trip.planned_end, tz, 'hh:mm a') : '—'}
+                      <p className="text-xs text-[#6E6E80] truncate">
+                        {trip.vehicle?.asset_type || 'Fleet Truck'}
                       </p>
-                      <p className="text-[12px] font-normal text-[#6E6E80] truncate">Planned Arrival</p>
                     </div>
                   </div>
-
                 </div>
 
-                {/* Sub Grid Split: Route & Stop Sequence (~40% Left) | Live Route Map (~60% Right) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-5">
-                  
-                  {/* Left Column (~40%): Route & Stop Sequence Timeline */}
-                  <div className="lg:col-span-5 space-y-4 min-w-0">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
-                      <h3 className="text-base font-semibold text-[#3E3C3D]">
-                        Route & Stop Sequence
-                      </h3>
-                      <span className="text-xs font-normal text-[#6E6E80]">
-                        {(trip.stops || []).length} { (trip.stops || []).length === 1 ? 'Stop' : 'Stops' }
-                      </span>
-                    </div>
+              </div>
+            </div>
 
-                    <ScrollArea className="max-h-[230px] pr-1 pt-1">
-                      <div className="space-y-1.5">
-                        {(() => {
-                          const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
-                            id: stop.id || `stop-${sIdx}`,
-                            typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
-                            name: resolveStopName(stop, 'Location'),
-                            address: cleanAddressStr(stop.location_address || stop.location?.address),
-                            isIntermediate: sIdx > 0 && sIdx < (trip.stops || []).length - 1,
-                            isReturnStop: false,
-                            actual_arrival: stop.actual_arrival,
-                            planned_arrival: stop.planned_arrival,
-                          }));
+            {/* 3. MAIN OPERATIONAL WORKSPACE (ROUTE, STOPS & MAP ON LEFT | FINANCIALS & CHARGES ON RIGHT) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
+              
+              {/* Left Column (7 Cols): Route, Stop Sequence & Live Route Map */}
+              <div className="lg:col-span-7 p-4.5 sm:p-6 space-y-6">
+                
+                {/* Route & Stop Sequence Timeline */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+                    <h3 className="text-base font-semibold text-[#3E3C3D]">
+                      Route & Stop Sequence
+                    </h3>
+                    <span className="text-xs font-normal text-[#6E6E80]">
+                      {(trip.stops || []).length} { (trip.stops || []).length === 1 ? 'Stop' : 'Stops' }
+                    </span>
+                  </div>
 
-                          return timelineStops.map((stop: any, sIdx: number) => {
-                            const totalStops = timelineStops.length;
-                            const isFirst = sIdx === 0;
-                            const isLast = sIdx === totalStops - 1;
-                            const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
+                  <ScrollArea className="max-h-[230px] pr-1 pt-1">
+                    <div className="space-y-1.5">
+                      {(() => {
+                        const timelineStops = (trip.stops || []).map((stop, sIdx) => ({
+                          id: stop.id || `stop-${sIdx}`,
+                          typeEn: sIdx === 0 ? 'Pickup' : sIdx === (trip.stops || []).length - 1 ? 'Destination' : `Stop #${sIdx}`,
+                          name: resolveStopName(stop, 'Location'),
+                          address: cleanAddressStr(stop.location_address || stop.location?.address),
+                          isIntermediate: sIdx > 0 && sIdx < (trip.stops || []).length - 1,
+                          isReturnStop: false,
+                          actual_arrival: stop.actual_arrival,
+                          planned_arrival: stop.planned_arrival,
+                        }));
 
-                            const nameStr = stop.name || resolveStopName(stop, 'Location');
-                            const cleanAddress = stop.address || cleanAddressStr(stop.location_address || stop.location?.address);
+                        return timelineStops.map((stop: any, sIdx: number) => {
+                          const totalStops = timelineStops.length;
+                          const isFirst = sIdx === 0;
+                          const isLast = sIdx === totalStops - 1;
+                          const stopCategoryLabel = stop.typeEn ? stop.typeEn.toUpperCase() : (isFirst ? 'PICKUP' : isLast ? 'DESTINATION' : `STOP ${sIdx}`);
 
-                            const isCompleted = !!stop.actual_arrival;
-                            const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
+                          const nameStr = stop.name || resolveStopName(stop, 'Location');
+                          const cleanAddress = stop.address || cleanAddressStr(stop.location_address || stop.location?.address);
 
-                            return (
-                              <React.Fragment key={stop.id || sIdx}>
-                                {/* Compact Stop Row */}
-                                <div className={cn(
-                                  "p-2 rounded-lg border transition-all flex items-center justify-between gap-3 text-xs",
-                                  isCompleted
-                                    ? "bg-emerald-50/40 border-emerald-200/60"
-                                    : isCurrent
-                                    ? "bg-rose-50/30 border-rose-200/50"
-                                    : "bg-slate-50/50 border-[#E5E7EB]"
-                                )}>
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className={cn(
-                                      "w-2 h-2 rounded-full shrink-0",
-                                      isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
-                                    )} />
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className={cn(
-                                          "text-[10px] font-bold uppercase tracking-wider shrink-0",
-                                          isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
-                                        )}>
-                                          {stopCategoryLabel}
-                                        </span>
-                                        <span className="text-xs font-semibold text-[#3E3C3D] truncate">
-                                          {nameStr}
-                                        </span>
-                                      </div>
-                                      {cleanAddress && (
-                                        <p className="text-[11px] font-normal text-[#6E6E80] truncate max-w-[200px]">
-                                          {cleanAddress}
-                                        </p>
-                                      )}
+                          const isCompleted = !!stop.actual_arrival;
+                          const isCurrent = !isCompleted && (isFirst || (sIdx > 0 && !!timelineStops[sIdx - 1]?.actual_arrival));
+
+                          return (
+                            <React.Fragment key={stop.id || sIdx}>
+                              <div className={cn(
+                                "p-2.5 rounded-lg border transition-all flex items-center justify-between gap-3 text-xs",
+                                isCompleted
+                                  ? "bg-emerald-50/40 border-emerald-200/60"
+                                  : isCurrent
+                                  ? "bg-rose-50/30 border-rose-200/50"
+                                  : "bg-slate-50/50 border-[#E5E7EB]"
+                              )}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className={cn(
+                                    "w-2 h-2 rounded-full shrink-0",
+                                    isCompleted ? "bg-emerald-600" : isCurrent ? "bg-[#FA634E]" : "bg-slate-400"
+                                  )} />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn(
+                                        "text-[10px] font-bold uppercase tracking-wider shrink-0",
+                                        isCompleted ? "text-emerald-700" : isCurrent ? "text-[#FA634E]" : "text-[#6E6E80]"
+                                      )}>
+                                        {stopCategoryLabel}
+                                      </span>
+                                      <span className="text-xs font-semibold text-[#3E3C3D] truncate">
+                                        {nameStr}
+                                      </span>
                                     </div>
+                                    {cleanAddress && (
+                                      <p className="text-[11px] font-normal text-[#6E6E80] truncate max-w-[280px]">
+                                        {cleanAddress}
+                                      </p>
+                                    )}
                                   </div>
-
-                                  {stop.actual_arrival ? (
-                                    <span className="text-[11px] text-emerald-700 font-mono font-semibold shrink-0">
-                                      {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
-                                    </span>
-                                  ) : stop.planned_arrival ? (
-                                    <span className="text-[11px] text-[#6E6E80] font-mono shrink-0">
-                                      {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
-                                    </span>
-                                  ) : null}
                                 </div>
 
-                                {/* Down Arrow Connector between stops */}
-                                {!isLast && (
-                                  <div className="flex items-center justify-center py-0.5">
-                                    <div className="w-4 h-4 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center text-slate-400">
-                                      <ArrowDown size={10} />
-                                    </div>
+                                {stop.actual_arrival ? (
+                                  <span className="text-[11px] text-emerald-700 font-mono font-semibold shrink-0">
+                                    {formatInDeploymentTz(stop.actual_arrival, tz, 'hh:mm a')}
+                                  </span>
+                                ) : stop.planned_arrival ? (
+                                  <span className="text-[11px] text-[#6E6E80] font-mono shrink-0">
+                                    {formatInDeploymentTz(stop.planned_arrival, tz, 'hh:mm a')}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {!isLast && (
+                                <div className="flex items-center justify-center py-0.5">
+                                  <div className="w-4 h-4 rounded-full bg-slate-100 border border-[#E5E7EB] flex items-center justify-center text-slate-400">
+                                    <ArrowDown size={10} />
                                   </div>
-                                )}
-                              </React.Fragment>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </ScrollArea>
-                  </div>
-
-                  {/* Right Column (~60%): Live Route Map with Subtle Vertical Divider */}
-                  <div className="lg:col-span-7 space-y-3 min-w-0 lg:border-l border-[#E5E7EB] lg:pl-6">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-[#E5E7EB]">
-                      <h3 className="text-base font-semibold text-[#3E3C3D]">
-                        Live Route Map
-                      </h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsExpandMapOpen(true)}
-                        className="h-7 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shadow-none"
-                      >
-                        <Maximize2 size={12} className="text-[#6E6E80]" />
-                        Expand
-                      </Button>
-                    </div>
-
-                    <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[460px] sm:h-[480px]">
-                      <TripLiveMapCard
-                        tripId={trip.id}
-                        refId={trip.ref_id || trip.id}
-                        pickupLat={pickup?.location_lat}
-                        pickupLng={pickup?.location_lng}
-                        dropoffLat={dropoff?.location_lat}
-                        dropoffLng={dropoff?.location_lng}
-                        pickupLabel={pickup?.location_name || undefined}
-                        dropoffLabel={dropoff?.location_name || undefined}
-                        resolvedLocation={trip.vehicle?.resolved_location}
-                        showHeader={false}
-                        showTelemetryBar={true}
-                        className="rounded-none border-none h-full"
-                        mapHeightClassName="h-[460px] sm:h-[480px]"
-                      />
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </Card>
-
-            {/* Right Panel (5 Cols): Financials & Additional Charges (TOP-RIGHT) */}
-            <Card className="lg:col-span-5 rounded-2xl border border-[#E5E7EB] bg-white p-4.5 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              {/* Section Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-                <h3 className="text-sm font-bold text-[#3E3C3D]">
-                  Financials & Additional Charges
-                </h3>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setChargeLines(chargesToInputs(trip.charges));
-                    setIsLaborModalOpen(true);
-                  }}
-                  className="h-7 px-3 rounded-lg text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1 cursor-pointer shadow-none"
-                >
-                  <Plus size={13} />
-                  Add Charge
-                </Button>
-              </div>
-
-              {/* Financial Summary Top Rows */}
-              <div className="space-y-2.5 py-3 border-b border-[#E5E7EB]">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/60 flex items-center justify-center text-slate-500 shrink-0">
-                      <Wallet size={13} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TOTAL AMOUNT</span>
-                  </div>
-                  <span className="font-mono text-sm font-bold text-[#3E3C3D]">
-                    SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-[#FA634E] shrink-0">
-                      <Wallet size={13} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">BALANCE DUE</span>
-                  </div>
-                  <span className="font-mono text-sm font-bold text-[#FA634E]">
-                    SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Additional Charges Item List or Clean Compact Empty State */}
-              <div className="py-3 text-xs">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">ADDITIONAL CHARGES</span>
-                {(trip.charges || []).length === 0 ? (
-                  <div className="flex items-start gap-3 py-1">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
-                      <FileText size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-[#3E3C3D]">No additional charges</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Waiting, labour and extra-stop charges will appear here.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {(trip.charges || []).map((c, idx) => (
-                      <div key={c.id || idx} className="py-1.5 px-2 rounded-lg flex items-center justify-between gap-2 hover:bg-[#EEF1F6]/60 transition-colors">
-                        <div className="min-w-0 flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
-                            {c.charge_type.toLowerCase().includes('wait') ? (
-                              <Timer size={13} />
-                            ) : c.charge_type.toLowerCase().includes('labour') || c.charge_type.toLowerCase().includes('labor') ? (
-                              <HardHat size={13} />
-                            ) : c.charge_type.toLowerCase().includes('stop') ? (
-                              <MapPin size={13} />
-                            ) : (
-                              <Plus size={13} />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-[#3E3C3D] truncate">
-                              {c.charge_type}
-                            </p>
-                            <p className="text-[11px] text-[#6E6E80] font-mono">
-                              {c.quantity} {c.unit || 'qty'} × SAR {Number(c.rate || 0).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-semibold font-mono text-xs text-[#3E3C3D]">
-                            SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteChargeLine(idx)}
-                            className="text-[#9898A4] hover:text-red-600 transition-colors p-0.5"
-                            title="Delete Charge"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Financial Totals Breakdown Box (Exact Boxed Container from Screenshot) */}
-              <div className="mt-2 p-3.5 rounded-2xl bg-[#EEF1F6]/50 border border-[#E5E7EB] space-y-2.5 text-xs">
-                {/* Base Rate */}
-                <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
-                      <FileText size={13} />
-                    </div>
-                    <span className="text-xs font-semibold text-[#3E3C3D]">Base Rate</span>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-[#3E3C3D]">
-                    SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {/* Additional Charges */}
-                <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-[#FA634E] shrink-0">
-                      <Plus size={13} className="text-[#FA634E]" />
-                    </div>
-                    <span className="text-xs font-semibold text-[#3E3C3D]">Additional Charges</span>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-[#FA634E]">
-                    + SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {/* Driver Payout */}
-                <div className="flex items-center justify-between pb-1">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
-                      <Minus size={13} />
-                    </div>
-                    <span className="text-xs font-semibold text-[#3E3C3D]">Driver Payout</span>
-                  </div>
-                  <span className="font-mono text-xs font-medium text-slate-500">
-                    − SAR {driverCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {/* Balance Due Line inside box */}
-                <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-wider font-bold text-[#3E3C3D]">BALANCE DUE</span>
-                  <span className="font-mono text-[18px] font-extrabold text-[#FA634E]">
-                    SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-          </div>
-
-          {/* ── 4. SECONDARY BENTO GRID: ACTIVITY LOG & DOCUMENTS / INVOICE WORKSPACE ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-
-            {/* Activity Log (4 Columns) - Compact Chronological Timeline */}
-            <Card className="lg:col-span-4 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB]">
-                <h3 className="text-base font-semibold text-[#3E3C3D]">
-                  Activity Log
-                </h3>
-              </div>
-
-              {/* Timeline List */}
-              <div className="pt-4 space-y-4">
-                {timelineSteps.map((step, i) => {
-                  const isLast = i === timelineSteps.length - 1;
-                  const status = timelineStatus[i];
-
-                  return (
-                    <div key={step.key} className="relative flex items-start gap-3">
-                      {/* Left Marker Column with Connecting Line */}
-                      <div className="relative flex flex-col items-center shrink-0 w-3.5">
-                        {/* Event Marker */}
-                        <div className="relative z-10 mt-1 flex items-center justify-center">
-                          {status === 'done' ? (
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
-                          ) : status === 'active' ? (
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
-                          ) : (
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB] shrink-0" />
-                          )}
-                        </div>
-
-                        {/* Connector Line (rendered between items) */}
-                        {!isLast && (
-                          <div className="absolute top-[14px] bottom-[-18px] w-[1px] bg-[#D9DCE3] z-0" />
-                        )}
-                      </div>
-
-                      {/* Event Details */}
-                      <div className="min-w-0 flex-1 space-y-0.5">
-                        <p className={cn(
-                          "text-[13px] font-semibold",
-                          status === 'pending' ? "text-[#6E6E80]" : "text-[#3E3C3D]"
-                        )}>
-                          {step.label}
-                        </p>
-                        {step.time ? (
-                          <p className="text-xs font-mono font-medium text-[#6E6E80]">
-                            {fullDateTime(step.time, tz)}
-                          </p>
-                        ) : step.sub ? (
-                          <p className="text-xs font-normal text-[#6E6E80]">
-                            {step.sub}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Documents & Attachments (8 Columns) - Professional Document Ledger Format */}
-            <Card className="lg:col-span-8 rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6 gap-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-[#E5E7EB]">
-                <h3 className="text-base font-semibold text-[#3E3C3D] flex items-center gap-2">
-                  Documents & Attachments
-                  <span className="text-xs font-medium text-[#6E6E80]">({documents.length})</span>
-                </h3>
-
-                <Button
-                  size="sm"
-                  onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                  className="h-9 px-3.5 rounded-[10px] text-sm font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1.5 cursor-pointer shadow-none"
-                >
-                  <UploadCloud size={16} />
-                  Upload Document
-                </Button>
-              </div>
-
-              {/* Document Ledger Content */}
-              <div className="pt-4 space-y-5">
-                {isLoadingDocs ? (
-                  <Skeleton className="h-32 w-full rounded-xl" />
-                ) : documents.length === 0 ? (
-                  <p className="text-xs text-[#6E6E80] py-4">No documents uploaded yet for this trip.</p>
-                ) : (
-                  (() => {
-                    const loadingDocs = documents.filter(d => {
-                      const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
-                      const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
-                      return t.includes('LOAD') || t.includes('CARGO') || name.includes('load') || name.includes('cargo') || name.includes('photo');
-                    });
-                    const podDocs = documents.filter(d => {
-                      const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
-                      const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
-                      return (t.includes('POD') || t.includes('DELIVERY') || name.includes('pod') || name.includes('delivery')) && !loadingDocs.includes(d);
-                    });
-                    const otherDocs = documents.filter(d => !podDocs.includes(d) && !loadingDocs.includes(d));
-
-                    const DocRowItem = ({ doc }: { doc: any }) => {
-                      const isImg = isImageFile(doc.file_url, doc.mime_type);
-                      const fileUrl = resolveFileUrl(doc.file_url);
-                      const [hasImgError, setHasImgError] = useState(false);
-
-                      return (
-                        <div key={doc.id} className="py-2.5 flex items-center justify-between gap-4 border-b border-[#E5E7EB] last:border-0">
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            {/* 64x64 Thumbnail with Controlled Fallback */}
-                            {!isImg || hasImgError ? (
-                              <div className="w-16 h-16 rounded-[10px] bg-[#EEF1F6] border border-[#E5E7EB] flex items-center justify-center text-[#6E6E80] shrink-0">
-                                <FileText size={22} className="text-[#6E6E80]" />
-                              </div>
-                            ) : (
-                              <div
-                                onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
-                                className="w-16 h-16 rounded-[10px] overflow-hidden shrink-0 border border-[#E5E7EB] bg-[#EEF1F6] cursor-pointer group relative"
-                              >
-                                <img
-                                  src={fileUrl}
-                                  alt={documentDisplayName(doc)}
-                                  onError={() => setHasImgError(true)}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                  <Eye size={16} />
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </React.Fragment>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </ScrollArea>
+                </div>
 
-                            {/* Document Information */}
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <p className="text-sm font-semibold text-[#3E3C3D] truncate" title={documentDisplayName(doc)}>
-                                {documentDisplayName(doc)}
+                {/* Live Route Map */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+                    <h3 className="text-base font-semibold text-[#3E3C3D]">
+                      Live Route Map
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsExpandMapOpen(true)}
+                      className="h-7 px-2.5 text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] hover:bg-slate-50 gap-1.5 cursor-pointer bg-white shadow-none"
+                    >
+                      <Maximize2 size={12} className="text-[#6E6E80]" />
+                      Expand
+                    </Button>
+                  </div>
+
+                  <div className="rounded-xl overflow-hidden border border-[#E5E7EB] h-[440px]">
+                    <TripLiveMapCard
+                      tripId={trip.id}
+                      refId={trip.ref_id || trip.id}
+                      pickupLat={pickup?.location_lat}
+                      pickupLng={pickup?.location_lng}
+                      dropoffLat={dropoff?.location_lat}
+                      dropoffLng={dropoff?.location_lng}
+                      pickupLabel={pickup?.location_name || undefined}
+                      dropoffLabel={dropoff?.location_name || undefined}
+                      resolvedLocation={trip.vehicle?.resolved_location}
+                      showHeader={false}
+                      showTelemetryBar={true}
+                      className="rounded-none border-none h-full"
+                      mapHeightClassName="h-[440px]"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column (5 Cols): Financials & Additional Charges */}
+              <div className="lg:col-span-5 p-4.5 sm:p-6 space-y-4 bg-white">
+                
+                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                  <h3 className="text-base font-semibold text-[#3E3C3D]">
+                    Financials & Charges
+                  </h3>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setChargeLines(chargesToInputs(trip.charges));
+                      setIsLaborModalOpen(true);
+                    }}
+                    className="h-7 px-3 rounded-lg text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1 cursor-pointer shadow-none"
+                  >
+                    <Plus size={13} />
+                    Add Charge
+                  </Button>
+                </div>
+
+                {/* Financial Summary Metric Cards */}
+                <div className="space-y-2.5 py-2 border-b border-[#E5E7EB]">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/60 flex items-center justify-center text-slate-500 shrink-0">
+                        <Wallet size={13} />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TOTAL AMOUNT</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-[#3E3C3D]">
+                      SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-[#FA634E] shrink-0">
+                        <Wallet size={13} />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">BALANCE DUE</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-[#FA634E]">
+                      SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Additional Charges Item List */}
+                <div className="py-2 text-xs space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">ADDITIONAL CHARGES</span>
+                  {(trip.charges || []).length === 0 ? (
+                    <div className="flex items-start gap-3 py-2 px-3 bg-slate-50/60 rounded-xl border border-[#E5E7EB]">
+                      <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
+                        <FileText size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[#3E3C3D]">No additional charges</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Waiting, labour and extra-stop charges will appear here.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {(trip.charges || []).map((c, idx) => (
+                        <div key={c.id || idx} className="py-1.5 px-2 rounded-lg flex items-center justify-between gap-2 hover:bg-[#EEF1F6]/60 transition-colors">
+                          <div className="min-w-0 flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                              {c.charge_type.toLowerCase().includes('wait') ? (
+                                <Timer size={13} />
+                              ) : c.charge_type.toLowerCase().includes('labour') || c.charge_type.toLowerCase().includes('labor') ? (
+                                <HardHat size={13} />
+                              ) : c.charge_type.toLowerCase().includes('stop') ? (
+                                <MapPin size={13} />
+                              ) : (
+                                <Plus size={13} />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-[#3E3C3D] truncate">
+                                {c.charge_type}
                               </p>
-                              <p className="text-xs font-normal text-[#6E6E80]">
-                                Uploaded {formatInDeploymentTz(doc.createdAt, tz, 'dd MMM yyyy · hh:mm a')}
+                              <p className="text-[11px] text-[#6E6E80] font-mono">
+                                {c.quantity} {c.unit || 'qty'} × SAR {Number(c.rate || 0).toLocaleString()}
                               </p>
                             </div>
                           </div>
-
-                          {/* Document Actions */}
                           <div className="flex items-center gap-2 shrink-0">
-                            {isImg && !hasImgError && (
+                            <span className="font-semibold font-mono text-xs text-[#3E3C3D]">
+                              SAR {Number(c.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteChargeLine(idx)}
+                              className="text-[#9898A4] hover:text-red-600 transition-colors p-0.5 cursor-pointer"
+                              title="Delete Charge"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Financial Breakdown Summary Box */}
+                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-[#E5E7EB] space-y-2 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                        <FileText size={12} />
+                      </div>
+                      <span className="text-xs font-medium text-[#3E3C3D]">Base Rate</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-[#3E3C3D]">
+                      SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pb-2 border-b border-dashed border-[#E5E7EB]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-[#FA634E] shrink-0">
+                        <Plus size={12} />
+                      </div>
+                      <span className="text-xs font-medium text-[#3E3C3D]">Additional Charges</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-[#FA634E]">
+                      + SAR {chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pb-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center text-slate-500 shrink-0">
+                        <Minus size={12} />
+                      </div>
+                      <span className="text-xs font-medium text-[#3E3C3D]">Driver Payout</span>
+                    </div>
+                    <span className="font-mono text-xs font-medium text-slate-500">
+                      − SAR {driverCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wider font-bold text-[#3E3C3D]">BALANCE DUE</span>
+                    <span className="font-mono text-[18px] font-extrabold text-[#FA634E]">
+                      SAR {balanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* 4. SECONDARY OPERATIONAL WORKSPACE (ACTIVITY LOG ON LEFT | DOCUMENTS & ATTACHMENTS ON RIGHT) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]">
+              
+              {/* Left Column (4 Cols): Activity Log */}
+              <div className="lg:col-span-4 p-4.5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                  <h3 className="text-base font-semibold text-[#3E3C3D]">
+                    Activity Log
+                  </h3>
+                </div>
+
+                <div className="space-y-4 pt-1">
+                  {timelineSteps.map((step, i) => {
+                    const isLast = i === timelineSteps.length - 1;
+                    const status = timelineStatus[i];
+
+                    return (
+                      <div key={step.key} className="relative flex items-start gap-3">
+                        <div className="relative flex flex-col items-center shrink-0 w-3.5">
+                          <div className="relative z-10 mt-1 flex items-center justify-center">
+                            {status === 'done' ? (
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
+                            ) : status === 'active' ? (
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#D1D5DB] shrink-0" />
+                            )}
+                          </div>
+
+                          {!isLast && (
+                            <div className="absolute top-[14px] bottom-[-18px] w-[1px] bg-[#D9DCE3] z-0" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <p className={cn(
+                            "text-[13px] font-semibold",
+                            status === 'pending' ? "text-[#6E6E80]" : "text-[#3E3C3D]"
+                          )}>
+                            {step.label}
+                          </p>
+                          {step.time ? (
+                            <p className="text-xs font-mono font-medium text-[#6E6E80]">
+                              {fullDateTime(step.time, tz)}
+                            </p>
+                          ) : step.sub ? (
+                            <p className="text-xs font-normal text-[#6E6E80]">
+                              {step.sub}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Column (8 Cols): Documents & Attachments */}
+              <div className="lg:col-span-8 p-4.5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+                  <h3 className="text-base font-semibold text-[#3E3C3D] flex items-center gap-2">
+                    Documents & Attachments
+                    <span className="text-xs font-medium text-[#6E6E80]">({documents.length})</span>
+                  </h3>
+
+                  <Button
+                    size="sm"
+                    onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                    className="h-8.5 px-3.5 rounded-[10px] text-xs font-semibold bg-[#FA634E] hover:bg-[#e0523d] text-white gap-1.5 cursor-pointer shadow-none"
+                  >
+                    <UploadCloud size={15} />
+                    Upload Document
+                  </Button>
+                </div>
+
+                <div className="space-y-5 pt-1">
+                  {isLoadingDocs ? (
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                  ) : documents.length === 0 ? (
+                    <p className="text-xs text-[#6E6E80] py-4">No documents uploaded yet for this trip.</p>
+                  ) : (
+                    (() => {
+                      const loadingDocs = documents.filter(d => {
+                        const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
+                        const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
+                        return t.includes('LOAD') || t.includes('CARGO') || name.includes('load') || name.includes('cargo') || name.includes('photo');
+                      });
+                      const podDocs = documents.filter(d => {
+                        const t = (d.doc_type || d.documentType?.name || '').toUpperCase();
+                        const name = (d.doc_type || d.documentType?.name || '').toLowerCase();
+                        return (t.includes('POD') || t.includes('DELIVERY') || name.includes('pod') || name.includes('delivery')) && !loadingDocs.includes(d);
+                      });
+                      const otherDocs = documents.filter(d => !podDocs.includes(d) && !loadingDocs.includes(d));
+
+                      const DocRowItem = ({ doc }: { doc: any }) => {
+                        const isImg = isImageFile(doc.file_url, doc.mime_type);
+                        const fileUrl = resolveFileUrl(doc.file_url);
+                        const [hasImgError, setHasImgError] = useState(false);
+
+                        return (
+                          <div key={doc.id} className="py-2.5 flex items-center justify-between gap-4 border-b border-[#E5E7EB] last:border-0">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              {!isImg || hasImgError ? (
+                                <div className="w-14 h-14 rounded-[10px] bg-[#EEF1F6] border border-[#E5E7EB] flex items-center justify-center text-[#6E6E80] shrink-0">
+                                  <FileText size={20} className="text-[#6E6E80]" />
+                                </div>
+                              ) : (
+                                <div
+                                  onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                                  className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0 border border-[#E5E7EB] bg-[#EEF1F6] cursor-pointer group relative"
+                                >
+                                  <img
+                                    src={fileUrl}
+                                    alt={documentDisplayName(doc)}
+                                    onError={() => setHasImgError(true)}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                  <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                    <Eye size={14} />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <p className="text-xs font-semibold text-[#3E3C3D] truncate" title={documentDisplayName(doc)}>
+                                  {documentDisplayName(doc)}
+                                </p>
+                                <p className="text-[11px] font-normal text-[#6E6E80]">
+                                  Uploaded {formatInDeploymentTz(doc.createdAt, tz, 'dd MMM yyyy · hh:mm a')}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isImg && !hasImgError && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
+                                  className="h-8 px-2.5 rounded-lg text-xs font-semibold text-[#FA634E] border-[#FA634E] bg-white hover:bg-rose-50 gap-1.5 cursor-pointer shadow-none"
+                                >
+                                  <Eye size={12} />
+                                  Preview
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setPreviewImage({ url: fileUrl, title: documentDisplayName(doc), date: doc.createdAt })}
-                                className="h-8.5 px-3 rounded-lg text-xs font-semibold text-[#FA634E] border-[#FA634E] bg-white hover:bg-rose-50 gap-1.5 cursor-pointer shadow-none"
+                                asChild
+                                className="h-8 px-2.5 rounded-lg text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
                               >
-                                <Eye size={13} />
-                                Preview
+                                <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink size={12} />
+                                  Open
+                                </a>
                               </Button>
+                            </div>
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <>
+                          {/* 1. Loaded / Cargo Photos */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 pb-1">
+                              <Camera className="w-4 h-4 text-[#3E3C3D]" />
+                              <h4 className="text-xs font-semibold text-[#3E3C3D]">
+                                1. Loaded / Cargo Photos
+                              </h4>
+                              <span className="text-xs font-normal text-[#6E6E80]">({loadingDocs.length})</span>
+                            </div>
+
+                            {loadingDocs.length === 0 ? (
+                              <p className="text-xs text-[#6E6E80] py-1">No cargo/loading photos uploaded.</p>
+                            ) : (
+                              <div className="divide-y divide-[#E5E7EB]">
+                                {loadingDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                              </div>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              asChild
-                              className="h-8.5 px-3 rounded-lg text-xs font-medium text-[#3E3C3D] border-[#E5E7EB] bg-white hover:bg-slate-50 gap-1.5 cursor-pointer shadow-none"
-                            >
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink size={13} />
-                                Open
-                              </a>
-                            </Button>
                           </div>
-                        </div>
+
+                          <Separator className="bg-[#E5E7EB]" />
+
+                          {/* 2. Proof of Delivery (POD) */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 pb-1">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <h4 className="text-xs font-semibold text-[#3E3C3D]">
+                                2. Proof of Delivery (POD)
+                              </h4>
+                              <span className="text-xs font-normal text-[#6E6E80]">({podDocs.length})</span>
+                            </div>
+
+                            {podDocs.length === 0 ? (
+                              <p className="text-xs text-[#6E6E80] py-1">No POD documents uploaded.</p>
+                            ) : (
+                              <div className="divide-y divide-[#E5E7EB]">
+                                {podDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                              </div>
+                            )}
+                          </div>
+
+                          <Separator className="bg-[#E5E7EB]" />
+
+                          {/* 3. Waybill & Other Documents */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 pb-1">
+                              <FileText className="w-4 h-4 text-[#3E3C3D]" />
+                              <h4 className="text-xs font-semibold text-[#3E3C3D]">
+                                3. Waybill & Other Documents
+                              </h4>
+                              <span className="text-xs font-normal text-[#6E6E80]">({otherDocs.length})</span>
+                            </div>
+
+                            {otherDocs.length === 0 ? (
+                              <p className="text-xs text-[#6E6E80] py-1">No waybill or secondary documents uploaded.</p>
+                            ) : (
+                              <div className="divide-y divide-[#E5E7EB]">
+                                {otherDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
+                              </div>
+                            )}
+                          </div>
+                        </>
                       );
-                    };
-
-                    return (
-                      <>
-                        {/* 1. Loaded / Cargo Photos */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 pb-1">
-                            <Camera className="w-4 h-4 text-[#3E3C3D]" />
-                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
-                              1. Loaded / Cargo Photos
-                            </h4>
-                            <span className="text-xs font-normal text-[#6E6E80]">({loadingDocs.length})</span>
-                          </div>
-
-                          {loadingDocs.length === 0 ? (
-                            <p className="text-xs text-[#6E6E80] py-1">No cargo/loading photos uploaded.</p>
-                          ) : (
-                            <div className="divide-y divide-[#E5E7EB]">
-                              {loadingDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator className="bg-[#E5E7EB]" />
-
-                        {/* 2. Proof of Delivery (POD) */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 pb-1">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
-                              2. Proof of Delivery (POD)
-                            </h4>
-                            <span className="text-xs font-normal text-[#6E6E80]">({podDocs.length})</span>
-                          </div>
-
-                          {podDocs.length === 0 ? (
-                            <p className="text-xs text-[#6E6E80] py-1">No POD documents uploaded.</p>
-                          ) : (
-                            <div className="divide-y divide-[#E5E7EB]">
-                              {podDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator className="bg-[#E5E7EB]" />
-
-                        {/* 3. Waybill & Other Documents */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 pb-1">
-                            <FileText className="w-4 h-4 text-[#3E3C3D]" />
-                            <h4 className="text-[13px] font-semibold text-[#3E3C3D]">
-                              3. Waybill & Other Documents
-                            </h4>
-                            <span className="text-xs font-normal text-[#6E6E80]">({otherDocs.length})</span>
-                          </div>
-
-                          {otherDocs.length === 0 ? (
-                            <p className="text-xs text-[#6E6E80] py-1">No waybill or secondary documents uploaded.</p>
-                          ) : (
-                            <div className="divide-y divide-[#E5E7EB]">
-                              {otherDocs.map((doc) => <DocRowItem key={doc.id} doc={doc} />)}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    );
-                  })()
-                )}
+                    })()
+                  )}
+                </div>
               </div>
-            </Card>
+
+            </div>
 
           </div>
 

@@ -269,7 +269,7 @@ export default function VehicleListPage() {
 
   // Live WebSocket Telemetry Connection for Fleet Map
   useEffect(() => {
-    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'https://dev.mercon.tech', {
       auth: { token: authStore.getToken() },
     });
 

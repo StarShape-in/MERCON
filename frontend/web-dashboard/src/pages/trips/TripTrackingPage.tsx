@@ -92,7 +92,7 @@ export default function TripTrackingPage() {
   useEffect(() => {
     if (!id) return;
 
-    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'https://dev.mercon.tech', {
       auth: { token: authStore.getToken() },
     });
     socketRef.current = socket;
