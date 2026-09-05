@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Truck, User, ShieldAlert, Plus, Trash2 } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 
 interface ExecutionAssignmentSectionProps {
   assignmentType: 'own' | 'third_party' | '3pl';
@@ -222,18 +223,14 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
                 return (
                   <div className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 text-center flex flex-col items-center justify-center space-y-1.5 relative border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 shadow-xs animate-fade-in transition-all duration-300">
-                    {/* BIGGER CENTERED PROFILE PIC */}
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={rawName}
-                        className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-[#FA634E] shadow-2xs mx-auto"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full font-black text-base grid place-items-center shrink-0 shadow-2xs mx-auto bg-[#FA634E] text-white">
-                        {initials}
-                      </div>
-                    )}
+                    {/* CENTERED PROFILE AVATAR */}
+                    <DriverAvatar
+                      src={avatarUrl}
+                      firstName={firstName}
+                      lastName={lastName}
+                      size="lg"
+                      className="border-2 border-[#FA634E] shadow-2xs mx-auto"
+                    />
 
                     {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
                     <div className="text-sm font-black text-slate-900 dark:text-slate-100 text-center leading-tight pt-1">
@@ -284,17 +281,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           isFirst ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
                         }`}
                       >
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt={rawName}
-                            className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full font-black text-xs grid place-items-center shrink-0 shadow-2xs mx-auto bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-700 dark:text-slate-200">
-                            {initials}
-                          </div>
-                        )}
+                        <DriverAvatar
+                          src={avatarUrl}
+                          firstName={firstName}
+                          lastName={lastName}
+                          size="md"
+                          className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                        />
 
                         {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
                         <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">

@@ -232,7 +232,12 @@ export function useCreateTripForm() {
           value: d.id,
           label,
           keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
-        };
+          avatar_url: d.avatar_url,
+          avatarUrl: d.avatar_url,
+          first_name: d.first_name,
+          last_name: d.last_name,
+          raw: d,
+        } as ComboboxOption & Record<string, any>;
       });
   }, [drivers, vehicles]);
 
