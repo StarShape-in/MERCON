@@ -64,26 +64,34 @@ export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
 
 const pickupMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.35);"></div>
-      <img src="/warehouse_pickup_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
+    <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #10B981; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2.5px solid #10B981;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>
+      </div>
+      <div style="position: absolute; bottom: -8px; background: #10B981; color: #022C22; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; letter-spacing: 0.04em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+        ORIGIN
+      </div>
     </div>
   `,
   className: '',
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 });
 
 const dropoffMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.35);"></div>
-      <img src="/warehouse_dropoff_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
+    <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #F43F5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2.5px solid #F43F5E;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      </div>
+      <div style="position: absolute; bottom: -8px; background: #F43F5E; color: #FFFFFF; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; letter-spacing: 0.04em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+        DEST
+      </div>
     </div>
   `,
   className: '',
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 });
 
 function createStopIcon(letter: string, isCompleted: boolean = false, isCurrent: boolean = false) {
@@ -104,44 +112,123 @@ function createStopIcon(letter: string, isCompleted: boolean = false, isCurrent:
   });
 }
 
-function createLiveTruckIcon(heading: number = 0) {
+function createLiveTruckIcon(heading: number = 0, plateNumber?: string, speed?: number) {
   const adjustedHeading = heading || 0;
   return L.divIcon({
+    className: 'crisp-truck-marker',
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
     html: `
-      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-        <div class="animate-ping" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.25);"></div>
-        <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #0F1017; border: 2px solid #FF5500; box-shadow: 0 0 20px rgba(255, 85, 0, 0.8);"></div>
-        <div style="width: 30px; height: 30px; z-index: 2; display: flex; align-items: center; justify-content: center; transform: rotate(${adjustedHeading}deg); transition: transform 0.3s ease;">
-          <img src="/truck_3d_orange_transparent.png" style="width: 30px; height: 30px; object-fit: contain;" />
+      <div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+        <div style="
+          transform: rotate(${adjustedHeading}deg);
+          transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <svg width="26" height="46" viewBox="0 0 26 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
+            <rect x="3.5" y="14" width="19" height="28" rx="2" fill="#1E293B" stroke="#0F172A" stroke-width="1.4"/>
+            <line x1="6" y1="19.5" x2="20" y2="19.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="25.5" x2="20" y2="25.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="31.5" x2="20" y2="31.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="37" x2="20" y2="37" stroke="#334155" stroke-width="1.3"/>
+            <rect x="4.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="18.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="10.5" y="11" width="5" height="3.5" rx="0.5" fill="#0F172A"/>
+            <rect x="4.5" y="2" width="17" height="9.5" rx="2.5" fill="#E8450F" stroke="#9A2C07" stroke-width="1.2"/>
+            <path d="M7 4.5 Q13 3.3 19 4.5 L18 7 Q13 6.1 8 7 Z" fill="#94A3B8"/>
+            <rect x="2.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="21.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="5.5" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+            <rect x="18" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+          </svg>
         </div>
+        ${plateNumber ? `
+        <div style="
+          position: absolute;
+          bottom: -13px;
+          background: #0F172A;
+          color: #FFFFFF;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          padding: 1.5px 7px;
+          border-radius: 9999px;
+          white-space: nowrap;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          pointer-events: none;
+        ">
+          ${plateNumber}${typeof speed === 'number' ? ` • ${speed} km/h` : ''}
+        </div>
+        ` : ''}
       </div>
     `,
-    className: '',
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
   });
 }
 
-function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 'LAST_KNOWN' = 'CURRENT') {
+function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 'LAST_KNOWN' = 'CURRENT', plateNumber?: string) {
   const isCurrent = displayState === 'CURRENT';
-  const glowColor = isCurrent ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)';
-  const borderColor = isCurrent ? '#10B981' : '#F59E0B';
-  const pingClass = isCurrent ? 'animate-ping' : '';
+  const cabColor = isCurrent ? '#10B981' : '#F59E0B';
+  const strokeColor = isCurrent ? '#047857' : '#D97706';
   const adjustedHeading = heading || 0;
 
   return L.divIcon({
+    className: 'crisp-truck-marker',
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
     html: `
-      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-        ${isCurrent ? `<div class="${pingClass}" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: ${glowColor};"></div>` : ''}
-        <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #0F1017; border: 2px solid ${borderColor}; box-shadow: 0 0 16px ${glowColor};"></div>
-        <div style="width: 30px; height: 30px; z-index: 2; display: flex; align-items: center; justify-content: center; transform: rotate(${adjustedHeading}deg); transition: transform 0.3s ease;">
-          <img src="/truck_3d_orange_transparent.png" style="width: 30px; height: 30px; object-fit: contain;" />
+      <div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+        <div style="
+          transform: rotate(${adjustedHeading}deg);
+          transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <svg width="26" height="46" viewBox="0 0 26 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
+            <rect x="3.5" y="14" width="19" height="28" rx="2" fill="#1E293B" stroke="#0F172A" stroke-width="1.4"/>
+            <line x1="6" y1="19.5" x2="20" y2="19.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="25.5" x2="20" y2="25.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="31.5" x2="20" y2="31.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="37" x2="20" y2="37" stroke="#334155" stroke-width="1.3"/>
+            <rect x="4.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="18.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="10.5" y="11" width="5" height="3.5" rx="0.5" fill="#0F172A"/>
+            <rect x="4.5" y="2" width="17" height="9.5" rx="2.5" fill="${cabColor}" stroke="${strokeColor}" stroke-width="1.2"/>
+            <path d="M7 4.5 Q13 3.3 19 4.5 L18 7 Q13 6.1 8 7 Z" fill="#94A3B8"/>
+            <rect x="2.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="21.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="5.5" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+            <rect x="18" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+          </svg>
         </div>
+        ${plateNumber ? `
+        <div style="
+          position: absolute;
+          bottom: -13px;
+          background: #0F172A;
+          color: #FFFFFF;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          padding: 1.5px 7px;
+          border-radius: 9999px;
+          white-space: nowrap;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          pointer-events: none;
+        ">
+          ${plateNumber}
+        </div>
+        ` : ''}
       </div>
     `,
-    className: '',
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
   });
 }
 
@@ -556,7 +643,7 @@ export default function TripLiveMapCard({
     }
 
     let lastTime = performance.now();
-    const stepInterval = 35 / animationSpeed;
+    const stepInterval = Math.max(60, 120 / animationSpeed);
 
     const animateLoop = (now: number) => {
       if (now - lastTime >= stepInterval) {
@@ -952,17 +1039,17 @@ export default function TripLiveMapCard({
 
                 {/* Animated Moving Truck Marker (When animation is running) */}
                 {isAnimating ? (
-                  <Marker position={currentAnimCoord} icon={createLiveTruckIcon(animHeading)}>
+                  <Marker position={currentAnimCoord} icon={createLiveTruckIcon(animHeading, simulatedTruck?.plateNumber || 'Truck')}>
                     <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                       <div className="text-xs font-sans p-1">
-                        <p className="font-bold text-[#FF5500]">Animated Truck Simulation</p>
+                        <p className="font-bold text-[#E8450F]">Animated Truck Simulation</p>
                         <p className="text-[10px] text-gray-500">{currentLegText}</p>
                         <p className="text-[10px] font-mono text-emerald-600">Progress: {animProgressPct}%</p>
                       </div>
                     </Popup>
                   </Marker>
                 ) : hasResolvedCoords ? (
-                  <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN')}>
+                  <Marker position={[resLat!, resLng!]} icon={createResolvedTruckIcon(activeHeading, displayState as 'CURRENT' | 'LAST_KNOWN', resolvedLocation?.plate_number)}>
                     <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                       <div className="text-xs font-sans p-1 space-y-1">
                         <div className="flex items-center gap-1.5 font-bold">
@@ -989,10 +1076,10 @@ export default function TripLiveMapCard({
                     </Popup>
                   </Marker>
                 ) : (
-                  <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading)}>
+                  <Marker position={[activeTruckLat, activeTruckLng]} icon={createLiveTruckIcon(activeHeading, simulatedTruck?.plateNumber || 'MERCON Fleet', activeSpeed || 85)}>
                     <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                       <div className="text-xs font-sans p-1">
-                        <p className="font-bold text-[#FF5500]">{simulatedTruck?.plateNumber || 'MERCON Fleet'}</p>
+                        <p className="font-bold text-[#E8450F]">{simulatedTruck?.plateNumber || 'MERCON Fleet'}</p>
                         <p className="text-[10px] text-gray-500">Speed: {activeSpeed || 85} km/h</p>
                       </div>
                     </Popup>

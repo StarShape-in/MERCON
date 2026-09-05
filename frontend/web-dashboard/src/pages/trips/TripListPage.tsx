@@ -574,24 +574,30 @@ const STATUS_LABELS: Record<string, string> = {
   All: 'All Statuses',
   Active: 'Active',
   Draft: 'Draft',
+  Scheduled: 'Scheduled',
   Dispatched: 'Dispatched',
+  Loading: 'Loading',
   AtPickup: 'Loading',
   InTransit: 'In Transit',
+  Delayed: 'Delayed',
   AtDelivery: 'At Delivery',
   Completed: 'Completed',
   Invoiced: 'Invoiced',
-  Cancelled: 'Cancelled'
+  Cancelled: 'Cancelled',
 };
 
 const EXACT_SERVER_STATUSES = new Set<TripStatusFilter>([
   'Draft',
-  'Dispatched',
-  'AtPickup',
+  'Scheduled',
+  'Loading',
   'InTransit',
-  'AtDelivery',
+  'Delayed',
   'Completed',
   'Invoiced',
   'Cancelled',
+  'Dispatched',
+  'AtPickup',
+  'AtDelivery',
 ]);
 
 const getServerStatusFilter = (status: TripStatusFilter) => (
@@ -600,9 +606,11 @@ const getServerStatusFilter = (status: TripStatusFilter) => (
 
 const matchesTripStatusFilter = (trip: Trip, filter: TripStatusFilter) => {
   if (filter === 'All') return true;
-  if (filter === 'Active') return ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(trip.status);
+  if (filter === 'Active') {
+    return ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(trip.status);
+  }
   if (filter === 'Completed,Invoiced') return trip.status === 'Completed' || trip.status === 'Invoiced';
-  if (filter === 'Issues') return trip.status === 'Cancelled';
+  if (filter === 'Issues') return trip.status === 'Cancelled' || trip.status === 'Delayed';
   return trip.status === filter;
 };
 
@@ -1121,15 +1129,17 @@ export default function TripListPage() {
   const inTransitCount = inTransitTrips.length;
 
   // Trucks at pickup point, loading goods
-  const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
+  const atPickupTrips = kpiTrips.filter(t => t.status === 'Loading' || t.status === 'AtPickup');
   const atPickupCount = atPickupTrips.length;
 
-  // Delayed trips: active trips whose planned_end has already passed
+  // Delayed trips: active trips whose planned_end has already passed or explicitly marked Delayed
   const nowMs = Date.now();
   const delayedTrips = kpiTrips.filter(t =>
-    ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
-    t.planned_end != null &&
-    new Date(t.planned_end).getTime() < nowMs
+    t.status === 'Delayed' || (
+      ['Scheduled', 'Loading', 'InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status) &&
+      t.planned_end != null &&
+      new Date(t.planned_end).getTime() < nowMs
+    )
   );
   const delayedCount = delayedTrips.length;
 
@@ -1143,7 +1153,7 @@ export default function TripListPage() {
   const completedCount = completedTrips.length;
   const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
+  const draftTrips = kpiTrips.filter(t => t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched');
   const dispatchQueueCount = draftTrips.length;
 
   const periodTrips = useMemo(() => {
@@ -1152,7 +1162,7 @@ export default function TripListPage() {
   const periodCount = periodTrips.length;
   const periodCompletedCount = periodTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
   const periodInTransitCount = periodTrips.filter(t => t.status === 'InTransit').length;
-  const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'AtPickup').length;
+  const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched' || t.status === 'AtPickup' || t.status === 'Loading').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

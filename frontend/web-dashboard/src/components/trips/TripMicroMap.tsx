@@ -25,23 +25,27 @@ const microDropoffIcon = L.divIcon({
 
 function createMicroTruckIcon(heading: number) {
   return L.divIcon({
+    className: 'crisp-truck-marker',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
     html: `
-      <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-        <div style="width: 20px; height: 20px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(255, 85, 0, 0.9); border: 1.5px solid #FF5500; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+        <div style="transform: rotate(${heading}deg); transition: transform 0.5s ease; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
+          <svg width="14" height="24" viewBox="0 0 24 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
+            <rect x="3" y="13" width="18" height="26" rx="2" fill="#1E293B" stroke="#0F172A" stroke-width="1.5"/>
+            <rect x="4" y="3" width="16" height="8.5" rx="2" fill="#E8450F" stroke="#9A2C07" stroke-width="1.5"/>
+            <path d="M6 5 Q12 4 18 5 L17 7 Q12 6.2 7 7 Z" fill="#94A3B8"/>
+          </svg>
         </div>
       </div>
     `,
-    className: '',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
   });
 }
 
-function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
+function MapPanUpdater({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
-    map.flyTo([lat, lng], map.getZoom(), { animate: true });
+    map.panTo([lat, lng], { animate: true, duration: 0.8 });
   }, [lat, lng, map]);
   return null;
 }
@@ -94,12 +98,11 @@ export default function TripMicroMap({
         attributionControl={false}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
       >
-        <TileLayer url={currentTheme.url} />
-        <MapFlyTo lat={currentLat} lng={currentLng} />
+        <MapPanUpdater lat={currentLat} lng={currentLng} />
 
         <Polyline
           positions={polylineWaypoints}
-          pathOptions={{ color: '#FF5500', weight: 3, opacity: 0.85, dashArray: '4, 6' }}
+          pathOptions={{ color: '#E8450F', weight: 3, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
         />
 
         <Marker position={[pickupCoords.lat, pickupCoords.lng]} icon={microPickupIcon} />

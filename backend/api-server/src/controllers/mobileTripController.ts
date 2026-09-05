@@ -448,6 +448,24 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
           lng,
           recordedAt,
         });
+
+        // Also broadcast to the trip's dedicated room for live trip tracking
+        const speed = speed_kph != null && !isNaN(Number(speed_kph)) ? Number(speed_kph) : 0;
+        const heading = heading_deg != null && !isNaN(Number(heading_deg)) ? Number(heading_deg) : null;
+        const accuracy = accuracy_m != null && !isNaN(Number(accuracy_m)) ? Number(accuracy_m) : null;
+        const nowIso = new Date().toISOString();
+
+        io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, {
+          lat,
+          lng,
+          speed,
+          heading,
+          accuracy,
+          status: null,
+          source: 'mobile',
+          recordedAt: recordedAt.toISOString(),
+          ingestedAt: nowIso,
+        });
       }
     } catch {
       // Non-fatal socket broadcast

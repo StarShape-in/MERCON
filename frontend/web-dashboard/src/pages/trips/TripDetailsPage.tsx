@@ -119,8 +119,19 @@ import { documentService, type DocType } from '@/services/documentService';
 import { documentDisplayName } from '@/lib/documents';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
+import { getTripDisplayStatus, normalizeTripStatus, OfficialTripStatus } from '@/utils/tripStatus';
 
-const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced'];
+// Operational stage order for display stepper — presentation stages derived from TripStatus + driver_workflow_state
+export const OPERATIONAL_STAGES = [
+  'Draft',
+  'Scheduled',
+  'Going to Pickup',
+  'Loading',
+  'In Transit',
+  'At Destination',
+  'Completed',
+  'Invoiced',
+] as const;
 
 function formatDelay(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -133,46 +144,30 @@ function fullDateTime(iso: string, tz: string): string {
   return formatInDeploymentTz(iso, tz, 'dd MMM yyyy, hh:mm a');
 }
 
-function statusTone(status: string): { color: string; bg: string } {
-  const normalized = status.toLowerCase().replace(/\s+/g, '');
-  switch (normalized) {
-    case 'completed':
-    case 'invoiced':
+function statusTone(status: string, workflowState?: string | null): { color: string; bg: string } {
+  const display = getTripDisplayStatus(status, workflowState);
+  switch (display.tone) {
+    case 'success':
       return { color: 'var(--color-success)', bg: 'var(--color-success-bg)' };
-    case 'intransit':
-    case 'dispatched':
-    case 'atpickup':
-    case 'atdelivery':
-      return { color: 'var(--color-warning)', bg: 'var(--color-warning-bg)' };
-    case 'draft':
-      return { color: 'var(--color-info)', bg: 'var(--color-info-bg)' };
-    case 'cancelled':
-      return { color: 'var(--color-purple)', bg: 'var(--color-purple-bg)' };
+    case 'danger':
+      return { color: '#DC2626', bg: '#FEE2E2' };
+    case 'warning':
+      return { color: '#D97706', bg: '#FEF3C7' };
+    case 'info':
+      return { color: '#2563EB', bg: '#EFF6FF' };
+    case 'purple':
+      return { color: '#7C3AED', bg: '#F3E8FF' };
     default:
       return { color: 'var(--color-subtle)', bg: 'var(--color-border-soft)' };
   }
 }
 
-function statusLabel(status: string): string {
-  const normalized = (status || '').toLowerCase().replace(/[\s_-]+/g, '');
-  switch (normalized) {
-    case 'draft':
-    case 'dispatched':
-      return 'SCHEDULED';
-    case 'atpickup':
-      return 'LOADING';
-    case 'intransit':
-      return 'IN TRANSIT';
-    case 'atdelivery':
-    case 'completed':
-      return 'COMPLETED';
-    case 'invoiced':
-      return 'INVOICED';
-    case 'cancelled':
-      return 'CANCELLED';
-    default:
-      return status.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+function statusLabel(status: string, workflowState?: string | null): string {
+  const display = getTripDisplayStatus(status, workflowState);
+  if (display.workflowLabel) {
+    return `${display.label.toUpperCase()} (${display.workflowLabel.toUpperCase()})`;
   }
+  return display.label.toUpperCase();
 }
 
 const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>
@@ -467,40 +462,76 @@ export default function TripDetailsPage() {
   const balanceAmount = totalAmount - (chargesTotal + driverCharge);
   const totalTripBilling = totalAmount;
 
-  const dropoffDone = !!dropoff?.actual_arrival;
+  const dropoffDone = !!(dropoff?.actual_departure || dropoff?.actual_arrival);
+  const ws = (trip.driver_workflow_state || '').toUpperCase();
+  const isTripDelayed = trip.status === 'Delayed';
+  const pickupDone = !!(pickup?.actual_departure || pickup?.actual_arrival);
 
-  // Activity checkpoints
+  // Activity checkpoints incorporating TripStatus, driver_workflow_state, and TripStop timestamps
   let timelineSteps: { key: string; label: string; time: string | null; sub?: string; done: boolean }[] = [];
   if (trip.stops && trip.stops.length >= 3) {
     timelineSteps = [
-      { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
+      { key: 'created', label: 'Trip Created', time: trip.createdAt, done: true },
+      ...(ws === 'GOING_TO_PICKUP' || pickupDone ? [{
+        key: 'going_pickup',
+        label: 'En Route to Pickup',
+        time: null,
+        done: pickupDone,
+      }] : []),
       ...trip.stops.flatMap((stgStop, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === trip.stops!.length - 1;
         const defaultLabel = isFirst ? 'Pickup' : isLast ? 'Destination' : `Stop ${idx}`;
         const nameStr = resolveStopName(stgStop, defaultLabel);
         return [
-          { key: `arr_${stgStop.id}`, label: `Arrived at ${nameStr}`, time: stgStop.actual_arrival || null, done: !!stgStop.actual_arrival },
-          { key: `dep_${stgStop.id}`, label: `Departed ${nameStr}`, time: stgStop.actual_departure || null, done: !!stgStop.actual_departure },
+          { key: `arr_${stgStop.id}`, label: isFirst ? `Arrived at Pickup (${nameStr})` : `Arrived at ${nameStr}`, time: stgStop.actual_arrival || null, done: !!stgStop.actual_arrival },
+          { key: `dep_${stgStop.id}`, label: isFirst ? `Loaded & Departed (${nameStr})` : `Departed ${nameStr}`, time: stgStop.actual_departure || null, done: !!stgStop.actual_departure },
         ];
       }),
-      { key: 'completed_trip', label: 'Trip completed', time: trip.actual_end || (trip.status === 'Completed' ? trip.updatedAt : null), done: trip.status === 'Completed' || trip.status === 'Invoiced' }
+      { key: 'completed_trip', label: 'Trip Completed', time: trip.actual_end || (trip.status === 'Completed' ? trip.updatedAt : null), done: trip.status === 'Completed' || trip.status === 'Invoiced' }
     ];
   } else {
+    const isEnRouteToPickup = ws === 'GOING_TO_PICKUP';
     timelineSteps = [
-      { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
+      { key: 'created', label: 'Trip Created & Scheduled', time: trip.createdAt, done: true },
+      {
+        key: 'going_pickup',
+        label: 'En Route to Pickup',
+        time: null,
+        sub: isEnRouteToPickup ? 'Driver heading to pickup location' : undefined,
+        done: pickupDone,
+      },
+      {
+        key: 'loading_pickup',
+        label: 'Arrived at Pickup & Loading',
+        time: pickup?.actual_arrival || null,
+        sub: trip.status === 'Loading' ? 'Loading cargo onto truck' : undefined,
+        done: pickupDone,
+      },
       {
         key: 'departed',
-        label: 'Departed from pickup',
-        time: pickup?.actual_departure || pickup?.actual_arrival || null,
-        done: !!(pickup?.actual_departure || pickup?.actual_arrival),
+        label: 'Loaded & Departed Pickup',
+        time: pickup?.actual_departure || null,
+        done: !!pickup?.actual_departure || trip.status === 'InTransit' || trip.status === 'Completed' || trip.status === 'Invoiced',
       },
-      { key: 'transit', label: 'In transit', time: null, sub: 'On the way to destination', done: dropoffDone },
+      {
+        key: 'transit',
+        label: 'In Transit to Destination',
+        time: null,
+        sub: isTripDelayed ? 'Operational Delay Reported' : 'On the way to destination',
+        done: dropoffDone || trip.status === 'Completed' || trip.status === 'Invoiced',
+      },
       {
         key: 'arrived',
-        label: dropoffDone ? 'Reached destination' : 'Expected arrival',
+        label: dropoffDone ? 'Reached Destination' : 'Destination Arrival',
         time: dropoff?.actual_arrival || dropoff?.planned_arrival || null,
-        done: dropoffDone,
+        done: dropoffDone || trip.status === 'Completed' || trip.status === 'Invoiced',
+      },
+      {
+        key: 'completed',
+        label: 'Delivery Completed & POD Verified',
+        time: trip.actual_end || (trip.status === 'Completed' ? trip.updatedAt : null),
+        done: trip.status === 'Completed' || trip.status === 'Invoiced',
       },
     ];
   }
@@ -513,7 +544,7 @@ export default function TripDetailsPage() {
     return 'pending';
   });
 
-  const tone = statusTone(trip.status);
+  const tone = statusTone(trip.status, trip.driver_workflow_state);
 
   // Route header text
   const pickupCityName = pickup ? resolveStopName(pickup, 'Pickup') : 'Origin';

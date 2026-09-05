@@ -58,6 +58,7 @@ import CompanyTripKanbanBoard from '@/components/trips/kanban/CompanyTripKanbanB
 import QuickAssignModal from '@/components/trips/QuickAssignModal';
 import { reverseGeocode } from '@/services/addressSearch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getTripDisplayStatus, normalizeTripStatus } from '@/utils/tripStatus';
 import {
   Select,
   SelectContent,
@@ -654,13 +655,12 @@ export default function DashboardPage() {
     return baseTripsForKanban.filter((t) => {
       // 1. Status filter (Active tracking statuses)
       if (selectedStatusFilter !== 'all') {
+        const display = getTripDisplayStatus(t.status, (t as any).driver_workflow_state, t.planned_end);
         if (selectedStatusFilter === 'Delayed') {
-          const isDelayed =
-            ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
-            t.planned_end != null &&
-            new Date(t.planned_end).getTime() < Date.now();
-          if (!isDelayed) return false;
-        } else if (t.status !== selectedStatusFilter) {
+          if (!display.isDelayed) return false;
+        } else if (selectedStatusFilter === 'Scheduled') {
+          if (display.status !== 'Scheduled' && display.status !== 'Draft') return false;
+        } else if (display.status !== selectedStatusFilter && t.status !== selectedStatusFilter) {
           return false;
         }
       }
@@ -719,41 +719,10 @@ export default function DashboardPage() {
       const customerName = t.customer?.name || 'Saudi Aramco Logistics';
       const price = t.billing_amount ?? t.trip_charges ?? t.rateCard?.base_price ?? (t.planned_distance ? t.planned_distance * 3 : 2450);
 
-      let mappedStatus = 'In Transit';
-      let progress = 65;
-      let eta = '2h 15m';
-
-      const nowMs = Date.now();
-      const isDelayed =
-        ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
-        t.planned_end != null &&
-        new Date(t.planned_end).getTime() < nowMs;
-
-      if (isDelayed) {
-        mappedStatus = 'Delayed';
-        progress = 85;
-        eta = 'Delayed';
-      } else if (t.status === 'Draft') {
-        mappedStatus = 'Scheduled';
-        progress = 0;
-        eta = 'Pending';
-      } else if (t.status === 'Dispatched' || t.status === 'AtPickup') {
-        mappedStatus = 'Loading';
-        progress = 35;
-        eta = 'Loading';
-      } else if (t.status === 'InTransit' || t.status === 'AtDelivery') {
-        mappedStatus = 'In Transit';
-        progress = 75;
-        eta = '2h 45m';
-      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
-        mappedStatus = 'Completed';
-        progress = 100;
-        eta = 'Done';
-      } else if (t.status === 'Cancelled') {
-        mappedStatus = 'Cancelled';
-        progress = 0;
-        eta = 'Cancelled';
-      }
+      const display = getTripDisplayStatus(t.status, (t as any).driver_workflow_state, t.planned_end, t.planned_start);
+      const mappedStatus = display.label;
+      const progress = display.progress;
+      const eta = display.etaText;
 
       const coords = t.stops?.[0]?.location_lat && t.stops?.[0]?.location_lng
         ? [t.stops[0].location_lat, t.stops[0].location_lng] as [number, number]
@@ -846,10 +815,10 @@ export default function DashboardPage() {
 
         if (selectedStatusFilter === 'Delayed') {
           if (currentStatus !== 'Delayed' && raw !== 'Delayed') return false;
-        } else if (selectedStatusFilter === 'Dispatched' || selectedStatusFilter === 'Draft') {
-          if (currentStatus !== 'Scheduled' && raw !== 'Draft' && raw !== 'Dispatched') return false;
-        } else if (selectedStatusFilter === 'AtPickup') {
-          if (currentStatus !== 'Loading' && raw !== 'AtPickup') return false;
+        } else if (selectedStatusFilter === 'Scheduled' || selectedStatusFilter === 'Dispatched' || selectedStatusFilter === 'Draft') {
+          if (currentStatus !== 'Scheduled' && currentStatus !== 'Draft' && raw !== 'Scheduled' && raw !== 'Draft' && raw !== 'Dispatched') return false;
+        } else if (selectedStatusFilter === 'Loading' || selectedStatusFilter === 'AtPickup') {
+          if (currentStatus !== 'Loading' && raw !== 'Loading' && raw !== 'AtPickup') return false;
         } else if (selectedStatusFilter === 'InTransit') {
           if (currentStatus !== 'In Transit' && raw !== 'InTransit') return false;
         } else if (selectedStatusFilter === 'AtDelivery' || selectedStatusFilter === 'Completed') {

@@ -61,6 +61,7 @@ import thirdPartyRoutes from './routes/thirdPartyRoutes';
 import geocodingRoutes from './routes/geocodingRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
+import { initTripDelayMonitor } from './services/tracking/tripDelayMonitor';
 
 import helmet from 'helmet';
 // @ts-ignore
@@ -230,6 +231,7 @@ app.use((err: Error, req: Request, res: Response, next: express.NextFunction) =>
 
 // Initialize Background Workers
 initFleetTracking();
+initTripDelayMonitor();
 
 httpServer.listen(port, () => {
   logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
