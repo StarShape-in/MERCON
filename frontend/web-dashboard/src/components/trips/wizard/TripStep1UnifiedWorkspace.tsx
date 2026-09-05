@@ -1,4 +1,5 @@
 import React from 'react';
+import { Truck } from 'lucide-react';
 import { CustomerSelectionHeader } from './CustomerSelectionHeader';
 import { RecentRoutesAccelerator } from './RecentRoutesAccelerator';
 import { RouteWorkspace } from './RouteWorkspace';
@@ -130,6 +131,23 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
 
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
+      {/* PAGE TITLE DIRECTLY ABOVE WORKSPACE & CUSTOMER SELECTION */}
+      <div className="flex items-center justify-between gap-3 pb-1 border-b border-slate-200/70 dark:border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/50 text-brand grid place-items-center border border-orange-200/80 dark:border-orange-900/60 shadow-2xs">
+            <Truck className="w-4 h-4 text-brand" />
+          </div>
+          <div>
+            <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+              Create New Trip
+            </h1>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              Dispatch & Operational Quotation Setup
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 66% / 33% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
