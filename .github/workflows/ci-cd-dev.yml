@@ -3,6 +3,7 @@ name: CI/CD Pipeline (Dev)
 on:
   push:
     branches: [ "dev" ]
+  workflow_dispatch:
 
 # See ci-cd.yml for why this exists: this runner queued overlapping runs on
 # rapid successive pushes, and each one's actions/checkout download piled on
@@ -19,6 +20,14 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Free Disk Space (Pre-checkout)
+        run: |
+          echo "Freeing disk space on self-hosted runner before git checkout..."
+          docker builder prune -af 2>/dev/null || true
+          docker image prune -af 2>/dev/null || true
+          docker system prune -f 2>/dev/null || true
+          df -h / || true
+
       # Native git instead of actions/checkout — see ci-cd.yml for why: this
       # runner's work directory persists between runs, so the marketplace
       # action bundle was being re-downloaded from codeload.github.com on
