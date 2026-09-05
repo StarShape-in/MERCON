@@ -154,16 +154,16 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               type="button"
               disabled={!canNavigateToStep(s.step)}
               onClick={() => setContractStep(s.step)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 isActive
-                  ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                  ? 'bg-orange-50/90 text-brand border border-orange-200/90 font-black shadow-2xs'
                   : isPassed
-                  ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
+                  ? 'bg-orange-50/50 text-brand border border-orange-200/60 hover:bg-orange-100/60'
                   : 'bg-white dark:bg-slate-800 text-[#6E6E80] border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
               }`}
             >
               {IconComp && (
-                <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-brand' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
               )}
               <span>{s.label}</span>
               {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}

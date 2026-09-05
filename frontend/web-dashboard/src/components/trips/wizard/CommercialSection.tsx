@@ -177,7 +177,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   const selectedCust = customers.find((c) => c.id === contractCustomer);
 
   return (
-    <div className="p-3 rounded-2xl border-2 border-orange-200/80 dark:border-orange-900/60 bg-white dark:bg-slate-900 shadow-xs space-y-2.5 text-[#3E3C3D]">
+    <div className="p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5 text-[#3E3C3D]">
       {/* UNIFIED SINGLE HEADER: CUSTOMER ACCOUNT & COMMERCIAL QUOTATIONS */}
       <div className="space-y-2 pb-2 border-b border-slate-100 dark:border-slate-800">
         
@@ -512,54 +512,53 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         });
                       }}
                       className={cn(
-                        "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-full min-h-[104px]",
+                        "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-full min-h-[110px]",
                         isSelected
                           ? "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                       )}
                     >
+                      {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                          {rc.quotation_number || `QUO-${idx + 1}`}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {!hasHistory && (
-                            <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60">
-                              ✨ New Rate
-                            </span>
-                          )}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
+                            {rc.quotation_number || `QUO-${idx + 1}`}
+                          </span>
                           {isSelected && (
-                            <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
+                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80">
                               Applied ✓
                             </span>
                           )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
-                          SAR {Number(rateVal).toLocaleString()}
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-medium truncate">
-                          {rCat} • <span className="font-bold text-slate-700 dark:text-slate-300">{vClass}</span>
-                        </div>
-                      </div>
-
-                      {hasHistory && (
-                        <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
-                          <span className="shrink-0">👤</span>
-                          <span className="truncate">{rc.driver_name || rc.recent_driver || 'Recent Driver'}</span>
-                          {(rc.vehicle_plate || rc.recent_vehicle) && (
-                            <span className="font-mono font-bold text-slate-500 shrink-0">({rc.vehicle_plate || rc.recent_vehicle})</span>
+                          {!hasHistory && !isSelected && (
+                            <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.5 rounded-full border border-orange-200/70">
+                              ✨ New Rate
+                            </span>
                           )}
                         </div>
-                      )}
 
-                      <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
-                        <span className="truncate max-w-[130px] font-medium" title={`${origName || 'Origin'} → ${destName || 'Destination'}`}>
-                          {origName || 'Origin'} → {destName || 'Destination'}
+                        {/* PRICE BADGE */}
+                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
+                          SAR {Number(rateVal).toLocaleString()}
                         </span>
-                        <span className={cn("font-bold shrink-0", isSelected ? "text-brand" : "text-slate-500")}>
+                      </div>
+
+                      {/* HERO CENTER: PROMINENT LOCATION ROUTE LANE */}
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-1.5 my-0.5">
+                        <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[45%]" title={origName}>
+                          {origName || 'Origin'}
+                        </span>
+                        <span className="text-[#FA634E] font-bold text-xs shrink-0">→</span>
+                        <span className="text-xs font-black text-[#FA634E] truncate max-w-[45%]" title={destName}>
+                          {destName || 'Destination'}
+                        </span>
+                      </div>
+
+                      {/* BOTTOM ROW: LINE TYPE & VEHICLE CLASS + ACTION */}
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold pt-0.5">
+                        <span className="truncate">
+                          {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
+                        </span>
+                        <span className={cn("font-black shrink-0", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
                           {isSelected ? 'Active' : 'Apply →'}
                         </span>
                       </div>
@@ -587,7 +586,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     const rateVal = rc.rate ?? rc.base_price ?? 0;
                     const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                     const rCat = rc.rate_category || rc.line_type || contractRateCategory;
-                    const hasHistory = Boolean(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle);
 
                     const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
                     const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
@@ -646,54 +644,48 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                           });
                         }}
                         className={cn(
-                          "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-[calc(33.333%-8px)] min-w-[210px] shrink-0 min-h-[104px]",
+                          "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-[calc(33.333%-8px)] min-w-[210px] shrink-0 min-h-[110px]",
                           isSelected
                             ? "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
                             : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                         )}
                       >
+                        {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                            {rc.quotation_number || `QUO-${idx + 1}`}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {!hasHistory && (
-                              <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full border border-orange-200/70 dark:border-orange-900/60">
-                                ✨ New Rate
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
+                              {rc.quotation_number || `QUO-${idx + 1}`}
+                            </span>
                             {isSelected && (
-                              <span className="text-[9px] font-extrabold text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.2 rounded-full">
+                              <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80">
                                 Applied ✓
                               </span>
                             )}
                           </div>
-                        </div>
 
-                        <div>
-                          <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
+                          {/* PRICE BADGE */}
+                          <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
                             SAR {Number(rateVal).toLocaleString()}
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-medium truncate">
-                            {rCat} • <span className="font-bold text-slate-700 dark:text-slate-300">{vClass}</span>
-                          </div>
+                          </span>
                         </div>
 
-                        {hasHistory && (
-                          <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700 truncate">
-                            <span className="shrink-0">👤</span>
-                            <span className="truncate">{rc.driver_name || rc.recent_driver || 'Recent Driver'}</span>
-                            {(rc.vehicle_plate || rc.recent_vehicle) && (
-                              <span className="font-mono font-bold text-slate-500 shrink-0">({rc.vehicle_plate || rc.recent_vehicle})</span>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="pt-1 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-slate-400 gap-1">
-                          <span className="truncate max-w-[130px] font-medium" title={`${origName || 'Origin'} → ${destName || 'Destination'}`}>
-                            {origName || 'Origin'} → {destName || 'Destination'}
+                        {/* HERO CENTER: PROMINENT LOCATION ROUTE LANE */}
+                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-1.5 my-0.5">
+                          <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[45%]" title={origName}>
+                            {origName || 'Origin'}
                           </span>
-                          <span className={cn("font-bold shrink-0", isSelected ? "text-brand" : "text-slate-500")}>
+                          <span className="text-[#FA634E] font-bold text-xs shrink-0">→</span>
+                          <span className="text-xs font-black text-[#FA634E] truncate max-w-[45%]" title={destName}>
+                            {destName || 'Destination'}
+                          </span>
+                        </div>
+
+                        {/* BOTTOM ROW: LINE TYPE & VEHICLE CLASS + ACTION */}
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold pt-0.5">
+                          <span className="truncate">
+                            {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
+                          </span>
+                          <span className={cn("font-black shrink-0", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
                             {isSelected ? 'Active' : 'Apply →'}
                           </span>
                         </div>

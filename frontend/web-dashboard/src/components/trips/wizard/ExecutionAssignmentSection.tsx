@@ -50,13 +50,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   const selectedVehicleObj = vehicleOptions.find((v) => v.value === masterVehicle);
 
   return (
-    <div className="p-3 rounded-xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
-      <div className="flex items-center justify-between pb-1.5 border-b border-emerald-100 dark:border-emerald-900">
-        <h4 className="text-xs font-extrabold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
-          <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> ASSIGNMENT
+    <div className="p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
+      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+        <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+          <Truck className="w-3.5 h-3.5 text-[#FA634E] shrink-0" /> ASSIGNMENT
         </h4>
         {/* ASSIGNMENT MODE TOGGLE */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
           <button
             type="button"
             onClick={() => setAssignmentType('own')}
@@ -222,14 +222,14 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 ) : null;
 
                 return (
-                  <div className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 text-center flex flex-col items-center justify-center space-y-1.5 relative border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 shadow-xs animate-fade-in transition-all duration-300">
+                  <div className="w-full py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 text-center flex flex-col items-center justify-center space-y-1.5 relative shadow-2xs animate-fade-in transition-all duration-300">
                     {/* CENTERED PROFILE AVATAR */}
                     <DriverAvatar
                       src={avatarUrl}
                       firstName={firstName}
                       lastName={lastName}
                       size="lg"
-                      className="border-2 border-[#FA634E] shadow-2xs mx-auto"
+                      className="border-2 border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
                     />
 
                     {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
