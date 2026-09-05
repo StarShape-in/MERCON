@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, CheckCircle2 } from 'lucide-react';
+import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, ShieldCheck, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { KbdBadge } from '@/components/ui/KbdBadge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 
 interface TripReviewConfirmModalProps {
@@ -57,7 +58,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Resolve Customer Name
+  // Resolve Customer Name & Object
   const customerObj = customers.find((c) => c.id === contractCustomer || c.name === contractCustomer);
   const customerName = customerObj?.name || contractCustomer || 'Unspecified Customer';
 
@@ -65,7 +66,8 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   const primarySlot = contractSlots[0] || {};
   const originName = primarySlot.originName || primarySlot.origin || 'Origin';
   const destName = primarySlot.destinationName || primarySlot.destination || 'Destination';
-  const rateCategory = primarySlot.rateCategory || 'Standard';
+  const intermediates: string[] = primarySlot.intermediates || [];
+  const rateCategory = primarySlot.rateCategory || 'Single Trip';
 
   // Calculate Totals
   const totalOperatingDays = selectedDates.length || 1;
@@ -76,7 +78,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
   // Helper to safely resolve Driver Name & Avatar (NEVER returns a raw UUID)
   const resolveDriverDisplay = (dId: string) => {
-    if (!dId) return { name: 'Primary Fleet Driver', avatar: null, firstName: 'Driver', lastName: '' };
+    if (!dId) return { name: 'Primary Fleet Driver', avatar: null, firstName: 'Driver', lastName: '', phone: '', status: '' };
     const dObj = drivers.find((d) => d.id === dId || d.ref_id === dId || d.uuid === dId);
     if (dObj) {
       const fullName = `${dObj.first_name || ''} ${dObj.last_name || ''}`.trim() || dObj.name;
@@ -86,13 +88,15 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           avatar: dObj.avatar_url || dObj.photo_url || dObj.avatarUrl || null,
           firstName: dObj.first_name || fullName.split(' ')[0],
           lastName: dObj.last_name || fullName.split(' ')[1] || '',
+          phone: dObj.phone_primary || dObj.phone || '',
+          status: dObj.status || 'Available',
         };
       }
     }
     if (!isUuidString(dId)) {
-      return { name: dId, avatar: null, firstName: dId.split(' ')[0], lastName: dId.split(' ')[1] || '' };
+      return { name: dId, avatar: null, firstName: dId.split(' ')[0], lastName: dId.split(' ')[1] || '', phone: '', status: '' };
     }
-    return { name: 'Assigned Driver', avatar: null, firstName: 'Driver', lastName: '' };
+    return { name: 'Assigned Driver', avatar: null, firstName: 'Driver', lastName: '', phone: '', status: '' };
   };
 
   // Helper to safely resolve Vehicle Plate (NEVER returns a raw UUID)
@@ -126,23 +130,30 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   const rosterPairs = Array.from(assignedPairsMap.values());
 
   return (
-    <div className="fixed inset-0 z-[999] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[999] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden text-[#3E3C3D] dark:text-slate-200 animate-scale-in">
         
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h3 className="text-base font-black text-slate-900 dark:text-white">
-              Confirm Trip Dispatch
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {totalTripsCount} Trip{totalTripsCount > 1 ? 's' : ''} • {contractBillingType} Contract
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-[#FA634E] flex items-center justify-center font-bold shrink-0 border border-orange-100 dark:border-orange-900/60">
+              <ShieldCheck className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                Confirm Trip Dispatch
+              </h3>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                {totalTripsCount} Trip{totalTripsCount > 1 ? 's' : ''} Ready • <span className="text-[#FA634E] font-bold">{contractBillingType} Contract</span>
+              </p>
+            </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close (Esc)"
           >
             <X className="w-4.5 h-4.5" />
           </button>
@@ -152,57 +163,87 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
         <div className="p-6 space-y-4">
 
           {/* MINIMAL ROUTE PATH BANNER */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-xs font-black text-slate-900 dark:text-white truncate">
-                {originName}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-[#FA634E]" /> Commercial Lane
+              </span>
+              <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-mono">
+                {rateCategory}
               </span>
             </div>
 
-            <div className="flex-1 flex items-center justify-center px-2">
-              <div className="w-full flex items-center gap-1.5">
-                <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
-                <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
-                  {rateCategory}
+            <div className="flex items-center justify-between gap-3 pt-0.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                  {originName}
                 </span>
-                <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
+              </div>
+
+              {/* Arrow Indicator */}
+              <div className="flex-1 flex items-center justify-center px-2">
+                <div className="w-full flex items-center gap-1.5">
+                  <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+                  <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-black text-slate-900 dark:text-white truncate">
+                  {destName}
+                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs font-black text-slate-900 dark:text-white truncate">
-                {destName}
-              </span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
-            </div>
+            {/* Intermediate Stops list if present */}
+            {intermediates.length > 0 && (
+              <div className="flex items-center gap-1.5 pt-1 text-[10px] text-slate-500 overflow-x-auto">
+                <span className="font-bold text-slate-400">Via:</span>
+                {intermediates.map((stop, idx) => (
+                  <span key={idx} className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300">
+                    {stop}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 2-COLUMN OPERATIONAL DETAILS LEDGER */}
           <div className="grid grid-cols-2 gap-y-3.5 gap-x-4 py-1 text-xs">
             <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Customer</span>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-slate-400" /> Customer
+              </span>
               <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">
                 {customerName}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Contract Class</span>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                <Tag className="w-3 h-3 text-slate-400" /> Contract Class
+              </span>
               <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">
                 {contractBillingType} • {contractVehicleType}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Schedule</span>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-slate-400" /> Schedule
+              </span>
               <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">
                 {selectedMonth || 'Active Month'} ({totalOperatingDays} Day{totalOperatingDays > 1 ? 's' : ''})
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Fleet Model</span>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                <Truck className="w-3 h-3 text-slate-400" /> Fleet Model
+              </span>
               <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">
                 {assignmentType === 'third_party'
                   ? '3PL Logistics Partner'
@@ -263,9 +304,16 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                   size="sm"
                 />
                 <div className="min-w-0 flex-1">
-                  <span className="font-black text-slate-900 dark:text-white truncate block text-xs">
-                    {primaryDriverInfo.name}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-slate-900 dark:text-white truncate block text-xs">
+                      {primaryDriverInfo.name}
+                    </span>
+                    {primaryDriverInfo.phone && (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        ({primaryDriverInfo.phone})
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] font-mono text-[#FA634E] font-bold block truncate">
                     {primaryVehiclePlate}
                   </span>
@@ -301,9 +349,10 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="h-9 px-4 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 cursor-pointer"
+            className="h-9 px-4 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 cursor-pointer gap-1.5"
           >
-            Back to Edit
+            <span>Back to Edit</span>
+            <KbdBadge keys="Esc" />
           </Button>
           <Button
             type="button"
@@ -316,7 +365,8 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                Confirm & Dispatch Trips
+                <span>Confirm & Dispatch</span>
+                <KbdBadge keys="Ctrl+Enter" />
               </>
             )}
           </Button>
