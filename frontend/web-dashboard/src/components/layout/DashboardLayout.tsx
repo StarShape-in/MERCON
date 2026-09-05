@@ -40,7 +40,7 @@ export default function DashboardLayout({
     if (isInsideShell) {
       setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, hideHeader, onBackClick, fixedViewport });
     }
-  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, hideHeader, onBackClick]);
+  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, hideHeader, onBackClick, fixedViewport]);
 
   if (isInsideShell) {
     // Shell is already rendering the sidebar/header — just return the content.

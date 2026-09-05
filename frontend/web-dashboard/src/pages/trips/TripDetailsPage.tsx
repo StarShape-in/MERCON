@@ -184,7 +184,7 @@ export default function TripDetailsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout active="Trips" title="Trip Details" fixedViewport>
+      <DashboardLayout active="Trips" title="Trip Details">
         <div className="h-full flex flex-col justify-between p-4 space-y-3">
           <Skeleton className="h-12 w-full rounded-xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
@@ -201,7 +201,7 @@ export default function TripDetailsPage() {
 
   if (isError || !trip) {
     return (
-      <DashboardLayout active="Trips" title="Trip Details" fixedViewport>
+      <DashboardLayout active="Trips" title="Trip Details">
         <div className="h-full flex flex-col items-center justify-center text-center gap-3 p-4">
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-lg font-bold text-[#1F2937]">Failed to Load Trip</h2>
@@ -268,7 +268,7 @@ export default function TripDetailsPage() {
   return (
     <DashboardLayout active="Trips" title="Trip Details">
       {/* Page Layout Container — Clean, fully visible, and scrollable when needed */}
-      <div className="flex flex-col gap-3 px-3 sm:px-6 pb-10 pt-0.5 max-w-[1720px] mx-auto w-full bg-[#F8FAFC]">
+      <div className="flex flex-col gap-3 px-3 sm:px-6 pb-24 pt-0.5 max-w-[1720px] mx-auto w-full bg-[#F8FAFC]">
 
         {/* ── 1. STANDALONE TRIP HEADER (Directly on page, no card wrapper) ── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 px-1 py-1">
