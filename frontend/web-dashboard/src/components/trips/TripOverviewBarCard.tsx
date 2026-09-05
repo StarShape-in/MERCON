@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 interface TripOverviewBarCardProps {
   trip: any;
   onViewAllAlerts?: () => void;
+  onPreviewImage?: (img: { url: string; title: string }) => void;
 }
 
 function resolveFileUrl(url?: string | null): string {
@@ -24,12 +25,12 @@ function resolveFileUrl(url?: string | null): string {
 }
 
 const DEFAULT_ALERTS = [
-  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true },
-  { id: '2', label: 'Est. delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true },
-  { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false },
+  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true, image: '/evidence/og_stop.png' },
+  { id: '2', label: 'Est. delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true, image: '/evidence/02_stop.png' },
+  { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false, image: '/evidence/05_return_stop.png' },
 ];
 
-export default function TripOverviewBarCard({ trip, onViewAllAlerts }: TripOverviewBarCardProps) {
+export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewImage }: TripOverviewBarCardProps) {
   const navigate = useNavigate();
 
   // 1. Vehicle info (Truck No & Ton)
@@ -154,72 +155,84 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts }: TripOverv
       </div>
 
       {/* ── COL 4: DELAY ALERTS — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex flex-col justify-between min-w-0">
-        {/* Alerts Header */}
-        <div className="flex items-center justify-between pb-1 border-b border-[#F3F4F6]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-4.5 h-4.5 rounded bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-              <AlertTriangle size={12} className="stroke-[2.5]" />
-            </div>
-            <span className="font-black text-[12px] text-[#111827] tracking-tight truncate">
-              Delay Alerts
-            </span>
-            {hasAlerts && (
-              <span className="w-4 h-4 rounded-full bg-rose-500 text-white font-black text-[10px] flex items-center justify-center">
-                {alerts.length}
-              </span>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onViewAllAlerts}
-            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
-          >
-            <span>View All</span>
-            <ChevronRight size={12} className="stroke-[2.5]" />
-          </button>
+      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
+        {/* 3D Delay Alert Image (matching Truck, Driver, Company) */}
+        <div
+          onClick={() => onPreviewImage && onPreviewImage({ url: '/delay_alert_3d.png', title: 'Delay Traffic Alert' })}
+          className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs cursor-pointer group hover:border-amber-400 transition-colors"
+          title="Click to view delay alert"
+        >
+          <img
+            src="/delay_alert_3d.png"
+            alt="Delay Alert"
+            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+          />
         </div>
 
-        {/* Alerts List */}
-        <div className="space-y-1 pt-1">
-          {hasAlerts ? (
-            alerts.slice(0, 3).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-center justify-between text-[10.5px] leading-tight"
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      alert.severe ? 'bg-rose-500' : 'bg-amber-500'
-                    }`}
-                  />
-                  <span className="font-bold text-[#374151] truncate max-w-[110px]">
-                    {alert.label}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={`font-mono font-black ${
-                      alert.severe ? 'text-rose-600' : 'text-amber-600'
-                    }`}
-                  >
-                    {alert.delay}
-                  </span>
-                  <span className="font-mono text-[9.5px] font-bold text-[#6B7280]">
-                    {alert.time}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="flex items-center gap-1.5 py-1 text-emerald-600 text-xs font-bold">
-              <CheckCircle2 size={14} className="stroke-[2.5]" />
-              <span>All stops on schedule</span>
+        <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
+          {/* Alerts Header */}
+          <div className="flex items-center justify-between pb-0.5 border-b border-[#F3F4F6]">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="font-black text-[11px] text-[#111827] tracking-tight truncate">
+                Delay Alerts
+              </span>
+              {hasAlerts && (
+                <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center leading-none shrink-0">
+                  {alerts.length}
+                </span>
+              )}
             </div>
-          )}
+
+            <button
+              type="button"
+              onClick={onViewAllAlerts}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
+            >
+              <span>View All</span>
+              <ChevronRight size={10} className="stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* Alerts List */}
+          <div className="space-y-0.5 pt-0.5">
+            {hasAlerts ? (
+              alerts.slice(0, 2).map((alert) => (
+                <div
+                  key={alert.id}
+                  onClick={() => onPreviewImage && onPreviewImage({ url: alert.image || '/delay_alert_3d.png', title: alert.label })}
+                  className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.2 transition-colors group"
+                  title="Click to view alert photo evidence"
+                >
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        alert.severe ? 'bg-rose-500' : 'bg-amber-500'
+                      }`}
+                    />
+                    <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-blue-600">
+                      {alert.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0 font-mono text-[9.5px]">
+                    <span
+                      className={`font-black ${
+                        alert.severe ? 'text-rose-600' : 'text-amber-600'
+                      }`}
+                    >
+                      {alert.delay}
+                    </span>
+                    <span className="text-[#9CA3AF] text-[9px] font-bold">{alert.time}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-1.5 py-0.5 text-emerald-600 text-[11px] font-bold">
+                <CheckCircle2 size={12} className="stroke-[2.5]" />
+                <span>All stops on schedule</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

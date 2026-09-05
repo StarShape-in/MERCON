@@ -396,6 +396,7 @@ export default function TripDetailsPage() {
           <TripOverviewBarCard
             trip={trip}
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
+            onPreviewImage={(img) => setPreviewImage(img)}
           />
         </div>
 
