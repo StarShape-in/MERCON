@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { openInGoogleMaps } from '../../lib/maps';
 import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,11 +23,12 @@ if (Platform.OS !== 'web') {
     console.warn('react-native-maps load error:', e);
   }
 }
-import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation, Camera, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { DelayReportModal, TripProgressStepper, DelayButton } from '../../components';
+import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 const ARRIVAL_RADIUS_M = 200;
@@ -57,6 +58,8 @@ const LiveNavigationScreen = () => {
   
   const [arriving, setArriving] = useState(false);
   const [delayModalVisible, setDelayModalVisible] = useState(false);
+  const [arrivalPhoto, setArrivalPhoto] = useState<CapturedPhoto | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<any>(null);
 
@@ -88,11 +91,58 @@ const LiveNavigationScreen = () => {
     }
   }, [trip?.stops, isHeadingToPickup, legIndex]);
 
+  const handleAddPhoto = async () => {
+    try {
+      const photo = await choosePhoto();
+      if (photo) {
+        setArrivalPhoto(photo);
+      }
+    } catch (e) {
+      Alert.alert('Camera Error', getApiErrorMessage(e));
+    }
+  };
+
   const goToStop = async () => {
     if (!trip || hasArrivedRef.current) return;
+
+    if (!arrivalPhoto) {
+      Alert.alert(
+        'Arrival Photo Required',
+        'Please capture or attach an arrival photo before confirming arrival.',
+        [
+          { text: 'Add Image 📷', onPress: handleAddPhoto },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     hasArrivedRef.current = true;
     setArriving(true);
     try {
+      if (arrivalPhoto && trip.id) {
+        try {
+          await tripService.uploadPhoto(
+            trip.id,
+            isHeadingToPickup ? 'cargo' : 'pod',
+            {
+              uri: arrivalPhoto.uri,
+              fileName: arrivalPhoto.fileName,
+              mimeType: arrivalPhoto.mimeType,
+              location: arrivalPhoto.location ? {
+                latitude: arrivalPhoto.location.latitude,
+                longitude: arrivalPhoto.location.longitude,
+                timestamp: arrivalPhoto.location.timestamp,
+              } : null,
+            },
+            legIndex,
+            'arrival'
+          );
+        } catch (photoErr) {
+          console.warn('Arrival photo upload warning:', photoErr);
+        }
+      }
+
       if (ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION') {
         await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_RETURN_STOP');
         router.replace({ pathname: '/trip/stop', params: { legIndex: '1' } } as any);
@@ -170,7 +220,7 @@ const LiveNavigationScreen = () => {
           if (activeStop) {
             const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
             setDistanceToTarget(dist);
-            if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current) goToStop();
+            if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current && arrivalPhoto) goToStop();
           }
         },
       );
@@ -345,24 +395,63 @@ const LiveNavigationScreen = () => {
       {/* Bottom Sheet Container */}
       <View style={styles.bottomCardShadow}>
         <View style={[styles.bottomCardInner, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
-          {/* 1. Destination Information Block */}
+          {/* 1. Destination Information Block with Add Photo button */}
           <View style={styles.destinationBlock}>
-            <Text style={styles.destinationLabel}>
-              {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
-            </Text>
-            <Text style={styles.destinationName} numberOfLines={1}>
-              {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
-            </Text>
-            <Text style={styles.destinationAddress} numberOfLines={2}>
-              {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
-            </Text>
+            <View style={styles.destinationRow}>
+              <View style={styles.destinationTextCol}>
+                <Text style={styles.destinationLabel}>
+                  {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
+                </Text>
+                <Text style={styles.destinationName} numberOfLines={1}>
+                  {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
+                </Text>
+                <Text style={styles.destinationAddress} numberOfLines={2}>
+                  {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
+                </Text>
+              </View>
+
+              {/* Photo Upload Tile (Matching user screenshot) */}
+              {arrivalPhoto ? (
+                <View style={styles.photoTileWrapper}>
+                  <TouchableOpacity
+                    style={styles.arrivalPhotoThumbBox}
+                    activeOpacity={0.85}
+                    onPress={() => setPreviewPhoto(arrivalPhoto)}
+                  >
+                    <Image source={{ uri: arrivalPhoto.uri }} style={styles.arrivalPhotoThumb} />
+                    <View style={styles.photoCheckBadge}>
+                      <CheckCircle2 size={11} color="#FFFFFF" strokeWidth={2.5} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.removePhotoBtn}
+                    activeOpacity={0.7}
+                    onPress={() => setArrivalPhoto(null)}
+                  >
+                    <Trash2 size={11} color="#FFFFFF" strokeWidth={2.2} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addArrivalPhotoBtn}
+                  activeOpacity={0.8}
+                  onPress={handleAddPhoto}
+                >
+                  <View style={styles.addPhotoIconCircle}>
+                    <Camera size={18} color="#FA634E" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.addPhotoBtnText}>Add Image</Text>
+                  <Text style={styles.requiredBadge}>Required</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
           <TouchableOpacity
             style={[
               styles.primaryArrivedBtn,
-              { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
+              { backgroundColor: !arrivalPhoto ? '#94A3B8' : (isHeadingToPickup ? '#FA634E' : '#10B981') },
               arriving && { opacity: 0.6 }
             ]}
             activeOpacity={0.88}
@@ -370,7 +459,13 @@ const LiveNavigationScreen = () => {
             disabled={arriving}
           >
             <Text style={styles.primaryArrivedBtnText}>
-              {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
+              {arriving
+                ? 'Updating State…'
+                : !arrivalPhoto
+                ? 'ADD IMAGE TO CONFIRM ARRIVAL'
+                : isHeadingToPickup
+                ? "I'VE ARRIVED AT PICKUP"
+                : "I'VE ARRIVED AT DELIVERY"}
             </Text>
           </TouchableOpacity>
 
@@ -401,6 +496,12 @@ const LiveNavigationScreen = () => {
         tripId={trip?.id ?? null}
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
+      />
+
+      <GeotagPhotoModal
+        visible={!!previewPhoto}
+        photo={previewPhoto ? { uri: previewPhoto.uri, title: 'Arrival Photo Preview', location: previewPhoto.location } : null}
+        onClose={() => setPreviewPhoto(null)}
       />
     </View>
   );
@@ -625,6 +726,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray200,
   },
+  destinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  destinationTextCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
   destinationLabel: {
     fontSize: Typography.xs,
     fontWeight: '700',
@@ -642,6 +752,80 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: 2,
     lineHeight: 18,
+  },
+  addArrivalPhotoBtn: {
+    width: 76,
+    height: 72,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FA634E',
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF5F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  addPhotoIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFEBE8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  addPhotoBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  requiredBadge: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#E11D48',
+    marginTop: 1,
+  },
+  photoTileWrapper: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+  },
+  arrivalPhotoThumbBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  arrivalPhotoThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  photoCheckBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    zIndex: 10,
   },
   navStats: {
     flexDirection: 'row',
