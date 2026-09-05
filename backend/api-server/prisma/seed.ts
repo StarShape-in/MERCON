@@ -22,16 +22,22 @@ async function main() {
   // intentionally omit `password_hash`.
   const defaultPassword = process.env.SEED_ADMIN_PASSWORD ?? 'password123';
   const password_hash = await bcrypt.hash(defaultPassword, 10);
+  const superadmin_password_hash = await bcrypt.hash('superadmin1234', 10);
   const ilan_password_hash = await bcrypt.hash('ilan1234', 10);
 
   const superadmin = await prisma.user.upsert({
     where: { username: 'superadmin' },
-    update: {},
+    update: {
+      password_hash: superadmin_password_hash,
+      role: Role.SuperAdmin,
+      isSuperAdmin: true,
+      isActive: true,
+    },
     create: {
       username: 'superadmin',
       email: 'superadmin@mercon.tech',
       phone: '+966500000000',
-      password_hash,
+      password_hash: superadmin_password_hash,
       name: 'Platform SuperAdmin',
       role: Role.SuperAdmin,
       isActive: true,

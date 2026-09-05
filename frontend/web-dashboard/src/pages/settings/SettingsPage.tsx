@@ -844,20 +844,13 @@ export default function SettingsPage() {
 
             {/* TAB 3: REGION & TIME */}
             {activeTab === 'region' && (
-              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
-                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        Region & Time Config
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        {canEditTimezone
-                          ? 'Set the primary display timezone. Affects dispatch schedules and dates'
-                          : 'Display timezone used across the dashboard (restricted)'}
-                      </CardDescription>
-                    </div>
+                    <Globe className="w-4 h-4 text-brand shrink-0" />
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Region & Time Config
+                    </CardTitle>
                   </div>
                 </CardHeader>
 
@@ -923,34 +916,18 @@ export default function SettingsPage() {
 
             {/* TAB 4: SECURITY */}
             {activeTab === 'security' && (
-              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
-                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        Security & Credentials
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        Update your password and manage security preferences
-                      </CardDescription>
-                    </div>
+                    <Shield className="w-4 h-4 text-brand shrink-0" />
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Security & Credentials
+                    </CardTitle>
                   </div>
                 </CardHeader>
 
                 <form onSubmit={handlePasswordSubmit}>
                   <CardContent className="pt-6 space-y-6">
-                    {/* Security Tip Banner */}
-                    <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/10 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-medium border border-amber-200/50 dark:border-amber-900/30 flex items-start gap-2.5">
-                      <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold">Password Security Requirements</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-normal">
-                          Choose a secure password with at least 6 characters. Use a combination of uppercase letters, numbers, and symbols to ensure maximum security.
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       <div className="space-y-2">
                         <Label htmlFor="cur_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</Label>
@@ -1020,18 +997,13 @@ export default function SettingsPage() {
 
             {/* TAB 5: NOTIFICATIONS */}
             {activeTab === 'notifications' && (
-              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
-                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        Dispatch & System Notifications
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        Choose how and when you receive system alerts and client notifications
-                      </CardDescription>
-                    </div>
+                    <Bell className="w-4 h-4 text-brand shrink-0" />
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Dispatch & System Notifications
+                    </CardTitle>
                   </div>
                 </CardHeader>
 
