@@ -154,11 +154,20 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
   return (
     <>
       <div className="p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-1.5 text-[#3E3C3D] dark:text-slate-100">
-        {/* HEADER: FINANCIAL SUMMARY */}
+        {/* HEADER: FINANCIAL SUMMARY + PROMINENT ADD/MANAGE CHARGES BUTTON */}
         <div className="pb-1 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h4 className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-[#FA634E] shrink-0" /> FINANCIAL SUMMARY
           </h4>
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#FA634E] dark:bg-orange-950/40 dark:hover:bg-orange-900/60 dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/60 text-[10px] font-extrabold transition-all cursor-pointer shadow-2xs active:scale-95"
+          >
+            <Plus className="w-3 h-3 text-[#FA634E] dark:text-orange-400" />
+            <span>{chargeLines.length > 0 ? `Manage Charges (${chargeLines.length})` : 'Add Charges'}</span>
+          </button>
         </div>
 
         {/* METRICS ROWS */}
@@ -185,19 +194,9 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
 
           {/* ROW 3: ADDITIONAL CHARGES */}
           <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-800/40">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Additional Charges
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="text-[10px] font-extrabold text-[#FA634E] hover:text-[#FA634E]/90 flex items-center gap-0.5 cursor-pointer outline-none transition-colors"
-              >
-                <Plus className="w-2.5 h-2.5" />
-                {chargeLines.length > 0 ? `(${chargeLines.length})` : 'Add'}
-              </button>
-            </div>
+            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Additional Charges
+            </span>
             <span className="text-xs font-black font-mono text-[#3E3C3D] dark:text-white">
               SAR {totalAdditionalCharges.toFixed(2)}
             </span>
