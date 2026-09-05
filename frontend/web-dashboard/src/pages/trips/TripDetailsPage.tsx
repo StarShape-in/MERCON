@@ -311,10 +311,6 @@ export default function TripDetailsPage() {
               <span>{createdDateStr}</span>
               <span className="text-[#D1D5DB]">|</span>
               <span>{createdTimeStr}</span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span>Domestic</span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span>General Cargo</span>
             </div>
           </div>
 
