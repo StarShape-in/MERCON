@@ -22,6 +22,7 @@ interface TransitTimeBadgeProps {
   dropoffTime?: string;
   onAutoSetDropoffTime?: (suggestedDropoffTime: string, isOvernight: boolean) => void;
   className?: string;
+  compact?: boolean;
 }
 
 export default function TransitTimeBadge({
@@ -39,6 +40,7 @@ export default function TransitTimeBadge({
   dropoffTime,
   onAutoSetDropoffTime,
   className,
+  compact = false,
 }: TransitTimeBadgeProps) {
   const [estimate, setEstimate] = useState<TravelTimeEstimate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,6 +83,25 @@ export default function TransitTimeBadge({
 
   if (!origin.trim() || !destination.trim()) {
     return null;
+  }
+
+  if (compact) {
+    if (loading) {
+      return (
+        <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-brand text-[10px] font-bold border border-orange-200 dark:border-orange-900/60 animate-pulse shrink-0", className)}>
+          <Clock className="w-3 h-3 text-brand animate-spin" />
+          <span>Est. transit...</span>
+        </span>
+      );
+    }
+    if (!estimate) return null;
+    return (
+      <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-brand text-[10px] font-black border border-orange-200/80 dark:border-orange-900/60 shadow-2xs shrink-0", className)}>
+        <Clock className="w-3 h-3 text-brand shrink-0" />
+        <span>Transit: {estimate.durationText}</span>
+        <span className="text-orange-700/80 dark:text-orange-300/80 font-bold ml-0.5">({estimate.distanceKm} km)</span>
+      </span>
+    );
   }
 
   if (loading) {

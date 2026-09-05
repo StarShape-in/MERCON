@@ -49,12 +49,12 @@ export const locationService = {
         ...(params?.coordinate_precision ? { coordinate_precision: params.coordinate_precision } : {}),
       },
     });
-    return res.data;
+    return res?.data ?? { success: false, data: [] };
   },
 
   async getById(id: string): Promise<Location> {
     const res = await api.get<ApiResponse<Location>>(`/locations/${id}`);
-    return res.data.data;
+    return res?.data?.data;
   },
 
   async create(payload: CreateLocationPayload): Promise<Location> {

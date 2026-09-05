@@ -32,6 +32,7 @@ interface QuotationRouteDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customerName?: string;
+  onOpenCustomerSurcharges?: () => void;
 }
 
 export function QuotationRouteDrawer({
@@ -39,6 +40,7 @@ export function QuotationRouteDrawer({
   open,
   onOpenChange,
   customerName,
+  onOpenCustomerSurcharges,
 }: QuotationRouteDrawerProps) {
   const navigate = useNavigate();
 
@@ -386,6 +388,16 @@ export function QuotationRouteDrawer({
                 <Tag className="w-3.5 h-3.5 text-amber-500" />
                 Surcharge Rules ({surchargeRules.length})
               </span>
+              {onOpenCustomerSurcharges && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onOpenCustomerSurcharges()}
+                  className="h-6 px-2 text-[11px] font-bold text-[#FA634E] hover:text-[#DF4834] hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-md"
+                >
+                  Manage Surcharges →
+                </Button>
+              )}
             </div>
 
             {surchargeRules.length === 0 ? (

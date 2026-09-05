@@ -45,8 +45,8 @@ export const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter(
 ).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 export const isRoundTripCategory = (cat: string) => {
-  const c = (cat || '').toLowerCase().replace(/_/g, ' ').trim();
-  return c.includes('round');
+  const c = (cat || '').toLowerCase().trim();
+  return c === 'round trip' || c === 'trip/round trip';
 };
 
 export const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {
@@ -232,21 +232,24 @@ export function useCreateTripForm() {
           value: d.id,
           label,
           keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
-          avatar_url: d.avatar_url || (d as any).photo_url || (d as any).profile_picture || (d as any).avatarUrl || (d as any).photoUrl || (d as any).image_url || null,
+          avatar_url: d.avatar_url,
+          avatarUrl: d.avatar_url,
+          first_name: d.first_name,
+          last_name: d.last_name,
           raw: d,
-        };
+        } as ComboboxOption & Record<string, any>;
       });
   }, [drivers, vehicles]);
 
   const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
-  const initialStep = (urlStepParam && [1, 2].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2) : 1;
+  const initialStep = (urlStepParam && [1, 2, 3].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3) : 1;
 
-  const [contractStep, setContractStep] = useState<1 | 2>(initialStep);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('Extra');
+  const [contractBillingType, setContractBillingType] = useState<string>('All');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
@@ -453,6 +456,11 @@ export function useCreateTripForm() {
     setMasterVehicle
   );
 
+  const contractSlotsRef = useRef(contractSlots);
+  useEffect(() => {
+    contractSlotsRef.current = contractSlots;
+  }, [contractSlots]);
+
   const triggerRateLookupForSlots = useCallback(
     (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
@@ -462,10 +470,14 @@ export function useCreateTripForm() {
 
       if (!custId) return;
 
-      import('@/services/quotationService').then(({ quotationService }) => {
-        setContractSlots((prevSlots) => {
-          Promise.all(
-            prevSlots.map(async (slot) => {
+      const currentSlots = contractSlotsRef.current;
+
+      import('@/services/quotationService')
+        .then(async ({ quotationService }) => {
+          const updatedSlots = await Promise.all(
+            currentSlots.map(async (slot) => {
+              // Preserve manually selected quotation cards
+              if (slot.matchedRateCard) return slot;
               if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;
 
               const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
@@ -557,15 +569,19 @@ export function useCreateTripForm() {
                 saveAsRateCard: true,
               };
             })
-          ).then((updatedSlots) => {
-            setContractSlots(updatedSlots);
-          });
+          );
 
-          return prevSlots;
+          // Only update if slots actually changed to avoid unnecessary re-renders
+          const hasChanges = updatedSlots.some((s, idx) => s !== currentSlots[idx]);
+          if (hasChanges) {
+            setContractSlots(updatedSlots);
+          }
+        })
+        .catch((err) => {
+          console.error('Quotation service import error:', err);
         });
-      });
     },
-    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard]
+    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard, setContractSlots]
   );
 
   useEffect(() => {
@@ -598,7 +614,6 @@ export function useCreateTripForm() {
         contractSlots.length > 0 &&
         contractSlots.every(
           (slot) =>
-            slot.date &&
             slot.origin.trim() &&
             slot.destination.trim() &&
             slot.pickupTime &&
@@ -607,16 +622,17 @@ export function useCreateTripForm() {
       );
     }
     if (step === 2) {
-      if (assignmentType === 'own') {
-        return Boolean(masterVehicle && masterVehicle !== 'unassigned');
-      } else {
-        return Boolean(thirdPartyProviderId || thirdPartyVehiclePlate.trim());
+      if (contractBillingType === 'Monthly') {
+        return selectedDates.length > 0;
       }
+      return true;
     }
     return true;
   };
 
   const canNavigateToStep = (targetStep: number): boolean => {
+    const maxSteps = contractBillingType === 'Monthly' ? 3 : 2;
+    if (targetStep > maxSteps) return false;
     if (targetStep <= contractStep) return true;
     for (let s = 1; s < targetStep; s++) {
       if (!isStepValid(s)) return false;
@@ -721,6 +737,7 @@ export function useCreateTripForm() {
     thirdPartyVehiclePlate,
     thirdPartyCost,
     dayAssignments,
+    selectedDates,
     setContractStep,
     setSelectedDates,
     setDayAssignments,
@@ -1069,6 +1086,13 @@ export function useCreateTripForm() {
     restoreDraft,
     discardDraft,
     marginMetrics,
+    customerRateCards,
+    selectedMonth,
+    setSelectedMonth,
+    selectedDates,
+    setSelectedDates,
+    dayAssignments,
+    setDayAssignments,
     getAvailableRateCardsForLane,
     handleOpenCreateQuotation,
     getCompatibilityRuleForClass,

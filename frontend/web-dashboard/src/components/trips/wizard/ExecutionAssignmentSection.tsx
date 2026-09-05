@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Truck, User, ShieldAlert, Plus, Trash2 } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 
 interface ExecutionAssignmentSectionProps {
   assignmentType: 'own' | 'third_party' | '3pl';
@@ -49,13 +50,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   const selectedVehicleObj = vehicleOptions.find((v) => v.value === masterVehicle);
 
   return (
-    <div className="p-3 rounded-xl border border-emerald-200/90 dark:border-emerald-900 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
-      <div className="flex items-center justify-between pb-1.5 border-b border-emerald-100 dark:border-emerald-900">
-        <h4 className="text-xs font-extrabold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
-          <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> ASSIGNMENT
+    <div className="p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5">
+      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+        <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+          <Truck className="w-3.5 h-3.5 text-[#FA634E] shrink-0" /> ASSIGNMENT
         </h4>
         {/* ASSIGNMENT MODE TOGGLE */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
           <button
             type="button"
             onClick={() => setAssignmentType('own')}
@@ -86,15 +87,15 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
           <div className="md:col-span-6 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
-            {/* VEHICLE CLASS / TON DROPDOWN */}
+            {/* VEHICLE CLASS */}
             {setContractVehicleType && (
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  REQUIRED VEHICLE CLASS (TON)
+                  VEHICLE CLASS
                 </label>
                 <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
                   <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <SelectValue placeholder="Select Ton / Vehicle Class..." />
+                    <SelectValue placeholder="Select Vehicle Class..." />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
                     {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
@@ -122,10 +123,10 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               />
             </div>
 
-            {/* VEHICLE ASSET */}
+            {/* VEHICLE */}
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                <span>VEHICLE ASSET {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Pending</span>}</span>
+                <span>VEHICLE {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Pending</span>}</span>
               </label>
               <Combobox
                 options={vehicleOptions}
@@ -175,11 +176,11 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             )}
           </div>
 
-          {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD (2 ROWS UNSELECTED -> 1 EXPANDED ROW SELECTED WITH CORAL RED BORDER) */}
+          {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD */}
           <div className="md:col-span-6 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                {masterDriver ? 'ASSIGNED DRIVER PROFILE' : 'RECOMMENDED DRIVERS'}
+                {masterDriver ? 'ASSIGNED DRIVER' : 'RECOMMENDED DRIVERS'}
               </span>
               {masterDriver && (
                 <button
@@ -194,7 +195,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
             <div className="flex-1 flex flex-col justify-center items-center transition-all duration-300">
               {masterDriver ? (() => {
-                // SINGLE SELECTED DRIVER VIEW (CORAL RED / ORANGE BORDER CARD)
+                // REFINED COMPACT DRIVER VIEW
                 const selectedOpt = driverOptions.find((d) => d.value === masterDriver);
                 const optLabelStr = selectedOpt ? (typeof selectedOpt.label === 'string' ? selectedOpt.label : String(selectedOpt.label || '')) : '';
                 const rawName = optLabelStr.split('(')[0].trim() || 'Assigned Driver';
@@ -203,7 +204,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 const lastName = nameParts.slice(1).join(' ') || '';
 
                 const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
-                const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
                 const avatarUrl = selectedOpt ? (
                   (selectedOpt as any).avatar_url ||
                   (selectedOpt as any).photo_url ||
@@ -221,33 +221,21 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 ) : null;
 
                 return (
-                  <div className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 text-center flex flex-col items-center justify-center space-y-1.5 relative border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 shadow-xs animate-fade-in transition-all duration-300">
-                    <span className="absolute top-2 right-2.5 text-[9px] font-black px-2 py-0.5 rounded-full bg-[#FA634E] text-white shrink-0 shadow-2xs">
-                      Assigned ✓
-                    </span>
-
-                    {/* BIGGER CENTERED PROFILE PIC */}
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={rawName}
-                        className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-[#FA634E] shadow-2xs mx-auto"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full font-black text-base grid place-items-center shrink-0 shadow-2xs mx-auto bg-[#FA634E] text-white">
-                        {initials}
+                  <div className="w-full py-2.5 px-3 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80 text-left flex items-center gap-2.5 shadow-2xs animate-fade-in transition-all">
+                    <DriverAvatar
+                      src={avatarUrl}
+                      firstName={firstName}
+                      lastName={lastName}
+                      size="md"
+                      className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
+                    />
+                    <div className="truncate flex-1 min-w-0">
+                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
+                        {firstName} {lastName}
                       </div>
-                    )}
-
-                    {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
-                    <div className="text-sm font-black text-slate-900 dark:text-slate-100 text-center leading-tight pt-1">
-                      <div className="truncate max-w-full">{firstName}</div>
-                      {lastName && <div className="truncate max-w-full font-bold text-xs text-slate-600 dark:text-slate-400">{lastName}</div>}
-                    </div>
-
-                    {/* TRUCK DETAILS BELOW NAME */}
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-full pt-0.5">
-                      {optDetailsStr || 'Truck: Unassigned'}
+                      <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
+                        {optDetailsStr || 'Truck: Unassigned'}
+                      </div>
                     </div>
                   </div>
                 );
@@ -288,17 +276,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           isFirst ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
                         }`}
                       >
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt={rawName}
-                            className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full font-black text-xs grid place-items-center shrink-0 shadow-2xs mx-auto bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-700 dark:text-slate-200">
-                            {initials}
-                          </div>
-                        )}
+                        <DriverAvatar
+                          src={avatarUrl}
+                          firstName={firstName}
+                          lastName={lastName}
+                          size="md"
+                          className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                        />
 
                         {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
                         <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">

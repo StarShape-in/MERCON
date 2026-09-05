@@ -10,6 +10,7 @@ export interface TripSlot {
   originLocationId?: string | null;
   destinationLocationId?: string | null;
   rateMatched?: boolean;
+  matchedRateCard?: any;
   rateCardId?: string;
   rateCardName?: string;
   rateCardBasePrice?: number;
@@ -42,6 +43,8 @@ export interface TripSlot {
   returnOriginLng?: number | null;
   returnDestinationLat?: number | null;
   returnDestinationLng?: number | null;
+  additionalCharges?: string;
+  chargeLines?: any[];
 }
 
 export function useTripSlotsState() {

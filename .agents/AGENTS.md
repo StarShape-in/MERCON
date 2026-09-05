@@ -224,9 +224,14 @@ Prefer page background, subtle border, section divider, and whitespace before ad
 
 ---
 
-## 10. Typography
+## 10. Typography & Copywriting
 Use a clear hierarchy: Page title -> Section title -> Primary value -> Body -> Supporting metadata.
 Do not use uppercase text everywhere. Uppercase is appropriate for small metadata labels, not major content.
+
+### 10.1 Concise Titles & Zero Subtitle Clutter
+- **No verbose titles or numbered prefixes**: Avoid artificial numbered step prefixes (e.g. `01 · `, `02 · `, `03 · `) or long phrase titles. Keep section titles concise, direct, and minimal (e.g. `Customer`, `Contract Terms`, `Commercial Routes`, `Origin`, `Destination`, `Surcharges`).
+- **No unnecessary paragraph descriptions**: Do not add explanatory subtitle paragraphs under section headers or form cards (e.g. *"Optional extra fees (e.g. Same-Day Delivery, Labor Charges...)"*). Users understand standard logistics terminology without paragraph explanations cluttering the view.
+- **Clean summary cards**: Display clear values (`1 Route`, `10 TON`, `Single Trip`) without redundant supporting metadata descriptions underneath every metric pill.
 
 ---
 

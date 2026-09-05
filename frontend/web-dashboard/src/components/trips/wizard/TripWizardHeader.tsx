@@ -32,11 +32,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface TripWizardHeaderProps {
-  contractStep: 1 | 2;
+  contractStep: number;
+  contractBillingType?: string;
   submissionResult: any;
   isStepValid: (step: number) => boolean;
   canNavigateToStep: (step: number) => boolean;
-  setContractStep: (step: 1 | 2 | ((prev: 1 | 2) => 1 | 2)) => void;
+  setContractStep: React.Dispatch<React.SetStateAction<any>>;
   handleContractSubmit: () => void;
   handleDialogClose: () => void;
   isPending: boolean;
@@ -49,6 +50,7 @@ interface TripWizardHeaderProps {
 
 export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   contractStep,
+  contractBillingType = 'Extra',
   submissionResult,
   isStepValid,
   canNavigateToStep,
@@ -67,10 +69,15 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
 
   if (submissionResult) return null;
 
-  const steps = [
-    { step: 1 as const, label: '1. Configure & Dispatch', icon: MapPin },
-    { step: 2 as const, label: '2. Review & Submit', icon: CheckCircle2 },
-  ];
+  const isMonthly = contractBillingType === 'Monthly';
+  const maxSteps = isMonthly ? 2 : 1;
+
+  const steps = isMonthly
+    ? [
+        { step: 1, label: '1. Configure & Dispatch', icon: MapPin },
+        { step: 2, label: '2. Operating Month & Days', icon: CalendarRange },
+      ]
+    : [{ step: 1, label: '1. Configure & Dispatch', icon: MapPin }];
 
   const quickNavItems = [
     { label: 'Trips Kanban', path: '/trips?view=kanban', icon: Truck, color: 'text-orange-500 bg-orange-50 hover:bg-orange-100 border-orange-200' },
@@ -89,7 +96,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setContractStep((prev) => (prev - 1) as any)}
+            onClick={() => setContractStep((prev: number) => (prev - 1) as any)}
             className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
           >
             <ChevronLeft className="w-3.5 h-3.5 mr-1" />
@@ -192,16 +199,16 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               type="button"
               disabled={!canNavigateToStep(s.step)}
               onClick={() => setContractStep(s.step)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 isActive
-                  ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
+                  ? 'bg-orange-50/90 text-brand border border-orange-200/90 font-black shadow-2xs'
                   : isPassed
-                  ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
+                  ? 'bg-orange-50/50 text-brand border border-orange-200/60 hover:bg-orange-100/60'
                   : 'bg-white dark:bg-slate-800 text-[#6E6E80] border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-600'
               }`}
             >
               {IconComp && (
-                <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-brand' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
               )}
               <span>{s.label}</span>
               {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
@@ -240,12 +247,12 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        {contractStep < 2 ? (
+        {contractStep < maxSteps ? (
           <Button
             id="wizard-next-btn"
             type="button"
             disabled={!isStepValid(contractStep)}
-            onClick={() => setContractStep((prev) => (prev + 1) as any)}
+            onClick={() => setContractStep((prev: number) => (prev + 1) as any)}
             className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
           >
             Next
@@ -267,7 +274,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               </>
             ) : (
               <>
-                Submit Trip <KbdBadge keys="Ctrl+Enter" />
+                Review & Confirm <KbdBadge keys="Ctrl+Enter" />
               </>
             )}
           </Button>
