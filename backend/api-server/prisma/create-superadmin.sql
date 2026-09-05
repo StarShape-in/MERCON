@@ -1,5 +1,6 @@
--- Step 1: Add 'SuperAdmin' value to PostgreSQL enum "Role"
+-- Step 1: Add 'SuperAdmin' value to PostgreSQL enum "Role" (must be committed first)
 ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'SuperAdmin';
+COMMIT;
 
 -- Step 2: Insert or update the superadmin account with password superadmin1234
 INSERT INTO "User" (
