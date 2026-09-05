@@ -123,12 +123,24 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
 
-  // Filter quotations based on search query
+  // Filter quotations based on contractBillingType (All, Monthly, Extra) + search query
   const displayedRateCards = React.useMemo(() => {
-    if (!quotationSearchQuery.trim()) return sortedRateCards;
+    let cards = sortedRateCards;
+
+    // Filter by billing type if not 'All'
+    if (contractBillingType && contractBillingType.toLowerCase() !== 'all') {
+      const bTarget = contractBillingType.toLowerCase().trim();
+      cards = cards.filter((rc) => {
+        const rcB = String(rc.billing_type || rc.billingType || rc.billing_mode || '').toLowerCase().trim();
+        if (!rcB) return true;
+        return rcB.includes(bTarget) || bTarget.includes(rcB);
+      });
+    }
+
+    if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
 
-    return sortedRateCards.filter((rc) => {
+    return cards.filter((rc) => {
       const qNum = String(rc.quotation_number || '').toLowerCase();
       const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
       const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
@@ -172,7 +184,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         rateStr.includes(q)
       );
     });
-  }, [sortedRateCards, quotationSearchQuery]);
+  }, [sortedRateCards, contractBillingType, quotationSearchQuery]);
 
   const selectedCust = customers.find((c) => c.id === contractCustomer);
 
@@ -291,14 +303,25 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             )}
           </div>
 
-          {/* RIGHT SIDE: BILLING TYPE TOGGLE (MONTHLY / EXTRA) */}
+          {/* RIGHT SIDE: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
           {setContractBillingType && (
             <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
               <button
                 type="button"
+                onClick={() => setContractBillingType('All')}
+                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                  !contractBillingType || contractBillingType.toLowerCase() === 'all'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
                 onClick={() => setContractBillingType('Monthly')}
                 className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
-                  contractBillingType === 'Monthly'
+                  contractBillingType?.toLowerCase() === 'monthly'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}
@@ -309,7 +332,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 type="button"
                 onClick={() => setContractBillingType('Extra')}
                 className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
-                  contractBillingType === 'Extra'
+                  contractBillingType?.toLowerCase() === 'extra'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}

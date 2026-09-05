@@ -249,7 +249,7 @@ export function useCreateTripForm() {
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('Extra');
+  const [contractBillingType, setContractBillingType] = useState<string>('All');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
