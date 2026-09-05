@@ -422,6 +422,7 @@ export default function TripDetailsPage() {
             <TripPhotoEvidence
               documents={documents}
               stops={trip.stops}
+              trip={trip}
               onPreview={(img) => setPreviewImage(img)}
             />
           </div>
