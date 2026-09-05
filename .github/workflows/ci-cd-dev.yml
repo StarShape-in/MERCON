@@ -90,6 +90,12 @@ jobs:
           mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
           chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
 
+          # Free up disk space from previous builds and dangling layers to prevent ENOSPC errors
+          echo "Pruning dangling Docker images and build cache to ensure disk space..."
+          docker builder prune -af --filter "until=24h" 2>/dev/null || docker builder prune -af 2>/dev/null || true
+          docker image prune -f 2>/dev/null || true
+          df -h / || true
+
           docker compose -p mercon-dev up -d --build
 
           sleep 8
