@@ -24,6 +24,22 @@ async function main() {
   const password_hash = await bcrypt.hash(defaultPassword, 10);
   const ilan_password_hash = await bcrypt.hash('ilan1234', 10);
 
+  const superadmin = await prisma.user.upsert({
+    where: { username: 'superadmin' },
+    update: {},
+    create: {
+      username: 'superadmin',
+      email: 'superadmin@mercon.tech',
+      phone: '+966500000000',
+      password_hash,
+      name: 'Platform SuperAdmin',
+      role: Role.SuperAdmin,
+      isActive: true,
+      isSuperAdmin: true,
+    },
+  });
+  console.log(`  ✓ SuperAdmin user: ${superadmin.username}`);
+
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {}, // never touch role/password/isActive on an existing account

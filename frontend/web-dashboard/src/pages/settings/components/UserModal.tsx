@@ -211,19 +211,19 @@ export default function UserModal({
             <label className="text-xs font-semibold text-slate-700 block">
               Access Role <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid ${canManageSuperAdmin ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
               {/* Operator Button */}
               <button
                 type="button"
                 onClick={() => setRole('Operator')}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                className={`p-3 rounded-xl border text-left transition-all relative ${
                   role === 'Operator'
                     ? 'border-[#FA634E] bg-[#FA634E]/[0.03] ring-1 ring-[#FA634E]'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
                     <UserCheck className="w-3.5 h-3.5 text-slate-600" /> Operator
                   </span>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
@@ -232,8 +232,8 @@ export default function UserModal({
                     {role === 'Operator' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                  Standard operational dispatch & trip handling
+                <p className="text-[10px] text-slate-500 mt-1 leading-snug">
+                  Operational trip handling
                 </p>
               </button>
 
@@ -241,15 +241,15 @@ export default function UserModal({
               <button
                 type="button"
                 onClick={() => setRole('Admin')}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                className={`p-3 rounded-xl border text-left transition-all relative ${
                   role === 'Admin'
                     ? 'border-[#FA634E] bg-[#FA634E]/[0.03] ring-1 ring-[#FA634E]'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-slate-600" /> Administrator
+                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-slate-600" /> Admin
                   </span>
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
                     role === 'Admin' ? 'border-[#FA634E] bg-[#FA634E]' : 'border-slate-300'
@@ -257,10 +257,37 @@ export default function UserModal({
                     {role === 'Admin' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                  Full management, billing & system control
+                <p className="text-[10px] text-slate-500 mt-1 leading-snug">
+                  Client administration & billing
                 </p>
               </button>
+
+              {/* SuperAdmin Button (Vendor) */}
+              {canManageSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { setRole('SuperAdmin'); setIsSuperAdmin(true); }}
+                  className={`p-3 rounded-xl border text-left transition-all relative ${
+                    role === 'SuperAdmin'
+                      ? 'border-purple-600 bg-purple-500/[0.04] ring-1 ring-purple-600'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-950 flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-purple-600" /> SuperAdmin
+                    </span>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                      role === 'SuperAdmin' ? 'border-purple-600 bg-purple-600' : 'border-slate-300'
+                    }`}>
+                      {role === 'SuperAdmin' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-purple-700 mt-1 leading-snug">
+                    Vendor governance & taxonomy
+                  </p>
+                </button>
+              )}
             </div>
           </div>
 

@@ -29,7 +29,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
 import { TaxonomySelect } from '@/components/common/TaxonomySelect';
-import { quotationService, CreateQuotationPayload } from '@/services/quotationService';
+import { quotationService, surchargeRuleService, CreateQuotationPayload } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
 
@@ -109,7 +109,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const [validTo, setValidTo] = useState('');
 
   // Multi-Line Rate Items Array
-  const [lineItems, setLineItems] = useState<QuotationLineItem[]>([createEmptyLine()]);
+  const [lineItems, setLineItems] = useState<QuotationLineItem[]>([]);
 
   // Commercial Surcharge Rules Array
   const [surchargeRules, setSurchargeRules] = useState<QuotationSurchargeRule[]>([]);
@@ -283,10 +283,6 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   };
 
   const handleRemoveLine = (index: number) => {
-    if (lineItems.length <= 1) {
-      toast.error('Agreement must contain at least one commercial rate line');
-      return;
-    }
     setLineItems((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -401,6 +397,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       return false;
     }
 
+    if (lineItems.length === 0 && surchargeRules.length === 0) {
+      setFormError('Please add at least one commercial route line or commercial surcharge rule.');
+      return false;
+    }
+
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
       if (!item.originLocationId) {
@@ -425,6 +426,19 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       }
     }
 
+    for (let i = 0; i < surchargeRules.length; i++) {
+      const rule = surchargeRules[i];
+      if (!rule.name.trim()) {
+        setFormError(`Surcharge #${i + 1}: Surcharge title / charge type is required.`);
+        return false;
+      }
+      const numAmt = parseFloat(rule.amount);
+      if (isNaN(numAmt) || !isFinite(numAmt) || numAmt <= 0 || numAmt > 999999999.99) {
+        setFormError(`Surcharge #${i + 1}: Enter a valid amount greater than 0.`);
+        return false;
+      }
+    }
+
     setFormError(null);
     return true;
   };
@@ -439,33 +453,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         return Math.min(num, 999999999.99);
       };
 
-      if (isEdit && id) {
-        // Single quotation update
-        const line = lineItems[0];
-        const payload: CreateQuotationPayload = {
-          customerId,
-          origin_location_id: line.originLocationId,
-          destination_location_id: line.destinationLocationId,
-          vehicle_class: line.vehicleClass,
-          billing_type: operationType,
-          line_type: line.lineType,
-          pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
-          rate: parseSafeDecimal(line.rate) ?? 0,
-          driver_payout: parseSafeDecimal(line.driverPayout),
-          currency: line.currency,
-          source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
-          valid_from: validFrom || undefined,
-          valid_to: validTo || undefined,
-          stops: [
-            ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
-            ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
-            ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
-          ],
-        };
-        return await quotationService.update(id, payload);
-      } else {
-        // Create multiple rate lines in parallel for customer
-        const requests = lineItems.map((line) => {
+      let createdQuotations: any[] = [];
+
+      if (lineItems.length > 0) {
+        if (isEdit && id) {
+          // Single quotation update
+          const line = lineItems[0];
           const payload: CreateQuotationPayload = {
             customerId,
             origin_location_id: line.originLocationId,
@@ -486,17 +479,62 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
             ],
           };
-          return quotationService.create(payload);
-        });
+          const updated = await quotationService.update(id, payload);
+          createdQuotations = [updated];
+        } else {
+          // Create multiple rate lines in parallel for customer
+          const requests = lineItems.map((line) => {
+            const payload: CreateQuotationPayload = {
+              customerId,
+              origin_location_id: line.originLocationId,
+              destination_location_id: line.destinationLocationId,
+              vehicle_class: line.vehicleClass,
+              billing_type: operationType,
+              line_type: line.lineType,
+              pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
+              rate: parseSafeDecimal(line.rate) ?? 0,
+              driver_payout: parseSafeDecimal(line.driverPayout),
+              currency: line.currency,
+              source_vehicle_label: line.sourceVehicleLabel || line.vehicleClass,
+              valid_from: validFrom || undefined,
+              valid_to: validTo || undefined,
+              stops: [
+                ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
+                ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
+                ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
+              ],
+            };
+            return quotationService.create(payload);
+          });
 
-        return await Promise.all(requests);
+          createdQuotations = await Promise.all(requests);
+        }
       }
+
+      if (surchargeRules.length > 0) {
+        const targetQuotationId = createdQuotations.length === 1 ? createdQuotations[0].id : undefined;
+        const surchargeRequests = surchargeRules.map((rule) => {
+          return surchargeRuleService.create({
+            customerId,
+            quotationId: targetQuotationId,
+            charge_type: rule.name.trim(),
+            rate: parseFloat(rule.amount) || 0,
+            unit: rule.unit || 'Per Delivery',
+            currency: 'SAR',
+            is_active: true,
+          });
+        });
+        await Promise.all(surchargeRequests);
+      }
+
+      return { createdQuotationsCount: createdQuotations.length, surchargesCount: surchargeRules.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
       queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
       setIsPreviewOpen(false);
 
       if (isReturnToTrip) {
@@ -506,10 +544,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           navigate(`/trips/new?step=${returnStep}`);
         }, 300);
       } else {
+        const parts: string[] = [];
+        if (data.createdQuotationsCount > 0) {
+          parts.push(`${data.createdQuotationsCount} route line${data.createdQuotationsCount > 1 ? 's' : ''}`);
+        }
+        if (data.surchargesCount > 0) {
+          parts.push(`${data.surchargesCount} surcharge rule${data.surchargesCount > 1 ? 's' : ''}`);
+        }
         toast.success(
           isEdit
             ? 'Quotation updated successfully'
-            : `Successfully created ${lineItems.length} commercial rate line${lineItems.length > 1 ? 's' : ''}`
+            : `Successfully saved ${parts.length > 0 ? parts.join(' and ') : 'commercial agreement'}`
         );
         navigate('/quotations');
       }
@@ -587,7 +632,19 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               className="h-8.5 px-4.5 text-xs font-black text-white bg-[#FA634E] hover:bg-[#DF4834] shadow-md shadow-[#FA634E]/20 rounded-xl transition-all hover:scale-[1.01] active:scale-95 gap-1.5 cursor-pointer border-0"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>{isReturnToTrip ? 'Save Quotation & Return to Trip →' : `Save Agreement (${lineItems.length} Lines)`}</span>
+              <span>
+                {isReturnToTrip
+                  ? 'Save Quotation & Return to Trip →'
+                  : `Save Agreement (${
+                      lineItems.length > 0 && surchargeRules.length > 0
+                        ? `${lineItems.length} Lines, ${surchargeRules.length} Surcharges`
+                        : lineItems.length > 0
+                        ? `${lineItems.length} Line${lineItems.length > 1 ? 's' : ''}`
+                        : surchargeRules.length > 0
+                        ? `${surchargeRules.length} Surcharge${surchargeRules.length > 1 ? 's' : ''}`
+                        : '0 Items'
+                    })`}
+              </span>
             </Button>
           </div>
         </div>
@@ -752,58 +809,74 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               <CardContent className="p-4 space-y-4">
 
             {/* Rate Line Cards Stack */}
-            {lineItems.map((line, index) => {
-              const numRate = parseFloat(line.rate) || 0;
+            {lineItems.length === 0 ? (
+              <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-2">
+                <p className="font-bold text-slate-600 dark:text-slate-300">No Commercial Route Lines Added</p>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                  Route lines are optional if you are configuring standing Commercial Surcharges only for this customer.
+                </p>
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddLine}
+                    className="h-8 px-3.5 text-xs font-bold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1 cursor-pointer"
+                  >
+                    <Plus size={13} /> Add Commercial Route Line
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              lineItems.map((line, index) => {
+                const numRate = parseFloat(line.rate) || 0;
 
-              return (
-                <div
-                  key={line.id}
-                  className="p-3.5 bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
-                >
-                  {/* Line Item Header Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
-                        #{index + 1}
-                      </span>
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                        Route Line #{index + 1}
-                      </span>
-                    </div>
+                return (
+                  <div
+                    key={line.id}
+                    className="p-3.5 bg-white dark:bg-[#2D2B2C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:border-[#FA634E]/30"
+                  >
+                    {/* Line Item Header Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#3E3C3D] text-white text-[11px] font-mono font-black">
+                          #{index + 1}
+                        </span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                          Route Line #{index + 1}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddViaStop(index)}
-                        className="h-7 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-2.5 rounded-lg gap-1 cursor-pointer"
-                      >
-                        <Plus size={12} /> Add Stop
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddViaStop(index)}
+                          className="h-7 text-xs font-bold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 px-2.5 rounded-lg gap-1 cursor-pointer"
+                        >
+                          <Plus size={12} /> Add Stop
+                        </Button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicateLine(index)}
-                        title="Duplicate Line"
-                        className="px-2.5 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center gap-1 transition-all"
-                      >
-                        <Copy size={12} />
-                        <span>Duplicate</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateLine(index)}
+                          title="Duplicate Line"
+                          className="px-2.5 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center gap-1 transition-all"
+                        >
+                          <Copy size={12} />
+                          <span>Duplicate</span>
+                        </button>
 
-                      {lineItems.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveLine(index)}
                           title="Remove Line"
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg"
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg cursor-pointer"
                         >
                           <Trash2 size={14} />
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
                   {/* Route & Specifications Fields Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
@@ -983,7 +1056,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
                 </div>
               );
-            })}
+            })
+          )}
 
             {/* Bottom Add Line & Keyboard Shortcut Bar */}
             <div className="pt-2 flex items-center justify-between">
@@ -1203,46 +1277,83 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <span>Defined Commercial Routes ({lineItems.length} Lines)</span>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-[#2D2B2C]">
-                {lineItems.map((line, idx) => (
-                  <div key={line.id} className="p-3 text-xs space-y-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <div className="flex items-center justify-between">
+              {lineItems.length > 0 ? (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-[#2D2B2C]">
+                  {lineItems.map((line, idx) => (
+                    <div key={line.id} className="p-3 text-xs space-y-1.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-mono font-black px-1.5 py-0.5 bg-[#2D2B2C] text-white rounded text-[10px] shrink-0">
+                            #{idx + 1}
+                          </span>
+                          <span className="font-extrabold text-slate-900 dark:text-white truncate">
+                            {locationMap.get(line.originLocationId) || 'Origin'} → {locationMap.get(line.destinationLocationId) || 'Destination'}
+                          </span>
+                        </div>
+
+                        <div className="font-mono font-black text-[#FA634E] text-sm shrink-0 ml-2">
+                          {line.currency} {parseFloat(line.rate || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <Badge variant="outline" className="text-[10px] font-semibold">
+                          Vehicle: {line.vehicleClass}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px] font-semibold">
+                          Line: {line.lineType}
+                        </Badge>
+                        {line.driverPayout && (
+                          <span className="text-slate-600 dark:text-slate-400 font-medium">
+                            Driver Payout: SAR {parseFloat(line.driverPayout).toLocaleString()}
+                          </span>
+                        )}
+                        {line.viaStops.length > 0 && (
+                          <span className="text-[#FA634E] font-bold">
+                            +{line.viaStops.length} Intermediate Stop{line.viaStops.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 font-medium text-center">
+                  No commercial route lines defined (Surcharges-only agreement).
+                </div>
+              )}
+            </div>
+
+            {/* Commercial Surcharges Summary List */}
+            {surchargeRules.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                  <span>Configured Commercial Surcharges ({surchargeRules.length} Rules)</span>
+                </div>
+
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-[#2D2B2C]">
+                  {surchargeRules.map((rule, idx) => (
+                    <div key={rule.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="font-mono font-black px-1.5 py-0.5 bg-[#2D2B2C] text-white rounded text-[10px] shrink-0">
+                        <span className="font-mono font-black px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded text-[10px] shrink-0">
                           #{idx + 1}
                         </span>
                         <span className="font-extrabold text-slate-900 dark:text-white truncate">
-                          {locationMap.get(line.originLocationId) || 'Origin'} → {locationMap.get(line.destinationLocationId) || 'Destination'}
+                          {rule.name}
                         </span>
+                        <Badge variant="outline" className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                          {rule.unit}
+                        </Badge>
                       </div>
 
-                      <div className="font-mono font-black text-[#FA634E] text-sm shrink-0 ml-2">
-                        {line.currency} {parseFloat(line.rate || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <div className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm shrink-0 ml-2">
+                        SAR {parseFloat(rule.amount || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                      <Badge variant="outline" className="text-[10px] font-semibold">
-                        Vehicle: {line.vehicleClass}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px] font-semibold">
-                        Line: {line.lineType}
-                      </Badge>
-                      {line.driverPayout && (
-                        <span className="text-slate-600 dark:text-slate-400 font-medium">
-                          Driver Payout: SAR {parseFloat(line.driverPayout).toLocaleString()}
-                        </span>
-                      )}
-                      {line.viaStops.length > 0 && (
-                        <span className="text-[#FA634E] font-bold">
-                          +{line.viaStops.length} Intermediate Stop{line.viaStops.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex flex-row items-center justify-between">
@@ -1266,7 +1377,19 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               ) : (
                 <CheckCircle2 className="w-4 h-4" />
               )}
-              <span>{saveMutation.isPending ? 'Saving Record...' : `Confirm & Save Agreement (${lineItems.length} Lines)`}</span>
+              <span>
+                {saveMutation.isPending
+                  ? 'Saving Record...'
+                  : `Confirm & Save Agreement (${
+                      lineItems.length > 0 && surchargeRules.length > 0
+                        ? `${lineItems.length} Lines, ${surchargeRules.length} Surcharges`
+                        : lineItems.length > 0
+                        ? `${lineItems.length} Line${lineItems.length > 1 ? 's' : ''}`
+                        : surchargeRules.length > 0
+                        ? `${surchargeRules.length} Surcharge${surchargeRules.length > 1 ? 's' : ''}`
+                        : '0 Items'
+                    })`}
+              </span>
             </Button>
           </DialogFooter>
         </DialogContent>

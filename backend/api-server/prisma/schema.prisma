@@ -11,6 +11,7 @@ datasource db {
 // ENUMS (Strict State Machines)
 // -----------------------------------------
 enum Role {
+  SuperAdmin
   Admin
   Operator
   Driver
@@ -1240,11 +1241,18 @@ model Settings {
   defaultCountryCode     String @default("SA")
   defaultCountryDialCode String @default("+966")
 
-  // Module keys this deployment shows/allows. See ModuleKey in
-  // @mercon/shared-types for the known set; core modules (trips, drivers,
-  // vehicles, customers, settings) are always available regardless of this
-  // list and are not stored here.
+  // Module keys this deployment shows/allows.
   enabledModules String[] @default([])
+
+  // Theme palette and custom status colors for UI branding customization
+  themeColors Json?
+
+  // Vendor taxonomy registers (Vehicle classes, line types, billing types, master tags)
+  taxonomyConfig Json?
+
+  // Maintenance mode and global system status banner
+  maintenanceMode   Boolean @default(false)
+  maintenanceBanner String?
 
   updated_by String?  @db.Uuid
   updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz

@@ -9,7 +9,10 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'User not authenticated or role missing' } });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const isSuperAdminUser = req.user.role === 'SuperAdmin' || (req.user as any).isSuperAdmin === true;
+    const isAllowed = allowedRoles.includes(req.user.role) || (isSuperAdminUser && (allowedRoles.includes('Admin') || allowedRoles.includes('SuperAdmin')));
+
+    if (!isAllowed) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied: insufficient permissions' } });
     }
 
@@ -17,7 +20,7 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
   };
 };
 
-// Re-reads isSuperAdmin from the database on every request rather than trusting
+// Re-reads isSuperAdmin / SuperAdmin role from the database on every request rather than trusting
 // the JWT — revoking the flag must take effect immediately, not after the
 // token's 7-day expiry.
 export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -26,8 +29,8 @@ export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { isSuperAdmin: true } });
-    if (!user?.isSuperAdmin) {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, isSuperAdmin: true } });
+    if (!user || (user.role !== 'SuperAdmin' && !user.isSuperAdmin)) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Superadmin access required' } });
     }
     next();

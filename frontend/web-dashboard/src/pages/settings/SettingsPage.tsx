@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings,
+  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings, Layers, Palette, Activity
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -354,20 +355,12 @@ export default function SettingsPage() {
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 max-w-[1350px] mx-auto">
         
         {/* ── Page Header ── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-all border border-slate-200/50 dark:border-slate-700/50 self-start">
-              🏢 MERCON Logistics <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-            <div className="flex items-center gap-2 mt-1 sm:mt-0">
-              <Settings className="w-6 h-6 text-slate-700 dark:text-slate-300 shrink-0" />
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Settings
-              </h1>
-              <Badge className="bg-orange-50 text-brand border-orange-200 font-semibold text-[10px] py-0.5 px-2">
-                Configuration Module
-              </Badge>
-            </div>
+        <div className="flex items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <Settings className="w-5 h-5 text-slate-700 dark:text-slate-300 shrink-0" />
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Settings
+            </h1>
           </div>
         </div>
 
@@ -450,6 +443,46 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Group 3: Vendor SuperAdmin Controls */}
+              {(user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin) && (
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 dark:text-purple-400 px-1 flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-purple-600" /> Vendor SuperAdmin Controls
+                  </div>
+                  <div className="space-y-1">
+                    <Link
+                      to="/settings/taxonomy"
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all border border-transparent hover:border-purple-200/50"
+                    >
+                      <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                        <Layers className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold">Taxonomy & Master Data</span>
+                    </Link>
+
+                    <Link
+                      to="/settings/branding"
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all border border-transparent hover:border-rose-200/50"
+                    >
+                      <div className="p-1.5 rounded-lg bg-rose-100 text-[#FA634E] dark:bg-rose-900/50 dark:text-rose-300">
+                        <Palette className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold">Colors & Theme System</span>
+                    </Link>
+
+                    <Link
+                      to="/settings/system-health"
+                      className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all border border-transparent hover:border-emerald-200/50"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                        <Activity className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold">System Telemetry & Health</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
             </Card>
           </div>
 
@@ -458,41 +491,38 @@ export default function SettingsPage() {
             
             {/* TAB 1: PROFILE */}
             {activeTab === 'profile' && (
-              <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
-                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+              <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        My Profile Information
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        Manage your user credentials, public name, and contact details
-                      </CardDescription>
-                    </div>
+                    <User className="w-4 h-4 text-brand shrink-0" />
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      My Profile Information
+                    </CardTitle>
                   </div>
                 </CardHeader>
 
                 <form onSubmit={handleProfileSubmit}>
-                  <CardContent className="pt-6 space-y-6">
+                  <CardContent className="p-6 space-y-6">
                     
-                    {/* User profile banner card - placed inside My Profile to eliminate redundancy on other tabs */}
-                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-orange-50/50 to-amber-50/30 dark:from-slate-800/40 dark:to-slate-800/10 border border-slate-100 dark:border-slate-800">
-                      <div className="w-16 h-16 rounded-full bg-brand text-white font-extrabold text-xl flex items-center justify-center shadow-xs shrink-0">
+                    {/* User profile banner card */}
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                      <div className="w-12 h-12 rounded-xl bg-brand text-white font-extrabold text-lg flex items-center justify-center shadow-xs shrink-0">
                         {initials}
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-normal">
-                          {user?.name || 'Administrator'}
-                        </h3>
-                        <p className="text-xs text-slate-500 font-mono leading-normal mt-0.5">
-                          {user?.email || 'operator@mercon.tech'}
-                        </p>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant="outline" className="bg-indigo-50/50 text-indigo-600 border-indigo-200 text-[10px] font-bold uppercase py-0 px-2">
+                      <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+                            {user?.name || 'Administrator'}
+                          </h3>
+                          <p className="text-xs text-slate-500 font-mono leading-tight mt-0.5">
+                            {user?.email || 'operator@mercon.tech'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="outline" className="bg-indigo-50/50 text-indigo-600 border-indigo-200 text-[10px] font-bold uppercase py-0.5 px-2.5">
                             {user?.role || 'Operator'}
                           </Badge>
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold py-0 px-2">
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold py-0.5 px-2.5">
                             Active Session
                           </Badge>
                         </div>
@@ -579,20 +609,18 @@ export default function SettingsPage() {
             {/* TAB 2: COMPANY / BRANDING */}
             {activeTab === 'company' && (
               <Card className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900">
-                <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                        Company Branding & Modules
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        {user?.isSuperAdmin
-                          ? 'Configure deployment details, branding theme, and active logistics modules'
-                          : 'Deployment details and modules — view only (gated for Super Admins)'}
-                      </CardDescription>
-                    </div>
+                    <Building2 className="w-4 h-4 text-brand shrink-0" />
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Company Branding & Modules
+                    </CardTitle>
                   </div>
+                  {!user?.isSuperAdmin && (
+                    <Badge variant="outline" className="text-[10px] font-bold border-slate-200 dark:border-slate-800 text-slate-400">
+                      Gated View
+                    </Badge>
+                  )}
                 </CardHeader>
 
                 <CardContent className="pt-6 space-y-6">
