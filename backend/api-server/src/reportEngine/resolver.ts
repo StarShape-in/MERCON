@@ -13,7 +13,7 @@
 // 'vehicles' (Driver + Maintenance are both 1 hop from Vehicles); Documents
 // has no declared join anywhere (it's polymorphic, no FK) and can't be
 // combined with anything yet.
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { ReportModule, ReportJoin, findModule, findField } from './schema';
 import { tripIncome } from './derived';
 

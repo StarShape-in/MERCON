@@ -161,20 +161,24 @@ export const quotationService = {
     trip_date?: string | null;
     stops?: any[] | null;
   }): Promise<QuotationLookupResult> {
-    const res = await api.get<ApiResponse<QuotationLookupResult>>('/quotations/lookup', {
-      params: {
-        ...(params.customer_id ? { customer_id: params.customer_id } : {}),
-        ...(params.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
-        ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
-        ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
-        ...(params.line_type !== undefined ? { line_type: params.line_type ?? '' } : {}),
-        ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
-        ...(params.planned_start ? { planned_start: params.planned_start } : {}),
-        ...(params.trip_date ? { trip_date: params.trip_date } : {}),
-        ...(params.stops ? { stops: JSON.stringify(params.stops) } : {}),
-      },
-    });
-    return res.data.data;
+    try {
+      const res = await api.get<ApiResponse<QuotationLookupResult>>('/quotations/lookup', {
+        params: {
+          ...(params.customer_id ? { customer_id: params.customer_id } : {}),
+          ...(params.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
+          ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
+          ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
+          ...(params.line_type !== undefined ? { line_type: params.line_type ?? '' } : {}),
+          ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
+          ...(params.planned_start ? { planned_start: params.planned_start } : {}),
+          ...(params.trip_date ? { trip_date: params.trip_date } : {}),
+          ...(params.stops ? { stops: JSON.stringify(params.stops) } : {}),
+        },
+      });
+      return res?.data?.data;
+    } catch {
+      return null as any;
+    }
   },
 
   async analyzeDocumentAi(fileOrDocId: File | string, customerId?: string): Promise<{

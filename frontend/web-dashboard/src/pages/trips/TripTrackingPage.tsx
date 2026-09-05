@@ -17,52 +17,112 @@ import { Button } from '@/components/ui/button';
 import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import SaudiRedBorderOverlay from '@/components/maps/SaudiRedBorderOverlay';
 
-// High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
+// Crisp Origin Terminal Marker
 const pickupMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.35);"></div>
-      <img src="/warehouse_pickup_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
-    </div>
-  `,
-  className: '',
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
-});
-
-// High-Tech Neon Dropoff Marker (Orange LED with 3D Warehouse)
-const dropoffMarkerIcon = L.divIcon({
-  html: `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.35);"></div>
-      <img src="/warehouse_dropoff_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
-    </div>
-  `,
-  className: '',
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
-});
-
-const truckMarkerIcon = L.divIcon({
-  html: `
-    <div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 48px; height: 48px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.25);"></div>
-      <div style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background: #0F1017; border: 2.5px solid #FF5500; box-shadow: 0 0 20px rgba(255, 85, 0, 0.8);"></div>
-      <div style="width: 32px; height: 32px; z-index: 2; display: flex; align-items: center; justify-content: center;">
-        <img src="/truck_3d_orange_transparent.png" style="width: 32px; height: 32px; object-fit: contain;" />
+    <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #10B981; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2.5px solid #10B981;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>
+      </div>
+      <div style="position: absolute; bottom: -8px; background: #10B981; color: #022C22; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; letter-spacing: 0.04em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+        ORIGIN
       </div>
     </div>
   `,
   className: '',
-  iconSize: [52, 52],
-  iconAnchor: [26, 26],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
 });
 
-function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
+// Crisp Destination Terminal Marker
+const dropoffMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #F43F5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2.5px solid #F43F5E;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      </div>
+      <div style="position: absolute; bottom: -8px; background: #F43F5E; color: #FFFFFF; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; letter-spacing: 0.04em; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+        DEST
+      </div>
+    </div>
+  `,
+  className: '',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+});
+
+function createCrispTruckMarker(plateNumber: string, speed: number) {
+  return L.divIcon({
+    className: 'crisp-truck-marker',
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+    html: `
+      <div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+        <div style="
+          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <svg width="26" height="46" viewBox="0 0 26 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: geometricPrecision;">
+            <rect x="3.5" y="14" width="19" height="28" rx="2" fill="#1E293B" stroke="#0F172A" stroke-width="1.4"/>
+            <line x1="6" y1="19.5" x2="20" y2="19.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="25.5" x2="20" y2="25.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="31.5" x2="20" y2="31.5" stroke="#334155" stroke-width="1.3"/>
+            <line x1="6" y1="37" x2="20" y2="37" stroke="#334155" stroke-width="1.3"/>
+            <rect x="4.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="18.5" y="41" width="3" height="1" rx="0.5" fill="#EF4444"/>
+            <rect x="10.5" y="11" width="5" height="3.5" rx="0.5" fill="#0F172A"/>
+            <rect x="4.5" y="2" width="17" height="9.5" rx="2.5" fill="#E8450F" stroke="#9A2C07" stroke-width="1.2"/>
+            <path d="M7 4.5 Q13 3.3 19 4.5 L18 7 Q13 6.1 8 7 Z" fill="#94A3B8"/>
+            <rect x="2.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="21.5" y="4.5" width="2" height="3" rx="0.5" fill="#0F172A"/>
+            <rect x="5.5" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+            <rect x="18" y="1.8" width="2.5" height="1" rx="0.5" fill="#FEF08A"/>
+          </svg>
+        </div>
+        <div style="
+          position: absolute;
+          bottom: -13px;
+          background: #0F172A;
+          color: #FFFFFF;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.03em;
+          padding: 1.5px 7px;
+          border-radius: 9999px;
+          white-space: nowrap;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          pointer-events: none;
+        ">
+          ${plateNumber} • ${speed} km/h
+        </div>
+      </div>
+    `,
+  });
+}
+
+function MapUpdater({ lat, lng, waypoints }: { lat: number; lng: number; waypoints?: [number, number][] }) {
   const map = useMap();
+  const hasInit = useRef(false);
+
   useEffect(() => {
-    map.flyTo([lat, lng], map.getZoom(), { animate: true });
+    if (!hasInit.current && waypoints && waypoints.length > 0) {
+      try {
+        map.fitBounds(L.latLngBounds(waypoints), { padding: [50, 50], maxZoom: 11, animate: false });
+        hasInit.current = true;
+      } catch (e) {
+        // fallback
+      }
+    }
+  }, [waypoints, map]);
+
+  useEffect(() => {
+    map.panTo([lat, lng], { animate: true, duration: 0.8 });
   }, [lat, lng, map]);
+
   return null;
 }
 
@@ -92,7 +152,7 @@ export default function TripTrackingPage() {
   useEffect(() => {
     if (!id) return;
 
-    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'https://dev.mercon.tech', {
       auth: { token: authStore.getToken() },
     });
     socketRef.current = socket;
@@ -217,10 +277,10 @@ export default function TripTrackingPage() {
             )}
 
             {gpsData && (
-              <Marker position={[latCenter, lngCenter]} icon={truckMarkerIcon}>
+              <Marker position={[latCenter, lngCenter]} icon={createCrispTruckMarker(trip.vehicle?.plate_number || 'Truck', currentSpeed)}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                   <div className="text-center font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">{trip.vehicle?.plate_number || 'Truck'}</p>
+                    <p className="font-bold text-[#E8450F]">{trip.vehicle?.plate_number || 'Truck'}</p>
                     <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
                   </div>
                 </Popup>

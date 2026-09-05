@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { getEnabledModules } from '../controllers/settingsController';
 
 export const authorizeRoles = (...allowedRoles: string[]) => {

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, type DelayDetection } from '../services/tripLifecycle';
@@ -447,6 +447,24 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
           lat,
           lng,
           recordedAt,
+        });
+
+        // Also broadcast to the trip's dedicated room for live trip tracking
+        const speed = speed_kph != null && !isNaN(Number(speed_kph)) ? Number(speed_kph) : 0;
+        const heading = heading_deg != null && !isNaN(Number(heading_deg)) ? Number(heading_deg) : null;
+        const accuracy = accuracy_m != null && !isNaN(Number(accuracy_m)) ? Number(accuracy_m) : null;
+        const nowIso = new Date().toISOString();
+
+        io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, {
+          lat,
+          lng,
+          speed,
+          heading,
+          accuracy,
+          status: null,
+          source: 'mobile',
+          recordedAt: recordedAt.toISOString(),
+          ingestedAt: nowIso,
         });
       }
     } catch {

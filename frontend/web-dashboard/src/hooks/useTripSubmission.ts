@@ -23,7 +23,8 @@ export function useTripSubmission(
   thirdPartyVehiclePlate: string,
   thirdPartyCost: string,
   dayAssignments: Record<string, any>,
-  setContractStep: (step: 1 | 2 | 3 | 4) => void,
+  selectedDates: string[],
+  setContractStep: React.Dispatch<React.SetStateAction<1 | 2 | 3>>,
   setSelectedDates: (dates: string[]) => void,
   setDayAssignments: (assignments: any) => void,
   setParsedRows: (rows: any[]) => void,
@@ -172,80 +173,91 @@ export function useTripSubmission(
     }
 
     const rows: BulkImportTripRow[] = [];
+    const isMonthlyMode = contractBillingType === 'Monthly' && selectedDates.length > 0;
+    const datesToSchedule: Array<string | null> = isMonthlyMode ? selectedDates : [null];
 
-    contractSlots.forEach((slot) => {
-      const date = slot.date || new Date().toISOString().slice(0, 10);
-      const assignment = dayAssignments[slot.id] || { driverId: '', vehicleId: '' };
+    datesToSchedule.forEach((currentDateStr) => {
+      contractSlots.forEach((slot) => {
+        const date = currentDateStr || slot.date || new Date().toISOString().slice(0, 10);
+        const dateKey = contractSlots.length > 1 ? `${date}::${slot.id}` : date;
+        const assignment = dayAssignments[dateKey] || dayAssignments[date] || dayAssignments[slot.id] || { driverId: '', vehicleId: '' };
 
-      const outboundStops = slot.intermediateLocations.map((s: string) => s.trim()).filter(Boolean);
-      const returnStops = (slot.returnIntermediateLocations || []).map((s: string) => s.trim()).filter(Boolean);
+        const outboundStops = slot.intermediateLocations.map((s: string) => s.trim()).filter(Boolean);
+        const returnStops = (slot.returnIntermediateLocations || []).map((s: string) => s.trim()).filter(Boolean);
 
-      const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
-      const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
-      const baseAmount = Number(slot.billingAmount) || 0;
-      const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+        const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
+        const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
+        const baseAmount = Number(slot.billingAmount) || 0;
+        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
 
-      let destString = slot.destination.trim();
+        let destString = slot.destination.trim();
 
-      if (isRoundTripCategory(contractRateCategory)) {
-        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
-        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+        if (isRoundTripCategory(contractRateCategory)) {
+          const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+          const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
 
-        const outboundChain = outboundStops.length > 0 ? ` → ${outboundStops.join(' → ')}` : '';
-        const returnChain = returnStops.length > 0 ? ` → ${returnStops.join(' → ')}` : '';
+          const outboundChain = outboundStops.length > 0 ? ` → ${outboundStops.join(' → ')}` : '';
+          const returnChain = returnStops.length > 0 ? ` → ${returnStops.join(' → ')}` : '';
 
-        destString = `${slot.destination.trim()}${outboundChain} [RETURN: ${returnStart}${returnChain} → ${returnEnd}]`;
-      } else if (outboundStops.length > 0) {
-        destString = `${slot.destination.trim()} → ${outboundStops.join(' → ')}`;
-      }
+          destString = `${slot.destination.trim()}${outboundChain} [RETURN: ${returnStart}${returnChain} → ${returnEnd}]`;
+        } else if (outboundStops.length > 0) {
+          destString = `${slot.destination.trim()} → ${outboundStops.join(' → ')}`;
+        }
 
-      const dropoffDateVal = slot.dropoffDate || date;
-      const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
+        const dropoffDateVal = slot.dropoffDate || date;
+        const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
 
-      if (assignmentType === 'third_party') {
-        const costVal = thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0);
-        rows.push({
-          customer_id: contractCustomer,
-          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
-          planned_end: planned_end_val,
-          is_third_party: true,
-          third_party_provider_id: thirdPartyProviderId || undefined,
-          third_party_driver_name: thirdPartyDriverName.trim() || undefined,
-          third_party_driver_phone: thirdPartyDriverPhone.trim() || undefined,
-          third_party_vehicle_plate: thirdPartyVehiclePlate.trim() || undefined,
-          third_party_vehicle_type: contractVehicleType || undefined,
-          third_party_cost: costVal,
-          trip_charges: costVal,
-          rate_category: contractRateCategory || undefined,
-          billing_type: contractBillingType || undefined,
-          vehicle_type: contractVehicleType || undefined,
-          origin: slot.origin.trim() || undefined,
-          destination: destString || undefined,
-          billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          rate_card_id: slot.rateCardId || undefined,
-          status: 'Draft',
-        });
-      } else {
-        const driverId = masterDriver && masterDriver !== 'unassigned' ? masterDriver : (assignment.driverId || undefined);
-        const vehicleId = masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : (assignment.vehicleId || undefined);
-        const slotTripCharges = Number(slot.tripCharges) || 0;
-        rows.push({
-          customer_id: contractCustomer,
-          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
-          planned_end: planned_end_val,
-          driver_id: driverId,
-          vehicle_id: vehicleId,
-          rate_category: contractRateCategory || undefined,
-          billing_type: contractBillingType || undefined,
-          vehicle_type: contractVehicleType || undefined,
-          origin: slot.origin.trim() || undefined,
-          destination: destString || undefined,
-          billing_amount: totalAmount > 0 ? totalAmount : undefined,
-          trip_charges: slotTripCharges > 0 ? slotTripCharges : undefined,
-          rate_card_id: slot.rateCardId || undefined,
-          status: 'Draft',
-        });
-      }
+        if (assignmentType === 'third_party') {
+          const costVal = thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0);
+          rows.push({
+            customer_id: contractCustomer,
+            planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
+            planned_end: planned_end_val,
+            is_third_party: true,
+            third_party_provider_id: thirdPartyProviderId || undefined,
+            third_party_driver_name: thirdPartyDriverName.trim() || undefined,
+            third_party_driver_phone: thirdPartyDriverPhone.trim() || undefined,
+            third_party_vehicle_plate: thirdPartyVehiclePlate.trim() || undefined,
+            third_party_vehicle_type: contractVehicleType || undefined,
+            third_party_cost: costVal,
+            trip_charges: costVal,
+            rate_category: contractRateCategory || undefined,
+            billing_type: contractBillingType || undefined,
+            vehicle_type: contractVehicleType || undefined,
+            origin: slot.origin.trim() || undefined,
+            destination: destString || undefined,
+            billing_amount: totalAmount > 0 ? totalAmount : undefined,
+            rate_card_id: slot.rateCardId || undefined,
+            status: 'Draft',
+          });
+        } else {
+          const driverId = (assignment.driverId && assignment.driverId !== 'unassigned')
+            ? assignment.driverId
+            : (masterDriver && masterDriver !== 'unassigned' ? masterDriver : undefined);
+
+          const vehicleId = (assignment.vehicleId && assignment.vehicleId !== 'unassigned')
+            ? assignment.vehicleId
+            : (masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : undefined);
+
+          const slotTripCharges = Number(slot.tripCharges) || 0;
+          rows.push({
+            customer_id: contractCustomer,
+            planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
+            planned_end: planned_end_val,
+            driver_id: driverId,
+            vehicle_id: vehicleId,
+            rate_category: contractRateCategory || undefined,
+            billing_type: contractBillingType || undefined,
+            vehicle_type: contractVehicleType || undefined,
+            origin: slot.origin.trim() || undefined,
+            destination: destString || undefined,
+            billing_amount: totalAmount > 0 ? totalAmount : undefined,
+            trip_charges: slotTripCharges > 0 ? slotTripCharges : undefined,
+            rate_card_id: slot.rateCardId || undefined,
+            status: 'Draft',
+          });
+        }
+      });
     });
 
     executeBulkSubmit(rows);

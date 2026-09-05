@@ -81,6 +81,14 @@ export function DatePicker({
     ];
   }, []);
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (!open && ['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
   return (
     <div className={cn('relative inline-block w-full', className)}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -90,8 +98,9 @@ export function DatePicker({
             type="button"
             variant="outline"
             disabled={disabled}
+            onKeyDown={handleKeyDown}
             className={cn(
-              'w-full justify-between text-left font-normal h-9 px-3 rounded-xl border-input bg-background transition-all hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary/30',
+              'w-full justify-between text-left font-normal h-9 px-3 rounded-xl border-input bg-background transition-all hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none focus-visible:border-[#FA634E]',
               !parsedDate && 'text-muted-foreground',
               error && 'border-destructive ring-1 ring-destructive/30',
               disabled && 'opacity-50 cursor-not-allowed',
@@ -108,7 +117,7 @@ export function DatePicker({
             {clearable && parsedDate && !disabled && (
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={-1}
                 onClick={handleClear}
                 onKeyDown={(e) => e.key === 'Enter' && handleClear(e as any)}
                 className="p-1 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors shrink-0"

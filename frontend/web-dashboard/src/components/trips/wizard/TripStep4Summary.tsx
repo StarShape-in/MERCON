@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   Building2,
@@ -6,7 +6,13 @@ import {
   Truck,
   Calendar,
   MapPin,
+  SlidersHorizontal,
+  Plus,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ComboboxOption } from '@/components/ui/combobox';
+import { MonthlyDayOverridesModal } from './MonthlyDayOverridesModal';
+import { MonthlyDaysSelector } from './MonthlyDaysSelector';
 import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
 
 interface TripStep4SummaryProps {
@@ -25,6 +31,11 @@ interface TripStep4SummaryProps {
   drivers: any[];
   vehicles: any[];
   thirdPartyProviders: any[];
+  selectedDates?: string[];
+  dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
+  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
+  driverOptions?: ComboboxOption[];
+  vehicleOptions?: ComboboxOption[];
   normalizeBillingType: (val: string) => string;
   getVehicleTypeFromCapacity: (cap?: number | null) => string;
   setPreviewCustomer: (c: any) => void;
@@ -34,6 +45,11 @@ interface TripStep4SummaryProps {
   MapBoundsAdjuster: React.ComponentType<any>;
   pickupMarkerIcon: any;
   dropoffMarkerIcon: any;
+  selectedMonth?: string;
+  setSelectedMonth?: (m: string) => void;
+  setSelectedDates?: React.Dispatch<React.SetStateAction<string[]>>;
+  handleDriverChange?: (val: string) => void;
+  handleVehicleChange?: (val: string) => void;
 }
 
 export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
@@ -52,6 +68,11 @@ export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
   drivers,
   vehicles,
   thirdPartyProviders,
+  selectedDates = [],
+  dayAssignments = {},
+  setDayAssignments,
+  driverOptions = [],
+  vehicleOptions = [],
   normalizeBillingType,
   getVehicleTypeFromCapacity,
   setPreviewCustomer,
@@ -61,7 +82,13 @@ export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
   MapBoundsAdjuster,
   pickupMarkerIcon,
   dropoffMarkerIcon,
+  selectedMonth = '',
+  setSelectedMonth,
+  setSelectedDates,
+  handleDriverChange,
+  handleVehicleChange,
 }) => {
+  const [isOverridesModalOpen, setIsOverridesModalOpen] = useState(false);
   const customerObj = customers.find((c) => c.id === contractCustomer);
   const driverObj = drivers.find((d) => d.id === masterDriver);
   const vehicleObj = vehicles.find((v) => v.id === masterVehicle);
@@ -70,7 +97,9 @@ export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
   const isMonthly = normalizeBillingType(contractBillingType) === 'Monthly';
   const baseBillingSum = contractSlots.reduce((sum, s) => sum + (Number(s.billingAmount) || 0), 0);
   const additionalChargesSum = contractSlots.reduce((sum, s) => {
-    return sum + (s.intermediateStopFees || []).reduce((a: number, f: any) => a + (Number(f) || 0), 0);
+    const stopFees = (s.intermediateStopFees || []).reduce((a: number, f: any) => a + (Number(f) || 0), 0);
+    const extraCharges = Number((s as any).additionalCharges) || 0;
+    return sum + stopFees + extraCharges;
   }, 0);
   const totalAmountSum = baseBillingSum + additionalChargesSum;
 
@@ -243,6 +272,27 @@ export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
               </div>
             </div>
           </div>
+
+          {/* MONTHLY OPERATING MONTH & DAY ASSIGNMENTS WORKSPACE (STEP 2 FOR MONTHLY CONTRACTS) */}
+          {isMonthly && (
+            <MonthlyDaysSelector
+              selectedMonth={selectedMonth || new Date().toISOString().slice(0, 7)}
+              onChangeSelectedMonth={setSelectedMonth || (() => {})}
+              selectedDates={selectedDates}
+              setSelectedDates={setSelectedDates || (() => {})}
+              contractSlotsCount={contractSlots.length}
+              masterDriver={masterDriver}
+              masterVehicle={masterVehicle}
+              handleDriverChange={handleDriverChange}
+              handleVehicleChange={handleVehicleChange}
+              driverOptions={driverOptions}
+              vehicleOptions={vehicleOptions}
+              drivers={drivers}
+              vehicles={vehicles}
+              dayAssignments={dayAssignments}
+              setDayAssignments={setDayAssignments}
+            />
+          )}
 
           {/* 2. TRIP DETAILS (ROUTE TIMELINE + MAP) */}
           <div className="space-y-3">

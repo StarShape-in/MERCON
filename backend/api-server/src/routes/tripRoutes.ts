@@ -12,10 +12,14 @@ import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
 import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody, updateTripStopBody } from '../schemas';
 
+import { getDriverRecommendations, getVehicleRecommendations } from '../controllers/fleetDispatchController';
+
 const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.get('/recommendations/drivers', getDriverRecommendations);
+router.get('/recommendations/vehicles', getVehicleRecommendations);
 router.get('/unsettled', getUnsettledCompletedTrips);
 // Literal paths first — `/:id` would otherwise capture "monthly" as a trip id.
 // A whole month grouped company → day, for the monthly-commitment board.

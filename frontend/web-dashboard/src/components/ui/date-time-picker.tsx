@@ -192,15 +192,15 @@ export function DateTimePicker({
             type="button"
             disabled={disabled}
             className={cn(
-              'group relative flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-left text-xs transition-all duration-200 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1',
+              'group relative flex w-full items-center justify-between gap-1.5 rounded-xl border border-input bg-background px-2.5 py-1 text-left text-xs transition-all duration-200 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1',
               !parsedDate && 'text-muted-foreground',
               error && 'border-destructive ring-1 ring-destructive/30',
               disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
             )}
           >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <CalendarIcon className="size-3.5" />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <CalendarIcon className="size-3" />
               </div>
 
               <div className="flex flex-col min-w-0">
@@ -209,19 +209,20 @@ export function DateTimePicker({
                     {label}
                   </span>
                 )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={cn('font-mono font-medium truncate', parsedDate ? 'text-foreground font-semibold' : 'text-muted-foreground')}>
-                    {parsedDate ? format(parsedDate, 'MMM d, yyyy • hh:mm a') : placeholder}
+                {parsedDate ? (
+                  <div className="flex flex-col text-left leading-tight min-w-0">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-xs truncate">
+                      {format(parsedDate, 'MMM d, yyyy')}
+                    </span>
+                    <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                      {format(parsedDate, 'hh:mm a')}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-400">
+                    {placeholder}
                   </span>
-                  {showRelativeBadge && relativeText && (
-                    <Badge
-                      variant="secondary"
-                      className="px-1.5 py-0 text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 shrink-0"
-                    >
-                      {relativeText}
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
             </div>
 

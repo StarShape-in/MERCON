@@ -180,7 +180,10 @@ const LiveNavigationScreen = () => {
 
     (async () => {
       // Stop tracking if trip is completed, cancelled, or not active
-      const isTrackable = trip && ['Loading', 'InTransit', 'Delayed'].includes(trip.status);
+      const isTrackable =
+        trip &&
+        (['Loading', 'InTransit', 'Delayed'].includes(trip.status) ||
+          (trip.status === 'Scheduled' && trip.driver_workflow_state === 'GOING_TO_PICKUP'));
       if (!isTrackable || cancelled) return;
 
       const perm = await Location.requestForegroundPermissionsAsync();
@@ -231,7 +234,7 @@ const LiveNavigationScreen = () => {
       sub?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStop?.id, trip?.id, trip?.status]);
+  }, [activeStop?.id, trip?.id, trip?.status, trip?.driver_workflow_state]);
 
   useEffect(() => {
     if (!trip || !position || !activeStop) return;

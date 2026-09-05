@@ -14,12 +14,15 @@ export function useTripRateLookup(
   const navigate = useNavigate();
 
   const { data: rateCardsRes } = useQuery({
-    queryKey: ['quotations-select', contractCustomer],
-    queryFn: () => quotationService.getAll({ customerId: contractCustomer, active_only: true }),
-    enabled: Boolean(contractCustomer),
+    queryKey: ['quotations-select-all'],
+    queryFn: () => quotationService.getAll({ active_only: true }),
+    staleTime: 1000 * 60 * 10,
   });
 
-  const customerRateCards: RateCard[] = rateCardsRes?.data ?? [];
+  const allRateCards: RateCard[] = rateCardsRes?.data ?? [];
+  const customerRateCards: RateCard[] = contractCustomer
+    ? allRateCards.filter((rc) => rc.customerId === contractCustomer || (rc as any).customer_id === contractCustomer)
+    : allRateCards;
 
   const handleOpenCreateQuotation = (slot?: any) => {
     const originId = slot?.originLocationId || '';
@@ -130,23 +133,61 @@ export function useTripRateLookup(
   }, [customerRateCards]);
 
   const getAvailableRateCardsForLane = useCallback((
-    origin?: string,
+    originOrSlot?: any,
     destination?: string,
     originLocationId?: string | null,
-    destinationLocationId?: string | null
+    destinationLocationId?: string | null,
+    rateCategory?: string | null,
+    returnDestination?: string | null,
+    returnDestinationLocationId?: string | null
   ): RateCard[] => {
-    if ((!origin && !originLocationId) || (!destination && !destinationLocationId) || customerRateCards.length === 0) return [];
+    if (!customerRateCards || customerRateCards.length === 0) return [];
 
-    const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
-    const matchLocation = (cardLocRaw: string, targetLocRaw: string) => {
+    let orig = originOrSlot;
+    let dest = destination;
+    let origLocId = originLocationId;
+    let destLocId = destinationLocationId;
+    let rCat = rateCategory;
+    let retDest = returnDestination;
+    let retDestLocId = returnDestinationLocationId;
+
+    // Handle single object slot argument (e.g. getAvailableRateCardsForLane(primarySlot))
+    if (originOrSlot && typeof originOrSlot === 'object') {
+      const slot = originOrSlot;
+      orig = slot.origin;
+      dest = slot.destination;
+      origLocId = slot.originLocationId;
+      destLocId = slot.destinationLocationId;
+      rCat = slot.contractRateCategory || rateCategory;
+      retDest = slot.returnDestination;
+      retDestLocId = slot.returnDestinationLocationId;
+    }
+
+    const norm = (s?: any) => String(s?.name || s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+
+    // If no origin or destination has been set yet, show all active quotations across all companies!
+    const hasOrigin = Boolean(orig || origLocId);
+    const hasDestination = Boolean(dest || destLocId);
+    if (!hasOrigin && !hasDestination) {
+      return allRateCards.length > 0 ? allRateCards : customerRateCards;
+    }
+
+    const targetCategory = norm(rCat);
+    const isRoundTrip = targetCategory.includes('roundtrip') || targetCategory.includes('round');
+
+    const matchLocation = (cardLocRaw: any, targetLocRaw: any) => {
       if (!cardLocRaw || !targetLocRaw) return false;
       const cleanCard = norm(cardLocRaw);
       const cleanTarget = norm(targetLocRaw);
+      if (!cleanCard || !cleanTarget) return false;
       if (cleanCard === cleanTarget) return true;
       if (cleanCard.includes(cleanTarget) || cleanTarget.includes(cleanCard)) return true;
 
-      const getTokens = (s: string) =>
-        s.toLowerCase().split(/[\s,_()[\]\/{}\-.]+/).filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'center' && t !== 'centre' && t !== 'hub');
+      const getTokens = (s: any) =>
+        String(s?.name || s || '')
+          .toLowerCase()
+          .split(/[\s,_()[\]\/{}\-.]+/)
+          .filter((t) => t.length > 2 && t !== 'al' && t !== 'el' && t !== 'the' && t !== 'station' && t !== 'center' && t !== 'centre' && t !== 'hub');
 
       const cardTokens = getTokens(cardLocRaw);
       const targetTokens = getTokens(targetLocRaw);
@@ -159,22 +200,33 @@ export function useTripRateLookup(
       const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
 
       const rcO = String(
-        firstStop?.source_label || firstStop?.location?.name || firstStop?.location?.address || rc.route_origin || rc.origin_name || rc.originLocation?.name || ''
+        firstStop?.source_label || firstStop?.location?.name || firstStop?.location?.address || (firstStop as any)?.location_name || rc.route_origin || rc.origin_name || rc.originLocation?.name || rc.originLocation?.address || (rc as any).origin_location_id || rc.originLocationId || ''
       );
       const rcD = String(
-        lastStop?.source_label || lastStop?.location?.name || lastStop?.location?.address || rc.route_destination || rc.destination_name || rc.destinationLocation?.name || ''
+        lastStop?.source_label || lastStop?.location?.name || lastStop?.location?.address || (lastStop as any)?.location_name || rc.route_destination || rc.destination_name || rc.destinationLocation?.name || rc.destinationLocation?.address || (rc as any).destination_location_id || rc.destinationLocationId || ''
       );
 
       const rcOriginLocId = firstStop?.locationId || firstStop?.location?.id || (rc as any).origin_location_id || rc.originLocationId;
       const rcDestLocId = lastStop?.locationId || lastStop?.location?.id || (rc as any).destination_location_id || rc.destinationLocationId;
 
-      if (originLocationId && destinationLocationId && rcOriginLocId && rcDestLocId) {
-        if (rcOriginLocId === originLocationId && rcDestLocId === destinationLocationId) {
+      if (origLocId && rcOriginLocId && rcOriginLocId === origLocId) {
+        if (destLocId && rcDestLocId === destLocId) return true;
+        if (retDestLocId && rcDestLocId === retDestLocId) return true;
+      }
+
+      const originMatches = matchLocation(rcO, orig || '');
+      const destMatches = matchLocation(rcD, dest || '') || (retDest ? matchLocation(rcD, retDest) : false);
+
+      if (!originMatches) return false;
+
+      if (isRoundTrip) {
+        const rcLineType = norm(rc.line_type || rc.rate_category);
+        if (rcLineType.includes('roundtrip') || rcLineType.includes('round')) {
           return true;
         }
       }
 
-      return matchLocation(rcO, origin || '') && matchLocation(rcD, destination || '');
+      return destMatches;
     });
   }, [customerRateCards]);
 

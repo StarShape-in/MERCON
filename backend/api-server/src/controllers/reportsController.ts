@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { getEnabledModules } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';

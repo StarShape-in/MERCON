@@ -80,6 +80,8 @@ function ShellInner() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [sidebarOpen]);
 
+  const { isHeaderCollapsed, toggleHeaderCollapsed } = useLayoutMeta();
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F8FAFC]">
       {/* Sidebar — stays mounted forever, never remounts on navigation */}
@@ -92,18 +94,36 @@ function ShellInner() {
       />
 
       <div className="flex flex-col flex-1 min-w-0 bg-[#F8FAFC]">
-        <Header
-          title={meta.title}
-          breadcrumb={meta.breadcrumb}
-          hideBackButton={meta.hideBackButton}
-          onBackClick={meta.onBackClick}
-          onMenuClick={() => setSidebarOpen(true)}
-        />
+        {!meta.hideHeader && !isHeaderCollapsed && (
+          <Header
+            title={meta.title}
+            breadcrumb={meta.breadcrumb}
+            hideBackButton={meta.hideBackButton}
+            onBackClick={meta.onBackClick}
+            onMenuClick={() => setSidebarOpen(true)}
+          />
+        )}
+
+        {/* Collapsed Header Expand Banner */}
+        {!meta.hideHeader && isHeaderCollapsed && (
+          <div className="bg-slate-900 text-white px-4 py-1 flex items-center justify-between text-xs shrink-0 animate-fade-in">
+            <span className="font-bold text-slate-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Header navigation is collapsed to maximize vertical workspace height.
+            </span>
+            <button
+              type="button"
+              onClick={toggleHeaderCollapsed}
+              className="text-[11px] font-bold text-brand hover:text-white bg-brand/20 hover:bg-brand px-2.5 py-0.5 rounded transition-all cursor-pointer"
+            >
+              ⤢ Expand Header
+            </button>
+          </div>
+        )}
 
         {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
         <div
           ref={contentRef}
-          className={`flex-1 min-h-0 relative pt-4 sm:pt-6 bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+          className={`flex-1 min-h-0 relative ${meta.hideHeader || isHeaderCollapsed ? 'pt-2 px-2 sm:px-4 sm:pt-3' : 'pt-4 sm:pt-6'} bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense

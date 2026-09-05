@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { nextMaintenanceRefId } from './maintenanceController';
 import { nextExpenseRefId } from './expenseController';

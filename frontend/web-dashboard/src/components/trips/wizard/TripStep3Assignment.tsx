@@ -33,7 +33,7 @@ interface TripStep3AssignmentProps {
   normalizeRateCategory: (val?: string | null) => string;
   normalizeVehicleClass: (val?: string | null) => string;
   contractSlots: any[];
-  getAvailableRateCardsForLane: (orig: string, dest: string, origId?: string | null, destId?: string | null) => any[];
+  getAvailableRateCardsForLane: (orig: string, dest: string, origId?: string | null, destId?: string | null, rCat?: string | null, retDest?: string | null, retDestId?: string | null) => any[];
   setIsManualRateOverride: (override: boolean) => void;
   handleOpenCreateQuotation: (slot: any) => void;
   assignmentType: 'own' | 'third_party';
@@ -145,7 +145,7 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                         triggerRateLookupForSlots(undefined, undefined, undefined, val);
                       }}
                     >
-                      <SelectTrigger className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-1 focus:ring-emerald-500">
+                      <SelectTrigger id="step3-first-field" className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-2 focus:ring-[#FA634E]">
                         <SelectValue placeholder="Select Operation" />
                       </SelectTrigger>
                       <SelectContent className="z-[9999]">
@@ -162,59 +162,6 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#14B8A6' }} />
                             <span className="px-1.5 py-0.5 rounded bg-teal-50 text-teal-950 font-bold border border-teal-200">
                               Extra (Spot)
-                            </span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Line Type */}
-                  <div className="space-y-0.5">
-                    <label className="text-[11px] font-semibold text-[#3E3C3D] flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-sky-600" />
-                      Line Type
-                    </label>
-                    <Select
-                      value={normalizeRateCategory(contractRateCategory)}
-                      onValueChange={(val) => {
-                        setContractRateCategory(val);
-                        triggerRateLookupForSlots(undefined, val);
-                      }}
-                    >
-                      <SelectTrigger className="h-8.5 w-full rounded-lg bg-white border-[#E5E7EB] text-xs font-semibold text-[#3E3C3D] focus:ring-1 focus:ring-sky-500">
-                        <SelectValue placeholder="Select Line Type" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[9999]">
-                        <SelectItem value="Single Trip" className="text-xs font-semibold py-1.5 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#0284C7' }} />
-                            <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-950 font-bold border border-sky-200">
-                              Single Trip
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="Round Trip" className="text-xs font-semibold py-1.5 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#6366F1' }} />
-                            <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-950 font-bold border border-indigo-200">
-                              Round Trip
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="10 Hours Duty" className="text-xs font-semibold py-1.5 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#3B82F6' }} />
-                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-950 font-bold border border-blue-200">
-                              10 Hours Shift
-                            </span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="12 Hours Duty" className="text-xs font-semibold py-1.5 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#1D4ED8' }} />
-                            <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-950 font-bold border border-blue-300">
-                              12 Hours Shift
                             </span>
                           </div>
                         </SelectItem>
@@ -289,14 +236,30 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
               {/* Right Sub-Box: QUOTATIONS */}
               <div className="md:col-span-7 space-y-2">
                 {contractSlots.map((slot) => {
-                  const laneRateCards = getAvailableRateCardsForLane(slot.origin, slot.destination, slot.originLocationId, slot.destinationLocationId);
+                  const isRoundTrip = normalizeRateCategory(contractRateCategory) === 'Round Trip';
+                  const returnDest = slot.returnDestination || slot.origin;
+                  const returnDestId = slot.returnDestinationLocationId || slot.originLocationId;
+
+                  const laneRateCards = getAvailableRateCardsForLane(
+                    slot.origin,
+                    slot.destination,
+                    slot.originLocationId,
+                    slot.destinationLocationId,
+                    contractRateCategory,
+                    returnDest,
+                    returnDestId
+                  );
 
                   return (
                     <div key={slot.id} className="space-y-2">
                       <div className="flex items-center justify-between pb-1 border-b border-[#E5E7EB]">
-                        <span className="text-[11px] font-bold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5">
-                          <Tag className="w-3.5 h-3.5 text-[#FA634E]" />
-                          QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})
+                        <span className="text-[11px] font-bold text-[#3E3C3D] uppercase tracking-wider flex items-center gap-1.5 truncate">
+                          <Tag className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+                          {isRoundTrip ? (
+                            <span>ROUND TRIP QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} ↔ {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})</span>
+                          ) : (
+                            <span>QUOTATIONS ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'})</span>
+                          )}
                         </span>
                         <div>
                           {slot.rateMatched ? (
@@ -329,6 +292,8 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                             return (
                               <div
                                 key={rc.id}
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => {
                                   setContractVehicleType(vLabel);
                                   setContractRateCategory(cLabel);
@@ -336,8 +301,18 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                                   triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
                                   setIsManualRateOverride(false);
                                 }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setContractVehicleType(vLabel);
+                                    setContractRateCategory(cLabel);
+                                    setContractBillingType(bLabel);
+                                    triggerRateLookupForSlots(vLabel, cLabel, undefined, bLabel);
+                                    setIsManualRateOverride(false);
+                                  }
+                                }}
                                 className={cn(
-                                  "w-[145px] min-w-[145px] p-2 rounded-xl border transition-all flex flex-col justify-between space-y-1 bg-white shadow-2xs select-none cursor-pointer hover:shadow-xs",
+                                  "w-[145px] min-w-[145px] p-2 rounded-xl border transition-all flex flex-col justify-between space-y-1 bg-white shadow-2xs select-none cursor-pointer hover:shadow-xs focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none",
                                   isSelected
                                     ? "border-[#FA634E] ring-2 ring-[#FA634E]/20 bg-orange-50/20"
                                     : "border-[#E5E7EB] hover:border-[#FA634E]/60 hover:bg-slate-50/80"
@@ -383,9 +358,6 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                             No quotation template registered for this lane ({slot.origin ? slot.origin.toUpperCase() : 'ORIGIN'} → {slot.destination ? slot.destination.toUpperCase() : 'DESTINATION'}).
                           </div>
-                          <p className="text-[11px] text-[#6E6E80] max-w-sm">
-                            Create a commercial quotation rate line for this customer to lock pricing and driver payout rules.
-                          </p>
                           <Button
                             type="button"
                             size="sm"
@@ -414,7 +386,6 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                 </span>
                 <div>
                   <h5 className="text-xs font-extrabold text-[#3E3C3D] uppercase tracking-wider">ASSIGNMENT & DISPATCH</h5>
-                  <p className="text-[11px] text-[#6E6E80]">Assign driver & vehicle or 3PL fleet provider to dispatch this trip</p>
                 </div>
               </div>
 
@@ -497,19 +468,15 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-start">
                   {/* Driver Field */}
-                  <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-1.5 focus-within:border-[#FA634E] transition-all">
+                  <div className="p-3 rounded-lg bg-white border border-[#E5E7EB] shadow-2xs space-y-2 focus-within:border-[#FA634E] transition-all">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[#3E3C3D] flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-[#FA634E]" />
-                        Driver Selection
+                        Primary Driver
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsCreateDriverOpen(true)}
-                        className="text-[11px] font-bold bg-[#FA634E] text-white hover:bg-[#e04f3b] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                      >
-                        + Add Driver
-                      </button>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full">
+                        Required
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       {(() => {
@@ -526,7 +493,7 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                               options={[{ value: 'unassigned', label: '-- Unassigned --' }, ...driverOptions]}
                               value={masterDriver}
                               onChange={handleDriverChange}
-                              placeholder="Select driver..."
+                              placeholder="Select primary driver..."
                               searchPlaceholder="Search driver..."
                               emptyText="No drivers found."
                               triggerClassName="h-9 rounded-lg bg-slate-50/50 border-[#E5E7EB] text-xs font-semibold w-full"
@@ -534,6 +501,20 @@ export const TripStep3Assignment: React.FC<TripStep3AssignmentProps> = ({
                           </>
                         );
                       })()}
+                    </div>
+
+                    {/* Secondary / Co-Driver Option (Extensible Multi-Driver Support) */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[#6E6E80] flex items-center gap-1">
+                          <UserCheck className="w-3 h-3 text-[#FA634E]" />
+                          Secondary Driver (Co-Driver / Reliever)
+                        </span>
+                        <span className="text-[9px] font-medium text-slate-400">Optional</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        For long-haul trips requiring 2 drivers. Synchronizes itinerary to both driver mobile apps.
+                      </p>
                     </div>
                   </div>
 

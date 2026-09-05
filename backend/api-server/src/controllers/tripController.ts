@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
-import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus, DriverTripRole, AssignmentEntityType } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
@@ -12,6 +12,8 @@ import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
+import { validateTripDrivers, TripDriverInput } from '../services/tripValidationService';
+import { recordAssignmentEvent } from '../services/fleetDispatchService';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -364,6 +366,20 @@ export const getTrips = async (req: Request, res: Response) => {
               name: true,
             }
           },
+          tripDrivers: {
+            where: { removedAt: null },
+            include: {
+              driver: {
+                select: {
+                  id: true,
+                  ref_id: true,
+                  first_name: true,
+                  last_name: true,
+                  phone_primary: true,
+                },
+              },
+            },
+          },
           stops: {
             orderBy: { stop_sequence: 'asc' },
             select: {
@@ -472,6 +488,15 @@ export const getTripById = async (req: Request, res: Response) => {
           }
         },
         thirdPartyProvider: true,
+        tripDrivers: {
+          include: {
+            driver: true,
+          },
+          orderBy: { assignedAt: 'asc' },
+        },
+        assignmentEvents: {
+          orderBy: { changedAt: 'desc' },
+        },
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
@@ -1342,7 +1367,7 @@ export const dispatchTrip = async (req: Request, res: Response) => {
 
 export const replaceDriver = async (req: Request, res: Response) => {
   try {
-    const { new_driver_id } = req.body;
+    const { new_driver_id, reason } = req.body;
     const rawId = req.params.id as string;
     const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
     if (!tripId) {
@@ -1357,23 +1382,74 @@ export const replaceDriver = async (req: Request, res: Response) => {
       const trip = await tx.trip.findUnique({ where: { id: tripId } });
       if (!trip || !trip.driverId) throw new Error('TRIP_OR_DRIVER_NOT_FOUND');
 
-      // Atomically claim the new driver — see createTrip for why this must be
-      // a conditional UPDATE rather than SELECT-then-UPDATE.
-      const claim = await tx.driver.updateMany({
-        where: { id: new_driver_id, status: 'Available' },
-        data: { status: 'OnTrip' },
+      const oldDriverId = trip.driverId;
+
+      // Atomically claim the new driver if trip status is active
+      if (trip.status === 'InTransit' || trip.status === 'Loading' || trip.status === 'Delayed') {
+        const claim = await tx.driver.updateMany({
+          where: { id: new_driver_id, status: 'Available' },
+          data: { status: 'OnTrip' },
+        });
+        if (claim.count === 0) throw new Error('NEW_DRIVER_UNAVAILABLE');
+
+        // Free old driver
+        await tx.driver.update({ where: { id: oldDriverId }, data: { status: 'Available' } });
+      }
+
+      const now = new Date();
+
+      // 1. Mark existing PRIMARY TripDriver as removedAt
+      await tx.tripDriver.updateMany({
+        where: {
+          tripId,
+          driverId: oldDriverId,
+          role: DriverTripRole.PRIMARY,
+          removedAt: null,
+        },
+        data: {
+          removedAt: now,
+        },
       });
-      if (claim.count === 0) throw new Error('NEW_DRIVER_UNAVAILABLE');
 
-      // Free old driver
-      await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
+      // 2. Create new PRIMARY TripDriver record
+      await tx.tripDriver.create({
+        data: {
+          tripId,
+          driverId: new_driver_id,
+          role: DriverTripRole.PRIMARY,
+          assignedAt: now,
+          driver_charge: trip.driver_charge,
+        },
+      });
 
+      // 3. Log TripAssignmentEvent audit record
+      const changeReason = reason || 'Driver replaced by dispatcher';
+      await tx.tripAssignmentEvent.create({
+        data: {
+          tripId,
+          entityType: AssignmentEntityType.DRIVER,
+          fromId: oldDriverId,
+          toId: new_driver_id,
+          reason: changeReason,
+          changedBy: (req as any).user?.id || null,
+          changedAt: now,
+        },
+      });
+
+      // 4. Update Trip summary fields & legacy driverId pointer
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
           driverId: new_driver_id,
-          updated_by: (req as any).user?.id
-        }
+          is_contingency_dispatch: true,
+          original_driver_id: trip.original_driver_id || oldDriverId,
+          contingency_reason: changeReason,
+          updated_by: (req as any).user?.id,
+        },
+        include: {
+          tripDrivers: { include: { driver: true } },
+          assignmentEvents: true,
+        },
       });
 
       return updatedTrip;
@@ -1932,8 +2008,12 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 const MONTHLY_BOARD_TRIP_CAP = 5000;
 
 /** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
-const toDayKey = (d: Date): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const toDayKey = (d: Date | string | null | undefined): string => {
+  if (!d) return '1970-01-01';
+  const dateObj = d instanceof Date ? d : new Date(d);
+  if (isNaN(dateObj.getTime())) return '1970-01-01';
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+};
 
 /**
  * The month the board is showing. Accepts `YYYY-MM`; anything else (including
@@ -2117,17 +2197,25 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
 
     for (const trip of trips) {
       const boardTrip = toBoardTrip(trip);
+      const custId = trip.customerId || 'unassigned';
+      const custObj = trip.customer || {
+        id: custId,
+        name: 'Unassigned Customer',
+        contact_phone: '',
+        avatar_url: null,
+        logo_url: null,
+      };
 
-      let group = companies.get(trip.customerId);
+      let group = companies.get(custId);
       if (!group) {
         group = {
-          customer: trip.customer,
+          customer: custObj,
           trips: [],
           drivers: new Map(),
           vehicles: new Map(),
           categories: new Map(),
         };
-        companies.set(trip.customerId, group);
+        companies.set(custId, group);
       }
 
       group.trips.push(boardTrip);
@@ -2190,7 +2278,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         };
       })
       // Busiest company first — that's the one the month is really about.
-      .sort((a, b) => b.total_trips - a.total_trips || a.customer.name.localeCompare(b.customer.name));
+      .sort((a, b) => b.total_trips - a.total_trips || (a.customer?.name || '').localeCompare(b.customer?.name || ''));
 
     res.json({
       success: true,

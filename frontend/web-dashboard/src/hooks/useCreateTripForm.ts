@@ -119,34 +119,58 @@ export function useCreateTripForm() {
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 150 }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
     queryFn: () => driverService.getAll({ per_page: 1000, mode: 'lookup' }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles-select'],
     queryFn: () => vehicleService.getAll({ per_page: 1000, mode: 'lookup' }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
   const { data: thirdPartyRes } = useQuery({
     queryKey: ['third-party-providers-select'],
     queryFn: () => thirdPartyService.getAll({ per_page: 1000 }),
-    enabled: true,
+    refetchOnMount: 'always',
   });
 
-  const customers = customersRes?.data ?? [];
-  const drivers: Driver[] = driversRes?.data ?? [];
-  const vehicles: Vehicle[] = vehiclesRes?.data ?? [];
-  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyRes?.data?.data ?? [];
+  const customers = Array.isArray(customersRes?.data)
+    ? customersRes.data
+    : Array.isArray(customersRes)
+    ? (customersRes as any)
+    : [];
+
+  const rawDriversData = (driversRes as any)?.data;
+  const drivers: Driver[] = Array.isArray(rawDriversData)
+    ? rawDriversData
+    : Array.isArray(rawDriversData?.data)
+    ? rawDriversData.data
+    : Array.isArray(driversRes)
+    ? (driversRes as any)
+    : [];
+
+  const vehicles: Vehicle[] = Array.isArray(vehiclesRes?.data)
+    ? vehiclesRes.data
+    : Array.isArray(vehiclesRes)
+    ? (vehiclesRes as any)
+    : [];
+
+  const thirdPartyProviders: ThirdPartyProvider[] = Array.isArray(thirdPartyRes?.data?.data)
+    ? thirdPartyRes.data.data
+    : Array.isArray(thirdPartyRes?.data)
+    ? (thirdPartyRes.data as any)
+    : Array.isArray(thirdPartyRes)
+    ? (thirdPartyRes as any)
+    : [];
 
   const customerOptions = useMemo<ComboboxOption[]>(() => {
-    return customers.map((c) => ({
+    return customers.map((c: any) => ({
       value: c.id,
       label: c.name,
       keywords: `${c.name} ${c.phone || ''} ${c.payment_terms || ''}`,
@@ -172,7 +196,13 @@ export function useCreateTripForm() {
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers
-      .filter((d) => d.isActive !== false)
+      .filter((d) => {
+        if (!d || !d.id) return false;
+        const fn = (d.first_name || '').toLowerCase();
+        const ln = (d.last_name || '').toLowerCase();
+        if (fn.includes('audit') || ln.includes('audit')) return false;
+        return true;
+      })
       .map((d) => {
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
@@ -195,27 +225,31 @@ export function useCreateTripForm() {
           : '';
 
         const detailsStr = [capacityLabel, statusTag].filter(Boolean).join(' • ');
-        const label = detailsStr
-          ? `${d.first_name} ${d.last_name} (${detailsStr})`
-          : `${d.first_name} ${d.last_name}`;
+        const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
+        const label = detailsStr ? `${fullName} (${detailsStr})` : fullName;
 
         return {
           value: d.id,
           label,
-          keywords: `${d.first_name} ${d.last_name} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
-        };
+          keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
+          avatar_url: d.avatar_url,
+          avatarUrl: d.avatar_url,
+          first_name: d.first_name,
+          last_name: d.last_name,
+          raw: d,
+        } as ComboboxOption & Record<string, any>;
       });
-  }, [drivers]);
+  }, [drivers, vehicles]);
 
   const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
-  const initialStep = (urlStepParam && [1, 2, 3, 4].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3 | 4) : 1;
+  const initialStep = (urlStepParam && [1, 2, 3].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3) : 1;
 
-  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4>(initialStep);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('Extra');
+  const [contractBillingType, setContractBillingType] = useState<string>('All');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
@@ -305,8 +339,8 @@ export function useCreateTripForm() {
   useEffect(() => {
     if (urlStepParam) {
       const parsed = Number(urlStepParam);
-      if ([1, 2, 3, 4].includes(parsed)) {
-        setContractStep(parsed as 1 | 2 | 3 | 4);
+      if ([1, 2].includes(parsed)) {
+        setContractStep(parsed as 1 | 2);
       }
     }
   }, [urlStepParam]);
@@ -422,6 +456,11 @@ export function useCreateTripForm() {
     setMasterVehicle
   );
 
+  const contractSlotsRef = useRef(contractSlots);
+  useEffect(() => {
+    contractSlotsRef.current = contractSlots;
+  }, [contractSlots]);
+
   const triggerRateLookupForSlots = useCallback(
     (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
@@ -431,10 +470,14 @@ export function useCreateTripForm() {
 
       if (!custId) return;
 
-      import('@/services/quotationService').then(({ quotationService }) => {
-        setContractSlots((prevSlots) => {
-          Promise.all(
-            prevSlots.map(async (slot) => {
+      const currentSlots = contractSlotsRef.current;
+
+      import('@/services/quotationService')
+        .then(async ({ quotationService }) => {
+          const updatedSlots = await Promise.all(
+            currentSlots.map(async (slot) => {
+              // Preserve manually selected quotation cards
+              if (slot.matchedRateCard) return slot;
               if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;
 
               const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
@@ -526,15 +569,19 @@ export function useCreateTripForm() {
                 saveAsRateCard: true,
               };
             })
-          ).then((updatedSlots) => {
-            setContractSlots(updatedSlots);
-          });
+          );
 
-          return prevSlots;
+          // Only update if slots actually changed to avoid unnecessary re-renders
+          const hasChanges = updatedSlots.some((s, idx) => s !== currentSlots[idx]);
+          if (hasChanges) {
+            setContractSlots(updatedSlots);
+          }
+        })
+        .catch((err) => {
+          console.error('Quotation service import error:', err);
         });
-      });
     },
-    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard]
+    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard, setContractSlots]
   );
 
   useEffect(() => {
@@ -562,14 +609,11 @@ export function useCreateTripForm() {
 
   const isStepValid = (step: number): boolean => {
     if (step === 1) {
-      return Boolean(contractCustomer);
-    }
-    if (step === 2) {
       return (
+        Boolean(contractCustomer) &&
         contractSlots.length > 0 &&
         contractSlots.every(
           (slot) =>
-            slot.date &&
             slot.origin.trim() &&
             slot.destination.trim() &&
             slot.pickupTime &&
@@ -577,17 +621,18 @@ export function useCreateTripForm() {
         )
       );
     }
-    if (step === 3) {
-      if (assignmentType === 'own') {
-        return Boolean(masterVehicle && masterVehicle !== 'unassigned');
-      } else {
-        return Boolean(thirdPartyProviderId || thirdPartyVehiclePlate.trim());
+    if (step === 2) {
+      if (contractBillingType === 'Monthly') {
+        return selectedDates.length > 0;
       }
+      return true;
     }
     return true;
   };
 
   const canNavigateToStep = (targetStep: number): boolean => {
+    const maxSteps = contractBillingType === 'Monthly' ? 3 : 2;
+    if (targetStep > maxSteps) return false;
     if (targetStep <= contractStep) return true;
     for (let s = 1; s < targetStep; s++) {
       if (!isStepValid(s)) return false;
@@ -692,6 +737,7 @@ export function useCreateTripForm() {
     thirdPartyVehiclePlate,
     thirdPartyCost,
     dayAssignments,
+    selectedDates,
     setContractStep,
     setSelectedDates,
     setDayAssignments,
@@ -809,6 +855,117 @@ export function useCreateTripForm() {
     isSubmitting: bulkMutation.isPending,
   });
 
+  const handleRepeatTrip = useCallback(
+    (historicalTrip: Trip) => {
+      if (!historicalTrip) return;
+
+      const custId = historicalTrip.customer_id || historicalTrip.customer?.id;
+      if (custId) {
+        setContractCustomer(custId);
+      }
+
+      const stops = historicalTrip.stops || [];
+      const pickupStop = stops.find((s: any) => s.stop_type === 'Pickup' || s.sequence === 1) || stops[0];
+      const dropoffStops = stops.filter((s: any) => s.stop_type === 'Dropoff');
+      const dropoffStop =
+        dropoffStops.length > 0
+          ? dropoffStops[dropoffStops.length - 1]
+          : stops.length > 1
+          ? stops[stops.length - 1]
+          : null;
+
+      const origName =
+        (pickupStop as any)?.source_label ||
+        pickupStop?.location?.name ||
+        historicalTrip.rateCard?.route_origin ||
+        '';
+      const destName =
+        (dropoffStop as any)?.source_label ||
+        dropoffStop?.location?.name ||
+        historicalTrip.rateCard?.route_destination ||
+        '';
+
+      const origLocId = pickupStop?.locationId || pickupStop?.location?.id || null;
+      const destLocId = dropoffStop?.locationId || dropoffStop?.location?.id || null;
+
+      const intermediateStops = stops.filter(
+        (s: any) => s.stop_type === 'Intermediate' || (s.sequence > 1 && s !== dropoffStop)
+      );
+      const intermediateNames = intermediateStops.map((s: any) => s.source_label || s.location?.name || '');
+      const intermediateIds = intermediateStops.map((s: any) => s.locationId || s.location?.id || null);
+
+      const billingType =
+        historicalTrip.quotation_billing_type || (historicalTrip as any).billing_type || 'Extra';
+      const lineType =
+        historicalTrip.quotation_line_type ||
+        (historicalTrip as any).line_type ||
+        (historicalTrip.rateCard as any)?.line_type ||
+        'Single Trip';
+      const vehicleClass =
+        historicalTrip.quotation_vehicle_class ||
+        (historicalTrip as any).vehicle_class ||
+        (historicalTrip.vehicle ? getVehicleTypeFromCapacity(historicalTrip.vehicle.capacity_kg) : '10 TON');
+
+      setContractBillingType(normalizeBillingType(billingType));
+      setContractRateCategory(normalizeRateCategory(lineType));
+      setContractVehicleType(normalizeVehicleClass(vehicleClass));
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setContractSlots([
+        {
+          id: `slot-${Date.now()}`,
+          origin: origName,
+          destination: destName,
+          originLocationId: origLocId,
+          destinationLocationId: destLocId,
+          pickupTime: '08:00',
+          dropoffTime: '14:00',
+          date: todayStr,
+          dropoffDate: todayStr,
+          billingAmount: '',
+          tripCharges: '',
+          isOvernight: false,
+          intermediateLocations: intermediateNames,
+          intermediateLocationIds: intermediateIds,
+          intermediateStopFees: intermediateNames.map(() => ''),
+          originLat: (pickupStop?.location as any)?.lat ?? null,
+          originLng: (pickupStop?.location as any)?.lng ?? null,
+          destinationLat: (dropoffStop?.location as any)?.lat ?? null,
+          destinationLng: (dropoffStop?.location as any)?.lng ?? null,
+        },
+      ]);
+
+      const histDriver = historicalTrip.driver;
+      const histVehicle = historicalTrip.vehicle;
+
+      if (histDriver && histDriver.id) {
+        setMasterDriver(histDriver.id);
+      }
+      if (histVehicle && histVehicle.id) {
+        setMasterVehicle(histVehicle.id);
+      }
+
+      setContractStep(2);
+
+      const formattedDate = historicalTrip.createdAt
+        ? new Date(historicalTrip.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'recent';
+      toast.success(
+        `Trip configuration copied from ${formattedDate} trip (${origName || 'Origin'} → ${destName || 'Destination'})`
+      );
+    },
+    [
+      setContractCustomer,
+      setContractBillingType,
+      setContractRateCategory,
+      setContractVehicleType,
+      setContractSlots,
+      setMasterDriver,
+      setMasterVehicle,
+      setContractStep,
+    ]
+  );
+
   return {
     navigate,
     queryClient,
@@ -876,6 +1033,7 @@ export function useCreateTripForm() {
     setEditThirdParty,
     editDriver,
     setEditDriver,
+    handleRepeatTrip,
     recentRoutesList,
     recentDriversList,
     handleApplyRecentRoute,
@@ -928,6 +1086,13 @@ export function useCreateTripForm() {
     restoreDraft,
     discardDraft,
     marginMetrics,
+    customerRateCards,
+    selectedMonth,
+    setSelectedMonth,
+    selectedDates,
+    setSelectedDates,
+    dayAssignments,
+    setDayAssignments,
     getAvailableRateCardsForLane,
     handleOpenCreateQuotation,
     getCompatibilityRuleForClass,

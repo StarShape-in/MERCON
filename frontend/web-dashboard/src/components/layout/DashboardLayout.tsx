@@ -12,6 +12,7 @@ interface DashboardLayoutProps {
   pageSub?: string;
   actions?: React.ReactNode;
   hideBackButton?: boolean;
+  hideHeader?: boolean;
   onBackClick?: () => void;
   fixedViewport?: boolean;
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   pageSub,
   actions,
   hideBackButton,
+  hideHeader,
   onBackClick,
   fixedViewport,
   children,
@@ -36,9 +38,9 @@ export default function DashboardLayout({
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (isInsideShell) {
-      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, onBackClick, fixedViewport });
+      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, hideHeader, onBackClick, fixedViewport });
     }
-  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, onBackClick]);
+  }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton, hideHeader, onBackClick]);
 
   if (isInsideShell) {
     // Shell is already rendering the sidebar/header — just return the content.

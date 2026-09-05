@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { DocType, DocStatus, DocOwnerType } from '@prisma/client';
 import path from 'path';

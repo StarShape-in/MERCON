@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { resolveLocation } from './locationController';
 import { findQuotationForLane, quotationInclude } from '../services/rateLookup';
 import { getValidUuid } from '../utils/uuid';

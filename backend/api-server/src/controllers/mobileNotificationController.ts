@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 
 export const getMobileNotifications = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;

@@ -584,3 +584,8 @@ body {
   scrollbar-width: none;
 }
 
+/* ─── Smooth Vehicle Telemetry Marker Glide ─────────────────────────────── */
+.crisp-truck-marker {
+  transition: transform 0.8s linear !important;
+}
+

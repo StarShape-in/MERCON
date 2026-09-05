@@ -62,6 +62,15 @@ const DEFAULT_TAXONOMY_OPTIONS: TaxonomyOption[] = [
     isActive: true,
   },
   {
+    id: 'vc_8_ton',
+    code: '8 TON',
+    label: '8 TON',
+    category: 'VEHICLE_CLASS',
+    colorTheme: COLOR_PALETTES[8], // Teal
+    iconName: 'Truck',
+    isActive: true,
+  },
+  {
     id: 'vc_10_ton',
     code: '10 TON',
     label: '10 TON',
@@ -168,6 +177,7 @@ export function normalizeCode(value: string | null | undefined): string {
   if (upper === 'EXTRA') return 'EXTRA';
   if (upper === '3TON/4TON' || upper === '3-4 TON' || upper === '3 TON') return '3-4 TON';
   if (upper === '5 TON' || upper === '5M-5TON') return '5 TON';
+  if (upper === '8 TON' || upper === '8TON' || upper === '8-TON') return '8 TON';
   if (upper === '10 TON' || upper === '6.5M-10TON') return '10 TON';
   if (upper === '20 TON' || upper === '13.5M-20TON' || upper === '20/24 TON' || upper === '24 TON') return '20 TON';
   if (upper === '40 FEET' || upper === '40FT') return '40 FEET';

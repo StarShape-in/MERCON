@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import type { TemplateLayout } from '@mercon/shared-types';
 import { inspectTemplate } from '../services/reports/xlsxTemplate/inspect';
 import { generateFromTemplate } from '../services/reports/xlsxTemplate/splice';

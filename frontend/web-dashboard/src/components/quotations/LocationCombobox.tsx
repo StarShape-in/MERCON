@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, MapPin, Plus, Loader2, Building2, AlertTriangle, Sparkles, Globe } from 'lucide-react';
+import { Check, ChevronDown, MapPin, Plus, Loader2, Building2, AlertTriangle, Sparkles, Globe, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { cn, isUuid } from '@/lib/utils';
@@ -226,17 +226,116 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
     }
   };
 
+  const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (!open) {
+      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        e.preventDefault();
+        setOpen(true);
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setSearch(e.key);
+        setOpen(true);
+      }
+    }
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setSearch('');
+    }
+  };
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const focusNextField = () => {
+    setTimeout(() => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const focusable = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"])'
+        )
+      ).filter((el) => {
+        const s = window.getComputedStyle(el);
+        return s.display !== 'none' && s.visibility !== 'hidden' && (el.offsetWidth > 0 || el.offsetHeight > 0);
+      });
+      const idx = focusable.indexOf(trigger);
+      if (idx > -1 && idx < focusable.length - 1) {
+        focusable[idx + 1].focus();
+      }
+    }, 60);
+  };
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search, open]);
+
+  // Focus search input when popover opens
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  // Scroll active item into view
+  useEffect(() => {
+    if (open && listRef.current) {
+      const activeEl = listRef.current.querySelector(`[data-location-index="${activeIndex}"]`) as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [activeIndex, open]);
+
+  const totalItems = matchingLocations.length + googleSuggestions.length;
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (totalItems > 0 ? Math.min(prev + 1, totalItems - 1) : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeIndex < matchingLocations.length && matchingLocations[activeIndex]) {
+        const target = matchingLocations[activeIndex];
+        onChange(target.id, target);
+        setOpen(false);
+        focusNextField();
+      } else if (googleSuggestions[activeIndex - matchingLocations.length]) {
+        const gTarget = googleSuggestions[activeIndex - matchingLocations.length];
+        handleSelectGoogleSuggestion(gTarget);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
+    }
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           id={id}
+          type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          ref={triggerRef}
+          onKeyDown={handleTriggerKeyDown}
           className={cn(
-            'w-full justify-between font-normal text-xs h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+            'w-full justify-between font-normal text-xs h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none focus-visible:border-[#FA634E]',
             !selected && 'text-slate-400',
             triggerClassName
           )}
@@ -254,21 +353,31 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
         side="bottom"
         sideOffset={4}
         avoidCollisions={false}
-        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
+        onKeyDownCapture={handleInputKeyDown}
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50 bg-white dark:bg-slate-900"
       >
-        <Command shouldFilter={false} className="w-full overflow-hidden">
-          <CommandInput
-            placeholder="Search code, location name, address or paste Google Maps URL..."
-            className="text-xs"
-            value={search}
-            onValueChange={handleSearchChange}
-          />
+        <div className="w-full overflow-hidden">
+          <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-3 bg-white dark:bg-slate-900">
+            <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50 text-slate-400" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search code, location name, address or paste Google Maps URL..."
+              className="flex h-10 w-full rounded-md bg-transparent py-2.5 text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
           {paste.status.kind !== 'idle' && (
             <div className="px-2 pt-1.5">
               <PasteLocationStatus status={paste.status} />
             </div>
           )}
-          <CommandList className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
+          <div ref={listRef} className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
             {(isLoading || isSearchingGoogle) && (
               <div className="py-2.5 px-3 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" />
@@ -277,27 +386,38 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
             )}
 
             {matchingLocations.length > 0 ? (
-              <CommandGroup
-                heading={
-                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <span>Customer Locations</span>
-                    <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
-                      CUSTOMER SCOPED
-                    </Badge>
-                  </div>
-                }
-              >
-                {matchingLocations.map((loc) => {
+              <div>
+                <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                  <span>Customer Locations</span>
+                  <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
+                    CUSTOMER SCOPED
+                  </Badge>
+                </div>
+                {matchingLocations.map((loc, idx) => {
                   const prec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
+                  const isHighlighted = activeIndex === idx;
+                  const doSelectLoc = () => {
+                    onChange(loc.id, loc);
+                    setOpen(false);
+                  };
+
                   return (
-                    <CommandItem
+                    <div
                       key={loc.id}
-                      value={loc.id}
-                      className="text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer hover:bg-slate-50 min-w-0"
-                      onSelect={() => {
-                        onChange(loc.id, loc);
-                        setOpen(false);
+                      data-location-index={idx}
+                      className={cn(
+                        'text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer min-w-0 transition-colors select-none',
+                        isHighlighted
+                          ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-bold ring-1 ring-brand/30'
+                          : 'hover:bg-slate-50 text-slate-900 dark:text-slate-100'
+                      )}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        doSelectLoc();
                       }}
+                      onClick={doSelectLoc}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="font-mono text-[10px] font-black text-slate-900 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">
@@ -328,59 +448,70 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
                         )}
                         {selected?.id === loc.id && <Check className="h-3.5 w-3.5 text-brand shrink-0" />}
                       </div>
-                    </CommandItem>
+                    </div>
                   );
                 })}
-              </CommandGroup>
+              </div>
             ) : !trimmedSearch ? (
-              <CommandGroup
-                heading={
-                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <span>Customer Locations</span>
-                    <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
-                      CUSTOMER SCOPED
-                    </Badge>
-                  </div>
-                }
-              >
+              <div>
+                <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                  <span>Customer Locations</span>
+                  <Badge className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0 font-bold border border-amber-200/60 shadow-2xs shrink-0">
+                    CUSTOMER SCOPED
+                  </Badge>
+                </div>
                 <div className="px-2.5 py-3 text-xs text-slate-400 text-center">
                   {customerId ? 'No locations found for this customer.' : 'Select a customer first to view customer locations.'}
                 </div>
-              </CommandGroup>
+              </div>
             ) : null}
 
             {/* Live Google Maps & Address Search Results */}
             {googleSuggestions.length > 0 && (
-              <CommandGroup
-                heading={
-                  <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <span>Google Maps & Address Search</span>
-                    <Badge className="bg-emerald-50 text-emerald-800 text-[9px] px-1.5 py-0 font-bold border border-emerald-200/60 shadow-2xs shrink-0 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-emerald-600" /> LIVE MAP
-                    </Badge>
-                  </div>
-                }
-              >
-                {googleSuggestions.map((sug) => (
-                  <CommandItem
-                    key={sug.id}
-                    value={`google-${sug.id}-${sug.label}`}
-                    className="text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
-                    onSelect={() => handleSelectGoogleSuggestion(sug)}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate font-medium text-slate-800 dark:text-slate-200">{sug.label}</span>
+              <div>
+                <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                  <span>Google Maps & Address Search</span>
+                  <Badge className="bg-emerald-50 text-emerald-800 text-[9px] px-1.5 py-0 font-bold border border-emerald-200/60 shadow-2xs shrink-0 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-600" /> LIVE MAP
+                  </Badge>
+                </div>
+                {googleSuggestions.map((sug, sIdx) => {
+                  const gIndex = matchingLocations.length + sIdx;
+                  const isHighlighted = activeIndex === gIndex;
+                  const doSelectG = () => handleSelectGoogleSuggestion(sug);
+                  return (
+                    <div
+                      key={sug.id}
+                      data-location-index={gIndex}
+                      className={cn(
+                        'text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer transition-colors select-none',
+                        isHighlighted
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 font-bold ring-1 ring-emerald-400'
+                          : 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30'
+                      )}
+                      onMouseEnter={() => setActiveIndex(gIndex)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        doSelectG();
+                      }}
+                      onClick={doSelectG}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="truncate font-medium text-slate-800 dark:text-slate-200">{sug.label}</span>
+                      </div>
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                  );
+                })}
+              </div>
             )}
 
             {canCreate && (
-              <CommandGroup heading="Create Custom Location">
-                <CommandItem
-                  onSelect={() => {
+              <div className="border-t border-slate-100 dark:border-slate-800 p-1">
+                <div
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     const url = findGoogleMapsUrl(trimmedSearch) || (isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch) ? trimmedSearch : null);
                     const parsed = parsePastedAddressText(trimmedSearch);
                     setPendingLocationData({
@@ -397,7 +528,24 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
                     setIsSaveModalOpen(true);
                     setOpen(false);
                   }}
-                  className="text-xs font-bold text-brand cursor-pointer flex items-center gap-2 py-2 px-2.5 hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                  onClick={() => {
+                    const url = findGoogleMapsUrl(trimmedSearch) || (isGoogleMapsUrl(trimmedSearch) || /^https?:\/\//i.test(trimmedSearch) ? trimmedSearch : null);
+                    const parsed = parsePastedAddressText(trimmedSearch);
+                    setPendingLocationData({
+                      name: url ? '' : parsed.name,
+                      address: url ? '' : parsed.address,
+                      city: url ? '' : parsed.city,
+                      postalCode: url ? undefined : parsed.postalCode,
+                      code: '',
+                      lat: newLocationLat ?? null,
+                      lng: newLocationLng ?? null,
+                      coordinate_precision: newLocationLat != null ? 'APPROXIMATE' : 'UNKNOWN',
+                      sourceUrl: url || undefined,
+                    });
+                    setIsSaveModalOpen(true);
+                    setOpen(false);
+                  }}
+                  className="text-xs font-bold text-brand cursor-pointer flex items-center gap-2 py-2 px-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/40 select-none"
                 >
                   <Plus className="w-4 h-4 text-brand shrink-0" />
                   <span>
@@ -405,11 +553,11 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
                       ? 'Create location from Google Maps link'
                       : `Create "${trimmedSearch}"`}
                   </span>
-                </CommandItem>
-              </CommandGroup>
+                </div>
+              </div>
             )}
-          </CommandList>
-        </Command>
+          </div>
+        </div>
       </PopoverContent>
 
       <LocationFormDialog

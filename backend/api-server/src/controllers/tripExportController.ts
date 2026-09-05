@@ -25,7 +25,7 @@
 import { Request, Response } from 'express';
 import ExcelJS from 'exceljs';
 import { Prisma, TripStatus } from '@prisma/client';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { buildSearchAnd } from '../utils/search';
 import {

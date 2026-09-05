@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { MODULE_KEYS, COMMON_TIMEZONES } from '@mercon/shared-types';
 
 const SINGLETON_ID = 'singleton';
