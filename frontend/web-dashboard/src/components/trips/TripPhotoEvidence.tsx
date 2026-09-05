@@ -1,7 +1,7 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  MapPin, Clock, Eye, Camera, ChevronDown, Check,
-  ArrowUpRight, PackageCheck, Flag, Sparkles, Image as ImageIcon
+  Clock, Eye, Camera, ChevronDown,
+  ArrowUpRight, PackageCheck, Flag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -405,18 +405,13 @@ export default function TripPhotoEvidence({
   }, [effectiveEvidence]);
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 sm:px-5 py-3.5 flex flex-col gap-2.5">
+    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col gap-2">
       
       {/* ── HEADER ROW ── */}
-      <div className="flex items-center justify-between pb-2 border-b border-[#F3F4F6] shrink-0">
-        <div>
-          <h3 className="font-extrabold text-[13.5px] sm:text-[14px] text-[#111827] leading-tight">
-            Trip Photo Evidence
-          </h3>
-          <p className="text-[10.5px] text-[#6B7280] font-normal">
-            Photos uploaded by the driver at each trip location
-          </p>
-        </div>
+      <div className="flex items-center justify-between pb-1.5 border-b border-[#F3F4F6] shrink-0">
+        <h3 className="font-extrabold text-[13.5px] sm:text-[14px] text-[#111827] leading-tight">
+          Trip Photo Evidence
+        </h3>
 
         <div className="flex items-center gap-2">
           {/* Dynamic Filter Dropdown */}
@@ -459,7 +454,7 @@ export default function TripPhotoEvidence({
       </div>
 
       {/* ── HORIZONTAL LEGS CONTENT CONTAINER ── */}
-      <div className="flex flex-col gap-3 pt-1">
+      <div className="flex flex-col gap-2 pt-0.5">
         {effectiveEvidence.map((leg) => {
           const filteredLocations =
             selectedLocation === 'all'
@@ -474,9 +469,9 @@ export default function TripPhotoEvidence({
             <div key={leg.id} className="flex-1 min-h-0 flex flex-col justify-between">
               
               {/* Leg Title Badge Row */}
-              <div className="flex items-center gap-2 pb-1 shrink-0">
+              <div className="flex items-center gap-2 pb-0.5 shrink-0">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider border ${leg.pillColor}`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[8.5px] font-extrabold uppercase tracking-wider border ${leg.pillColor}`}
                 >
                   <span>{leg.icon}</span>
                   <span>{leg.title}</span>
@@ -485,18 +480,18 @@ export default function TripPhotoEvidence({
               </div>
 
               {/* Proportional Locations Grid: Each location expands to fill leg width evenly */}
-              <div className="flex flex-wrap sm:flex-nowrap gap-2.5 items-stretch w-full">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-stretch w-full">
                 {filteredLocations.map((loc) => {
                   return (
                     <div
                       key={loc.seq}
-                      className="flex-1 min-w-[240px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-2 flex flex-col justify-between"
+                      className="flex-1 min-w-[200px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-1.5 flex flex-col justify-between"
                     >
                       {/* Location Header */}
                       <div className="flex items-center justify-between gap-1 pb-1 shrink-0 border-b border-slate-200/60">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span
-                            className={`w-4.5 h-4.5 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 ${loc.seqBgColor}`}
+                            className={`w-4 h-4 rounded-full flex items-center justify-center font-black text-[8.5px] shrink-0 ${loc.seqBgColor}`}
                           >
                             {loc.seq}
                           </span>
@@ -515,7 +510,7 @@ export default function TripPhotoEvidence({
                       <div
                         className={`grid ${
                           loc.photos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
-                        } gap-1.5 pt-1.5 items-stretch`}
+                        } gap-1 pt-1 items-stretch`}
                       >
                         {loc.photos.map((photo) => {
                           const isArrival = photo.type === 'arrival';
@@ -524,7 +519,7 @@ export default function TripPhotoEvidence({
                           return (
                             <div
                               key={photo.id}
-                              className="bg-white border border-[#E5E7EB] hover:border-blue-300 rounded-lg p-1.5 flex flex-col justify-between transition-all hover:shadow-2xs group min-w-0"
+                              className="bg-white border border-[#E5E7EB] hover:border-blue-300 rounded-lg p-1.5 flex flex-col gap-1 transition-all hover:shadow-2xs group min-w-0"
                             >
                               {/* Photo Header: Icon + Title + Received Badge */}
                               <div className="flex items-center justify-between gap-1 pb-0.5 shrink-0">
@@ -574,7 +569,7 @@ export default function TripPhotoEvidence({
                                       date: photo.time,
                                     })
                                   }
-                                  className="relative w-full h-[58px] sm:h-[68px] rounded-lg overflow-hidden bg-slate-100 border border-slate-200/80 my-0.5 cursor-pointer group shrink-0"
+                                  className="relative w-full h-[38px] sm:h-[44px] rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
                                 >
                                   <img
                                     src={photo.sampleImg}
@@ -589,19 +584,15 @@ export default function TripPhotoEvidence({
                                   </div>
                                 </div>
                               ) : (
-                                <div className="relative w-full h-[58px] sm:h-[68px] rounded-lg bg-slate-50 border border-dashed border-slate-200 my-0.5 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
-                                  <Camera size={15} className="text-slate-300" />
-                                  <span className="text-[8px] font-medium text-slate-400">No photo uploaded</span>
+                                <div className="relative w-full h-[38px] sm:h-[44px] rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-0.5 text-slate-400 shrink-0">
+                                  <Camera size={13} className="text-slate-300" />
+                                  <span className="text-[7.5px] font-medium text-slate-400">No photo uploaded</span>
                                 </div>
                               )}
 
                               {/* Photo Metadata Footer */}
-                              <div className="pt-0.5 space-y-0.5 shrink-0">
-                                <div className="flex items-center gap-1 text-[8px] text-[#4B5563] truncate leading-none">
-                                  <MapPin size={8} className="text-blue-500 shrink-0" />
-                                  <span className="truncate">{photo.location}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-[7.5px] font-mono text-[#6B7280] truncate leading-none">
+                              <div className="pt-0.5 flex items-center justify-between text-[7.5px] sm:text-[8px] text-slate-500 shrink-0">
+                                <div className="flex items-center gap-1 font-mono text-[#6B7280] truncate">
                                   <Clock size={8} className="text-[#9CA3AF] shrink-0" />
                                   <span className="truncate">{photo.time}</span>
                                 </div>
@@ -617,16 +608,13 @@ export default function TripPhotoEvidence({
                                         date: photo.time,
                                       })
                                     }
-                                    className="flex items-center gap-0.5 text-[8.5px] font-bold text-blue-600 hover:text-blue-700 pt-0.5 cursor-pointer leading-tight"
+                                    className="flex items-center gap-0.5 font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
                                   >
                                     <Eye size={9} />
-                                    <span>View Photo</span>
+                                    <span>View</span>
                                   </button>
                                 ) : (
-                                  <span className="text-[8px] text-slate-400 pt-0.5 leading-tight flex items-center gap-0.5">
-                                    <Clock size={8} className="text-slate-300" />
-                                    <span>Awaiting Driver</span>
-                                  </span>
+                                  <span className="text-slate-400">Awaiting Driver</span>
                                 )}
                               </div>
 
