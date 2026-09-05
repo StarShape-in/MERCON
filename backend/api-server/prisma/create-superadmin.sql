@@ -1,6 +1,7 @@
--- SQL Script to create or update the superadmin user on dev.mercon.tech / production DB
--- Run via psql or PgAdmin on the target database:
+-- Step 1: Add 'SuperAdmin' value to PostgreSQL enum "Role"
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'SuperAdmin';
 
+-- Step 2: Insert or update the superadmin account with password superadmin1234
 INSERT INTO "User" (
   id, username, email, phone, name, role, "isSuperAdmin", "isActive", password_hash, "createdAt", "updatedAt"
 ) VALUES (
