@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Navigation, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
-import { getArrow } from 'curved-arrows';
 import {
   estimateTravelTimeByName,
   calculateArrivalDropoffTime,

@@ -170,7 +170,7 @@ function createLiveTruckIcon(heading: number = 0, plateNumber?: string, speed?: 
   });
 }
 
-function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 'LAST_KNOWN' = 'CURRENT', plateNumber?: string) {
+function createResolvedTruckIcon(heading: number = 0, displayState: 'CURRENT' | 'LAST_KNOWN' = 'CURRENT', plateNumber?: string | null) {
   const isCurrent = displayState === 'CURRENT';
   const cabColor = isCurrent ? '#10B981' : '#F59E0B';
   const strokeColor = isCurrent ? '#047857' : '#D97706';

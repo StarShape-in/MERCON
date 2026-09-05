@@ -87,6 +87,7 @@ export interface Trip {
   id: string;
   ref_id: string;
   status: TripStatus;
+  driver_workflow_state?: string | null;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
