@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Plus, Trash2, Calendar, Clock, Moon, RotateCcw } from 'lucide-react';
+import { MapPin, Plus, Trash2, Calendar, Clock, Moon, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -63,6 +63,42 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
     const cleanTime = time.includes(':') ? time.split(' ')[0] : '14:00';
     return `${dDate}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
   }, [slot.dropoffDate, slot.date, slot.dropoffTime]);
+
+  const pickupDateObj = React.useMemo(() => {
+    if (!pickupIsoValue) return undefined;
+    const d = new Date(pickupIsoValue);
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [pickupIsoValue]);
+
+  const scheduleError = React.useMemo(() => {
+    if (!slot.date) return null;
+    const dropoffDate = slot.dropoffDate || slot.date;
+    if (!dropoffDate) return null;
+
+    const pTime = (slot.pickupTime || '08:00').split(' ')[0];
+    const dTime = (slot.dropoffTime || '14:00').split(' ')[0];
+
+    // 1. Date comparison
+    if (dropoffDate < slot.date) {
+      return 'Drop-off date cannot be before start date.';
+    }
+
+    // 2. Same date time comparison
+    if (dropoffDate === slot.date && dTime <= pTime) {
+      return 'Drop-off time must be after the start time.';
+    }
+
+    // 3. Exact ISO timestamp comparison
+    if (pickupIsoValue && dropoffIsoValue) {
+      const pTs = new Date(pickupIsoValue).getTime();
+      const dTs = new Date(dropoffIsoValue).getTime();
+      if (!isNaN(pTs) && !isNaN(dTs) && dTs <= pTs) {
+        return 'Drop-off date and time must be strictly later than start date and time.';
+      }
+    }
+
+    return null;
+  }, [slot.date, slot.dropoffDate, slot.pickupTime, slot.dropoffTime, pickupIsoValue, dropoffIsoValue]);
 
   return (
     <div className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
@@ -172,7 +208,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   if (!isoStr) return;
                   const [dPart, tPart] = isoStr.split('T');
                   const cleanTime = tPart ? tPart.substring(0, 5) : '08:00';
-                  handleUpdateTripSlot(slot.id, { date: dPart, pickupTime: cleanTime, dropoffDate: dPart });
+                  const keepDropoff = slot.dropoffDate && slot.dropoffDate >= dPart;
+                  handleUpdateTripSlot(slot.id, {
+                    date: dPart,
+                    pickupTime: cleanTime,
+                    ...(keepDropoff ? {} : { dropoffDate: dPart }),
+                  });
                 }}
                 placeholder="Pick date & time..."
                 showPresets={false}
@@ -248,6 +289,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               </label>
               <DateTimePicker
                 value={dropoffIsoValue}
+                minDate={pickupDateObj}
+                error={!!scheduleError}
                 onChange={(isoStr) => {
                   if (!isoStr) return;
                   const [dPart, tPart] = isoStr.split('T');
@@ -259,6 +302,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 showRelativeBadge={false}
                 className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
               />
+              {scheduleError && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{scheduleError}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

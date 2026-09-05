@@ -122,3 +122,131 @@ export async function validateTripDrivers(
     primaryDriverId,
   };
 }
+
+export interface StopScheduleInput {
+  stop_sequence?: number;
+  sequence?: number;
+  stop_type?: string;
+  planned_arrival?: Date | string | null;
+  planned_departure?: Date | string | null;
+  location_name?: string | null;
+}
+
+export interface ValidateTripScheduleResult {
+  isValid: boolean;
+  error?: string;
+}
+
+/**
+ * Validates that trip schedule invariants and stop sequence chronology are preserved:
+ * 1. planned_start < planned_end (strictly greater).
+ * 2. Stops cannot have planned arrivals before trip planned_start or after planned_end.
+ * 3. Each subsequent stop in the sequence cannot be scheduled before preceding stops.
+ * 4. Stop planned_departure cannot be earlier than planned_arrival.
+ */
+export function validateTripSchedule(
+  plannedStart?: Date | string | null,
+  plannedEnd?: Date | string | null,
+  stops?: StopScheduleInput[]
+): ValidateTripScheduleResult {
+  let startTime: number | null = null;
+  let endTime: number | null = null;
+
+  if (plannedStart !== undefined && plannedStart !== null && plannedStart !== '') {
+    const sDate = plannedStart instanceof Date ? plannedStart : new Date(plannedStart);
+    if (isNaN(sDate.getTime())) {
+      return { isValid: false, error: 'Invalid planned start date/time.' };
+    }
+    startTime = sDate.getTime();
+  }
+
+  if (plannedEnd !== undefined && plannedEnd !== null && plannedEnd !== '') {
+    const eDate = plannedEnd instanceof Date ? plannedEnd : new Date(plannedEnd);
+    if (isNaN(eDate.getTime())) {
+      return { isValid: false, error: 'Invalid planned drop-off/end date/time.' };
+    }
+    endTime = eDate.getTime();
+  }
+
+  // Core rule: planned_start < planned_end
+  if (startTime !== null && endTime !== null) {
+    if (endTime <= startTime) {
+      return {
+        isValid: false,
+        error: 'Drop-off date and time must be strictly later than planned start time.',
+      };
+    }
+  }
+
+  // Stop chronology validation
+  if (stops && Array.isArray(stops) && stops.length > 0) {
+    const sortedStops = [...stops].sort(
+      (a, b) => (a.sequence ?? a.stop_sequence ?? 0) - (b.sequence ?? b.stop_sequence ?? 0)
+    );
+    let prevStopTime: number | null = startTime;
+    let prevSeq: number = 0;
+
+    for (const stop of sortedStops) {
+      const seq = stop.sequence ?? stop.stop_sequence ?? prevSeq + 1;
+      let stopArrTime: number | null = null;
+
+      if (stop.planned_arrival !== undefined && stop.planned_arrival !== null && stop.planned_arrival !== '') {
+        const arrDate = stop.planned_arrival instanceof Date ? stop.planned_arrival : new Date(stop.planned_arrival);
+        if (isNaN(arrDate.getTime())) {
+          return { isValid: false, error: `Invalid planned arrival date/time for Stop #${seq}.` };
+        }
+        stopArrTime = arrDate.getTime();
+
+        if (startTime !== null && stopArrTime < startTime) {
+          return {
+            isValid: false,
+            error: `Stop #${seq} planned arrival cannot be before the trip planned start time.`,
+          };
+        }
+
+        if (endTime !== null && stopArrTime > endTime) {
+          return {
+            isValid: false,
+            error: `Stop #${seq} planned arrival cannot be after the trip planned end time.`,
+          };
+        }
+
+        if (prevStopTime !== null && stopArrTime < prevStopTime) {
+          return {
+            isValid: false,
+            error: `Stop #${seq} planned arrival cannot be earlier than previous stop (#${prevSeq}).`,
+          };
+        }
+
+        prevStopTime = stopArrTime;
+        prevSeq = seq;
+      }
+
+      if (stop.planned_departure !== undefined && stop.planned_departure !== null && stop.planned_departure !== '') {
+        const depDate = stop.planned_departure instanceof Date ? stop.planned_departure : new Date(stop.planned_departure);
+        if (isNaN(depDate.getTime())) {
+          return { isValid: false, error: `Invalid planned departure date/time for Stop #${seq}.` };
+        }
+        const depTime = depDate.getTime();
+
+        if (stopArrTime !== null && depTime < stopArrTime) {
+          return {
+            isValid: false,
+            error: `Stop #${seq} planned departure cannot be earlier than its planned arrival.`,
+          };
+        }
+
+        if (endTime !== null && depTime > endTime) {
+          return {
+            isValid: false,
+            error: `Stop #${seq} planned departure cannot be after the trip planned end time.`,
+          };
+        }
+
+        prevStopTime = depTime;
+      }
+    }
+  }
+
+  return { isValid: true };
+}

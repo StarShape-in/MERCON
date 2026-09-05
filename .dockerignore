@@ -1,0 +1,11 @@
+﻿**/.git
+**/.github
+**/node_modules
+**/dist
+**/build
+**/.expo
+frontend/mobile-app
+.tempmediaStorage
+.user_uploaded
+*.log
+.DS_Store

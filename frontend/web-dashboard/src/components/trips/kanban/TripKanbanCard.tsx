@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface TripKanbanCardProps {
   trip: Trip;
@@ -36,6 +37,9 @@ export interface TripKanbanCardProps {
   onOpenSettlement?: (trip: Trip) => void;
   density?: 'compact' | 'normal' | 'expanded';
   hideCustomer?: boolean;
+  isSelected?: boolean;
+  showCheckbox?: boolean;
+  onToggleSelect?: (trip: Trip) => void;
 }
 
 // Prefer the compact monthly-sheet code ("RUH") when the stop's Location has
@@ -87,6 +91,9 @@ export default function TripKanbanCard({
   onOpenSettlement,
   density = 'normal',
   hideCustomer = false,
+  isSelected = false,
+  showCheckbox = false,
+  onToggleSelect,
 }: TripKanbanCardProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -153,22 +160,37 @@ export default function TripKanbanCard({
       onDragEnd={handleDragEnd}
       onClick={() => navigate(`/trips/${trip.id}`)}
       className={cn(
-        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
+        'group relative bg-white dark:bg-slate-900 border rounded-xl shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
         density === 'compact' ? 'p-3 gap-2' : density === 'expanded' ? 'p-4 gap-3' : 'p-3 gap-2.5',
-        isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
+        isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10',
+        isSelected ? 'border-brand ring-1 ring-brand/30 bg-brand/5 dark:bg-brand/10' : 'border-slate-200/90 dark:border-slate-800'
       )}
     >
       {/* ── ROW 1: Trip Type badge (left) + Trip ID + ··· menu (right) ─────── */}
       <div className="flex items-center justify-between gap-2">
-        {/* Trip type label — compact, low visual weight */}
-        <span className={cn(
-          'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase',
-          trip.is_third_party
-            ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-            : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-        )}>
-          {tripType}
-        </span>
+        {/* Left cluster: Checkbox + Trip type label */}
+        <div className="flex items-center gap-2 shrink-0">
+          {showCheckbox && onToggleSelect && (
+            <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+              <Checkbox 
+                checked={isSelected} 
+                onCheckedChange={() => onToggleSelect(trip)} 
+                className={cn(
+                  "w-4 h-4 rounded shadow-sm border-slate-300 dark:border-slate-700 data-[state=checked]:bg-brand data-[state=checked]:border-brand",
+                  isSelected && "border-brand"
+                )}
+              />
+            </div>
+          )}
+          <span className={cn(
+            'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase',
+            trip.is_third_party
+              ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+              : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+          )}>
+            {tripType}
+          </span>
+        </div>
 
         {/* Right cluster: ref_id + actions menu */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -318,6 +340,8 @@ export default function TripKanbanCard({
 
       {/* ── ROW 3.5: Resolved Physical Location Row ──────────────────────────── */}
       {(() => {
+        if (trip.status === 'Completed' || trip.status === 'Invoiced') return null;
+        
         if (isUnavailable) {
           return (
             <div className="flex items-center gap-1.5 text-[10px] font-medium italic text-slate-400 dark:text-slate-500 py-0.5 px-1">

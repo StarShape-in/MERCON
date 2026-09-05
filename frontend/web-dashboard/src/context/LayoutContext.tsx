@@ -66,7 +66,8 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         prev.pageSub === m.pageSub &&
         prev.pageTitle === m.pageTitle &&
         prev.actions === m.actions &&
-        prev.onBackClick === m.onBackClick
+        prev.onBackClick === m.onBackClick &&
+        prev.fixedViewport === m.fixedViewport
       ) {
         return prev;
       }

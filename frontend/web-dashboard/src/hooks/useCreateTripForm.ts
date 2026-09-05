@@ -612,13 +612,25 @@ export function useCreateTripForm() {
       return (
         Boolean(contractCustomer) &&
         contractSlots.length > 0 &&
-        contractSlots.every(
-          (slot) =>
-            slot.origin.trim() &&
-            slot.destination.trim() &&
-            slot.pickupTime &&
-            slot.dropoffTime
-        )
+        contractSlots.every((slot) => {
+          if (!slot.origin?.trim() || !slot.destination?.trim() || !slot.date || !slot.pickupTime || !slot.dropoffTime) {
+            return false;
+          }
+          const dropoffDate = slot.dropoffDate || slot.date;
+          if (dropoffDate < slot.date) return false;
+          try {
+            const pStartIso = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
+            const pEndIso = localDateTimeToUtcIso(dropoffDate, slot.dropoffTime, tz);
+            const pStartMs = new Date(pStartIso).getTime();
+            const pEndMs = new Date(pEndIso).getTime();
+            if (isNaN(pStartMs) || isNaN(pEndMs) || pEndMs <= pStartMs) {
+              return false;
+            }
+          } catch {
+            return false;
+          }
+          return true;
+        })
       );
     }
     if (step === 2) {

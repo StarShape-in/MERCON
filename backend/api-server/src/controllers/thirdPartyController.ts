@@ -5,9 +5,8 @@ import { TripStatus } from '@prisma/client';
 
 const THIRD_PARTY_SEARCH_FIELDS = ['name', 'contact_person', 'phone', 'email', 'tax_id'];
 
-// Trip statuses that mean the trip is still in progress — the same active-set
-// convention used in driverController / vehicleController.
-const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'];
+// Trip statuses that mean the trip is actively started and in progress.
+const ACTIVE_TRIP_STATUSES = ['Loading', 'InTransit', 'Delayed'];
 
 export const getThirdPartyProviders = async (req: Request, res: Response) => {
   try {

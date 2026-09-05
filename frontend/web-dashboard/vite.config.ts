@@ -24,6 +24,17 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/uploads': {
+        target: 'https://dev.mercon.tech',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/socket.io': {
+        target: 'https://dev.mercon.tech',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
   // Pre-bundle all heavy deps up front so Vite's optimizer doesn't cause

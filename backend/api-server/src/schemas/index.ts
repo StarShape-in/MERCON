@@ -153,6 +153,7 @@ export const createTripBody = z.object({
   driver_id: z.string().uuid('Invalid driver').optional(),
   vehicle_id: z.string().uuid('Invalid vehicle').optional(),
   planned_start: z.coerce.date().optional(),
+  planned_end: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
   driver_charge: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
@@ -210,6 +211,37 @@ export const createTripBody = z.object({
 }, {
   message: 'Trip planned start date must be today or in the future',
   path: ['planned_start'],
+}).refine((data) => {
+  if (data.planned_start && data.planned_end) {
+    return new Date(data.planned_end).getTime() > new Date(data.planned_start).getTime();
+  }
+  return true;
+}, {
+  message: 'Drop-off date and time must be strictly later than start date and time',
+  path: ['planned_end'],
+}).refine((data) => {
+  if (data.stops && Array.isArray(data.stops)) {
+    const startTime = data.planned_start ? new Date(data.planned_start).getTime() : null;
+    const endTime = data.planned_end ? new Date(data.planned_end).getTime() : null;
+    let prevTime: number | null = startTime;
+
+    for (let i = 0; i < data.stops.length; i++) {
+      const stop = data.stops[i];
+      if (stop.planned_arrival) {
+        const arrDate = new Date(stop.planned_arrival);
+        if (isNaN(arrDate.getTime())) return false;
+        const arrTime = arrDate.getTime();
+        if (startTime !== null && arrTime < startTime) return false;
+        if (endTime !== null && arrTime > endTime) return false;
+        if (prevTime !== null && arrTime < prevTime) return false;
+        prevTime = arrTime;
+      }
+    }
+  }
+  return true;
+}, {
+  message: 'Stop planned arrivals must follow chronological sequence between trip start and drop-off',
+  path: ['stops'],
 });
 
 /** Correcting a stop after the trip exists — every field optional, since the
@@ -318,6 +350,18 @@ export const bulkImportTripsBody = z.object({
     status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
+  }).refine((data) => {
+    if (data.planned_start && data.planned_end) {
+      const s = new Date(data.planned_start).getTime();
+      const e = new Date(data.planned_end).getTime();
+      if (!isNaN(s) && !isNaN(e)) {
+        return e > s;
+      }
+    }
+    return true;
+  }, {
+    message: 'Drop-off date and time must be strictly later than start date and time',
+    path: ['planned_end'],
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
 });
 
