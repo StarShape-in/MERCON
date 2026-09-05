@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, ShieldCheck, Tag } from 'lucide-react';
+import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, ShieldCheck, Tag, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -129,6 +129,37 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
   const rosterPairs = Array.from(assignedPairsMap.values());
 
+  // Validate that all slots satisfy planned_start < planned_end
+  const scheduleErrors = React.useMemo(() => {
+    const errors: string[] = [];
+    contractSlots.forEach((slot, idx) => {
+      const pDate = slot.date;
+      const dDate = slot.dropoffDate || slot.date;
+      if (!pDate || !dDate) {
+        errors.push(`Slot #${idx + 1}: Missing start or drop-off date.`);
+        return;
+      }
+      if (dDate < pDate) {
+        errors.push(`Slot #${idx + 1}: Drop-off date (${dDate}) cannot be before start date (${pDate}).`);
+        return;
+      }
+      const pTime = (slot.pickupTime || '08:00').split(' ')[0];
+      const dTime = (slot.dropoffTime || '14:00').split(' ')[0];
+      if (dDate === pDate && dTime <= pTime) {
+        errors.push(`Slot #${idx + 1}: Drop-off time (${dTime}) must be after start time (${pTime}).`);
+        return;
+      }
+      const pClean = pTime.length === 4 ? '0' + pTime : pTime;
+      const dClean = dTime.length === 4 ? '0' + dTime : dTime;
+      const pTs = new Date(`${pDate}T${pClean}`).getTime();
+      const dTs = new Date(`${dDate}T${dClean}`).getTime();
+      if (isNaN(pTs) || isNaN(dTs) || dTs <= pTs) {
+        errors.push(`Slot #${idx + 1}: Drop-off date and time must be strictly later than start date and time.`);
+      }
+    });
+    return errors;
+  }, [contractSlots]);
+
   return (
     <div className="fixed inset-0 z-[999] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden text-[#3E3C3D] dark:text-slate-200 animate-scale-in">
@@ -161,6 +192,21 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
         {/* MODAL BODY */}
         <div className="p-6 space-y-4">
+
+          {/* SCHEDULE ERROR BANNER */}
+          {scheduleErrors.length > 0 && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Invalid Trip Schedule</span>
+              </div>
+              <ul className="list-disc list-inside text-[11px] text-rose-600 dark:text-rose-300">
+                {scheduleErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* MINIMAL ROUTE PATH BANNER */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
@@ -357,7 +403,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           <Button
             type="button"
             onClick={onConfirm}
-            disabled={isPending}
+            disabled={isPending || scheduleErrors.length > 0}
             className="h-9 px-5 rounded-xl bg-[#FA634E] hover:bg-[#d13d0d] text-white font-extrabold text-xs cursor-pointer shadow-2xs gap-1.5"
           >
             {isPending ? (

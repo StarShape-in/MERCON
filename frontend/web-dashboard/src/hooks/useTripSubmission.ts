@@ -73,6 +73,30 @@ export function useTripSubmission(
 
   const handleContractSubmit = async () => {
     if (!contractCustomer || contractSlots.length === 0) return;
+
+    // Validate that all slots satisfy planned_start < planned_end
+    for (let i = 0; i < contractSlots.length; i++) {
+      const slot = contractSlots[i];
+      const dropoffDateVal = slot.dropoffDate || slot.date;
+      if (!slot.date || !dropoffDateVal) {
+        toast.error(`Slot #${i + 1} is missing schedule dates.`);
+        return;
+      }
+      try {
+        const plannedStart = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
+        const plannedEnd = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
+        const startMs = new Date(plannedStart).getTime();
+        const endMs = new Date(plannedEnd).getTime();
+        if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
+          toast.error(`Invalid schedule for Slot #${i + 1}: Drop-off date & time must be strictly after pickup date & time.`);
+          return;
+        }
+      } catch (err) {
+        toast.error(`Invalid schedule format for Slot #${i + 1}.`);
+        return;
+      }
+    }
+
     const slotsToSaveAsQuotation = contractSlots.filter(
       (slot) => (slot.saveAsQuotation || slot.saveAsRateCard) && Number(slot.billingAmount) > 0
     );

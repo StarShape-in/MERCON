@@ -12,7 +12,7 @@ import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
-import { validateTripDrivers, TripDriverInput } from '../services/tripValidationService';
+import { validateTripDrivers, TripDriverInput, validateTripSchedule } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 
 /** Fields the trip ledger search bar looks at. */
@@ -549,6 +549,7 @@ export const createTrip = async (req: Request, res: Response) => {
       driver_id,
       vehicle_id,
       planned_start,
+      planned_end,
       billing_amount,
       trip_charges,
       stops,
@@ -571,6 +572,21 @@ export const createTrip = async (req: Request, res: Response) => {
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
       ? new Date(planned_start)
       : null;
+    const parsedPlannedEnd = (planned_end && !isNaN(Date.parse(planned_end)))
+      ? new Date(planned_end)
+      : null;
+
+    // Validate schedule invariant: planned_start < planned_end and stop chronology
+    const scheduleValidation = validateTripSchedule(parsedPlannedStart, parsedPlannedEnd, stops);
+    if (!scheduleValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: scheduleValidation.error || 'Drop-off date and time must be strictly later than start date and time',
+        },
+      });
+    }
 
     // Determine target status:
     // If explicitly requested as 'Dispatched' or dispatch_now is true (and both driver+vehicle present):
@@ -754,6 +770,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
               planned_start: parsedPlannedStart,
+              planned_end: parsedPlannedEnd,
               status: targetStatus,
               carrier_name: carrierName,
               ...(createdBy ? { created_by: createdBy } : {}),
@@ -789,6 +806,14 @@ export const createTrip = async (req: Request, res: Response) => {
                   const latVal = parseOptionalFloat(stop.lat);
                   const lngVal = parseOptionalFloat(stop.lng);
                   const precisionVal = stop.coordinate_precision || stop.location_coordinate_precision || (latVal == null || lngVal == null ? 'UNKNOWN' : 'APPROXIMATE');
+                  let stopPlannedArrival: Date | null = null;
+                  if (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival))) {
+                    stopPlannedArrival = new Date(stop.planned_arrival);
+                  } else if (index === 0 && parsedPlannedStart) {
+                    stopPlannedArrival = parsedPlannedStart;
+                  } else if (index === resolvedStops.length - 1 && parsedPlannedEnd) {
+                    stopPlannedArrival = parsedPlannedEnd;
+                  }
                   return {
                     stop_sequence: index + 1,
                     stop_type: stop.stop_type as StopType,
@@ -798,9 +823,7 @@ export const createTrip = async (req: Request, res: Response) => {
                     location_name: String(stop.location_name ?? '').trim() || null,
                     location_address: String(stop.location_address ?? '').trim() || null,
                     locationId: stop.location_id || null,
-                    planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
-                      ? new Date(stop.planned_arrival)
-                      : null,
+                    planned_arrival: stopPlannedArrival,
                   };
                 }),
               }
@@ -1030,6 +1053,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? new Date(row.planned_end)
           : null;
 
+        const scheduleCheck = validateTripSchedule(parsedPlannedStart, parsedPlannedEnd);
+        if (!scheduleCheck.isValid) {
+          throw new Error(scheduleCheck.error || 'Drop-off date and time must be strictly later than start date and time');
+        }
+
         const isDispatched = row.is_third_party
           ? Boolean(thirdPartyProviderId || row.third_party_vehicle_plate)
           : Boolean(driverId && vehicleId);
@@ -1092,12 +1120,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               carrier_name: carrierName,
               ...((row.origin || row.destination) ? {
                 stops: {
-                  create: parseFullTripStops(row.origin || '', row.destination || '').map((st) => ({
+                  create: parseFullTripStops(row.origin || '', row.destination || '').map((st, idx, arr) => ({
                     stop_sequence: st.stop_sequence,
                     stop_type: st.stop_type as any,
                     location_name: st.location_name,
                     location_lat: 0,
                     location_lng: 0,
+                    planned_arrival: idx === 0 ? parsedPlannedStart : (idx === arr.length - 1 ? parsedPlannedEnd : null),
                   }))
                 }
               } : {})
