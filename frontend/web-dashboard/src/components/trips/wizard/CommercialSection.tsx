@@ -241,107 +241,41 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         </div>
 
         {/* ROW 2: SEARCH COMBOBOX WITH LEFT COMPANY PROFILE PICTURE */}
-        <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-          {/* LEFT SIDE: COMPANY PROFILE PICTURE + CUSTOMER SEARCH COMBOBOX */}
-          <div className="flex items-center gap-2">
-            {/* COMPANY PROFILE PICTURE (LEFT OF FIELD) */}
-            {selectedCust ? (
-              selectedCust.logo_url || selectedCust.avatar_url ? (
-                <img
-                  src={selectedCust.logo_url || selectedCust.avatar_url}
-                  alt={selectedCust.name}
-                  className="w-9 h-9 rounded-xl object-cover border-2 border-brand/50 shadow-2xs shrink-0"
-                  title={selectedCust.name}
-                />
-              ) : (
-                <div
-                  className="w-9 h-9 rounded-xl bg-brand text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs border border-brand/20"
-                  title={selectedCust.name}
-                >
-                  {selectedCust.name.substring(0, 2).toUpperCase()}
-                </div>
-              )
+        <div className="flex items-center gap-2 pt-0.5">
+          {/* COMPANY PROFILE PICTURE (LEFT OF FIELD) */}
+          {selectedCust ? (
+            selectedCust.logo_url || selectedCust.avatar_url ? (
+              <img
+                src={selectedCust.logo_url || selectedCust.avatar_url}
+                alt={selectedCust.name}
+                className="w-9 h-9 rounded-xl object-cover border-2 border-brand/50 shadow-2xs shrink-0"
+                title={selectedCust.name}
+              />
             ) : (
-              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs grid place-items-center shrink-0 border border-slate-200 dark:border-slate-700">
-                <Building2 className="w-4 h-4 text-slate-400" />
-              </div>
-            )}
-
-            {/* CUSTOMER SEARCH COMBOBOX */}
-            {setContractCustomer && (
-              <div className="w-full sm:w-[280px] shrink-0">
-                <Combobox
-                  options={derivedCustomerOptions}
-                  value={contractCustomer}
-                  onChange={(val) => setContractCustomer?.(val)}
-                  placeholder="Select customer account..."
-                  searchPlaceholder="Search customer name or code..."
-                  triggerClassName="h-9 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
-                />
-              </div>
-            )}
-
-            {/* QUOTATION SEARCH BAR (SHOWN WHEN CUSTOMER IS SELECTED) */}
-            {contractCustomer && (
-              <div className="relative w-full sm:w-[240px] shrink-0">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={quotationSearchQuery}
-                  onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                  placeholder="Search quotations (route, rate, code)..."
-                  className="h-9 w-full pl-8 pr-7 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand shadow-2xs"
-                />
-                {quotationSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setQuotationSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    title="Clear search"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT SIDE: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
-          {setContractBillingType && (
-            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
-              <button
-                type="button"
-                onClick={() => setContractBillingType('All')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
-                  !contractBillingType || contractBillingType.toLowerCase() === 'all'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
+              <div
+                className="w-9 h-9 rounded-xl bg-brand text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs border border-brand/20"
+                title={selectedCust.name}
               >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setContractBillingType('Monthly')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
-                  contractBillingType?.toLowerCase() === 'monthly'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setContractBillingType('Extra')}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
-                  contractBillingType?.toLowerCase() === 'extra'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                }`}
-              >
-                Extra
-              </button>
+                {selectedCust.name.substring(0, 2).toUpperCase()}
+              </div>
+            )
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs grid place-items-center shrink-0 border border-slate-200 dark:border-slate-700">
+              <Building2 className="w-4 h-4 text-slate-400" />
+            </div>
+          )}
+
+          {/* CUSTOMER SEARCH COMBOBOX */}
+          {setContractCustomer && (
+            <div className="w-full sm:w-[320px] shrink-0">
+              <Combobox
+                options={derivedCustomerOptions}
+                value={contractCustomer}
+                onChange={(val) => setContractCustomer?.(val)}
+                placeholder="Select customer account..."
+                searchPlaceholder="Search customer name or code..."
+                triggerClassName="h-9 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
+              />
             </div>
           )}
         </div>
@@ -470,7 +404,71 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         /* ========================================================================= */
         /* STAGE 2: CUSTOMER IS SELECTED -> SHOW QUOTATION RATE CARDS CAROUSEL      */
         /* ========================================================================= */
-        <>
+        <div className="space-y-2.5">
+          {/* QUOTATIONS TOOLBAR: SEARCH INPUT (TOP LEFT) + BILLING TYPE TOGGLE (TOP RIGHT) */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            {/* TOP LEFT: QUOTATION SEARCH BAR (GROUPED WITH CARDS) */}
+            <div className="relative w-full sm:w-[260px] shrink-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={quotationSearchQuery}
+                onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                placeholder="Search quotations (route, rate)..."
+                className="h-8 w-full pl-8 pr-7 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs"
+              />
+              {quotationSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setQuotationSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
+            {setContractBillingType && (
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setContractBillingType('All')}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                    !contractBillingType || contractBillingType.toLowerCase() === 'all'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContractBillingType('Monthly')}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                    contractBillingType?.toLowerCase() === 'monthly'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContractBillingType('Extra')}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-7 ${
+                    contractBillingType?.toLowerCase() === 'extra'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  Extra
+                </button>
+              </div>
+            )}
+          </div>
+
           {displayedRateCards.length > 0 ? (
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
@@ -765,7 +763,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               )}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
