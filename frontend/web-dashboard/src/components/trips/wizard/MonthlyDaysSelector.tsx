@@ -102,7 +102,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
   // Strategy Mode: 'single' vs 'rotation'
   const [strategyMode, setStrategyMode] = useState<'single' | 'rotation'>('single');
   const [rotationCount, setRotationCount] = useState<2 | 3 | 4>(2);
-  const [isRosterExpanded, setIsRosterExpanded] = useState(false);
+  const [isRosterExpanded, setIsRosterExpanded] = useState(true);
 
   const [rotationDrivers, setRotationDrivers] = useState<string[]>([
     masterDriver || (driverOptions[0]?.value as string) || '',
