@@ -119,6 +119,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               compact
             />
           )}
+
+          {slot.matchedRateCard && (
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/70 dark:border-slate-700">
+              Populated from Quotation #{slot.matchedRateCard.quotation_number || 'Rate Card'}
+            </span>
+          )}
         </div>
 
         {/* RIGHT: REMOVE SLOT (IF MULTI-SLOT) */}
@@ -140,9 +146,9 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
             {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
             <div className="md:col-span-8 space-y-1">
-              <label className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-brand">*</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-[#FA634E]">*</span>
                 </span>
               </label>
               <LocationCombobox
@@ -157,7 +163,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
             <div className="md:col-span-4 space-y-1">
-              <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
                 <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
               </label>
               <DateTimePicker
@@ -221,7 +227,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end pt-1 border-t border-slate-100 dark:border-slate-800">
             {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
             <div className="md:col-span-8 space-y-1">
-              <label className="text-xs font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {isRoundTrip ? 'OUTBOUND DESTINATION *' : 'DESTINATION LOCATION *'}
                 </span>
@@ -237,8 +243,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
             <div className="md:col-span-4 space-y-1">
-              <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
-                <Calendar className="w-3 h-3 text-brand shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
+                <Calendar className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
               </label>
               <DateTimePicker
                 value={dropoffIsoValue}

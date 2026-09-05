@@ -87,15 +87,15 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
           <div className="md:col-span-6 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
-            {/* VEHICLE TON */}
+            {/* VEHICLE CLASS */}
             {setContractVehicleType && (
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  VEHICLE TON
+                  VEHICLE CLASS
                 </label>
                 <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
                   <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
-                    <SelectValue placeholder="Select Ton / Vehicle Class..." />
+                    <SelectValue placeholder="Select Vehicle Class..." />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
                     {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
@@ -176,7 +176,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             )}
           </div>
 
-          {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD (2 ROWS UNSELECTED -> 1 EXPANDED ROW SELECTED WITH CORAL RED BORDER) */}
+          {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD */}
           <div className="md:col-span-6 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
@@ -195,7 +195,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
             <div className="flex-1 flex flex-col justify-center items-center transition-all duration-300">
               {masterDriver ? (() => {
-                // SINGLE SELECTED DRIVER VIEW (CORAL RED / ORANGE BORDER CARD)
+                // REFINED COMPACT DRIVER VIEW
                 const selectedOpt = driverOptions.find((d) => d.value === masterDriver);
                 const optLabelStr = selectedOpt ? (typeof selectedOpt.label === 'string' ? selectedOpt.label : String(selectedOpt.label || '')) : '';
                 const rawName = optLabelStr.split('(')[0].trim() || 'Assigned Driver';
@@ -204,7 +204,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 const lastName = nameParts.slice(1).join(' ') || '';
 
                 const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
-                const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
                 const avatarUrl = selectedOpt ? (
                   (selectedOpt as any).avatar_url ||
                   (selectedOpt as any).photo_url ||
@@ -222,25 +221,21 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 ) : null;
 
                 return (
-                  <div className="w-full py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 text-center flex flex-col items-center justify-center space-y-1.5 relative shadow-2xs animate-fade-in transition-all duration-300">
-                    {/* CENTERED PROFILE AVATAR */}
+                  <div className="w-full py-2.5 px-3 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80 text-left flex items-center gap-2.5 shadow-2xs animate-fade-in transition-all">
                     <DriverAvatar
                       src={avatarUrl}
                       firstName={firstName}
                       lastName={lastName}
-                      size="lg"
-                      className="border-2 border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                      size="md"
+                      className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
                     />
-
-                    {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
-                    <div className="text-sm font-black text-slate-900 dark:text-slate-100 text-center leading-tight pt-1">
-                      <div className="truncate max-w-full">{firstName}</div>
-                      {lastName && <div className="truncate max-w-full font-bold text-xs text-slate-600 dark:text-slate-400">{lastName}</div>}
-                    </div>
-
-                    {/* TRUCK DETAILS BELOW NAME */}
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-full pt-0.5">
-                      {optDetailsStr || 'Truck: Unassigned'}
+                    <div className="truncate flex-1 min-w-0">
+                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
+                        {firstName} {lastName}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
+                        {optDetailsStr || 'Truck: Unassigned'}
+                      </div>
                     </div>
                   </div>
                 );
