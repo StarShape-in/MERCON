@@ -29,11 +29,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface TripWizardHeaderProps {
-  contractStep: 1 | 2;
+  contractStep: number;
+  contractBillingType?: string;
   submissionResult: any;
   isStepValid: (step: number) => boolean;
   canNavigateToStep: (step: number) => boolean;
-  setContractStep: (step: 1 | 2 | ((prev: 1 | 2) => 1 | 2)) => void;
+  setContractStep: React.Dispatch<React.SetStateAction<any>>;
   handleContractSubmit: () => void;
   handleDialogClose: () => void;
   isPending: boolean;
@@ -46,6 +47,7 @@ interface TripWizardHeaderProps {
 
 export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   contractStep,
+  contractBillingType = 'Extra',
   submissionResult,
   isStepValid,
   canNavigateToStep,
@@ -63,10 +65,15 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
 
   if (submissionResult) return null;
 
-  const steps = [
-    { step: 1 as const, label: '1. Configure & Dispatch', icon: MapPin },
-    { step: 2 as const, label: '2. Review & Submit', icon: CheckCircle2 },
-  ];
+  const isMonthly = contractBillingType === 'Monthly';
+  const maxSteps = isMonthly ? 2 : 1;
+
+  const steps = isMonthly
+    ? [
+        { step: 1, label: '1. Configure & Dispatch', icon: MapPin },
+        { step: 2, label: '2. Operating Month & Days', icon: CalendarRange },
+      ]
+    : [{ step: 1, label: '1. Configure & Dispatch', icon: MapPin }];
 
   return (
     <div className="border-b border-black/[0.06] bg-white dark:bg-slate-900 shrink-0 grid grid-cols-3 items-center px-5 py-2.5 gap-3 w-full">
@@ -76,7 +83,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setContractStep((prev) => (prev - 1) as any)}
+            onClick={() => setContractStep((prev: number) => (prev - 1) as any)}
             className="h-8 rounded-xl border border-slate-200/80 text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors shadow-2xs"
           >
             <ChevronLeft className="w-3.5 h-3.5 mr-1" />
@@ -190,12 +197,12 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
             </Button>
           </div>
         )}
-        {contractStep < 2 ? (
+        {contractStep < maxSteps ? (
           <Button
             id="wizard-next-btn"
             type="button"
             disabled={!isStepValid(contractStep)}
-            onClick={() => setContractStep((prev) => (prev + 1) as any)}
+            onClick={() => setContractStep((prev: number) => (prev + 1) as any)}
             className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
           >
             Next
@@ -217,7 +224,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
               </>
             ) : (
               <>
-                Submit Trip <KbdBadge keys="Ctrl+Enter" />
+                Review & Confirm <KbdBadge keys="Ctrl+Enter" />
               </>
             )}
           </Button>

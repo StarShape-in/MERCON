@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
+import { RouteMiniMap } from '@/components/trips/RouteMiniMap';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAllTaxonomyOptions, resolveTaxonomyOption } from '@/utils/taxonomyRegistry';
 import { cn } from '@/lib/utils';
@@ -106,22 +107,18 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </SelectContent>
           </Select>
 
-          {/* OVERNIGHT TOGGLE */}
-          <button
-            type="button"
-            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer h-7.5 ${
-              slot.isOvernight
-                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Moon className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Overnight</span>
-            <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${slot.isOvernight ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-              {slot.isOvernight ? 'ON' : 'OFF'}
-            </span>
-          </button>
+          {/* COMPACT INLINE TRANSIT TIME BADGE NEXT TO LINE TYPE */}
+          {slot.origin && slot.destination && (
+            <TransitTimeBadge
+              origin={slot.origin}
+              destination={slot.destination}
+              originLat={slot.originLat}
+              originLng={slot.originLng}
+              destinationLat={slot.destinationLat}
+              destinationLng={slot.destinationLng}
+              compact
+            />
+          )}
         </div>
 
         {/* RIGHT: REMOVE SLOT (IF MULTI-SLOT) */}
@@ -137,124 +134,126 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
         )}
       </div>
 
-      {/* UNIFIED ROUTE & SCHEDULE FLOW (LINE 1: ORIGIN + UNIFIED PICKUP DATETIME) */}
-      <div className="space-y-2.5">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
-          <div className="md:col-span-8 space-y-1">
-            <label className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-brand">*</span>
-              </span>
-            </label>
-            <LocationCombobox
-              id="step2-first-field"
-              customerId={contractCustomer}
-              value={slot.origin}
-              onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-              placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
-              triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
-            />
-          </div>
-
-          {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
-          <div className="md:col-span-4 space-y-1">
-            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
-              <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
-            </label>
-            <DateTimePicker
-              value={pickupIsoValue}
-              onChange={(isoStr) => {
-                if (!isoStr) return;
-                const [dPart, tPart] = isoStr.split('T');
-                const cleanTime = tPart ? tPart.substring(0, 5) : '08:00';
-                handleUpdateTripSlot(slot.id, { date: dPart, pickupTime: cleanTime, dropoffDate: dPart });
-              }}
-              placeholder="Pick date & time..."
-              showPresets={false}
-              showRelativeBadge={false}
-              className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
-            />
-          </div>
-        </div>
-
-        {/* INTERMEDIATE STOPS (IF ANY) */}
-        {slot.intermediateLocations?.length > 0 && (
-          <div className="pl-4 border-l-2 border-dashed border-amber-300 space-y-2 py-1">
-            {slot.intermediateLocations.map((stopVal: string, idx: number) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 shrink-0">
-                  Stop #{idx + 1}
+      {/* UNIFIED LOCATION & SCHEDULE INPUT FIELDS */}
+      <div className="w-full space-y-2.5">
+          {/* LINE 1: ORIGIN + UNIFIED PICKUP DATETIME */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+            {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
+            <div className="md:col-span-8 space-y-1">
+              <label className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-brand">*</span>
                 </span>
-                <div className="flex-1">
-                  <LocationCombobox
-                    customerId={contractCustomer}
-                    value={stopVal}
-                    onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
-                    placeholder={`Search intermediate stop #${idx + 1}...`}
-                    triggerClassName="h-8 text-xs font-semibold"
-                  />
+              </label>
+              <LocationCombobox
+                id="step2-first-field"
+                customerId={contractCustomer}
+                value={slot.origin}
+                onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
+                placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
+                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+              />
+            </div>
+
+            {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
+            <div className="md:col-span-4 space-y-1">
+              <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
+              </label>
+              <DateTimePicker
+                value={pickupIsoValue}
+                onChange={(isoStr) => {
+                  if (!isoStr) return;
+                  const [dPart, tPart] = isoStr.split('T');
+                  const cleanTime = tPart ? tPart.substring(0, 5) : '08:00';
+                  handleUpdateTripSlot(slot.id, { date: dPart, pickupTime: cleanTime, dropoffDate: dPart });
+                }}
+                placeholder="Pick date & time..."
+                showPresets={false}
+                showRelativeBadge={false}
+                className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
+              />
+            </div>
+          </div>
+
+          {/* INTERMEDIATE STOPS (IF ANY) */}
+          {slot.intermediateLocations?.length > 0 && (
+            <div className="pl-3 border-l-2 border-dashed border-amber-300 space-y-1.5 py-0.5">
+              {slot.intermediateLocations.map((stopVal: string, idx: number) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 shrink-0">
+                    Stop #{idx + 1}
+                  </span>
+                  <div className="flex-1">
+                    <LocationCombobox
+                      customerId={contractCustomer}
+                      value={stopVal}
+                      onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                      placeholder={`Search intermediate stop #${idx + 1}...`}
+                      triggerClassName="h-8 text-xs font-semibold"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                    className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                  className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        <div className="flex items-center gap-2 pt-0.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => handleAddSlotIntermediate(slot.id)}
-            className="h-7 text-xs font-bold border-dashed border-slate-300 hover:border-brand hover:bg-orange-50 text-slate-600 hover:text-brand gap-1 cursor-pointer"
-          >
-            <Plus className="w-3 h-3" /> Add Intermediate Stop
-          </Button>
-        </div>
-
-        {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end pt-1 border-t border-slate-100 dark:border-slate-800">
-          {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
-          <div className="md:col-span-8 space-y-1">
-            <label className="text-xs font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {isRoundTrip ? 'OUTBOUND DESTINATION *' : 'DESTINATION LOCATION *'}
-              </span>
-            </label>
-            <LocationCombobox
-              customerId={contractCustomer}
-              value={slot.destination}
-              onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-              placeholder="Search delivery destination (e.g. Al Baha Station)..."
-              triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
-            />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleAddSlotIntermediate(slot.id)}
+              className="h-6.5 text-[11px] font-bold border-dashed border-slate-300 hover:border-brand hover:bg-orange-50 text-slate-600 hover:text-brand gap-1 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" /> Add Intermediate Stop
+            </Button>
           </div>
 
-          {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
-          <div className="md:col-span-4 space-y-1">
-            <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
-              <Calendar className="w-3 h-3 text-brand shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
-            </label>
-            <DateTimePicker
-              value={dropoffIsoValue}
-              onChange={(isoStr) => {
-                if (!isoStr) return;
-                const [dPart, tPart] = isoStr.split('T');
-                const cleanTime = tPart ? tPart.substring(0, 5) : '14:00';
-                handleUpdateTripSlot(slot.id, { dropoffDate: dPart, dropoffTime: cleanTime });
-              }}
-              placeholder="Pick date & time..."
-              showPresets={false}
-              showRelativeBadge={false}
-              className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
-            />
+          {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end pt-1 border-t border-slate-100 dark:border-slate-800">
+            {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
+            <div className="md:col-span-8 space-y-1">
+              <label className="text-xs font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {isRoundTrip ? 'OUTBOUND DESTINATION *' : 'DESTINATION LOCATION *'}
+                </span>
+              </label>
+              <LocationCombobox
+                customerId={contractCustomer}
+                value={slot.destination}
+                onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
+                placeholder="Search delivery destination (e.g. Al Baha Station)..."
+                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+              />
+            </div>
+
+            {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
+            <div className="md:col-span-4 space-y-1">
+              <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 truncate">
+                <Calendar className="w-3 h-3 text-brand shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
+              </label>
+              <DateTimePicker
+                value={dropoffIsoValue}
+                onChange={(isoStr) => {
+                  if (!isoStr) return;
+                  const [dPart, tPart] = isoStr.split('T');
+                  const cleanTime = tPart ? tPart.substring(0, 5) : '14:00';
+                  handleUpdateTripSlot(slot.id, { dropoffDate: dPart, dropoffTime: cleanTime });
+                }}
+                placeholder="Pick date & time..."
+                showPresets={false}
+                showRelativeBadge={false}
+                className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
+              />
+            </div>
           </div>
         </div>
 
@@ -334,6 +333,5 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           </div>
         )}
       </div>
-    </div>
-  );
-};
+    );
+  };

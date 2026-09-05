@@ -65,12 +65,12 @@ export interface CustomerFilters {
 export const customerService = {
   async getAll(filters: CustomerFilters = {}): Promise<ApiResponse<Customer[]>> {
     const res = await api.get<ApiResponse<Customer[]>>('/customers', { params: filters });
-    return res.data;
+    return res?.data ?? { success: false, data: [] };
   },
 
   async getById(id: string): Promise<Customer> {
     const res = await api.get<ApiResponse<Customer>>(`/customers/${id}`);
-    return res.data.data;
+    return res?.data?.data;
   },
 
   async create(payload: CreateCustomerPayload): Promise<Customer> {

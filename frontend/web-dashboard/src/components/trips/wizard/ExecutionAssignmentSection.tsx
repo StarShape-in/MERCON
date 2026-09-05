@@ -86,11 +86,11 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
           <div className="md:col-span-6 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
-            {/* VEHICLE CLASS / TON DROPDOWN */}
+            {/* VEHICLE TON */}
             {setContractVehicleType && (
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  REQUIRED VEHICLE CLASS (TON)
+                  VEHICLE TON
                 </label>
                 <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
                   <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
@@ -122,10 +122,10 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               />
             </div>
 
-            {/* VEHICLE ASSET */}
+            {/* VEHICLE */}
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                <span>VEHICLE ASSET {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Pending</span>}</span>
+                <span>VEHICLE {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Pending</span>}</span>
               </label>
               <Combobox
                 options={vehicleOptions}
@@ -175,77 +175,142 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             )}
           </div>
 
-          {/* RIGHT COLUMN: SELECTED DRIVER & VEHICLE PROFILE + RECOMMENDED DRIVERS */}
-          <div className="md:col-span-6 space-y-2.5 pl-0 md:pl-0.5">
-            {/* ASSIGNED DRIVER & VEHICLE PROFILE CARD */}
-            {selectedDriverObj ? (() => {
-              const dLabel = typeof selectedDriverObj.label === 'string' ? selectedDriverObj.label : String(selectedDriverObj.label || '');
-              const vLabel = selectedVehicleObj ? (typeof selectedVehicleObj.label === 'string' ? selectedVehicleObj.label : String(selectedVehicleObj.label || '')) : 'Vehicle Pending';
-              const initials = dLabel.substring(0, 2).toUpperCase() || 'DR';
-              const nameOnly = dLabel.split('(')[0].trim() || 'Primary Driver';
+          {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD (2 ROWS UNSELECTED -> 1 EXPANDED ROW SELECTED WITH CORAL RED BORDER) */}
+          <div className="md:col-span-6 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                {masterDriver ? 'ASSIGNED DRIVER' : 'RECOMMENDED DRIVERS'}
+              </span>
+              {masterDriver && (
+                <button
+                  type="button"
+                  onClick={() => handleDriverChange('')}
+                  className="text-[9px] font-bold text-[#FA634E] hover:text-[#d13d0d] underline cursor-pointer transition-colors"
+                >
+                  Change Driver
+                </button>
+              )}
+            </div>
 
-              return (
-                <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-1.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-extrabold uppercase text-emerald-800 dark:text-emerald-300 tracking-wider">
-                      ASSIGNED DRIVER PROFILE
-                    </span>
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">
-                      Assigned ✓
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0 shadow-2xs">
-                      {initials}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                        {nameOnly}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-medium truncate">
-                        🚛 {vLabel}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 bg-slate-50/40 dark:bg-slate-900/40">
-                👤 Select driver & vehicle to view profile
-              </div>
-            )}
+            <div className="flex-1 flex flex-col justify-center items-center transition-all duration-300">
+              {masterDriver ? (() => {
+                // SINGLE SELECTED DRIVER VIEW (CORAL RED / ORANGE BORDER CARD)
+                const selectedOpt = driverOptions.find((d) => d.value === masterDriver);
+                const optLabelStr = selectedOpt ? (typeof selectedOpt.label === 'string' ? selectedOpt.label : String(selectedOpt.label || '')) : '';
+                const rawName = optLabelStr.split('(')[0].trim() || 'Assigned Driver';
+                const nameParts = rawName.split(' ');
+                const firstName = nameParts[0] || rawName;
+                const lastName = nameParts.slice(1).join(' ') || '';
 
-            {/* RECOMMENDED DRIVERS (2-ROW OPACITY-LESS STRIP) */}
-            {driverOptions && driverOptions.length > 0 && (
-              <div className="space-y-1 pt-0.5">
-                <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                  RECOMMENDED DRIVERS
-                </span>
-                <div className="grid grid-cols-2 gap-1.5 opacity-75 hover:opacity-100 transition-opacity">
-                  {driverOptions.slice(0, 4).map((dOpt) => {
-                    const isSelected = masterDriver === dOpt.value;
+                const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
+                const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
+                const avatarUrl = selectedOpt ? (
+                  (selectedOpt as any).avatar_url ||
+                  (selectedOpt as any).photo_url ||
+                  (selectedOpt as any).profile_picture ||
+                  (selectedOpt as any).avatarUrl ||
+                  (selectedOpt as any).photoUrl ||
+                  (selectedOpt as any).image_url ||
+                  (selectedOpt as any).raw?.avatar_url ||
+                  (selectedOpt as any).raw?.photo_url ||
+                  (selectedOpt as any).raw?.profile_picture ||
+                  (selectedOpt as any).raw?.avatarUrl ||
+                  (selectedOpt as any).raw?.photoUrl ||
+                  (selectedOpt as any).raw?.image_url ||
+                  null
+                ) : null;
+
+                return (
+                  <div className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 text-center flex flex-col items-center justify-center space-y-1.5 relative border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 shadow-xs animate-fade-in transition-all duration-300">
+                    {/* BIGGER CENTERED PROFILE PIC */}
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={rawName}
+                        className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-[#FA634E] shadow-2xs mx-auto"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full font-black text-base grid place-items-center shrink-0 shadow-2xs mx-auto bg-[#FA634E] text-white">
+                        {initials}
+                      </div>
+                    )}
+
+                    {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
+                    <div className="text-sm font-black text-slate-900 dark:text-slate-100 text-center leading-tight pt-1">
+                      <div className="truncate max-w-full">{firstName}</div>
+                      {lastName && <div className="truncate max-w-full font-bold text-xs text-slate-600 dark:text-slate-400">{lastName}</div>}
+                    </div>
+
+                    {/* TRUCK DETAILS BELOW NAME */}
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-full pt-0.5">
+                      {optDetailsStr || 'Truck: Unassigned'}
+                    </div>
+                  </div>
+                );
+              })() : (
+                // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE (CENTERED AVATARS, 2-LINE NAMES)
+                <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
+                  {driverOptions.slice(0, 2).map((dOpt, idx) => {
                     const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
-                    const optNameOnly = optLabelStr.split('(')[0].trim() || 'Driver';
+                    const rawName = optLabelStr.split('(')[0].trim() || 'Driver';
+                    const nameParts = rawName.split(' ');
+                    const firstName = nameParts[0] || rawName;
+                    const lastName = nameParts.slice(1).join(' ') || '';
+
+                    const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
+                    const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
+                    const avatarUrl =
+                      (dOpt as any).avatar_url ||
+                      (dOpt as any).photo_url ||
+                      (dOpt as any).profile_picture ||
+                      (dOpt as any).avatarUrl ||
+                      (dOpt as any).photoUrl ||
+                      (dOpt as any).image_url ||
+                      (dOpt as any).raw?.avatar_url ||
+                      (dOpt as any).raw?.photo_url ||
+                      (dOpt as any).raw?.profile_picture ||
+                      (dOpt as any).raw?.avatarUrl ||
+                      (dOpt as any).raw?.photoUrl ||
+                      (dOpt as any).raw?.image_url ||
+                      null;
+                    const isFirst = idx === 0;
 
                     return (
                       <button
-                        key={dOpt.value}
+                        key={dOpt.value || idx}
                         type="button"
                         onClick={() => handleDriverChange(dOpt.value)}
-                        className={`p-1.5 rounded-lg border text-left text-[10px] font-bold truncate transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-emerald-100/80 border-emerald-500 text-emerald-900 font-black shadow-2xs'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-100'
+                        className={`w-full py-2 px-3 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 ${
+                          isFirst ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
                         }`}
-                        title={optLabelStr}
                       >
-                        👤 {optNameOnly}
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={rawName}
+                            className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full font-black text-xs grid place-items-center shrink-0 shadow-2xs mx-auto bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-700 dark:text-slate-200">
+                            {initials}
+                          </div>
+                        )}
+
+                        {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
+                        <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
+                          <div className="truncate max-w-full">{firstName}</div>
+                          {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
+                        </div>
+
+                        <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
+                          {optDetailsStr || 'Truck: Unassigned'}
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       ) : (

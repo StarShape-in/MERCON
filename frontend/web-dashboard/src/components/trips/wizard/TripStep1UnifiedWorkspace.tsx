@@ -6,6 +6,7 @@ import { ScheduleServicePanel } from './ScheduleServicePanel';
 import { CommercialSection } from './CommercialSection';
 import { ExecutionAssignmentSection } from './ExecutionAssignmentSection';
 import { TripEconomicsSection } from './TripEconomicsSection';
+import { MonthlyDaysSelector } from './MonthlyDaysSelector';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { ComboboxOption } from '@/components/ui/combobox';
 
@@ -13,6 +14,7 @@ interface TripStep1UnifiedWorkspaceProps {
   contractCustomer: string;
   setContractCustomer: (customerId: string) => void;
   customers: any[];
+  customerRateCards?: any[];
   customerOptions?: ComboboxOption[];
   contractSlots: any[];
   contractRateCategory: string;
@@ -21,6 +23,10 @@ interface TripStep1UnifiedWorkspaceProps {
   setContractBillingType?: (type: string) => void;
   contractVehicleType: string;
   setContractVehicleType?: (vType: string) => void;
+  selectedMonth?: string;
+  setSelectedMonth?: (m: string) => void;
+  selectedDates?: string[];
+  setSelectedDates?: React.Dispatch<React.SetStateAction<string[]>>;
   triggerRateLookupForSlots?: (vType?: string, rCat?: string, custId?: string, bType?: string) => void;
   handleAddSlotIntermediate: (slotId: string) => void;
   handleRemoveTripSlot: (slotId: string) => void;
@@ -56,12 +62,17 @@ interface TripStep1UnifiedWorkspaceProps {
   setThirdPartyDriverName: (val: string) => void;
   thirdPartyCost: string;
   marginMetrics: any;
+  drivers?: any[];
+  vehicles?: any[];
+  dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
+  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
 }
 
 export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps> = ({
   contractCustomer,
   setContractCustomer,
   customers,
+  customerRateCards = [],
   customerOptions = [],
   contractSlots,
   contractRateCategory,
@@ -70,6 +81,10 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   setContractBillingType,
   contractVehicleType,
   setContractVehicleType,
+  selectedMonth = '',
+  setSelectedMonth,
+  selectedDates = [],
+  setSelectedDates,
   triggerRateLookupForSlots,
   handleAddSlotIntermediate,
   handleRemoveTripSlot,
@@ -105,17 +120,21 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   setThirdPartyDriverName,
   thirdPartyCost,
   marginMetrics,
+  drivers = [],
+  vehicles = [],
+  dayAssignments = {},
+  setDayAssignments,
 }) => {
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
 
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
-      {/* 60% / 40% 2-COLUMN COMMAND CENTER GRID */}
+      {/* 66% / 33% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
-        {/* LEFT WORKSPACE (60% / lg:col-span-7): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
-        <div className="lg:col-span-7 space-y-3.5">
+        {/* LEFT WORKSPACE (lg:col-span-8): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
+        <div className="lg:col-span-8 space-y-3.5">
           {/* COMMERCIAL QUOTATIONS BAR WITH INTEGRATED CUSTOMER SELECTION (TOP LEFT ~60% WIDTH) */}
           <CommercialSection
             contractSlots={contractSlots}
@@ -123,6 +142,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             contractBillingType={contractBillingType}
             contractVehicleType={contractVehicleType}
             getAvailableRateCardsForLane={getAvailableRateCardsForLane}
+            customerRateCards={customerRateCards}
             handleOpenCreateQuotation={handleOpenCreateQuotation}
             setIsManualRateOverride={setIsManualRateOverride}
             handleUpdateTripSlot={handleUpdateTripSlot}
@@ -155,46 +175,33 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
                 handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
                 handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
-                handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
               />
             ))}
           </div>
         </div>
 
-        {/* RIGHT WORKSPACE (40% / lg:col-span-5): EXECUTION ASSIGNMENT, ROUTE ESTIMATE & ECONOMICS PANEL */}
-        <div className="lg:col-span-5">
-          <div className="sticky top-4 space-y-3 bg-slate-50/70 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
-            <ExecutionAssignmentSection
-              assignmentType={assignmentType}
-              setAssignmentType={setAssignmentType}
-              masterVehicle={masterVehicle}
-              masterDriver={masterDriver}
-              handleVehicleChange={handleVehicleChange}
-              handleDriverChange={handleDriverChange}
-              vehicleOptions={vehicleOptions}
-              driverOptions={driverOptions}
-              thirdPartyProviderId={thirdPartyProviderId}
-              setThirdPartyProviderId={setThirdPartyProviderId}
-              thirdPartyProviders={thirdPartyProviders}
-              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-              setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
-              thirdPartyDriverName={thirdPartyDriverName}
-              setThirdPartyDriverName={setThirdPartyDriverName}
-              contractVehicleType={contractVehicleType}
-              setContractVehicleType={setContractVehicleType}
-            />
-
-            {/* ROUTE EVALUATION & TRANSIT TIME ESTIMATE BADGE (MOVED TO RIGHT COLUMN) */}
-            {primarySlot.origin && primarySlot.destination && (
-              <TransitTimeBadge
-                origin={primarySlot.origin}
-                destination={primarySlot.destination}
-                returnDestination={primarySlot.returnDestination}
-                isRoundTrip={isRoundTrip}
-                intermediateLocations={primarySlot.intermediateLocations}
-                returnIntermediateLocations={primarySlot.returnIntermediateLocations}
-                pickupTime={primarySlot.pickupTime}
-                dropoffTime={primarySlot.dropoffTime}
+        {/* RIGHT WORKSPACE (lg:col-span-4): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
+        <div className="lg:col-span-4">
+          <div className="sticky top-4 space-y-3">
+            {contractBillingType !== 'Monthly' && (
+              <ExecutionAssignmentSection
+                assignmentType={assignmentType}
+                setAssignmentType={setAssignmentType}
+                masterVehicle={masterVehicle}
+                masterDriver={masterDriver}
+                handleVehicleChange={handleVehicleChange}
+                handleDriverChange={handleDriverChange}
+                vehicleOptions={vehicleOptions}
+                driverOptions={driverOptions}
+                thirdPartyProviderId={thirdPartyProviderId}
+                setThirdPartyProviderId={setThirdPartyProviderId}
+                thirdPartyProviders={thirdPartyProviders}
+                thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
+                thirdPartyDriverName={thirdPartyDriverName}
+                setThirdPartyDriverName={setThirdPartyDriverName}
+                contractVehicleType={contractVehicleType}
+                setContractVehicleType={setContractVehicleType}
               />
             )}
 
@@ -204,6 +211,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
               assignmentType={assignmentType}
               thirdPartyCost={thirdPartyCost}
               marginMetrics={marginMetrics}
+              contractCustomer={contractCustomer}
+              customers={customers}
+              handleUpdateTripSlot={handleUpdateTripSlot}
             />
           </div>
         </div>
