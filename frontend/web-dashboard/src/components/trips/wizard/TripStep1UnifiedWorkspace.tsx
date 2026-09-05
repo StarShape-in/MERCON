@@ -141,9 +141,6 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               Create New Trip
             </h1>
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              Dispatch & Operational Quotation Setup
-            </p>
           </div>
         </div>
       </div>
