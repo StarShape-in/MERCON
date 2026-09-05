@@ -20,11 +20,18 @@ import {
   AlertTriangle,
   Siren,
 } from 'lucide-react';
-import { Trip, TripStatus } from '@/services/tripService';
+import { Trip, TripStatus, TripStop } from '@/services/tripService';
 import TripKanbanCard from './TripKanbanCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 export interface TripKanbanBoardRef {
   scroll: (direction: 'left' | 'right') => void;
 }
@@ -147,6 +154,22 @@ const EMERGENCY_COLUMN: ColumnConfig = {
   showMoreClass: 'border-red-200/90 hover:border-red-300 bg-white hover:bg-red-50/60 text-red-800 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-red-300',
 };
 
+const isUuidVal = (str?: string | null) => str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+const stopLabel = (stop: TripStop | undefined) => {
+  if (!stop) return '—';
+  const code = stop.location?.codes?.[0] || (stop.location as any)?.code;
+  const rawName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const name = code || rawName || stop.location?.name || stop.location_address || stop.location?.address || '—';
+  return name.replace(/🔁\s*/g, '').trim();
+};
+
+const getRouteName = (trip: Trip) => {
+  const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
+  const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
+  return `${stopLabel(pickup)} → ${stopLabel(dropoff)}`;
+};
+
 const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(function TripKanbanBoard(
   {
     trips,
@@ -168,6 +191,34 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
+  const [activeSelectionColumn, setActiveSelectionColumn] = useState<string | null>(null);
+  const [companySelectionModalCol, setCompanySelectionModalCol] = useState<string | null>(null);
+  const [isBulkShareOpen, setIsBulkShareOpen] = useState(false);
+
+  const handleToggleSelect = (trip: Trip) => {
+    setSelectedTripIds((prev) => 
+      prev.includes(trip.id) ? prev.filter(id => id !== trip.id) : [...prev, trip.id]
+    );
+  };
+
+  const handleToggleColumnSelection = (colId: string) => {
+    if (activeSelectionColumn === colId) {
+      setActiveSelectionColumn(null);
+      setSelectedTripIds([]);
+    } else {
+      setActiveSelectionColumn(colId);
+      setSelectedTripIds([]);
+      setCompanySelectionModalCol(colId);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTripIds([]);
+    setActiveSelectionColumn(null);
+    setCompanySelectionModalCol(null);
+  };
 
   const renderedColumns = useMemo(() => {
     if (statusFilter === 'Emergency') {
@@ -337,6 +388,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
             const displayedColTrips = colTrips.slice(0, limit);
 
             const isOver = dragOverColumn === col.id;
+            const isOtherColumnActive = activeSelectionColumn !== null && activeSelectionColumn !== col.id;
 
             return (
               <div
@@ -349,7 +401,8 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                   columnWidthClass,
                   isOver
                     ? 'bg-orange-50/60 dark:bg-orange-950/30 border-brand ring-2 ring-brand/30'
-                    : col.columnBg
+                    : col.columnBg,
+                  isOtherColumnActive && 'opacity-40 pointer-events-none grayscale-[30%]'
                 )}
               >
                 {/* Column Sticky Header */}
@@ -361,6 +414,12 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                   )}
                 >
                   <div className="flex items-center gap-2 min-w-0">
+                    <Checkbox
+                      checked={activeSelectionColumn === col.id}
+                      onCheckedChange={() => handleToggleColumnSelection(col.id)}
+                      disabled={activeSelectionColumn !== null && activeSelectionColumn !== col.id}
+                      className="border-slate-300 dark:border-slate-600 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                    />
                     <div className={cn('w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white dark:ring-slate-900', col.dotColor)} />
                     <Icon size={15} className={col.accentColor} />
                     <span className="font-extrabold text-[13px] text-slate-900 dark:text-slate-100 tracking-tight truncate">
@@ -413,6 +472,9 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                           onDelete={onDelete}
                           onOpenSettlement={onOpenSettlement}
                           density={cardDensity}
+                          showCheckbox={activeSelectionColumn === col.id}
+                          isSelected={selectedTripIds.includes(trip.id)}
+                          onToggleSelect={handleToggleSelect}
                         />
                       ))}
 
@@ -436,6 +498,129 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
           })}
         </div>
       )}
+
+      {/* Floating Bottom Bar for Bulk Actions */}
+      {selectedTripIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-slate-900 dark:bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl shadow-slate-900/20 border border-slate-700/50 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand text-xs font-bold">
+              {selectedTripIds.length}
+            </span>
+            <span className="text-sm font-semibold">Trips Selected</span>
+          </div>
+          <div className="w-px h-5 bg-slate-700" />
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            className="text-white hover:bg-slate-800 hover:text-white"
+            onClick={handleClearSelection}
+          >
+            Cancel
+          </Button>
+          <Button 
+            size="sm" 
+            className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 border-none"
+            onClick={() => setIsBulkShareOpen(true)}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Share to WhatsApp
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Share Dialog */}
+      <Dialog open={isBulkShareOpen} onOpenChange={setIsBulkShareOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Selected Trips</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-500 mb-4">
+              You are about to share {selectedTripIds.length} trips. Here is the list:
+            </p>
+            <div className="max-h-60 overflow-y-auto border rounded-lg p-2 flex flex-col gap-2 bg-slate-50 dark:bg-slate-900 custom-scrollbar">
+              {trips.filter(t => selectedTripIds.includes(t.id)).map(trip => (
+                <div key={trip.id} className="text-sm font-semibold flex items-center justify-between border-b last:border-0 pb-2 last:pb-0 border-slate-200 dark:border-slate-800">
+                  <span className="dark:text-slate-200">{trip.ref_id}</span>
+                  <span className="text-slate-500 font-normal truncate max-w-[200px]">{trip.customer?.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkShareOpen(false)}>Cancel</Button>
+            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => {
+              // Implementation placeholder for actual bulk share action
+              setIsBulkShareOpen(false);
+              handleClearSelection();
+            }}>
+              Confirm Share
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Auto-Select Dialog */}
+      <Dialog open={companySelectionModalCol !== null} onOpenChange={(open) => {
+        if (!open) setCompanySelectionModalCol(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quick Select Trips</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-500 mb-4">
+              Select a group below to instantly select all matching trips in this column, or cancel to manually pick trips.
+            </p>
+            <div className="max-h-60 overflow-y-auto border rounded-lg flex flex-col bg-slate-50 dark:bg-slate-900 custom-scrollbar divide-y divide-slate-200 dark:divide-slate-800">
+              {(() => {
+                if (!companySelectionModalCol) return null;
+                const colTrips = groupedTrips[companySelectionModalCol] || [];
+                const groups: Record<string, { company: string, route: string, trips: Trip[] }> = {};
+                
+                colTrips.forEach(trip => {
+                  const company = trip.customer?.name || 'Unknown Company';
+                  const route = getRouteName(trip);
+                  const key = `${company}::${route}`;
+                  if (!groups[key]) {
+                    groups[key] = { company, route, trips: [] };
+                  }
+                  groups[key].trips.push(trip);
+                });
+
+                const groupArr = Object.values(groups).sort((a, b) => b.trips.length - a.trips.length);
+
+                if (groupArr.length === 0) {
+                  return <div className="text-sm text-slate-500 text-center py-6 font-semibold">No trips to select.</div>;
+                }
+
+                return groupArr.map((g, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="min-w-0 flex-1 pr-4">
+                      <div className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100 truncate">{g.company}</div>
+                      <div className="text-[11px] font-semibold text-slate-500 truncate mt-0.5">{g.route}</div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="shrink-0 font-bold border-brand text-brand hover:bg-brand/10 dark:hover:bg-brand/20"
+                      onClick={() => {
+                        setSelectedTripIds(g.trips.map(t => t.id));
+                        setCompanySelectionModalCol(null);
+                      }}
+                    >
+                      Select {g.trips.length}
+                    </Button>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCompanySelectionModalCol(null)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

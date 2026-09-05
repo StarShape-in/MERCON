@@ -48,6 +48,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { calculateRoadDistanceKm, resolveCityCoords } from '@/services/travelTimeService';
 import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -893,6 +894,7 @@ export default function TripListPage() {
   const [whatsappRecipientType, setWhatsappRecipientType] = useState<'driver' | 'customer' | 'custom'>('custom');
   const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
   const [whatsappMessageText, setWhatsappMessageText] = useState('');
+  const [whatsappWithTailgate, setWhatsappWithTailgate] = useState(false);
 
   const startDateStr = dateFilter === '3Days'
     ? format(subDays(new Date(), 1), 'yyyy-MM-dd')
@@ -1383,32 +1385,10 @@ export default function TripListPage() {
   const openWhatsappShare = (selectedRows: Trip[]) => {
     setWhatsappSelectedTrips(selectedRows);
     if (selectedRows.length === 0) return;
+    setWhatsappWithTailgate(false);
 
     if (selectedRows.length === 1) {
       const trip = selectedRows[0];
-      const customerName = trip.customer?.name || 'Unassigned';
-      const driverName = trip.is_third_party
-        ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
-        : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned');
-      const plate = trip.is_third_party
-        ? (trip.third_party_vehicle_plate || '3PL Vehicle')
-        : (trip.vehicle?.plate_number || 'Unassigned');
-      const providerInfo = trip.is_third_party
-        ? (trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Provider')
-        : null;
-
-      const text = `*MERCON LOGISTICS - Trip Manifest*\n` +
-                   `• *Trip Ref:* ${trip.ref_id || 'Draft'}\n` +
-                   `• *Status:* ${trip.status}\n` +
-                   `• *Customer:* ${customerName}\n` +
-                   (providerInfo ? `• *3PL Provider:* ${providerInfo}\n` : '') +
-                   `• *Driver:* ${driverName}\n` +
-                   `• *Vehicle:* ${plate}\n` +
-                   (trip.planned_start ? `• *Planned Start:* ${formatInDeploymentTz(trip.planned_start, tz, 'MMM d, yyyy')}\n` : '') +
-                   `• *Tracking:* ${window.location.origin}/trips/${trip.id}/track`;
-
-      setWhatsappMessageText(text);
-
       if (!trip.is_third_party && trip.driver?.phone_primary) {
         setWhatsappRecipientType('driver');
       } else if (trip.is_third_party && (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone)) {
@@ -1421,8 +1401,91 @@ export default function TripListPage() {
         setWhatsappCustomPhone('');
       }
     } else {
+      setWhatsappRecipientType('custom');
+      setWhatsappCustomPhone('');
+    }
+
+    setWhatsappDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!whatsappDialogOpen || whatsappSelectedTrips.length === 0) return;
+
+    if (whatsappSelectedTrips.length === 1) {
+      const trip = whatsappSelectedTrips[0];
+      const customerName = trip.customer?.name || 'Unassigned';
+      const driverName = trip.is_third_party
+        ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+        : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned');
+      const plate = trip.is_third_party
+        ? (trip.third_party_vehicle_plate || '3PL Vehicle')
+        : (trip.vehicle?.plate_number || 'Unassigned');
+      
+      const pickupName = trip.stops?.find((s) => s.stop_type === 'Pickup')?.location_name || trip.stops?.[0]?.location_name || 'Origin';
+      const dropoffStop = trip.stops?.find((s) => s.stop_type === 'Dropoff') || trip.stops?.[trip.stops.length - 1];
+      const dropoffName = dropoffStop?.location_name || 'Destination';
+      
+      const isScheduled = ['Draft', 'Scheduled'].includes(trip.status);
+      let text = '';
+      
+      if (isScheduled) {
+        const isMonthly = trip.billing_type?.toUpperCase().includes('MONTHLY') || trip.quotation_billing_type?.toUpperCase().includes('MONTHLY');
+        const billingLabel = isMonthly ? 'MONTHLY' : 'EXTRA';
+        const vClass = trip.quotation_vehicle_class || trip.vehicle_type || trip.vehicle?.asset_type || 'VEHICLE';
+        const lType = trip.quotation_line_type || 'ROUND TRIP';
+        
+        text = `@${customerName}\n` +
+               `*(${billingLabel} VEHICLE)*\n` +
+               `1. ${pickupName}>>>${dropoffName} ${vClass} (${lType})\n` +
+               `Driver name # ${driverName}\n` +
+               `Number # ${trip.driver?.phone_primary || trip.third_party_driver_phone || 'Unassigned'}\n` +
+               `Truck no # ${plate}`;
+               
+        if (whatsappWithTailgate) {
+           text += `\n\nWITH TAILGATE`;
+        }
+      } else {
+        let distanceText = 'Unavailable';
+        let etaText = 'Unavailable';
+        
+        const vehicleLat = trip.vehicle?.resolved_location?.latitude;
+        const vehicleLng = trip.vehicle?.resolved_location?.longitude;
+        
+        let destLat = dropoffStop?.location_lat;
+        let destLng = dropoffStop?.location_lng;
+        
+        if (!destLat || !destLng) {
+          const resolvedDest = resolveCityCoords(dropoffName);
+          if (resolvedDest) {
+            destLat = resolvedDest.lat;
+            destLng = resolvedDest.lng;
+          }
+        }
+        
+        if (vehicleLat && vehicleLng && destLat && destLng) {
+          const distKm = calculateRoadDistanceKm(vehicleLat, vehicleLng, destLat, destLng);
+          distanceText = `${distKm}KM TO ${dropoffName.toUpperCase()}`;
+          const etaHours = (distKm / 70).toFixed(1);
+          etaText = `${etaHours}HRS`;
+        }
+        
+        let statusDisplay = trip.status;
+        if (trip.status === 'AtPickup') statusDisplay = 'Loading';
+        else if (trip.status === 'AtDelivery') statusDisplay = 'At Delivery';
+        else if (trip.status === 'InTransit') statusDisplay = 'In Transit';
+        
+        text = `🚛 Vehicle Status Update\n\n` +
+               `Truck: *${plate}*\n` +
+               `Driver: ${driverName}\n` +
+               `Route: ${pickupName}>>>${dropoffName}\n` +
+               `Distance left: ${distanceText}\n` +
+               `ETA: ${etaText}\n` +
+               `Status: ${statusDisplay}`;
+      }
+      setWhatsappMessageText(text);
+    } else {
       let text = `*MERCON LOGISTICS - Manifest Summary*\n`;
-      selectedRows.forEach((t) => {
+      whatsappSelectedTrips.forEach((t) => {
         const cust = t.customer?.name || 'Unassigned';
         const drv = t.is_third_party
           ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver')
@@ -1437,12 +1500,8 @@ export default function TripListPage() {
                 `  • Status: ${t.status}\n`;
       });
       setWhatsappMessageText(text);
-      setWhatsappRecipientType('custom');
-      setWhatsappCustomPhone('');
     }
-
-    setWhatsappDialogOpen(true);
-  };
+  }, [whatsappSelectedTrips, whatsappWithTailgate, whatsappDialogOpen]);
 
   const handleWhatsappSend = () => {
     let phone = '';
@@ -2815,9 +2874,24 @@ export default function TripListPage() {
 
               {/* Message text preview */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Message Preview:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Message Preview:
+                  </label>
+                  {whatsappSelectedTrips.length === 1 && ['Draft', 'Scheduled'].includes(whatsappSelectedTrips[0]?.status || '') && (
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={whatsappWithTailgate}
+                        onChange={(e) => setWhatsappWithTailgate(e.target.checked)}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 bg-white"
+                      />
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Include Tailgate
+                      </span>
+                    </label>
+                  )}
+                </div>
                 <textarea
                   value={whatsappMessageText}
                   onChange={(e) => setWhatsappMessageText(e.target.value)}
