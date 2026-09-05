@@ -1,0 +1,34 @@
+﻿format_version: '11'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: android
+
+workflows:
+  primary:
+    summary: Build MERCON Driver Release APK
+    description: Builds a universal release APK for the driver app
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - set-java-version@1:
+        inputs:
+        - set_java_version: '17'
+    - script@1:
+        title: Install Dependencies & Expo Prebuild
+        inputs:
+        - content: |
+            #!/usr/bin/env bash
+            set -ex
+            cd frontend/mobile-app/mercon-app
+            npm install
+            npx expo prebuild --platform android --no-install
+    - android-build@1:
+        title: Build Release APK
+        inputs:
+        - project_location: frontend/mobile-app/mercon-app/android
+        - module: app
+        - variant: release
+        - build_type: apk
+    - deploy-to-bitrise-io@2:
+        inputs:
+        - is_enable_public_page: 'true'
