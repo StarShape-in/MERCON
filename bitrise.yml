@@ -2,6 +2,10 @@
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: android
 
+meta:
+  bitrise.io:
+    stack: linux-docker-android-22.04
+
 workflows:
   primary:
     summary: Build MERCON Driver Release APK
