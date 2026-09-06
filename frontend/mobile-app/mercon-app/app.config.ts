@@ -78,6 +78,28 @@ export default (): ExpoConfig => ({
     favicon: client.favicon,
   },
   plugins: [
+    // ── Inline config plugin: fix SplashScreenManager crash on Android < 12 ──
+    // expo prebuild regenerates android/app/src/main/java/.../MainActivity.kt
+    // from scratch every time (android/ is git-ignored). Without this plugin the
+    // vanilla generated file calls SplashScreenManager.registerOnActivity(this)
+    // unconditionally, which crashes on Android 10/11 (API < 31).
+    // This plugin wraps the call in a try/catch + API-level guard after prebuild.
+    (config: import('expo/config').ExpoConfig) => {
+      const { withMainActivity } = require('@expo/config-plugins');
+      return withMainActivity(config, (mod: any) => {
+        let src: string = mod.modResults.contents;
+
+        const before = 'SplashScreenManager.registerOnActivity(this)';
+        const after = `try {\n      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {\n        SplashScreenManager.registerOnActivity(this)\n      }\n    } catch (e: Throwable) {\n      android.util.Log.w(\"MainActivity\", \"SplashScreenManager failed: \${e.message}\")\n    }`;
+
+        if (src.includes(before) && !src.includes('VERSION.SDK_INT')) {
+          src = src.replace(before, after);
+        }
+
+        mod.modResults.contents = src;
+        return mod;
+      });
+    },
     'expo-router',
     [
       'expo-splash-screen',

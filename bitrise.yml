@@ -1,4 +1,4 @@
-﻿format_version: '11'
+format_version: '11'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: android
 
@@ -9,7 +9,7 @@ meta:
 workflows:
   primary:
     summary: Build MERCON Driver Release APK
-    description: Builds a universal release APK for the driver app
+    description: Builds a universal (arm64-v8a + armeabi-v7a) release APK for the driver app
     steps:
     - activate-ssh-key@4:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
@@ -25,16 +25,36 @@ workflows:
             set -ex
 
             cd frontend/mobile-app/mercon-app
+
+            # ── 1. Install dependencies ─────────────────────────────────────
             npm install
+
+            # ── 2. Generate native android/ folder ─────────────────────────
             npx expo prebuild --platform android --no-install
 
+            # ── 3. Patch MainActivity.kt: guard SplashScreenManager against
+            #        Android < 12 (API 31). The expo prebuild regenerates
+            #        MainActivity.kt fresh every time; this sed patch ensures
+            #        the crash fix is always applied even if the config plugin
+            #        in app.config.ts didn't fire.
+            MAIN_ACTIVITY="android/app/src/main/java/com/sayedhysam/merconapp/MainActivity.kt"
+            if grep -q 'SplashScreenManager.registerOnActivity(this)' "$MAIN_ACTIVITY" && \
+               ! grep -q 'VERSION.SDK_INT' "$MAIN_ACTIVITY"; then
+              sed -i 's/SplashScreenManager\.registerOnActivity(this)/try {\n        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {\n          SplashScreenManager.registerOnActivity(this)\n        }\n      } catch (e: Throwable) {\n        android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n      }/' "$MAIN_ACTIVITY"
+              echo "✅ MainActivity.kt SplashScreenManager patch applied"
+            else
+              echo "ℹ️  MainActivity.kt already patched or SplashScreenManager call not found — skipping"
+            fi
+
+            # ── 4. Build release APK ────────────────────────────────────────
             cd android
             chmod +x gradlew
             ./gradlew assembleRelease --no-daemon
 
+            # ── 5. Copy APK to Bitrise deploy dir ──────────────────────────
             mkdir -p "$BITRISE_DEPLOY_DIR"
             cp app/build/outputs/apk/release/*.apk "$BITRISE_DEPLOY_DIR/mercon-driver-app.apk"
-            echo "APK copied to deploy directory successfully."
+            echo "✅ APK copied to deploy directory successfully."
     - deploy-to-bitrise-io@2:
         inputs:
         - is_enable_public_page: 'true'
