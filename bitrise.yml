@@ -6,6 +6,12 @@ meta:
   bitrise.io:
     stack: linux-docker-android-22.04
 
+trigger_map:
+- push_branch: "*"
+  workflow: primary
+- pull_request_source_branch: "*"
+  workflow: primary
+
 workflows:
   primary:
     summary: Build MERCON Driver Release APK
@@ -32,26 +38,26 @@ workflows:
             # ── 2. Generate native android/ folder ─────────────────────────
             npx expo prebuild --platform android --no-install
 
-            # ── 3. Patch MainActivity.kt: guard SplashScreenManager against
-            #        Android < 12 (API 31). The expo prebuild regenerates
-            #        MainActivity.kt fresh every time; this sed patch ensures
-            #        the crash fix is always applied even if the config plugin
-            #        in app.config.ts didn't fire.
+            # ── 3. Configure gradle architectures for phones (arm64 + armv7) ─
+            echo "reactNativeArchitectures=armeabi-v7a,arm64-v8a" >> android/gradle.properties
+            echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
+
+            # ── 4. Patch MainActivity.kt: setTheme(AppTheme) + try/catch SplashScreen
             MAIN_ACTIVITY="android/app/src/main/java/com/sayedhysam/merconapp/MainActivity.kt"
             if grep -q 'SplashScreenManager.registerOnActivity(this)' "$MAIN_ACTIVITY" && \
-               ! grep -q 'VERSION.SDK_INT' "$MAIN_ACTIVITY"; then
-              sed -i 's/SplashScreenManager\.registerOnActivity(this)/try {\n        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {\n          SplashScreenManager.registerOnActivity(this)\n        }\n      } catch (e: Throwable) {\n        android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n      }/' "$MAIN_ACTIVITY"
-              echo "✅ MainActivity.kt SplashScreenManager patch applied"
+               ! grep -q 'SplashScreenManager failed' "$MAIN_ACTIVITY"; then
+              sed -i 's/SplashScreenManager\.registerOnActivity(this)/setTheme(R.style.AppTheme)\n    try {\n      SplashScreenManager.registerOnActivity(this)\n    } catch (e: Throwable) {\n      android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n    }/' "$MAIN_ACTIVITY"
+              echo "✅ MainActivity.kt theme and splash patch applied"
             else
-              echo "ℹ️  MainActivity.kt already patched or SplashScreenManager call not found — skipping"
+              echo "ℹ️ MainActivity.kt already patched or call not found"
             fi
 
-            # ── 4. Build release APK ────────────────────────────────────────
+            # ── 5. Build release APK ────────────────────────────────────────
             cd android
             chmod +x gradlew
-            ./gradlew assembleRelease --no-daemon
+            ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a,arm64-v8a --no-daemon
 
-            # ── 5. Copy APK to Bitrise deploy dir ──────────────────────────
+            # ── 6. Copy APK to Bitrise deploy dir ──────────────────────────
             mkdir -p "$BITRISE_DEPLOY_DIR"
             cp app/build/outputs/apk/release/*.apk "$BITRISE_DEPLOY_DIR/mercon-driver-app.apk"
             echo "✅ APK copied to deploy directory successfully."

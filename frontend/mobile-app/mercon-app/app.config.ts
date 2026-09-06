@@ -89,11 +89,12 @@ export default (): ExpoConfig => ({
       return withMainActivity(config, (mod: any) => {
         let src: string = mod.modResults.contents;
 
-        const before = 'SplashScreenManager.registerOnActivity(this)';
-        const after = `try {\n      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {\n        SplashScreenManager.registerOnActivity(this)\n      }\n    } catch (e: Throwable) {\n      android.util.Log.w(\"MainActivity\", \"SplashScreenManager failed: \${e.message}\")\n    }`;
+        // Ensure AppTheme is set and SplashScreenManager is wrapped in try-catch
+        const target = 'SplashScreenManager.registerOnActivity(this)';
+        const safeCall = `setTheme(R.style.AppTheme)\n    try {\n      SplashScreenManager.registerOnActivity(this)\n    } catch (e: Throwable) {\n      android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n    }`;
 
-        if (src.includes(before) && !src.includes('VERSION.SDK_INT')) {
-          src = src.replace(before, after);
+        if (src.includes(target) && !src.includes('SplashScreenManager failed')) {
+          src = src.replace(target, safeCall);
         }
 
         mod.modResults.contents = src;
