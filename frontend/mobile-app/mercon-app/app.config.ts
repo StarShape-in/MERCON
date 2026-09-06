@@ -133,9 +133,6 @@ export default (): ExpoConfig => ({
   },
   extra: {
     router: {},
-    eas: {
-      projectId: 'e5be404c-d6c0-4285-bfce-d459a605400a',
-    },
     // Read by src/lib/api.ts as the required fallback when EXPO_PUBLIC_API_URL
     // isn't set — per-client, so a misconfigured build can't silently talk to
     // another client's API.
@@ -144,5 +141,4 @@ export default (): ExpoConfig => ({
     brandColorLight: client.brandColorLight,
     brandColorDark: client.brandColorDark,
   },
-  owner: 'sayedhysam',
 });
