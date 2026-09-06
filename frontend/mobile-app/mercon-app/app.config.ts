@@ -84,7 +84,7 @@ export default (): ExpoConfig => ({
     // vanilla generated file calls SplashScreenManager.registerOnActivity(this)
     // unconditionally, which crashes on Android 10/11 (API < 31).
     // This plugin wraps the call in a try/catch + API-level guard after prebuild.
-    (config: ExpoConfig) => {
+    ((config: ExpoConfig) => {
       const { withMainActivity } = require('@expo/config-plugins');
       return withMainActivity(config, (mod: any) => {
         let src: string = mod.modResults.contents;
@@ -100,7 +100,7 @@ export default (): ExpoConfig => ({
         mod.modResults.contents = src;
         return mod;
       });
-    },
+    }) as any,
     'expo-router',
     [
       'expo-splash-screen',
