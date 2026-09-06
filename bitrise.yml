@@ -14,21 +14,23 @@ workflows:
         inputs:
         - set_java_version: '17'
     - script@1:
-        title: Install Dependencies & Expo Prebuild
+        title: Prebuild & Build Driver APK
         inputs:
         - content: |
             #!/usr/bin/env bash
             set -ex
+
             cd frontend/mobile-app/mercon-app
             npm install
             npx expo prebuild --platform android --no-install
-    - android-build@1:
-        title: Build Release APK
-        inputs:
-        - project_location: frontend/mobile-app/mercon-app/android
-        - module: app
-        - variant: release
-        - build_type: apk
+
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleRelease --no-daemon
+
+            mkdir -p "$BITRISE_DEPLOY_DIR"
+            cp app/build/outputs/apk/release/*.apk "$BITRISE_DEPLOY_DIR/mercon-driver-app.apk"
+            echo "APK copied to deploy directory successfully."
     - deploy-to-bitrise-io@2:
         inputs:
         - is_enable_public_page: 'true'
