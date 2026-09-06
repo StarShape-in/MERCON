@@ -84,7 +84,7 @@ export default (): ExpoConfig => ({
     // vanilla generated file calls SplashScreenManager.registerOnActivity(this)
     // unconditionally, which crashes on Android 10/11 (API < 31).
     // This plugin wraps the call in a try/catch + API-level guard after prebuild.
-    (config: import('expo/config').ExpoConfig) => {
+    (config: ExpoConfig) => {
       const { withMainActivity } = require('@expo/config-plugins');
       return withMainActivity(config, (mod: any) => {
         let src: string = mod.modResults.contents;
@@ -133,6 +133,9 @@ export default (): ExpoConfig => ({
   },
   extra: {
     router: {},
+    eas: {
+      projectId: '2697c85a-0ac8-4a2e-9225-5cc84a5b518d',
+    },
     // Read by src/lib/api.ts as the required fallback when EXPO_PUBLIC_API_URL
     // isn't set — per-client, so a misconfigured build can't silently talk to
     // another client's API.
@@ -141,4 +144,5 @@ export default (): ExpoConfig => ({
     brandColorLight: client.brandColorLight,
     brandColorDark: client.brandColorDark,
   },
+  owner: 'alan32',
 });
