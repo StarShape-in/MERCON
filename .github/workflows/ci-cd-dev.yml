@@ -122,9 +122,23 @@ jobs:
           echo "Starting containers..."
           docker compose -p mercon-dev up -d
 
-          sleep 12
+          echo "Syncing database schema..."
+          docker compose -p mercon-dev exec -T mercon-api npx prisma db push --accept-data-loss || true
+          docker compose -p mercon-dev exec -T mercon-api npx prisma generate || true
+
+          sleep 5
           echo "--- dev-api logs (last 100 lines) ---"
           docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
           echo "--- dev-api container status ---"
           docker compose -p mercon-dev ps mercon-api || true
+
+      - name: Deploy Nginx Config for Dev & Reload
+        run: |
+          echo "Deploying dev nginx reverse proxy config..."
+          if [ -f nginx/dev-mercon-api.conf ]; then
+            sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/dev-mercon-api.conf 2>/dev/null || true
+            sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/default 2>/dev/null || true
+            sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf 2>/dev/null || true
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
+          fi
 
