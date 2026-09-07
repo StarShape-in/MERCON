@@ -223,19 +223,19 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 ) : null;
 
                 return (
-                  <div className="w-full py-2.5 px-3 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80 text-left flex items-center gap-2.5 shadow-2xs animate-fade-in transition-all">
+                  <div className="w-full h-full min-h-[135px] py-3.5 px-3 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center gap-2 shadow-2xs animate-fade-in transition-all">
                     <DriverAvatar
                       src={avatarUrl}
                       firstName={firstName}
                       lastName={lastName}
-                      size="md"
-                      className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
+                      size="lg"
+                      className="border-2 border-white dark:border-slate-800 shadow-xs mx-auto shrink-0"
                     />
-                    <div className="truncate flex-1 min-w-0">
-                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
+                    <div className="w-full px-1 min-w-0">
+                      <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
                         {firstName} {lastName}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate pt-0.5">
                         {optDetailsStr || 'Truck: Unassigned'}
                       </div>
                     </div>

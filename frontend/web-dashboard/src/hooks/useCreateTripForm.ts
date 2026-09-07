@@ -304,11 +304,16 @@ export function useCreateTripForm() {
   const urlStepParam = searchParams.get('step');
   const initialStep = (urlStepParam && [1, 2, 3].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3) : 1;
 
+  const urlMode = searchParams.get('mode');
+  const urlBillingType = searchParams.get('billingType');
+  const urlMonth = searchParams.get('month');
+  const isMonthlyUrl = urlMode?.toLowerCase() === 'monthly' || urlBillingType?.toLowerCase() === 'monthly' || !!urlMonth;
+
   const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('All');
+  const [contractRateCategory, setContractRateCategory] = useState<string>(isMonthlyUrl ? 'Monthly' : (MODAL_RATE_CATEGORIES[0] || 'Trip'));
+  const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'All');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     const rule = getCompatibilityRuleForClass(contractVehicleType);
