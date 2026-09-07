@@ -374,9 +374,8 @@ function FullTripCard({
           <div className="overflow-hidden whitespace-nowrap flex-1">
             <span
               className={cn(
-                'font-semibold block',
-                trip.driver ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold',
-                driverName.length > 13 ? 'animate-marquee-slow' : 'truncate'
+                'font-semibold block truncate',
+                trip.driver ? 'text-slate-600 dark:text-slate-400' : 'text-amber-700 font-bold'
               )}
               title={driverName}
             >
