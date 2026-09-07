@@ -395,7 +395,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Monthly')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
                       contractBillingType?.toLowerCase() === 'monthly'
                         ? 'bg-purple-600 text-white shadow-2xs'
                         : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-purple-300'
@@ -407,26 +407,14 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Extra')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                      contractBillingType?.toLowerCase() === 'extra'
+                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                      contractBillingType?.toLowerCase() !== 'monthly'
                         ? 'bg-[#FA634E] text-white shadow-2xs'
                         : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#FA634E]/40'
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5" />
                     Extra / Spot Trip
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setContractBillingType('All')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                      !contractBillingType || contractBillingType.toLowerCase() === 'all'
-                        ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    All Quotations
                   </button>
                 </div>
 
@@ -437,14 +425,10 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
                       Monthly Contract Mode (Billed Per Month)
                     </span>
-                  ) : contractBillingType?.toLowerCase() === 'extra' ? (
+                  ) : (
                     <span className="text-[10px] font-extrabold text-[#FA634E] dark:text-orange-400 bg-orange-100/80 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200/90 dark:border-orange-800 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#FA634E] animate-pulse" />
                       Extra / Spot Trip Mode (Billed Per Single Trip)
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-300/60 dark:border-slate-700">
-                      Showing All Rate Cards
                     </span>
                   )}
                 </div>
