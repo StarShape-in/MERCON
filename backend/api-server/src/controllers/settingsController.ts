@@ -241,7 +241,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
     const recentTrips = await prisma.trip.findMany({
       take: 20,
       orderBy: { updatedAt: 'desc' },
-      select: { id: true, trip_number: true, status: true, updatedAt: true, createdBy: true },
+      select: { id: true, ref_id: true, status: true, updatedAt: true, created_by: true },
     });
 
     const logs = [
@@ -254,7 +254,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
       ...recentTrips.map((t) => ({
         id: `trip-${t.id}`,
         category: 'OPERATIONAL_TRIP',
-        description: `Trip ${t.trip_number || t.id} status set to ${t.status}`,
+        description: `Trip ${t.ref_id || t.id} status set to ${t.status}`,
         timestamp: t.updatedAt,
       })),
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
