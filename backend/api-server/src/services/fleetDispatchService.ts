@@ -89,8 +89,10 @@ export async function getRecommendedDriversForTrip(params: {
       unavailabilityReason = 'License Expired';
     }
 
+    const driverTripDrivers: any[] = (driver as any).tripDrivers || [];
+
     if (isAvailable) {
-      const hasActiveConflict = driver.tripDrivers.some((td) => {
+      const hasActiveConflict = driverTripDrivers.some((td: any) => {
         const tStatus = td.trip?.status;
         return tStatus && ['Scheduled', 'Loading', 'InTransit', 'Delayed'].includes(tStatus);
       });
@@ -102,7 +104,7 @@ export async function getRecommendedDriversForTrip(params: {
 
     let routeTripCount = 0;
     if (origStr && destStr) {
-      for (const td of driver.tripDrivers) {
+      for (const td of driverTripDrivers) {
         const stops = td.trip?.stops || [];
         if (stops.length > 0) {
           const firstStop = stops[0];
