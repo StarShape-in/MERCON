@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -261,14 +261,30 @@ export function useCreateTripForm() {
           : '';
 
         const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [badgesStr, capacityLabel, statusTag].filter(Boolean).join(' • ');
+        const detailsStr = [capacityLabel, statusTag, badgesStr].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
-        const label = detailsStr ? `${fullName} (${detailsStr})` : fullName;
+
+        const label = React.createElement(
+          'div',
+          { className: 'flex flex-col text-left leading-tight py-0.5 min-w-0 truncate' },
+          React.createElement(
+            'span',
+            { className: 'font-bold text-slate-900 dark:text-slate-100 text-xs truncate' },
+            fullName
+          ),
+          detailsStr
+            ? React.createElement(
+                'span',
+                { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate pt-0.5' },
+                detailsStr
+              )
+            : null
+        );
 
         return {
           value: d.id,
           label,
-          keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
+          keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
           first_name: d.first_name,
@@ -354,12 +370,30 @@ export function useCreateTripForm() {
         hint = 'Allowed alternative';
       }
 
-      const statusTag = v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' ? ` (${v.status})` : '';
+      const statusClean = v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' ? v.status : '';
+      const vehDetailsStr = [typeLabel, statusClean, hint].filter(Boolean).join(' • ');
+
+      const label = React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5 min-w-0 truncate' },
+        React.createElement(
+          'span',
+          { className: 'font-bold text-slate-900 dark:text-slate-100 text-xs truncate' },
+          v.plate_number
+        ),
+        vehDetailsStr
+          ? React.createElement(
+              'span',
+              { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate pt-0.5' },
+              vehDetailsStr
+            )
+          : null
+      );
 
       return {
         value: v.id,
         group,
-        label: `${v.plate_number} (${typeLabel})${statusTag}${hint ? ` • ${hint}` : ''}`,
+        label,
         keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${vClass} ${actualCapLabel} ${group} ${hint}`,
       };
     });

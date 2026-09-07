@@ -241,18 +241,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               />
             </div>
           )}
-
-          {/* STAGE STATUS INDICATORS */}
-          {contractCustomer && (matchedRateCard || primarySlot.matchedRateCard) && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span>
-                  Quotation {(matchedRateCard || primarySlot.matchedRateCard)?.quotation_number || 'Applied'} • <span className="text-slate-600 dark:text-slate-400 font-medium">Source for Route & Rate</span>
-                </span>
-              </span>
-            </div>
-          )}
         </div>
 
         {/* RIGHT: CREATE QUOTATION BUTTON / TOGGLE */}
