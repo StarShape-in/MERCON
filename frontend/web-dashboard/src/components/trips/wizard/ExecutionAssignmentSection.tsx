@@ -114,20 +114,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               </div>
             )}
 
-            {/* PRIMARY DRIVER SELECTION */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <User className="w-3 h-3 text-emerald-600" /> PRIMARY DRIVER
-              </label>
-              <Combobox
-                options={driverOptions}
-                value={masterDriver}
-                onChange={handleDriverChange}
-                placeholder="Select primary driver..."
-                searchPlaceholder="Search driver name, phone..."
-                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
-              />
-            </div>
+            {/* PRIMARY DRIVER SELECTION (Removed Dropdown per user request) */}
 
             {/* VEHICLE */}
             <div className="space-y-1">
@@ -242,10 +229,10 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </div>
                 );
               })() : (
-                // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE
-                <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
+                // UNSELECTED STATE: SCROLLABLE LIST OF ALL RECOMMENDED DRIVERS
+                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in max-h-[150px] overflow-y-auto pr-1 space-y-1">
                   {(() => {
-                    const listToDisplay = driverOptions.slice(0, 2);
+                    const listToDisplay = driverOptions;
 
                     if (listToDisplay.length === 0) {
                       return (
@@ -280,8 +267,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           key={dOpt.value || idx}
                           type="button"
                           onClick={() => handleDriverChange(dOpt.value)}
-                          className={`w-full py-2 px-2 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 min-w-0 ${
-                            isFirst && listToDisplay.length > 1 ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
+                          className={`w-full py-2 px-2 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 min-w-0 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 ${
+                            isFirst && listToDisplay.length > 1 ? '' : 'pt-1'
                           }`}
                         >
                           <DriverAvatar

@@ -608,11 +608,11 @@ export const createTrip = async (req: Request, res: Response) => {
     let targetStatus = requestedStatus || TripStatus.Scheduled;
 
     // Past-time trips can NEVER be Scheduled:
-    // If planned_start is past current time by >= 30 minutes, initial status must be Delayed
+    // If planned_start is past current time, initial status must be Delayed
     if (parsedPlannedStart) {
       const now = new Date();
       const diffMs = now.getTime() - parsedPlannedStart.getTime();
-      if (diffMs >= 30 * 60 * 1000) {
+      if (diffMs >= 0) {
         if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
           targetStatus = TripStatus.Delayed;
         }
@@ -1111,11 +1111,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         let targetStatus = row.status || TripStatus.Scheduled;
 
         // Past-time trips can NEVER be Scheduled:
-        // If planned_start is past current time by >= 30 minutes, initial status must be Delayed
+        // If planned_start is past current time, initial status must be Delayed
         if (parsedPlannedStart) {
           const now = new Date();
           const diffMs = now.getTime() - parsedPlannedStart.getTime();
-          if (diffMs >= 30 * 60 * 1000) {
+          if (diffMs >= 0) {
             if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft || (row.status as string) === 'Scheduled') {
               targetStatus = TripStatus.Delayed;
             }

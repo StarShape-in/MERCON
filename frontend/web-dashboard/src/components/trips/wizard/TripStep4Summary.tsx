@@ -322,7 +322,7 @@ export const TripStep4Summary: React.FC<TripStep4SummaryProps> = ({
                             {slot.origin ? slot.origin.toUpperCase() : 'ORIGIN LOCATION'}
                           </div>
                           <div className="text-[11px] font-semibold text-[#6E6E80]">
-                            Pickup • {slot.pickupTime || '08:00 AM'}
+                            Pickup • {slot.pickupTime ? slot.pickupTime : 'Time Not Selected'}
                           </div>
                         </div>
                       </div>

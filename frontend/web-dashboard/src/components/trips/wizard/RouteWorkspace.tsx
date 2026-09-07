@@ -50,8 +50,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
 
   const pickupIsoValue = React.useMemo(() => {
-    if (!slot.date) return null;
-    const time = slot.pickupTime || '08:00';
+    if (!slot.date || !slot.pickupTime) return null;
+    const time = slot.pickupTime;
     const cleanTime = time.includes(':') ? time.split(' ')[0] : '08:00';
     return `${slot.date}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
   }, [slot.date, slot.pickupTime]);
@@ -75,8 +75,8 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
     const dropoffDate = slot.dropoffDate || slot.date;
     if (!dropoffDate) return null;
 
-    const pTime = (slot.pickupTime || '08:00').split(' ')[0];
-    const dTime = (slot.dropoffTime || '14:00').split(' ')[0];
+    const pTime = (slot.pickupTime || '').split(' ')[0];
+    const dTime = (slot.dropoffTime || '').split(' ')[0];
 
     // 1. Date comparison
     if (dropoffDate < slot.date) {
@@ -153,7 +153,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               destinationLat={slot.destinationLat}
               destinationLng={slot.destinationLng}
               pickupDate={slot.date || slot.pickupDate}
-              pickupTime={slot.pickupTime || '08:00'}
+              pickupTime={slot.pickupTime || ''}
               onAutoSetDropoffDateTime={(dDate, dTime, isOvernight) => {
                 handleUpdateTripSlot(slot.id, { dropoffDate: dDate, dropoffTime: dTime, isOvernight });
               }}
@@ -206,7 +206,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 onChange={(isoStr) => {
                   if (!isoStr) return;
                   const [dPart, tPart] = isoStr.split('T');
-                  const cleanTime = tPart ? tPart.substring(0, 5) : '08:00';
+                  const cleanTime = tPart ? tPart.substring(0, 5) : '';
                   const keepDropoff = slot.dropoffDate && slot.dropoffDate >= dPart;
                   handleUpdateTripSlot(slot.id, {
                     date: dPart,

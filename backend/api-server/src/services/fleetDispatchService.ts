@@ -178,6 +178,10 @@ export async function getRecommendedDriversForTrip(params: {
     }
 
     let score = 0;
+    if (reqClassStr && !capacityMatch) {
+      continue;
+    }
+    
     if (isAvailable && capacityMatch) {
       score += 200; // Base score for available + capacity-matched drivers
       score += routeTripCount * 100;

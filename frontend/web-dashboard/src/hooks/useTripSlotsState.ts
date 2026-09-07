@@ -92,7 +92,7 @@ export function useTripSlotsState() {
 
   const handleAddTripSlot = () => {
     const nextNum = contractSlots.length + 1;
-    const defaultTime = nextNum === 2 ? '14:00' : nextNum === 3 ? '20:00' : '08:00';
+    const defaultTime = '';
     setContractSlots((prev) => [
       ...prev,
       {
