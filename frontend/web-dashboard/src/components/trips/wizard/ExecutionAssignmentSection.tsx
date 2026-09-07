@@ -248,58 +248,71 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               })() : (
                 // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE
                 <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
-                  {driverOptions.slice(0, 2).map((dOpt, idx) => {
-                    const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
-                    const rawName = optLabelStr.split('(')[0].trim() || 'Driver';
-                    const nameParts = rawName.split(' ');
-                    const firstName = nameParts[0] || rawName;
-                    const lastName = nameParts.slice(1).join(' ') || '';
+                  {(() => {
+                    const matchedDrivers = driverOptions.filter((d) => (d as any).capacityMatch !== false && ((d as any).score === undefined || (d as any).score >= 100));
+                    const listToDisplay = matchedDrivers.length > 0 ? matchedDrivers.slice(0, 2) : driverOptions.slice(0, 2);
 
-                    const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
-                    const avatarUrl =
-                      (dOpt as any).avatar_url ||
-                      (dOpt as any).photo_url ||
-                      (dOpt as any).profile_picture ||
-                      (dOpt as any).avatarUrl ||
-                      (dOpt as any).photoUrl ||
-                      (dOpt as any).image_url ||
-                      (dOpt as any).raw?.avatar_url ||
-                      (dOpt as any).raw?.photo_url ||
-                      (dOpt as any).raw?.profile_picture ||
-                      (dOpt as any).raw?.avatarUrl ||
-                      (dOpt as any).raw?.photoUrl ||
-                      (dOpt as any).raw?.image_url ||
-                      null;
-                    const isFirst = idx === 0;
-
-                    return (
-                      <button
-                        key={dOpt.value || idx}
-                        type="button"
-                        onClick={() => handleDriverChange(dOpt.value)}
-                        className={`w-full py-2 px-3 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 ${
-                          isFirst ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
-                        }`}
-                      >
-                        <DriverAvatar
-                          src={avatarUrl}
-                          firstName={firstName}
-                          lastName={lastName}
-                          size="md"
-                          className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
-                        />
-
-                        <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
-                          <div className="truncate max-w-full">{firstName}</div>
-                          {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
+                    if (listToDisplay.length === 0) {
+                      return (
+                        <div className="py-4 px-2 text-center text-xs text-slate-400 font-medium">
+                          No drivers available for {contractVehicleType}
                         </div>
+                      );
+                    }
 
-                        <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
-                          {optDetailsStr || 'Truck: Unassigned'}
-                        </div>
-                      </button>
-                    );
-                  })}
+                    return listToDisplay.map((dOpt, idx) => {
+                      const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
+                      const rawName = optLabelStr.split('(')[0].trim() || 'Driver';
+                      const nameParts = rawName.split(' ');
+                      const firstName = nameParts[0] || rawName;
+                      const lastName = nameParts.slice(1).join(' ') || '';
+
+                      const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
+                      const avatarUrl =
+                        (dOpt as any).avatar_url ||
+                        (dOpt as any).photo_url ||
+                        (dOpt as any).profile_picture ||
+                        (dOpt as any).avatarUrl ||
+                        (dOpt as any).photoUrl ||
+                        (dOpt as any).image_url ||
+                        (dOpt as any).raw?.avatar_url ||
+                        (dOpt as any).raw?.photo_url ||
+                        (dOpt as any).raw?.profile_picture ||
+                        (dOpt as any).raw?.avatarUrl ||
+                        (dOpt as any).raw?.photoUrl ||
+                        (dOpt as any).raw?.image_url ||
+                        null;
+                      const isFirst = idx === 0;
+
+                      return (
+                        <button
+                          key={dOpt.value || idx}
+                          type="button"
+                          onClick={() => handleDriverChange(dOpt.value)}
+                          className={`w-full py-2 px-3 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 ${
+                            isFirst && listToDisplay.length > 1 ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
+                          }`}
+                        >
+                          <DriverAvatar
+                            src={avatarUrl}
+                            firstName={firstName}
+                            lastName={lastName}
+                            size="md"
+                            className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                          />
+
+                          <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
+                            <div className="truncate max-w-full">{firstName}</div>
+                            {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
+                          </div>
+
+                          <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
+                            {optDetailsStr || 'Truck: Unassigned'}
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>

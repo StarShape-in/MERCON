@@ -37,6 +37,18 @@ export interface VehicleRecommendation {
   unavailabilityReason?: string;
 }
 
+export function getMinCapacityKgForClass(classStr: string): number {
+  if (!classStr) return 0;
+  const s = String(classStr).toLowerCase();
+  if (s.includes('40 feet') || s.includes('40ft')) return 20000;
+  if (s.includes('20 ton')) return 18000;
+  if (s.includes('10 ton')) return 9000;
+  if (s.includes('8 ton')) return 7500;
+  if (s.includes('5 ton')) return 4500;
+  if (s.includes('3-4 ton') || s.includes('3 ton') || s.includes('4 ton')) return 3000;
+  return 0;
+}
+
 /**
  * Returns ranked driver recommendations for a trip based on vehicle payload match,
  * route experience (past trip count on same lane), and availability.
@@ -126,6 +138,7 @@ export async function getRecommendedDriversForTrip(params: {
     let capacityMatch = false;
     let assignedPlate: string | null = null;
     let assignedClass: string | null = null;
+    let capacityMismatchReason: string | null = null;
 
     const primaryAssign = driver.vehicleAssignments[0];
     if (primaryAssign?.vehicle) {
@@ -137,34 +150,50 @@ export async function getRecommendedDriversForTrip(params: {
       } else {
         const vAsset = (primaryAssign.vehicle.asset_type || '').toLowerCase();
         const vCap = Number(primaryAssign.vehicle.capacity_kg || 0);
+        const reqMinCap = getMinCapacityKgForClass(reqClassStr);
 
-        if (vAsset.includes(reqClassStr) || reqClassStr.includes(vAsset)) {
-          capacityMatch = true;
-        } else if (reqClassStr.includes('10 ton') && vCap >= 9000) {
-          capacityMatch = true;
-        } else if (reqClassStr.includes('20 ton') && vCap >= 18000) {
-          capacityMatch = true;
-        } else if (reqClassStr.includes('40 feet') && vCap >= 20000) {
-          capacityMatch = true;
-        } else if (reqClassStr.includes('3-4 ton') || reqClassStr.includes('5 ton')) {
+        if (reqMinCap > 0) {
+          if (vCap > 0) {
+            capacityMatch = vCap >= reqMinCap;
+            if (!capacityMatch) {
+              const actualTons = vCap >= 1000 ? `${(vCap / 1000).toFixed(0)} TON` : `${vCap} kg`;
+              capacityMismatchReason = `Under-Capacity (${actualTons} Truck)`;
+            }
+          } else {
+            const assetCap = getMinCapacityKgForClass(vAsset);
+            capacityMatch = assetCap >= reqMinCap || vAsset.includes(reqClassStr);
+            if (!capacityMatch) {
+              capacityMismatchReason = `Under-Capacity (${primaryAssign.vehicle.asset_type})`;
+            }
+          }
+        } else {
           capacityMatch = true;
         }
       }
     } else if (!reqClassStr) {
       capacityMatch = true;
+    } else {
+      capacityMismatchReason = 'No Assigned Vehicle';
     }
 
     let score = 0;
-    if (isAvailable) score += 200;
-    if (capacityMatch) score += 50;
-    score += routeTripCount * 100;
+    if (isAvailable && capacityMatch) {
+      score += 200; // Base score for available + capacity-matched drivers
+      score += routeTripCount * 100;
+    } else if (isAvailable && !capacityMatch) {
+      score += 10; // Under-capacity drivers get minimal score so they stay below capacity-matched drivers
+    } else {
+      score += 0;
+    }
 
     const badges: string[] = [];
-    if (routeTripCount > 0) {
+    if (routeTripCount > 0 && capacityMatch) {
       badges.push(`⭐ Lane Experienced (${routeTripCount} trips)`);
     }
     if (capacityMatch) {
       badges.push(`✓ Capacity Match`);
+    } else if (capacityMismatchReason) {
+      badges.push(`⚠️ ${capacityMismatchReason}`);
     }
     if (isAvailable) {
       badges.push(`🟢 Available`);
