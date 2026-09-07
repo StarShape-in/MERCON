@@ -57,12 +57,11 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   }, [slot.date, slot.pickupTime]);
 
   const dropoffIsoValue = React.useMemo(() => {
-    const dDate = slot.dropoffDate || slot.date;
-    if (!dDate) return null;
-    const time = slot.dropoffTime || '14:00';
+    if (!slot.dropoffDate) return null;
+    const time = slot.dropoffTime || '';
     const cleanTime = time.includes(':') ? time.split(' ')[0] : '14:00';
-    return `${dDate}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
-  }, [slot.dropoffDate, slot.date, slot.dropoffTime]);
+    return `${slot.dropoffDate}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
+  }, [slot.dropoffDate, slot.dropoffTime]);
 
   const pickupDateObj = React.useMemo(() => {
     if (!pickupIsoValue) return undefined;
@@ -207,11 +206,9 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   if (!isoStr) return;
                   const [dPart, tPart] = isoStr.split('T');
                   const cleanTime = tPart ? tPart.substring(0, 5) : '';
-                  const keepDropoff = slot.dropoffDate && slot.dropoffDate >= dPart;
                   handleUpdateTripSlot(slot.id, {
                     date: dPart,
                     pickupTime: cleanTime,
-                    ...(keepDropoff ? {} : { dropoffDate: dPart }),
                   });
                 }}
                 placeholder="Pick date & time..."

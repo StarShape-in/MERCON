@@ -1013,7 +1013,7 @@ export function useCreateTripForm() {
           pickupTime: '',
           dropoffTime: '',
           date: todayStr,
-          dropoffDate: todayStr,
+          dropoffDate: '',
           billingAmount: '',
           tripCharges: '',
           isOvernight: false,

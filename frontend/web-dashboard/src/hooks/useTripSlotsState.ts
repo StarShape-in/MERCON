@@ -63,7 +63,7 @@ export function useTripSlotsState() {
       pickupTime: '',
       dropoffTime: '',
       date: new Date().toISOString().slice(0, 10),
-      dropoffDate: new Date().toISOString().slice(0, 10),
+      dropoffDate: '',
       billingAmount: '',
       tripCharges: '',
       saveAsQuotation: false,
@@ -102,9 +102,9 @@ export function useTripSlotsState() {
         originLocationId: prev[0]?.originLocationId || null,
         destinationLocationId: prev[0]?.destinationLocationId || null,
         pickupTime: defaultTime,
-        dropoffTime: '14:00',
+        dropoffTime: '',
         date: prev[0]?.date || new Date().toISOString().slice(0, 10),
-        dropoffDate: prev[0]?.dropoffDate || new Date().toISOString().slice(0, 10),
+        dropoffDate: '',
         billingAmount: prev[0]?.billingAmount || '',
         tripCharges: prev[0]?.tripCharges || '',
         rateMatched: prev[0]?.rateMatched || false,
@@ -135,51 +135,6 @@ export function useTripSlotsState() {
     setContractSlots((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
     );
-
-    if (
-      updates.origin !== undefined ||
-      updates.destination !== undefined ||
-      updates.date !== undefined ||
-      updates.pickupTime !== undefined
-    ) {
-      const slot = contractSlots.find((s) => s.id === id);
-      if (slot) {
-        const origin = updates.origin !== undefined ? updates.origin : slot.origin;
-        const destination = updates.destination !== undefined ? updates.destination : slot.destination;
-        const originLat = updates.originLat !== undefined ? updates.originLat : slot.originLat;
-        const originLng = updates.originLng !== undefined ? updates.originLng : slot.originLng;
-        const destinationLat = updates.destinationLat !== undefined ? updates.destinationLat : slot.destinationLat;
-        const destinationLng = updates.destinationLng !== undefined ? updates.destinationLng : slot.destinationLng;
-        const date = updates.date !== undefined ? updates.date : slot.date;
-        const pickupTime = updates.pickupTime !== undefined ? updates.pickupTime : slot.pickupTime;
-
-        if (origin.trim() && destination.trim()) {
-          estimateTravelTimeByName(origin, destination, originLat, originLng, destinationLat, destinationLng)
-            .then((estimate) => {
-              if (estimate) {
-                const arrival = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
-                const dropoffDate = arrival.isOvernight ? addDays(date, 1) : date;
-
-                setContractSlots((prev) =>
-                  prev.map((s) =>
-                    s.id === id
-                      ? {
-                          ...s,
-                          dropoffTime: arrival.dropoffTime,
-                          dropoffDate,
-                          isOvernight: arrival.isOvernight,
-                        }
-                      : s
-                  )
-                );
-              }
-            })
-            .catch((err) => {
-              console.warn('Auto-fill dropoff estimate failed', err);
-            });
-        }
-      }
-    }
   };
 
   const handleAddSlotIntermediate = (slotId: string) => {

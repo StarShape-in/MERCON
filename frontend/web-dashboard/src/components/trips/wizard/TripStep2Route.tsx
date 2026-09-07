@@ -466,7 +466,7 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                   <div className="grid grid-cols-2 gap-1.5">
                     <DatePicker
                       value={slot.date || ''}
-                      onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
+                      onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr })}
                       placeholder="Select date..."
                       buttonClassName="h-8 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
                       minDate={new Date()}
@@ -536,13 +536,6 @@ export const TripStep2Route: React.FC<TripStep2RouteProps> = ({
                     pickupDate={slot.date || slot.pickupDate}
                     pickupTime={slot.pickupTime}
                     dropoffTime={slot.dropoffTime}
-                    onAutoSetDropoffDateTime={(suggestedDate, suggestedTime, isOvernight) => {
-                      handleUpdateTripSlot(slot.id, {
-                        dropoffDate: suggestedDate,
-                        dropoffTime: suggestedTime,
-                        isOvernight: isOvernight,
-                      });
-                    }}
                   />
                 </div>
               </div>
