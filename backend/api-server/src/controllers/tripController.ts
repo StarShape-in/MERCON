@@ -607,14 +607,14 @@ export const createTrip = async (req: Request, res: Response) => {
     const isDispatchingNow = false;
     let targetStatus = requestedStatus || TripStatus.Scheduled;
 
-    // Past date trips can NEVER be Scheduled
+    // Past-time trips can NEVER be Scheduled:
+    // If planned_start is past current time by >= 30 minutes, initial status must be Delayed
     if (parsedPlannedStart) {
       const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const tripDay = new Date(parsedPlannedStart.getFullYear(), parsedPlannedStart.getMonth(), parsedPlannedStart.getDate());
-      if (tripDay.getTime() < todayStart.getTime()) {
+      const diffMs = now.getTime() - parsedPlannedStart.getTime();
+      if (diffMs >= 30 * 60 * 1000) {
         if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
-          targetStatus = TripStatus.Completed;
+          targetStatus = TripStatus.Delayed;
         }
       }
     }
@@ -1110,14 +1110,14 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           : Boolean(driverId && vehicleId);
         let targetStatus = row.status || TripStatus.Scheduled;
 
-        // Past date trips can NEVER be Scheduled
+        // Past-time trips can NEVER be Scheduled:
+        // If planned_start is past current time by >= 30 minutes, initial status must be Delayed
         if (parsedPlannedStart) {
           const now = new Date();
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const tripDay = new Date(parsedPlannedStart.getFullYear(), parsedPlannedStart.getMonth(), parsedPlannedStart.getDate());
-          if (tripDay.getTime() < todayStart.getTime()) {
+          const diffMs = now.getTime() - parsedPlannedStart.getTime();
+          if (diffMs >= 30 * 60 * 1000) {
             if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft || (row.status as string) === 'Scheduled') {
-              targetStatus = TripStatus.Completed;
+              targetStatus = TripStatus.Delayed;
             }
           }
         }

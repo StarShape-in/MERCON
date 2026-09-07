@@ -113,9 +113,17 @@ export async function checkTripsForDelay(now: Date = new Date()): Promise<number
         const plannedTime = pickupStop?.planned_arrival || trip.planned_start;
 
         if (plannedTime) {
-          // Check condition C: Scheduled trip from a previous day that never started
+          if (!pickupStop || pickupStop.actual_arrival === null) {
+            const diffMs = now.getTime() - plannedTime.getTime();
+            const diffMinutes = Math.round(diffMs / 60000);
+            if (diffMinutes >= DELAY_THRESHOLD_MINUTES) {
+              isDelayed = true;
+              delayMinutes = diffMinutes;
+              targetStop = pickupStop || null;
+            }
+          }
+
           if (isPreviousDay(plannedTime, now)) {
-            // Durable idempotency: check if already notified as StaleScheduled
             const existingStaleNotif = await prisma.notification.findFirst({
               where: {
                 entity_type: 'Trip',
@@ -126,17 +134,6 @@ export async function checkTripsForDelay(now: Date = new Date()): Promise<number
 
             if (!existingStaleNotif) {
               await notifyOperatorsOfStaleScheduled(trip.id, trip.ref_id, plannedTime);
-            }
-          } else {
-            // Condition B: Same-day scheduled trip running > 30 min late
-            if (!pickupStop || pickupStop.actual_arrival === null) {
-              const diffMs = now.getTime() - plannedTime.getTime();
-              const diffMinutes = Math.round(diffMs / 60000);
-              if (diffMinutes >= DELAY_THRESHOLD_MINUTES) {
-                isDelayed = true;
-                delayMinutes = diffMinutes;
-                targetStop = pickupStop || null;
-              }
             }
           }
         }

@@ -112,26 +112,42 @@ export const ScheduleServicePanel: React.FC<ScheduleServicePanelProps> = ({
 
       <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-2">
         {/* 2. PICKUP SCHEDULE */}
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-emerald-600" /> PICKUP SCHEDULE
-          </label>
-          <div className="grid grid-cols-2 gap-1.5">
-            <DatePicker
-              value={slot.date || ''}
-              onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
-              placeholder="Select date..."
-              buttonClassName="h-8.5 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
-              minDate={new Date()}
-            />
-            <TimePicker
-              value={slot.pickupTime}
-              onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
-              placeholder="Select time..."
-              buttonClassName="h-8.5 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
-            />
-          </div>
-        </div>
+        {(() => {
+          const isPastSchedule = Boolean(
+            slot.date &&
+            slot.pickupTime &&
+            !isNaN(new Date(`${slot.date}T${slot.pickupTime}:00`).getTime()) &&
+            new Date(`${slot.date}T${slot.pickupTime}:00`).getTime() < Date.now() - 5 * 60 * 1000
+          );
+
+          return (
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#3E3C3D] dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-emerald-600" /> PICKUP SCHEDULE</span>
+                {isPastSchedule && (
+                  <span className="text-[9px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5 text-amber-600" /> Past Time (Back-dated)
+                  </span>
+                )}
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <DatePicker
+                  value={slot.date || ''}
+                  onChange={(_, dateStr) => handleUpdateTripSlot(slot.id, { date: dateStr, dropoffDate: dateStr })}
+                  placeholder="Select date..."
+                  buttonClassName="h-8.5 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
+                  minDate={new Date()}
+                />
+                <TimePicker
+                  value={slot.pickupTime || ''}
+                  onChange={(timeStr) => handleUpdateTripSlot(slot.id, { pickupTime: timeStr })}
+                  placeholder="Select time..."
+                  buttonClassName="h-8.5 border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-2.5"
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 3. DROPOFF SCHEDULE */}
         <div className="space-y-1">
