@@ -49,16 +49,9 @@ export function useTripSubmission(
       queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
 
-      const createdTripId = (data?.results?.find((r: any) => r.success && (r.created_id || r.id || r.ref_id)) as any)?.created_id
-                         || (data?.results?.find((r: any) => r.success && (r.created_id || r.id || r.ref_id)) as any)?.id
-                         || (data?.results?.find((r: any) => r.success && (r.created_id || r.id || r.ref_id)) as any)?.ref_id;
-
-      if (data.imported === 1 && createdTripId) {
-        toast.success('Trip created successfully');
-        navigate(`/trips/${createdTripId}`);
-      } else if (data.imported > 0) {
-        toast.success(`${data.imported} Trips created successfully`);
-        navigate('/trips');
+      if (data.imported >= 1) {
+        toast.success(data.imported === 1 ? 'Trip created successfully' : `${data.imported} Trips created successfully`);
+        navigate('/trips?view=kanban');
       } else {
         const firstErr = data?.results?.find((r: any) => !r.success)?.error;
         toast.error(firstErr || 'Failed to create trip');
