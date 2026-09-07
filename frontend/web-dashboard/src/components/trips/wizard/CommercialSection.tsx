@@ -752,25 +752,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       )}
                     >
                       {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
                             {rc.quotation_number || `QUO-${idx + 1}`}
                           </span>
                           {isSelected && (
-                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80">
+                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80 shrink-0">
                               Applied ✓
-                            </span>
-                          )}
-                          {!hasHistory && !isSelected && (
-                            <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.5 rounded-full border border-orange-200/70">
-                              ✨ New Rate
                             </span>
                           )}
                         </div>
 
                         {/* PRICE BADGE */}
-                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
+                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
                           SAR {Number(rateVal).toLocaleString()}
                         </span>
                       </div>
@@ -791,9 +786,16 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         <span className="truncate">
                           {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
                         </span>
-                        <span className={cn("font-black shrink-0", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
-                          {isSelected ? 'Active' : 'Apply →'}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!hasHistory && !isSelected && (
+                            <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1 py-0.2 rounded border border-amber-200/70 whitespace-nowrap">
+                              New Rate
+                            </span>
+                          )}
+                          <span className={cn("font-black", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
+                            {isSelected ? 'Active' : 'Apply →'}
+                          </span>
+                        </div>
                       </div>
                     </button>
                   );
