@@ -26,9 +26,8 @@ function resolveFileUrl(url?: string | null): string {
 }
 
 const DEFAULT_ALERTS = [
-  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true, image: '/evidence/og_stop.png' },
-  { id: '2', label: 'Est. delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true, image: '/evidence/02_stop.png' },
-  { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false, image: '/evidence/05_return_stop.png' },
+  { id: '1', label: '1. Al Wadi (Active Jam)', delay: '+ 45 min', time: '1:15 PM', severe: true, image: '/evidence/og_stop.png' },
+  { id: '2', label: '2. Al Majmaah (Next ETA)', delay: '+ 30 min', time: '3:20 PM', severe: false, image: '/evidence/02_stop.png' },
 ];
 
 export default function TripOverviewBarCard({
