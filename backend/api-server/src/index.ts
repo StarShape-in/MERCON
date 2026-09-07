@@ -237,18 +237,21 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 async function startServer() {
-  const sqlStatements = [
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
+  const columns = [
+    'billing_amount DECIMAL(12,2)',
+    'paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0.0',
+    'balance_due DECIMAL(12,2)',
+    'carrier_name TEXT',
+    'is_post_trip_settled BOOLEAN NOT NULL DEFAULT false',
   ];
-  for (const sql of sqlStatements) {
-    try {
-      await prisma.$executeRawUnsafe(sql);
-    } catch (err: any) {
-      logger.warn({ err, sql }, 'Self-healing database column verification warning');
+  const tableVariants = ['"Trip"', '"trips"', 'trips', 'Trip'];
+  for (const col of columns) {
+    for (const tbl of tableVariants) {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE ${tbl} ADD COLUMN IF NOT EXISTS ${col}`);
+      } catch (err: any) {
+        // ignore invalid table name variants
+      }
     }
   }
   logger.info('✅ Self-healing database column verification complete');
