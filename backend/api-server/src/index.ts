@@ -211,8 +211,13 @@ io.on('connection', (socket: Socket) => {
 });
 
 // Healthcheck endpoint
-app.get(['/health', '/api/health'], (req: Request, res: Response) => {
-  res.json({ success: true, message: 'MERCON API is running perfectly!' });
+app.get(['/health', '/api/health'], async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ success: true, message: 'MERCON API is running perfectly!', db: 'connected' });
+  } catch (err: any) {
+    res.json({ success: true, message: 'MERCON API is running (DB initializing)', error: err?.message || String(err) });
+  }
 });
 
 // Catches errors passed via next(err) — most notably multer's fileFilter
