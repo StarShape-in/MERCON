@@ -762,21 +762,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                           : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                       )}
                     >
-                      {/* TOP ROW: QUOTATION ID + TYPE BADGE + PRICE BADGE */}
+                      {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
                       <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
                             {rc.quotation_number || `QUO-${idx + 1}`}
                           </span>
-                          {isMonthlyCard ? (
-                            <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200 shrink-0">
-                              Monthly
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-black text-[#FA634E] dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-200 shrink-0">
-                              Extra
-                            </span>
-                          )}
                           {isSelected && (
                             <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
                               Applied ✓
@@ -806,16 +797,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         <span className="truncate">
                           {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
                         </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {!hasHistory && !isSelected && (
-                            <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1 py-0.2 rounded border border-amber-200/70 whitespace-nowrap">
-                              New Rate
-                            </span>
-                          )}
-                          <span className={cn("font-black", isSelected ? (isMonthlyCard ? "text-purple-600" : "text-brand") : "text-slate-400 hover:text-slate-600")}>
-                            {isSelected ? 'Active' : 'Apply →'}
-                          </span>
-                        </div>
+                        <span className={cn("font-black shrink-0", isSelected ? (isMonthlyCard ? "text-purple-600" : "text-brand") : "text-slate-400 hover:text-slate-600")}>
+                          {isSelected ? 'Active' : 'Apply →'}
+                        </span>
                       </div>
                     </button>
                   );
@@ -912,23 +896,14 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                             : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                         )}
                       >
-                        {/* TOP ROW: QUOTATION ID + TYPE BADGE + PRICE BADGE */}
+                        {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
                         <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                            <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
                               {rc.quotation_number || `QUO-${idx + 1}`}
                             </span>
-                            {isMonthlyCard ? (
-                              <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200">
-                                Monthly
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-black text-[#FA634E] dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-200">
-                                Extra
-                              </span>
-                            )}
                             {isSelected && (
-                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
                                 Applied ✓
                               </span>
                             )}
