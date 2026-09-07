@@ -12,8 +12,18 @@ export const settingsService = {
     return res.data.data;
   },
 
-  async update(payload: Partial<Pick<Settings, 'appName' | 'companyLegalName' | 'logoUrl' | 'primaryColor' | 'timezone' | 'enabledModules'>>): Promise<Settings> {
+  async update(payload: Record<string, any>): Promise<Settings> {
     const res = await api.put<ApiResponse<Settings>>('/settings', payload);
+    return res.data.data;
+  },
+
+  async getHealth(): Promise<any> {
+    const res = await api.get<ApiResponse<any>>('/settings/health');
+    return res.data.data;
+  },
+
+  async getAuditLogs(): Promise<any[]> {
+    const res = await api.get<ApiResponse<any[]>>('/settings/audit-logs');
     return res.data.data;
   },
 

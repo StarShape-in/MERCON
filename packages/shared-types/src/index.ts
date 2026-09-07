@@ -6,7 +6,7 @@
 
 // ─── Enums / unions ──────────────────────────────────────────────
 /** Mirrors the Prisma `Role` enum in backend/api-server/prisma/schema.prisma */
-export type UserRole = 'Admin' | 'Operator' | 'Driver';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Operator' | 'Driver';
 export type UserStatus = 'Active' | 'Inactive';
 
 /**
@@ -300,6 +300,10 @@ export interface Settings {
   companyLegalName: string;
   logoUrl?: string | null;
   primaryColor: string;
+  themeColors?: Record<string, any> | null;
+  taxonomyConfig?: Record<string, any> | null;
+  maintenanceMode?: boolean;
+  maintenanceBanner?: string | null;
   enabledModules: ModuleKey[];
   /** IANA timezone (e.g. "Asia/Riyadh") the frontends convert UTC timestamps to for display. */
   timezone: string;

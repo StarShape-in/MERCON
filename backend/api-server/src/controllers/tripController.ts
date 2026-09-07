@@ -959,7 +959,12 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
 
     const results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }> = [];
-    const carrierName = await getCompanyLegalName();
+    let carrierName = 'MERCON Operations Ltd.';
+    try {
+      carrierName = await getCompanyLegalName();
+    } catch (err) {
+      carrierName = 'MERCON Operations Ltd.';
+    }
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];

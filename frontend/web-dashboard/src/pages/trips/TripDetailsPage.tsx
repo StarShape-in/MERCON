@@ -311,10 +311,6 @@ export default function TripDetailsPage() {
               <span>{createdDateStr}</span>
               <span className="text-[#D1D5DB]">|</span>
               <span>{createdTimeStr}</span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span>Domestic</span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span>General Cargo</span>
             </div>
           </div>
 
@@ -400,11 +396,12 @@ export default function TripDetailsPage() {
           <TripOverviewBarCard
             trip={trip}
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
+            onPreviewImage={(img) => setPreviewImage(img)}
           />
         </div>
 
         {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
-        <div className="grid grid-cols-12 gap-3 items-stretch">
+        <div className="grid grid-cols-12 gap-3 items-start">
           {/* Financials Card (~25% / 3 Cols) */}
           <div className="col-span-12 lg:col-span-3 flex flex-col">
             <ModernFinancialsCard
@@ -422,6 +419,7 @@ export default function TripDetailsPage() {
             <TripPhotoEvidence
               documents={documents}
               stops={trip.stops}
+              trip={trip}
               onPreview={(img) => setPreviewImage(img)}
             />
           </div>

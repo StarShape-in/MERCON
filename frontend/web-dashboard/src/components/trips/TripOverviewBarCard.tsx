@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Phone, Building2, ExternalLink,
   AlertTriangle, ChevronRight, CheckCircle2
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import TripDelayNotificationModal from './TripDelayNotificationModal';
 
 interface TripOverviewBarCardProps {
   trip: any;
   onViewAllAlerts?: () => void;
+  onPreviewImage?: (img: { url: string; title: string }) => void;
 }
 
 function resolveFileUrl(url?: string | null): string {
@@ -24,13 +26,15 @@ function resolveFileUrl(url?: string | null): string {
 }
 
 const DEFAULT_ALERTS = [
-  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true },
-  { id: '2', label: 'Est. delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true },
-  { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false },
+  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true, image: '/evidence/og_stop.png' },
+  { id: '2', label: 'Est. delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true, image: '/evidence/02_stop.png' },
+  { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false, image: '/evidence/05_return_stop.png' },
 ];
 
-export default function TripOverviewBarCard({ trip, onViewAllAlerts }: TripOverviewBarCardProps) {
+export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewImage }: TripOverviewBarCardProps) {
   const navigate = useNavigate();
+  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<any>(DEFAULT_ALERTS[0]);
 
   // 1. Vehicle info (Truck No & Ton)
   const truckNo = trip.is_third_party
@@ -62,31 +66,38 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts }: TripOverv
   const hasAlerts = alerts && alerts.length > 0;
 
   return (
+    <>
     <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E5E7EB] overflow-hidden">
       
-      {/* ── COL 1: TRUCK (TRUCK NO & TON) — 25% ── */}
+      {/* ── COL 1: COMPANY (NAME & LOGO ONLY) — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
-          <img
-            src="/truck_3d_orange_transparent.png"
-            alt={truckNo}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
+        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 text-[#374151] shrink-0 overflow-hidden shadow-2xs">
+          {companyLogo ? (
+            <img
+              src={resolveFileUrl(companyLogo)}
+              alt={companyName}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <Building2 size={20} className="text-[#374151]" />
+          )}
         </div>
 
         <div className="min-w-0 flex-1 space-y-0.5">
           <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            TRUCK
+            COMPANY
           </span>
-          <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
-            {truckNo}
+          <h3
+            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+            className="font-extrabold text-[13px] text-[#111827] truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
+            title={companyName}
+          >
+            <span className="truncate">{companyName}</span>
+            <ExternalLink size={11} className="text-[#9CA3AF] shrink-0" />
           </h3>
-          <div className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none mt-0.5">
-            {truckTon}
-          </div>
         </div>
       </div>
 
@@ -121,108 +132,135 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts }: TripOverv
         </a>
       </div>
 
-      {/* ── COL 3: COMPANY (NAME & LOGO ONLY) — 25% ── */}
+      {/* ── COL 3: TRUCK (TRUCK NO & TON) — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 text-[#374151] shrink-0 overflow-hidden shadow-2xs">
-          {companyLogo ? (
-            <img
-              src={resolveFileUrl(companyLogo)}
-              alt={companyName}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <Building2 size={20} className="text-[#374151]" />
-          )}
+        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
+          <img
+            src="/truck_3d_orange_transparent.png"
+            alt={truckNo}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
         </div>
 
         <div className="min-w-0 flex-1 space-y-0.5">
           <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            COMPANY
+            TRUCK
           </span>
-          <h3
-            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-            className="font-extrabold text-[13px] text-[#111827] truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
-            title={companyName}
-          >
-            <span className="truncate">{companyName}</span>
-            <ExternalLink size={11} className="text-[#9CA3AF] shrink-0" />
+          <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
+            {truckNo}
           </h3>
+          <div className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none mt-0.5">
+            {truckTon}
+          </div>
         </div>
       </div>
 
       {/* ── COL 4: DELAY ALERTS — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex flex-col justify-between min-w-0">
-        {/* Alerts Header */}
-        <div className="flex items-center justify-between pb-1 border-b border-[#F3F4F6]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-4.5 h-4.5 rounded bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-              <AlertTriangle size={12} className="stroke-[2.5]" />
-            </div>
-            <span className="font-black text-[12px] text-[#111827] tracking-tight truncate">
-              Delay Alerts
-            </span>
-            {hasAlerts && (
-              <span className="w-4 h-4 rounded-full bg-rose-500 text-white font-black text-[10px] flex items-center justify-center">
-                {alerts.length}
-              </span>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onViewAllAlerts}
-            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
-          >
-            <span>View All</span>
-            <ChevronRight size={12} className="stroke-[2.5]" />
-          </button>
+      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
+        {/* Operations Assistant Character for Delay Alert */}
+        <div
+          onClick={() => {
+            setSelectedAlert(alerts[0] || DEFAULT_ALERTS[0]);
+            setIsDelayModalOpen(true);
+          }}
+          className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs cursor-pointer group hover:border-amber-400 transition-colors relative"
+          title="Click to view delay alert & dashcam"
+        >
+          <img
+            src="/assistant/was there any labor charge for this trip.png"
+            alt="Delay Alert Assistant"
+            className="w-full h-full object-contain object-bottom group-hover:scale-110 transition-transform"
+          />
+          {hasAlerts && (
+            <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+          )}
         </div>
 
-        {/* Alerts List */}
-        <div className="space-y-1 pt-1">
-          {hasAlerts ? (
-            alerts.slice(0, 3).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-center justify-between text-[10.5px] leading-tight"
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      alert.severe ? 'bg-rose-500' : 'bg-amber-500'
-                    }`}
-                  />
-                  <span className="font-bold text-[#374151] truncate max-w-[110px]">
-                    {alert.label}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={`font-mono font-black ${
-                      alert.severe ? 'text-rose-600' : 'text-amber-600'
-                    }`}
-                  >
-                    {alert.delay}
-                  </span>
-                  <span className="font-mono text-[9.5px] font-bold text-[#6B7280]">
-                    {alert.time}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="flex items-center gap-1.5 py-1 text-emerald-600 text-xs font-bold">
-              <CheckCircle2 size={14} className="stroke-[2.5]" />
-              <span>All stops on schedule</span>
+        <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
+          {/* Alerts Header */}
+          <div className="flex items-center justify-between pb-0.5 border-b border-[#F3F4F6]">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="font-black text-[11px] text-[#111827] tracking-tight truncate">
+                Delay Alerts
+              </span>
+              {hasAlerts && (
+                <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center leading-none shrink-0">
+                  {alerts.length}
+                </span>
+              )}
             </div>
-          )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAlert(alerts[0] || DEFAULT_ALERTS[0]);
+                setIsDelayModalOpen(true);
+              }}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
+            >
+              <span>View Alert</span>
+              <ChevronRight size={10} className="stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* Alerts List */}
+          <div className="space-y-0.5 pt-0.5">
+            {hasAlerts ? (
+              alerts.slice(0, 2).map((alert) => (
+                <div
+                  key={alert.id}
+                  onClick={() => {
+                    setSelectedAlert(alert);
+                    setIsDelayModalOpen(true);
+                  }}
+                  className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.2 transition-colors group"
+                  title="Click to view alert details"
+                >
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        alert.severe ? 'bg-rose-500' : 'bg-amber-500'
+                      }`}
+                    />
+                    <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-blue-600">
+                      {alert.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0 font-mono text-[9.5px]">
+                    <span
+                      className={`font-black ${
+                        alert.severe ? 'text-rose-600' : 'text-amber-600'
+                      }`}
+                    >
+                      {alert.delay}
+                    </span>
+                    <span className="text-[#9CA3AF] text-[9px] font-bold">{alert.time}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-1.5 py-0.5 text-emerald-600 text-[11px] font-bold">
+                <CheckCircle2 size={12} className="stroke-[2.5]" />
+                <span>All stops on schedule</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
     </div>
+
+    {/* ── SIMPLE DELAY NOTIFICATION MODAL WITH ASSISTANT GUY & LIVE DASHCAM ── */}
+    <TripDelayNotificationModal
+      isOpen={isDelayModalOpen}
+      onClose={() => setIsDelayModalOpen(false)}
+      trip={trip}
+      alert={selectedAlert}
+    />
+    </>
   );
 }

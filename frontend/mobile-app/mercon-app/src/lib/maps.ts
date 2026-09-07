@@ -10,38 +10,105 @@ export interface MapStopInput {
 }
 
 /**
- * Opens the target location/stop in external maps app (Google Maps on Android/Web, Apple Maps / Google Maps on iOS).
+ * Opens the target location in an external navigation app.
+ *
+ * Priority chain:
+ *   Android: 1) Google Maps app  2) Chrome browser  3) System browser
+ *   iOS:     1) Google Maps app  2) Apple Maps app  3) Chrome browser  4) System browser
+ *
+ * GPS tracking is handled separately by expo-location in DriverLiveTracking / LiveNavigationScreen.
+ * This function is only for launching external turn-by-turn navigation when the driver taps the
+ * "Go to Pickup / Delivery" button.
  */
-export function openInGoogleMaps(stop?: MapStopInput | null): void {
+export async function openInGoogleMaps(stop?: MapStopInput | null): Promise<void> {
   if (!stop) return;
 
   const lat = stop.location_lat;
   const lng = stop.location_lng;
-  const label = stop.location_name || stop.location?.name || stop.location_address || stop.address || 'Destination';
+  const label =
+    stop.location_name ||
+    stop.location?.name ||
+    stop.location_address ||
+    stop.address ||
+    'Destination';
+  const encodedLabel = encodeURIComponent(label);
 
   if (lat != null && lng != null && (lat !== 0 || lng !== 0)) {
-    const scheme = Platform.select({
-      ios: `maps://app?daddr=${lat},${lng}&q=${encodeURIComponent(label)}`,
+    // ── Deep link URLs ──────────────────────────────────────────────────────
+    // Google Maps app — native scheme differs per platform
+    const googleMapsApp = Platform.select({
+      ios: `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`,
       android: `google.navigation:q=${lat},${lng}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    });
+      default: `geo:${lat},${lng}?q=${lat},${lng}(${encodedLabel})`,
+    }) as string;
 
-    const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    // Apple Maps (iOS only)
+    const appleMapsApp = `maps://app?daddr=${lat},${lng}&q=${encodedLabel}`;
 
-    Linking.canOpenURL(scheme)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(scheme);
-        } else {
-          Linking.openURL(webFallback);
+    // Chrome browser — deep-link scheme opens Chrome specifically
+    const googleMapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    const chromeBrowser = `googlechrome://navigate?url=${encodeURIComponent(googleMapsWebUrl)}`;
+
+    // Final system-browser fallback
+    const webFallback = googleMapsWebUrl;
+
+    try {
+      // 1️⃣ Google Maps app (best driving experience)
+      const hasGoogleMaps = await Linking.canOpenURL(googleMapsApp).catch(() => false);
+      if (hasGoogleMaps) {
+        await Linking.openURL(googleMapsApp);
+        return;
+      }
+
+      // 2️⃣ Apple Maps (iOS only)
+      if (Platform.OS === 'ios') {
+        const hasAppleMaps = await Linking.canOpenURL(appleMapsApp).catch(() => false);
+        if (hasAppleMaps) {
+          await Linking.openURL(appleMapsApp);
+          return;
         }
-      })
-      .catch(() => {
-        Linking.openURL(webFallback);
-      });
+      }
+
+      // 3️⃣ Chrome browser
+      const hasChrome = await Linking.canOpenURL(chromeBrowser).catch(() => false);
+      if (hasChrome) {
+        await Linking.openURL(chromeBrowser);
+        return;
+      }
+
+      // 4️⃣ System default browser / handler
+      await Linking.openURL(webFallback);
+    } catch {
+      Linking.openURL(webFallback).catch(() => {});
+    }
   } else if (label) {
+    // No coordinates — search by name instead
     const query = encodeURIComponent(label);
-    const webUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    Linking.openURL(webUrl).catch(() => {});
+    const googleMapsSearch = Platform.select({
+      ios: `comgooglemaps://?q=${query}`,
+      android: `geo:0,0?q=${query}`,
+    }) as string | undefined;
+    const webSearch = `https://www.google.com/maps/search/?api=1&query=${query}`;
+
+    try {
+      if (googleMapsSearch) {
+        const hasGoogleMaps = await Linking.canOpenURL(googleMapsSearch).catch(() => false);
+        if (hasGoogleMaps) {
+          await Linking.openURL(googleMapsSearch);
+          return;
+        }
+      }
+      if (Platform.OS === 'ios') {
+        const appleMapsSearch = `maps://app?q=${query}`;
+        const hasAppleMaps = await Linking.canOpenURL(appleMapsSearch).catch(() => false);
+        if (hasAppleMaps) {
+          await Linking.openURL(appleMapsSearch);
+          return;
+        }
+      }
+      await Linking.openURL(webSearch);
+    } catch {
+      Linking.openURL(webSearch).catch(() => {});
+    }
   }
 }

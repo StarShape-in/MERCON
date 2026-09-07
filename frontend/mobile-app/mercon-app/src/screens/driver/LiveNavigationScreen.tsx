@@ -1,28 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { openInGoogleMaps } from '../../lib/maps';
 import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking, Image,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-
-let MapView: any = View;
-let Marker: any = View;
-let Polyline: any = View;
-let PROVIDER_DEFAULT: any = undefined;
-
-if (Platform.OS !== 'web') {
-  try {
-    const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Marker = Maps.Marker;
-    Polyline = Maps.Polyline;
-    PROVIDER_DEFAULT = Maps.PROVIDER_DEFAULT;
-  } catch (e) {
-    console.warn('react-native-maps load error:', e);
-  }
-}
 import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation, Camera, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
@@ -32,7 +15,6 @@ import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 const ARRIVAL_RADIUS_M = 200;
-const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /** Great-circle distance between two lat/lng points, in meters. */
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -297,56 +279,45 @@ const LiveNavigationScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
+      {/* ── GPS Status Header ────────────────────────────────────────────── */}
       <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          <View style={[styles.map, styles.centerBox, { backgroundColor: '#1E293B' }]}>
-            <MapPin size={36} color={Colors.primary} />
-            <Text style={{ color: Colors.white, marginTop: 12, fontWeight: '700', fontSize: Typography.base }}>
-              Live Map View
-            </Text>
-            <Text style={{ color: Colors.gray400, marginTop: 4, fontSize: Typography.xs }}>
-              Open in Expo Go app on iOS/Android for interactive map
+        {/* Background gradient-style card */}
+        <View style={styles.mapBg}>
+          <View style={styles.mapBgIconCircle}>
+            <Truck size={40} color="#FA634E" strokeWidth={2} />
+          </View>
+          <Text style={styles.mapBgTitle}>
+            {isHeadingToPickup ? 'Heading to Pickup' : 'Heading to Delivery'}
+          </Text>
+
+          {/* GPS signal indicator */}
+          <View style={styles.gpsSignalRow}>
+            <View style={[styles.gpsSignalDot, { backgroundColor: position ? '#10B981' : '#F59E0B' }]} />
+            <Text style={styles.gpsSignalText}>
+              {position
+                ? `GPS Active · ${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`
+                : 'Acquiring GPS signal…'}
             </Text>
           </View>
-        ) : (
-          <MapView
-            ref={mapRef}
-            provider={PROVIDER_DEFAULT}
-            style={styles.map}
-            initialRegion={{
-              latitude: center.lat,
-              longitude: center.lng,
-              latitudeDelta: 0.2,
-              longitudeDelta: 0.2,
-            }}
-          >
-            {position && (
-              <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.driverPin}>
-                  <Truck size={16} color={Colors.white} strokeWidth={2.4} />
-                </View>
-              </Marker>
-            )}
 
-            {activeStop && (
-              <Marker coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }} anchor={{ x: 0.5, y: 1 }}>
-                <View style={styles.destPin}>
-                  <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
+          {/* Distance / ETA row */}
+          {distanceToTarget != null && (
+            <View style={styles.etaRow}>
+              {displayDistance ? (
+                <View style={styles.etaChip}>
+                  <MapPin size={13} color="#FA634E" />
+                  <Text style={styles.etaChipText}>{displayDistance} away</Text>
                 </View>
-              </Marker>
-            )}
-
-            {routeCoords && (
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor="#4285F4"
-                strokeWidth={6}
-                lineCap="round"
-                lineJoin="round"
-              />
-            )}
-          </MapView>
-        )}
+              ) : null}
+              {displayEta ? (
+                <View style={styles.etaChip}>
+                  <Clock size={13} color="#6366F1" />
+                  <Text style={[styles.etaChipText, { color: '#6366F1' }]}>{displayEta} ETA</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
 
         {/* Top Header Overlay */}
         <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
@@ -387,13 +358,8 @@ const LiveNavigationScreen = () => {
             </View>
           </View>
         </View>
-
-        {!position && (
-          <View style={styles.gpsNotice}>
-            <Text style={styles.gpsNoticeText}>Waiting for GPS signal…</Text>
-          </View>
-        )}
       </View>
+
 
       {/* Bottom Sheet Container */}
       <View style={styles.bottomCardShadow}>
@@ -513,35 +479,71 @@ const LiveNavigationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
   },
   centerBox: { alignItems: 'center', justifyContent: 'center' },
   mapContainer: {
-    ...StyleSheet.absoluteFill,
+    height: 220,
   },
-  map: {
-    ...StyleSheet.absoluteFill,
-  },
-  driverPin: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
+  // GPS status card (replaces in-app MapView — no Google Maps API key needed)
+  mapBg: {
+    flex: 1,
+    backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  destPin: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#1A2B1A',
+  mapBgIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(250,99,78,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
+    marginBottom: 10,
   },
+  mapBgTitle: {
+    fontSize: Typography.base,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  gpsSignalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  gpsSignalDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  gpsSignalText: {
+    fontSize: Typography.xs,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  etaRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  etaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  etaChipText: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: '#FA634E',
+  },
+
   topOverlay: {
     position: 'absolute',
     left: 12,

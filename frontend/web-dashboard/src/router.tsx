@@ -102,6 +102,9 @@ const OperatorProfilePage     = lazyWithRetry(() => import('@/pages/settings/Ope
 const SettingsPage            = lazyWithRetry(() => import('@/pages/settings/SettingsPage'));
 const UserManagementPage      = lazyWithRetry(() => import('@/pages/settings/UserManagementPage'));
 const DocumentTypeAdminPage   = lazyWithRetry(() => import('@/pages/settings/DocumentTypeAdminPage'));
+const TaxonomySettingsPage    = lazyWithRetry(() => import('@/pages/settings/TaxonomySettingsPage'));
+const BrandingSettingsPage    = lazyWithRetry(() => import('@/pages/settings/BrandingSettingsPage'));
+const SystemHealthPage        = lazyWithRetry(() => import('@/pages/settings/SystemHealthPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -279,6 +282,9 @@ export default function AppRouter() {
             <Route path="/settings/profile"         element={<Navigate to="/settings" replace />} />
             <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
             <Route path="/settings/document-types"  element={<RequireRole roles={['Admin']}><DocumentTypeAdminPage /></RequireRole>} />
+            <Route path="/settings/taxonomy"        element={<RequireRole roles={['SuperAdmin']}><TaxonomySettingsPage /></RequireRole>} />
+            <Route path="/settings/branding"        element={<RequireRole roles={['SuperAdmin']}><BrandingSettingsPage /></RequireRole>} />
+            <Route path="/settings/system-health"   element={<RequireRole roles={['SuperAdmin']}><SystemHealthPage /></RequireRole>} />
           </Route>
 
           {/* Fallback */}

@@ -483,7 +483,7 @@ export const updateVehicleBody = z.object({
  * through the Drivers module, never through User Management. See
  * CLAUDE.md "Roles" and "Who uses which app".
  */
-const webUserRole = z.enum(['Admin', 'Operator']);
+const webUserRole = z.enum(['SuperAdmin', 'Admin', 'Operator']);
 
 export const createUserBody = z.object({
   name: nonEmpty('Name'),

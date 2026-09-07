@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, Image } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Calendar, Globe, MapPin, Building2 } from 'lucide-react-native';
 
 const merconLogo = require('../../assets/images/merconclosed.png');

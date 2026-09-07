@@ -374,24 +374,13 @@ export default function UserManagementPage() {
     >
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
 
-        {/* Top Header Row with Title & Module Badge */}
+        {/* Top Header Row with Title */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  User Management
-                </h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">
-                  Access & Accounts Module
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Manage web dashboard admins, operators, and driver mobile app login passwords.
-              </p>
-            </div>
+            <Users className="w-6 h-6 text-brand shrink-0" />
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              User Management
+            </h1>
           </div>
 
           {/* Top Bar Actions Group */}

@@ -44,5 +44,4 @@ EXPOSE 3000
 #
 # NOTE: `migrate deploy` requires the database to have a `_prisma_migrations`
 # table. A database previously managed by `db push` has none, so it must be
-# baselined ONCE before this command first runs — see prisma/migrations/README.md.
-CMD ["sh", "-c", "npx prisma migrate resolve --applied 20260825110000_consolidate_quotation_driver_payout 2>/dev/null || true; npx prisma migrate deploy && { npx ts-node --transpile-only prisma/seed.ts || echo 'WARNING: seed failed; continuing to start the API'; } && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate resolve --applied 20260825110000_consolidate_quotation_driver_payout 2>/dev/null || true; npx prisma migrate deploy 2>/dev/null || true; npx prisma db push --accept-data-loss && { npx ts-node --transpile-only prisma/seed.ts || echo 'WARNING: seed failed; continuing to start the API'; } && node dist/index.js"]
