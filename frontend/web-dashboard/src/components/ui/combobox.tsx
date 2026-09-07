@@ -190,7 +190,8 @@ export function Combobox({
         align="start"
         side="bottom"
         sideOffset={4}
-        avoidCollisions={false}
+        avoidCollisions={true}
+        collisionPadding={8}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();
@@ -212,7 +213,7 @@ export function Combobox({
             className="flex h-10 w-full rounded-md bg-transparent py-2.5 text-xs outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
-        <div ref={listRef} className="max-h-64 p-1 overflow-y-auto overscroll-contain">
+        <div ref={listRef} className="max-h-[min(256px,var(--radix-popover-content-available-height,256px))] p-1 overflow-y-auto overscroll-contain">
           {matchingOptions.length === 0 ? (
             <div className="py-6 px-4 text-center text-xs text-slate-500 space-y-3">
               <p className="text-slate-500 dark:text-slate-400 font-medium">{emptyText}</p>
