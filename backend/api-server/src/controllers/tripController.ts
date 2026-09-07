@@ -415,7 +415,12 @@ export const getTrips = async (req: Request, res: Response) => {
     ]);
 
     // Map quotation to rateCard for backward compatibility with frontend, and attach resolved_location for vehicle
-    const vehicleLocationsMap = await resolveVehicleLocationsForTrips(trips, prisma);
+    let vehicleLocationsMap = new Map();
+    try {
+      vehicleLocationsMap = await resolveVehicleLocationsForTrips(trips, prisma);
+    } catch (e) {
+      logger.warn({ err: e }, 'Failed to batch resolve vehicle locations for trips');
+    }
 
     const mappedTrips = trips.map((t) => {
       const resolvedLocation = t.vehicle ? (vehicleLocationsMap.get(t.id) || null) : null;

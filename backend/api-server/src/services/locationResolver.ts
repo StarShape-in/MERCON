@@ -237,13 +237,17 @@ export async function resolveVehicleLocationsForTrips(
 
   let latestLocMap = new Map<string, any>();
   if (operationalTripIds.length > 0) {
-    const locs = await db.tripLocation.findMany({
-      where: { tripId: { in: operationalTripIds } },
-      orderBy: { recordedAt: 'desc' },
-      distinct: ['tripId'],
-    });
-    for (const loc of locs) {
-      latestLocMap.set(loc.tripId, loc);
+    try {
+      const locs = await db.tripLocation.findMany({
+        where: { tripId: { in: operationalTripIds } },
+        orderBy: [{ tripId: 'asc' }, { recordedAt: 'desc' }],
+        distinct: ['tripId'],
+      });
+      for (const loc of locs) {
+        latestLocMap.set(loc.tripId, loc);
+      }
+    } catch (err) {
+      // Graceful fallback if tripLocation table is empty or query fails
     }
   }
 
