@@ -3,6 +3,7 @@ import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronR
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
+import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -45,6 +46,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [isInlineMode, setIsInlineMode] = React.useState(false);
   const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
+
+  const vehicleClassOptions = React.useMemo(() => getAllTaxonomyOptions('VEHICLE_CLASS'), []);
+  const lineTypeOptions = React.useMemo(() => getAllTaxonomyOptions('LINE_TYPE'), []);
 
   const primarySlot = contractSlots[0] || {};
   const availableRateCards = getAvailableRateCardsForLane(primarySlot) || [];
@@ -391,75 +395,77 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {Boolean(contractCustomer) && (
         <div className="space-y-2.5">
           {/* QUOTATIONS TOOLBAR: SEPARATE SEARCH ICON (LOGO COLUMN) + INPUT (COMBOBOX COLUMN) + BILLING TOGGLE */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            {/* TOP LEFT: SEPARATE SEARCH ICON BADGE & SEARCH INPUT */}
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              {/* SEPARATE SEARCH ICON BADGE (ORANGE BRAND HIGHLIGHT: w-8.5 h-8.5) */}
-              <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand grid place-items-center shrink-0 border border-orange-200/90 dark:border-orange-900/60 shadow-2xs">
-                <Search className="w-4 h-4 text-brand" />
+          {!showInlineForm && (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              {/* TOP LEFT: SEPARATE SEARCH ICON BADGE & SEARCH INPUT */}
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                {/* SEPARATE SEARCH ICON BADGE (ORANGE BRAND HIGHLIGHT: w-8.5 h-8.5) */}
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand grid place-items-center shrink-0 border border-orange-200/90 dark:border-orange-900/60 shadow-2xs">
+                  <Search className="w-4 h-4 text-brand" />
+                </div>
+
+                {/* EXPANDED SEARCH INPUT (INCREASED WIDTH: w-[400px] h-8.5) */}
+                <div className="relative w-full sm:w-[400px] shrink-0">
+                  <input
+                    type="text"
+                    value={quotationSearchQuery}
+                    onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                    placeholder="Search quotations (route, rate, vehicle, code)..."
+                    className="h-8.5 w-full px-3.5 pr-8 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                  />
+                  {quotationSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setQuotationSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* EXPANDED SEARCH INPUT (INCREASED WIDTH: w-[400px] h-8.5) */}
-              <div className="relative w-full sm:w-[400px] shrink-0">
-                <input
-                  type="text"
-                  value={quotationSearchQuery}
-                  onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                  placeholder="Search quotations (route, rate, vehicle, code)..."
-                  className="h-8.5 w-full px-3.5 pr-8 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
-                />
-                {quotationSearchQuery && (
+              {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
+              {setContractBillingType && (
+                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
                   <button
                     type="button"
-                    onClick={() => setQuotationSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    title="Clear search"
+                    onClick={() => setContractBillingType('All')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      !contractBillingType || contractBillingType.toLowerCase() === 'all'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
                   >
-                    <X className="w-3.5 h-3.5" />
+                    All
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setContractBillingType('Monthly')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      contractBillingType?.toLowerCase() === 'monthly'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContractBillingType('Extra')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      contractBillingType?.toLowerCase() === 'extra'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    Extra
+                  </button>
+                </div>
+              )}
             </div>
-
-            {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
-            {setContractBillingType && (
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('All')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    !contractBillingType || contractBillingType.toLowerCase() === 'all'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('Monthly')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    contractBillingType?.toLowerCase() === 'monthly'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  Monthly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('Extra')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    contractBillingType?.toLowerCase() === 'extra'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  Extra
-                </button>
-              </div>
-            )}
-          </div>
+          )}
 
           {showInlineForm ? (
             <div className="p-3.5 rounded-xl bg-orange-50/40 dark:bg-slate-800/60 border border-orange-200/80 dark:border-slate-700 space-y-3">
@@ -485,6 +491,68 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                     {contractRateCategory || 'Single Trip'}
                   </span>
+                </div>
+              </div>
+
+              {/* SPECIFICATION SELECTORS: OPERATION TYPE + VEHICLE CLASS + LINE TYPE */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pb-1">
+                {/* OPERATION / BILLING TYPE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Operation / Billing Type
+                  </label>
+                  <select
+                    value={contractBillingType?.toLowerCase() === 'extra' ? 'Extra' : 'Monthly'}
+                    onChange={(e) => setContractBillingType?.(e.target.value)}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    <option value="Monthly">Monthly (Contract Duty)</option>
+                    <option value="Extra">Extra (Spot / Per Trip)</option>
+                  </select>
+                </div>
+
+                {/* VEHICLE CLASS */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Vehicle Class
+                  </label>
+                  <select
+                    value={contractVehicleType || '10 TON'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractVehicleType?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val });
+                    }}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    {vehicleClassOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.label || opt.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* LINE TYPE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Line Type
+                  </label>
+                  <select
+                    value={contractRateCategory || 'Single Trip'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractRateCategory?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { rateCategory: val });
+                    }}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    {lineTypeOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.label || opt.code}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
