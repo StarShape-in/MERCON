@@ -110,6 +110,7 @@ jobs:
           docker compose -p mercon-dev up -d
 
           echo "Syncing database schema..."
+          docker compose -p mercon-dev exec -T mercon-api npx prisma migrate deploy || true
           docker compose -p mercon-dev exec -T mercon-api npx prisma db push --accept-data-loss || true
           docker compose -p mercon-dev exec -T mercon-api npx prisma generate || true
 
