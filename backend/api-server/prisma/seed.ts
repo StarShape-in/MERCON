@@ -109,6 +109,7 @@ async function main() {
   // module an owner had deliberately turned off). No owner could have
   // disabled a key that didn't exist yet, so this stays safe and idempotent.
   await backfillCompanyReportsModule();
+  await backfillDocumentsModule();
 
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
@@ -196,6 +197,17 @@ async function backfillCompanyReportsModule() {
       data: { enabledModules: { push: 'company-reports' } },
     });
     console.log('  ✓ Backfilled company-reports module key');
+  }
+}
+
+async function backfillDocumentsModule() {
+  const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+  if (settings && !settings.enabledModules.includes('documents')) {
+    await prisma.settings.update({
+      where: { id: 'singleton' },
+      data: { enabledModules: { push: 'documents' } },
+    });
+    console.log('  ✓ Backfilled documents module key');
   }
 }
 
