@@ -69,6 +69,7 @@ export async function getRecommendedDriversForTrip(params: {
   const drivers = await prisma.driver.findMany({
     where: { deletedAt: null, isActive: true },
     include: {
+      assignedVehicle: true,
       vehicleAssignments: {
         where: { isActive: true },
         include: { vehicle: true },
@@ -140,16 +141,16 @@ export async function getRecommendedDriversForTrip(params: {
     let assignedClass: string | null = null;
     let capacityMismatchReason: string | null = null;
 
-    const primaryAssign = driver.vehicleAssignments[0];
-    if (primaryAssign?.vehicle) {
-      assignedPlate = primaryAssign.vehicle.plate_number;
-      assignedClass = primaryAssign.vehicle.asset_type;
+    const assignedVeh = (driver as any).assignedVehicle || driver.vehicleAssignments[0]?.vehicle;
+    if (assignedVeh) {
+      assignedPlate = assignedVeh.plate_number;
+      assignedClass = assignedVeh.asset_type;
 
       if (!reqClassStr) {
         capacityMatch = true;
       } else {
-        const vAsset = (primaryAssign.vehicle.asset_type || '').toLowerCase();
-        const vCap = Number(primaryAssign.vehicle.capacity_kg || 0);
+        const vAsset = (assignedVeh.asset_type || '').toLowerCase();
+        const vCap = Number(assignedVeh.capacity_kg || 0);
         const reqMinCap = getMinCapacityKgForClass(reqClassStr);
 
         if (reqMinCap > 0) {
@@ -163,7 +164,7 @@ export async function getRecommendedDriversForTrip(params: {
             const assetCap = getMinCapacityKgForClass(vAsset);
             capacityMatch = assetCap >= reqMinCap || vAsset.includes(reqClassStr);
             if (!capacityMatch) {
-              capacityMismatchReason = `Under-Capacity (${primaryAssign.vehicle.asset_type})`;
+              capacityMismatchReason = `Under-Capacity (${assignedVeh.asset_type})`;
             }
           }
         } else {
@@ -180,8 +181,20 @@ export async function getRecommendedDriversForTrip(params: {
     if (isAvailable && capacityMatch) {
       score += 200; // Base score for available + capacity-matched drivers
       score += routeTripCount * 100;
+      if (assignedVeh) {
+        score += 50; // Bonus for having a pre-assigned matching vehicle
+      }
+      const totalCompletedTrips = driverTripDrivers.filter((td: any) => td.trip?.status === 'Completed').length;
+      score += Math.min(totalCompletedTrips * 2, 30);
+
+      const risk = Number(driver.ai_risk_score || 0);
+      score += Math.max(0, Math.round((2.0 - risk) * 5));
+
+      // Deterministic tie-breaker per driver ID so identical scores rotate dynamically
+      const idHash = driver.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 20;
+      score += idHash / 100;
     } else if (isAvailable && !capacityMatch) {
-      score += 10; // Under-capacity drivers get minimal score so they stay below capacity-matched drivers
+      score += 10;
     } else {
       score += 0;
     }

@@ -217,14 +217,15 @@ export function useCreateTripForm() {
   const destinationName = primarySlot.destination || '';
 
   const { data: recommendedDriversRes } = useQuery({
-    queryKey: ['recommendedDrivers', originName, destinationName, contractVehicleType],
+    queryKey: ['recommendedDrivers', originName, destinationName, contractVehicleType, masterVehicle],
     queryFn: () =>
       tripService.getRecommendedDrivers({
         origin: originName,
         destination: destinationName,
         vehicleClass: contractVehicleType,
+        vehicleId: masterVehicle,
       }),
-    enabled: Boolean(originName || destinationName || contractVehicleType),
+    enabled: Boolean(originName || destinationName || contractVehicleType || masterVehicle),
   });
 
   const driverOptions = useMemo<ComboboxOption[]>(() => {
@@ -248,20 +249,27 @@ export function useCreateTripForm() {
         const vehicleId = embeddedVeh?.id ?? d.assignedVehicleId ?? (d as any).assigned_vehicle_id;
         const matchedVeh = vehicleId ? vehiclesRef.current.find((v) => v.id === vehicleId) : null;
 
+        const plateNumber = rec?.vehiclePlate ?? embeddedVeh?.plate_number ?? matchedVeh?.plate_number ?? null;
         const capacityKg =
           embeddedVeh?.capacity_kg ??
           (embeddedVeh as any)?.capacityKg ??
           matchedVeh?.capacity_kg ??
           (matchedVeh as any)?.capacityKg;
 
-        const capacityLabel = capacityKg != null ? getActualCapacityLabel(capacityKg) : '';
+        const capacityLabel = capacityKg != null ? getActualCapacityLabel(capacityKg) : (rec?.vehicleClass || '');
+        const truckInfo = plateNumber
+          ? `Truck: ${plateNumber}${capacityLabel ? ` • ${capacityLabel}` : ''}`
+          : rec?.capacityMatch
+          ? `Truck: Fleet Available${capacityLabel ? ` • ${capacityLabel}` : ''}`
+          : 'Truck: Unassigned';
+
         const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
         const statusTag = isNotAvailable
           ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
           : '';
 
         const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [capacityLabel, statusTag, badgesStr].filter(Boolean).join(' • ');
+        const detailsStr = [truckInfo, statusTag, badgesStr].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
 
         const label = React.createElement(
@@ -289,6 +297,8 @@ export function useCreateTripForm() {
           avatarUrl: d.avatar_url,
           first_name: d.first_name,
           last_name: d.last_name,
+          detailsStr,
+          vehiclePlate: plateNumber,
           raw: d,
           score: rec?.score ?? 0,
           routeTripCount: rec?.routeTripCount ?? 0,
