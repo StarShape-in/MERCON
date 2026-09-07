@@ -39,6 +39,11 @@ export default function TripCompletionPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-trips'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       navigate(`/trips/${id}`);
     },
   });

@@ -45,6 +45,10 @@ export function useTripSubmission(
     onSuccess: (data) => {
       setSubmissionResult(data);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-trips'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
