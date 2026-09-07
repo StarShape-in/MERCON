@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Phone, Building2, ExternalLink,
   AlertTriangle, ChevronRight, CheckCircle2
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import TripDelayNotificationModal from './TripDelayNotificationModal';
 
 interface TripOverviewBarCardProps {
   trip: any;
@@ -32,6 +33,8 @@ const DEFAULT_ALERTS = [
 
 export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewImage }: TripOverviewBarCardProps) {
   const navigate = useNavigate();
+  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<any>(DEFAULT_ALERTS[0]);
 
   // 1. Vehicle info (Truck No & Ton)
   const truckNo = trip.is_third_party
@@ -63,6 +66,7 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
   const hasAlerts = alerts && alerts.length > 0;
 
   return (
+    <>
     <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E5E7EB] overflow-hidden">
       
       {/* ── COL 1: TRUCK (TRUCK NO & TON) — 25% ── */}
@@ -156,17 +160,23 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
 
       {/* ── COL 4: DELAY ALERTS — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
-        {/* 3D Delay Alert Image (matching Truck, Driver, Company) */}
+        {/* Operations Assistant Character for Delay Alert */}
         <div
-          onClick={() => onPreviewImage && onPreviewImage({ url: '/delay_alert_3d.png', title: 'Delay Traffic Alert' })}
-          className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs cursor-pointer group hover:border-amber-400 transition-colors"
-          title="Click to view delay alert"
+          onClick={() => {
+            setSelectedAlert(alerts[0] || DEFAULT_ALERTS[0]);
+            setIsDelayModalOpen(true);
+          }}
+          className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs cursor-pointer group hover:border-amber-400 transition-colors relative"
+          title="Click to view delay alert & dashcam"
         >
           <img
-            src="/delay_alert_3d.png"
-            alt="Delay Alert"
-            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+            src="/assistant/was there any labor charge for this trip.png"
+            alt="Delay Alert Assistant"
+            className="w-full h-full object-contain object-bottom group-hover:scale-110 transition-transform"
           />
+          {hasAlerts && (
+            <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+          )}
         </div>
 
         <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
@@ -185,10 +195,13 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
 
             <button
               type="button"
-              onClick={onViewAllAlerts}
+              onClick={() => {
+                setSelectedAlert(alerts[0] || DEFAULT_ALERTS[0]);
+                setIsDelayModalOpen(true);
+              }}
               className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
             >
-              <span>View All</span>
+              <span>View Alert</span>
               <ChevronRight size={10} className="stroke-[2.5]" />
             </button>
           </div>
@@ -199,9 +212,12 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
               alerts.slice(0, 2).map((alert) => (
                 <div
                   key={alert.id}
-                  onClick={() => onPreviewImage && onPreviewImage({ url: alert.image || '/delay_alert_3d.png', title: alert.label })}
+                  onClick={() => {
+                    setSelectedAlert(alert);
+                    setIsDelayModalOpen(true);
+                  }}
                   className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.2 transition-colors group"
-                  title="Click to view alert photo evidence"
+                  title="Click to view alert details"
                 >
                   <div className="flex items-center gap-1 min-w-0">
                     <span
@@ -237,5 +253,14 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
       </div>
 
     </div>
+
+    {/* ── SIMPLE DELAY NOTIFICATION MODAL WITH ASSISTANT GUY & LIVE DASHCAM ── */}
+    <TripDelayNotificationModal
+      isOpen={isDelayModalOpen}
+      onClose={() => setIsDelayModalOpen(false)}
+      trip={trip}
+      alert={selectedAlert}
+    />
+    </>
   );
 }
