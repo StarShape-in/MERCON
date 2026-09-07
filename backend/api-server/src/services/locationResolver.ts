@@ -32,9 +32,33 @@ const OPERATIONAL_TRIP_STATUSES: TripStatus[] = [
   TripStatus.Delayed,
 ];
 
-function formatTimeAgo(date: Date | null): string {
-  if (!date) return 'Never';
-  const secondsAgo = Math.floor((Date.now() - date.getTime()) / 1000);
+function safeToISOString(dateVal: any): string | null {
+  if (!dateVal) return null;
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function safeGetTime(dateVal: any): number {
+  if (!dateVal) return 0;
+  try {
+    const d = new Date(dateVal);
+    const t = d.getTime();
+    return isNaN(t) ? 0 : t;
+  } catch {
+    return 0;
+  }
+}
+
+function formatTimeAgo(dateVal: any): string {
+  if (!dateVal) return 'Never';
+  const t = safeGetTime(dateVal);
+  if (t === 0) return 'Never';
+  const secondsAgo = Math.floor((Date.now() - t) / 1000);
   if (secondsAgo < 60) return 'Just now';
   const minutesAgo = Math.floor(secondsAgo / 60);
   if (minutesAgo < 60) return `${minutesAgo}m ago`;
@@ -98,7 +122,7 @@ export async function resolveVehicleLocation(
     vehicle.last_seen_at != null &&
     vehicle.last_lat != null &&
     vehicle.last_lng != null &&
-    now - new Date(vehicle.last_seen_at).getTime() <= PHYSICAL_GPS_FRESH_MS;
+    now - safeGetTime(vehicle.last_seen_at) <= PHYSICAL_GPS_FRESH_MS;
 
   const hasPhysicalLocation =
     vehicle.last_seen_at != null &&
@@ -117,8 +141,8 @@ export async function resolveVehicleLocation(
         heading_deg: vehicle.last_heading ?? null,
         source: 'PHYSICAL_GPS',
         display_state: 'CURRENT',
-        timestamp: new Date(vehicle.last_seen_at!).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at!)),
+        timestamp: safeToISOString(vehicle.last_seen_at),
+        formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
       };
     } else if (hasPhysicalLocation) {
       return {
@@ -129,8 +153,8 @@ export async function resolveVehicleLocation(
         heading_deg: vehicle.last_heading ?? null,
         source: 'PHYSICAL_GPS',
         display_state: 'LAST_KNOWN',
-        timestamp: new Date(vehicle.last_seen_at!).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at!)),
+        timestamp: safeToISOString(vehicle.last_seen_at),
+        formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
       };
     } else {
       return baseResult;
@@ -149,7 +173,7 @@ export async function resolveVehicleLocation(
 
   const isDriverFresh =
     latestDriverLoc != null &&
-    now - new Date(latestDriverLoc.recordedAt).getTime() <= DRIVER_GPS_FRESH_MS;
+    now - safeGetTime(latestDriverLoc.recordedAt) <= DRIVER_GPS_FRESH_MS;
 
   // RULE B: Active Trip + Driver GPS is fresh
   if (isDriverFresh && latestDriverLoc) {
@@ -162,8 +186,8 @@ export async function resolveVehicleLocation(
       accuracy_m: latestDriverLoc.accuracy_m ?? null,
       source: 'DRIVER_GPS',
       display_state: 'CURRENT',
-      timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
-      formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+      timestamp: safeToISOString(latestDriverLoc.recordedAt),
+      formatted_time_ago: formatTimeAgo(latestDriverLoc.recordedAt),
     };
   }
 
@@ -177,14 +201,14 @@ export async function resolveVehicleLocation(
       heading_deg: vehicle.last_heading ?? null,
       source: 'PHYSICAL_GPS',
       display_state: 'CURRENT',
-      timestamp: new Date(vehicle.last_seen_at!).toISOString(),
-      formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at!)),
+      timestamp: safeToISOString(vehicle.last_seen_at),
+      formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
     };
   }
 
   // RULE D: Both sources are stale/unavailable → Return most recent legitimate location (LAST_KNOWN)
-  const driverTime = latestDriverLoc ? new Date(latestDriverLoc.recordedAt).getTime() : 0;
-  const physicalTime = vehicle.last_seen_at ? new Date(vehicle.last_seen_at).getTime() : 0;
+  const driverTime = latestDriverLoc ? safeGetTime(latestDriverLoc.recordedAt) : 0;
+  const physicalTime = vehicle.last_seen_at ? safeGetTime(vehicle.last_seen_at) : 0;
 
   if (driverTime > 0 || physicalTime > 0) {
     if (driverTime >= physicalTime && latestDriverLoc) {
@@ -197,8 +221,8 @@ export async function resolveVehicleLocation(
         accuracy_m: latestDriverLoc.accuracy_m ?? null,
         source: 'DRIVER_GPS',
         display_state: 'LAST_KNOWN',
-        timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+        timestamp: safeToISOString(latestDriverLoc.recordedAt),
+        formatted_time_ago: formatTimeAgo(latestDriverLoc.recordedAt),
       };
     } else if (hasPhysicalLocation) {
       return {
@@ -209,8 +233,8 @@ export async function resolveVehicleLocation(
         heading_deg: vehicle.last_heading ?? null,
         source: 'PHYSICAL_GPS',
         display_state: 'LAST_KNOWN',
-        timestamp: new Date(vehicle.last_seen_at!).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at!)),
+        timestamp: safeToISOString(vehicle.last_seen_at),
+        formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
       };
     }
   }
@@ -279,7 +303,7 @@ export async function resolveVehicleLocationsForTrips(
       vehicle.last_seen_at != null &&
       vehicle.last_lat != null &&
       vehicle.last_lng != null &&
-      now - new Date(vehicle.last_seen_at).getTime() <= PHYSICAL_GPS_FRESH_MS;
+      now - safeGetTime(vehicle.last_seen_at) <= PHYSICAL_GPS_FRESH_MS;
 
     const hasPhysicalLocation =
       vehicle.last_seen_at != null &&
@@ -296,8 +320,8 @@ export async function resolveVehicleLocationsForTrips(
           heading_deg: vehicle.last_heading ?? null,
           source: 'PHYSICAL_GPS',
           display_state: 'CURRENT',
-          timestamp: new Date(vehicle.last_seen_at).toISOString(),
-          formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+          timestamp: safeToISOString(vehicle.last_seen_at),
+          formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
         });
       } else if (hasPhysicalLocation) {
         resultMap.set(t.id, {
@@ -308,8 +332,8 @@ export async function resolveVehicleLocationsForTrips(
           heading_deg: vehicle.last_heading ?? null,
           source: 'PHYSICAL_GPS',
           display_state: 'LAST_KNOWN',
-          timestamp: new Date(vehicle.last_seen_at).toISOString(),
-          formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+          timestamp: safeToISOString(vehicle.last_seen_at),
+          formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
         });
       } else {
         resultMap.set(t.id, baseResult);
@@ -320,7 +344,7 @@ export async function resolveVehicleLocationsForTrips(
     const latestDriverLoc = latestLocMap.get(t.id);
     const isDriverFresh =
       latestDriverLoc != null &&
-      now - new Date(latestDriverLoc.recordedAt).getTime() <= DRIVER_GPS_FRESH_MS;
+      now - safeGetTime(latestDriverLoc.recordedAt) <= DRIVER_GPS_FRESH_MS;
 
     if (isDriverFresh && latestDriverLoc) {
       resultMap.set(t.id, {
@@ -332,8 +356,8 @@ export async function resolveVehicleLocationsForTrips(
         accuracy_m: latestDriverLoc.accuracy_m ?? null,
         source: 'DRIVER_GPS',
         display_state: 'CURRENT',
-        timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+        timestamp: safeToISOString(latestDriverLoc.recordedAt),
+        formatted_time_ago: formatTimeAgo(latestDriverLoc.recordedAt),
       });
     } else if (isPhysicalFresh) {
       resultMap.set(t.id, {
@@ -344,12 +368,12 @@ export async function resolveVehicleLocationsForTrips(
         heading_deg: vehicle.last_heading ?? null,
         source: 'PHYSICAL_GPS',
         display_state: 'CURRENT',
-        timestamp: new Date(vehicle.last_seen_at).toISOString(),
-        formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+        timestamp: safeToISOString(vehicle.last_seen_at),
+        formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
       });
     } else {
-      const driverTime = latestDriverLoc ? new Date(latestDriverLoc.recordedAt).getTime() : 0;
-      const physicalTime = vehicle.last_seen_at ? new Date(vehicle.last_seen_at).getTime() : 0;
+      const driverTime = latestDriverLoc ? safeGetTime(latestDriverLoc.recordedAt) : 0;
+      const physicalTime = vehicle.last_seen_at ? safeGetTime(vehicle.last_seen_at) : 0;
 
       if (driverTime > 0 || physicalTime > 0) {
         if (driverTime >= physicalTime && latestDriverLoc) {
@@ -362,8 +386,8 @@ export async function resolveVehicleLocationsForTrips(
             accuracy_m: latestDriverLoc.accuracy_m ?? null,
             source: 'DRIVER_GPS',
             display_state: 'LAST_KNOWN',
-            timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
-            formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+            timestamp: safeToISOString(latestDriverLoc.recordedAt),
+            formatted_time_ago: formatTimeAgo(latestDriverLoc.recordedAt),
           });
         } else if (hasPhysicalLocation) {
           resultMap.set(t.id, {
@@ -374,8 +398,8 @@ export async function resolveVehicleLocationsForTrips(
             heading_deg: vehicle.last_heading ?? null,
             source: 'PHYSICAL_GPS',
             display_state: 'LAST_KNOWN',
-            timestamp: new Date(vehicle.last_seen_at).toISOString(),
-            formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+            timestamp: safeToISOString(vehicle.last_seen_at),
+            formatted_time_ago: formatTimeAgo(vehicle.last_seen_at),
           });
         } else {
           resultMap.set(t.id, baseResult);
@@ -387,5 +411,6 @@ export async function resolveVehicleLocationsForTrips(
   }
 
   return resultMap;
+};
 }
 
