@@ -260,6 +260,8 @@ export default function CreateTripPage() {
                         setThirdPartyVehiclePlate={form.setThirdPartyVehiclePlate}
                         thirdPartyDriverName={form.thirdPartyDriverName}
                         setThirdPartyDriverName={form.setThirdPartyDriverName}
+                        thirdPartyCost={form.thirdPartyCost}
+                        setThirdPartyCost={form.setThirdPartyCost}
                         contractVehicleType={form.contractVehicleType}
                         setContractVehicleType={form.setContractVehicleType}
                       />

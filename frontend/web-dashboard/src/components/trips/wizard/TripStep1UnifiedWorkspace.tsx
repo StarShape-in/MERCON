@@ -219,30 +219,28 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
-            {contractBillingType !== 'Monthly' && (
-              <ExecutionAssignmentSection
-                assignmentType={assignmentType}
-                setAssignmentType={setAssignmentType}
-                masterVehicle={masterVehicle}
-                masterDriver={masterDriver}
-                handleVehicleChange={handleVehicleChange}
-                handleDriverChange={handleDriverChange}
-                vehicleOptions={vehicleOptions}
-                driverOptions={driverOptions}
-                thirdPartyProviderId={thirdPartyProviderId}
-                setThirdPartyProviderId={setThirdPartyProviderId}
-                thirdPartyProviders={thirdPartyProviders}
-                thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
-                thirdPartyDriverName={thirdPartyDriverName}
-                setThirdPartyDriverName={setThirdPartyDriverName}
-                thirdPartyCost={thirdPartyCost}
-                setThirdPartyCost={setThirdPartyCost}
-                contractSlots={contractSlots}
-                contractVehicleType={contractVehicleType}
-                setContractVehicleType={setContractVehicleType}
-              />
-            )}
+            <ExecutionAssignmentSection
+              assignmentType={assignmentType}
+              setAssignmentType={setAssignmentType}
+              masterVehicle={masterVehicle}
+              masterDriver={masterDriver}
+              handleVehicleChange={handleVehicleChange}
+              handleDriverChange={handleDriverChange}
+              vehicleOptions={vehicleOptions}
+              driverOptions={driverOptions}
+              thirdPartyProviderId={thirdPartyProviderId}
+              setThirdPartyProviderId={setThirdPartyProviderId}
+              thirdPartyProviders={thirdPartyProviders}
+              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+              setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
+              thirdPartyDriverName={thirdPartyDriverName}
+              setThirdPartyDriverName={setThirdPartyDriverName}
+              thirdPartyCost={thirdPartyCost}
+              setThirdPartyCost={setThirdPartyCost}
+              contractSlots={contractSlots}
+              contractVehicleType={contractVehicleType}
+              setContractVehicleType={setContractVehicleType}
+            />
 
             <TripEconomicsSection
               contractSlots={contractSlots}

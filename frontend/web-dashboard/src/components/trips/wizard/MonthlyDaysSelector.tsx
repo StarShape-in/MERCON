@@ -65,6 +65,8 @@ interface MonthlyDaysSelectorProps {
   setThirdPartyVehiclePlate?: (plate: string) => void;
   thirdPartyDriverName?: string;
   setThirdPartyDriverName?: (name: string) => void;
+  thirdPartyCost?: string;
+  setThirdPartyCost?: (cost: string) => void;
   contractVehicleType?: string;
   setContractVehicleType?: (vType: string) => void;
 }
@@ -94,6 +96,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
   setThirdPartyVehiclePlate,
   thirdPartyDriverName = '',
   setThirdPartyDriverName,
+  thirdPartyCost = '',
+  setThirdPartyCost,
   contractVehicleType = '10 TON',
   setContractVehicleType,
 }) => {
@@ -609,7 +613,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 <Building2 className="w-4 h-4 text-purple-600" />
                 <span>3PL Provider Configuration</span>
               </h5>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
                     3PL Partner
@@ -652,6 +656,24 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                     placeholder="Vehicle Plate..."
                     className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
                   />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider block mb-1">
+                    3PL Cost (SAR)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={thirdPartyCost}
+                      onChange={(e) => setThirdPartyCost?.(e.target.value)}
+                      placeholder="0"
+                      className="w-full h-8 text-xs font-mono font-black rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-2 pr-8 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#FA634E]"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">SAR</span>
+                  </div>
                 </div>
               </div>
             </div>
