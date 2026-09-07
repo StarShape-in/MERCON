@@ -531,34 +531,58 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
       {/* Bulk Share Dialog */}
       <Dialog open={isBulkShareOpen} onOpenChange={setIsBulkShareOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Share Selected Trips</DialogTitle>
+            <DialogTitle>Share {selectedTripIds.length} Selected Trips</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-slate-500 mb-4">
-              You are about to share {selectedTripIds.length} trips. Here is the list:
+          <div className="py-3 space-y-3">
+            <p className="text-xs text-slate-500">
+              Selected trips to share via WhatsApp:
             </p>
-            <div className="max-h-60 overflow-y-auto border rounded-lg p-2 flex flex-col gap-2 bg-slate-50 dark:bg-slate-900 custom-scrollbar">
+            <div className="max-h-52 overflow-y-auto border rounded-xl p-2.5 flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 custom-scrollbar">
               {trips.filter(t => selectedTripIds.includes(t.id)).map(trip => (
-                <div key={trip.id} className="text-sm font-semibold flex items-center justify-between border-b last:border-0 pb-2 last:pb-0 border-slate-200 dark:border-slate-800">
-                  <span className="dark:text-slate-200">{trip.ref_id}</span>
-                  <span className="text-slate-500 font-normal truncate max-w-[200px]">{trip.customer?.name}</span>
+                <div key={trip.id} className="text-xs font-semibold flex items-center justify-between border-b last:border-0 pb-2 last:pb-0 border-slate-200 dark:border-slate-800">
+                  <span className="font-mono text-slate-800 dark:text-slate-200">{trip.ref_id}</span>
+                  <span className="text-slate-500 font-normal truncate max-w-[220px]">{trip.customer?.name}</span>
                 </div>
               ))}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBulkShareOpen(false)}>Cancel</Button>
-            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => {
-              const selectedTrips = trips.filter(t => selectedTripIds.includes(t.id));
-              if (selectedTrips.length > 0) {
-                openMultipleWhatsappMessages(selectedTrips);
-              }
-              setIsBulkShareOpen(false);
-              handleClearSelection();
-            }}>
-              Confirm Share
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsBulkShareOpen(false)}>
+              Cancel
+            </Button>
+            {selectedTripIds.length > 1 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-xs font-bold"
+                onClick={() => {
+                  const selectedTrips = trips.filter(t => selectedTripIds.includes(t.id));
+                  if (selectedTrips.length > 0) {
+                    openMultipleWhatsappMessages(selectedTrips, 'separate');
+                  }
+                  setIsBulkShareOpen(false);
+                  handleClearSelection();
+                }}
+              >
+                Open {selectedTripIds.length} Tabs
+              </Button>
+            )}
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
+              onClick={() => {
+                const selectedTrips = trips.filter(t => selectedTripIds.includes(t.id));
+                if (selectedTrips.length > 0) {
+                  openMultipleWhatsappMessages(selectedTrips, 'combined');
+                }
+                setIsBulkShareOpen(false);
+                handleClearSelection();
+              }}
+            >
+              <Send className="w-3.5 h-3.5" />
+              {selectedTripIds.length > 1 ? 'Share Combined Summary' : 'Share to WhatsApp'}
             </Button>
           </DialogFooter>
         </DialogContent>
