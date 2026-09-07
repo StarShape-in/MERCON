@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
+import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -480,7 +481,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   </span>
                 </div>
 
-                {/* LANE SUMMARY BADGE */}
+                {/* LANE SUMMARY BADGE & RATE HISTORY TRIGGER BUTTON */}
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 flex-wrap">
                   <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
                     {primarySlot.origin || 'Origin'} → {primarySlot.destination || 'Destination'}
@@ -491,6 +492,22 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                     {contractRateCategory || 'Single Trip'}
                   </span>
+
+                  {/* RATE HISTORY POPOVER TRIGGER BUTTON (OPEN ONLY ON CLICK) */}
+                  <LaneRateHistoryPopover
+                    origin={primarySlot.origin}
+                    destination={primarySlot.destination}
+                    vehicleClass={contractVehicleType}
+                    customerId={contractCustomer}
+                    onApplyRate={(bRate, dPayout) => {
+                      handleUpdateTripSlot(primarySlot.id, {
+                        billingAmount: bRate,
+                        ...(dPayout != null ? { driverPayout: dPayout, driverPayoutModified: true } : {}),
+                        saveAsQuotation: true,
+                        saveAsRateCard: true,
+                      });
+                    }}
+                  />
                 </div>
               </div>
 

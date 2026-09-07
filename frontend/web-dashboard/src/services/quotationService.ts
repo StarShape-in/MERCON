@@ -286,6 +286,39 @@ export const quotationService = {
     const res = await api.post<ApiResponse<ImportSummary>>('/quotations/import', { rows }, { timeout: 120_000 });
     return res.data.data;
   },
+
+  async getLanePriceHistory(params: {
+    origin: string;
+    destination: string;
+    vehicleClass?: string;
+    customerId?: string;
+  }): Promise<Array<{
+    id: string;
+    quotation_number: string;
+    customer_name: string;
+    origin: string;
+    destination: string;
+    vehicle_class: string;
+    line_type: string;
+    billing_type: string;
+    rate: number;
+    driver_payout: number | null;
+    updatedAt: string;
+  }>> {
+    try {
+      const res = await api.get<ApiResponse<any[]>>('/quotations/lane-history', {
+        params: {
+          origin: params.origin,
+          destination: params.destination,
+          ...(params.vehicleClass ? { vehicleClass: params.vehicleClass } : {}),
+          ...(params.customerId ? { customerId: params.customerId } : {}),
+        },
+      });
+      return res.data.data || [];
+    } catch {
+      return [];
+    }
+  },
 };
 
 /** Alias for rateCardService */

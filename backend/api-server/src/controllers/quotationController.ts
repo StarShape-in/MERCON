@@ -579,6 +579,88 @@ export const getQuotationHistory = async (req: Request, res: Response) => {
   }
 };
 
+export const getLanePriceHistory = async (req: Request, res: Response) => {
+  try {
+    const { origin, destination, vehicleClass, customerId } = req.query;
+
+    if (!origin || !destination) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Origin and destination are required' },
+      });
+    }
+
+    const origStr = String(origin).trim().toLowerCase();
+    const destStr = String(destination).trim().toLowerCase();
+    const vClassStr = vehicleClass ? String(vehicleClass).trim().toLowerCase() : '';
+    const custIdStr = customerId ? String(customerId).trim() : '';
+
+    const quotations = await prisma.quotation.findMany({
+      where: {
+        deletedAt: null,
+        ...(custIdStr ? { customerId: custIdStr } : {}),
+      },
+      include: {
+        customer: true,
+        stops: {
+          include: { location: true },
+          orderBy: { sequence: 'asc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+
+    const matchedQuotations = quotations.filter((q) => {
+      const stops = q.stops || [];
+      const firstStop = stops[0];
+      const lastStop = stops.length > 1 ? stops[stops.length - 1] : firstStop;
+
+      const qOrig = (firstStop?.source_label || firstStop?.location?.name || q.name || '').toLowerCase();
+      const qDest = (lastStop?.source_label || lastStop?.location?.name || q.name || '').toLowerCase();
+      const qVClass = (q.source_vehicle_label || '').toLowerCase();
+
+      const origMatches = qOrig.includes(origStr) || origStr.includes(qOrig);
+      const destMatches = qDest.includes(destStr) || destStr.includes(qDest);
+      const vClassMatches = !vClassStr || qVClass.includes(vClassStr) || vClassStr.includes(qVClass);
+
+      return origMatches && destMatches && vClassMatches;
+    });
+
+    const historyList = matchedQuotations.map((q) => {
+      const firstStop = q.stops?.[0];
+      const lastStop = q.stops?.[q.stops.length - 1];
+      const originName = firstStop?.source_label || firstStop?.location?.name || 'Origin';
+      const destName = lastStop?.source_label || lastStop?.location?.name || 'Destination';
+
+      return {
+        id: q.id,
+        quotation_number: (q as any).quotation_number || q.name || `QT-${q.id.substring(0, 6)}`,
+        customer_name: q.customer?.name || 'Customer',
+        origin: originName,
+        destination: destName,
+        vehicle_class: q.source_vehicle_label || q.vehicle_class || 'Default',
+        line_type: q.line_type,
+        billing_type: q.billing_type,
+        rate: Number(q.rate || 0),
+        driver_payout: q.driver_payout != null ? Number(q.driver_payout) : null,
+        updatedAt: q.updatedAt,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: historyList,
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to fetch lane price history');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch lane price history' },
+    });
+  }
+};
+
 /** Backward compatibility exported aliases for legacy callers */
 export const createRateCard = createQuotation;
 export const getRateCards = getQuotations;
