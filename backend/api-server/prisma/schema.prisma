@@ -430,6 +430,8 @@ model Trip {
   // customer invoice total.
   driver_charge           Decimal @default(0.0) @map("trip_charges") @db.Decimal(12, 2)
   billing_amount          Decimal? @db.Decimal(12, 2)
+  paid_amount             Decimal  @default(0.0) @db.Decimal(12, 2)
+  balance_due             Decimal? @db.Decimal(12, 2)
   // No DB-level default — set from Settings.companyLegalName at create time
   // (see tripController.ts / getCompanyLegalName), since a hardcoded literal
   // here can't vary per deployment.
