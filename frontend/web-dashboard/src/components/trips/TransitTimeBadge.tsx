@@ -3,6 +3,7 @@ import { Clock, Navigation, MapPin, CheckCircle2, ArrowRight } from 'lucide-reac
 import {
   estimateTravelTimeByName,
   calculateArrivalDropoffTime,
+  calculateArrivalDropoffDateAndTime,
   TravelTimeEstimate,
 } from '@/services/travelTimeService';
 import { cn, isUuid } from '@/lib/utils';
@@ -18,9 +19,11 @@ interface TransitTimeBadgeProps {
   originLng?: number | null;
   destinationLat?: number | null;
   destinationLng?: number | null;
+  pickupDate?: string;
   pickupTime?: string;
   dropoffTime?: string;
   onAutoSetDropoffTime?: (suggestedDropoffTime: string, isOvernight: boolean) => void;
+  onAutoSetDropoffDateTime?: (dropoffDate: string, dropoffTime: string, isOvernight: boolean, estimate: TravelTimeEstimate) => void;
   className?: string;
   compact?: boolean;
 }
@@ -36,9 +39,11 @@ export default function TransitTimeBadge({
   originLng,
   destinationLat,
   destinationLng,
+  pickupDate,
   pickupTime = '08:00',
   dropoffTime,
   onAutoSetDropoffTime,
+  onAutoSetDropoffDateTime,
   className,
   compact = false,
 }: TransitTimeBadgeProps) {
@@ -73,13 +78,18 @@ export default function TransitTimeBadge({
     };
   }, [origin, destination, originLat, originLng, destinationLat, destinationLng]);
 
-  // Auto-update dropoff time when estimate or pickupTime changes
+  // Auto-update dropoff date and time when estimate, pickupDate, or pickupTime changes
   useEffect(() => {
-    if (estimate && onAutoSetDropoffTime && pickupTime) {
-      const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
-      onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
+    if (estimate) {
+      if (onAutoSetDropoffDateTime) {
+        const arrivalCalc = calculateArrivalDropoffDateAndTime(pickupDate, pickupTime, estimate.durationMinutes);
+        onAutoSetDropoffDateTime(arrivalCalc.dropoffDate, arrivalCalc.dropoffTime, arrivalCalc.isOvernight, estimate);
+      } else if (onAutoSetDropoffTime && pickupTime) {
+        const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
+        onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
+      }
     }
-  }, [estimate, pickupTime, onAutoSetDropoffTime]);
+  }, [estimate, pickupDate, pickupTime, onAutoSetDropoffDateTime, onAutoSetDropoffTime]);
 
   if (!origin.trim() || !destination.trim()) {
     return null;

@@ -2,23 +2,44 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import {
   getRecommendedDriversForVehicle,
+  getRecommendedDriversForTrip,
   getRecommendedVehiclesForDriver,
 } from '../services/fleetDispatchService';
 import { AssignmentType } from '@prisma/client';
 
 /**
- * Endpoint: GET /api/trips/recommendations/drivers?vehicleId=uuid&plannedStart=iso
- * Returns ranked driver backup recommendations for a vehicle.
+ * Endpoint: GET /api/trips/recommendations/drivers
+ * Query: vehicleId, vehicleClass, origin, destination, plannedStart
+ * Returns ranked driver recommendations based on route experience, capacity match, and availability.
  */
 export async function getDriverRecommendations(req: Request, res: Response) {
   try {
     const vehicleId = typeof req.query.vehicleId === 'string' ? req.query.vehicleId : undefined;
+    const vehicleClass = typeof req.query.vehicleClass === 'string' ? req.query.vehicleClass : undefined;
+    const origin = typeof req.query.origin === 'string' ? req.query.origin : undefined;
+    const destination = typeof req.query.destination === 'string' ? req.query.destination : undefined;
     const plannedStart = typeof req.query.plannedStart === 'string' ? req.query.plannedStart : undefined;
 
+    if (origin || destination || vehicleClass) {
+      const recommendations = await getRecommendedDriversForTrip({
+        vehicleId,
+        vehicleClass,
+        origin,
+        destination,
+        plannedStart,
+      });
+
+      return res.json({
+        success: true,
+        data: recommendations,
+      });
+    }
+
     if (!vehicleId) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'BAD_REQUEST', message: 'vehicleId query parameter is required' },
+      const recommendations = await getRecommendedDriversForTrip({});
+      return res.json({
+        success: true,
+        data: recommendations,
       });
     }
 

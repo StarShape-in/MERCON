@@ -150,6 +150,8 @@ export const createQuotation = async (req: Request, res: Response) => {
             quotationId: newQuotation.id,
             old_rate: null,
             new_rate: price,
+            old_driver_payout: null,
+            new_driver_payout: payoutVal,
             changed_by: userName,
             changed_by_user_id: userId || null,
             changed_by_name: userName,
@@ -313,6 +315,10 @@ export const updateQuotation = async (req: Request, res: Response) => {
       const oldRate = Number(existing.rate);
       const priceChanged = priceVal !== undefined && oldRate !== newRate;
 
+      const oldPayout = existing.driver_payout !== null ? Number(existing.driver_payout) : null;
+      const newPayout = payoutVal !== undefined ? payoutVal : oldPayout;
+      const payoutChanged = payoutVal !== undefined && oldPayout !== newPayout;
+
       const updatedQuotation = await tx.quotation.update({
         where: { id: id as string },
         data: {
@@ -337,19 +343,21 @@ export const updateQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      if (priceChanged) {
+      if (priceChanged || payoutChanged) {
         const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
         const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
 
         await tx.quotationHistory.create({
           data: {
             quotationId: updatedQuotation.id,
-            old_rate: oldRate,
-            new_rate: newRate,
+            old_rate: priceChanged ? oldRate : null,
+            new_rate: priceChanged ? newRate : null,
+            old_driver_payout: payoutChanged ? oldPayout : null,
+            new_driver_payout: payoutChanged ? newPayout : null,
             changed_by: userName,
             changed_by_user_id: userId || null,
             changed_by_name: userName,
-            reason: req.body.reason || req.body.change_reason || 'Quotation rate updated',
+            reason: req.body.reason || req.body.change_reason || (payoutChanged && !priceChanged ? 'Driver payout updated' : 'Quotation rate updated'),
             source: req.body.source || 'QUOTATION_MODULE',
             trip_id: req.body.trip_id || null,
           },
@@ -568,6 +576,88 @@ export const getQuotationHistory = async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error({ err: error }, 'Failed to fetch quotation history');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch quotation history' } });
+  }
+};
+
+export const getLanePriceHistory = async (req: Request, res: Response) => {
+  try {
+    const { origin, destination, vehicleClass, customerId } = req.query;
+
+    if (!origin || !destination) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Origin and destination are required' },
+      });
+    }
+
+    const origStr = String(origin).trim().toLowerCase();
+    const destStr = String(destination).trim().toLowerCase();
+    const vClassStr = vehicleClass ? String(vehicleClass).trim().toLowerCase() : '';
+    const custIdStr = customerId ? String(customerId).trim() : '';
+
+    const quotations = await prisma.quotation.findMany({
+      where: {
+        deletedAt: null,
+        ...(custIdStr ? { customerId: custIdStr } : {}),
+      },
+      include: {
+        customer: true,
+        stops: {
+          include: { location: true },
+          orderBy: { sequence: 'asc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+
+    const matchedQuotations = quotations.filter((q) => {
+      const stops = q.stops || [];
+      const firstStop = stops[0];
+      const lastStop = stops.length > 1 ? stops[stops.length - 1] : firstStop;
+
+      const qOrig = (firstStop?.source_label || firstStop?.location?.name || q.name || '').toLowerCase();
+      const qDest = (lastStop?.source_label || lastStop?.location?.name || q.name || '').toLowerCase();
+      const qVClass = (q.source_vehicle_label || '').toLowerCase();
+
+      const origMatches = qOrig.includes(origStr) || origStr.includes(qOrig);
+      const destMatches = qDest.includes(destStr) || destStr.includes(qDest);
+      const vClassMatches = !vClassStr || qVClass.includes(vClassStr) || vClassStr.includes(qVClass);
+
+      return origMatches && destMatches && vClassMatches;
+    });
+
+    const historyList = matchedQuotations.map((q) => {
+      const firstStop = q.stops?.[0];
+      const lastStop = q.stops?.[q.stops.length - 1];
+      const originName = firstStop?.source_label || firstStop?.location?.name || 'Origin';
+      const destName = lastStop?.source_label || lastStop?.location?.name || 'Destination';
+
+      return {
+        id: q.id,
+        quotation_number: (q as any).quotation_number || q.name || `QT-${q.id.substring(0, 6)}`,
+        customer_name: q.customer?.name || 'Customer',
+        origin: originName,
+        destination: destName,
+        vehicle_class: q.source_vehicle_label || q.vehicle_class || 'Default',
+        line_type: q.line_type,
+        billing_type: q.billing_type,
+        rate: Number(q.rate || 0),
+        driver_payout: q.driver_payout != null ? Number(q.driver_payout) : null,
+        updatedAt: q.updatedAt,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: historyList,
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to fetch lane price history');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch lane price history' },
+    });
   }
 };
 

@@ -759,9 +759,41 @@ export const createTrip = async (req: Request, res: Response) => {
             defaultBilling = isMonthlyCard ? Math.round((Number(appliedQuotation.rate) / 30) * 100) / 100 : Number(appliedQuotation.rate);
           }
 
-          const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
-            ? Number(trip_charges)
-            : 0;
+          const rawTripCharges = trip_charges ?? req.body.driver_payout ?? req.body.driver_charge;
+          const finalTripCharges = (rawTripCharges !== undefined && rawTripCharges !== null && !isNaN(Number(rawTripCharges)))
+            ? Number(rawTripCharges)
+            : (appliedQuotation?.driver_payout ? Number(appliedQuotation.driver_payout) : 0);
+
+          const updateQuotationPayout = req.body.update_quotation_driver_payout === true || req.body.update_quotation_payout === true;
+          if (updateQuotationPayout && appliedQuotation) {
+            const oldPayout = appliedQuotation.driver_payout != null ? Number(appliedQuotation.driver_payout) : null;
+            if (oldPayout !== finalTripCharges) {
+              await tx.quotation.update({
+                where: { id: appliedQuotation.id },
+                data: { driver_payout: finalTripCharges, updated_by: createdBy },
+              });
+
+              try {
+                const userObj = createdBy ? await tx.user.findFirst({ where: { id: createdBy }, select: { name: true, username: true } }) : null;
+                const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+
+                await tx.quotationHistory.create({
+                  data: {
+                    quotationId: appliedQuotation.id,
+                    old_driver_payout: oldPayout,
+                    new_driver_payout: finalTripCharges,
+                    changed_by: userName,
+                    changed_by_user_id: createdBy,
+                    changed_by_name: userName,
+                    reason: req.body.change_reason || 'Updated driver payout during trip creation',
+                    source: 'TRIP_CREATION',
+                  },
+                });
+              } catch (hErr) {
+                logger.warn({ err: hErr }, 'Failed to record quotation history for driver payout update during trip creation');
+              }
+            }
+          }
 
           return tx.trip.create({
             data: {

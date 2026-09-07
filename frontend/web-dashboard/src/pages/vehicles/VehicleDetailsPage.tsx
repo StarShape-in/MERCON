@@ -481,10 +481,7 @@ export default function VehicleDetailsPage() {
                 </span>
                 <div className="overflow-hidden whitespace-nowrap w-full mt-0.5">
                   <span
-                    className={cn(
-                      "font-mono text-xs font-black text-blue-900 dark:text-blue-100 block",
-                      driverName.length > 11 ? "animate-marquee-slow" : "truncate"
-                    )}
+                    className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 block truncate"
                   >
                     {driverName}
                   </span>

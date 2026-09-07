@@ -152,14 +152,13 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               originLng={slot.originLng}
               destinationLat={slot.destinationLat}
               destinationLng={slot.destinationLng}
+              pickupDate={slot.date || slot.pickupDate}
+              pickupTime={slot.pickupTime || '08:00'}
+              onAutoSetDropoffDateTime={(dDate, dTime, isOvernight) => {
+                handleUpdateTripSlot(slot.id, { dropoffDate: dDate, dropoffTime: dTime, isOvernight });
+              }}
               compact
             />
-          )}
-
-          {slot.matchedRateCard && (
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/70 dark:border-slate-700">
-              Populated from Quotation #{slot.matchedRateCard.quotation_number || 'Rate Card'}
-            </span>
           )}
         </div>
 

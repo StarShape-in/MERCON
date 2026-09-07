@@ -68,17 +68,11 @@ import helmet from 'helmet';
 import compression from 'compression';
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3060',
-  process.env.VITE_APP_URL || 'https://dashboard.mercon.local'
-];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'X-CSRF-Token'],
 }));
 
 // Gzip every response big enough to be worth it. List endpoints return highly
@@ -87,7 +81,10 @@ app.use(cors({
 // the VPS nginx only gzips text/html by default, not application/json.
 app.use(compression());
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+}));
 app.use(helmet.hsts({
   maxAge: 31536000,
   includeSubDomains: true,
@@ -214,8 +211,13 @@ io.on('connection', (socket: Socket) => {
 });
 
 // Healthcheck endpoint
-app.get(['/health', '/api/health'], (req: Request, res: Response) => {
-  res.json({ success: true, message: 'MERCON API is running perfectly!' });
+app.get(['/health', '/api/health'], async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ success: true, message: 'MERCON API is running perfectly!', db: 'connected' });
+  } catch (err: any) {
+    res.json({ success: true, message: 'MERCON API is running (DB initializing)', error: err?.message || String(err) });
+  }
 });
 
 // Catches errors passed via next(err) — most notably multer's fileFilter

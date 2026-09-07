@@ -146,8 +146,8 @@ export default function CreateTripPage() {
   }, [form.contractStep, form.canNavigateToStep, form.isStepValid, form.bulkMutation.isPending]);
 
   return (
-    <DashboardLayout active="Trips" title="Create New Trip" hideBackButton hideHeader>
-      <div className="px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full h-[calc(100dvh-28px)] flex flex-col min-h-0">
+    <DashboardLayout active="Trips" title="Create New Trip" hideBackButton hideHeader fixedViewport>
+      <div className="px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full h-full flex flex-col min-h-0">
         <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
 
           {/* Combined Navigation & Stepper Bar */}
@@ -265,6 +265,7 @@ export default function CreateTripPage() {
                         thirdPartyDriverName={form.thirdPartyDriverName}
                         setThirdPartyDriverName={form.setThirdPartyDriverName}
                         thirdPartyCost={form.thirdPartyCost}
+                        setThirdPartyCost={form.setThirdPartyCost}
                         marginMetrics={form.marginMetrics}
                         drivers={form.drivers}
                         vehicles={form.vehicles}

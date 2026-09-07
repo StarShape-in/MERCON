@@ -21,8 +21,12 @@ export interface TripSlot {
   dropoffDate: string;
   billingAmount: string;
   tripCharges: string;
+  driverPayout?: string;
+  driverPayoutModified?: boolean;
+  updateQuotationPayout?: boolean;
   saveAsQuotation?: boolean;
   saveAsRateCard?: boolean;
+  pricingBasis?: 'Per Trip' | 'Per Month';
   rateReason?: string;
   isOvernight?: boolean;
   intermediateLocations: string[];

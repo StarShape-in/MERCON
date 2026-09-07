@@ -312,3 +312,53 @@ export function calculateArrivalDropoffTime(
     formattedArrival,
   };
 }
+
+/**
+ * Calculates suggested Drop-off Date ("YYYY-MM-DD") and Drop-off Time ("HH:MM")
+ * given a pickup date, pickup time, and transit duration in minutes.
+ */
+export function calculateArrivalDropoffDateAndTime(
+  pickupDateStr: string = '',
+  pickupTimeStr: string = '08:00',
+  durationMinutes: number
+): { dropoffDate: string; dropoffTime: string; isOvernight: boolean; formattedArrival: string } {
+  if (!pickupDateStr) pickupDateStr = new Date().toISOString().slice(0, 10);
+  if (!pickupTimeStr) pickupTimeStr = '08:00';
+
+  let hours = 8;
+  let minutes = 0;
+
+  const match = pickupTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (match) {
+    hours = parseInt(match[1], 10);
+    minutes = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+  }
+
+  const [year, mon, day] = pickupDateStr.split('-').map(Number);
+  const pDate = new Date(year || new Date().getFullYear(), (mon ? mon - 1 : 0), day || 1, hours, minutes, 0);
+  const aDate = new Date(pDate.getTime() + (durationMinutes || 0) * 60000);
+
+  const arrYear = aDate.getFullYear();
+  const arrMon = String(aDate.getMonth() + 1).padStart(2, '0');
+  const arrDay = String(aDate.getDate()).padStart(2, '0');
+  const dropoffDate = `${arrYear}-${arrMon}-${arrDay}`;
+
+  const arrHours = String(aDate.getHours()).padStart(2, '0');
+  const arrMins = String(aDate.getMinutes()).padStart(2, '0');
+  const dropoffTime = `${arrHours}:${arrMins}`;
+
+  const isOvernight = dropoffDate > pickupDateStr;
+  const period = aDate.getHours() >= 12 ? 'PM' : 'AM';
+  const displayHours = aDate.getHours() % 12 || 12;
+  const formattedArrival = `${displayHours}:${arrMins} ${period}${isOvernight ? ` (+${Math.ceil((aDate.getTime() - pDate.getTime()) / (24 * 3600 * 1000))} Day)` : ''}`;
+
+  return {
+    dropoffDate,
+    dropoffTime,
+    isOvernight,
+    formattedArrival,
+  };
+}

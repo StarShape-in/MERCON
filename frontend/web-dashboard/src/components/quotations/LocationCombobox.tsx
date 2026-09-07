@@ -352,13 +352,14 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
         align="start"
         side="bottom"
         sideOffset={4}
-        avoidCollisions={false}
+        avoidCollisions={true}
+        collisionPadding={8}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();
         }}
         onKeyDownCapture={handleInputKeyDown}
-        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50 bg-white dark:bg-slate-900"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-[9999] bg-white dark:bg-slate-900"
       >
         <div className="w-full overflow-hidden">
           <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-3 bg-white dark:bg-slate-900">
@@ -377,7 +378,7 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
               <PasteLocationStatus status={paste.status} />
             </div>
           )}
-          <div ref={listRef} className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
+          <div ref={listRef} className="max-h-[min(280px,var(--radix-popover-content-available-height,280px))] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
             {(isLoading || isSearchingGoogle) && (
               <div className="py-2.5 px-3 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" />

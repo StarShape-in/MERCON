@@ -9,6 +9,7 @@ import {
   bulkDeleteQuotations,
   bulkImportQuotations,
   getQuotationHistory,
+  getLanePriceHistory,
 } from '../controllers/quotationController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -22,8 +23,9 @@ router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteQuotations);
 router.post('/import', bulkImportQuotations);
 
-// Must stay above '/:id' — otherwise Express matches "lookup" as an id.
+// Must stay above '/:id' — otherwise Express matches "lookup" or "lane-history" as an id.
 router.get('/lookup', lookupQuotation);
+router.get('/lane-history', getLanePriceHistory);
 
 router.post('/', createQuotation);
 router.get('/', getQuotations);

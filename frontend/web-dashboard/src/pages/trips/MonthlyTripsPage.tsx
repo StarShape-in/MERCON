@@ -108,7 +108,7 @@ export default function MonthlyTripsPage() {
 
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
-      navigate(`/trips/monthly/new?month=${month}`, { replace: true });
+      navigate(`/trips/new?mode=monthly&month=${month}`, { replace: true });
     }
   }, [searchParams, month, navigate]);
 
@@ -426,7 +426,7 @@ export default function MonthlyTripsPage() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onClick={() => navigate(`/trips/monthly/new?month=${month}`)}
+                  onClick={() => navigate(`/trips/new?mode=monthly&month=${month}`)}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
                   <Layers className="w-4 h-4 text-purple-600 shrink-0" />

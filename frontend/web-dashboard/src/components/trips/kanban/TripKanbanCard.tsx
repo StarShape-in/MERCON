@@ -325,10 +325,7 @@ export default function TripKanbanCard({
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="group/route whitespace-nowrap text-[11px] font-bold text-slate-700 dark:text-slate-300">
               <span
-                className={cn(
-                  'inline-block',
-                  routeText.length > 28 ? 'animate-marquee group-hover/route:animation-paused' : 'truncate'
-                )}
+                className="inline-block truncate"
               >
                 {routeText}
               </span>
@@ -383,11 +380,10 @@ export default function TripKanbanCard({
         <div className="flex-1 min-w-0 overflow-hidden">
           <span
             className={cn(
-              'text-[11px] font-semibold block',
+              'text-[11px] font-semibold block truncate',
               trip.is_third_party
                 ? 'text-purple-600 dark:text-purple-400'
-                : 'text-slate-600 dark:text-slate-400',
-              driverName.length > 13 ? 'animate-marquee-slow' : 'truncate'
+                : 'text-slate-600 dark:text-slate-400'
             )}
             title={driverName}
           >

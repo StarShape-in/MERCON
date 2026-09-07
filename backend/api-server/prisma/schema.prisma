@@ -1052,6 +1052,8 @@ model QuotationHistory {
 
   old_rate           Decimal?  @db.Decimal(12, 2)
   new_rate           Decimal?  @db.Decimal(12, 2)
+  old_driver_payout  Decimal?  @db.Decimal(12, 2)
+  new_driver_payout  Decimal?  @db.Decimal(12, 2)
 
   changed_by         String?
   changed_by_user_id String?   @db.Uuid

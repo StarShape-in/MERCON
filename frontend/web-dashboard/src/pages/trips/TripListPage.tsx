@@ -1668,10 +1668,7 @@ export default function TripListPage() {
                     e.stopPropagation();
                     setPreviewDriver(row.driver);
                   }}
-                  className={cn(
-                    "text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block",
-                    `${row.driver.first_name} ${row.driver.last_name}`.length > 13 ? "animate-marquee-slow" : "truncate"
-                  )}
+                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block truncate"
                   title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
                 >
                   {row.driver.first_name} {row.driver.last_name}

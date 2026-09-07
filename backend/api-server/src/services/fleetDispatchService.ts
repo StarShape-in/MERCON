@@ -11,6 +11,21 @@ export interface DriverRecommendation {
   unavailabilityReason?: string;
 }
 
+export interface TripDriverRecommendationItem {
+  driverId: string;
+  driverName: string;
+  phone?: string | null;
+  status: string;
+  isAvailable: boolean;
+  unavailabilityReason?: string;
+  routeTripCount: number;
+  capacityMatch: boolean;
+  score: number;
+  badges: string[];
+  vehiclePlate?: string | null;
+  vehicleClass?: string | null;
+}
+
 export interface VehicleRecommendation {
   vehicleId: string;
   plateNumber: string;
@@ -20,6 +35,190 @@ export interface VehicleRecommendation {
   priority: number;
   isAvailable: boolean;
   unavailabilityReason?: string;
+}
+
+export function getMinCapacityKgForClass(classStr: string): number {
+  if (!classStr) return 0;
+  const s = String(classStr).toLowerCase();
+  if (s.includes('40 feet') || s.includes('40ft')) return 20000;
+  if (s.includes('20 ton')) return 18000;
+  if (s.includes('10 ton')) return 9000;
+  if (s.includes('8 ton')) return 7500;
+  if (s.includes('5 ton')) return 4500;
+  if (s.includes('3-4 ton') || s.includes('3 ton') || s.includes('4 ton')) return 3000;
+  return 0;
+}
+
+/**
+ * Returns ranked driver recommendations for a trip based on vehicle payload match,
+ * route experience (past trip count on same lane), and availability.
+ */
+export async function getRecommendedDriversForTrip(params: {
+  vehicleId?: string | null;
+  vehicleClass?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  plannedStart?: Date | string | null;
+}): Promise<TripDriverRecommendationItem[]> {
+  const { vehicleId, vehicleClass, origin, destination } = params;
+
+  const origStr = origin ? String(origin).trim().toLowerCase() : '';
+  const destStr = destination ? String(destination).trim().toLowerCase() : '';
+  const reqClassStr = vehicleClass ? String(vehicleClass).trim().toLowerCase() : '';
+
+  const drivers = await prisma.driver.findMany({
+    where: { deletedAt: null, isActive: true },
+    include: {
+      vehicleAssignments: {
+        where: { isActive: true },
+        include: { vehicle: true },
+      },
+      tripDrivers: {
+        where: { removedAt: null },
+        include: {
+          trip: {
+            include: {
+              stops: { include: { location: true }, orderBy: { sequence: 'asc' } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const now = new Date();
+  const recommendations: TripDriverRecommendationItem[] = [];
+
+  for (const driver of drivers) {
+    let isAvailable = true;
+    let unavailabilityReason: string | undefined;
+
+    if (driver.status === 'OffDuty' || driver.status === 'Inactive') {
+      isAvailable = false;
+      unavailabilityReason = `Status: ${driver.status}`;
+    } else if (driver.license_expiry && new Date(driver.license_expiry) < now) {
+      isAvailable = false;
+      unavailabilityReason = 'License Expired';
+    }
+
+    const driverTripDrivers: any[] = (driver as any).tripDrivers || [];
+
+    if (isAvailable) {
+      const hasActiveConflict = driverTripDrivers.some((td: any) => {
+        const tStatus = td.trip?.status;
+        return tStatus && ['Scheduled', 'Loading', 'InTransit', 'Delayed'].includes(tStatus);
+      });
+      if (hasActiveConflict) {
+        isAvailable = false;
+        unavailabilityReason = 'Assigned to Active Trip';
+      }
+    }
+
+    let routeTripCount = 0;
+    if (origStr && destStr) {
+      for (const td of driverTripDrivers) {
+        const stops = td.trip?.stops || [];
+        if (stops.length > 0) {
+          const firstStop = stops[0];
+          const lastStop = stops.length > 1 ? stops[stops.length - 1] : firstStop;
+
+          const tOrig = (firstStop.source_label || firstStop.location?.name || '').toLowerCase();
+          const tDest = (lastStop.source_label || lastStop.location?.name || '').toLowerCase();
+
+          if (
+            (tOrig.includes(origStr) || origStr.includes(tOrig)) &&
+            (tDest.includes(destStr) || destStr.includes(tDest))
+          ) {
+            routeTripCount++;
+          }
+        }
+      }
+    }
+
+    let capacityMatch = false;
+    let assignedPlate: string | null = null;
+    let assignedClass: string | null = null;
+    let capacityMismatchReason: string | null = null;
+
+    const primaryAssign = driver.vehicleAssignments[0];
+    if (primaryAssign?.vehicle) {
+      assignedPlate = primaryAssign.vehicle.plate_number;
+      assignedClass = primaryAssign.vehicle.asset_type;
+
+      if (!reqClassStr) {
+        capacityMatch = true;
+      } else {
+        const vAsset = (primaryAssign.vehicle.asset_type || '').toLowerCase();
+        const vCap = Number(primaryAssign.vehicle.capacity_kg || 0);
+        const reqMinCap = getMinCapacityKgForClass(reqClassStr);
+
+        if (reqMinCap > 0) {
+          if (vCap > 0) {
+            capacityMatch = vCap >= reqMinCap;
+            if (!capacityMatch) {
+              const actualTons = vCap >= 1000 ? `${(vCap / 1000).toFixed(0)} TON` : `${vCap} kg`;
+              capacityMismatchReason = `Under-Capacity (${actualTons} Truck)`;
+            }
+          } else {
+            const assetCap = getMinCapacityKgForClass(vAsset);
+            capacityMatch = assetCap >= reqMinCap || vAsset.includes(reqClassStr);
+            if (!capacityMatch) {
+              capacityMismatchReason = `Under-Capacity (${primaryAssign.vehicle.asset_type})`;
+            }
+          }
+        } else {
+          capacityMatch = true;
+        }
+      }
+    } else if (!reqClassStr) {
+      capacityMatch = true;
+    } else {
+      capacityMismatchReason = 'No Assigned Vehicle';
+    }
+
+    let score = 0;
+    if (isAvailable && capacityMatch) {
+      score += 200; // Base score for available + capacity-matched drivers
+      score += routeTripCount * 100;
+    } else if (isAvailable && !capacityMatch) {
+      score += 10; // Under-capacity drivers get minimal score so they stay below capacity-matched drivers
+    } else {
+      score += 0;
+    }
+
+    const badges: string[] = [];
+    if (routeTripCount > 0 && capacityMatch) {
+      badges.push(`⭐ Lane Experienced (${routeTripCount} trips)`);
+    }
+    if (capacityMatch) {
+      badges.push(`✓ Capacity Match`);
+    } else if (capacityMismatchReason) {
+      badges.push(`⚠️ ${capacityMismatchReason}`);
+    }
+    if (isAvailable) {
+      badges.push(`🟢 Available`);
+    } else if (unavailabilityReason) {
+      badges.push(`🔴 ${unavailabilityReason}`);
+    }
+
+    recommendations.push({
+      driverId: driver.id,
+      driverName: `${driver.first_name} ${driver.last_name}`,
+      phone: driver.phone_primary,
+      status: driver.status,
+      isAvailable,
+      unavailabilityReason,
+      routeTripCount,
+      capacityMatch,
+      score,
+      badges,
+      vehiclePlate: assignedPlate,
+      vehicleClass: assignedClass,
+    });
+  }
+
+  recommendations.sort((a, b) => b.score - a.score);
+  return recommendations;
 }
 
 /**

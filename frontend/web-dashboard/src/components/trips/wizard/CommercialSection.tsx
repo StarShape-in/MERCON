@@ -3,6 +3,8 @@ import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronR
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
+import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
+import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -43,9 +45,18 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   customerOptions = [],
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isInlineMode, setIsInlineMode] = React.useState(false);
+  const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
+
+  const vehicleClassOptions = React.useMemo(() => getAllTaxonomyOptions('VEHICLE_CLASS'), []);
+  const lineTypeOptions = React.useMemo(() => getAllTaxonomyOptions('LINE_TYPE'), []);
 
   const primarySlot = contractSlots[0] || {};
   const availableRateCards = getAvailableRateCardsForLane(primarySlot) || [];
+
+  const [inlinePricingBasis, setInlinePricingBasis] = React.useState<'Per Trip' | 'Per Month'>(
+    primarySlot.pricingBasis || 'Per Trip'
+  );
 
   // Use full customerRateCards so selecting a card does NOT hide other quotations
   const effectiveRateCards = React.useMemo(() => {
@@ -57,6 +68,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }
     return getAvailableRateCardsForLane({}) || [];
   }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
+
+  const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
 
   const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
   const activeSelectedId = primarySlot.matchedRateCard?.id || matchedRateCard?.id;
@@ -120,8 +133,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       })
       .slice(0, 50);
   }, [effectiveRateCards, activeSelectedId]);
-
-  const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
 
   // Filter quotations based on contractBillingType (All, Monthly, Extra) + search query
   const displayedRateCards = React.useMemo(() => {
@@ -230,31 +241,22 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               />
             </div>
           )}
-
-          {/* STAGE STATUS INDICATORS */}
-          {contractCustomer && (matchedRateCard || primarySlot.matchedRateCard) && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span>
-                  Quotation {(matchedRateCard || primarySlot.matchedRateCard)?.quotation_number || 'Applied'} • <span className="text-slate-600 dark:text-slate-400 font-medium">Source for Route & Rate</span>
-                </span>
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* RIGHT: CREATE QUOTATION BUTTON */}
+        {/* RIGHT: CREATE QUOTATION BUTTON / TOGGLE */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {handleOpenCreateQuotation && contractCustomer && (
+          {contractCustomer && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleOpenCreateQuotation}
+              onClick={() => setIsInlineMode(!showInlineForm)}
               className="h-8 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
             >
-              <Plus className="w-3.5 h-3.5" /> Create Quotation
+              <Plus className="w-3.5 h-3.5" />
+              {showInlineForm && effectiveRateCards.length > 0
+                ? `Saved Cards (${effectiveRateCards.length})`
+                : 'Define Quotation'}
             </Button>
           )}
         </div>
@@ -382,77 +384,298 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {Boolean(contractCustomer) && (
         <div className="space-y-2.5">
           {/* QUOTATIONS TOOLBAR: SEPARATE SEARCH ICON (LOGO COLUMN) + INPUT (COMBOBOX COLUMN) + BILLING TOGGLE */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            {/* TOP LEFT: SEPARATE SEARCH ICON BADGE & SEARCH INPUT */}
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              {/* SEPARATE SEARCH ICON BADGE (ORANGE BRAND HIGHLIGHT: w-8.5 h-8.5) */}
-              <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand grid place-items-center shrink-0 border border-orange-200/90 dark:border-orange-900/60 shadow-2xs">
-                <Search className="w-4 h-4 text-brand" />
+          {!showInlineForm && (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              {/* TOP LEFT: SEPARATE SEARCH ICON BADGE & SEARCH INPUT */}
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                {/* SEPARATE SEARCH ICON BADGE (ORANGE BRAND HIGHLIGHT: w-8.5 h-8.5) */}
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand grid place-items-center shrink-0 border border-orange-200/90 dark:border-orange-900/60 shadow-2xs">
+                  <Search className="w-4 h-4 text-brand" />
+                </div>
+
+                {/* EXPANDED SEARCH INPUT (INCREASED WIDTH: w-[400px] h-8.5) */}
+                <div className="relative w-full sm:w-[400px] shrink-0">
+                  <input
+                    type="text"
+                    value={quotationSearchQuery}
+                    onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                    placeholder="Search quotations (route, rate, vehicle, code)..."
+                    className="h-8.5 w-full px-3.5 pr-8 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                  />
+                  {quotationSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setQuotationSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* EXPANDED SEARCH INPUT (INCREASED WIDTH: w-[400px] h-8.5) */}
-              <div className="relative w-full sm:w-[400px] shrink-0">
-                <input
-                  type="text"
-                  value={quotationSearchQuery}
-                  onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                  placeholder="Search quotations (route, rate, vehicle, code)..."
-                  className="h-8.5 w-full px-3.5 pr-8 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
-                />
-                {quotationSearchQuery && (
+              {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
+              {setContractBillingType && (
+                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
                   <button
                     type="button"
-                    onClick={() => setQuotationSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    title="Clear search"
+                    onClick={() => setContractBillingType('All')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      !contractBillingType || contractBillingType.toLowerCase() === 'all'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
                   >
-                    <X className="w-3.5 h-3.5" />
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContractBillingType('Monthly')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      contractBillingType?.toLowerCase() === 'monthly'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContractBillingType('Extra')}
+                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                      contractBillingType?.toLowerCase() === 'extra'
+                        ? 'bg-brand text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    Extra
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showInlineForm ? (
+            <div className="p-3.5 rounded-xl bg-orange-50/40 dark:bg-slate-800/60 border border-orange-200/80 dark:border-slate-700 space-y-3">
+              {/* HEADER BADGE & LANE DETAILS */}
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-orange-200/60 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1">
+                    ✨ Define Master Quotation Rate Card
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    for {selectedCust?.name || 'Customer'}
+                  </span>
+                </div>
+
+                {/* LANE SUMMARY BADGE & RATE HISTORY TRIGGER BUTTON */}
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 flex-wrap">
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                    {primarySlot.origin || 'Origin'} → {primarySlot.destination || 'Destination'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    {contractVehicleType || '10 TON'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    {contractRateCategory || 'Single Trip'}
+                  </span>
+
+                  {/* RATE HISTORY POPOVER TRIGGER BUTTON (OPEN ONLY ON CLICK) */}
+                  <LaneRateHistoryPopover
+                    origin={primarySlot.origin}
+                    destination={primarySlot.destination}
+                    vehicleClass={contractVehicleType}
+                    customerId={contractCustomer}
+                    onApplyRate={(bRate, dPayout) => {
+                      handleUpdateTripSlot(primarySlot.id, {
+                        billingAmount: bRate,
+                        ...(dPayout != null ? { driverPayout: dPayout, driverPayoutModified: true } : {}),
+                        saveAsQuotation: true,
+                        saveAsRateCard: true,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* SPECIFICATION SELECTORS: OPERATION TYPE + VEHICLE CLASS + LINE TYPE */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pb-1">
+                {/* OPERATION / BILLING TYPE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Operation / Billing Type
+                  </label>
+                  <select
+                    value={contractBillingType?.toLowerCase() === 'extra' ? 'Extra' : 'Monthly'}
+                    onChange={(e) => setContractBillingType?.(e.target.value)}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    <option value="Monthly">Monthly (Contract Duty)</option>
+                    <option value="Extra">Extra (Spot / Per Trip)</option>
+                  </select>
+                </div>
+
+                {/* VEHICLE CLASS */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Vehicle Class
+                  </label>
+                  <select
+                    value={contractVehicleType || '10 TON'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractVehicleType?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val });
+                    }}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    {vehicleClassOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.label || opt.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* LINE TYPE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Line Type
+                  </label>
+                  <select
+                    value={contractRateCategory || 'Single Trip'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractRateCategory?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { rateCategory: val });
+                    }}
+                    className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+                  >
+                    {lineTypeOptions.map((opt) => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.label || opt.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS TOGGLE */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                {/* CUSTOMER BILLING AMOUNT */}
+                <div className="sm:col-span-5 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    💵 Customer Billing Rate (SAR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 1500"
+                      value={primarySlot.billingAmount || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleUpdateTripSlot(primarySlot.id, {
+                          billingAmount: val,
+                          saveAsQuotation: true,
+                          saveAsRateCard: true,
+                          pricingBasis: inlinePricingBasis,
+                        });
+                      }}
+                      className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* DRIVER PAYOUT */}
+                <div className="sm:col-span-4 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    🚛 Driver Payout (SAR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 400"
+                      value={primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleUpdateTripSlot(primarySlot.id, {
+                          driverPayout: val,
+                          driverPayoutModified: true,
+                          saveAsQuotation: true,
+                          saveAsRateCard: true,
+                          pricingBasis: inlinePricingBasis,
+                        });
+                      }}
+                      className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* PRICING BASIS TOGGLE: PER TRIP VS PER MONTH */}
+                <div className="sm:col-span-3 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Unit / Basis
+                  </label>
+                  <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 p-0.5 rounded-xl border border-slate-300 dark:border-slate-700 h-8.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlinePricingBasis('Per Trip');
+                        handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Trip', saveAsQuotation: true });
+                      }}
+                      className={cn(
+                        "flex-1 h-7 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer",
+                        inlinePricingBasis === 'Per Trip'
+                          ? "bg-[#FA634E] text-white shadow-2xs"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      Per Trip
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlinePricingBasis('Per Month');
+                        handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Month', saveAsQuotation: true });
+                      }}
+                      className={cn(
+                        "flex-1 h-7 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer",
+                        inlinePricingBasis === 'Per Month'
+                          ? "bg-[#FA634E] text-white shadow-2xs"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      Per Month
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER NOTICE */}
+              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-orange-200/40 dark:border-slate-700/60">
+                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-semibold">
+                  ☑ Automatically saves to Master Quotations ledger for future trips on this route.
+                </span>
+
+                {effectiveRateCards.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsInlineMode(false)}
+                    className="text-[#FA634E] font-extrabold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    ← Show Saved Cards ({effectiveRateCards.length})
                   </button>
                 )}
               </div>
             </div>
-
-            {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
-            {setContractBillingType && (
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('All')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    !contractBillingType || contractBillingType.toLowerCase() === 'all'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('Monthly')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    contractBillingType?.toLowerCase() === 'monthly'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  Monthly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContractBillingType('Extra')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                    contractBillingType?.toLowerCase() === 'extra'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  Extra
-                </button>
-              </div>
-            )}
-          </div>
-
-          {displayedRateCards.length > 0 ? (
+          ) : displayedRateCards.length > 0 ? (
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                 {displayedRateCards.map((rc, idx) => {
@@ -514,6 +737,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         handleUpdateTripSlot(primarySlot.id, {
                           matchedRateCard: rc,
                           billingAmount: String(rateVal),
+                          driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                          driverPayoutModified: false,
+                          updateQuotationPayout: false,
                           rateCategory: targetCategory,
                           vehicleType: targetVehicleClass,
                         });
@@ -526,25 +752,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       )}
                     >
                       {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
                             {rc.quotation_number || `QUO-${idx + 1}`}
                           </span>
                           {isSelected && (
-                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80">
+                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80 shrink-0">
                               Applied ✓
-                            </span>
-                          )}
-                          {!hasHistory && !isSelected && (
-                            <span className="text-[9px] font-extrabold text-orange-800 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/40 px-1.5 py-0.5 rounded-full border border-orange-200/70">
-                              ✨ New Rate
                             </span>
                           )}
                         </div>
 
                         {/* PRICE BADGE */}
-                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
+                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
                           SAR {Number(rateVal).toLocaleString()}
                         </span>
                       </div>
@@ -565,9 +786,16 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         <span className="truncate">
                           {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
                         </span>
-                        <span className={cn("font-black shrink-0", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
-                          {isSelected ? 'Active' : 'Apply →'}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!hasHistory && !isSelected && (
+                            <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1 py-0.2 rounded border border-amber-200/70 whitespace-nowrap">
+                              New Rate
+                            </span>
+                          )}
+                          <span className={cn("font-black", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
+                            {isSelected ? 'Active' : 'Apply →'}
+                          </span>
+                        </div>
                       </div>
                     </button>
                   );
@@ -646,6 +874,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                           handleUpdateTripSlot(primarySlot.id, {
                             matchedRateCard: rc,
                             billingAmount: String(rateVal),
+                            driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                            driverPayoutModified: false,
+                            updateQuotationPayout: false,
                             rateCategory: targetCategory,
                             vehicleType: targetVehicleClass,
                           });

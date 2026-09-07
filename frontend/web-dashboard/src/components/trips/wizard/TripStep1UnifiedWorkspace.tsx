@@ -62,6 +62,7 @@ interface TripStep1UnifiedWorkspaceProps {
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (val: string) => void;
   thirdPartyCost: string;
+  setThirdPartyCost?: (val: string) => void;
   marginMetrics: any;
   drivers?: any[];
   vehicles?: any[];
@@ -120,6 +121,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   thirdPartyDriverName,
   setThirdPartyDriverName,
   thirdPartyCost,
+  setThirdPartyCost,
   marginMetrics,
   drivers = [],
   vehicles = [],
@@ -145,11 +147,11 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         </div>
       </div>
 
-      {/* 66% / 33% 2-COLUMN COMMAND CENTER GRID */}
+      {/* 58% / 42% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
-        {/* LEFT WORKSPACE (lg:col-span-8): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
-        <div className="lg:col-span-8 space-y-3.5">
+        {/* LEFT WORKSPACE (lg:col-span-7): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
+        <div className="lg:col-span-7 space-y-3.5">
           {/* COMMERCIAL QUOTATIONS BAR WITH INTEGRATED CUSTOMER SELECTION (TOP LEFT ~60% WIDTH) */}
           <CommercialSection
             contractSlots={contractSlots}
@@ -195,8 +197,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           </div>
         </div>
 
-        {/* RIGHT WORKSPACE (lg:col-span-4): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
-        <div className="lg:col-span-4">
+        {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
+        <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
             {contractBillingType !== 'Monthly' && (
               <ExecutionAssignmentSection
@@ -215,6 +217,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
                 thirdPartyDriverName={thirdPartyDriverName}
                 setThirdPartyDriverName={setThirdPartyDriverName}
+                thirdPartyCost={thirdPartyCost}
+                setThirdPartyCost={setThirdPartyCost}
+                contractSlots={contractSlots}
                 contractVehicleType={contractVehicleType}
                 setContractVehicleType={setContractVehicleType}
               />
