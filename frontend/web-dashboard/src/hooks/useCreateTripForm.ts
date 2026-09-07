@@ -507,7 +507,7 @@ export function useCreateTripForm() {
 
     // Fallback 2: Check driverOptions for vehiclePlate or raw assignedVehicleId
     if (!vehicleId) {
-      const opt = driverOptions.find((o) => o.value === driverId);
+      const opt = driverOptions.find((o) => o.value === driverId) as (ComboboxOption & Record<string, any>) | undefined;
       if (opt?.raw?.assignedVehicleId) {
         vehicleId = opt.raw.assignedVehicleId;
       } else if (opt?.vehiclePlate) {
