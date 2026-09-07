@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, User, ShieldAlert, Plus, Trash2 } from 'lucide-react';
+import { Truck, User, ShieldAlert, Plus, Trash2, TrendingUp } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -20,6 +20,9 @@ interface ExecutionAssignmentSectionProps {
   setThirdPartyVehiclePlate: (plate: string) => void;
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (name: string) => void;
+  thirdPartyCost?: string;
+  setThirdPartyCost?: (cost: string) => void;
+  contractSlots?: any[];
   contractVehicleType?: string;
   setContractVehicleType?: (vType: string) => void;
 }
@@ -40,6 +43,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   setThirdPartyVehiclePlate,
   thirdPartyDriverName,
   setThirdPartyDriverName,
+  thirdPartyCost = '',
+  setThirdPartyCost,
+  contractSlots = [],
   contractVehicleType = '10 TON',
   setContractVehicleType,
 }) => {
@@ -63,7 +69,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
               assignmentType === 'own'
                 ? 'bg-emerald-600 text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             Own Fleet
@@ -74,7 +80,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
               assignmentType === 'third_party'
                 ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             3PL Partner
@@ -94,7 +100,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   VEHICLE CLASS
                 </label>
                 <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                  <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs">
+                  <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs">
                     <SelectValue placeholder="Select Vehicle Class..." />
                   </SelectTrigger>
                   <SelectContent className="z-[9999]">
@@ -119,7 +125,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 onChange={handleDriverChange}
                 placeholder="Select primary driver..."
                 searchPlaceholder="Search driver name, phone..."
-                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs"
+                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
               />
             </div>
 
@@ -134,7 +140,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 onChange={handleVehicleChange}
                 placeholder="Select primary vehicle..."
                 searchPlaceholder="Search plate, asset code..."
-                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 shadow-2xs"
+                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
               />
             </div>
 
@@ -142,7 +148,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             {showCoDriver ? (
               <div className="space-y-1 p-2 rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     CO-DRIVER / RELIEVER
                   </span>
                   <button
@@ -169,7 +175,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               <button
                 type="button"
                 onClick={() => setShowCoDriver(true)}
-                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer pt-0.5"
+                className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 flex items-center gap-1 cursor-pointer pt-0.5"
               >
                 <Plus className="w-3 h-3" /> Add Co-Driver / Reliever
               </button>
@@ -240,7 +246,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </div>
                 );
               })() : (
-                // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE (CENTERED AVATARS, 2-LINE NAMES)
+                // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE
                 <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
                   {driverOptions.slice(0, 2).map((dOpt, idx) => {
                     const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
@@ -250,7 +256,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                     const lastName = nameParts.slice(1).join(' ') || '';
 
                     const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
-                    const initials = rawName.substring(0, 2).toUpperCase() || 'DR';
                     const avatarUrl =
                       (dOpt as any).avatar_url ||
                       (dOpt as any).photo_url ||
@@ -284,7 +289,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
                         />
 
-                        {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
                         <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
                           <div className="truncate max-w-full">{firstName}</div>
                           {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
@@ -302,17 +306,20 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           </div>
         </div>
       ) : (
-        /* 3PL PARTNER ASSIGNMENT WORKSPACE */
-        <div className="space-y-2">
+        /* 3PL PARTNER ASSIGNMENT WORKSPACE WITH PROFITABILITY CARD */
+        <div className="space-y-2.5">
+          {/* 3PL PROVIDER */}
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">3PL PROVIDER *</label>
+            <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              3PL PROVIDER *
+            </label>
             <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
-              <SelectTrigger className="h-8.5 rounded-lg border-slate-200 text-xs font-bold shadow-2xs">
+              <SelectTrigger className="h-8 rounded-lg border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs">
                 <SelectValue placeholder="Select 3PL Partner..." />
               </SelectTrigger>
               <SelectContent className="z-[9999]">
                 {thirdPartyProviders.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="text-xs font-bold">
+                  <SelectItem key={p.id} value={p.id} className="text-xs font-bold cursor-pointer">
                     {p.name}
                   </SelectItem>
                 ))}
@@ -320,28 +327,116 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="space-y-0.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">3PL Driver Name</label>
+          {/* DRIVER NAME, VEHICLE PLATE & 3PL COST IN A 3-COLUMN GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                3PL DRIVER NAME
+              </label>
               <input
                 type="text"
                 value={thirdPartyDriverName}
                 onChange={(e) => setThirdPartyDriverName(e.target.value)}
                 placeholder="Driver name..."
-                className="h-8 rounded-lg border border-slate-200 px-2 text-xs font-semibold w-full shadow-2xs"
+                className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
               />
             </div>
-            <div className="space-y-0.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">3PL Vehicle Plate</label>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                3PL VEHICLE PLATE
+              </label>
               <input
                 type="text"
                 value={thirdPartyVehiclePlate}
                 onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
                 placeholder="Plate number..."
-                className="h-8 rounded-lg border border-slate-200 px-2 text-xs font-semibold w-full shadow-2xs"
+                className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
               />
             </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider">
+                3PL COST (SAR) *
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={thirdPartyCost}
+                  onChange={(e) => setThirdPartyCost?.(e.target.value)}
+                  placeholder="0"
+                  className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 pl-2.5 pr-8 text-xs font-mono font-black w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#FA634E]"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">SAR</span>
+              </div>
+            </div>
           </div>
+
+          {/* REAL-TIME 3PL PROFITABILITY TRACKER CARD */}
+          {(() => {
+            const billingAmountNum = contractSlots?.reduce((acc, s) => acc + (parseFloat(s.billingAmount) || 0), 0) || 0;
+            const costNum = parseFloat(thirdPartyCost || '0') || 0;
+            const marginNum = billingAmountNum - costNum;
+            const marginPct = billingAmountNum > 0 ? (marginNum / billingAmountNum) * 100 : 0;
+
+            const isPositive = marginNum >= 0;
+            const isHigh = marginPct >= 20;
+            const isMedium = marginPct >= 0 && marginPct < 20;
+
+            return (
+              <div className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-[#FA634E]" /> 3PL REAL-TIME PROFITABILITY
+                  </span>
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                      isHigh
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                        : isMedium
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                    }`}
+                  >
+                    {isPositive ? `+${marginPct.toFixed(1)}% Margin` : `${marginPct.toFixed(1)}% Loss`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+                  <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Billing</span>
+                    <span className="text-xs font-mono font-black text-slate-800 dark:text-slate-100">
+                      SAR {billingAmountNum.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block">3PL Cost</span>
+                    <span className="text-xs font-mono font-black text-slate-800 dark:text-slate-100">
+                      SAR {costNum.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className={`p-1.5 rounded-lg border ${
+                    isHigh
+                      ? 'bg-emerald-50/50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800'
+                      : isMedium
+                      ? 'bg-amber-50/50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
+                      : 'bg-rose-50/50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800'
+                  }`}>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Net Margin</span>
+                    <span className={`text-xs font-mono font-black ${
+                      isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
+                    }`}>
+                      {isPositive ? '+' : ''}SAR {marginNum.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

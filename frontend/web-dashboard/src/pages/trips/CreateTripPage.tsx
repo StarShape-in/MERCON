@@ -265,6 +265,7 @@ export default function CreateTripPage() {
                         thirdPartyDriverName={form.thirdPartyDriverName}
                         setThirdPartyDriverName={form.setThirdPartyDriverName}
                         thirdPartyCost={form.thirdPartyCost}
+                        setThirdPartyCost={form.setThirdPartyCost}
                         marginMetrics={form.marginMetrics}
                         drivers={form.drivers}
                         vehicles={form.vehicles}

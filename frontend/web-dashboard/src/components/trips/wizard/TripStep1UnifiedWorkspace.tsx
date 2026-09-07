@@ -62,6 +62,7 @@ interface TripStep1UnifiedWorkspaceProps {
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (val: string) => void;
   thirdPartyCost: string;
+  setThirdPartyCost?: (val: string) => void;
   marginMetrics: any;
   drivers?: any[];
   vehicles?: any[];
@@ -120,6 +121,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   thirdPartyDriverName,
   setThirdPartyDriverName,
   thirdPartyCost,
+  setThirdPartyCost,
   marginMetrics,
   drivers = [],
   vehicles = [],
@@ -215,6 +217,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
                 thirdPartyDriverName={thirdPartyDriverName}
                 setThirdPartyDriverName={setThirdPartyDriverName}
+                thirdPartyCost={thirdPartyCost}
+                setThirdPartyCost={setThirdPartyCost}
+                contractSlots={contractSlots}
                 contractVehicleType={contractVehicleType}
                 setContractVehicleType={setContractVehicleType}
               />
