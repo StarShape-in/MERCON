@@ -147,11 +147,11 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         </div>
       </div>
 
-      {/* 66% / 33% 2-COLUMN COMMAND CENTER GRID */}
+      {/* 58% / 42% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
-        {/* LEFT WORKSPACE (lg:col-span-8): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
-        <div className="lg:col-span-8 space-y-3.5">
+        {/* LEFT WORKSPACE (lg:col-span-7): COMMERCIAL QUOTATIONS + CUSTOMER + ROUTE WORKSPACE */}
+        <div className="lg:col-span-7 space-y-3.5">
           {/* COMMERCIAL QUOTATIONS BAR WITH INTEGRATED CUSTOMER SELECTION (TOP LEFT ~60% WIDTH) */}
           <CommercialSection
             contractSlots={contractSlots}
@@ -197,8 +197,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           </div>
         </div>
 
-        {/* RIGHT WORKSPACE (lg:col-span-4): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
-        <div className="lg:col-span-4">
+        {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
+        <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
             {contractBillingType !== 'Monthly' && (
               <ExecutionAssignmentSection
