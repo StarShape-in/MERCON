@@ -114,7 +114,20 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               </div>
             )}
 
-            {/* PRIMARY DRIVER SELECTION (Removed Dropdown per user request) */}
+            {/* PRIMARY DRIVER SELECTION */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <User className="w-3 h-3 text-emerald-600" /> PRIMARY DRIVER
+              </label>
+              <Combobox
+                options={driverOptions}
+                value={masterDriver}
+                onChange={handleDriverChange}
+                placeholder="Select primary driver..."
+                searchPlaceholder="Search driver name, phone..."
+                triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
+              />
+            </div>
 
             {/* VEHICLE */}
             <div className="space-y-1">
@@ -232,7 +245,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 // UNSELECTED STATE: SCROLLABLE LIST OF ALL RECOMMENDED DRIVERS
                 <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in max-h-[150px] overflow-y-auto pr-1 space-y-1">
                   {(() => {
-                    const listToDisplay = driverOptions;
+                    const listToDisplay = driverOptions.slice(0, 2);
 
                     if (listToDisplay.length === 0) {
                       return (
