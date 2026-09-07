@@ -236,7 +236,7 @@ initFleetTracking();
 initTripDelayMonitor();
 
 // Self-healing database column verification on startup
-(async () => {
+async function startServer() {
   const sqlStatements = [
     'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
     'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
@@ -252,8 +252,10 @@ initTripDelayMonitor();
     }
   }
   logger.info('✅ Self-healing database column verification complete');
-})();
 
-httpServer.listen(port, () => {
-  logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
-});
+  httpServer.listen(port, () => {
+    logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
+  });
+}
+
+startServer();
