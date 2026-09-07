@@ -411,6 +411,5 @@ export async function resolveVehicleLocationsForTrips(
   }
 
   return resultMap;
-};
 }
 
