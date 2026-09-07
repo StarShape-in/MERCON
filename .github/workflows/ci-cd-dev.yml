@@ -135,10 +135,15 @@ jobs:
       - name: Deploy Nginx Config for Dev & Reload
         run: |
           echo "Deploying dev nginx reverse proxy config..."
+          # Update any existing Certbot / Nginx SSL configs on the VPS for dev.mercon.tech to proxy to API port 3051 and Frontend port 3061
+          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-available/* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-available/* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-enabled/* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-enabled/* 2>/dev/null || true
+
           if [ -f nginx/dev-mercon-api.conf ]; then
             sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/dev-mercon-api.conf 2>/dev/null || true
-            sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/default 2>/dev/null || true
             sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf 2>/dev/null || true
-            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
           fi
+          sudo nginx -t 2>/dev/null && (sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload 2>/dev/null || true)
 
