@@ -218,3 +218,170 @@ export async function resolveVehicleLocation(
   // Rule D Fallback: No location ever recorded
   return baseResult;
 }
+
+/**
+ * Batch resolves vehicle locations for a list of trips to prevent N+1 database queries.
+ * Performs 1 single DB query for driver GPS locations across all operational trips,
+ * then resolves locations in-memory.
+ */
+export async function resolveVehicleLocationsForTrips(
+  trips: any[],
+  dbClient?: any,
+): Promise<Map<string, ResolvedVehicleLocation>> {
+  const db = dbClient || require('../index').prisma;
+  const now = Date.now();
+
+  const operationalTripIds = trips
+    .filter(t => t.vehicle && OPERATIONAL_TRIP_STATUSES.includes(t.status))
+    .map(t => t.id);
+
+  let latestLocMap = new Map<string, any>();
+  if (operationalTripIds.length > 0) {
+    const locs = await db.tripLocation.findMany({
+      where: { tripId: { in: operationalTripIds } },
+      orderBy: { recordedAt: 'desc' },
+      distinct: ['tripId'],
+    });
+    for (const loc of locs) {
+      latestLocMap.set(loc.tripId, loc);
+    }
+  }
+
+  const resultMap = new Map<string, ResolvedVehicleLocation>();
+
+  for (const t of trips) {
+    if (!t.vehicle) continue;
+    const vehicle = t.vehicle;
+    const isOperational = OPERATIONAL_TRIP_STATUSES.includes(t.status);
+
+    const baseResult: ResolvedVehicleLocation = {
+      vehicle_id: vehicle.id,
+      ref_id: vehicle.ref_id ?? null,
+      plate_number: vehicle.plate_number,
+      latitude: null,
+      longitude: null,
+      speed_kph: null,
+      heading_deg: null,
+      accuracy_m: null,
+      source: 'NONE',
+      display_state: 'UNAVAILABLE',
+      timestamp: null,
+      formatted_time_ago: 'Never',
+      active_trip_id: isOperational ? t.id : null,
+      active_driver_id: isOperational ? (t.driverId ?? null) : null,
+    };
+
+    const isPhysicalFresh =
+      vehicle.last_seen_at != null &&
+      vehicle.last_lat != null &&
+      vehicle.last_lng != null &&
+      now - new Date(vehicle.last_seen_at).getTime() <= PHYSICAL_GPS_FRESH_MS;
+
+    const hasPhysicalLocation =
+      vehicle.last_seen_at != null &&
+      vehicle.last_lat != null &&
+      vehicle.last_lng != null;
+
+    if (!isOperational) {
+      if (isPhysicalFresh) {
+        resultMap.set(t.id, {
+          ...baseResult,
+          latitude: vehicle.last_lat,
+          longitude: vehicle.last_lng,
+          speed_kph: vehicle.last_speed_kph ?? null,
+          heading_deg: vehicle.last_heading ?? null,
+          source: 'PHYSICAL_GPS',
+          display_state: 'CURRENT',
+          timestamp: new Date(vehicle.last_seen_at).toISOString(),
+          formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+        });
+      } else if (hasPhysicalLocation) {
+        resultMap.set(t.id, {
+          ...baseResult,
+          latitude: vehicle.last_lat,
+          longitude: vehicle.last_lng,
+          speed_kph: vehicle.last_speed_kph ?? null,
+          heading_deg: vehicle.last_heading ?? null,
+          source: 'PHYSICAL_GPS',
+          display_state: 'LAST_KNOWN',
+          timestamp: new Date(vehicle.last_seen_at).toISOString(),
+          formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+        });
+      } else {
+        resultMap.set(t.id, baseResult);
+      }
+      continue;
+    }
+
+    const latestDriverLoc = latestLocMap.get(t.id);
+    const isDriverFresh =
+      latestDriverLoc != null &&
+      now - new Date(latestDriverLoc.recordedAt).getTime() <= DRIVER_GPS_FRESH_MS;
+
+    if (isDriverFresh && latestDriverLoc) {
+      resultMap.set(t.id, {
+        ...baseResult,
+        latitude: latestDriverLoc.lat,
+        longitude: latestDriverLoc.lng,
+        speed_kph: latestDriverLoc.speed_kph ?? null,
+        heading_deg: latestDriverLoc.heading ?? null,
+        accuracy_m: latestDriverLoc.accuracy_m ?? null,
+        source: 'DRIVER_GPS',
+        display_state: 'CURRENT',
+        timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
+        formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+      });
+    } else if (isPhysicalFresh) {
+      resultMap.set(t.id, {
+        ...baseResult,
+        latitude: vehicle.last_lat,
+        longitude: vehicle.last_lng,
+        speed_kph: vehicle.last_speed_kph ?? null,
+        heading_deg: vehicle.last_heading ?? null,
+        source: 'PHYSICAL_GPS',
+        display_state: 'CURRENT',
+        timestamp: new Date(vehicle.last_seen_at).toISOString(),
+        formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+      });
+    } else {
+      const driverTime = latestDriverLoc ? new Date(latestDriverLoc.recordedAt).getTime() : 0;
+      const physicalTime = vehicle.last_seen_at ? new Date(vehicle.last_seen_at).getTime() : 0;
+
+      if (driverTime > 0 || physicalTime > 0) {
+        if (driverTime >= physicalTime && latestDriverLoc) {
+          resultMap.set(t.id, {
+            ...baseResult,
+            latitude: latestDriverLoc.lat,
+            longitude: latestDriverLoc.lng,
+            speed_kph: latestDriverLoc.speed_kph ?? null,
+            heading_deg: latestDriverLoc.heading ?? null,
+            accuracy_m: latestDriverLoc.accuracy_m ?? null,
+            source: 'DRIVER_GPS',
+            display_state: 'LAST_KNOWN',
+            timestamp: new Date(latestDriverLoc.recordedAt).toISOString(),
+            formatted_time_ago: formatTimeAgo(new Date(latestDriverLoc.recordedAt)),
+          });
+        } else if (hasPhysicalLocation) {
+          resultMap.set(t.id, {
+            ...baseResult,
+            latitude: vehicle.last_lat,
+            longitude: vehicle.last_lng,
+            speed_kph: vehicle.last_speed_kph ?? null,
+            heading_deg: vehicle.last_heading ?? null,
+            source: 'PHYSICAL_GPS',
+            display_state: 'LAST_KNOWN',
+            timestamp: new Date(vehicle.last_seen_at).toISOString(),
+            formatted_time_ago: formatTimeAgo(new Date(vehicle.last_seen_at)),
+          });
+        } else {
+          resultMap.set(t.id, baseResult);
+        }
+      } else {
+        resultMap.set(t.id, baseResult);
+      }
+    }
+  }
+
+  return resultMap;
+}
+

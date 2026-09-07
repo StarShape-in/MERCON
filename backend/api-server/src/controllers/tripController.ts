@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
-import { resolveVehicleLocation } from '../services/locationResolver';
+import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../services/locationResolver';
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
@@ -415,30 +415,27 @@ export const getTrips = async (req: Request, res: Response) => {
     ]);
 
     // Map quotation to rateCard for backward compatibility with frontend, and attach resolved_location for vehicle
-    const mappedTrips = await Promise.all(
-      trips.map(async (t) => {
-        let resolvedLocation = null;
-        if (t.vehicle) {
-          resolvedLocation = await resolveVehicleLocation(t.vehicle, prisma);
-        }
-        return {
-          ...t,
-          vehicle: t.vehicle
-            ? {
-                ...t.vehicle,
-                resolved_location: resolvedLocation,
-              }
-            : null,
-          rateCard: (t as any).quotation
-            ? {
-                id: (t as any).quotation.id,
-                name: (t as any).quotation.name,
-                base_price: Number((t as any).quotation.rate),
-              }
-            : null,
-        };
-      })
-    );
+    const vehicleLocationsMap = await resolveVehicleLocationsForTrips(trips, prisma);
+
+    const mappedTrips = trips.map((t) => {
+      const resolvedLocation = t.vehicle ? (vehicleLocationsMap.get(t.id) || null) : null;
+      return {
+        ...t,
+        vehicle: t.vehicle
+          ? {
+              ...t.vehicle,
+              resolved_location: resolvedLocation,
+            }
+          : null,
+        rateCard: (t as any).quotation
+          ? {
+              id: (t as any).quotation.id,
+              name: (t as any).quotation.name,
+              base_price: Number((t as any).quotation.rate),
+            }
+          : null,
+      };
+    });
 
     res.json({
       success: true,
