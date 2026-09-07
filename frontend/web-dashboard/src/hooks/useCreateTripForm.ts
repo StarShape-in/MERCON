@@ -292,6 +292,7 @@ export function useCreateTripForm() {
         return {
           value: d.id,
           label,
+          selectedLabel: fullName,
           keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
@@ -414,6 +415,7 @@ export function useCreateTripForm() {
         value: v.id,
         group,
         label,
+        selectedLabel: v.plate_number || typeLabel,
         keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${vClass} ${actualCapLabel} ${group} ${hint}`,
       };
     });
@@ -688,14 +690,16 @@ export function useCreateTripForm() {
   const [editDriver, setEditDriver] = useState<any | null>(null);
 
   const isStepValid = (step: number): boolean => {
+    const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
     if (step === 1) {
       return (
         Boolean(contractCustomer) &&
         contractSlots.length > 0 &&
         contractSlots.every((slot) => {
-          if (!slot.origin?.trim() || !slot.destination?.trim() || !slot.date || !slot.pickupTime || !slot.dropoffTime) {
+          if (!slot.origin?.trim() || !slot.destination?.trim() || (!isMonthly && !slot.date) || !slot.pickupTime || !slot.dropoffTime) {
             return false;
           }
+          if (isMonthly) return true;
           const dropoffDate = slot.dropoffDate || slot.date;
           if (dropoffDate < slot.date) return false;
           try {

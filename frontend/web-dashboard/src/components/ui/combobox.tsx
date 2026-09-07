@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 export interface ComboboxOption {
   value: string;
   label: string | React.ReactNode;
+  selectedLabel?: string | React.ReactNode;
   keywords?: string;
   disabled?: boolean;
   group?: string;
@@ -181,7 +182,7 @@ export function Combobox({
         >
           <span className="truncate flex items-center gap-2">
             {selected?.icon}
-            <span>{selected ? selected.label : placeholder}</span>
+            <span>{selected ? (selected.selectedLabel ?? selected.label) : placeholder}</span>
           </span>
           <ChevronDown className="ml-1.5 h-4 w-4 shrink-0 opacity-50 text-slate-400" />
         </Button>

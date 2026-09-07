@@ -565,6 +565,8 @@ export interface BulkImportTripRow {
   third_party_vehicle_type?: string;
   third_party_cost?: number;
   pickup_time?: string;
+  pickupTime?: string;
+  time?: string;
 }
 
 export interface BulkImportResult {

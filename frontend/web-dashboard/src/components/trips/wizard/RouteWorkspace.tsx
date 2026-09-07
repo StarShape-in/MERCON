@@ -8,6 +8,7 @@ import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { RouteMiniMap } from '@/components/trips/RouteMiniMap';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAllTaxonomyOptions, resolveTaxonomyOption } from '@/utils/taxonomyRegistry';
+import { isDateTimeInPast } from '@/utils/pastDateTripUtils';
 import { cn } from '@/lib/utils';
 
 interface RouteWorkspaceProps {
@@ -72,6 +73,11 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
     const d = new Date(pickupIsoValue);
     return isNaN(d.getTime()) ? undefined : d;
   }, [pickupIsoValue]);
+
+  const isPastSchedule = React.useMemo(() => {
+    if (isMonthly || !slot.date) return false;
+    return isDateTimeInPast(slot.date, slot.pickupTime);
+  }, [isMonthly, slot.date, slot.pickupTime]);
 
   const scheduleError = React.useMemo(() => {
     if (isMonthly) return null;
@@ -202,15 +208,22 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
             <div className="md:col-span-4 space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
-                {isMonthly ? (
-                  <>
-                    <Clock className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP TIME
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
-                  </>
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
+                <span className="flex items-center gap-1 truncate">
+                  {isMonthly ? (
+                    <>
+                      <Clock className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP TIME
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
+                    </>
+                  )}
+                </span>
+                {!isMonthly && isPastSchedule && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-black border border-amber-200 dark:border-amber-900 shrink-0 animate-fade-in">
+                    <Clock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" /> Past Time
+                  </span>
                 )}
               </label>
               {isMonthly ? (
