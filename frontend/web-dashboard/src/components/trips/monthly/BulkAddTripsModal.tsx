@@ -55,6 +55,7 @@ import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { localDateTimeToUtcIso, useDeploymentTimezone } from '@/lib/datetime';
 import { addDays } from '@/hooks/useCreateTripForm';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
@@ -1157,7 +1158,8 @@ export default function BulkAddTripsModal({
         let planned_end_val: string | undefined = undefined;
         if (slot.dropoffTime) {
           const isOvernightOrEarlier = slot.isOvernight || (slot.pickupTime && slot.dropoffTime <= slot.pickupTime);
-          const targetDropoffDate = isOvernightOrEarlier ? addDays(date, 1) : (slot.dropoffDate && slot.dropoffDate >= date ? slot.dropoffDate : date);
+          const slotDropoffDate = (slot as any).dropoffDate;
+          const targetDropoffDate = isOvernightOrEarlier ? addDays(date, 1) : (slotDropoffDate && slotDropoffDate >= date ? slotDropoffDate : date);
           planned_end_val = localDateTimeToUtcIso(targetDropoffDate, slot.dropoffTime, tz);
         }
 
