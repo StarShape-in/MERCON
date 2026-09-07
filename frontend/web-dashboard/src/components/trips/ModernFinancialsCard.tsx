@@ -24,7 +24,7 @@ export default function ModernFinancialsCard({
   const calculatedBalance = balanceDue !== undefined ? balanceDue : totalAmount - paidAmount;
 
   return (
-    <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex flex-col justify-between overflow-hidden">
+    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4.5 py-4 flex flex-col gap-3">
       {/* Header Row */}
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-[14px] text-[#1F2937]">Financials</h3>
@@ -37,45 +37,45 @@ export default function ModernFinancialsCard({
         </button>
       </div>
 
-      {/* Total Amount Big Headline */}
-      <div className="pt-0.5">
-        <span className="text-[11px] font-medium text-[#6B7280] block">Total Amount</span>
+      {/* Total Amount Headline */}
+      <div>
+        <span className="text-[10.5px] font-medium text-[#6B7280] block">Total Amount</span>
         <div className="font-mono font-black text-2xl text-[#1F2937] tracking-tight">
           SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
         </div>
       </div>
 
       {/* Paid vs Balance Due Row */}
-      <div className="grid grid-cols-2 gap-3 py-1.5 border-y border-[#F3F4F6]">
+      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-100">
         <div>
-          <span className="text-[10.5px] font-medium text-[#6B7280] block">Paid</span>
-          <span className="font-mono font-bold text-sm text-emerald-600">
+          <span className="text-[10px] font-medium text-[#6B7280] block">Paid</span>
+          <span className="font-mono font-bold text-[13px] text-emerald-600">
             SAR {paidAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </span>
         </div>
         <div>
-          <span className="text-[10.5px] font-medium text-[#6B7280] block">Balance Due</span>
-          <span className="font-mono font-bold text-sm text-[#EF4444]">
+          <span className="text-[10px] font-medium text-[#6B7280] block">Balance Due</span>
+          <span className="font-mono font-bold text-[13px] text-[#EF4444]">
             SAR {calculatedBalance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>
 
       {/* Itemized breakdown */}
-      <div className="space-y-1 text-[11px]">
+      <div className="space-y-1.5 text-[11px] pt-1 border-t border-[#F3F4F6]">
         <div className="flex justify-between text-[#4B5563]">
           <span>Base Rate</span>
-          <span className="font-mono font-medium text-[#1F2937]">
+          <span className="font-mono font-semibold text-[#1F2937]">
             SAR {baseRate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </span>
         </div>
         <div className="flex justify-between text-[#4B5563]">
           <span>Additional Charges</span>
-          <span className="font-mono font-medium text-[#1F2937]">
+          <span className="font-mono font-semibold text-[#1F2937]">
             SAR {additionalCharges.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </span>
         </div>
-        <div className="pt-1 border-t border-[#E5E7EB] flex justify-between font-bold text-[#1F2937]">
+        <div className="pt-1.5 border-t border-[#E5E7EB] flex justify-between font-bold text-[#1F2937]">
           <span>Total</span>
           <span className="font-mono">
             SAR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}

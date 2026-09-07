@@ -78,6 +78,29 @@ export default (): ExpoConfig => ({
     favicon: client.favicon,
   },
   plugins: [
+    // ── Inline config plugin: fix SplashScreenManager crash on Android < 12 ──
+    // expo prebuild regenerates android/app/src/main/java/.../MainActivity.kt
+    // from scratch every time (android/ is git-ignored). Without this plugin the
+    // vanilla generated file calls SplashScreenManager.registerOnActivity(this)
+    // unconditionally, which crashes on Android 10/11 (API < 31).
+    // This plugin wraps the call in a try/catch + API-level guard after prebuild.
+    ((config: ExpoConfig) => {
+      const { withMainActivity } = require('@expo/config-plugins');
+      return withMainActivity(config, (mod: any) => {
+        let src: string = mod.modResults.contents;
+
+        // Ensure AppTheme is set and SplashScreenManager is wrapped in try-catch
+        const target = 'SplashScreenManager.registerOnActivity(this)';
+        const safeCall = `setTheme(R.style.AppTheme)\n    try {\n      SplashScreenManager.registerOnActivity(this)\n    } catch (e: Throwable) {\n      android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n    }`;
+
+        if (src.includes(target) && !src.includes('SplashScreenManager failed')) {
+          src = src.replace(target, safeCall);
+        }
+
+        mod.modResults.contents = src;
+        return mod;
+      });
+    }) as any,
     'expo-router',
     [
       'expo-splash-screen',
@@ -111,7 +134,7 @@ export default (): ExpoConfig => ({
   extra: {
     router: {},
     eas: {
-      projectId: 'e5be404c-d6c0-4285-bfce-d459a605400a',
+      projectId: '2697c85a-0ac8-4a2e-9225-5cc84a5b518d',
     },
     // Read by src/lib/api.ts as the required fallback when EXPO_PUBLIC_API_URL
     // isn't set — per-client, so a misconfigured build can't silently talk to
@@ -121,5 +144,5 @@ export default (): ExpoConfig => ({
     brandColorLight: client.brandColorLight,
     brandColorDark: client.brandColorDark,
   },
-  owner: 'sayedhysam',
+  owner: 'alan32',
 });

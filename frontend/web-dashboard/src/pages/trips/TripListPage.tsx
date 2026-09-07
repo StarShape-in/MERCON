@@ -2005,123 +2005,6 @@ export default function TripListPage() {
       title="Trips" 
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trips</h1>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  Export & Import
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Export Operations
-                </DropdownMenuLabel>
-                
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    triggerExport({ type: 'all', format: 'xlsx' });
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
-                  <span>Export to Excel</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    runExport('pdf', { statusGroup: 'All' });
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
-                  <span>Export to PDF</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedTripsForExport([]);
-                    setExportMenuOpen(false);
-                    setIsCustomExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
-                >
-                  <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
-                  <span>Custom Export...</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Operations
-                </DropdownMenuLabel>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    setImportDialogOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
-                >
-                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
-                  <span>Import File (Excel / CSV)</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
-                >
-                  <span>New Trip</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Plus className="w-4 h-4 text-brand shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly?bulk=true')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
@@ -2282,7 +2165,7 @@ export default function TripListPage() {
           </div>
         )}
 
-        {/* Control Toolbar (Search, Filter, View Switcher) */}
+        {/* Control Toolbar (Search, Filter, View Switcher, Actions) */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
             {/* Reset Filters / Total Trips Button */}
@@ -2307,7 +2190,7 @@ export default function TripListPage() {
             </button>
 
             {/* Search Input */}
-            <div className="relative w-full sm:w-48 md:w-56 shrink-0">
+            <div className="relative w-full sm:flex-1 sm:min-w-[200px] lg:max-w-md shrink-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <Input
                 placeholder="Search trip ID, driver, vehicle..."
@@ -2409,10 +2292,7 @@ export default function TripListPage() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-          </div>
-
-          <div className="flex items-center gap-2.5">
+            
             {/* Date Filter Picker */}
             <TripDateFilterPicker
               dateFilter={dateFilter}
@@ -2420,42 +2300,142 @@ export default function TripListPage() {
               customDateRange={customDateRange}
               setCustomDateRange={setCustomDateRange}
             />
+          </div>
 
-            {/* Sort Dropdown */}
-            <SortDropdown
-              value={sortOption as TripSortOption}
-              onChange={(val) => setSortOption(val)}
-              options={TRIP_SORT_OPTIONS}
-            />
-
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             {/* View Mode Switcher */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
                   viewMode === 'table'
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
+                title="List View"
               >
-                <LayoutList className="w-3.5 h-3.5" />
-                <span>List</span>
+                <LayoutList className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
                   viewMode === 'kanban'
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
+                title="Kanban View"
               >
-                <Kanban className="w-3.5 h-3.5" />
-                <span>Kanban</span>
+                <Kanban className="w-4 h-4" />
               </button>
             </div>
+
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-[11px] font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                  <span className="hidden sm:inline">Export & Import</span>
+                  <span className="sm:hidden">Export</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Operations
+                </DropdownMenuLabel>
+                
+                <DropdownMenuItem
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    triggerExport({ type: 'all', format: 'xlsx' });
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
+                  <span>Export to Excel</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    runExport('pdf', { statusGroup: 'All' });
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
+                  <span>Export to PDF</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTripsForExport([]);
+                    setExportMenuOpen(false);
+                    setIsCustomExportOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
+                >
+                  <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
+                  <span>Custom Export...</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Import Operations
+                </DropdownMenuLabel>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    setImportDialogOpen(true);
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
+                >
+                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
+                  <span>Import File (Excel / CSV)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5 text-[11px] font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
+                >
+                  <span>New Trip</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
+                <DropdownMenuItem
+                  onClick={() => navigate('/trips/new')}
+                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                >
+                  <Plus className="w-4 h-4 text-brand shrink-0" />
+                  <div>
+                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
+                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => navigate('/trips/monthly?bulk=true')}
+                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                >
+                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <div>
+                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
+                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

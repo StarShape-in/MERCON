@@ -396,11 +396,12 @@ export default function TripDetailsPage() {
           <TripOverviewBarCard
             trip={trip}
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
+            onPreviewImage={(img) => setPreviewImage(img)}
           />
         </div>
 
         {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
-        <div className="grid grid-cols-12 gap-3 items-stretch">
+        <div className="grid grid-cols-12 gap-3 items-start">
           {/* Financials Card (~25% / 3 Cols) */}
           <div className="col-span-12 lg:col-span-3 flex flex-col">
             <ModernFinancialsCard

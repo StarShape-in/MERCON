@@ -14,7 +14,7 @@ import { OperatorBottomNav } from '@/navigation/OperatorBottomNav';
 import { LanguageProvider } from '@/lib/language-context';
 import { DriverLiveTracking } from '@/lib/DriverLiveTracking';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const TAB_ROUTES = [
   '/', '/trips', '/profile', '/notifications', '/documents', '/vehicle', '/settings', '/driver-charges',
@@ -29,7 +29,9 @@ function RootNavigator() {
   // Keep the native splash visible until the session is restored,
   // so the user never sees a flash of the wrong screen.
   useEffect(() => {
-    if (!isLoading) SplashScreen.hideAsync();
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
   }, [isLoading]);
 
   if (isLoading) {
@@ -49,38 +51,36 @@ function RootNavigator() {
   return (
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F3F4F6' } }}>
-        {/* Tab / hub screens switch instantly without animations */}
-        {isLoggedIn && <Stack.Screen name="index" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="trips" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="profile" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="notifications" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="documents" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="vehicle" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="settings" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="driver-charges" />}
-        {/* Trip flow keeps the sequential push animation */}
-        {isLoggedIn && <Stack.Screen name="trip/details" />}
-        {isLoggedIn && <Stack.Screen name="trip/pickup" />}
-        {isLoggedIn && <Stack.Screen name="trip/navigate" />}
-        {isLoggedIn && <Stack.Screen name="trip/stop" />}
-        {isLoggedIn && <Stack.Screen name="trip/delivery" />}
-        {isLoggedIn && <Stack.Screen name="trip/completed" />}
-        {isLoggedIn && <Stack.Screen name="cargo-pod-photos" />}
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="trips" options={{ animation: 'none' }} />
+        <Stack.Screen name="profile" options={{ animation: 'none' }} />
+        <Stack.Screen name="notifications" options={{ animation: 'none' }} />
+        <Stack.Screen name="documents" options={{ animation: 'none' }} />
+        <Stack.Screen name="vehicle" options={{ animation: 'none' }} />
+        <Stack.Screen name="settings" options={{ animation: 'none' }} />
+        <Stack.Screen name="driver-charges" />
+        {/* Trip flow */}
+        <Stack.Screen name="trip/details" />
+        <Stack.Screen name="trip/pickup" />
+        <Stack.Screen name="trip/navigate" />
+        <Stack.Screen name="trip/stop" />
+        <Stack.Screen name="trip/delivery" />
+        <Stack.Screen name="trip/completed" />
+        <Stack.Screen name="cargo-pod-photos" />
         {/* Operator screens */}
-        {isLoggedIn && <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/vehicles" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/invoices" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/more" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/customers" options={{ animation: 'none' }} />}
-        {isLoggedIn && <Stack.Screen name="operator/trip-details" />}
-        {isLoggedIn && <Stack.Screen name="operator/create-trip" />}
-        {isLoggedIn && <Stack.Screen name="operator/vehicle-renewals" />}
-        {isLoggedIn && <Stack.Screen name="operator/driver-edit" />}
-        {isLoggedIn && <Stack.Screen name="operator/vehicle-edit" />}
-        {isLoggedIn && <Stack.Screen name="operator/customer-edit" />}
-
-        {!isLoggedIn && <Stack.Screen name="login" />}
+        <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/vehicles" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/invoices" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/more" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/customers" options={{ animation: 'none' }} />
+        <Stack.Screen name="operator/trip-details" />
+        <Stack.Screen name="operator/create-trip" />
+        <Stack.Screen name="operator/vehicle-renewals" />
+        <Stack.Screen name="operator/driver-edit" />
+        <Stack.Screen name="operator/vehicle-edit" />
+        <Stack.Screen name="operator/customer-edit" />
       </Stack>
 
       {isLoggedIn && role === 'Driver' && <DriverLiveTracking />}

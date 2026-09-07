@@ -23,9 +23,13 @@ jobs:
       - name: Free Disk Space (Pre-checkout)
         run: |
           echo "Freeing disk space on self-hosted runner before git checkout..."
+          sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || apt-get clean 2>/dev/null || true
+          rm -rf /tmp/dev-uploads/* /tmp/mercon-dev-tmp-uploads/* /tmp/npm-* ~/.npm ~/.cache 2>/dev/null || true
           docker builder prune -af 2>/dev/null || true
+          docker buildx prune -af 2>/dev/null || true
           docker image prune -af 2>/dev/null || true
-          docker system prune -f 2>/dev/null || true
+          docker system prune -af 2>/dev/null || true
           df -h / || true
 
       # Native git instead of actions/checkout — see ci-cd.yml for why: this
@@ -100,15 +104,30 @@ jobs:
           chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
 
           # Free up disk space from previous builds and dangling layers to prevent ENOSPC errors
-          echo "Pruning dangling Docker images and build cache to ensure disk space..."
-          docker builder prune -af --filter "until=24h" 2>/dev/null || docker builder prune -af 2>/dev/null || true
-          docker image prune -f 2>/dev/null || true
+          echo "Pruning Docker build cache and unused images..."
+          docker builder prune -af 2>/dev/null || true
+          docker buildx prune -af 2>/dev/null || true
+          docker image prune -af 2>/dev/null || true
+          docker system prune -af 2>/dev/null || true
+          rm -rf ~/.npm ~/.cache /tmp/npm-* 2>/dev/null || true
+          sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
           df -h / || true
 
-          docker compose -p mercon-dev up -d --build
+          # Build sequentially instead of parallel to avoid running out of disk space (ENOSPC) during concurrent builds
+          echo "Building mercon-api..."
+          docker compose -p mercon-dev build mercon-api
+          docker builder prune -af 2>/dev/null || true
+          echo "Building mercon-frontend..."
+          docker compose -p mercon-dev build mercon-frontend
+          echo "Starting containers..."
+          docker compose -p mercon-dev up -d
 
           sleep 8
+          echo "--- Syncing database schema with prisma db push ---"
+          docker compose -p mercon-dev exec -T mercon-api npx prisma db push --accept-data-loss || true
+
           echo "--- dev-api logs (last 100 lines) ---"
           docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
           echo "--- dev-api container status ---"
           docker compose -p mercon-dev ps mercon-api || true
+

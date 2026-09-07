@@ -4,10 +4,32 @@ import { MODULE_KEYS, COMMON_TIMEZONES } from '@mercon/shared-types';
 
 const SINGLETON_ID = 'singleton';
 
+const DEFAULT_SETTINGS = {
+  id: SINGLETON_ID,
+  appName: 'MERCON Operator Platform',
+  companyLegalName: 'MERCON Operations Ltd.',
+  logoUrl: null,
+  primaryColor: '#E8450F',
+  timezone: 'Asia/Riyadh',
+  defaultCountryCode: 'SA',
+  defaultCountryDialCode: '+966',
+  enabledModules: [...MODULE_KEYS],
+  themeColors: null,
+  taxonomyConfig: null,
+  maintenanceMode: false,
+  maintenanceBanner: null,
+  updated_by: null,
+  updatedAt: new Date(),
+};
+
 /** Used by trip creation to stamp carrier_name from this deployment's own name, not a hardcoded literal. */
 export async function getCompanyLegalName(): Promise<string> {
-  const settings = await getOrCreateSettings();
-  return settings.companyLegalName;
+  try {
+    const settings = await getOrCreateSettings();
+    return settings?.companyLegalName || 'MERCON Operations Ltd.';
+  } catch {
+    return 'MERCON Operations Ltd.';
+  }
 }
 
 /**
@@ -16,8 +38,12 @@ export async function getCompanyLegalName(): Promise<string> {
  * data (reports, trash, vehicle financials) rather than 403 outright.
  */
 export async function getEnabledModules(): Promise<Set<string>> {
-  const settings = await getOrCreateSettings();
-  return new Set(settings.enabledModules);
+  try {
+    const settings = await getOrCreateSettings();
+    return new Set(settings?.enabledModules || MODULE_KEYS);
+  } catch {
+    return new Set(MODULE_KEYS);
+  }
 }
 
 // enabledModules defaults to every known module on first creation — this is
@@ -27,11 +53,16 @@ export async function getEnabledModules(): Promise<Set<string>> {
 // fails closed on an empty list, so getting this default wrong 403s every
 // gated module at once.
 async function getOrCreateSettings() {
-  return prisma.settings.upsert({
-    where: { id: SINGLETON_ID },
-    update: {},
-    create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS] },
-  });
+  try {
+    return await prisma.settings.upsert({
+      where: { id: SINGLETON_ID },
+      update: {},
+      create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS] },
+    });
+  } catch (err: any) {
+    console.warn('[Settings] Unable to query Settings from database, using defaults:', err.message || err);
+    return DEFAULT_SETTINGS as any;
+  }
 }
 
 /* ─── Public branding — unauthenticated, so the login page can brand itself ── */
@@ -53,7 +84,20 @@ export const getPublicSettings = async (_req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to load settings' } });
+    return res.json({
+      success: true,
+      data: {
+        appName: DEFAULT_SETTINGS.appName,
+        logoUrl: DEFAULT_SETTINGS.logoUrl,
+        primaryColor: DEFAULT_SETTINGS.primaryColor,
+        themeColors: null,
+        timezone: DEFAULT_SETTINGS.timezone,
+        defaultCountryCode: DEFAULT_SETTINGS.defaultCountryCode,
+        defaultCountryDialCode: DEFAULT_SETTINGS.defaultCountryDialCode,
+        maintenanceMode: false,
+        maintenanceBanner: null,
+      },
+    });
   }
 };
 

@@ -3,8 +3,32 @@ import type { PublicSettings, Settings } from '@mercon/shared-types';
 
 export const settingsService = {
   async getPublic(): Promise<PublicSettings> {
-    const res = await api.get<ApiResponse<PublicSettings>>('/settings/public');
-    return res.data.data;
+    try {
+      const res = await api.get<ApiResponse<PublicSettings>>('/settings/public');
+      return res.data?.data || {
+        appName: 'MERCON Operator Platform',
+        logoUrl: null,
+        primaryColor: '#E8450F',
+        themeColors: null,
+        timezone: 'Asia/Riyadh',
+        defaultCountryCode: 'SA',
+        defaultCountryDialCode: '+966',
+        maintenanceMode: false,
+        maintenanceBanner: null,
+      };
+    } catch {
+      return {
+        appName: 'MERCON Operator Platform',
+        logoUrl: null,
+        primaryColor: '#E8450F',
+        themeColors: null,
+        timezone: 'Asia/Riyadh',
+        defaultCountryCode: 'SA',
+        defaultCountryDialCode: '+966',
+        maintenanceMode: false,
+        maintenanceBanner: null,
+      } as PublicSettings;
+    }
   },
 
   async get(): Promise<Settings> {
