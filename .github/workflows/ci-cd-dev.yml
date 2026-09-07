@@ -122,10 +122,7 @@ jobs:
           echo "Starting containers..."
           docker compose -p mercon-dev up -d
 
-          sleep 8
-          echo "--- Syncing database schema with prisma db push ---"
-          docker compose -p mercon-dev exec -T mercon-api npx prisma db push --accept-data-loss || true
-
+          sleep 12
           echo "--- dev-api logs (last 100 lines) ---"
           docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
           echo "--- dev-api container status ---"
