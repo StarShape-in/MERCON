@@ -170,54 +170,13 @@ export default function CreateTripPage() {
 
           {/* Modal Body */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 pt-2 pb-4 min-h-0 custom-scrollbar">
-            {/* Submission Result Screen */}
-            {form.submissionResult ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
-                <h3 className="text-xl font-bold text-[#111111]">
-                  {form.submissionResult.imported} {form.submissionResult.imported === 1 ? 'Trip' : 'Trips'} Created Successfully!
-                </h3>
-                <p className="text-xs text-[#6E6E80] mt-1.5 max-w-md">
-                  All trips have been added to the database and are now populated on the Monthly Board view.
-                </p>
-
-                {form.submissionResult.failed > 0 && (
-                  <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left max-w-lg w-full">
-                    <p className="font-bold flex items-center gap-1.5 mb-1 text-amber-900">
-                      <AlertCircle className="h-4 w-4" /> {form.submissionResult.failed} rows failed validation:
-                    </p>
-                    <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-700">
-                      {form.submissionResult.results
-                        .filter((r) => !r.success)
-                        .slice(0, 5)
-                        .map((f, idx) => (
-                          <li key={idx}>
-                            Row #{f.row}: {f.error || 'Unknown error'}
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3 mt-6">
-                  <Button
-                    type="button"
-                    onClick={form.handleDialogClose}
-                    className="h-9 px-4 rounded-xl bg-brand hover:bg-brand/90 text-white font-bold text-xs"
-                  >
-                    Go to Operations Board
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* TAB 1: SINGLE-SCREEN UNIFIED TRIP COMMAND CENTER */}
-                {form.activeTab === 'contract' && (
-                  <div className="pb-4">
-                    {/* STEP 1: CONFIGURE & DISPATCH WORKSPACE */}
-                    {form.contractStep === 1 && (
-                      <TripStep1UnifiedWorkspace
-                        contractCustomer={form.contractCustomer}
+            {/* TAB 1: SINGLE-SCREEN UNIFIED TRIP COMMAND CENTER */}
+            {form.activeTab === 'contract' && (
+              <div className="pb-4">
+                {/* STEP 1: CONFIGURE & DISPATCH WORKSPACE */}
+                {form.contractStep === 1 && (
+                  <TripStep1UnifiedWorkspace
+                    contractCustomer={form.contractCustomer}
                         setContractCustomer={form.setContractCustomer}
                         customers={form.customers}
                         customerRateCards={form.customerRateCards}
@@ -341,8 +300,6 @@ export default function CreateTripPage() {
                     isPending={form.bulkMutation.isPending}
                   />
                 )}
-              </>
-            )}
           </div>
 
         </div>
