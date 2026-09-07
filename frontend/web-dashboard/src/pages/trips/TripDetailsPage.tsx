@@ -233,11 +233,12 @@ export default function TripDetailsPage() {
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
 
   // Financials
-  const chargesTotal = Number(trip.charges_total ?? (trip.charges || []).reduce((sum, c) => sum + Number(c.amount || 0), 0));
+  const tAny = trip as any;
+  const chargesTotal = Number(tAny.charges_total ?? (trip.charges || []).reduce((sum, c) => sum + Number(c.amount || 0), 0));
   const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
-  const totalAmount = Number(trip.total_amount ?? (baseRate + chargesTotal));
-  const paidAmount = Number(trip.paid_amount ?? 0);
-  const balanceDue = Number(trip.balance_due ?? (totalAmount - paidAmount));
+  const totalAmount = Number(tAny.total_amount ?? (baseRate + chargesTotal));
+  const paidAmount = Number(tAny.paid_amount ?? 0);
+  const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
 
   const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
   const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
