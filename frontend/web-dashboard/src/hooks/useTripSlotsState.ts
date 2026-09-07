@@ -26,6 +26,7 @@ export interface TripSlot {
   updateQuotationPayout?: boolean;
   saveAsQuotation?: boolean;
   saveAsRateCard?: boolean;
+  pricingBasis?: 'Per Trip' | 'Per Month';
   rateReason?: string;
   isOvernight?: boolean;
   intermediateLocations: string[];

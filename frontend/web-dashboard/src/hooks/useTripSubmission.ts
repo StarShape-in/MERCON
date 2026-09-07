@@ -153,12 +153,13 @@ export function useTripSubmission(
             { sequence: intermediateStops.length + 2, location_id: destId || null, source_label: slot.destination.trim() || null, stop_type: 'Dropoff' },
           ];
 
+          const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || null);
           return quotationService
             .create({
               name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
               rate: Number(slot.billingAmount),
               base_price: Number(slot.billingAmount),
-              driver_payout: Number(slot.tripCharges) || null,
+              driver_payout: slotDriverPayout,
               customerId: contractCustomer,
               origin_location_id: origId || null,
               destination_location_id: destId || null,
@@ -171,14 +172,20 @@ export function useTripSubmission(
               vehicle_type: contractVehicleType || null,
               line_type: contractRateCategory || null,
               billing_type: contractBillingType || null,
-              pricing_basis: 'Flat Rate',
+              pricing_basis: slot.pricingBasis || 'Per Trip',
               stops: quotationStops,
-              reason: slot.rateReason?.trim() || `Created during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
+              reason: slot.rateReason?.trim() || `Created inline during trip dispatch for ${slot.origin || 'origin'} → ${slot.destination || 'destination'} (${contractVehicleType || 'Standard'})`,
               source: 'TRIP_CREATION',
             })
-            .then((res) => {
-              toast.success(`Quotation '${res.name || slot.origin + ' → ' + slot.destination}' saved to Quotations ledger!`);
-              return res;
+            .then((res: any) => {
+              const createdQuo = res?.data || res;
+              const quoId = createdQuo?.id;
+              if (quoId) {
+                slot.rateCardId = quoId;
+                slot.matchedRateCard = createdQuo;
+              }
+              toast.success(`Quotation '${createdQuo?.name || slot.origin + ' → ' + slot.destination}' saved to Quotations ledger!`);
+              return createdQuo;
             })
             .catch((err: any) => {
               const errMsg = err.response?.data?.error?.message || err.message || 'Unknown error';

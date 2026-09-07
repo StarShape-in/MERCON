@@ -43,9 +43,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   customerOptions = [],
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isInlineMode, setIsInlineMode] = React.useState(false);
+  const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
 
   const primarySlot = contractSlots[0] || {};
   const availableRateCards = getAvailableRateCardsForLane(primarySlot) || [];
+
+  const [inlinePricingBasis, setInlinePricingBasis] = React.useState<'Per Trip' | 'Per Month'>(
+    primarySlot.pricingBasis || 'Per Trip'
+  );
 
   // Use full customerRateCards so selecting a card does NOT hide other quotations
   const effectiveRateCards = React.useMemo(() => {
@@ -57,6 +63,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }
     return getAvailableRateCardsForLane({}) || [];
   }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
+
+  const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
 
   const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
   const activeSelectedId = primarySlot.matchedRateCard?.id || matchedRateCard?.id;
@@ -120,8 +128,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       })
       .slice(0, 50);
   }, [effectiveRateCards, activeSelectedId]);
-
-  const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
 
   // Filter quotations based on contractBillingType (All, Monthly, Extra) + search query
   const displayedRateCards = React.useMemo(() => {
@@ -244,17 +250,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           )}
         </div>
 
-        {/* RIGHT: CREATE QUOTATION BUTTON */}
+        {/* RIGHT: CREATE QUOTATION BUTTON / TOGGLE */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {handleOpenCreateQuotation && contractCustomer && (
+          {contractCustomer && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleOpenCreateQuotation}
+              onClick={() => setIsInlineMode(!showInlineForm)}
               className="h-8 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
             >
-              <Plus className="w-3.5 h-3.5" /> Create Quotation
+              <Plus className="w-3.5 h-3.5" />
+              {showInlineForm && effectiveRateCards.length > 0
+                ? `Saved Cards (${effectiveRateCards.length})`
+                : 'Define Quotation'}
             </Button>
           )}
         </div>
@@ -452,7 +461,148 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             )}
           </div>
 
-          {displayedRateCards.length > 0 ? (
+          {showInlineForm ? (
+            <div className="p-3.5 rounded-xl bg-orange-50/40 dark:bg-slate-800/60 border border-orange-200/80 dark:border-slate-700 space-y-3">
+              {/* HEADER BADGE & LANE DETAILS */}
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-orange-200/60 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1">
+                    ✨ Define Master Quotation Rate Card
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    for {selectedCust?.name || 'Customer'}
+                  </span>
+                </div>
+
+                {/* LANE SUMMARY BADGE */}
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 flex-wrap">
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-extrabold text-slate-900 dark:text-white">
+                    {primarySlot.origin || 'Origin'} → {primarySlot.destination || 'Destination'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    {contractVehicleType || '10 TON'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    {contractRateCategory || 'Single Trip'}
+                  </span>
+                </div>
+              </div>
+
+              {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS TOGGLE */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                {/* CUSTOMER BILLING AMOUNT */}
+                <div className="sm:col-span-5 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    💵 Customer Billing Rate (SAR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 1500"
+                      value={primarySlot.billingAmount || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleUpdateTripSlot(primarySlot.id, {
+                          billingAmount: val,
+                          saveAsQuotation: true,
+                          saveAsRateCard: true,
+                          pricingBasis: inlinePricingBasis,
+                        });
+                      }}
+                      className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* DRIVER PAYOUT */}
+                <div className="sm:col-span-4 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    🚛 Driver Payout (SAR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 400"
+                      value={primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleUpdateTripSlot(primarySlot.id, {
+                          driverPayout: val,
+                          driverPayoutModified: true,
+                          saveAsQuotation: true,
+                          saveAsRateCard: true,
+                          pricingBasis: inlinePricingBasis,
+                        });
+                      }}
+                      className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* PRICING BASIS TOGGLE: PER TRIP VS PER MONTH */}
+                <div className="sm:col-span-3 space-y-1">
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Unit / Basis
+                  </label>
+                  <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 p-0.5 rounded-xl border border-slate-300 dark:border-slate-700 h-8.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlinePricingBasis('Per Trip');
+                        handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Trip', saveAsQuotation: true });
+                      }}
+                      className={cn(
+                        "flex-1 h-7 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer",
+                        inlinePricingBasis === 'Per Trip'
+                          ? "bg-[#FA634E] text-white shadow-2xs"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      Per Trip
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlinePricingBasis('Per Month');
+                        handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Month', saveAsQuotation: true });
+                      }}
+                      className={cn(
+                        "flex-1 h-7 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer",
+                        inlinePricingBasis === 'Per Month'
+                          ? "bg-[#FA634E] text-white shadow-2xs"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      Per Month
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER NOTICE */}
+              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-orange-200/40 dark:border-slate-700/60">
+                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-semibold">
+                  ☑ Automatically saves to Master Quotations ledger for future trips on this route.
+                </span>
+
+                {effectiveRateCards.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsInlineMode(false)}
+                    className="text-[#FA634E] font-extrabold hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    ← Show Saved Cards ({effectiveRateCards.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : displayedRateCards.length > 0 ? (
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                 {displayedRateCards.map((rc, idx) => {
