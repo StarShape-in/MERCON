@@ -237,24 +237,27 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 async function startServer() {
-  const columns = [
-    'billing_amount DECIMAL(12,2)',
-    'paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0.0',
-    'balance_due DECIMAL(12,2)',
-    'carrier_name TEXT',
-    'is_post_trip_settled BOOLEAN NOT NULL DEFAULT false',
+  const sqlCommands = [
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
+    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
+    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
+    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
+    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
+    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
   ];
-  const tableVariants = ['"Trip"', '"trips"', 'trips', 'Trip'];
-  for (const col of columns) {
-    for (const tbl of tableVariants) {
-      try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE ${tbl} ADD COLUMN IF NOT EXISTS ${col}`);
-      } catch (err: any) {
-        // ignore invalid table name variants
-      }
+
+  for (const sql of sqlCommands) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+      logger.info(`✅ Executed DB migration statement: ${sql}`);
+    } catch (err: any) {
+      logger.warn({ errMessage: err?.message, sql }, 'Self-healing DB column statement warning');
     }
   }
-  logger.info('✅ Self-healing database column verification complete');
 
   httpServer.listen(port, () => {
     logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
