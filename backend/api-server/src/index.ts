@@ -237,18 +237,21 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 (async () => {
-  try {
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2);
-      ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0;
-      ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2);
-      ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT;
-      ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false;
-    `);
-    logger.info('✅ Self-healing database column verification passed');
-  } catch (err: any) {
-    logger.warn({ err }, 'Self-healing database column verification warning');
+  const sqlStatements = [
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
+    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
+  ];
+  for (const sql of sqlStatements) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch (err: any) {
+      logger.warn({ err, sql }, 'Self-healing database column verification warning');
+    }
   }
+  logger.info('✅ Self-healing database column verification complete');
 })();
 
 httpServer.listen(port, () => {
