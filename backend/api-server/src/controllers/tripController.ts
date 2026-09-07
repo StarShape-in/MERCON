@@ -452,9 +452,17 @@ export const getTrips = async (req: Request, res: Response) => {
         total_pages: Math.ceil(total / limit)
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error({ err: error }, 'Failed to fetch trips');
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trips' } });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error?.message || 'Failed to fetch trips',
+        stack: error?.stack,
+        details: String(error)
+      }
+    });
   }
 };
 
