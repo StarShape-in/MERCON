@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { openInGoogleMaps } from '../../lib/maps';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Image,
 } from 'react-native';
+import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -236,17 +237,42 @@ const LiveNavigationScreen = () => {
     fetchRoute();
   }, [trip, position, activeStop]);
 
-  useEffect(() => {
-    if (position && activeStop && mapRef.current && Platform.OS !== 'web' && mapRef.current.fitToCoordinates) {
+  const recenterMap = useCallback(() => {
+    if (!mapRef.current) return;
+    if (position && activeStop) {
       mapRef.current.fitToCoordinates(
         [
           { latitude: position.lat, longitude: position.lng },
-          { latitude: activeStop.location_lat, longitude: activeStop.location_lng }
+          { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
         ],
-        { edgePadding: { top: 80, right: 80, bottom: 80, left: 80 }, animated: true }
+        { edgePadding: { top: 200, right: 60, bottom: 300, left: 60 }, animated: true }
       );
+    } else if (position) {
+      mapRef.current.animateToRegion({
+        latitude: position.lat,
+        longitude: position.lng,
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      }, 500);
+    } else if (activeStop) {
+      mapRef.current.animateToRegion({
+        latitude: activeStop.location_lat,
+        longitude: activeStop.location_lng,
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      }, 500);
     }
   }, [position, activeStop]);
+
+  const initialFitDone = useRef(false);
+  useEffect(() => {
+    if ((position || activeStop) && mapRef.current && !initialFitDone.current) {
+      initialFitDone.current = true;
+      setTimeout(() => {
+        recenterMap();
+      }, 600);
+    }
+  }, [position, activeStop, recenterMap]);
 
   if (loading && !trip) {
     return (
@@ -279,86 +305,172 @@ const LiveNavigationScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      {/* ── GPS Status Header ────────────────────────────────────────────── */}
-      <View style={styles.mapContainer}>
-        {/* Background gradient-style card */}
-        <View style={styles.mapBg}>
-          <View style={styles.mapBgIconCircle}>
-            <Truck size={40} color="#FA634E" strokeWidth={2} />
-          </View>
-          <Text style={styles.mapBgTitle}>
-            {isHeadingToPickup ? 'Heading to Pickup' : 'Heading to Delivery'}
-          </Text>
-
-          {/* GPS signal indicator */}
-          <View style={styles.gpsSignalRow}>
-            <View style={[styles.gpsSignalDot, { backgroundColor: position ? '#10B981' : '#F59E0B' }]} />
-            <Text style={styles.gpsSignalText}>
-              {position
-                ? `GPS Active · ${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`
-                : 'Acquiring GPS signal…'}
+      {/* ── Background Map (OpenStreetMap OSM Layer) ────────────────────── */}
+      <View style={StyleSheet.absoluteFill}>
+        {Platform.OS === 'web' || !MapView ? (
+          <View style={[StyleSheet.absoluteFill, styles.centerBox, { backgroundColor: '#EEF1F6' }]}>
+            <MapPin size={36} color="#FA634E" />
+            <Text style={{ color: '#3E3C3D', marginTop: 12, fontWeight: '700', fontSize: Typography.base }}>
+              OpenStreetMap View
+            </Text>
+            <Text style={{ color: '#64748B', marginTop: 4, fontSize: Typography.xs }}>
+              Open on mobile device for interactive OpenStreetMap navigation
             </Text>
           </View>
+        ) : (
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_DEFAULT}
+            style={StyleSheet.absoluteFill}
+            initialRegion={{
+              latitude: center.lat,
+              longitude: center.lng,
+              latitudeDelta: 0.08,
+              longitudeDelta: 0.08,
+            }}
+            showsUserLocation={false}
+            showsMyLocationButton={false}
+            showsCompass={false}
+            toolbarEnabled={false}
+            rotateEnabled={true}
+            scrollEnabled={true}
+            zoomEnabled={true}
+          >
+            {/* OpenStreetMap (OSM) Tile Layer */}
+            <UrlTile
+              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+              minimumZ={1}
+              flipY={false}
+              shouldReplaceMapContent={true}
+              tileSize={256}
+              zIndex={1}
+            />
 
-          {/* Distance / ETA row */}
-          {distanceToTarget != null && (
-            <View style={styles.etaRow}>
-              {displayDistance ? (
-                <View style={styles.etaChip}>
-                  <MapPin size={13} color="#FA634E" />
-                  <Text style={styles.etaChipText}>{displayDistance} away</Text>
-                </View>
-              ) : null}
-              {displayEta ? (
-                <View style={styles.etaChip}>
-                  <Clock size={13} color="#6366F1" />
-                  <Text style={[styles.etaChipText, { color: '#6366F1' }]}>{displayEta} ETA</Text>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
+            {/* Route Polyline */}
+            {routeCoords && routeCoords.length > 0 ? (
+              <Polyline
+                coordinates={routeCoords}
+                strokeColor="#FA634E"
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+                zIndex={5}
+              />
+            ) : position && activeStop ? (
+              <Polyline
+                coordinates={[
+                  { latitude: position.lat, longitude: position.lng },
+                  { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
+                ]}
+                strokeColor="#FA634E"
+                strokeWidth={4}
+                lineDashPattern={[6, 6]}
+                zIndex={5}
+              />
+            ) : null}
 
-        {/* Top Header Overlay */}
-        <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
-          {/* Outer Shadow Container */}
-          <View style={styles.unifiedTopCardShadow}>
-            {/* Inner Clipped Curved White Card */}
-            <View style={styles.unifiedTopCardInner}>
-              {/* Row 1: Back Arrow (Left), Current Step Info (Center), Report Delay Pill (Right) */}
-              <View style={styles.topControlHeaderRow}>
-                <TouchableOpacity
-                  style={styles.backCircleBtn}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
-                </TouchableOpacity>
-
-                <View style={styles.headerTitleCenter}>
-                  <View style={styles.currentStepTagRow}>
-                    <View style={styles.coralIndicatorDot} />
-                    <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+            {/* Destination Stop Marker */}
+            {activeStop && (
+              <Marker
+                coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }}
+                anchor={{ x: 0.5, y: 0.9 }}
+                zIndex={10}
+              >
+                <View style={styles.destPinOuter}>
+                  <View style={styles.destPinInner}>
+                    <MapPin size={18} color="#FFFFFF" strokeWidth={2.4} />
                   </View>
-                  <Text style={styles.headerStateTitle} numberOfLines={1}>
-                    {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
-                  </Text>
+                  <View style={styles.destPinArrow} />
                 </View>
+              </Marker>
+            )}
 
-                <DelayButton onPress={() => setDelayModalVisible(true)} />
+            {/* Live Driver Truck Marker */}
+            {position && (
+              <Marker
+                coordinate={{ latitude: position.lat, longitude: position.lng }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                flat
+                zIndex={20}
+              >
+                <View style={styles.driverPinPulse}>
+                  <View style={styles.driverPinOuter}>
+                    <Truck size={17} color="#FFFFFF" strokeWidth={2.4} />
+                  </View>
+                </View>
+              </Marker>
+            )}
+          </MapView>
+        )}
+      </View>
+
+      {/* ── Top Header Overlay ─────────────────────────────────────────── */}
+      <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
+        {/* Outer Shadow Container */}
+        <View style={styles.unifiedTopCardShadow}>
+          {/* Inner Clipped Curved White Card */}
+          <View style={styles.unifiedTopCardInner}>
+            {/* Row 1: Back Arrow (Left), Current Step Info (Center), Report Delay Pill (Right) */}
+            <View style={styles.topControlHeaderRow}>
+              <TouchableOpacity
+                style={styles.backCircleBtn}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
+              </TouchableOpacity>
+
+              <View style={styles.headerTitleCenter}>
+                <View style={styles.currentStepTagRow}>
+                  <View style={styles.coralIndicatorDot} />
+                  <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+                </View>
+                <Text style={styles.headerStateTitle} numberOfLines={1}>
+                  {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
+                </Text>
               </View>
 
-              {/* Subtle Horizontal Divider */}
-              <View style={styles.subtleDivider} />
+              <DelayButton onPress={() => setDelayModalVisible(true)} />
+            </View>
 
-              {/* Row 2: Full Width Connected 4-Stage Stepper */}
-              <View style={styles.fullWidthStepperContainer}>
-                <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
-              </View>
+            {/* Subtle Horizontal Divider */}
+            <View style={styles.subtleDivider} />
+
+            {/* Row 2: Full Width Connected 4-Stage Stepper */}
+            <View style={styles.fullWidthStepperContainer}>
+              <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
             </View>
           </View>
         </View>
       </View>
+
+      {/* ── Floating Controls on Map (ETA Pill + Recenter Button) ────────── */}
+      {(displayDistance || displayEta) && (
+        <View style={[styles.floatingEtaContainer, { top: Math.max(insets.top + 8, 16) + 124 }]}>
+          <View style={styles.floatingEtaPill}>
+            <View style={[styles.etaPulseDot, { backgroundColor: position ? '#10B981' : '#F59E0B' }]} />
+            {displayDistance ? (
+              <Text style={styles.floatingDistanceText}>{displayDistance}</Text>
+            ) : null}
+            {displayDistance && displayEta ? (
+              <Text style={styles.floatingEtaDivider}>•</Text>
+            ) : null}
+            {displayEta ? (
+              <Text style={styles.floatingEtaText}>{displayEta} remaining</Text>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      {/* Floating Recenter Map Button */}
+      <TouchableOpacity
+        style={[styles.floatingRecenterBtn, { bottom: Math.max(insets.bottom + 16, 24) + 225 }]}
+        activeOpacity={0.85}
+        onPress={recenterMap}
+      >
+        <Navigation size={18} color="#FA634E" strokeWidth={2.4} />
+      </TouchableOpacity>
 
 
       {/* Bottom Sheet Container */}
@@ -482,66 +594,118 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   centerBox: { alignItems: 'center', justifyContent: 'center' },
-  mapContainer: {
-    height: 220,
+  driverPinPulse: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(250, 99, 78, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  // GPS status card (replaces in-app MapView — no Google Maps API key needed)
-  mapBg: {
-    flex: 1,
+  driverPinOuter: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FA634E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  destPinOuter: {
+    alignItems: 'center',
+  },
+  destPinInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 16,
-    paddingBottom: 12,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
-  mapBgIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(250,99,78,0.12)',
+  destPinArrow: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderBottomWidth: 0,
+    borderTopWidth: 7,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#1E293B',
+    marginTop: -1,
+  },
+  floatingEtaContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 45,
+  },
+  floatingEtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.92)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    gap: 6,
+  },
+  etaPulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  floatingDistanceText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  floatingEtaDivider: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  floatingEtaText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  floatingRecenterBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-  },
-  mapBgTitle: {
-    fontSize: Typography.base,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  gpsSignalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  gpsSignalDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  gpsSignalText: {
-    fontSize: Typography.xs,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
-  etaRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  etaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  etaChipText: {
-    fontSize: Typography.xs,
-    fontWeight: '700',
-    color: '#FA634E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    zIndex: 45,
   },
 
   topOverlay: {
