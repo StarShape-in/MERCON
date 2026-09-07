@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Clock, Eye, Camera, ChevronDown,
-  ArrowUpRight, PackageCheck, Flag
+  ArrowUpRight, PackageCheck, Flag, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,7 +63,7 @@ function formatDocTime(dateStr?: string | null): string {
 interface PhotoCardItem {
   id: string;
   title: string;
-  type: 'arrival' | 'proof' | 'stop';
+  type: 'arrival' | 'proof' | 'stop' | 'document';
   status: string;
   location: string;
   time: string;
@@ -137,6 +137,16 @@ export default function TripPhotoEvidence({
                   sampleImg: '',
                   isRealDoc: false,
                 },
+                {
+                  id: 'p1_waybill',
+                  title: 'Pickup Waybill / Seal',
+                  type: 'document',
+                  status: 'Pending',
+                  location: originCity,
+                  time: 'Pending',
+                  sampleImg: '',
+                  isRealDoc: false,
+                },
               ],
             },
             {
@@ -158,9 +168,19 @@ export default function TripPhotoEvidence({
                   isRealDoc: false,
                 },
                 {
+                  id: 'p2_unload',
+                  title: 'Cargo Unloading Proof',
+                  type: 'proof',
+                  status: 'Pending',
+                  location: destCity,
+                  time: 'Pending',
+                  sampleImg: '',
+                  isRealDoc: false,
+                },
+                {
                   id: 'p2_proof',
                   title: 'Delivery Completion Proof',
-                  type: 'proof',
+                  type: 'document',
                   status: 'Pending',
                   location: destCity,
                   time: 'Pending',
@@ -263,8 +283,8 @@ export default function TripPhotoEvidence({
         const proofDoc =
           photoDocs.find((d: any) =>
             d.ai_extracted_json?.operation === (isReturn ? 'return_loading' : 'pickup') ||
-            (d.doc_type === 'Waybill' && d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0))
-          ) || waybillDocs[waybillIdx++];
+            d.ai_extracted_json?.operation === (isReturn ? 'return_loading_proof' : 'pickup_loading_proof')
+          );
 
         photos.push({
           id: `${seqStr}_proof`,
@@ -276,21 +296,69 @@ export default function TripPhotoEvidence({
           sampleImg: proofDoc ? resolveDocUrl(proofDoc.file_url) : '',
           isRealDoc: !!proofDoc,
         });
+
+        // Slot 3: Waybill / Cargo Seal Proof
+        const waybillDoc =
+          photoDocs.find((d: any) =>
+            d.ai_extracted_json?.operation === (isReturn ? 'return_waybill' : 'pickup_waybill') ||
+            (d.doc_type === 'Waybill' && d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0))
+          ) || waybillDocs[waybillIdx++];
+
+        photos.push({
+          id: `${seqStr}_waybill`,
+          title: isReturn ? 'Return Waybill / Seal' : 'Pickup Waybill / Seal',
+          type: 'document',
+          status: waybillDoc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
+          location: city,
+          time: waybillDoc?.createdAt ? formatDocTime(waybillDoc.createdAt) : stopArrivalTime,
+          sampleImg: waybillDoc ? resolveDocUrl(waybillDoc.file_url) : '',
+          isRealDoc: !!waybillDoc,
+        });
       } else if (role === 'stop' || role === 'return_stop') {
-        // Slot: Stop Photo
+        // Slot 1: Stop Arrival Photo
+        const arrivalDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_stop_arrival' : 'stop_arrival')
+        );
+        photos.push({
+          id: `${seqStr}_arrival`,
+          title: isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo',
+          type: 'arrival',
+          status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+          location: city,
+          time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
+          sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
+          isRealDoc: !!arrivalDoc,
+        });
+
+        // Slot 2: Stop Cargo Inspection
         const doc =
           stopDocs[stopDocIdx++] ||
           photoDocs.find((d: any) => d.ai_extracted_json?.operation?.includes('stop'));
 
         photos.push({
           id: `${seqStr}_stop`,
-          title: isReturn ? 'Return Stop Photo' : 'Stop Photo',
-          type: 'stop',
+          title: isReturn ? 'Return Stop Inspection' : 'Stop Cargo Inspection',
+          type: 'proof',
           status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
           location: city,
           time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
           sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
           isRealDoc: !!doc,
+        });
+
+        // Slot 3: Stop Departure Proof
+        const departureDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_stop_departure' : 'stop_departure')
+        );
+        photos.push({
+          id: `${seqStr}_departure`,
+          title: isReturn ? 'Return Stop Departure' : 'Stop Departure Proof',
+          type: 'document',
+          status: departureDoc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
+          location: city,
+          time: departureDoc?.createdAt ? formatDocTime(departureDoc.createdAt) : stopArrivalTime,
+          sampleImg: departureDoc ? resolveDocUrl(departureDoc.file_url) : '',
+          isRealDoc: !!departureDoc,
         });
       } else {
         // Slot 1: Arrival Photo
@@ -308,7 +376,23 @@ export default function TripPhotoEvidence({
           isRealDoc: !!arrivalDoc,
         });
 
-        // Slot 2: Delivery Completion Proof (POD)
+        // Slot 2: Cargo Unloading Proof
+        const unloadDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_unload' : 'delivery_unload') ||
+          d.ai_extracted_json?.operation === (isReturn ? 'return_cargo' : 'delivery_cargo')
+        );
+        photos.push({
+          id: `${seqStr}_unload`,
+          title: isReturn ? 'Return Unload Proof' : 'Cargo Unloading Proof',
+          type: 'proof',
+          status: unloadDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+          location: city,
+          time: unloadDoc?.createdAt ? formatDocTime(unloadDoc.createdAt) : stopArrivalTime,
+          sampleImg: unloadDoc ? resolveDocUrl(unloadDoc.file_url) : '',
+          isRealDoc: !!unloadDoc,
+        });
+
+        // Slot 3: Delivery Completion Proof (POD)
         const proofDoc =
           photoDocs.find((d: any) =>
             d.ai_extracted_json?.operation === (isReturn ? 'return_delivery' : 'delivery') ||
@@ -318,7 +402,7 @@ export default function TripPhotoEvidence({
         photos.push({
           id: `${seqStr}_proof`,
           title: isReturn ? 'Return Delivery Proof' : 'Delivery Completion Proof',
-          type: 'proof',
+          type: 'document',
           status: proofDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
           location: city,
           time: proofDoc?.createdAt ? formatDocTime(proofDoc.createdAt) : stopArrivalTime,
@@ -485,7 +569,7 @@ export default function TripPhotoEvidence({
                   return (
                     <div
                       key={loc.seq}
-                      className="flex-1 min-w-[200px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-1.5 flex flex-col justify-between"
+                      className="flex-1 min-w-[240px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-1.5 flex flex-col justify-between"
                     >
                       {/* Location Header */}
                       <div className="flex items-center justify-between gap-1 pb-1 shrink-0 border-b border-slate-200/60">
@@ -506,15 +590,20 @@ export default function TripPhotoEvidence({
                         </span>
                       </div>
 
-                      {/* Photo Cards Container */}
+                      {/* Photo Cards Container (3 across) */}
                       <div
                         className={`grid ${
-                          loc.photos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+                          loc.photos.length === 1
+                            ? 'grid-cols-1'
+                            : loc.photos.length === 2
+                            ? 'grid-cols-2'
+                            : 'grid-cols-3'
                         } gap-1 pt-1 items-stretch`}
                       >
                         {loc.photos.map((photo) => {
                           const isArrival = photo.type === 'arrival';
                           const isStop = photo.type === 'stop';
+                          const isDoc = photo.type === 'document';
 
                           return (
                             <div
@@ -529,6 +618,11 @@ export default function TripPhotoEvidence({
                                       size={10}
                                       className="text-purple-600 shrink-0 stroke-[2.5]"
                                     />
+                                  ) : isDoc ? (
+                                    <FileText
+                                      size={10}
+                                      className="text-emerald-600 shrink-0 stroke-[2.5]"
+                                    />
                                   ) : isStop ? (
                                     <Flag
                                       size={10}
@@ -537,18 +631,18 @@ export default function TripPhotoEvidence({
                                   ) : (
                                     <PackageCheck
                                       size={10}
-                                      className="text-emerald-600 shrink-0 stroke-[2.5]"
+                                      className="text-amber-600 shrink-0 stroke-[2.5]"
                                     />
                                   )}
                                   <span
-                                    className="font-bold text-[8.5px] sm:text-[9px] text-[#1F2937] truncate"
+                                    className="font-bold text-[8px] sm:text-[8.5px] text-[#1F2937] truncate"
                                     title={photo.title}
                                   >
                                     {photo.title}
                                   </span>
                                 </div>
                                 <span
-                                  className={`px-1 py-0.2 rounded text-[7.5px] font-bold border shrink-0 leading-none ${
+                                  className={`px-1 py-0.2 rounded text-[7px] sm:text-[7.5px] font-bold border shrink-0 leading-none ${
                                     photo.isRealDoc
                                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                       : 'bg-amber-50 text-amber-700 border-amber-200'
