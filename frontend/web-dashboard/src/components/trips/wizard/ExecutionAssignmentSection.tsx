@@ -92,7 +92,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         /* 2-COLUMN ASSIGNMENT WORKSPACE */
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
-          <div className="md:col-span-6 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
+          <div className="md:col-span-8 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
             {/* VEHICLE CLASS */}
             {setContractVehicleType && (
               <div className="space-y-1">
@@ -183,7 +183,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           </div>
 
           {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD */}
-          <div className="md:col-span-6 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
+          <div className="md:col-span-4 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                 {masterDriver ? 'ASSIGNED DRIVER' : 'RECOMMENDED DRIVERS'}
@@ -203,13 +203,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               {masterDriver ? (() => {
                 // REFINED COMPACT DRIVER VIEW
                 const selectedOpt = driverOptions.find((d) => d.value === masterDriver);
-                const optLabelStr = selectedOpt ? (typeof selectedOpt.label === 'string' ? selectedOpt.label : String(selectedOpt.label || '')) : '';
-                const rawName = optLabelStr.split('(')[0].trim() || 'Assigned Driver';
-                const nameParts = rawName.split(' ');
-                const firstName = nameParts[0] || rawName;
-                const lastName = nameParts.slice(1).join(' ') || '';
-
-                const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
+                const firstName = (selectedOpt as any)?.first_name || (selectedOpt as any)?.raw?.first_name || 'Assigned Driver';
+                const lastName = (selectedOpt as any)?.last_name || (selectedOpt as any)?.raw?.last_name || '';
+                const optDetailsStr = (selectedOpt as any)?.detailsStr || (selectedOpt as any)?.raw?.detailsStr || '';
                 const avatarUrl = selectedOpt ? (
                   (selectedOpt as any).avatar_url ||
                   (selectedOpt as any).photo_url ||
@@ -261,13 +257,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                     }
 
                     return listToDisplay.map((dOpt, idx) => {
-                      const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
-                      const rawName = optLabelStr.split('(')[0].trim() || 'Driver';
-                      const nameParts = rawName.split(' ');
-                      const firstName = nameParts[0] || rawName;
-                      const lastName = nameParts.slice(1).join(' ') || '';
-
-                      const optDetailsStr = optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '';
+                      const firstName = (dOpt as any).first_name || (dOpt as any).raw?.first_name || 'Driver';
+                      const lastName = (dOpt as any).last_name || (dOpt as any).raw?.last_name || '';
+                      const optDetailsStr = (dOpt as any).detailsStr || (dOpt as any).raw?.detailsStr || '';
                       const avatarUrl =
                         (dOpt as any).avatar_url ||
                         (dOpt as any).photo_url ||
@@ -302,8 +294,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           />
 
                           <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
-                            <div className="truncate max-w-full">{firstName}</div>
-                            {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
+                            <div className="truncate max-w-full">{firstName} {lastName}</div>
                           </div>
 
                           <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
