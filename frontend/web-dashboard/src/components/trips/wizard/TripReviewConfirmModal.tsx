@@ -3,6 +3,7 @@ import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, Shield
 import { Button } from '@/components/ui/button';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import { cn } from '@/lib/utils';
 
 interface TripReviewConfirmModalProps {
   isOpen: boolean;
@@ -382,23 +383,72 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           </div>
 
           {/* FINANCIAL SUMMARY */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Total Revenue Billing
-              </span>
-              <span className="text-xs font-medium text-slate-500">
-                {contractBillingType === 'Monthly' ? 'Monthly Flat Rate' : `${totalOperatingDays} Day${totalOperatingDays > 1 ? 's' : ''} × SAR ${slotBillingTotal.toLocaleString()}/day`}
-              </span>
-            </div>
+          {(() => {
+            const costValue = assignmentType === 'third_party'
+              ? (parseFloat(String(thirdPartyCost || 0)) || 0)
+              : (parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0);
+            const totalCost = costValue * (contractBillingType === 'Monthly' ? 1 : totalOperatingDays);
+            const netMargin = grandTotalBilling - totalCost;
+            const marginPct = grandTotalBilling > 0 ? (netMargin / grandTotalBilling) * 100 : 0;
 
-            <div className="text-right">
-              <span className="text-xs font-bold text-slate-400 mr-1.5">SAR</span>
-              <span className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
-                {grandTotalBilling.toLocaleString()}
-              </span>
-            </div>
-          </div>
+            return (
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                    Financial Summary
+                  </span>
+                  {costValue > 0 && (
+                    <span className={cn(
+                      "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
+                      netMargin >= 0
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                    )}>
+                      {netMargin >= 0 ? `+${marginPct.toFixed(1)}% Net Margin` : `${marginPct.toFixed(1)}% Loss`}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                    {/* 1. REVENUE BILLING */}
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/70 dark:border-slate-700">
+                      <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Customer Billing</span>
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white">
+                        SAR {grandTotalBilling.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* 2. DRIVER PAYOUT / 3PL COST */}
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/70 dark:border-slate-700">
+                      <span className="text-[9px] font-extrabold text-slate-400 uppercase block">
+                        {assignmentType === 'third_party' ? '3PL Cost' : 'Driver Charge'}
+                      </span>
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white">
+                        {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
+                      </span>
+                    </div>
+
+                    {/* 3. NET MARGIN */}
+                    <div className={cn(
+                      "p-2 rounded-lg border col-span-2 sm:col-span-1",
+                      netMargin >= 0
+                        ? "bg-emerald-50/60 border-emerald-200/80 dark:bg-emerald-950/30 dark:border-emerald-800"
+                        : "bg-rose-50/60 border-rose-200/80 dark:bg-rose-950/30 dark:border-rose-800"
+                    )}>
+                      <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Net Margin</span>
+                      <span className={cn(
+                        "text-xs font-mono font-black",
+                        netMargin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
+                      )}>
+                        {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
 
