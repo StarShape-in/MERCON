@@ -194,8 +194,43 @@ export function useCreateTripForm() {
   const vehiclesRef = useRef(vehicles);
   vehiclesRef.current = vehicles;
 
+  const {
+    contractSlots,
+    setContractSlots,
+    handleAddTripSlot,
+    handleRemoveTripSlot,
+    handleUpdateTripSlot,
+    handleAddSlotIntermediate,
+    handleRemoveSlotIntermediate,
+    handleUpdateSlotIntermediate,
+    handleUpdateSlotIntermediateFee,
+    handleAddSlotReturnIntermediate,
+    handleRemoveSlotReturnIntermediate,
+    handleUpdateSlotReturnIntermediate,
+    handleUpdateSlotReturnIntermediateFee,
+  } = useTripSlotsState();
+
+  const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
+
+  const primarySlot = contractSlots[0] || {};
+  const originName = primarySlot.origin || '';
+  const destinationName = primarySlot.destination || '';
+
+  const { data: recommendedDriversRes } = useQuery({
+    queryKey: ['recommendedDrivers', originName, destinationName, contractVehicleType],
+    queryFn: () =>
+      tripService.getRecommendedDrivers({
+        origin: originName,
+        destination: destinationName,
+        vehicleClass: contractVehicleType,
+      }),
+    enabled: Boolean(originName || destinationName || contractVehicleType),
+  });
+
   const driverOptions = useMemo<ComboboxOption[]>(() => {
-    return drivers
+    const recMap = new Map((recommendedDriversRes || []).map((r) => [r.driverId, r]));
+
+    const mapped = drivers
       .filter((d) => {
         if (!d || !d.id) return false;
         const fn = (d.first_name || '').toLowerCase();
@@ -204,6 +239,7 @@ export function useCreateTripForm() {
         return true;
       })
       .map((d) => {
+        const rec = recMap.get(d.id);
         const embeddedVeh =
           d.assignedVehicle && typeof d.assignedVehicle === 'object'
             ? (d.assignedVehicle as any)
@@ -224,22 +260,29 @@ export function useCreateTripForm() {
           ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
           : '';
 
-        const detailsStr = [capacityLabel, statusTag].filter(Boolean).join(' • ');
+        const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
+        const detailsStr = [badgesStr, capacityLabel, statusTag].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
         const label = detailsStr ? `${fullName} (${detailsStr})` : fullName;
 
         return {
           value: d.id,
           label,
-          keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
+          keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
           first_name: d.first_name,
           last_name: d.last_name,
           raw: d,
+          score: rec?.score ?? 0,
+          routeTripCount: rec?.routeTripCount ?? 0,
+          capacityMatch: rec?.capacityMatch ?? false,
         } as ComboboxOption & Record<string, any>;
       });
-  }, [drivers, vehicles]);
+
+    mapped.sort((a, b) => (b.score || 0) - (a.score || 0));
+    return mapped;
+  }, [drivers, vehicles, recommendedDriversRes]);
 
   const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
@@ -250,7 +293,6 @@ export function useCreateTripForm() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractBillingType, setContractBillingType] = useState<string>('All');
-  const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     const rule = getCompatibilityRuleForClass(contractVehicleType);
@@ -357,22 +399,6 @@ export function useCreateTripForm() {
     contractBillingType,
     contractStep
   );
-
-  const {
-    contractSlots,
-    setContractSlots,
-    handleAddTripSlot,
-    handleRemoveTripSlot,
-    handleUpdateTripSlot,
-    handleAddSlotIntermediate,
-    handleRemoveSlotIntermediate,
-    handleUpdateSlotIntermediate,
-    handleUpdateSlotIntermediateFee,
-    handleAddSlotReturnIntermediate,
-    handleRemoveSlotReturnIntermediate,
-    handleUpdateSlotReturnIntermediate,
-    handleUpdateSlotReturnIntermediateFee,
-  } = useTripSlotsState();
 
   const handleSlotLocationChange = (
     slotId: string,

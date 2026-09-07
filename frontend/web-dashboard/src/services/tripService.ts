@@ -409,6 +409,33 @@ export const tripService = {
     return res.data.data;
   },
 
+  async getRecommendedDrivers(params?: {
+    vehicleId?: string;
+    vehicleClass?: string;
+    origin?: string;
+    destination?: string;
+  }): Promise<Array<{
+    driverId: string;
+    driverName: string;
+    phone?: string | null;
+    status: string;
+    isAvailable: boolean;
+    unavailabilityReason?: string;
+    routeTripCount: number;
+    capacityMatch: boolean;
+    score: number;
+    badges: string[];
+    vehiclePlate?: string | null;
+    vehicleClass?: string | null;
+  }>> {
+    try {
+      const res = await api.get<ApiResponse<any[]>>('/trips/recommendations/drivers', { params });
+      return res.data.data || [];
+    } catch {
+      return [];
+    }
+  },
+
   async updateStatus(id: string, status: TripStatus): Promise<Trip> {
     const res = await api.patch<ApiResponse<Trip>>(`/trips/${id}/status`, { status });
     return res.data.data;
