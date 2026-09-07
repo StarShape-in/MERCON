@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck } from 'lucide-react';
+import { Truck, Calendar, Zap, Layers } from 'lucide-react';
 import { CustomerSelectionHeader } from './CustomerSelectionHeader';
 import { RecentRoutesAccelerator } from './RecentRoutesAccelerator';
 import { RouteWorkspace } from './RouteWorkspace';
@@ -134,18 +134,36 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
       {/* PAGE TITLE DIRECTLY ABOVE WORKSPACE & CUSTOMER SELECTION */}
-      <div className="flex items-center justify-between gap-3 pb-1 border-b border-slate-200/70 dark:border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/50 text-brand grid place-items-center border border-orange-200/80 dark:border-orange-900/60 shadow-2xs">
-            <Truck className="w-4 h-4 text-brand" />
+      {/* MODE-SPECIFIC WORKSPACE HEADER BANNER */}
+      {contractBillingType?.toLowerCase() === 'monthly' ? (
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/80 shadow-2xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+              <Calendar className="w-3 h-3" /> Monthly Contract Duty Mode
+            </span>
+            <span className="text-xs font-bold text-purple-900 dark:text-purple-200">
+              Recurring monthly billing contract • Billed per monthly agreement rate
+            </span>
           </div>
-          <div>
-            <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-              Create New Trip
-            </h1>
-          </div>
+          <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-white dark:bg-purple-900/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
+            Monthly Contract
+          </span>
         </div>
-      </div>
+      ) : contractBillingType?.toLowerCase() === 'extra' ? (
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-orange-50/90 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-900/80 shadow-2xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+              <Zap className="w-3 h-3" /> Extra / Spot Trip Mode
+            </span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Single spot dispatch trip • Billed per single trip rate
+            </span>
+          </div>
+          <span className="text-[10px] font-extrabold text-[#FA634E] bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-900">
+            Extra (Spot Rate)
+          </span>
+        </div>
+      ) : null}
 
       {/* 58% / 42% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
@@ -383,74 +383,96 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {/* STAGE 2: CUSTOMER IS SELECTED */}
       {Boolean(contractCustomer) && (
         <div className="space-y-2.5">
-          {/* QUOTATIONS TOOLBAR: SEPARATE SEARCH ICON (LOGO COLUMN) + INPUT (COMBOBOX COLUMN) + BILLING TOGGLE */}
-          {!showInlineForm && (
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              {/* TOP LEFT: SEPARATE SEARCH ICON BADGE & SEARCH INPUT */}
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                {/* SEPARATE SEARCH ICON BADGE (ORANGE BRAND HIGHLIGHT: w-8.5 h-8.5) */}
-                <div className="w-8.5 h-8.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand grid place-items-center shrink-0 border border-orange-200/90 dark:border-orange-900/60 shadow-2xs">
-                  <Search className="w-4 h-4 text-brand" />
-                </div>
-
-                {/* EXPANDED SEARCH INPUT (INCREASED WIDTH: w-[400px] h-8.5) */}
-                <div className="relative w-full sm:w-[400px] shrink-0">
-                  <input
-                    type="text"
-                    value={quotationSearchQuery}
-                    onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                    placeholder="Search quotations (route, rate, vehicle, code)..."
-                    className="h-8.5 w-full px-3.5 pr-8 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
-                  />
-                  {quotationSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setQuotationSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                      title="Clear search"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* TOP RIGHT: BILLING TYPE TOGGLE (ALL / MONTHLY / EXTRA) */}
-              {setContractBillingType && (
-                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => setContractBillingType('All')}
-                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
-                      !contractBillingType || contractBillingType.toLowerCase() === 'all'
-                        ? 'bg-brand text-white shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                    }`}
-                  >
-                    All
-                  </button>
+          {/* PROMINENT BILLING MODE SWITCHER (MONTHLY CONTRACT VS EXTRA SPOT TRIP VS ALL) */}
+          {setContractBillingType && (
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                {/* MODE SELECTOR BUTTONS */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
+                    BILLING TYPE:
+                  </span>
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Monthly')}
-                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
                       contractBillingType?.toLowerCase() === 'monthly'
-                        ? 'bg-brand text-white shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                        ? 'bg-purple-600 text-white shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-purple-300'
                     }`}
                   >
-                    Monthly
+                    <Calendar className="w-3.5 h-3.5" />
+                    Monthly Contract
                   </button>
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Extra')}
-                    className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer h-6.5 ${
+                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
                       contractBillingType?.toLowerCase() === 'extra'
-                        ? 'bg-brand text-white shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                        ? 'bg-[#FA634E] text-white shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#FA634E]/40'
                     }`}
                   >
-                    Extra
+                    <Zap className="w-3.5 h-3.5" />
+                    Extra / Spot Trip
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setContractBillingType('All')}
+                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                      !contractBillingType || contractBillingType.toLowerCase() === 'all'
+                        ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    All Quotations
+                  </button>
+                </div>
+
+                {/* MODE INDICATOR BADGE */}
+                <div className="flex items-center gap-2 ml-auto">
+                  {contractBillingType?.toLowerCase() === 'monthly' ? (
+                    <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
+                      Monthly Contract Mode (Billed Per Month)
+                    </span>
+                  ) : contractBillingType?.toLowerCase() === 'extra' ? (
+                    <span className="text-[10px] font-extrabold text-[#FA634E] dark:text-orange-400 bg-orange-100/80 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200/90 dark:border-orange-800 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FA634E] animate-pulse" />
+                      Extra / Spot Trip Mode (Billed Per Single Trip)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-300/60 dark:border-slate-700">
+                      Showing All Rate Cards
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* SEARCH INPUT ROW */}
+              {!showInlineForm && (
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <div className="relative w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={quotationSearchQuery}
+                      onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                      placeholder="Search quotations by route, rate, vehicle class..."
+                      className="h-8.5 w-full pl-9 pr-8 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                    />
+                    {quotationSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setQuotationSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                        title="Clear search"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -714,6 +736,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     ''
                   );
 
+                  const cardBType = (rc.quotation_billing_type || rc.billing_type || (rc as any).pricing_basis || '').toLowerCase();
+                  const isMonthlyCard = cardBType.includes('monthly') || cardBType.includes('month');
+
                   return (
                     <button
                       key={rc.id || idx}
@@ -747,18 +772,29 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       className={cn(
                         "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-full min-h-[110px]",
                         isSelected
-                          ? "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
+                          ? isMonthlyCard
+                            ? "border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20"
+                            : "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
                           : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                       )}
                     >
-                      {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
+                      {/* TOP ROW: QUOTATION ID + TYPE BADGE + PRICE BADGE */}
                       <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1 min-w-0 flex-wrap">
                           <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
                             {rc.quotation_number || `QUO-${idx + 1}`}
                           </span>
+                          {isMonthlyCard ? (
+                            <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200 shrink-0">
+                              Monthly
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-black text-[#FA634E] dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-200 shrink-0">
+                              Extra
+                            </span>
+                          )}
                           {isSelected && (
-                            <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80 shrink-0">
+                            <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
                               Applied ✓
                             </span>
                           )}
@@ -766,7 +802,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
                         {/* PRICE BADGE */}
                         <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
-                          SAR {Number(rateVal).toLocaleString()}
+                          SAR {Number(rateVal).toLocaleString()} <span className="text-[9px] font-bold font-sans text-slate-500">{isMonthlyCard ? '/mo' : '/trip'}</span>
                         </span>
                       </div>
 
@@ -792,7 +828,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                               New Rate
                             </span>
                           )}
-                          <span className={cn("font-black", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
+                          <span className={cn("font-black", isSelected ? (isMonthlyCard ? "text-purple-600" : "text-brand") : "text-slate-400 hover:text-slate-600")}>
                             {isSelected ? 'Active' : 'Apply →'}
                           </span>
                         </div>
@@ -821,6 +857,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     const rateVal = rc.rate ?? rc.base_price ?? 0;
                     const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                     const rCat = rc.rate_category || rc.line_type || contractRateCategory;
+                    const cardBType = (rc.quotation_billing_type || rc.billing_type || (rc as any).pricing_basis || '').toLowerCase();
+                    const isMonthlyCard = cardBType.includes('monthly') || cardBType.includes('month');
 
                     const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
                     const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
@@ -884,26 +922,37 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         className={cn(
                           "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-[calc(33.333%-8px)] min-w-[210px] shrink-0 min-h-[110px]",
                           isSelected
-                            ? "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
+                            ? isMonthlyCard
+                              ? "border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20"
+                              : "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
                             : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
                         )}
                       >
-                        {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
+                        {/* TOP ROW: QUOTATION ID + TYPE BADGE + PRICE BADGE */}
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1 min-w-0 flex-wrap">
                             <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600">
                               {rc.quotation_number || `QUO-${idx + 1}`}
                             </span>
+                            {isMonthlyCard ? (
+                              <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200">
+                                Monthly
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-black text-[#FA634E] dark:text-orange-400 bg-orange-100 dark:bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-200">
+                                Extra
+                              </span>
+                            )}
                             {isSelected && (
-                              <span className="text-[9px] font-black text-brand bg-orange-100 dark:bg-brand/20 px-1.5 py-0.5 rounded-full border border-orange-200/80">
+                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200">
                                 Applied ✓
                               </span>
                             )}
                           </div>
 
                           {/* PRICE BADGE */}
-                          <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
-                            SAR {Number(rateVal).toLocaleString()}
+                          <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
+                            SAR {Number(rateVal).toLocaleString()} <span className="text-[9px] font-bold font-sans text-slate-500">{isMonthlyCard ? '/mo' : '/trip'}</span>
                           </span>
                         </div>
 
