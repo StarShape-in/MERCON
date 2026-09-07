@@ -200,6 +200,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 isRoundTrip={isRoundTrip}
                 canRemoveSlot={contractSlots.length > 1}
                 contractRateCategory={contractRateCategory}
+                contractBillingType={contractBillingType}
                 setContractRateCategory={setContractRateCategory}
                 triggerRateLookupForSlots={triggerRateLookupForSlots}
                 handleAddSlotIntermediate={handleAddSlotIntermediate}

@@ -3,6 +3,7 @@ import { MapPin, Plus, Trash2, Calendar, Clock, Moon, RotateCcw, AlertCircle } f
 import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { RouteMiniMap } from '@/components/trips/RouteMiniMap';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,6 +16,7 @@ interface RouteWorkspaceProps {
   isRoundTrip: boolean;
   canRemoveSlot: boolean;
   contractRateCategory?: string;
+  contractBillingType?: string;
   setContractRateCategory?: (cat: string) => void;
   triggerRateLookupForSlots?: (vType?: string, rCat?: string, custId?: string, bType?: string) => void;
   handleAddSlotIntermediate: (slotId: string) => void;
@@ -34,6 +36,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   isRoundTrip,
   canRemoveSlot,
   contractRateCategory = 'Single Trip',
+  contractBillingType,
   setContractRateCategory,
   triggerRateLookupForSlots,
   handleAddSlotIntermediate,
@@ -48,6 +51,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
 }) => {
   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
+  const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
 
   const pickupIsoValue = React.useMemo(() => {
     if (!slot.date || !slot.pickupTime) return null;
@@ -70,6 +74,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   }, [pickupIsoValue]);
 
   const scheduleError = React.useMemo(() => {
+    if (isMonthly) return null;
     if (!slot.date) return null;
     const dropoffDate = slot.dropoffDate || slot.date;
     if (!dropoffDate) return null;
@@ -97,7 +102,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
     }
 
     return null;
-  }, [slot.date, slot.dropoffDate, slot.pickupTime, slot.dropoffTime, pickupIsoValue, dropoffIsoValue]);
+  }, [isMonthly, slot.date, slot.dropoffDate, slot.pickupTime, slot.dropoffTime, pickupIsoValue, dropoffIsoValue]);
 
   return (
     <div className="space-y-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-3.5 rounded-2xl shadow-2xs">
@@ -198,24 +203,45 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
             <div className="md:col-span-4 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
-                <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
+                {isMonthly ? (
+                  <>
+                    <Clock className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP TIME
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-3 h-3 text-emerald-600 shrink-0" /> PICKUP SCHEDULE
+                  </>
+                )}
               </label>
-              <DateTimePicker
-                value={pickupIsoValue}
-                onChange={(isoStr) => {
-                  if (!isoStr) return;
-                  const [dPart, tPart] = isoStr.split('T');
-                  const cleanTime = tPart ? tPart.substring(0, 5) : '';
-                  handleUpdateTripSlot(slot.id, {
-                    date: dPart,
-                    pickupTime: cleanTime,
-                  });
-                }}
-                placeholder="Pick date & time..."
-                showPresets={false}
-                showRelativeBadge={false}
-                className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
-              />
+              {isMonthly ? (
+                <TimePicker
+                  value={slot.pickupTime || ''}
+                  onChange={(timeStr) => {
+                    handleUpdateTripSlot(slot.id, {
+                      pickupTime: timeStr,
+                    });
+                  }}
+                  placeholder="Select pickup time..."
+                  buttonClassName="h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full"
+                />
+              ) : (
+                <DateTimePicker
+                  value={pickupIsoValue}
+                  onChange={(isoStr) => {
+                    if (!isoStr) return;
+                    const [dPart, tPart] = isoStr.split('T');
+                    const cleanTime = tPart ? tPart.substring(0, 5) : '';
+                    handleUpdateTripSlot(slot.id, {
+                      date: dPart,
+                      pickupTime: cleanTime,
+                    });
+                  }}
+                  placeholder="Pick date & time..."
+                  showPresets={false}
+                  showRelativeBadge={false}
+                  className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
+                />
+              )}
             </div>
           </div>
 
@@ -281,24 +307,45 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
             <div className="md:col-span-4 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
-                <Calendar className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
+                {isMonthly ? (
+                  <>
+                    <Clock className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL TIME' : 'DROPOFF TIME'}
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
+                  </>
+                )}
               </label>
-              <DateTimePicker
-                value={dropoffIsoValue}
-                minDate={pickupDateObj}
-                error={!!scheduleError}
-                onChange={(isoStr) => {
-                  if (!isoStr) return;
-                  const [dPart, tPart] = isoStr.split('T');
-                  const cleanTime = tPart ? tPart.substring(0, 5) : '14:00';
-                  handleUpdateTripSlot(slot.id, { dropoffDate: dPart, dropoffTime: cleanTime });
-                }}
-                placeholder="Pick date & time..."
-                showPresets={false}
-                showRelativeBadge={false}
-                className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
-              />
-              {scheduleError && (
+              {isMonthly ? (
+                <TimePicker
+                  value={slot.dropoffTime || ''}
+                  onChange={(timeStr) => {
+                    handleUpdateTripSlot(slot.id, {
+                      dropoffTime: timeStr,
+                    });
+                  }}
+                  placeholder="Select dropoff time..."
+                  buttonClassName="h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full"
+                />
+              ) : (
+                <DateTimePicker
+                  value={dropoffIsoValue}
+                  minDate={pickupDateObj}
+                  error={!!scheduleError}
+                  onChange={(isoStr) => {
+                    if (!isoStr) return;
+                    const [dPart, tPart] = isoStr.split('T');
+                    const cleanTime = tPart ? tPart.substring(0, 5) : '14:00';
+                    handleUpdateTripSlot(slot.id, { dropoffDate: dPart, dropoffTime: cleanTime });
+                  }}
+                  placeholder="Pick date & time..."
+                  showPresets={false}
+                  showRelativeBadge={false}
+                  className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
+                />
+              )}
+              {!isMonthly && scheduleError && (
                 <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>{scheduleError}</span>
