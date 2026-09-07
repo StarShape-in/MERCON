@@ -328,8 +328,8 @@ export function useCreateTripForm() {
   const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [contractRateCategory, setContractRateCategory] = useState<string>(isMonthlyUrl ? 'Monthly' : (MODAL_RATE_CATEGORIES[0] || 'Trip'));
-  const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
+  const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
+  const [contractBillingType, setContractBillingType] = useState<string>('Monthly');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     const rule = getCompatibilityRuleForClass(contractVehicleType);
@@ -490,33 +490,43 @@ export function useCreateTripForm() {
       ? selectedDriver.assignedVehicle as any
       : null;
 
-    const vehicleId =
+    let vehicleId =
       selectedDriver.assignedVehicleId ||
       embeddedVehicle?.id ||
       (selectedDriver as any).assigned_vehicle_id;
+
+    // Fallback 1: Search vehicles list for one assigned to this driver
+    if (!vehicleId) {
+      const vAssigned = vehicles.find((v: any) =>
+        v.assignedDriverId === driverId ||
+        v.assigned_driver_id === driverId ||
+        (v.assignedDriver && v.assignedDriver.id === driverId)
+      );
+      if (vAssigned) vehicleId = vAssigned.id;
+    }
+
+    // Fallback 2: Check driverOptions for vehiclePlate or raw assignedVehicleId
+    if (!vehicleId) {
+      const opt = driverOptions.find((o) => o.value === driverId);
+      if (opt?.raw?.assignedVehicleId) {
+        vehicleId = opt.raw.assignedVehicleId;
+      } else if (opt?.vehiclePlate) {
+        const vByPlate = vehicles.find((v) => v.plate_number === opt.vehiclePlate);
+        if (vByPlate) vehicleId = vByPlate.id;
+      }
+    }
 
     if (!vehicleId) return;
 
     const matchedVehicle = vehicles.find((v) => v.id === vehicleId) || embeddedVehicle;
     if (!matchedVehicle) return;
 
-    const rule = getCompatibilityRuleForClass(contractVehicleType);
-    const isRuleConfigured = Boolean(rule && rule.isActive !== false && rule.allowedVehicleClassCodes.length > 0);
     const vClass = (matchedVehicle.capacity_kg && matchedVehicle.capacity_kg > 0)
       ? getVehicleTypeFromCapacity(matchedVehicle.capacity_kg)
       : normalizeVehicleClass(matchedVehicle.asset_type);
 
-    let isAllowed = true;
-    if (isRuleConfigured && rule) {
-      isAllowed = rule.allowedVehicleClassCodes.some((c) => c.toLowerCase() === vClass.toLowerCase());
-    }
-
-    if (isAllowed) {
-      setMasterVehicle(matchedVehicle.id);
-      toast.success(`Selected driver's usual vehicle: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
-    } else {
-      toast.info(`Driver's usual vehicle (${vClass}) is not compatible with ${contractVehicleType} service`);
-    }
+    setMasterVehicle(matchedVehicle.id);
+    toast.success(`Auto-selected driver's truck: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
   };
 
   const {
