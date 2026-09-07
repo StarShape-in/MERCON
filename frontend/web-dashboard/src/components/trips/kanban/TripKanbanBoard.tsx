@@ -21,6 +21,7 @@ import {
   Siren,
 } from 'lucide-react';
 import { Trip, TripStatus, TripStop } from '@/services/tripService';
+import { openMultipleWhatsappMessages } from '@/utils/whatsappFormatter';
 import TripKanbanCard from './TripKanbanCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -550,7 +551,10 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsBulkShareOpen(false)}>Cancel</Button>
             <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => {
-              // Implementation placeholder for actual bulk share action
+              const selectedTrips = trips.filter(t => selectedTripIds.includes(t.id));
+              if (selectedTrips.length > 0) {
+                openMultipleWhatsappMessages(selectedTrips);
+              }
               setIsBulkShareOpen(false);
               handleClearSelection();
             }}>

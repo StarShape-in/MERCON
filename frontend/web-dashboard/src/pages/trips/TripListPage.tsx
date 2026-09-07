@@ -62,6 +62,7 @@ import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import { openMultipleWhatsappMessages } from '@/utils/whatsappFormatter';
 import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
 
 
@@ -1507,6 +1508,12 @@ export default function TripListPage() {
   }, [whatsappSelectedTrips, whatsappWithTailgate, whatsappDialogOpen]);
 
   const handleWhatsappSend = () => {
+    if (whatsappSelectedTrips.length > 1) {
+      openMultipleWhatsappMessages(whatsappSelectedTrips);
+      setWhatsappDialogOpen(false);
+      return;
+    }
+
     let phone = '';
     if (whatsappSelectedTrips.length === 1) {
       const trip = whatsappSelectedTrips[0];

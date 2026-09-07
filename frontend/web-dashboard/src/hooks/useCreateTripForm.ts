@@ -654,7 +654,17 @@ export function useCreateTripForm() {
           );
 
           // Only update if slots actually changed to avoid unnecessary re-renders
-          const hasChanges = updatedSlots.some((s, idx) => s !== currentSlots[idx]);
+          const hasChanges = updatedSlots.some((s, idx) => {
+            const orig = currentSlots[idx];
+            if (!orig) return true;
+            return (
+              s.billingAmount !== orig.billingAmount ||
+              s.tripCharges !== orig.tripCharges ||
+              s.rateMatched !== orig.rateMatched ||
+              s.rateCardId !== orig.rateCardId ||
+              s.rateCardBasePrice !== orig.rateCardBasePrice
+            );
+          });
           if (hasChanges) {
             setContractSlots(updatedSlots);
           }
@@ -670,7 +680,7 @@ export function useCreateTripForm() {
     if (contractCustomer) {
       triggerRateLookupForSlots();
     }
-  }, [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, triggerRateLookupForSlots]);
+  }, [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType]);
 
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});

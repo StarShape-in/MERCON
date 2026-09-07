@@ -6,7 +6,7 @@ import { tripService, BulkImportTripRow, BulkImportResult, TripStatus } from '@/
 import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
 import { isUuid } from '@/lib/utils';
 import { localDateTimeToUtcIso, useDeploymentTimezone } from '@/lib/datetime';
-import { isRoundTripCategory } from './useCreateTripForm';
+import { isRoundTripCategory, addDays } from './useCreateTripForm';
 
 export function useTripSubmission(
   contractCustomer: string,
@@ -246,8 +246,12 @@ export function useTripSubmission(
           destString = `${slot.destination.trim()} → ${outboundStops.join(' → ')}`;
         }
 
-        const dropoffDateVal = slot.dropoffDate || date;
-        const planned_end_val = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
+        let planned_end_val: string | undefined = undefined;
+        if (slot.dropoffTime) {
+          const isOvernightOrEarlier = slot.isOvernight || (slot.pickupTime && slot.dropoffTime <= slot.pickupTime);
+          const targetDropoffDate = isOvernightOrEarlier ? addDays(date, 1) : (slot.dropoffDate && slot.dropoffDate >= date ? slot.dropoffDate : date);
+          planned_end_val = localDateTimeToUtcIso(targetDropoffDate, slot.dropoffTime, tz);
+        }
 
         if (assignmentType === 'third_party') {
           const costVal = thirdPartyCost ? Number(thirdPartyCost) : (Number(slot.tripCharges) || 0);

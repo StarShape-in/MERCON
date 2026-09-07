@@ -55,7 +55,8 @@ import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
-import { monthLabel, shiftMonth } from './monthlyBoardUtils';
+import { localDateTimeToUtcIso, useDeploymentTimezone } from '@/lib/datetime';
+import { addDays } from '@/hooks/useCreateTripForm';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
 import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
@@ -155,6 +156,7 @@ export default function BulkAddTripsModal({
   onSuccess,
 }: BulkAddTripsModalProps) {
   const queryClient = useQueryClient();
+  const tz = useDeploymentTimezone();
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<TabMode>('contract');
@@ -1152,9 +1154,17 @@ export default function BulkAddTripsModal({
           : slot.driverTripCharge;
         const driverChargeVal = Number(effectiveDriverCharge) || 0;
 
+        let planned_end_val: string | undefined = undefined;
+        if (slot.dropoffTime) {
+          const isOvernightOrEarlier = slot.isOvernight || (slot.pickupTime && slot.dropoffTime <= slot.pickupTime);
+          const targetDropoffDate = isOvernightOrEarlier ? addDays(date, 1) : (slot.dropoffDate && slot.dropoffDate >= date ? slot.dropoffDate : date);
+          planned_end_val = localDateTimeToUtcIso(targetDropoffDate, slot.dropoffTime, tz);
+        }
+
         rows.push({
           customer_id: contractCustomer,
-          planned_start: slot.pickupTime ? `${date}T${slot.pickupTime}:00` : date,
+          planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
+          planned_end: planned_end_val,
           driver_id: assignment.driverId || undefined,
           vehicle_id: assignment.vehicleId || undefined,
           rate_category: contractRateCategory || undefined,
