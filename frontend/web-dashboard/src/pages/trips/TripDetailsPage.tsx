@@ -34,6 +34,7 @@ import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
 import TripOverviewBarCard from '@/components/trips/TripOverviewBarCard';
 import ModernFinancialsCard from '@/components/trips/ModernFinancialsCard';
 import TripPhotoEvidence from '@/components/trips/TripPhotoEvidence';
+import TripDelayNotificationModal from '@/components/trips/TripDelayNotificationModal';
 
 const isUuidVal = (str?: string | null) =>
   str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
@@ -80,6 +81,7 @@ export default function TripDetailsPage() {
   const [copied, setCopied] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; date?: string } | null>(null);
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
+  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false);
 
   // Fetch Trip
   const { data: trip, isLoading, isError, refetch } = useQuery({
@@ -397,6 +399,7 @@ export default function TripDetailsPage() {
             trip={trip}
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
             onPreviewImage={(img) => setPreviewImage(img)}
+            onOpenDelayNotification={() => setIsDelayModalOpen(true)}
           />
         </div>
 
@@ -650,6 +653,13 @@ export default function TripDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* ── TRIP DELAY NOTIFICATION & VIDEO MODAL (Operations Assistant) ── */}
+      <TripDelayNotificationModal
+        isOpen={isDelayModalOpen}
+        onClose={() => setIsDelayModalOpen(false)}
+        trip={trip}
+      />
     </DashboardLayout>
   );
 }

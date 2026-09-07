@@ -10,6 +10,7 @@ interface TripOverviewBarCardProps {
   trip: any;
   onViewAllAlerts?: () => void;
   onPreviewImage?: (img: { url: string; title: string }) => void;
+  onOpenDelayNotification?: () => void;
 }
 
 function resolveFileUrl(url?: string | null): string {
@@ -30,7 +31,12 @@ const DEFAULT_ALERTS = [
   { id: '3', label: 'Poss. delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false, image: '/evidence/05_return_stop.png' },
 ];
 
-export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewImage }: TripOverviewBarCardProps) {
+export default function TripOverviewBarCard({
+  trip,
+  onViewAllAlerts,
+  onPreviewImage,
+  onOpenDelayNotification,
+}: TripOverviewBarCardProps) {
   const navigate = useNavigate();
 
   // 1. Vehicle info (Truck No & Ton)
@@ -154,25 +160,31 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
         </div>
       </div>
 
-      {/* ── COL 4: DELAY ALERTS — 25% ── */}
+      {/* ── COL 4: DELAY ALERTS — 25% (With Operations Assistant Mascot) ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
-        {/* 3D Delay Alert Image (matching Truck, Driver, Company) */}
+        {/* 3D Operations Assistant Character Avatar (Matching Labor Charge Guy) */}
         <div
-          onClick={() => onPreviewImage && onPreviewImage({ url: '/delay_alert_3d.png', title: 'Delay Traffic Alert' })}
-          className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs cursor-pointer group hover:border-amber-400 transition-colors"
-          title="Click to view delay alert"
+          onClick={() => onOpenDelayNotification ? onOpenDelayNotification() : onViewAllAlerts?.()}
+          className="relative w-10 h-10 rounded-full border-2 border-amber-300 bg-amber-50 shrink-0 shadow-2xs overflow-hidden cursor-pointer group hover:ring-2 hover:ring-rose-400 transition-all"
+          title="Click to view delay alert video & notification"
         >
           <img
-            src="/delay_alert_3d.png"
-            alt="Delay Alert"
-            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+            src="/assistant/was there any labor charge for this trip.png"
+            alt="Operations Assistant Character"
+            className="w-full h-full object-cover object-top group-hover:scale-110 transition-transform"
           />
+          {hasAlerts && (
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-rose-500 border-2 border-white animate-pulse" />
+          )}
         </div>
 
         <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
           {/* Alerts Header */}
           <div className="flex items-center justify-between pb-0.5 border-b border-[#F3F4F6]">
-            <div className="flex items-center gap-1 min-w-0">
+            <div
+              onClick={() => onOpenDelayNotification ? onOpenDelayNotification() : onViewAllAlerts?.()}
+              className="flex items-center gap-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <span className="font-black text-[11px] text-[#111827] tracking-tight truncate">
                 Delay Alerts
               </span>
@@ -183,13 +195,15 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
               )}
             </div>
 
+            {/* Watch Video & Alert button */}
             <button
               type="button"
-              onClick={onViewAllAlerts}
-              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer shrink-0"
+              onClick={() => onOpenDelayNotification ? onOpenDelayNotification() : onViewAllAlerts?.()}
+              className="text-[10px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 cursor-pointer shrink-0 border border-rose-200/80 transition-colors"
+              title="Watch driver delay video & evidence"
             >
-              <span>View All</span>
-              <ChevronRight size={10} className="stroke-[2.5]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              <span>Watch Video</span>
             </button>
           </div>
 
@@ -199,9 +213,9 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
               alerts.slice(0, 2).map((alert) => (
                 <div
                   key={alert.id}
-                  onClick={() => onPreviewImage && onPreviewImage({ url: alert.image || '/delay_alert_3d.png', title: alert.label })}
+                  onClick={() => onOpenDelayNotification ? onOpenDelayNotification() : onPreviewImage?.({ url: alert.image || '/evidence/og_stop.png', title: alert.label })}
                   className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.2 transition-colors group"
-                  title="Click to view alert photo evidence"
+                  title="Click to view alert photo & video evidence"
                 >
                   <div className="flex items-center gap-1 min-w-0">
                     <span
@@ -209,7 +223,7 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
                         alert.severe ? 'bg-rose-500' : 'bg-amber-500'
                       }`}
                     />
-                    <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-blue-600">
+                    <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-rose-600">
                       {alert.label}
                     </span>
                   </div>
