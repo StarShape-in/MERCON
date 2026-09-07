@@ -242,8 +242,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </div>
                 );
               })() : (
-                /* UNSELECTED STATE: ORIGINAL CARD LAYOUT FOR RECOMMENDED DRIVERS */
-                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in space-y-2">
+                /* UNSELECTED STATE: TODAY MORNING FIRST PUSH DESIGN (CENTERED AVATAR, 2-LINE NAMES, DIVIDER LINE) */
+                <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
                   {(() => {
                     const listToDisplay = driverOptions.slice(0, 2);
 
@@ -256,9 +256,15 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                     }
 
                     return listToDisplay.map((dOpt, idx) => {
-                      const firstName = (dOpt as any).first_name || (dOpt as any).raw?.first_name || 'Driver';
-                      const lastName = (dOpt as any).last_name || (dOpt as any).raw?.last_name || '';
-                      const optDetailsStr = (dOpt as any).detailsStr || (dOpt as any).raw?.detailsStr || '';
+                      const optLabelStr = typeof dOpt.label === 'string' ? dOpt.label : String(dOpt.label || '');
+                      const rawName = (dOpt as any).first_name
+                        ? `${(dOpt as any).first_name} ${(dOpt as any).last_name || ''}`.trim()
+                        : optLabelStr.split('(')[0].trim() || 'Driver';
+                      const nameParts = rawName.split(' ');
+                      const firstName = (dOpt as any).first_name || nameParts[0] || rawName;
+                      const lastName = (dOpt as any).last_name || nameParts.slice(1).join(' ') || '';
+
+                      const optDetailsStr = (dOpt as any).detailsStr || (optLabelStr.includes('(') ? optLabelStr.split('(')[1].replace(')', '').trim() : '');
                       const avatarUrl =
                         (dOpt as any).avatar_url ||
                         (dOpt as any).photo_url ||
@@ -273,41 +279,35 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                         (dOpt as any).raw?.photoUrl ||
                         (dOpt as any).raw?.image_url ||
                         null;
+                      const isFirst = idx === 0;
 
                       return (
-                        <div
+                        <button
                           key={dOpt.value || idx}
+                          type="button"
                           onClick={() => handleDriverChange(dOpt.value)}
-                          className="w-full p-2.5 text-left transition-all duration-200 flex items-center justify-between cursor-pointer rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 hover:border-[#FA634E] dark:hover:border-[#FA634E] text-slate-700 dark:text-slate-300 min-w-0 shadow-2xs group"
+                          className={`w-full py-2 px-3 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 ${
+                            isFirst ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
+                          }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <DriverAvatar
-                              src={avatarUrl}
-                              firstName={firstName}
-                              lastName={lastName}
-                              size="md"
-                              className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <div className="text-xs font-black leading-tight text-slate-900 dark:text-slate-100 uppercase truncate" title={`${firstName} ${lastName}`}>
-                                {firstName} {lastName}
-                              </div>
-                              <div className="text-[11px] text-slate-500 font-medium truncate pt-0.5">
-                                {optDetailsStr || 'Truck: Unassigned'}
-                              </div>
-                            </div>
+                          <DriverAvatar
+                            src={avatarUrl}
+                            firstName={firstName}
+                            lastName={lastName}
+                            size="md"
+                            className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                          />
+
+                          {/* FIRST NAME AND LAST NAME IN 2 SEPARATE LINES */}
+                          <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
+                            <div className="truncate max-w-full">{firstName}</div>
+                            {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDriverChange(dOpt.value);
-                            }}
-                            className="text-xs font-bold text-[#FA634E] shrink-0 bg-red-50 dark:bg-red-950/40 px-3.5 py-1 rounded-full hover:bg-[#FA634E] hover:text-white transition-colors ml-2 cursor-pointer"
-                          >
-                            Select
-                          </button>
-                        </div>
+
+                          <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
+                            {optDetailsStr || 'Truck: Unassigned'}
+                          </div>
+                        </button>
                       );
                     });
                   })()}
