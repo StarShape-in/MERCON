@@ -74,7 +74,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'X-CSRF-Token'],
 }));
-app.options('*', cors());
 
 // Gzip every response big enough to be worth it. List endpoints return highly
 // repetitive JSON (rosters, trip manifests) that compresses ~10x — without this
