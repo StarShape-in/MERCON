@@ -25,7 +25,7 @@ jobs:
           echo "Freeing disk space on self-hosted runner before git checkout..."
           sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
           sudo apt-get clean 2>/dev/null || apt-get clean 2>/dev/null || true
-          rm -rf /tmp/dev-uploads/* /tmp/mercon-dev-tmp-uploads/* /tmp/npm-* ~/.npm ~/.cache 2>/dev/null || true
+          rm -rf /tmp/npm-* ~/.npm ~/.cache 2>/dev/null || true
           docker builder prune -af 2>/dev/null || true
           docker buildx prune -af 2>/dev/null || true
           docker image prune -af 2>/dev/null || true
