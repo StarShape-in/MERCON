@@ -263,7 +263,9 @@ export function useTripSubmission(
             ? assignment.vehicleId
             : (masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : undefined);
 
-          const slotTripCharges = Number(slot.tripCharges) || 0;
+          const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || 0);
+          const shouldUpdateQuotation = Boolean(slot.updateQuotationPayout || slot.driverPayoutModified);
+
           rows.push({
             customer_id: contractCustomer,
             planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
@@ -276,8 +278,11 @@ export function useTripSubmission(
             origin: slot.origin.trim() || undefined,
             destination: destString || undefined,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
-            trip_charges: slotTripCharges > 0 ? slotTripCharges : undefined,
-            rate_card_id: slot.rateCardId || undefined,
+            trip_charges: slotDriverPayout > 0 ? slotDriverPayout : undefined,
+            driver_charge: slotDriverPayout > 0 ? slotDriverPayout : undefined,
+            driver_payout: slotDriverPayout > 0 ? slotDriverPayout : undefined,
+            update_quotation_driver_payout: shouldUpdateQuotation,
+            rate_card_id: slot.rateCardId || slot.matchedRateCard?.id || undefined,
             status: 'Draft',
           });
         }

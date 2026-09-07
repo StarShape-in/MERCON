@@ -21,6 +21,9 @@ export interface TripSlot {
   dropoffDate: string;
   billingAmount: string;
   tripCharges: string;
+  driverPayout?: string;
+  driverPayoutModified?: boolean;
+  updateQuotationPayout?: boolean;
   saveAsQuotation?: boolean;
   saveAsRateCard?: boolean;
   rateReason?: string;

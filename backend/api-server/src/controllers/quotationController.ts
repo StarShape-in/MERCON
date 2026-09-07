@@ -150,6 +150,8 @@ export const createQuotation = async (req: Request, res: Response) => {
             quotationId: newQuotation.id,
             old_rate: null,
             new_rate: price,
+            old_driver_payout: null,
+            new_driver_payout: payoutVal,
             changed_by: userName,
             changed_by_user_id: userId || null,
             changed_by_name: userName,
@@ -313,6 +315,10 @@ export const updateQuotation = async (req: Request, res: Response) => {
       const oldRate = Number(existing.rate);
       const priceChanged = priceVal !== undefined && oldRate !== newRate;
 
+      const oldPayout = existing.driver_payout !== null ? Number(existing.driver_payout) : null;
+      const newPayout = payoutVal !== undefined ? payoutVal : oldPayout;
+      const payoutChanged = payoutVal !== undefined && oldPayout !== newPayout;
+
       const updatedQuotation = await tx.quotation.update({
         where: { id: id as string },
         data: {
@@ -337,19 +343,21 @@ export const updateQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      if (priceChanged) {
+      if (priceChanged || payoutChanged) {
         const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
         const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
 
         await tx.quotationHistory.create({
           data: {
             quotationId: updatedQuotation.id,
-            old_rate: oldRate,
-            new_rate: newRate,
+            old_rate: priceChanged ? oldRate : null,
+            new_rate: priceChanged ? newRate : null,
+            old_driver_payout: payoutChanged ? oldPayout : null,
+            new_driver_payout: payoutChanged ? newPayout : null,
             changed_by: userName,
             changed_by_user_id: userId || null,
             changed_by_name: userName,
-            reason: req.body.reason || req.body.change_reason || 'Quotation rate updated',
+            reason: req.body.reason || req.body.change_reason || (payoutChanged && !priceChanged ? 'Driver payout updated' : 'Quotation rate updated'),
             source: req.body.source || 'QUOTATION_MODULE',
             trip_id: req.body.trip_id || null,
           },

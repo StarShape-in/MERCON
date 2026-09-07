@@ -209,6 +209,9 @@ export interface CreateTripPayload {
   planned_end?: string;
   billing_amount?: number;
   trip_charges?: number;
+  driver_payout?: number;
+  driver_charge?: number;
+  update_quotation_driver_payout?: boolean;
   status?: TripStatus;
   dispatch_now?: boolean;
   /** Quotation reference */
@@ -520,6 +523,9 @@ export interface BulkImportTripRow {
   billing_amount?: number;
   /** What MERCON paid its own driver for this specific trip. */
   trip_charges?: number;
+  driver_charge?: number;
+  driver_payout?: number;
+  update_quotation_driver_payout?: boolean;
   origin?: string;
   destination?: string;
   status?: TripStatus;

@@ -514,6 +514,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         handleUpdateTripSlot(primarySlot.id, {
                           matchedRateCard: rc,
                           billingAmount: String(rateVal),
+                          driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                          driverPayoutModified: false,
+                          updateQuotationPayout: false,
                           rateCategory: targetCategory,
                           vehicleType: targetVehicleClass,
                         });
@@ -646,6 +649,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                           handleUpdateTripSlot(primarySlot.id, {
                             matchedRateCard: rc,
                             billingAmount: String(rateVal),
+                            driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                            driverPayoutModified: false,
+                            updateQuotationPayout: false,
                             rateCategory: targetCategory,
                             vehicleType: targetVehicleClass,
                           });

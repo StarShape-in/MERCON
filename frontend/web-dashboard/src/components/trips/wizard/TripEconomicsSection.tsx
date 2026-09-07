@@ -62,7 +62,8 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
   const billingAmountNum = Number(primarySlot.billingAmount || matchedRateCard?.rate || matchedRateCard?.base_price || 0);
   const is3PL = assignmentType === 'third_party' || assignmentType === '3pl';
   const thirdPartyCostNum = is3PL && thirdPartyCost ? Number(thirdPartyCost) : 0;
-  const driverPayoutNum = is3PL ? thirdPartyCostNum : 0;
+  const slotPayoutRaw = primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : (matchedRateCard?.driver_payout ?? matchedRateCard?.default_trip_charge ?? 0);
+  const driverPayoutNum = is3PL ? thirdPartyCostNum : Number(slotPayoutRaw || 0);
 
   const totalAdditionalCharges = chargeLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
   const totalCost = driverPayoutNum + totalAdditionalCharges;
@@ -183,13 +184,45 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
           </div>
 
           {/* ROW 2: DRIVER PAYOUT / 3PL COST */}
-          <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-800/40">
-            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {is3PL ? '3PL Payout' : 'Driver Payout'}
-            </span>
-            <span className="text-xs font-black font-mono text-[#3E3C3D] dark:text-white">
-              SAR {driverPayoutNum.toLocaleString()}
-            </span>
+          <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-800/40 gap-2">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {is3PL ? '3PL Payout' : 'Driver Payout'}
+              </span>
+              {!is3PL && primarySlot.driverPayoutModified && (
+                <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                  Syncs to Quotation
+                </span>
+              )}
+            </div>
+
+            {is3PL ? (
+              <span className="text-xs font-black font-mono text-[#3E3C3D] dark:text-white">
+                SAR {driverPayoutNum.toLocaleString()}
+              </span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-slate-400">SAR</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : (matchedRateCard?.driver_payout ?? '')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const orig = matchedRateCard?.driver_payout != null ? String(matchedRateCard.driver_payout) : '';
+                    const isModified = val !== orig;
+                    handleUpdateTripSlot?.(primarySlot.id, {
+                      driverPayout: val,
+                      driverPayoutModified: isModified,
+                      updateQuotationPayout: isModified,
+                    });
+                  }}
+                  placeholder="0"
+                  className="w-20 h-6 px-1.5 text-right text-xs font-mono font-black rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:border-[#FA634E] text-[#3E3C3D] dark:text-white"
+                />
+              </div>
+            )}
           </div>
 
           {/* ROW 3: ADDITIONAL CHARGES */}

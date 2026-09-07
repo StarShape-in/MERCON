@@ -193,6 +193,19 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
         {/* MODAL BODY */}
         <div className="p-6 space-y-4">
 
+          {/* QUOTATION DRIVER PAYOUT UPDATE NOTICE */}
+          {contractSlots.some((s) => s.driverPayoutModified || s.updateQuotationPayout) && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-extrabold block">Master Quotation Driver Payout Update</span>
+                <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                  Driver payout was modified. Saving will update the master Quotation rate card to <strong>SAR {primarySlot.driverPayout}</strong> for all future trips, and log a Quotation History entry.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* SCHEDULE ERROR BANNER */}
           {scheduleErrors.length > 0 && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl space-y-1">
