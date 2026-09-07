@@ -922,6 +922,9 @@ export default function TripListPage() {
     }),
     // Keep the previous rows on screen while a new search/page loads.
     placeholderData: keepPreviousData,
+    // Always fetch fresh data when this page mounts (e.g. after creating a trip and navigating back).
+    // placeholderData above ensures the cached list shows instantly while the refetch runs in background.
+    refetchOnMount: true,
     // Auto-poll every 10s so driver app updates move Kanban cards live without manual page reload
     refetchInterval: 10000,
   });
