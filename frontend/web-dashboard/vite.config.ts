@@ -20,7 +20,7 @@ export default defineConfig({
     // Proxy /api -> dev.mercon.tech server by default, or VITE_API_URL if specified
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'https://dev.mercon.tech',
+        target: (process.env.VITE_API_URL || 'https://dev.mercon.tech').replace(/\/api\/?$/, ''),
         changeOrigin: true,
         secure: false,
       },

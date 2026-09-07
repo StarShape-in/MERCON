@@ -68,18 +68,13 @@ import helmet from 'helmet';
 import compression from 'compression';
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3060',
-  process.env.VITE_APP_URL || 'https://dashboard.mercon.local'
-];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'X-CSRF-Token'],
 }));
+app.options('*', cors());
 
 // Gzip every response big enough to be worth it. List endpoints return highly
 // repetitive JSON (rosters, trip manifests) that compresses ~10x — without this
@@ -87,7 +82,10 @@ app.use(cors({
 // the VPS nginx only gzips text/html by default, not application/json.
 app.use(compression());
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+}));
 app.use(helmet.hsts({
   maxAge: 31536000,
   includeSubDomains: true,
