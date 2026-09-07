@@ -242,8 +242,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </div>
                 );
               })() : (
-                // UNSELECTED STATE: LIST OF RECOMMENDED DRIVERS WITHOUT SCROLLING OR CUTOFF
-                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in space-y-1.5">
+                /* UNSELECTED STATE: ORIGINAL CARD LAYOUT FOR RECOMMENDED DRIVERS */
+                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in space-y-2">
                   {(() => {
                     const listToDisplay = driverOptions.slice(0, 2);
 
@@ -275,31 +275,39 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                         null;
 
                       return (
-                        <button
+                        <div
                           key={dOpt.value || idx}
-                          type="button"
                           onClick={() => handleDriverChange(dOpt.value)}
-                          className="w-full p-2 text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 hover:border-[#FA634E] dark:hover:border-[#FA634E] text-slate-700 dark:text-slate-300 min-w-0"
+                          className="w-full p-2.5 text-left transition-all duration-200 flex items-center justify-between cursor-pointer rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 hover:border-[#FA634E] dark:hover:border-[#FA634E] text-slate-700 dark:text-slate-300 min-w-0 shadow-2xs group"
                         >
-                          <DriverAvatar
-                            src={avatarUrl}
-                            firstName={firstName}
-                            lastName={lastName}
-                            size="md"
-                            className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black leading-tight text-slate-900 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
-                              {firstName} {lastName}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
-                              {optDetailsStr || 'Truck: Unassigned'}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <DriverAvatar
+                              src={avatarUrl}
+                              firstName={firstName}
+                              lastName={lastName}
+                              size="md"
+                              className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="text-xs font-black leading-tight text-slate-900 dark:text-slate-100 uppercase truncate" title={`${firstName} ${lastName}`}>
+                                {firstName} {lastName}
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-medium truncate pt-0.5">
+                                {optDetailsStr || 'Truck: Unassigned'}
+                              </div>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold text-[#FA634E] shrink-0 bg-[#FA634E]/10 dark:bg-[#FA634E]/20 px-2 py-0.5 rounded-full">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDriverChange(dOpt.value);
+                            }}
+                            className="text-xs font-bold text-[#FA634E] shrink-0 bg-red-50 dark:bg-red-950/40 px-3.5 py-1 rounded-full hover:bg-[#FA634E] hover:text-white transition-colors ml-2 cursor-pointer"
+                          >
                             Select
-                          </span>
-                        </button>
+                          </button>
+                        </div>
                       );
                     });
                   })()}
