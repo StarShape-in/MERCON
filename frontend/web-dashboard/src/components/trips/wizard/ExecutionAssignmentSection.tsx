@@ -242,8 +242,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </div>
                 );
               })() : (
-                // UNSELECTED STATE: SCROLLABLE LIST OF ALL RECOMMENDED DRIVERS
-                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in max-h-[150px] overflow-y-auto pr-1 space-y-1">
+                // UNSELECTED STATE: LIST OF RECOMMENDED DRIVERS WITHOUT SCROLLING OR CUTOFF
+                <div className="w-full flex-1 flex flex-col justify-start transition-all duration-300 animate-fade-in space-y-1.5">
                   {(() => {
                     const listToDisplay = driverOptions.slice(0, 2);
 
@@ -273,32 +273,32 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                         (dOpt as any).raw?.photoUrl ||
                         (dOpt as any).raw?.image_url ||
                         null;
-                      const isFirst = idx === 0;
 
                       return (
                         <button
                           key={dOpt.value || idx}
                           type="button"
                           onClick={() => handleDriverChange(dOpt.value)}
-                          className={`w-full py-2 px-2 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 min-w-0 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 ${
-                            isFirst && listToDisplay.length > 1 ? '' : 'pt-1'
-                          }`}
+                          className="w-full p-2 text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 hover:border-[#FA634E] dark:hover:border-[#FA634E] text-slate-700 dark:text-slate-300 min-w-0"
                         >
                           <DriverAvatar
                             src={avatarUrl}
                             firstName={firstName}
                             lastName={lastName}
                             size="md"
-                            className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto shrink-0"
+                            className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
                           />
-
-                          <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100 w-full px-1">
-                            <div className="truncate w-full font-black text-xs" title={`${firstName} ${lastName}`}>{firstName} {lastName}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-black leading-tight text-slate-900 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
+                              {firstName} {lastName}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
+                              {optDetailsStr || 'Truck: Unassigned'}
+                            </div>
                           </div>
-
-                          <div className="text-[10px] text-slate-500 font-medium truncate w-full px-1">
-                            {optDetailsStr || 'Truck: Unassigned'}
-                          </div>
+                          <span className="text-[10px] font-bold text-[#FA634E] shrink-0 bg-[#FA634E]/10 dark:bg-[#FA634E]/20 px-2 py-0.5 rounded-full">
+                            Select
+                          </span>
                         </button>
                       );
                     });
