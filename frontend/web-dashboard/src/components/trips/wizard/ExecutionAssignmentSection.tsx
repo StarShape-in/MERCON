@@ -92,7 +92,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         /* 2-COLUMN ASSIGNMENT WORKSPACE */
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
-          <div className="md:col-span-8 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
+          <div className="md:col-span-7 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
             {/* VEHICLE CLASS */}
             {setContractVehicleType && (
               <div className="space-y-1">
@@ -183,7 +183,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           </div>
 
           {/* RIGHT COLUMN: DYNAMIC DRIVER PROFILE SELECTION CARD */}
-          <div className="md:col-span-4 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
+          <div className="md:col-span-5 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                 {masterDriver ? 'ASSIGNED DRIVER' : 'RECOMMENDED DRIVERS'}
@@ -232,7 +232,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                       className="border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
                     />
                     <div className="truncate flex-1 min-w-0">
-                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
+                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
                         {firstName} {lastName}
                       </div>
                       <div className="text-[10px] text-slate-500 font-medium truncate pt-0.5">
@@ -281,7 +281,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                           key={dOpt.value || idx}
                           type="button"
                           onClick={() => handleDriverChange(dOpt.value)}
-                          className={`w-full py-2 px-3 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 ${
+                          className={`w-full py-2 px-2 text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer space-y-1 relative rounded-xl hover:bg-slate-50/70 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 min-w-0 ${
                             isFirst && listToDisplay.length > 1 ? 'border-b border-slate-200/80 dark:border-slate-800/80 pb-2 mb-1' : 'pt-1'
                           }`}
                         >
@@ -290,14 +290,14 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                             firstName={firstName}
                             lastName={lastName}
                             size="md"
-                            className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto"
+                            className="border border-slate-200 dark:border-slate-700 shadow-2xs mx-auto shrink-0"
                           />
 
-                          <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100">
-                            <div className="truncate max-w-full">{firstName} {lastName}</div>
+                          <div className="text-xs font-black text-center leading-tight text-slate-900 dark:text-slate-100 w-full px-1">
+                            <div className="truncate w-full font-black text-xs" title={`${firstName} ${lastName}`}>{firstName} {lastName}</div>
                           </div>
 
-                          <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
+                          <div className="text-[10px] text-slate-500 font-medium truncate w-full px-1">
                             {optDetailsStr || 'Truck: Unassigned'}
                           </div>
                         </button>

@@ -186,10 +186,12 @@ export const ScheduleServicePanel: React.FC<ScheduleServicePanelProps> = ({
             originLng={slot.originLng}
             destinationLat={slot.destinationLat}
             destinationLng={slot.destinationLng}
+            pickupDate={slot.date || slot.pickupDate}
             pickupTime={slot.pickupTime}
             dropoffTime={slot.dropoffTime}
-            onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
+            onAutoSetDropoffDateTime={(suggestedDate, suggestedTime, isOvernight) => {
               handleUpdateTripSlot(slot.id, {
+                dropoffDate: suggestedDate,
                 dropoffTime: suggestedTime,
                 isOvernight: isOvernight,
               });

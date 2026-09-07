@@ -152,6 +152,11 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               originLng={slot.originLng}
               destinationLat={slot.destinationLat}
               destinationLng={slot.destinationLng}
+              pickupDate={slot.date || slot.pickupDate}
+              pickupTime={slot.pickupTime || '08:00'}
+              onAutoSetDropoffDateTime={(dDate, dTime, isOvernight) => {
+                handleUpdateTripSlot(slot.id, { dropoffDate: dDate, dropoffTime: dTime, isOvernight });
+              }}
               compact
             />
           )}
