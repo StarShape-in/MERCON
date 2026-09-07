@@ -69,29 +69,35 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
     <>
     <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E5E7EB] overflow-hidden">
       
-      {/* ── COL 1: TRUCK (TRUCK NO & TON) — 25% ── */}
+      {/* ── COL 1: COMPANY (NAME & LOGO ONLY) — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
-          <img
-            src="/truck_3d_orange_transparent.png"
-            alt={truckNo}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
+        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 text-[#374151] shrink-0 overflow-hidden shadow-2xs">
+          {companyLogo ? (
+            <img
+              src={resolveFileUrl(companyLogo)}
+              alt={companyName}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <Building2 size={20} className="text-[#374151]" />
+          )}
         </div>
 
         <div className="min-w-0 flex-1 space-y-0.5">
           <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            TRUCK
+            COMPANY
           </span>
-          <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
-            {truckNo}
+          <h3
+            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
+            className="font-extrabold text-[13px] text-[#111827] truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
+            title={companyName}
+          >
+            <span className="truncate">{companyName}</span>
+            <ExternalLink size={11} className="text-[#9CA3AF] shrink-0" />
           </h3>
-          <div className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none mt-0.5">
-            {truckTon}
-          </div>
         </div>
       </div>
 
@@ -126,35 +132,29 @@ export default function TripOverviewBarCard({ trip, onViewAllAlerts, onPreviewIm
         </a>
       </div>
 
-      {/* ── COL 3: COMPANY (NAME & LOGO ONLY) — 25% ── */}
+      {/* ── COL 3: TRUCK (TRUCK NO & TON) — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 text-[#374151] shrink-0 overflow-hidden shadow-2xs">
-          {companyLogo ? (
-            <img
-              src={resolveFileUrl(companyLogo)}
-              alt={companyName}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <Building2 size={20} className="text-[#374151]" />
-          )}
+        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
+          <img
+            src="/truck_3d_orange_transparent.png"
+            alt={truckNo}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
         </div>
 
         <div className="min-w-0 flex-1 space-y-0.5">
           <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            COMPANY
+            TRUCK
           </span>
-          <h3
-            onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-            className="font-extrabold text-[13px] text-[#111827] truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
-            title={companyName}
-          >
-            <span className="truncate">{companyName}</span>
-            <ExternalLink size={11} className="text-[#9CA3AF] shrink-0" />
+          <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
+            {truckNo}
           </h3>
+          <div className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none mt-0.5">
+            {truckTon}
+          </div>
         </div>
       </div>
 
