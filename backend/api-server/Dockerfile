@@ -6,11 +6,11 @@ RUN apk add --no-cache openssl curl
 WORKDIR /app
 
 # Workspace manifests first (for layer caching)
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY backend/api-server/package.json ./backend/api-server/
-COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
-RUN npm install --ignore-scripts
+RUN npm install --workspace=@mercon/shared-types --workspace=@mercon/api-server --ignore-scripts && npm cache clean --force
+
 
 # Shared types (built explicitly since --ignore-scripts skips prepare)
 COPY packages/shared-types ./packages/shared-types
