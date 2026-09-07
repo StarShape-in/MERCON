@@ -41,7 +41,14 @@ export function parseDateStart(dateStr?: string | null): Date | null {
  */
 export function parseDateTime(dateVal?: string | null, timeVal?: string | null): Date | null {
   if (!dateVal) return null;
-  const rawDateStr = dateVal.includes('T') ? dateVal.split('T')[0] : dateVal.slice(0, 10);
+
+  // If dateVal is a full ISO timestamp (e.g. "2026-09-07T20:00:00.000Z"), parse directly
+  if (dateVal.includes('T')) {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  const rawDateStr = dateVal.slice(0, 10);
   const parts = rawDateStr.split('-');
   if (parts.length !== 3) {
     const d = new Date(dateVal);
@@ -54,13 +61,8 @@ export function parseDateTime(dateVal?: string | null, timeVal?: string | null):
   let hours = 0;
   let minutes = 0;
 
-  let timeStr = timeVal;
-  if (!timeStr && dateVal.includes('T')) {
-    timeStr = dateVal.split('T')[1];
-  }
-
-  if (timeStr) {
-    const cleanTime = timeStr.trim().split(' ')[0];
+  if (timeVal) {
+    const cleanTime = timeVal.trim().split(' ')[0];
     const tParts = cleanTime.split(':');
     if (tParts.length >= 2) {
       hours = parseInt(tParts[0], 10);
