@@ -245,13 +245,12 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 // UNSELECTED STATE: 2 ROWS WITH SUBTLE HORIZONTAL DIVIDER LINE
                 <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
                   {(() => {
-                    const matchedDrivers = driverOptions.filter((d) => (d as any).capacityMatch !== false && ((d as any).score === undefined || (d as any).score >= 100));
-                    const listToDisplay = matchedDrivers.length > 0 ? matchedDrivers.slice(0, 2) : driverOptions.slice(0, 2);
+                    const listToDisplay = driverOptions.slice(0, 2);
 
                     if (listToDisplay.length === 0) {
                       return (
                         <div className="py-4 px-2 text-center text-xs text-slate-400 font-medium">
-                          No drivers available for {contractVehicleType}
+                          No drivers available
                         </div>
                       );
                     }

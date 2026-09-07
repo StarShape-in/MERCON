@@ -306,7 +306,12 @@ export function useCreateTripForm() {
         } as ComboboxOption & Record<string, any>;
       });
 
-    mapped.sort((a, b) => (b.score || 0) - (a.score || 0));
+    mapped.sort((a, b) => {
+      const capA = a.capacityMatch ? 1 : 0;
+      const capB = b.capacityMatch ? 1 : 0;
+      if (capB !== capA) return capB - capA;
+      return (b.score || 0) - (a.score || 0);
+    });
     return mapped;
   }, [drivers, vehicles, recommendedDriversRes]);
 
