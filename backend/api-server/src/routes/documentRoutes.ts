@@ -14,7 +14,7 @@ import { upload } from '../middlewares/upload';
 const router = Router();
 
 router.use(authenticateJWT);
-router.use(authorizeRoles('Admin', 'Operator'));
+router.use(authorizeRoles('Admin', 'SuperAdmin', 'Operator'));
 router.use(requireModuleEnabled('documents'));
 router.get('/preview-auto-assign', previewAutoAssignUnlinkedDocs);
 router.post('/confirm-auto-assign', confirmAutoAssignDocs);
