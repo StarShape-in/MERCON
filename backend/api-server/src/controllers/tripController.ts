@@ -1179,7 +1179,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           }
         }
 
-        results.push({ row: i + 1, success: true, ref_id: trip.ref_id ?? undefined });
+        results.push({ row: i + 1, success: true, ref_id: trip.ref_id ?? undefined, created_id: trip.id });
       } catch (err: any) {
         results.push({ row: i + 1, success: false, error: err.message || 'Failed to import row' });
       }
