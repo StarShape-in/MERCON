@@ -225,19 +225,19 @@ const PickupVerificationScreen = () => {
         if (returnStops.length > 0) {
           router.replace({ pathname: '/trip/stop', params: { legIndex: '1', stopIndex: '0' } } as any);
         } else {
-          router.replace('/trip/delivery');
+          router.replace('/trip/navigate');
         }
       } else {
         if (outboundStops.length > 0) {
           router.replace({ pathname: '/trip/stop', params: { legIndex: '0', stopIndex: '0' } } as any);
         } else {
-          router.replace('/trip/delivery');
+          router.replace('/trip/navigate');
         }
       }
     } catch (err) {
       console.error('Pickup completion error:', err);
       triggerGPayHapticsAndSound();
-      router.replace('/trip/delivery');
+      router.replace('/trip/navigate');
     } finally {
       setSubmitting(false);
     }

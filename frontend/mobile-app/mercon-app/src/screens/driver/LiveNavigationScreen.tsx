@@ -65,12 +65,15 @@ const LiveNavigationScreen = () => {
              trip.stops.find((s) => s.stop_type === 'Pickup') ??
              trip.stops[0];
     } else {
-      // Heading to Delivery: Stop 2 for leg 0, Stop 4 for leg 1
-      const targetSeq = legIndex === 1 ? 4 : 2;
-      return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
-             trip.stops.find((s) => s.stop_type === 'Dropoff') ??
-             trip.stops[1] ??
-             trip.stops[0];
+      // Heading to Delivery: Dropoff stop for outbound (leg 0) or return (leg 1)
+      if (legIndex === 1) {
+        return trip.stops.find((s) => s.stop_sequence === 4) ??
+               trip.stops.find((s) => s.stop_type === 'Dropoff' && s.stop_sequence > 2) ??
+               trip.stops[trip.stops.length - 1];
+      }
+      return trip.stops.find((s) => s.stop_type === 'Dropoff') ??
+             trip.stops.find((s) => s.stop_sequence === 2) ??
+             trip.stops[trip.stops.length - 1];
     }
   }, [trip?.stops, isHeadingToPickup, legIndex]);
 
@@ -484,10 +487,10 @@ const LiveNavigationScreen = () => {
                   {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
                 </Text>
                 <Text style={styles.destinationName} numberOfLines={1}>
-                  {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
+                  {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
                 </Text>
                 <Text style={styles.destinationAddress} numberOfLines={2}>
-                  {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
+                  {stopAddress(activeStop) ?? (isHeadingToPickup ? "Pickup Point, Saudi Arabia" : "Delivery Destination, Saudi Arabia")}
                 </Text>
               </View>
 
