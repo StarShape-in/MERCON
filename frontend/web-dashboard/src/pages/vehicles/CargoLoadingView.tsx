@@ -24,6 +24,7 @@ interface CargoSlot {
   shipmentId?: string;
   color?: 'green' | 'blue' | 'gray';
   colSpan?: number;
+  hasBorder?: boolean;
 }
 
 interface Shipment {
@@ -38,23 +39,23 @@ interface Shipment {
 }
 
 const INITIAL_SLOTS: CargoSlot[] = [
-  { id: 'A1', status: 'loaded', shipmentId: 'SHP-5839', weight: '500kg', color: 'green' },
-  { id: 'A2', status: 'loaded', shipmentId: 'SHP-2212', weight: '500kg', color: 'green' },
-  { id: 'A3', status: 'loaded', shipmentId: 'SHP-0090', weight: '500kg', color: 'gray' },
+  { id: 'A1', status: 'loaded', shipmentId: 'SHP - 5839', weight: '500kg', color: 'green', hasBorder: true },
+  { id: 'A2', status: 'loaded', shipmentId: 'SHP - 2212', weight: '500kg', color: 'green' },
+  { id: 'A3', status: 'loaded', shipmentId: 'SHP - 0090', weight: '500kg', color: 'gray' },
   { id: 'A4', status: 'empty' },
   { id: 'A5', status: 'empty' },
   { id: 'A6', status: 'empty' },
 
-  { id: 'B1', status: 'loaded', shipmentId: 'SHP-1233', weight: '500kg', color: 'gray' },
-  { id: 'B2', status: 'loaded', shipmentId: 'SHP-4434', weight: '1,000kg', color: 'green', colSpan: 2 },
-  { id: 'B3', status: 'loaded', shipmentId: 'SHP-3324', weight: '500kg', color: 'green' },
+  { id: 'B1', status: 'loaded', shipmentId: 'SHP - 1233', weight: '500kg', color: 'gray' },
+  { id: 'B2', status: 'loaded', shipmentId: 'SHP - 4434', weight: '1,000kg', color: 'green', colSpan: 2, hasBorder: true },
+  { id: 'B3', status: 'loaded', shipmentId: 'SHP - 3324', weight: '500kg', color: 'green' },
   { id: 'B4', status: 'empty' },
   { id: 'B5', status: 'empty' },
 
-  { id: 'C1', status: 'loaded', shipmentId: 'SHP-3030', weight: '500kg', color: 'gray' },
-  { id: 'C2', status: 'loaded', shipmentId: 'SHP-8893', weight: '1,000kg', color: 'gray' },
-  { id: 'C3', status: 'loaded', shipmentId: 'SHP-0040', weight: '1,000kg', color: 'blue', colSpan: 2 },
-  { id: 'C4', status: 'loaded', shipmentId: 'SHP-3320', weight: '1,000kg', color: 'gray', colSpan: 2 },
+  { id: 'C1', status: 'loaded', shipmentId: 'SHP - 3030', weight: '500kg', color: 'gray' },
+  { id: 'C2', status: 'loaded', shipmentId: 'SHP - 8893', weight: '1,000kg', color: 'gray' },
+  { id: 'C3', status: 'loaded', shipmentId: 'SHP - 0040', weight: '1,000kg', color: 'blue', colSpan: 2, hasBorder: true },
+  { id: 'C4', status: 'loaded', shipmentId: 'SHP - 3320', weight: '1,000kg', color: 'gray', colSpan: 2 },
 ];
 
 const ACTIVE_SHIPMENTS: Shipment[] = [
@@ -418,21 +419,21 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-5xl xl:max-w-6xl">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Cargo Grid Overlay - Measured pixel-perfect fit to trailer body */}
-              <div className="absolute top-[10%] left-[26.8%] w-[71%] h-[49.3%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
+              {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image matching Target Mockup Image 2 */}
+              <div className="absolute top-[7.8%] left-[25.6%] w-[73.4%] h-[52.5%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
                     onClick={() => slot.status === 'empty' && setSelectedSlot(slot.id)}
                     className={`
-                      relative rounded-xl border-2 flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
+                      relative rounded-xl border flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
                       ${slot.colSpan === 2 ? 'col-span-2' : 'col-span-1'}
                       ${slot.status === 'empty' 
                           ? (selectedSlot === slot.id 
-                              ? 'bg-slate-100/90 border-slate-900 border-solid shadow-md z-10' 
+                              ? 'bg-slate-100/90 border-slate-900 border-2 shadow-md z-10' 
                               : 'bg-white/95 backdrop-blur-sm border-slate-200 border-dashed hover:border-slate-400 hover:bg-white') 
-                          : (slot.color === 'green' ? 'bg-white/95 border-emerald-500 shadow-2xs' 
-                             : slot.color === 'blue' ? 'bg-white/95 border-blue-500 shadow-2xs'
+                          : (slot.hasBorder && slot.color === 'green' ? 'bg-white/95 border-emerald-500 border-2 shadow-2xs' 
+                             : slot.hasBorder && slot.color === 'blue' ? 'bg-white/95 border-blue-500 border-2 shadow-2xs'
                              : 'bg-white/95 border-slate-200 shadow-2xs')}
                     `}
                   >
