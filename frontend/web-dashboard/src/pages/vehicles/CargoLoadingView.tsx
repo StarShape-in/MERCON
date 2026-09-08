@@ -5,7 +5,8 @@ import { vehicleService } from '@/services/vehicleService';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
-  Clock, MapPin, Truck
+  Clock, MapPin, Truck, FileText, ShieldCheck, 
+  AlertTriangle, UserCheck, Wrench 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,56 +36,56 @@ interface Shipment {
 }
 
 const INITIAL_SLOTS: CargoSlot[] = [
-  { id: 'A1', status: 'loaded', weight: '500kg', shipmentId: 'SHP-5839', color: 'green' },
-  { id: 'A2', status: 'loaded', weight: '500kg', shipmentId: 'SHP-2212', color: 'green' },
-  { id: 'A3', status: 'loaded', weight: '500kg', shipmentId: 'SHP-0090', color: 'gray' },
+  { id: 'A1', status: 'loaded', shipmentId: 'SHP-5839', weight: '500kg', color: 'green' },
+  { id: 'A2', status: 'loaded', shipmentId: 'SHP-2212', weight: '500kg', color: 'green' },
+  { id: 'A3', status: 'loaded', shipmentId: 'SHP-0090', weight: '500kg', color: 'gray' },
   { id: 'A4', status: 'empty' },
   { id: 'A5', status: 'empty' },
   { id: 'A6', status: 'empty' },
-  { id: 'B1', status: 'loaded', weight: '500kg', shipmentId: 'SHP-1233', color: 'gray' },
-  { id: 'B2', status: 'loaded', weight: '1,000kg', shipmentId: 'SHP-4434', color: 'green' },
-  { id: 'B3', status: 'loaded', weight: '500kg', shipmentId: 'SHP-3324', color: 'green' },
+  { id: 'B1', status: 'loaded', shipmentId: 'SHP-1233', weight: '500kg', color: 'gray' },
+  { id: 'B2', status: 'loaded', shipmentId: 'SHP-4434', weight: '1,000kg', color: 'green' },
+  { id: 'B3', status: 'loaded', shipmentId: 'SHP-3324', weight: '500kg', color: 'green' },
   { id: 'B4', status: 'empty' },
   { id: 'B5', status: 'empty' },
   { id: 'B6', status: 'empty' },
-  { id: 'C1', status: 'loaded', weight: '500kg', shipmentId: 'SHP-3030', color: 'gray' },
-  { id: 'C2', status: 'loaded', weight: '1,000kg', shipmentId: 'SHP-8893', color: 'gray' },
-  { id: 'C3', status: 'loaded', weight: '1,000kg', shipmentId: 'SHP-0040', color: 'blue' },
-  { id: 'C4', status: 'loaded', weight: '1,000kg', shipmentId: 'SHP-3320', color: 'gray' },
+  { id: 'C1', status: 'loaded', shipmentId: 'SHP-3030', weight: '500kg', color: 'gray' },
+  { id: 'C2', status: 'loaded', shipmentId: 'SHP-8893', weight: '1,000kg', color: 'gray' },
+  { id: 'C3', status: 'loaded', shipmentId: 'SHP-0040', weight: '1,000kg', color: 'blue' },
+  { id: 'C4', status: 'loaded', shipmentId: 'SHP-3320', weight: '1,000kg', color: 'gray' },
   { id: 'C5', status: 'empty' },
   { id: 'C6', status: 'empty' },
 ];
 
 const UNASSIGNED_SHIPMENTS: Shipment[] = [
   {
-    id: 'SHP-9821',
-    speed: 'Standard',
-    route: 'NY → NJ',
-    type: 'Pallet',
-    quantity: '10 pallets',
-    totalWeight: '500 Kg',
-    dimension: '0.8x0.6x1 m',
-    method: 'Pickup'
-  },
-  {
-    id: 'SHP-9822',
+    id: 'SHP-9281',
     speed: 'Express',
     route: 'NY → NJ',
-    type: 'Box',
-    quantity: '15 boxes',
-    totalWeight: '1,000 Kg',
-    dimension: '0.4x0.2x1 m',
-    method: 'Pickup'
+    type: 'Electronics',
+    quantity: '12 boxes',
+    totalWeight: '240 Kg',
+    dimension: '1.2x0.8x1.0 m',
+    method: 'Standard'
   },
   {
-    id: 'SHP-9823',
+    id: 'SHP-9282',
     speed: 'Same day',
     route: 'NY → NJ',
-    type: 'Box',
-    quantity: '12 boxes',
-    totalWeight: '800 Kg',
-    dimension: '1.5x1.2x0.4 m',
-    method: 'Pickup'
+    type: 'Perishables',
+    quantity: '8 crates',
+    totalWeight: '450 Kg',
+    dimension: '1.0x1.0x1.2 m',
+    method: 'Refrigerated'
+  },
+  {
+    id: 'SHP-9283',
+    speed: 'Standard',
+    route: 'NY → PA',
+    type: 'Apparel',
+    quantity: '25 cartons',
+    totalWeight: '310 Kg',
+    dimension: '1.5x1.0x0.8 m',
+    method: 'Standard'
   }
 ];
 
@@ -100,6 +101,8 @@ export default function CargoLoadingView() {
   const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
   const vehicleStatus = vehicle?.status || 'Loading';
   const driverName = vehicle?.assignedDriver?.name || (vehicle as any)?.driver?.name || 'Marcus Lee';
+  const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
+  const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('A5');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
@@ -157,164 +160,193 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans p-6 pb-20">
+    <div className="w-full xl:h-[calc(100vh-4rem)] bg-[#FDFDFD] text-slate-900 font-sans p-4 sm:p-5 flex flex-col gap-3.5 overflow-hidden">
       
       {/* ── Top Header ── */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
           {renderStatusBadge(vehicleStatus)}
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="font-bold border-slate-200 gap-2 h-10 shadow-sm rounded-lg hover:bg-slate-50 text-slate-700">
-            <Search className="w-4 h-4 text-slate-500" />
+          <Button variant="outline" className="font-bold border-slate-200 gap-2 h-9 text-xs shadow-xs rounded-lg hover:bg-slate-50 text-slate-700">
+            <Search className="w-3.5 h-3.5 text-slate-500" />
             View manifest
           </Button>
-          <Button className="font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-10 shadow-sm rounded-lg">
-            <Truck className="w-4 h-4" />
+          <Button className="font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-9 text-xs shadow-xs rounded-lg">
+            <Truck className="w-3.5 h-3.5" />
             Dispatch truck
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
         
-        {/* ── Left Sidebar ── */}
-        <div className="xl:col-span-3 flex flex-col gap-6">
+        {/* ── Left Sidebar: 3 Fixed Boxes ── */}
+        <div className="xl:col-span-3 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
-          {/* Truck Information Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <h2 className="text-sm font-black text-slate-800 mb-4">Truck Information</h2>
-            
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+          {/* BOX 1: Truck & Driver Information */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Truck Information</h2>
+              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 font-bold px-2 py-0.5 text-[10px] rounded-md">
+                {capacityFormatted}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between pt-0.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                   <img src="https://i.pravatar.cc/150?u=marcus" alt="Driver" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Driver</p>
-                  <p className="text-sm font-black text-slate-800">{driverName}</p>
+                  <p className="text-xs font-black text-slate-800 leading-tight">{driverName}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-600 truncate">{tripRoute}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="w-8 h-8 rounded-full border-slate-200 text-slate-500">
+
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="w-7 h-7 rounded-lg border-slate-200 text-slate-500 hover:text-slate-800">
                   <Phone className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="outline" size="icon" className="w-8 h-8 rounded-full border-slate-200 text-slate-500">
+                <Button variant="outline" size="icon" className="w-7 h-7 rounded-lg border-slate-200 text-slate-500 hover:text-slate-800">
                   <MessageSquare className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-6 border-y border-slate-100 py-4">
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px]">
               <div>
-                <p className="text-[10px] text-slate-400 mb-1">Truck ID</p>
-                <p className="text-xs font-black text-slate-800">{plateNumber}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 mb-1">Dock</p>
-                <p className="text-xs font-black text-slate-800">Dock #3</p>
+                <p className="text-[9px] font-bold text-slate-400">Truck ID</p>
+                <p className="font-black text-slate-800 truncate">{plateNumber}</p>
               </div>
               <div>
-                <p className="text-[10px] text-slate-400 mb-1">Started</p>
-                <p className="text-xs font-black text-slate-800">08:34 AM</p>
+                <p className="text-[9px] font-bold text-slate-400">Dock</p>
+                <p className="font-black text-slate-800">Dock #3</p>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between mb-6 px-2">
-              <div className="text-center">
-                <p className="text-sm font-black text-slate-800">NY</p>
-                <p className="text-[10px] text-slate-400">New York</p>
-              </div>
-              <div className="flex-1 flex items-center justify-center relative px-2">
-                <div className="w-full h-[3px] bg-slate-100 rounded-full overflow-hidden flex">
-                  <div className="w-1/2 h-full bg-slate-300"></div>
-                </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center">
-                  <ArrowRight className="w-3 h-3 text-white" />
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-black text-slate-800">NJ</p>
-                <p className="text-[10px] text-slate-400">New Jersey</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="text-xs font-bold border-slate-200 h-9 rounded-lg text-slate-700">Change driver</Button>
-              <Button variant="outline" className="text-xs font-bold border-slate-200 h-9 rounded-lg text-slate-700">Edit route</Button>
-            </div>
-          </div>
-
-          {/* Capacity & Load Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <h2 className="text-sm font-black text-slate-800 mb-6">Capacity & load</h2>
-            <div className="flex items-center gap-6">
-              <div className="relative w-28 h-28 shrink-0">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#F1F5F9" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#0284C7" strokeWidth="8" strokeDasharray="283" strokeDashoffset="147" strokeLinecap="round" className="transition-all duration-1000" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-slate-800 leading-none">48%</span>
-                  <span className="text-[10px] text-slate-400 font-bold mt-1">Weight</span>
-                </div>
-              </div>
-              <div className="flex flex-col justify-center gap-4">
-                <div>
-                  <p className="text-[10px] text-slate-400 mb-0.5">Current load</p>
-                  <p className="text-xl font-black text-slate-800 leading-none">6.5 <span className="text-xs text-slate-500 font-bold">tons</span></p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 mb-0.5">Max. Capacity</p>
-                  <p className="text-base font-black text-slate-800 leading-none">13.5 <span className="text-xs text-slate-500 font-bold">tons</span></p>
-                </div>
+              <div>
+                <p className="text-[9px] font-bold text-slate-400">Capacity</p>
+                <p className="font-black text-slate-800 truncate">{capacityFormatted}</p>
               </div>
             </div>
           </div>
 
-          {/* Loading Activity Log Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1">
-            <h2 className="text-sm font-black text-slate-800 mb-5">Loading activity log</h2>
-            <div className="relative border-l-2 border-slate-100 ml-3 space-y-6">
-              
-              <div className="relative pl-6">
-                <div className="absolute -left-[11px] top-0 w-5 h-5 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+          {/* BOX 2: Maintenance Information */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                Maintenance
+              </h2>
+              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Healthy</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5 bg-slate-50/80 rounded-lg p-2 border border-slate-100">
+              <div>
+                <p className="text-[9px] font-bold text-slate-400">Odometer</p>
+                <p className="text-[11px] font-black text-slate-800 mt-0.5">
+                  {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-slate-400">Next Service</p>
+                <p className="text-[11px] font-black text-slate-800 mt-0.5">150,000 km</p>
+                <p className="text-[8px] font-bold text-slate-400">In 7,500 km</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-slate-400">Last Service</p>
+                <p className="text-[11px] font-black text-slate-800 mt-0.5">12 Aug 2026</p>
+                <p className="text-[8px] font-bold text-slate-400">Routine Check</p>
+              </div>
+            </div>
+          </div>
+
+          {/* BOX 3: Vehicle Documents & Validity (5 Documents) */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2 flex-1 justify-between min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0">
+              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                Documents & Validity
+              </h2>
+              <span className="text-[9px] font-bold text-slate-400">5 Registered</span>
+            </div>
+
+            <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1 justify-between flex flex-col">
+              {/* 1. Istimara */}
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-3 h-3 text-slate-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-800 leading-tight">Istimara (Registration)</p>
+                    <p className="text-[9px] text-slate-400 font-medium">Exp: 15 Oct 2027</p>
+                  </div>
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 mb-1">09:30 PM</p>
-                <p className="text-xs font-bold text-slate-700 leading-relaxed">Shipment SHP-9281 assigned (12 boxes, 240kg) to A1</p>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
               </div>
 
-              <div className="relative pl-6">
-                <div className="absolute -left-[11px] top-0 w-5 h-5 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+              {/* 2. MVPI */}
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3 text-slate-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-800 leading-tight">MVPI Inspection</p>
+                    <p className="text-[9px] text-slate-400 font-medium">Exp: 20 May 2027</p>
+                  </div>
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 mb-1">09:30 PM</p>
-                <p className="text-xs font-bold text-slate-700 leading-relaxed">Shipment SHP-9281 assigned (12 boxes, 240kg) to A1</p>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
               </div>
 
-              <div className="relative pl-6">
-                <div className="absolute -left-[11px] top-0 w-5 h-5 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+              {/* 3. Insurance */}
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-3 h-3 text-slate-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-800 leading-tight">Vehicle Insurance</p>
+                    <p className="text-[9px] text-slate-400 font-medium">Exp: 10 Jan 2027</p>
+                  </div>
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 mb-1">09:30 PM</p>
-                <p className="text-xs font-bold text-slate-700">Driver Marcus Lee checked in</p>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
               </div>
 
+              {/* 4. TGA Operating Card */}
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-800 leading-tight">TGA Operating Card</p>
+                    <p className="text-[9px] text-slate-400 font-medium">Exp: 28 Sep 2026</p>
+                  </div>
+                </div>
+                <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-amber-50">Expiring</Badge>
+              </div>
+
+              {/* 5. Driver License */}
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-3 h-3 text-slate-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-800 leading-tight">Driver License / Iqama</p>
+                    <p className="text-[9px] text-slate-400 font-medium">Exp: 12 Dec 2028</p>
+                  </div>
+                </div>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
+              </div>
             </div>
           </div>
 
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col gap-6">
+        <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-center">
+          <div className="w-full relative flex items-center justify-center shrink-0">
             
             {/* Inner wrapper tightly hugging the image */}
-            <div className="relative w-full max-w-5xl">
+            <div className="relative w-full max-w-4xl">
               <img src="/truck-new.png" alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
@@ -365,36 +397,33 @@ export default function CargoLoadingView() {
           </div>
 
           {/* Bottom Assignment Section */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-black text-slate-800">
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between mb-2 shrink-0">
+              <h2 className="text-xs font-black text-slate-800">
                 {selectedSlot ? `Assign shipment to ${selectedSlot} slot` : 'Select an empty slot to assign shipment'}
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <Input placeholder="Search for shipment ID" className="pl-9 h-9 text-xs rounded-lg border-slate-200 w-64" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <Input placeholder="Search shipment" className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-48" />
                 </div>
-                <Button variant="outline" className="h-9 gap-2 text-xs border-slate-200 rounded-lg font-bold text-slate-700">
-                  <SlidersHorizontal className="w-3.5 h-3.5" /> Sort by
-                </Button>
-                <Button variant="outline" className="h-9 gap-2 text-xs border-slate-200 rounded-lg font-bold text-slate-700">
-                  <LayoutGrid className="w-3.5 h-3.5" /> Grid
+                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700">
+                  <SlidersHorizontal className="w-3 h-3" /> Sort
                 </Button>
               </div>
             </div>
 
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity duration-300 ${!selectedSlot ? 'opacity-30 pointer-events-none grayscale-[50%]' : ''}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 transition-opacity duration-300 ${!selectedSlot ? 'opacity-30 pointer-events-none grayscale-[50%]' : ''}`}>
               {UNASSIGNED_SHIPMENTS.map(ship => (
-                <div key={ship.id} className="border border-slate-200 rounded-xl p-4 flex flex-col bg-white shadow-sm hover:border-slate-300 transition-colors">
-                  <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <div key={ship.id} className="border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
+                  <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
+                        <MapPin className="w-3 h-3 text-slate-500" />
                       </div>
-                      <span className="font-black text-sm text-slate-800">{ship.id}</span>
+                      <span className="font-black text-xs text-slate-800">{ship.id}</span>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] font-bold border rounded-full px-2.5 py-0.5 ${
+                    <Badge variant="outline" className={`text-[9px] font-bold border rounded-full px-2 py-0.5 ${
                       ship.speed === 'Express' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                       ship.speed === 'Same day' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                       'bg-slate-50 text-slate-600 border-slate-200'
@@ -403,40 +432,40 @@ export default function CargoLoadingView() {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-y-4 gap-x-2 mb-5">
+                  <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Route</p>
-                      <p className="text-xs font-black text-slate-800">{ship.route}</p>
+                      <p className="font-medium text-slate-400">Route</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.route}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Type</p>
-                      <p className="text-xs font-black text-slate-800">{ship.type}</p>
+                      <p className="font-medium text-slate-400">Type</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.type}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Quantity</p>
-                      <p className="text-xs font-black text-slate-800">{ship.quantity}</p>
+                      <p className="font-medium text-slate-400">Quantity</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.quantity}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Total weight</p>
-                      <p className="text-xs font-black text-slate-800">{ship.totalWeight}</p>
+                      <p className="font-medium text-slate-400">Weight</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.totalWeight}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Dimension</p>
-                      <p className="text-xs font-black text-slate-800">{ship.dimension}</p>
+                      <p className="font-medium text-slate-400">Dim</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.dimension}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 mb-1">Method</p>
-                      <p className="text-xs font-black text-slate-800">{ship.method}</p>
+                      <p className="font-medium text-slate-400">Method</p>
+                      <p className="font-bold text-slate-800 truncate">{ship.method}</p>
                     </div>
                   </div>
 
                   <Button 
                     variant="outline" 
-                    className="w-full font-bold gap-2 text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 mt-auto shadow-xs"
+                    className="w-full h-7 font-bold gap-1.5 text-[11px] text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs"
                     onClick={() => handleAssign(ship.id)}
                   >
-                    <Plus className="w-4 h-4 text-slate-400" />
-                    Assign to truck
+                    <Plus className="w-3 h-3 text-slate-400" />
+                    Assign
                   </Button>
                 </div>
               ))}
