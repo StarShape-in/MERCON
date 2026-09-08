@@ -39,23 +39,23 @@ interface Shipment {
 }
 
 const INITIAL_SLOTS: CargoSlot[] = [
-  { id: 'A1', status: 'loaded', shipmentId: 'SHP - 5839', weight: '500kg', color: 'green', hasBorder: true },
-  { id: 'A2', status: 'loaded', shipmentId: 'SHP - 2212', weight: '500kg' },
-  { id: 'A3', status: 'loaded', shipmentId: 'SHP - 0080', weight: '500kg' },
+  { id: 'A1', status: 'empty' },
+  { id: 'A2', status: 'empty' },
+  { id: 'A3', status: 'empty' },
   { id: 'A4', status: 'empty' },
   { id: 'A5', status: 'empty' },
   { id: 'A6', status: 'empty' },
 
-  { id: 'B1', status: 'loaded', shipmentId: 'SHP - 1233', weight: '500kg' },
-  { id: 'B2', status: 'loaded', shipmentId: 'SHP - 4434', weight: '1,000kg', color: 'green', colSpan: 2, hasBorder: true },
-  { id: 'B3', status: 'loaded', shipmentId: 'SHP - 3324', weight: '500kg' },
+  { id: 'B1', status: 'empty' },
+  { id: 'B2', status: 'empty', colSpan: 2 },
+  { id: 'B3', status: 'empty' },
   { id: 'B4', status: 'empty' },
   { id: 'B5', status: 'empty' },
 
-  { id: 'C1', status: 'loaded', shipmentId: 'SHP - 3030', weight: '500kg' },
-  { id: 'C2', status: 'loaded', shipmentId: 'SHP - 8893', weight: '1,000kg' },
-  { id: 'C3', status: 'loaded', shipmentId: 'SHP - 0040', weight: '1,000kg', color: 'blue', colSpan: 2, hasBorder: true },
-  { id: 'C4', status: 'loaded', shipmentId: 'SHP - 3320', weight: '1,000kg', colSpan: 2 },
+  { id: 'C1', status: 'empty' },
+  { id: 'C2', status: 'empty' },
+  { id: 'C3', status: 'empty', colSpan: 2 },
+  { id: 'C4', status: 'empty', colSpan: 2 },
 ];
 
 const ACTIVE_SHIPMENTS: Shipment[] = [
@@ -166,29 +166,74 @@ export default function CargoLoadingView() {
   const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
-  const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('A5');
+  const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('B2');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
   const [tripTab, setTripTab] = useState<'active' | 'upcoming' | 'completed'>('active');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
-    if (vehicle?.trips && Array.isArray(vehicle.trips) && vehicle.trips.length > 0) {
-      setSlots(prev => {
-        const nextSlots = [...prev];
-        vehicle.trips?.slice(0, 10).forEach((t: any, index: number) => {
-          if (nextSlots[index]) {
-            nextSlots[index] = {
-              ...nextSlots[index],
-              status: 'loaded',
-              shipmentId: t.ref_id || t.id || `TRIP-${index + 1}`,
-              weight: t.total_weight ? `${t.total_weight}kg` : '500kg'
-            };
-          }
-        });
-        return nextSlots;
-      });
-    }
+    if (!vehicle) return;
+
+    const rawTrips = vehicle.trips || [];
+
+    // Find active / live / assigned trip
+    const activeTrip = rawTrips.find((t: any) => 
+      ['OnTrip', 'InTransit', 'Loading', 'Dispatched', 'Scheduled', 'Delayed'].includes(t.status)
+    );
+
+    // Find previous completed / historic trips
+    const previousTrips = rawTrips.filter((t: any) => 
+      t.id !== activeTrip?.id && ['Completed', 'Delivered', 'Invoiced'].includes(t.status)
+    );
+
+    setSlots(() => {
+      const nextSlots = INITIAL_SLOTS.map(s => ({ ...s }));
+
+      // 1. Center big slot B2 shows current live trip highlighted in green
+      if (activeTrip) {
+        const b2Index = nextSlots.findIndex(s => s.id === 'B2');
+        if (b2Index !== -1) {
+          const tripIdLabel = activeTrip.ref_id || activeTrip.id?.slice(0, 8) || 'LIVE-TRIP';
+          const tripWeight = activeTrip.total_weight || activeTrip.planned_capacity_kg 
+            ? `${activeTrip.total_weight || activeTrip.planned_capacity_kg}kg` 
+            : '1,000kg';
+
+          nextSlots[b2Index] = {
+            ...nextSlots[b2Index],
+            status: 'loaded',
+            shipmentId: tripIdLabel,
+            weight: tripWeight,
+            color: 'green',
+            hasBorder: true
+          };
+        }
+      }
+
+      // 2. Other slots show previous completed trips for this truck
+      let prevTripIdx = 0;
+      for (let i = 0; i < nextSlots.length; i++) {
+        if (nextSlots[i].id === 'B2') continue; // B2 is reserved for active trip
+
+        if (prevTripIdx < previousTrips.length) {
+          const pTrip = previousTrips[prevTripIdx];
+          const tripIdLabel = pTrip.ref_id || pTrip.id?.slice(0, 8) || `TRP-${prevTripIdx + 1}`;
+          const tripWeight = pTrip.total_weight || pTrip.planned_capacity_kg 
+            ? `${pTrip.total_weight || pTrip.planned_capacity_kg}kg` 
+            : '500kg';
+
+          nextSlots[i] = {
+            ...nextSlots[i],
+            status: 'loaded',
+            shipmentId: tripIdLabel,
+            weight: tripWeight
+          };
+          prevTripIdx++;
+        }
+      }
+
+      return nextSlots;
+    });
   }, [vehicle]);
 
   const handleAssign = (shipmentId: string) => {
