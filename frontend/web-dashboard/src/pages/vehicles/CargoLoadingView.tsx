@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
+import truckNewImg from '@/assets/truck-new.png';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
@@ -347,7 +348,7 @@ export default function CargoLoadingView() {
             
             {/* Inner wrapper tightly hugging the image */}
             <div className="relative w-full max-w-4xl">
-              <img src="/truck-new.png" alt="Truck" className="w-full h-auto object-contain block" />
+              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
               <div className="absolute top-[12.5%] left-[28.3%] w-[68.2%] h-[49.2%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
