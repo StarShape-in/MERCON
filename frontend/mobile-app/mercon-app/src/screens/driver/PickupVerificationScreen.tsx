@@ -99,6 +99,9 @@ const PickupVerificationScreen = () => {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
+  const validPhotosCount = photos.filter((p) => !!p?.uri).length;
+  const hasAllPhotos = validPhotosCount >= 3;
+
   // Load draft photos
   useEffect(() => {
     if (!trip?.id) return;
@@ -176,10 +179,10 @@ const PickupVerificationScreen = () => {
 
   const handleCompletePickup = async () => {
     if (!trip || submitting) return;
-    if (photos.length < 3) {
+    if (validPhotosCount < 3) {
       Alert.alert(
         '3 Loading Photos Required',
-        `Please upload all 3 loading photos before proceeding (${photos.length}/3 uploaded).`
+        `Please upload all 3 loading photos before proceeding (${validPhotosCount}/3 uploaded).`
       );
       return;
     }
@@ -362,21 +365,21 @@ const PickupVerificationScreen = () => {
           <TouchableOpacity
             style={[
               styles.mainActionBtn,
-              photos.length < 3 && styles.mainActionBtnDisabled,
+              !hasAllPhotos && styles.mainActionBtnDisabled,
             ]}
-            activeOpacity={photos.length < 3 ? 0.7 : 0.85}
+            activeOpacity={0.85}
             onPress={handleCompletePickup}
-            disabled={submitting}
+            disabled={!hasAllPhotos || submitting}
           >
-            <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>
+            <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
+            <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
                 ? 'PROCESSING…'
-                : photos.length < 3
-                ? `${isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE'} (${photos.length}/3)`
+                : !hasAllPhotos
+                ? `UPLOAD 3 PHOTOS TO CONTINUE (${validPhotosCount}/3)`
                 : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}
             </Text>
-            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
+            <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
 
@@ -661,9 +664,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   mainActionBtnDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: '#E2E8F0',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  mainActionBtnTextDisabled: {
+    color: '#94A3B8',
   },
   mainActionBtnText: {
     color: '#FFFFFF',

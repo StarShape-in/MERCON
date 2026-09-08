@@ -98,6 +98,9 @@ const DeliveryVerificationScreen = () => {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
+  const validPhotosCount = photos.filter((p) => !!p?.uri).length;
+  const hasAllPhotos = validPhotosCount >= 3;
+
   // Load draft photos
   useEffect(() => {
     if (!trip?.id) return;
@@ -161,10 +164,10 @@ const DeliveryVerificationScreen = () => {
 
   const handleCompleteDelivery = async () => {
     if (!trip || submitting) return;
-    if (photos.length < 3) {
+    if (validPhotosCount < 3) {
       Alert.alert(
         '3 Delivery Photos Required',
-        `Please upload all 3 delivery photos before completing delivery (${photos.length}/3 uploaded).`
+        `Please upload all 3 delivery photos before completing delivery (${validPhotosCount}/3 uploaded).`
       );
       return;
     }
@@ -367,21 +370,21 @@ const DeliveryVerificationScreen = () => {
           <TouchableOpacity
             style={[
               styles.mainActionBtn,
-              photos.length < 3 && styles.mainActionBtnDisabled,
+              !hasAllPhotos && styles.mainActionBtnDisabled,
             ]}
-            activeOpacity={photos.length < 3 ? 0.7 : 0.85}
+            activeOpacity={0.85}
             onPress={handleCompleteDelivery}
-            disabled={submitting}
+            disabled={!hasAllPhotos || submitting}
           >
-            <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>
+            <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
+            <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
                 ? 'COMPLETING…'
-                : photos.length < 3
-                ? `${isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE'} (${photos.length}/3)`
+                : !hasAllPhotos
+                ? `UPLOAD 3 PHOTOS TO CONTINUE (${validPhotosCount}/3)`
                 : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}
             </Text>
-            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
+            <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
 
@@ -715,9 +718,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   mainActionBtnDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: '#E2E8F0',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  mainActionBtnTextDisabled: {
+    color: '#94A3B8',
   },
   mainActionBtnText: {
     color: '#FFFFFF',
