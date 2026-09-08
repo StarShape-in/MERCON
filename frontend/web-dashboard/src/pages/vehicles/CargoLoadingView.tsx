@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
 import truckNewImg from '@/assets/truck-new.png';
@@ -149,6 +149,7 @@ const COMPLETED_TRIPS: Shipment[] = [
 
 export default function CargoLoadingView() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const { data: vehicle } = useQuery({
     queryKey: ['vehicle', id],
@@ -167,6 +168,25 @@ export default function CargoLoadingView() {
   const [tripTab, setTripTab] = useState<'active' | 'upcoming' | 'completed'>('active');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    if (vehicle?.trips && Array.isArray(vehicle.trips) && vehicle.trips.length > 0) {
+      setSlots(prev => {
+        const nextSlots = [...prev];
+        vehicle.trips?.slice(0, 10).forEach((t: any, index: number) => {
+          if (nextSlots[index]) {
+            nextSlots[index] = {
+              ...nextSlots[index],
+              status: 'loaded',
+              shipmentId: t.ref_id || t.id || `TRIP-${index + 1}`,
+              weight: t.total_weight ? `${t.total_weight}kg` : '500kg'
+            };
+          }
+        });
+        return nextSlots;
+      });
+    }
+  }, [vehicle]);
 
   const handleAssign = (shipmentId: string) => {
     if (!selectedSlot) return;
@@ -424,7 +444,12 @@ export default function CargoLoadingView() {
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
-                    onClick={() => slot.status === 'empty' && setSelectedSlot(slot.id)}
+                    onClick={() => {
+                      if (slot.status === 'empty') {
+                        setSelectedSlot(slot.id);
+                        navigate(`/trips/new?vehicle_id=${vehicle?.id || id || ''}&slot=${slot.id}`);
+                      }
+                    }}
                     className={`
                       relative rounded-xl border flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
                       ${slot.colSpan === 2 ? 'col-span-2' : 'col-span-1'}
@@ -456,11 +481,18 @@ export default function CargoLoadingView() {
                     
                     {slot.status === 'empty' ? (
                       <div className="flex-1 w-full flex items-center justify-center z-10 py-0.5">
-                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
-                          selectedSlot === slot.id 
-                            ? 'bg-slate-900 text-white shadow-xs' 
-                            : 'bg-white border border-slate-300 text-slate-500 hover:border-slate-500 hover:text-slate-800'
-                        }`}>
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSlot(slot.id);
+                            navigate(`/trips/new?vehicle_id=${vehicle?.id || id || ''}&slot=${slot.id}`);
+                          }}
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
+                            selectedSlot === slot.id 
+                              ? 'bg-slate-900 text-white shadow-xs' 
+                              : 'bg-white border border-slate-300 text-slate-500 hover:border-slate-500 hover:text-slate-800'
+                          }`}
+                        >
                           <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
                         </div>
                       </div>
