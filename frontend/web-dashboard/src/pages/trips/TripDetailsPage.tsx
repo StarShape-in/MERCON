@@ -404,9 +404,9 @@ export default function TripDetailsPage() {
         </div>
 
         {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
-        <div className="grid grid-cols-12 gap-3 items-start">
+        <div className="grid grid-cols-12 gap-3 items-stretch">
           {/* Financials Card (~25% / 3 Cols) */}
-          <div className="col-span-12 lg:col-span-3 flex flex-col">
+          <div className="col-span-12 lg:col-span-3 flex flex-col h-full">
             <ModernFinancialsCard
               baseRate={baseRate}
               additionalCharges={chargesTotal}
@@ -419,7 +419,7 @@ export default function TripDetailsPage() {
           </div>
 
           {/* Right Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
-          <div className="col-span-12 lg:col-span-9 flex flex-col">
+          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
             <TripPhotoEvidence
               documents={documents}
               stops={trip.stops}

@@ -543,7 +543,7 @@ export default function TripPhotoEvidence({
   }, [effectiveEvidence]);
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col gap-2">
+    <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col justify-between gap-2">
       
       {/* ── HEADER ROW ── */}
       <div className="flex items-center justify-between pb-1.5 border-b border-[#F3F4F6] shrink-0">
@@ -592,7 +592,7 @@ export default function TripPhotoEvidence({
       </div>
 
       {/* ── HORIZONTAL LEGS CONTENT CONTAINER ── */}
-      <div className="flex flex-col gap-2 pt-0.5">
+      <div className="flex flex-col gap-2 pt-0.5 flex-1 justify-between">
         {effectiveEvidence.map((leg) => {
           const filteredLocations =
             selectedLocation === 'all'
