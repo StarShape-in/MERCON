@@ -156,10 +156,10 @@ export default function CargoLoadingView() {
   });
 
   const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
-  const vehicleStatus = vehicle?.status || 'Loading';
+  const vehicleStatus: string = (vehicle?.status as string) || 'Loading';
   const driverName = vehicle?.assignedDriver?.name || (vehicle as any)?.driver?.name || 'Marcus Lee';
   const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
-  const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
+  const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('A5');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
