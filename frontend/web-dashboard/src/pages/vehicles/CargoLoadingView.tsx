@@ -258,56 +258,55 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-9 flex flex-col gap-6">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full bg-slate-50/50 rounded-2xl border border-slate-200 relative overflow-hidden h-[480px] flex items-center justify-center shadow-inner">
-            {/* Background Truck Image */}
-            <div 
-              className="absolute inset-0 bg-no-repeat bg-center bg-contain opacity-90 mix-blend-multiply"
-              style={{ backgroundImage: "url('/truck-bg.jpg')" }}
-            ></div>
+          <div className="w-full bg-slate-50/50 rounded-2xl border border-slate-200 relative overflow-hidden flex items-center justify-center shadow-inner p-4 sm:p-8">
             
-            {/* Cargo Grid Overlay */}
-            <div className="absolute top-[18%] right-[8%] w-[60%] h-[50%] grid grid-rows-3 grid-cols-6 gap-2 p-2">
-              {slots.map(slot => (
-                <div 
-                  key={slot.id}
-                  onClick={() => slot.status === 'empty' && setSelectedSlot(slot.id)}
-                  className={`
-                    relative rounded-lg border-2 flex flex-col items-start justify-between p-2 cursor-pointer transition-all overflow-hidden
-                    ${slot.status === 'empty' 
-                        ? (selectedSlot === slot.id 
-                            ? 'bg-slate-100 border-slate-400 border-solid shadow-md z-10' 
-                            : 'bg-white/90 backdrop-blur-sm border-slate-200 border-dashed hover:border-slate-300 hover:bg-white') 
-                        : (slot.color === 'green' ? 'bg-white/95 border-emerald-400/50 shadow-xs' 
-                           : slot.color === 'blue' ? 'bg-white/95 border-blue-400/50 shadow-xs'
-                           : 'bg-white/95 border-slate-200 shadow-xs')}
-                  `}
-                >
-                  {/* Diagonal Stripe pattern for filled slots */}
-                  {slot.status === 'loaded' && (
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 8px)' }}></div>
-                  )}
+            {/* Inner aspect-ratio locked container (16:9) */}
+            <div className="relative w-full max-w-4xl aspect-video bg-no-repeat bg-center bg-contain mix-blend-multiply opacity-95" style={{ backgroundImage: "url('/truck-bg.jpg')" }}>
+              
+              {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
+              <div className="absolute top-[31%] left-[5%] w-[70.5%] h-[42.5%] grid grid-rows-3 grid-cols-6 gap-1.5 sm:gap-2">
+                {slots.map(slot => (
+                  <div 
+                    key={slot.id}
+                    onClick={() => slot.status === 'empty' && setSelectedSlot(slot.id)}
+                    className={`
+                      relative rounded-lg border-2 flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
+                      ${slot.status === 'empty' 
+                          ? (selectedSlot === slot.id 
+                              ? 'bg-slate-100 border-slate-400 border-solid shadow-md z-10' 
+                              : 'bg-white/90 backdrop-blur-sm border-slate-200 border-dashed hover:border-slate-300 hover:bg-white') 
+                          : (slot.color === 'green' ? 'bg-white/95 border-emerald-400/50 shadow-xs' 
+                             : slot.color === 'blue' ? 'bg-white/95 border-blue-400/50 shadow-xs'
+                             : 'bg-white/95 border-slate-200 shadow-xs')}
+                    `}
+                  >
+                    {/* Diagonal Stripe pattern for filled slots */}
+                    {slot.status === 'loaded' && (
+                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 8px)' }}></div>
+                    )}
 
-                  <div className="w-full flex justify-between items-start z-10">
-                    <span className="text-[10px] font-bold text-slate-500">{slot.id}</span>
-                    {slot.status === 'loaded' && slot.color && (
-                      <span className={`w-1.5 h-1.5 rounded-full ${slot.color === 'green' ? 'bg-emerald-500' : slot.color === 'blue' ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                    <div className="w-full flex justify-between items-start z-10">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-500">{slot.id}</span>
+                      {slot.status === 'loaded' && slot.color && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${slot.color === 'green' ? 'bg-emerald-500' : slot.color === 'blue' ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                      )}
+                    </div>
+                    
+                    {slot.status === 'empty' ? (
+                      <div className="flex-1 w-full flex items-center justify-center z-10">
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-colors ${selectedSlot === slot.id ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400 group-hover:border-slate-400 group-hover:text-slate-600'}`}>
+                          <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="z-10 mt-0.5 sm:mt-1">
+                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-400">{slot.weight}</p>
+                        <p className="text-[9px] sm:text-[10px] font-black text-slate-800 truncate leading-tight">{slot.shipmentId}</p>
+                      </div>
                     )}
                   </div>
-                  
-                  {slot.status === 'empty' ? (
-                    <div className="flex-1 w-full flex items-center justify-center z-10">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${selectedSlot === slot.id ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-400 group-hover:border-slate-400 group-hover:text-slate-600'}`}>
-                        <Plus className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="z-10 mt-1">
-                      <p className="text-[10px] font-bold text-slate-400">{slot.weight}</p>
-                      <p className="text-[10px] font-black text-slate-800 truncate">{slot.shipmentId}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
