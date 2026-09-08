@@ -498,9 +498,11 @@ export default function CargoLoadingView() {
               </div>
 
               <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-                <p className="text-[9px] font-bold text-slate-400">Workshop / Facility</p>
+                <p className="text-[9px] font-bold text-slate-400">Previous Service Date</p>
                 <p className="font-black text-slate-900 leading-tight mt-0.5 truncate">
-                  {vehicle?.active_maintenance?.workshop_name || 'Main Fleet Yard'}
+                  {vehicle?.active_maintenance?.end_date 
+                    ? new Date(vehicle.active_maintenance.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '12 Aug 2026'}
                 </p>
               </div>
             </div>
