@@ -44,18 +44,17 @@ const INITIAL_SLOTS: CargoSlot[] = [
   { id: 'A4', status: 'empty' },
   { id: 'A5', status: 'empty' },
   { id: 'A6', status: 'empty' },
+
   { id: 'B1', status: 'loaded', shipmentId: 'SHP-1233', weight: '500kg', color: 'gray' },
   { id: 'B2', status: 'loaded', shipmentId: 'SHP-4434', weight: '1,000kg', color: 'green', colSpan: 2 },
   { id: 'B3', status: 'loaded', shipmentId: 'SHP-3324', weight: '500kg', color: 'green' },
   { id: 'B4', status: 'empty' },
   { id: 'B5', status: 'empty' },
-  { id: 'B6', status: 'empty' },
+
   { id: 'C1', status: 'loaded', shipmentId: 'SHP-3030', weight: '500kg', color: 'gray' },
   { id: 'C2', status: 'loaded', shipmentId: 'SHP-8893', weight: '1,000kg', color: 'gray' },
   { id: 'C3', status: 'loaded', shipmentId: 'SHP-0040', weight: '1,000kg', color: 'blue', colSpan: 2 },
   { id: 'C4', status: 'loaded', shipmentId: 'SHP-3320', weight: '1,000kg', color: 'gray', colSpan: 2 },
-  { id: 'C5', status: 'empty' },
-  { id: 'C6', status: 'empty' },
 ];
 
 const ACTIVE_SHIPMENTS: Shipment[] = [
@@ -413,10 +412,10 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-center shrink-0 -mt-1 sm:-mt-2">
+          <div className="w-full relative flex items-center justify-end shrink-0 -mt-1 sm:-mt-2 overflow-hidden">
             
-            {/* Inner wrapper tightly hugging the image */}
-            <div className="relative w-full max-w-5xl xl:max-w-6xl">
+            {/* Inner wrapper shifted right to show half of the back wheel */}
+            <div className="relative w-full max-w-5xl xl:max-w-6xl translate-x-[4%] sm:translate-x-[5%]">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
