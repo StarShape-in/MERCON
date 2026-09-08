@@ -419,8 +419,8 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-5xl xl:max-w-6xl">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image matching Target Mockup Image 2 */}
-              <div className="absolute top-[8.8%] left-[27.2%] w-[70.8%] h-[51.5%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
+              {/* Cargo Grid Overlay - Contained strictly inside the white trailer interior to avoid touching metallic frame borders */}
+              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
