@@ -656,14 +656,14 @@ export default function CargoLoadingView() {
               <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
                 <button
                   type="button"
-                  onClick={() => setTripTab('active')}
+                  onClick={() => setTripTab('recent')}
                   className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
-                    tripTab === 'active' 
+                    tripTab === 'recent' 
                       ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Active Shipments
+                  Recent Trips
                   <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">
                     {ACTIVE_SHIPMENTS.length}
                   </span>
@@ -705,7 +705,7 @@ export default function CargoLoadingView() {
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   <Input 
-                    placeholder="Search shipment..." 
+                    placeholder="Search trip..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-40 sm:w-48" 
@@ -713,7 +713,7 @@ export default function CargoLoadingView() {
                 </div>
 
                 <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-50">
-                  <SlidersHorizontal className="w-3 h-3 text-slate-500" /> Sort by
+                  <SlidersHorizontal className="w-3 h-3 text-slate-500" /> Sort by creation
                 </Button>
 
                 <Button 
@@ -728,10 +728,17 @@ export default function CargoLoadingView() {
               </div>
             </div>
 
-            {/* Data Cards inside Box */}
+            {/* Simplified Data Cards inside Box */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
-              {getDisplayedData().map(item => (
-                <div key={item.id} className="border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
+              {getDisplayedData().map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className={`border rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
+                    index === 0 && tripTab === 'recent' 
+                      ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-200/60' 
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
                   <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
                     <div className="flex items-center gap-1.5">
                       <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
@@ -739,39 +746,30 @@ export default function CargoLoadingView() {
                       </div>
                       <span className="font-black text-xs text-slate-800">{item.id}</span>
                     </div>
-                    <Badge variant="outline" className={`text-[9px] font-bold border rounded-full px-2 py-0.5 ${
-                      item.speed === 'Express' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      item.speed === 'Same day' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-slate-50 text-slate-600 border-slate-200'
-                    }`}>
-                      {item.speed}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      {index === 0 && tripTab === 'recent' && (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-none">
+                          Latest
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-[9px] font-bold border rounded-full px-2 py-0.5 bg-slate-50 text-slate-600 border-slate-200">
+                        {item.speed}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
                     <div>
-                      <p className="font-medium text-slate-400">Route</p>
+                      <p className="font-semibold text-slate-400">Route</p>
                       <p className="font-bold text-slate-800 truncate">{item.route}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-400">Type</p>
+                      <p className="font-semibold text-slate-400">Cargo Type</p>
                       <p className="font-bold text-slate-800 truncate">{item.type}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-400">Quantity</p>
-                      <p className="font-bold text-slate-800 truncate">{item.quantity}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-400">Weight</p>
+                      <p className="font-semibold text-slate-400">Total Weight</p>
                       <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-400">Dimension</p>
-                      <p className="font-bold text-slate-800 truncate">{item.dimension}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-400">Status/Method</p>
-                      <p className="font-bold text-slate-800 truncate">{item.method}</p>
                     </div>
                   </div>
 
@@ -780,7 +778,7 @@ export default function CargoLoadingView() {
                     className="w-full h-7 font-bold gap-1.5 text-[11px] text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs mt-1"
                     onClick={() => handleAssign(item.id)}
                   >
-                    {tripTab === 'active' ? (
+                    {tripTab === 'recent' ? (
                       <>
                         <Plus className="w-3 h-3 text-slate-400" />
                         Assign to slot
