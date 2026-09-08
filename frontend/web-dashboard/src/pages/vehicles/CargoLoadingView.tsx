@@ -7,7 +7,7 @@ import {
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
-  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation 
+  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -508,7 +508,7 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 3: Vehicle Documents & Validity (Single Row Compact UI - No Scroll) */}
+          {/* BOX 3: Vehicle Documents & Validity (5 Exact Registered Docs - Compact Clean Layout) */}
           <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2 flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center justify-between shrink-0 mb-0.5">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
@@ -518,50 +518,50 @@ export default function CargoLoadingView() {
               <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
             </div>
 
-            <div className="flex flex-col gap-1.5 flex-1 justify-around">
+            <div className="flex flex-col gap-1 flex-1 justify-between">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
                 <div className="flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Istimara (Registration)</span>
+                  <span className="text-[11px] font-bold text-slate-800">Istimara</span>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (15 Oct 2027)</span>
               </div>
 
-              {/* 2. MVPI */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">MVPI Inspection</span>
-                </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (20 May 2027)</span>
-              </div>
-
-              {/* 3. Insurance */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              {/* 2. Insurance */}
+              <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Vehicle Insurance</span>
+                  <span className="text-[11px] font-bold text-slate-800">Insurance</span>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (10 Jan 2027)</span>
               </div>
 
-              {/* 4. TGA Operating Card */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              {/* 3. Operation Card */}
+              <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">TGA Operating Card</span>
+                  <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
                 </div>
                 <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Expiring (28 Sep 2026)</span>
               </div>
 
-              {/* 5. Driver License */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              {/* 4. SASO Plates */}
+              <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Driver License / Iqama</span>
+                  <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (12 Dec 2028)</span>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (04 Nov 2028)</span>
+              </div>
+
+              {/* 5. FAHAS */}
+              <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Valid (20 May 2027)</span>
               </div>
             </div>
           </div>
