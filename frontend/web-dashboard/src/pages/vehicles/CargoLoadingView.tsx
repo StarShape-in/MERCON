@@ -59,94 +59,14 @@ const INITIAL_SLOTS: CargoSlot[] = [
   { id: 'C4', status: 'empty', colSpan: 2 },
 ];
 
-const ACTIVE_SHIPMENTS: Shipment[] = [
-  {
-    id: 'SHP-9281',
-    speed: 'Express',
-    route: 'Riyadh → Al Bahah',
-    type: 'Electronics',
-    quantity: '12 boxes',
-    totalWeight: '240 Kg',
-    dimension: '1.2x0.8x1.0 m',
-    method: 'Standard'
-  },
-  {
-    id: 'SHP-9282',
-    speed: 'Same day',
-    route: 'Riyadh → Dammam',
-    type: 'Perishables',
-    quantity: '8 crates',
-    totalWeight: '450 Kg',
-    dimension: '1.0x1.0x1.2 m',
-    method: 'Refrigerated'
-  },
-  {
-    id: 'SHP-9283',
-    speed: 'Standard',
-    route: 'Riyadh → Al Hasa',
-    type: 'Apparel',
-    quantity: '25 cartons',
-    totalWeight: '310 Kg',
-    dimension: '1.5x1.0x0.8 m',
-    method: 'Standard'
-  }
-];
-
-const UPCOMING_SHIPMENTS: Shipment[] = [
-  {
-    id: 'SHP-9301',
-    speed: 'Express',
-    route: 'Jeddah → Medina',
-    type: 'Spare Parts',
-    quantity: '18 boxes',
-    totalWeight: '620 Kg',
-    dimension: '1.4x1.1x0.9 m',
-    method: 'Standard'
-  },
-  {
-    id: 'SHP-9302',
-    speed: 'Same day',
-    route: 'Dammam → Jubail',
-    type: 'Pharma',
-    quantity: '5 crates',
-    totalWeight: '180 Kg',
-    dimension: '0.9x0.9x1.1 m',
-    method: 'Refrigerated'
-  }
-];
-
-const COMPLETED_TRIPS: Shipment[] = [
-  {
-    id: 'TRIP-8810',
-    speed: 'Standard',
-    route: 'Riyadh → Al Hasa',
-    type: 'Industrial Materials',
-    quantity: '40 pallets',
-    totalWeight: '12,000 Kg',
-    dimension: 'Full Trailer',
-    method: 'Delivered'
-  },
-  {
-    id: 'TRIP-8794',
-    speed: 'Express',
-    route: 'Dammam → Khobar',
-    type: 'FMCG Goods',
-    quantity: '30 pallets',
-    totalWeight: '8,500 Kg',
-    dimension: 'Full Trailer',
-    method: 'Delivered'
-  },
-  {
-    id: 'TRIP-8740',
-    speed: 'Same day',
-    route: 'Jeddah → Yanbu',
-    type: 'Chemical Containers',
-    quantity: '15 units',
-    totalWeight: '14,200 Kg',
-    dimension: 'Tanker Box',
-    method: 'Delivered'
-  }
-];
+interface VehicleTripDisplay {
+  id: string;
+  rawId: string;
+  status: string;
+  route: string;
+  type: string;
+  totalWeight: string;
+}
 
 export default function CargoLoadingView() {
   const { id } = useParams<{ id: string }>();
@@ -238,24 +158,101 @@ export default function CargoLoadingView() {
     });
   }, [vehicle]);
 
-  const handleAssign = (shipmentId: string) => {
-    if (!selectedSlot) return;
-    setSlots(prev => prev.map(slot => {
-      if (slot.id === selectedSlot) {
-        return { ...slot, status: 'loaded', shipmentId, weight: '500kg', color: 'blue' };
-      }
-      return slot;
-    }));
-    setSelectedSlot(null);
+  const mapTripToDisplay = (t: any): VehicleTripDisplay => {
+    let routeStr = '—';
+    if (t.stops && t.stops.length >= 2) {
+      const origin = t.stops[0]?.location_name || t.stops[0]?.city || 'Origin';
+      const dest = t.stops[t.stops.length - 1]?.location_name || t.stops[t.stops.length - 1]?.city || 'Destination';
+      routeStr = `${origin} → ${dest}`;
+    } else if (t.stops && t.stops.length === 1) {
+      routeStr = t.stops[0]?.location_name || t.stops[0]?.city || '—';
+    } else if (t.origin_city && t.destination_city) {
+      routeStr = `${t.origin_city} → ${t.destination_city}`;
+    }
+
+    const weightStr = t.total_weight 
+      ? `${t.total_weight} Kg` 
+      : t.planned_capacity_kg 
+        ? `${t.planned_capacity_kg} Kg` 
+        : '—';
+
+    const typeStr = t.cargo_type || t.rate_category || t.customer?.name || t.vehicle_type || 'Standard Cargo';
+
+    return {
+      id: t.ref_id || (t.id ? `TRP-${t.id.slice(0, 6)}` : 'TRIP'),
+      rawId: t.id,
+      status: t.status || 'Scheduled',
+      route: routeStr,
+      type: typeStr,
+      totalWeight: weightStr,
+    };
   };
 
+  const rawTrips: any[] = (vehicle as any)?.trips || [];
+  const allVehicleTrips: VehicleTripDisplay[] = rawTrips.map(mapTripToDisplay);
+
+  const recentTripsList = allVehicleTrips.filter(t => 
+    ['InTransit', 'OnTrip', 'Loading', 'Dispatched', 'AtPickup', 'AtDelivery', 'Delayed'].includes(t.status)
+  );
+
+  const upcomingTripsList = allVehicleTrips.filter(t => 
+    ['Scheduled', 'Draft'].includes(t.status)
+  );
+
+  const completedTripsList = allVehicleTrips.filter(t => 
+    ['Completed', 'Invoiced', 'Delivered'].includes(t.status)
+  );
+
+  const activeDataset = tripTab === 'recent'
+    ? (recentTripsList.length > 0 ? recentTripsList : allVehicleTrips.filter(t => !['Completed', 'Invoiced', 'Delivered'].includes(t.status)))
+    : tripTab === 'upcoming'
+      ? upcomingTripsList
+      : completedTripsList;
+
   const getDisplayedData = () => {
-    let dataset = tripTab === 'recent' ? ACTIVE_SHIPMENTS : tripTab === 'upcoming' ? UPCOMING_SHIPMENTS : COMPLETED_TRIPS;
+    let dataset = activeDataset;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      dataset = dataset.filter(item => item.id.toLowerCase().includes(q) || item.route.toLowerCase().includes(q) || item.type.toLowerCase().includes(q));
+      dataset = dataset.filter(item => 
+        item.id.toLowerCase().includes(q) || 
+        item.route.toLowerCase().includes(q) || 
+        item.type.toLowerCase().includes(q) ||
+        item.status.toLowerCase().includes(q)
+      );
     }
     return dataset;
+  };
+
+  const renderTripCardBadge = (status: string) => {
+    const norm = (status || '').toLowerCase().replace(/[\s\-_]+/g, '');
+    if (norm === 'intransit' || norm === 'ontrip') {
+      return (
+        <Badge className="bg-blue-100 text-blue-700 border-blue-200 shadow-none font-bold px-2 py-0.5 text-[9px] rounded-full flex items-center gap-1">
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+          In Transit
+        </Badge>
+      );
+    }
+    if (norm === 'loading') {
+      return (
+        <Badge className="bg-amber-100 text-amber-700 border-amber-200 shadow-none font-bold px-2 py-0.5 text-[9px] rounded-full flex items-center gap-1">
+          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+          Loading
+        </Badge>
+      );
+    }
+    if (norm === 'completed' || norm === 'delivered' || norm === 'invoiced') {
+      return (
+        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none font-bold px-2 py-0.5 text-[9px] rounded-full flex items-center gap-1">
+          Completed
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[9px] font-bold border rounded-full px-2 py-0.5 bg-slate-50 text-slate-600 border-slate-200">
+        {status}
+      </Badge>
+    );
   };
 
   const renderStatusBadge = (status?: string) => {
@@ -695,7 +692,7 @@ export default function CargoLoadingView() {
                 >
                   Recent Trips
                   <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">
-                    {ACTIVE_SHIPMENTS.length}
+                    {recentTripsList.length}
                   </span>
                 </button>
 
@@ -710,7 +707,7 @@ export default function CargoLoadingView() {
                 >
                   Upcoming
                   <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-amber-100 text-amber-700 rounded-full">
-                    {UPCOMING_SHIPMENTS.length}
+                    {upcomingTripsList.length}
                   </span>
                 </button>
 
@@ -725,7 +722,7 @@ export default function CargoLoadingView() {
                 >
                   Completed Trips
                   <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-200 text-slate-600 rounded-full">
-                    {COMPLETED_TRIPS.length}
+                    {completedTripsList.length}
                   </span>
                 </button>
               </div>
@@ -760,73 +757,75 @@ export default function CargoLoadingView() {
 
             {/* Simplified Data Cards inside Box */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
-              {getDisplayedData().map((item, index) => (
-                <div 
-                  key={item.id} 
-                  className={`border rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
-                    index === 0 && tripTab === 'recent' 
-                      ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-200/60' 
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
-                        <MapPin className="w-3 h-3 text-slate-500" />
+              {(() => {
+                const displayed = getDisplayedData();
+                const totalBoxes = Math.max(3, displayed.length);
+                return Array.from({ length: totalBoxes }).map((_, index) => {
+                  const item = displayed[index];
+                  if (!item) {
+                    return (
+                      <div 
+                        key={`blank-box-${index}`} 
+                        className="border border-dashed border-slate-200/90 bg-slate-50/40 rounded-lg p-3 flex flex-col items-center justify-center text-center min-h-[90px] space-y-1 transition-all hover:bg-slate-50/70"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-slate-100/90 flex items-center justify-center border border-slate-200/60">
+                          <Truck className="w-3.5 h-3.5 text-slate-400 stroke-[1.5]" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-500">No Trip Assigned</p>
+                          <p className="text-[10px] font-medium text-slate-400">Blank Slot</p>
+                        </div>
                       </div>
-                      <span className="font-black text-xs text-slate-800">{item.id}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {index === 0 && tripTab === 'recent' && (
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-none">
-                          Latest
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-[9px] font-bold border rounded-full px-2 py-0.5 bg-slate-50 text-slate-600 border-slate-200">
-                        {item.speed}
-                      </Badge>
-                    </div>
-                  </div>
+                    );
+                  }
 
-                  <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
-                    <div>
-                      <p className="font-semibold text-slate-400">Route</p>
-                      <p className="font-bold text-slate-800 truncate">{item.route}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-400">Cargo Type</p>
-                      <p className="font-bold text-slate-800 truncate">{item.type}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-400">Total Weight</p>
-                      <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
-                    </div>
-                  </div>
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => item.rawId && navigate(`/trips/${item.rawId}`)}
+                      className={`border rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
+                        item.rawId ? 'cursor-pointer hover:border-slate-300 hover:shadow-xs' : ''
+                      } ${
+                        index === 0 && tripTab === 'recent' 
+                          ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-200/60' 
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
+                            <MapPin className="w-3 h-3 text-slate-500" />
+                          </div>
+                          <span className="font-black text-xs text-slate-800">{item.id}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {index === 0 && tripTab === 'recent' && (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-none">
+                              Latest
+                            </Badge>
+                          )}
+                          {renderTripCardBadge(item.status)}
+                        </div>
+                      </div>
 
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-7 font-bold gap-1.5 text-[11px] text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs mt-1"
-                    onClick={() => handleAssign(item.id)}
-                  >
-                    {tripTab === 'recent' ? (
-                      <>
-                        <Plus className="w-3 h-3 text-slate-400" />
-                        Assign to slot
-                      </>
-                    ) : tripTab === 'upcoming' ? (
-                      <>
-                        <Clock className="w-3 h-3 text-amber-500" />
-                        Schedule trip
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        View summary
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ))}
+                      <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
+                        <div>
+                          <p className="font-semibold text-slate-400">Route</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.route}>{item.route}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-400">Cargo Type</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.type}>{item.type}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-400">Total Weight</p>
+                          <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 
