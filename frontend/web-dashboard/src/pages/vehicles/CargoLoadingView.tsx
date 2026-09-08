@@ -413,10 +413,10 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-center shrink-0 -mt-1 sm:-mt-2">
+          <div className="w-full relative flex items-center justify-end shrink-0 -mt-1 sm:-mt-2 pl-2 sm:pl-6 overflow-hidden">
             
             {/* Inner wrapper tightly hugging the image */}
-            <div className="relative w-full max-w-5xl xl:max-w-6xl">
+            <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Contained strictly inside the white trailer interior to avoid touching metallic frame borders */}
