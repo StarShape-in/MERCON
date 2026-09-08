@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { vehicleService } from '@/services/vehicleService';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
@@ -86,6 +89,18 @@ const UNASSIGNED_SHIPMENTS: Shipment[] = [
 ];
 
 export default function CargoLoadingView() {
+  const { id } = useParams<{ id: string }>();
+
+  const { data: vehicle } = useQuery({
+    queryKey: ['vehicle', id],
+    queryFn: () => (id ? vehicleService.getById(id) : null),
+    enabled: !!id,
+  });
+
+  const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
+  const vehicleStatus = vehicle?.status || 'Loading';
+  const driverName = vehicle?.assignedDriver?.name || (vehicle as any)?.driver?.name || 'Marcus Lee';
+
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('A5');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
 
@@ -100,17 +115,55 @@ export default function CargoLoadingView() {
     setSelectedSlot(null);
   };
 
+  const renderStatusBadge = (status?: string) => {
+    const norm = (status || 'Loading').toLowerCase().replace(/[\s\-_]+/g, '');
+    if (norm === 'ontrip' || norm === 'intransit') {
+      return (
+        <Badge className="bg-blue-100 text-blue-700 border-blue-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-blue-100 hover:text-blue-700">
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+          In Transit
+        </Badge>
+      );
+    }
+    if (norm === 'loading') {
+      return (
+        <Badge className="bg-amber-100 text-amber-700 border-amber-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-amber-100 hover:text-amber-700">
+          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+          Loading
+        </Badge>
+      );
+    }
+    if (norm === 'available') {
+      return (
+        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-emerald-100 hover:text-emerald-700">
+          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+          Available
+        </Badge>
+      );
+    }
+    if (norm === 'maintenance') {
+      return (
+        <Badge className="bg-rose-100 text-rose-700 border-rose-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-rose-100 hover:text-rose-700">
+          <span className="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
+          Maintenance
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-slate-100 text-slate-700 border-slate-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-slate-100 hover:text-slate-700">
+        {status || 'Loading'}
+      </Badge>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans p-6 pb-20">
       
       {/* ── Top Header ── */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">TRC-204 Cargo details</h1>
-          <Badge className="bg-amber-100 text-amber-700 border-amber-200 shadow-none font-bold px-3 py-1 text-xs rounded-full flex items-center gap-1.5 hover:bg-amber-100 hover:text-amber-700">
-            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-            Loading
-          </Badge>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
+          {renderStatusBadge(vehicleStatus)}
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="font-bold border-slate-200 gap-2 h-10 shadow-sm rounded-lg hover:bg-slate-50 text-slate-700">
@@ -140,7 +193,7 @@ export default function CargoLoadingView() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-slate-400">Driver</p>
-                  <p className="text-sm font-black text-slate-800">Marcus Lee</p>
+                  <p className="text-sm font-black text-slate-800">{driverName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -156,7 +209,7 @@ export default function CargoLoadingView() {
             <div className="grid grid-cols-3 gap-2 mb-6 border-y border-slate-100 py-4">
               <div>
                 <p className="text-[10px] text-slate-400 mb-1">Truck ID</p>
-                <p className="text-xs font-black text-slate-800">TRC-204</p>
+                <p className="text-xs font-black text-slate-800">{plateNumber}</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 mb-1">Dock</p>
