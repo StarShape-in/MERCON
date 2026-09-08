@@ -414,36 +414,52 @@ export default function DriverDetailsPage() {
             <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shrink-0 shadow-2xs">
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                  <h3 className="text-xs font-bold text-[#3E3C3D] dark:text-white uppercase tracking-wider">
-                    Trips Performance Summary
+                  <TrendingUp className="w-4 h-4 text-slate-800 dark:text-slate-200" />
+                  <h3 className="text-xs font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider">
+                    Trips Overview
                   </h3>
                 </div>
-                <span className="text-[11px] font-semibold text-slate-500">
-                  This Week
-                </span>
+                <button className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+                  This Week <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
               </div>
 
-              {/* 4 Metric Cards */}
-              <div className="grid grid-cols-4 gap-2.5">
-                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-center">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Total Trips</span>
-                  <span className="text-xl font-extrabold text-[#3E3C3D] dark:text-white leading-none">12</span>
+              {/* 4 Prominent Metric Cards */}
+              <div className="grid grid-cols-4 gap-3">
+                {/* 1. Total Trips */}
+                <div className="p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center mb-1.5 shadow-2xs">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <span className="text-xl 2xl:text-2xl font-black text-[#3E3C3D] dark:text-white leading-none">12</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1.5">Total Trips</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-center">
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1">Completed</span>
-                  <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">9</span>
+                {/* 2. Completed */}
+                <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center mb-1.5 shadow-2xs">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <span className="text-xl 2xl:text-2xl font-black text-emerald-700 dark:text-emerald-400 leading-none">9</span>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mt-1.5">Completed</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-center">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Revenue</span>
-                  <span className="text-sm font-extrabold text-[#3E3C3D] dark:text-white leading-none">₹ 1,24.5k</span>
+                {/* 3. Total Revenue */}
+                <div className="p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center mb-1.5 shadow-2xs">
+                    <span className="text-xs font-black">₹</span>
+                  </div>
+                  <span className="text-base 2xl:text-lg font-black text-[#3E3C3D] dark:text-white leading-none">₹ 1,24,500</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1.5">Total Revenue</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 text-center">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Distance</span>
-                  <span className="text-sm font-extrabold text-[#3E3C3D] dark:text-white leading-none">2,850 km</span>
+                {/* 4. Total Distance */}
+                <div className="p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center mb-1.5 shadow-2xs">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <span className="text-base 2xl:text-lg font-black text-[#3E3C3D] dark:text-white leading-none">2,850 km</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1.5">Total Distance</span>
                 </div>
               </div>
             </div>
