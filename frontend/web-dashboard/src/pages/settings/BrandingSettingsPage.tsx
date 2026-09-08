@@ -41,7 +41,7 @@ export default function BrandingSettingsPage() {
       setAppName(settings.appName || 'MERCON Logistics');
       setLogoUrl(settings.logoUrl || '');
 
-      const theme = (settings.themeColors as any) || {};
+      const theme = ((settings as any).themeColors) || {};
       if (theme.statusGreen) setStatusGreen(theme.statusGreen);
       if (theme.statusAmber) setStatusAmber(theme.statusAmber);
       if (theme.statusRed) setStatusRed(theme.statusRed);

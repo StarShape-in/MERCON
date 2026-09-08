@@ -35,8 +35,8 @@ export default function TaxonomySettingsPage() {
   const [newBilling, setNewBilling] = useState('');
 
   useEffect(() => {
-    if (settings?.taxonomyConfig) {
-      const cfg = settings.taxonomyConfig as any;
+    if ((settings as any)?.taxonomyConfig) {
+      const cfg = (settings as any).taxonomyConfig as any;
       if (Array.isArray(cfg.vehicleClasses) && cfg.vehicleClasses.length) setVehicleClasses(cfg.vehicleClasses);
       if (Array.isArray(cfg.lineTypes) && cfg.lineTypes.length) setLineTypes(cfg.lineTypes);
       if (Array.isArray(cfg.billingTypes) && cfg.billingTypes.length) setBillingTypes(cfg.billingTypes);

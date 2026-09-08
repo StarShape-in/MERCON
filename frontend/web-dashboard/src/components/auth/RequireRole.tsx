@@ -10,7 +10,7 @@ interface RequireRoleProps {
 export default function RequireRole({ roles, children }: RequireRoleProps) {
   const user = authStore.getUser();
 
-  const isSuperAdmin = user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
+  const isSuperAdmin = (user?.role as string) === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
   const isAllowed = user?.role ? (roles.includes(user.role) || (isSuperAdmin && (roles.includes('Admin') || roles.includes('SuperAdmin')))) : false;
 
   if (!user || !user.role || !isAllowed) {

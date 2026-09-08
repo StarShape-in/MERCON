@@ -318,7 +318,7 @@ export default function DriverDetailsPage() {
                     <Phone className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href={`mailto:${driver.email || 'driver@mercon.com'}`}
+                    href={`mailto:${(driver as any).email || 'driver@mercon.com'}`}
                     className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-colors"
                   >
                     <Mail className="w-3.5 h-3.5" />
