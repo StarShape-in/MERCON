@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Che
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -84,7 +84,8 @@ const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const isReturnLoading = ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED';
+  const isRound = isRoundTrip(trip);
+  const isReturnLoading = isRound && (ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED');
   const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP' || isReturnLoading;
 
   const targetSeq = isReturnLoading ? 3 : 1;

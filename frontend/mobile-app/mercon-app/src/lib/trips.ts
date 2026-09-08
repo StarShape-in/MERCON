@@ -152,11 +152,43 @@ export interface MobileTrip {
   applied_rate?: number | string | null;
   extra_driver_payment?: number | string | null;
   trip_type?: string | null;
+  quotation_line_type?: string | null;
+  rate_category?: string | null;
   customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
   origin?: string | null;
   destination?: string | null;
   stops: TripStop[];
+}
+
+/** Check whether a trip is genuinely a Round Trip */
+export function isRoundTrip(trip: MobileTrip | null | undefined): boolean {
+  if (!trip) return false;
+  const lineType = (
+    trip.quotation_line_type ||
+    trip.trip_type ||
+    (trip as any).rate_category ||
+    ''
+  ).toLowerCase().trim();
+  if (lineType.includes('round')) return true;
+
+  if (trip.destination?.includes('[RETURN:')) return true;
+  if (trip.stops?.some((s) => (s.location_name || '').includes('[RETURN:'))) return true;
+
+  const hasSecondPickup = (trip.stops ?? []).some((s, idx) => idx > 0 && s.stop_type === 'Pickup');
+  if (hasSecondPickup) return true;
+
+  // Check if first and last stop locations are identical (circular round trip)
+  const stops = trip.stops ?? [];
+  if (stops.length >= 3) {
+    const first = (stops[0].location_name || stops[0].location?.name || '').toLowerCase().trim();
+    const last = (stops[stops.length - 1].location_name || stops[stops.length - 1].location?.name || '').toLowerCase().trim();
+    if (first && last && first === last) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /** A road route to the trip's next stop, as MERCON returns it. */

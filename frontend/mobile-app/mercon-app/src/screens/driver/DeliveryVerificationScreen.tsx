@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, Messag
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -83,7 +83,8 @@ const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const isReturnDelivery = ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN';
+  const isRound = isRoundTrip(trip);
+  const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN');
 
   const targetSeq = isReturnDelivery ? 4 : 2;
   const dropoffStop =
@@ -188,19 +189,16 @@ const DeliveryVerificationScreen = () => {
         await SecureStore.setItemAsync('last_completed_trip_id', trip.id);
       }
       const ws = trip.driver_workflow_state || 'ASSIGNED';
-      const isRoundTrip =
-        trip.trip_type?.toLowerCase().includes('round') ||
-        (trip.stops && trip.stops.length >= 3) ||
-        (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name);
+      const isRound = isRoundTrip(trip);
 
       const isFinalLeg =
-        !isRoundTrip ||
+        !isRound ||
         ws === 'IN_TRANSIT_RETURN' ||
         ws === 'ARRIVED_AT_FINAL_DELIVERY' ||
         ws === 'FINAL_DELIVERY_VERIFICATION';
 
-      const targetLegIndex = isRoundTrip && isFinalLeg ? 1 : 0;
-      const targetOp = isRoundTrip && isFinalLeg ? 'return_delivery' : 'delivery';
+      const targetLegIndex = isRound && isFinalLeg ? 1 : 0;
+      const targetOp = isRound && isFinalLeg ? 'return_delivery' : 'delivery';
 
       // Upload POD photos via tripService.uploadPhoto
       for (const p of photos) {
