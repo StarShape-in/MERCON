@@ -600,27 +600,30 @@ export default function CargoLoadingView() {
                       }
                     }}
                     className={`
-                      relative rounded-xl border flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
+                      relative rounded-xl border flex flex-col items-start justify-between p-2 cursor-pointer transition-all overflow-hidden min-h-[64px]
                       ${slot.colSpan === 2 ? 'col-span-2' : 'col-span-1'}
                       ${slot.status === 'empty' 
                           ? (selectedSlot === slot.id 
                               ? 'bg-white border-slate-900 border-2 shadow-xs z-10' 
                               : 'bg-white/95 backdrop-blur-xs border-slate-300 border-dashed hover:border-slate-400 hover:bg-white') 
-                          : (slot.hasBorder && slot.color === 'green' ? 'bg-white/95 border-emerald-500 border-2 shadow-2xs' 
-                             : slot.hasBorder && slot.color === 'blue' ? 'bg-white/95 border-blue-500 border-2 shadow-2xs'
-                             : 'bg-white/95 border-slate-300 shadow-2xs')}
+                          : (slot.hasBorder && slot.color === 'green' 
+                              ? 'bg-emerald-50/80 border-emerald-300 border animate-pulse shadow-2xs' 
+                              : slot.hasBorder && slot.color === 'blue' 
+                                 ? 'bg-blue-50/80 border-blue-300 border shadow-2xs'
+                                 : 'bg-white/95 border-slate-300 shadow-2xs')}
                     `}
                   >
-                    {/* Diagonal Stripe pattern for filled slots matching Reference Image 2 */}
+                    {/* Diagonal Stripe pattern for filled slots */}
                     {slot.status === 'loaded' && (
                       <div 
-                        className="absolute inset-0 pointer-events-none opacity-40" 
+                        className="absolute inset-0 pointer-events-none opacity-30" 
                         style={{ 
-                          backgroundImage: 'repeating-linear-gradient(45deg, #e2e8f0 0, #e2e8f0 2px, transparent 2px, transparent 9px)' 
+                          backgroundImage: 'repeating-linear-gradient(45deg, #cbd5e1 0, #cbd5e1 2px, transparent 2px, transparent 9px)' 
                         }}
                       ></div>
                     )}
 
+                    {/* Slot ID Header */}
                     <div className="w-full flex justify-between items-start z-10">
                       <span className="text-[10px] sm:text-xs font-semibold text-slate-500">{slot.id}</span>
                       {slot.status === 'loaded' && slot.color && slot.hasBorder && (
@@ -628,25 +631,26 @@ export default function CargoLoadingView() {
                       )}
                     </div>
                     
+                    {/* Centered Plus Button for Empty Slots */}
                     {slot.status === 'empty' ? (
-                      <div className="flex-1 w-full flex items-center justify-center z-10 py-0.5">
+                      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                         <div 
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedSlot(slot.id);
                             navigate(`/trips/new?vehicle_id=${vehicle?.id || id || ''}&slot=${slot.id}`);
                           }}
-                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
                             selectedSlot === slot.id 
                               ? 'bg-slate-900 text-white shadow-xs' 
                               : 'bg-white border border-slate-300 text-slate-500 hover:border-slate-500 hover:text-slate-800'
                           }`}
                         >
-                          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                          <Plus className="w-4 h-4 stroke-[2.5]" />
                         </div>
                       </div>
                     ) : (
-                      <div className="z-10 mt-0.5 sm:mt-1">
+                      <div className="z-10 mt-auto pt-1">
                         <p className="text-[10px] sm:text-xs font-semibold text-slate-500">{slot.weight}</p>
                         <p className="text-[11px] sm:text-xs font-bold text-slate-900 truncate leading-tight tracking-tight">{slot.shipmentId}</p>
                       </div>
