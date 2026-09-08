@@ -473,109 +473,140 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 2: Maintenance Information */}
+          {/* BOX 2: Maintenance Information (Expanded & Detailed) */}
           <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                Maintenance
+              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                Maintenance & Health
               </h2>
-              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Healthy</span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                {vehicle?.status === 'Maintenance' ? 'In Workshop' : 'Healthy'}
+              </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-              <div>
-                <p className="text-[9px] font-bold text-slate-400">Odometer</p>
-                <p className="text-[11px] font-black text-slate-800 mt-0.5">
-                  {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}
-                </p>
+            {/* Service Mileage Gauge Bar */}
+            <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-100 flex flex-col gap-1.5">
+              <div className="flex justify-between items-center text-[11px]">
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400">Current Odometer</p>
+                  <p className="font-black text-slate-900 leading-tight">
+                    {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-bold text-slate-400">Next Service Target</p>
+                  <p className="font-black text-slate-900 leading-tight">150,000 km <span className="text-[9px] font-semibold text-emerald-600">(In 7,500 km)</span></p>
+                </div>
               </div>
-              <div>
-                <p className="text-[9px] font-bold text-slate-400">Next Service</p>
-                <p className="text-[11px] font-black text-slate-800 mt-0.5">150,000 km</p>
-                <p className="text-[8px] font-bold text-slate-400">In 7,500 km</p>
+              
+              {/* Service Due Progress Bar */}
+              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
+                <div className="bg-emerald-500 h-full w-[95%] rounded-full"></div>
               </div>
-              <div>
+            </div>
+
+            {/* 4 Detailed Health & Service Data Cards */}
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
                 <p className="text-[9px] font-bold text-slate-400">Last Service</p>
-                <p className="text-[11px] font-black text-slate-800 mt-0.5">12 Aug 2026</p>
-                <p className="text-[8px] font-bold text-slate-400">Routine Check</p>
+                <p className="font-black text-slate-800 leading-tight mt-0.5">12 Aug 2026</p>
+                <p className="text-[9px] font-medium text-slate-500">Routine Check & Oil</p>
+              </div>
+
+              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
+                <p className="text-[9px] font-bold text-slate-400">Brake & Tires</p>
+                <p className="font-black text-slate-800 leading-tight mt-0.5">Brakes 88%</p>
+                <p className="text-[9px] font-medium text-slate-500">Tires 32 PSI / Good</p>
+              </div>
+
+              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
+                <p className="text-[9px] font-bold text-slate-400">Workshop Status</p>
+                <p className="font-black text-slate-800 leading-tight mt-0.5">
+                  {vehicle?.active_maintenance?.workshop_name || 'Main Facility'}
+                </p>
+                <p className="text-[9px] font-medium text-emerald-600">No Active Issues</p>
+              </div>
+
+              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
+                <p className="text-[9px] font-bold text-slate-400">Engine Health</p>
+                <p className="font-black text-slate-800 leading-tight mt-0.5">0 Fault Codes</p>
+                <p className="text-[9px] font-medium text-emerald-600">All Systems Nominal</p>
               </div>
             </div>
           </div>
 
-          {/* BOX 3: Vehicle Documents & Validity (5 Documents) */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2 flex-1 justify-between min-h-0 overflow-hidden">
-            <div className="flex items-center justify-between shrink-0">
-              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-400" />
+          {/* BOX 3: Vehicle Documents & Validity (Compact Layout) */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2 flex-1 min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 mb-0.5">
+              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
                 Documents & Validity
               </h2>
-              <span className="text-[9px] font-bold text-slate-400">5 Registered</span>
+              <span className="text-[10px] font-bold text-slate-500">5 Registered</span>
             </div>
 
-            <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1 justify-between flex flex-col">
+            <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-3 h-3 text-slate-500 shrink-0" />
+                  <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <div>
                     <p className="text-[11px] font-bold text-slate-800 leading-tight">Istimara (Registration)</p>
                     <p className="text-[9px] text-slate-400 font-medium">Exp: 15 Oct 2027</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50 shadow-none">Valid</Badge>
               </div>
 
               {/* 2. MVPI */}
-              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-slate-500 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <div>
                     <p className="text-[11px] font-bold text-slate-800 leading-tight">MVPI Inspection</p>
                     <p className="text-[9px] text-slate-400 font-medium">Exp: 20 May 2027</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50 shadow-none">Valid</Badge>
               </div>
 
               {/* 3. Insurance */}
-              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-3 h-3 text-slate-500 shrink-0" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <div>
                     <p className="text-[11px] font-bold text-slate-800 leading-tight">Vehicle Insurance</p>
                     <p className="text-[9px] text-slate-400 font-medium">Exp: 10 Jan 2027</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50 shadow-none">Valid</Badge>
               </div>
 
               {/* 4. TGA Operating Card */}
-              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <div>
                     <p className="text-[11px] font-bold text-slate-800 leading-tight">TGA Operating Card</p>
                     <p className="text-[9px] text-slate-400 font-medium">Exp: 28 Sep 2026</p>
                   </div>
                 </div>
-                <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-amber-50">Expiring</Badge>
+                <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-amber-50 shadow-none">Expiring</Badge>
               </div>
 
               {/* 5. Driver License */}
-              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 border border-slate-100">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="w-3 h-3 text-slate-500 shrink-0" />
+                  <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <div>
                     <p className="text-[11px] font-bold text-slate-800 leading-tight">Driver License / Iqama</p>
                     <p className="text-[9px] text-slate-400 font-medium">Exp: 12 Dec 2028</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50">Valid</Badge>
-              </div>
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50 shadow-none">Valid</Badge>
             </div>
           </div>
-
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
