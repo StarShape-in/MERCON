@@ -258,13 +258,14 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-9 flex flex-col gap-6">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full bg-slate-50/50 rounded-2xl border border-slate-200 relative overflow-hidden flex items-center justify-center shadow-inner p-4 sm:p-8">
+          <div className="w-full relative flex items-center justify-center">
             
-            {/* Inner aspect-ratio locked container (16:9) */}
-            <div className="relative w-full max-w-4xl aspect-video bg-no-repeat bg-center bg-contain mix-blend-multiply opacity-95" style={{ backgroundImage: "url('/truck-bg.jpg')" }}>
+            {/* Inner wrapper tightly hugging the image */}
+            <div className="relative w-full max-w-5xl">
+              <img src="/truck-new.png" alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
-              <div className="absolute top-[31%] left-[5%] w-[70.5%] h-[42.5%] grid grid-rows-3 grid-cols-6 gap-1.5 sm:gap-2">
+              <div className="absolute top-[12%] left-[28%] w-[70%] h-[60%] grid grid-rows-3 grid-cols-6 gap-1.5 sm:gap-2">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
