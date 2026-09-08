@@ -258,231 +258,224 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="pt-4 px-4 sm:px-6 pb-10 w-full max-w-6xl mx-auto flex flex-col gap-6 animate-fade-in">
+      {/* 
+        One screen non-scrollable UI 
+        h-[calc(100vh-64px)] assumes header is 64px. We use flex to fill.
+      */}
+      <div className="h-[calc(100vh-72px)] w-full p-4 sm:p-6 flex flex-col overflow-hidden animate-fade-in">
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Main Grid: 5 columns, 3 rows. Proportions match the sketch exactly. */}
+        <div className="grid grid-cols-5 grid-rows-[1fr_1.2fr_1fr] gap-4 sm:gap-6 w-full h-full min-h-0">
           
-          {/* ── TOP LEFT: Profile Box ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
-            <div className="absolute top-4 right-4">
-               <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <MoreVertical className="w-5 h-5 text-slate-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44 rounded-xl">
-                    <DropdownMenuItem onClick={() => navigate(`/drivers/${driver.id}/edit`)} className="font-bold cursor-pointer">
-                      <Edit2 className="w-4 h-4 mr-2" /> Edit Driver
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportDossier} className="font-bold cursor-pointer">
-                      <Download className="w-4 h-4 mr-2" /> Export Dossier
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)} className="text-rose-600 font-bold cursor-pointer">
-                      <Trash2 className="w-4 h-4 mr-2" /> Delete Account
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-
-            <DriverAvatar
-              src={driver.avatar_url}
-              firstName={driver.first_name}
-              lastName={driver.last_name}
-              size="2xl"
-              status={driver.status}
-              showStatusDot={true}
-              previewable
-              className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 shadow-md cursor-pointer hover:opacity-90 transition-opacity rounded-full border-4 border-white dark:border-slate-800"
-              onPreview={() => setIsPhotoFullViewOpen(true)}
-            />
-            <div className="flex-1 text-center sm:text-left space-y-3 pt-2">
+          {/* ── ROW 1 ── */}
+          
+          {/* TOP LEFT: Profile Box (Span 3) */}
+          <div className="col-span-5 md:col-span-3 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-4 flex gap-4 h-full relative group">
+            {/* Inner box for Name/ID as drawn in sketch */}
+            <div className="flex-1 rounded-[24px] border-2 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 flex flex-col justify-between">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none mb-1">
-                  {driver.first_name} {driver.last_name}
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tighter leading-none mb-2">
+                  {driver.first_name}
+                  <br />
+                  {driver.last_name}
                 </h1>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
                   {driver.ref_id || 'DRV-123'}
                 </p>
               </div>
-              <Badge variant="outline" className={cn(
-                'text-[10px] font-extrabold px-3 py-1 border shadow-xs uppercase tracking-wider',
-                (driver.status || '').toLowerCase() === 'available' 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
-              )}>
-                <span className={cn('w-2 h-2 rounded-full shrink-0 mr-2', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
-                {driver.status}
-              </Badge>
-              <div className="flex justify-center sm:justify-start gap-3 pt-3">
-                <Button size="icon" variant="outline" className="rounded-full shadow-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
-                  <MessageSquare className="w-4 h-4" />
+              <div className="flex items-center gap-3">
+                <Button size="icon" variant="outline" className="rounded-2xl w-12 h-12 shadow-none border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                  <MessageSquare className="w-5 h-5" />
                 </Button>
-                <Button size="icon" variant="outline" className="rounded-full shadow-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
-                  <Phone className="w-4 h-4" />
-                </Button>
+                <Badge variant="outline" className={cn(
+                  'text-[10px] font-extrabold px-3 py-1.5 border-2 shadow-none uppercase tracking-wider rounded-xl',
+                  (driver.status || '').toLowerCase() === 'available' 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                )}>
+                  <span className={cn('w-2 h-2 rounded-full shrink-0 mr-2', (driver.status || '').toLowerCase() === 'available' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                  {driver.status}
+                </Badge>
               </div>
+            </div>
+            
+            {/* Avatar Side */}
+            <div className="flex-1 flex items-center justify-center relative">
+              <div className="absolute top-0 right-0">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="rounded-full">
+                        <MoreVertical className="w-5 h-5 text-slate-400" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                      <DropdownMenuItem onClick={() => navigate(`/drivers/${driver.id}/edit`)} className="font-bold cursor-pointer">
+                        <Edit2 className="w-4 h-4 mr-2" /> Edit Driver
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportDossier} className="font-bold cursor-pointer">
+                        <Download className="w-4 h-4 mr-2" /> Export Dossier
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)} className="text-rose-600 font-bold cursor-pointer">
+                        <Trash2 className="w-4 h-4 mr-2" /> Delete Account
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+              </div>
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="2xl"
+                status={driver.status}
+                showStatusDot={false}
+                previewable
+                className="w-32 h-32 shrink-0 cursor-pointer hover:scale-105 transition-transform rounded-[2rem] border-4 border-slate-100 dark:border-slate-800"
+                onPreview={() => setIsPhotoFullViewOpen(true)}
+              />
             </div>
           </div>
 
-          {/* ── TOP RIGHT: Current Trip Box ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col justify-between relative overflow-hidden">
+          {/* TOP RIGHT: Current Trip Box (Span 2) */}
+          <div className="col-span-5 md:col-span-2 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-6 flex flex-col justify-between h-full relative overflow-hidden">
             {activeTrip && (
-              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                 <Truck className="w-32 h-32" />
+              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                 <Truck className="w-40 h-40" />
               </div>
             )}
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                  <Activity className="w-5 h-5" />
-                </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2 relative z-10">
                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
                   Current Trip
                 </h3>
               </div>
-              <Badge className={cn('px-2.5 py-0.5 text-[10px] font-extrabold uppercase shadow-sm', activeTrip ? 'bg-blue-100 hover:bg-blue-100 text-blue-700' : 'bg-slate-100 hover:bg-slate-100 text-slate-500')}>
-                {activeTrip ? 'Active' : 'Standby'}
-              </Badge>
+              {activeTrip && (
+                 <p className="text-2xl font-black text-[#FA634E] cursor-pointer hover:underline" onClick={() => navigate(`/trips/${activeTrip.id}`)}>{activeTrip.ref_id}</p>
+              )}
             </div>
 
             {activeTrip ? (
-              <div className="space-y-6 flex-1 flex flex-col justify-center relative z-10">
-                <div className="flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Trip Ref</p>
-                    <p className="text-lg font-black text-slate-900 dark:text-white cursor-pointer hover:text-[#FA634E] hover:underline" onClick={() => navigate(`/trips/${activeTrip.id}`)}>{activeTrip.ref_id}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Vehicle</p>
-                    <p className="text-lg font-black text-slate-700 dark:text-slate-300">{assignedVehicle?.plate_number || 'N/A'}</p>
-                  </div>
+              <div className="relative pl-6 space-y-4 py-2 z-10">
+                <div className="absolute left-1.5 top-2.5 bottom-2.5 w-0.5 bg-slate-200 dark:bg-slate-700"></div>
+                <div className="relative">
+                  <div className="absolute -left-[1.35rem] w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 mt-0.5"></div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pickup</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{activeTripRoute.pickup}</p>
                 </div>
-                
-                <div className="relative pl-6 space-y-5 py-2">
-                  <div className="absolute left-1.5 top-2.5 bottom-2.5 w-0.5 bg-slate-200 dark:bg-slate-700"></div>
-                  <div className="relative">
-                    <div className="absolute -left-6 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 mt-0.5"></div>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Pickup</p>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{activeTripRoute.pickup}</p>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute -left-6 w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 mt-0.5"></div>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Dropoff</p>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{activeTripRoute.dropoff}</p>
-                  </div>
+                <div className="relative">
+                  <div className="absolute -left-[1.35rem] w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 mt-0.5"></div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dropoff</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{activeTripRoute.dropoff}</p>
                 </div>
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3 opacity-60">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                   <Truck className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-                </div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">No active assignment</p>
+                <Truck className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">No active trip</p>
               </div>
             )}
           </div>
 
-          {/* ── MIDDLE LEFT: Trips Overview (Matchy Graph) ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col justify-between min-h-[320px]">
-            <div className="flex items-center justify-between mb-4">
+          {/* ── ROW 2 ── */}
+          
+          {/* MIDDLE LEFT: Driver Details (Span 3) */}
+          <div className="col-span-5 md:col-span-3 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-6 flex flex-col h-full min-h-0">
+            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-6 shrink-0">
+              Driver Details
+            </h3>
+
+            <div className="flex-1 grid grid-cols-2 gap-4 overflow-y-auto pr-2 scrollbar-none">
+              <div className="p-4 rounded-[20px] bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Joined Date</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white">15 Mar 2023</span>
+              </div>
+              <div className="p-4 rounded-[20px] bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phone</span>
+                <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{driver.phone_primary}</span>
+              </div>
+              <div className="p-4 rounded-[20px] bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">License Number</span>
+                <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{driver.license_number || 'N/A'}</span>
+              </div>
+              <div className="p-4 rounded-[20px] bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 flex flex-col justify-center relative">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">License Expiry</span>
+                <span className="text-lg font-mono font-black text-slate-900 dark:text-white">
+                  {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
+                </span>
+                {isLicenseExpired && (
+                  <Badge className="absolute top-4 right-4 bg-rose-100 text-rose-700 px-2 py-0.5 text-[9px]">EXP</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE RIGHT: Trips Overview (Span 2) */}
+          <div className="col-span-5 md:col-span-2 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-6 flex flex-col justify-between h-full min-h-0">
+            <div className="flex items-start justify-between shrink-0">
               <div>
                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
                   Trips Overview
                 </h3>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  Weekly Activity
+                  10.2h Work Time This Week
                 </p>
               </div>
-              <div className="text-right flex items-center gap-2 bg-slate-50 dark:bg-slate-950/50 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                <TrendingUp className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <span className="text-xl font-black text-slate-900 dark:text-white leading-none block">10.2h</span>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Work Time</p>
-                </div>
-              </div>
+              <ArrowUpRight className="w-6 h-6 text-slate-400" />
             </div>
 
-            <div className="h-44 w-full mt-4 -ml-2">
+            <div className="flex-1 w-full mt-4 -ml-4 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockWorkTimeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <AreaChart data={mockWorkTimeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FA634E" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#FA634E" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
                   />
-                  <Area type="monotone" dataKey="hours" stroke="#FA634E" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" activeDot={{ r: 6, fill: "#FA634E", stroke: "#fff", strokeWidth: 2 }} />
+                  <Area type="monotone" dataKey="hours" stroke="#0ea5e9" strokeWidth={4} fillOpacity={1} fill="url(#colorHours)" activeDot={{ r: 6, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            
-            <div className="flex justify-between px-2 mt-2">
-              {mockWorkTimeData.map((d) => (
-                <span key={d.day} className="text-[10px] font-bold text-slate-400 uppercase">{d.day}</span>
-              ))}
-            </div>
           </div>
 
-          {/* ── MIDDLE RIGHT: Driver Details ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                <User className="w-5 h-5" />
-              </div>
+          {/* ── ROW 3 ── */}
+          
+          {/* BOTTOM LEFT: Efficiency (Span 2) */}
+          <div className="col-span-5 md:col-span-2 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-6 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                Driver Details
+                Efficiency
               </h3>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">90%</span>
             </div>
-
-            <div className="space-y-3 flex-1 flex flex-col justify-center">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-default">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">15 Mar 2023</span>
+            
+            <div className="space-y-4">
+              <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-slate-800 dark:bg-slate-200 w-[90%] rounded-full"></div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-default">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">License Number</span>
-                <span className="text-sm font-mono font-black text-slate-900 dark:text-white">{driver.license_number || 'N/A'}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-default">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">License Expiry</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
-                  </span>
-                  {isLicenseExpired && (
-                    <Badge className="bg-rose-100 text-rose-700 px-1.5 py-0 text-[9px] hover:bg-rose-100">EXP</Badge>
-                  )}
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-default">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</span>
-                <span className="text-sm font-mono font-black text-slate-900 dark:text-white">{driver.phone_primary}</span>
+              <div className="flex justify-start">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border-2 border-slate-200 dark:border-slate-700">
+                  Delay Factor
+                </span>
               </div>
             </div>
           </div>
 
-          {/* ── BOTTOM LEFT: Document Status ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col justify-between">
-             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                  <FolderOpen className="w-5 h-5" />
-                </div>
-                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                  Document Status
-                </h3>
-              </div>
-              <Badge className="bg-amber-100 hover:bg-amber-100 text-amber-800 border-none font-black text-sm px-3 shadow-none">
-                {[licenseCheck, driverCardCheck, iqamaCheck, passportCheck].filter(c => c.label.includes('Valid')).length}/4
-              </Badge>
+          {/* BOTTOM RIGHT: Document Status (Span 3) */}
+          <div className="col-span-5 md:col-span-3 rounded-[32px] border-2 border-slate-200/80 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-xs p-6 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                Document Status <span className="text-slate-400 ml-1">{[licenseCheck, driverCardCheck, iqamaCheck, passportCheck].filter(c => c.label.includes('Valid')).length}/4</span>
+              </h3>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-slate-400" onClick={() => navigate(`/drivers/${driver.id}/documents`)}>
+                <ArrowUpRight className="w-5 h-5" />
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                {[
                   { name: 'Driver License', check: licenseCheck },
                   { name: 'Driver Card', check: driverCardCheck },
@@ -491,53 +484,26 @@ export default function DriverDetailsPage() {
                 ].map((item, idx) => {
                   const isOk = item.check.label.includes('Valid');
                   return (
-                    <div key={idx} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-default">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
+                    <div key={idx} className="p-3 rounded-[20px] bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-2">
                       {isOk ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        </div>
                       ) : (
-                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                          <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        </div>
                       )}
+                      <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">{item.name}</span>
                     </div>
                   )
                 })}
-            </div>
-            
-            <div className="mt-4 text-center sm:text-right">
-              <Button variant="link" onClick={() => navigate(`/drivers/${driver.id}/documents`)} className="text-xs font-black text-[#FA634E] hover:text-[#e05642] uppercase tracking-wider">
-                Manage Documents →
-              </Button>
-            </div>
-          </div>
-
-          {/* ── BOTTOM RIGHT: Efficiency ── */}
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm p-6 flex flex-col justify-center items-center text-center space-y-8 min-h-[200px]">
-            <div className="flex items-center gap-3">
-               <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-[#FA634E]">
-                  <Award className="w-5 h-5" />
-                </div>
-              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                Efficiency
-              </h3>
-            </div>
-            
-            <div className="text-7xl font-black text-[#FA634E] tracking-tighter">
-              90%
-            </div>
-
-            <div className="w-full max-w-sm space-y-3">
-              <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                <div className="h-full bg-gradient-to-r from-amber-400 to-[#FA634E] w-[90%] rounded-full shadow-sm"></div>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
-                <span className="text-slate-400">Delay Factor</span>
-                <span className="text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-md border border-amber-200/50">Low (10%)</span>
-              </div>
             </div>
           </div>
 
         </div>
 
+        {/* ... modals (Delete, Fullscreen Photo, DocumentPreview) ... */}
         {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
         <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
           <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-white rounded-3xl">
@@ -559,13 +525,13 @@ export default function DriverDetailsPage() {
 
         {/* ── DELETE DRIVER CONFIRMATION MODAL ── */}
         <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
-          <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
-            <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-955/20">
+          <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-2 border-slate-200 dark:border-slate-800">
+            <DialogHeader className="px-6 py-5 border-b-2 border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-955/20">
               <div className="flex items-center gap-2 text-rose-600 dark:text-rose-450">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <DialogTitle className="text-base font-black">Delete Driver Account</DialogTitle>
               </div>
-              <DialogDescription className="text-xs text-slate-500 mt-1">
+              <DialogDescription className="text-xs font-bold text-slate-500 mt-2">
                 Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive roster records. Enter admin password to proceed.
                 {driverUsage && (
                   driverUsage.totalTrips > 0 || driverUsage.expenses > 0 ? (
@@ -581,14 +547,14 @@ export default function DriverDetailsPage() {
             <form onSubmit={handleDeleteSubmit}>
               <div className="p-6 space-y-4">
                 {deleteError && (
-                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+                  <div className="p-3 rounded-2xl bg-rose-50 border-2 border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                     <span>{deleteError}</span>
                   </div>
                 )}
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="admin_password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <div className="space-y-2">
+                  <Label htmlFor="admin_password" className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
                     Admin Password <span className="text-rose-500">*</span>
                   </Label>
                   <Input
@@ -597,19 +563,19 @@ export default function DriverDetailsPage() {
                     placeholder="Enter your admin password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-9 text-xs border-slate-200 dark:border-slate-800"
+                    className="h-12 text-sm border-2 rounded-2xl border-slate-200 dark:border-slate-800"
                     required
                   />
                 </div>
               </div>
 
-              <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+              <DialogFooter className="px-6 py-4 border-t-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => { setIsDeleteModalOpen(false); setPassword(''); setDeleteError(''); }}
-                  className="text-xs font-bold"
+                  className="text-xs font-bold rounded-xl px-4"
                 >
                   Cancel
                 </Button>
@@ -617,7 +583,7 @@ export default function DriverDetailsPage() {
                   type="submit"
                   size="sm"
                   disabled={deleteMutation.isPending}
-                  className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 shadow-xs"
+                  className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2 h-auto rounded-xl shadow-none"
                 >
                   {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
                 </Button>
