@@ -412,14 +412,14 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-end shrink-0 -mt-1 sm:-mt-2 overflow-hidden">
+          <div className="w-full relative flex items-center justify-center shrink-0 -mt-1 sm:-mt-2">
             
-            {/* Inner wrapper shifted right to show half of the back wheel */}
-            <div className="relative w-full max-w-5xl xl:max-w-6xl translate-x-[4%] sm:translate-x-[5%]">
+            {/* Inner wrapper tightly hugging the image */}
+            <div className="relative w-full max-w-5xl xl:max-w-6xl">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
-              <div className="absolute top-[12.5%] left-[28.3%] w-[68.2%] h-[49.2%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
+              {/* Cargo Grid Overlay - Measured pixel-perfect fit to trailer body */}
+              <div className="absolute top-[10%] left-[26.8%] w-[71%] h-[49.3%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
