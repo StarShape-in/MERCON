@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
+import { resolveFileUrl } from '@/lib/documents';
 import truckNewImg from '@/assets/truck-new.png';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
@@ -162,7 +163,8 @@ export default function CargoLoadingView() {
   const driverName = vehicle?.assignedDriver 
     ? `${vehicle.assignedDriver.first_name || ''} ${vehicle.assignedDriver.last_name || ''}`.trim() 
     : (vehicle as any)?.driver?.name || 'Marcus Lee';
-  const driverAvatar = vehicle?.assignedDriver?.avatar_url || (vehicle as any)?.driver?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  const rawAvatarUrl = vehicle?.assignedDriver?.avatar_url || (vehicle as any)?.driver?.avatar_url || null;
+  const driverAvatar = rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : null;
   const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
@@ -337,14 +339,30 @@ export default function CargoLoadingView() {
             <div className="flex items-center justify-between pt-0.5">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                  <img 
-                    src={driverAvatar} 
-                    alt={driverName} 
-                    className="w-full h-full object-cover" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-                    }}
-                  />
+                  {driverAvatar ? (
+                    <img 
+                      src={driverAvatar} 
+                      alt={driverName} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.classList.add('bg-[#FA634E]');
+                          const initials = driverName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+                          parent.innerHTML = `<span class="text-white text-xs font-black">${initials}</span>`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-slate-500 text-xs font-black">
+                      {driverName !== 'Marcus Lee' 
+                        ? driverName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                        : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                      }
+                    </span>
+                  )}
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold text-slate-400">Driver</p>
