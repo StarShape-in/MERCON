@@ -7,7 +7,7 @@ import {
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
-  AlertTriangle, UserCheck, Wrench 
+  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,11 +57,11 @@ const INITIAL_SLOTS: CargoSlot[] = [
   { id: 'C6', status: 'empty' },
 ];
 
-const UNASSIGNED_SHIPMENTS: Shipment[] = [
+const ACTIVE_SHIPMENTS: Shipment[] = [
   {
     id: 'SHP-9281',
     speed: 'Express',
-    route: 'NY → NJ',
+    route: 'Riyadh → Al Bahah',
     type: 'Electronics',
     quantity: '12 boxes',
     totalWeight: '240 Kg',
@@ -71,7 +71,7 @@ const UNASSIGNED_SHIPMENTS: Shipment[] = [
   {
     id: 'SHP-9282',
     speed: 'Same day',
-    route: 'NY → NJ',
+    route: 'Riyadh → Dammam',
     type: 'Perishables',
     quantity: '8 crates',
     totalWeight: '450 Kg',
@@ -81,12 +81,68 @@ const UNASSIGNED_SHIPMENTS: Shipment[] = [
   {
     id: 'SHP-9283',
     speed: 'Standard',
-    route: 'NY → PA',
+    route: 'Riyadh → Al Hasa',
     type: 'Apparel',
     quantity: '25 cartons',
     totalWeight: '310 Kg',
     dimension: '1.5x1.0x0.8 m',
     method: 'Standard'
+  }
+];
+
+const UPCOMING_SHIPMENTS: Shipment[] = [
+  {
+    id: 'SHP-9301',
+    speed: 'Express',
+    route: 'Jeddah → Medina',
+    type: 'Spare Parts',
+    quantity: '18 boxes',
+    totalWeight: '620 Kg',
+    dimension: '1.4x1.1x0.9 m',
+    method: 'Standard'
+  },
+  {
+    id: 'SHP-9302',
+    speed: 'Same day',
+    route: 'Dammam → Jubail',
+    type: 'Pharma',
+    quantity: '5 crates',
+    totalWeight: '180 Kg',
+    dimension: '0.9x0.9x1.1 m',
+    method: 'Refrigerated'
+  }
+];
+
+const COMPLETED_TRIPS: Shipment[] = [
+  {
+    id: 'TRIP-8810',
+    speed: 'Standard',
+    route: 'Riyadh → Al Hasa',
+    type: 'Industrial Materials',
+    quantity: '40 pallets',
+    totalWeight: '12,000 Kg',
+    dimension: 'Full Trailer',
+    method: 'Delivered'
+  },
+  {
+    id: 'TRIP-8794',
+    speed: 'Express',
+    route: 'Dammam → Khobar',
+    type: 'FMCG Goods',
+    quantity: '30 pallets',
+    totalWeight: '8,500 Kg',
+    dimension: 'Full Trailer',
+    method: 'Delivered'
+  },
+  {
+    id: 'TRIP-8740',
+    speed: 'Same day',
+    route: 'Jeddah → Yanbu',
+    type: 'Chemical Containers',
+    quantity: '15 units',
+    totalWeight: '14,200 Kg',
+    dimension: 'Tanker Box',
+    method: 'Delivered'
   }
 ];
 
@@ -107,6 +163,9 @@ export default function CargoLoadingView() {
 
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('A5');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
+  const [tripTab, setTripTab] = useState<'active' | 'upcoming' | 'completed'>('active');
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const handleAssign = (shipmentId: string) => {
     if (!selectedSlot) return;
@@ -117,6 +176,15 @@ export default function CargoLoadingView() {
       return slot;
     }));
     setSelectedSlot(null);
+  };
+
+  const getDisplayedData = () => {
+    let dataset = tripTab === 'active' ? ACTIVE_SHIPMENTS : tripTab === 'upcoming' ? UPCOMING_SHIPMENTS : COMPLETED_TRIPS;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      dataset = dataset.filter(item => item.id.toLowerCase().includes(q) || item.route.toLowerCase().includes(q) || item.type.toLowerCase().includes(q));
+    }
+    return dataset;
   };
 
   const renderStatusBadge = (status?: string) => {
@@ -397,76 +465,154 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* Bottom Assignment Section */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
-            <div className="flex items-center justify-between mb-2 shrink-0">
-              <h2 className="text-xs font-black text-slate-800">
-                {selectedSlot ? `Assign shipment to ${selectedSlot} slot` : 'Select an empty slot to assign shipment'}
-              </h2>
+          {/* Bottom Assignment & Trip Status Box */}
+          <div className={`bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100">
+              
+              {/* Tab Filter Buttons */}
+              <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => setTripTab('active')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'active' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Active Shipments
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">
+                    {ACTIVE_SHIPMENTS.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTripTab('upcoming')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'upcoming' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Upcoming
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-amber-100 text-amber-700 rounded-full">
+                    {UPCOMING_SHIPMENTS.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTripTab('completed')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'completed' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Completed Trips
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-200 text-slate-600 rounded-full">
+                    {COMPLETED_TRIPS.length}
+                  </span>
+                </button>
+              </div>
+
+              {/* Action Controls: Search, Sort By, Expand Button */}
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                  <Input placeholder="Search shipment" className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-48" />
+                  <Input 
+                    placeholder="Search shipment..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-40 sm:w-48" 
+                  />
                 </div>
-                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700">
-                  <SlidersHorizontal className="w-3 h-3" /> Sort
+
+                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-50">
+                  <SlidersHorizontal className="w-3 h-3 text-slate-500" /> Sort by
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  title={isExpanded ? 'Collapse box' : 'Expand box'}
+                  className="w-8 h-8 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                >
+                  {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </Button>
               </div>
             </div>
 
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 transition-opacity duration-300 ${!selectedSlot ? 'opacity-30 pointer-events-none grayscale-[50%]' : ''}`}>
-              {UNASSIGNED_SHIPMENTS.map(ship => (
-                <div key={ship.id} className="border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
+            {/* Data Cards inside Box */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
+              {getDisplayedData().map(item => (
+                <div key={item.id} className="border border-slate-200 rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
                   <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
                     <div className="flex items-center gap-1.5">
                       <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
                         <MapPin className="w-3 h-3 text-slate-500" />
                       </div>
-                      <span className="font-black text-xs text-slate-800">{ship.id}</span>
+                      <span className="font-black text-xs text-slate-800">{item.id}</span>
                     </div>
                     <Badge variant="outline" className={`text-[9px] font-bold border rounded-full px-2 py-0.5 ${
-                      ship.speed === 'Express' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      ship.speed === 'Same day' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      item.speed === 'Express' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      item.speed === 'Same day' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                       'bg-slate-50 text-slate-600 border-slate-200'
                     }`}>
-                      {ship.speed}
+                      {item.speed}
                     </Badge>
                   </div>
 
                   <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
                     <div>
                       <p className="font-medium text-slate-400">Route</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.route}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.route}</p>
                     </div>
                     <div>
                       <p className="font-medium text-slate-400">Type</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.type}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.type}</p>
                     </div>
                     <div>
                       <p className="font-medium text-slate-400">Quantity</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.quantity}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.quantity}</p>
                     </div>
                     <div>
                       <p className="font-medium text-slate-400">Weight</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.totalWeight}</p>
+                      <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-400">Dim</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.dimension}</p>
+                      <p className="font-medium text-slate-400">Dimension</p>
+                      <p className="font-bold text-slate-800 truncate">{item.dimension}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-400">Method</p>
-                      <p className="font-bold text-slate-800 truncate">{ship.method}</p>
+                      <p className="font-medium text-slate-400">Status/Method</p>
+                      <p className="font-bold text-slate-800 truncate">{item.method}</p>
                     </div>
                   </div>
 
                   <Button 
                     variant="outline" 
-                    className="w-full h-7 font-bold gap-1.5 text-[11px] text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs"
-                    onClick={() => handleAssign(ship.id)}
+                    className="w-full h-7 font-bold gap-1.5 text-[11px] text-slate-700 border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs mt-1"
+                    onClick={() => handleAssign(item.id)}
                   >
-                    <Plus className="w-3 h-3 text-slate-400" />
-                    Assign
+                    {tripTab === 'active' ? (
+                      <>
+                        <Plus className="w-3 h-3 text-slate-400" />
+                        Assign to slot
+                      </>
+                    ) : tripTab === 'upcoming' ? (
+                      <>
+                        <Clock className="w-3 h-3 text-amber-500" />
+                        Schedule trip
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        View summary
+                      </>
+                    )}
                   </Button>
                 </div>
               ))}
