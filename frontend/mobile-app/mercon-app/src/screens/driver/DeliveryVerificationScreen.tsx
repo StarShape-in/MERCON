@@ -120,19 +120,25 @@ const DeliveryVerificationScreen = () => {
     loadDraft();
   }, [trip?.id, isReturnDelivery]);
 
-  const addPhoto = async () => {
+  const addPhoto = async (slotIndex?: number) => {
     try {
       const photo = await choosePhoto();
       if (photo) {
         setPhotos((prev) => {
-          const next = [...prev, photo].slice(0, 3);
+          const next = [...prev];
+          if (slotIndex !== undefined && slotIndex < 3) {
+            next[slotIndex] = photo;
+          } else {
+            next.push(photo);
+          }
+          const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
             const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
             const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
-            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
-            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
+            SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
-          return next;
+          return valid;
         });
       }
     } catch (e) {
@@ -155,6 +161,13 @@ const DeliveryVerificationScreen = () => {
 
   const handleCompleteDelivery = async () => {
     if (!trip || submitting) return;
+    if (photos.length < 3) {
+      Alert.alert(
+        '3 Delivery Photos Required',
+        `Please upload all 3 delivery photos before completing delivery (${photos.length}/3 uploaded).`
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       if (trip?.id) {
@@ -322,7 +335,7 @@ const DeliveryVerificationScreen = () => {
                 key={i}
                 style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
                 activeOpacity={0.8}
-                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
+                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : () => addPhoto(i)}
               >
                 {photos[i] ? (
                   <>
@@ -352,13 +365,22 @@ const DeliveryVerificationScreen = () => {
 
           {/* Primary Action Button: DELIVERY COMPLETE */}
           <TouchableOpacity
-            style={styles.mainActionBtn}
-            activeOpacity={0.85}
+            style={[
+              styles.mainActionBtn,
+              photos.length < 3 && styles.mainActionBtnDisabled,
+            ]}
+            activeOpacity={photos.length < 3 ? 0.7 : 0.85}
             onPress={handleCompleteDelivery}
             disabled={submitting}
           >
             <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'COMPLETING…' : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}</Text>
+            <Text style={styles.mainActionBtnText}>
+              {submitting
+                ? 'COMPLETING…'
+                : photos.length < 3
+                ? `${isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE'} (${photos.length}/3)`
+                : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}
+            </Text>
             <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
@@ -691,6 +713,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  mainActionBtnDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   mainActionBtnText: {
     color: '#FFFFFF',

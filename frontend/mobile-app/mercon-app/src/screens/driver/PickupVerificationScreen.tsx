@@ -121,19 +121,25 @@ const PickupVerificationScreen = () => {
     loadDraft();
   }, [trip?.id, isReturnLoading]);
 
-  const addPhoto = async () => {
+  const addPhoto = async (slotIndex?: number) => {
     try {
       const photo = await choosePhoto();
       if (photo) {
         setPhotos((prev) => {
-          const next = [...prev, photo].slice(0, 3);
+          const next = [...prev];
+          if (slotIndex !== undefined && slotIndex < 3) {
+            next[slotIndex] = photo;
+          } else {
+            next.push(photo);
+          }
+          const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
             const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
             const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
-            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
-            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
+            SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
-          return next;
+          return valid;
         });
       }
     } catch (e) {
@@ -170,8 +176,11 @@ const PickupVerificationScreen = () => {
 
   const handleCompletePickup = async () => {
     if (!trip || submitting) return;
-    if (photos.length < 1) {
-      Alert.alert('Loading Photos Required', 'Please upload at least 1 photo of the loaded cargo before proceeding.');
+    if (photos.length < 3) {
+      Alert.alert(
+        '3 Loading Photos Required',
+        `Please upload all 3 loading photos before proceeding (${photos.length}/3 uploaded).`
+      );
       return;
     }
     setSubmitting(true);
@@ -321,7 +330,7 @@ const PickupVerificationScreen = () => {
                 key={i}
                 style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
                 activeOpacity={0.8}
-                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
+                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : () => addPhoto(i)}
               >
                 {photos[i] ? (
                   <>
@@ -351,13 +360,22 @@ const PickupVerificationScreen = () => {
 
           {/* Primary Action Button: LOADING COMPLETE */}
           <TouchableOpacity
-            style={styles.mainActionBtn}
-            activeOpacity={0.85}
+            style={[
+              styles.mainActionBtn,
+              photos.length < 3 && styles.mainActionBtnDisabled,
+            ]}
+            activeOpacity={photos.length < 3 ? 0.7 : 0.85}
             onPress={handleCompletePickup}
             disabled={submitting}
           >
             <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'PROCESSING…' : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}</Text>
+            <Text style={styles.mainActionBtnText}>
+              {submitting
+                ? 'PROCESSING…'
+                : photos.length < 3
+                ? `${isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE'} (${photos.length}/3)`
+                : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}
+            </Text>
             <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
@@ -641,6 +659,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  mainActionBtnDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   mainActionBtnText: {
     color: '#FFFFFF',
