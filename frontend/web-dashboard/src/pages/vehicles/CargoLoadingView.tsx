@@ -168,7 +168,7 @@ export default function CargoLoadingView() {
 
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('B2');
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
-  const [tripTab, setTripTab] = useState<'active' | 'upcoming' | 'completed'>('active');
+  const [tripTab, setTripTab] = useState<'recent' | 'upcoming' | 'completed'>('recent');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -248,7 +248,7 @@ export default function CargoLoadingView() {
   };
 
   const getDisplayedData = () => {
-    let dataset = tripTab === 'active' ? ACTIVE_SHIPMENTS : tripTab === 'upcoming' ? UPCOMING_SHIPMENTS : COMPLETED_TRIPS;
+    let dataset = tripTab === 'recent' ? ACTIVE_SHIPMENTS : tripTab === 'upcoming' ? UPCOMING_SHIPMENTS : COMPLETED_TRIPS;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       dataset = dataset.filter(item => item.id.toLowerCase().includes(q) || item.route.toLowerCase().includes(q) || item.type.toLowerCase().includes(q));
