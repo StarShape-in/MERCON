@@ -719,7 +719,7 @@ export default function TripPhotoEvidence({
                                       date: photo.time,
                                     })
                                   }
-                                  className="relative w-full h-[38px] sm:h-[44px] rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
+                                  className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
                                 >
                                   <img
                                     src={photo.sampleImg}
@@ -730,12 +730,12 @@ export default function TripPhotoEvidence({
                                     }}
                                   />
                                   <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                    <Eye size={12} />
+                                    <Eye size={14} />
                                   </div>
                                 </div>
                               ) : (
-                                <div className="relative w-full h-[38px] sm:h-[44px] rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-0.5 text-slate-400 shrink-0">
-                                  <Camera size={13} className="text-slate-300" />
+                                <div className="relative w-full aspect-square rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
+                                  <Camera size={15} className="text-slate-300" />
                                   <span className="text-[7.5px] font-medium text-slate-400">No photo uploaded</span>
                                 </div>
                               )}
