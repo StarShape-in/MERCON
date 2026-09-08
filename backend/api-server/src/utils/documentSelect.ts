@@ -41,6 +41,7 @@ export const DOCUMENT_LIST_SELECT = {
   deletedAt: true,
   isActive: true,
   version: true,
+  ai_extracted_json: true,
 } as const;
 
 /** The files sub-select every document list uses. */
