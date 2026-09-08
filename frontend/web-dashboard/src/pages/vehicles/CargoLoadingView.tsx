@@ -318,7 +318,7 @@ export default function CargoLoadingView() {
               <img src="/truck-new.png" alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
-              <div className="absolute top-[12.5%] left-[28.3%] w-[68.2%] h-[50%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
+              <div className="absolute top-[12.5%] left-[28.3%] w-[68.2%] h-[49.2%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
