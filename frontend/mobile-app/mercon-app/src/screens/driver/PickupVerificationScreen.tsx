@@ -375,8 +375,6 @@ const PickupVerificationScreen = () => {
             <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
                 ? 'PROCESSING…'
-                : !hasAllPhotos
-                ? `UPLOAD 3 PHOTOS TO CONTINUE (${validPhotosCount}/3)`
                 : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}
             </Text>
             <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />

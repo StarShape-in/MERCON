@@ -380,8 +380,6 @@ const DeliveryVerificationScreen = () => {
             <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
                 ? 'COMPLETING…'
-                : !hasAllPhotos
-                ? `UPLOAD 3 PHOTOS TO CONTINUE (${validPhotosCount}/3)`
                 : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}
             </Text>
             <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
