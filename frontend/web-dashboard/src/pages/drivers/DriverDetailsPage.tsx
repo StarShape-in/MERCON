@@ -334,65 +334,46 @@ export default function DriverDetailsPage() {
           </div>
         </div>
 
-        {/* ── DRIVER SUMMARY KPI SECTION ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* ── DRIVER SUMMARY METRICS BAR ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:divide-x divide-y sm:divide-y-0 divide-slate-200/60 dark:divide-slate-800 rounded-2xl sm:rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-3xs p-1">
           {/* KPI 1: Total Trips */}
-          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-              <Truck className="w-5 h-5" />
+          <div className="flex-1 flex items-center gap-3.5 px-5 py-3.5 sm:py-3">
+            <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+              <Truck className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                128
-              </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Trips
-              </span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-0.5">128</span>
+              <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest block">Total Trips</span>
             </div>
           </div>
-
           {/* KPI 2: Total Revenue */}
-          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-850 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-              <DollarSign className="w-5 h-5" />
+          <div className="flex-1 flex items-center gap-3.5 px-5 py-3.5 sm:py-3">
+            <div className="w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-955/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+              <DollarSign className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                SAR 28,450
-              </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Revenue
-              </span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-0.5">SAR 28,450</span>
+              <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest block">Total Revenue</span>
             </div>
           </div>
-
           {/* KPI 3: Total Distance */}
-          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-955/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-405">
-              <MapPin className="w-5 h-5" />
+          <div className="flex-1 flex items-center gap-3.5 px-5 py-3.5 sm:py-3">
+            <div className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-955/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-405">
+              <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                8,560 KM
-              </span>
-              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
-                Total Distance
-              </span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-0.5">8,560 KM</span>
+              <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest block">Total Distance</span>
             </div>
           </div>
-
           {/* KPI 4: On-time Performance */}
-          <div className="rounded-2xl border border-slate-200/60 dark:border-slate-855 bg-white dark:bg-slate-900 p-4.5 shadow-3xs flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
-              <Clock className="w-5 h-5" />
+          <div className="flex-1 flex items-center gap-3.5 px-5 py-3.5 sm:py-3">
+            <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-955/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
+              <Clock className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-1">
-                96%
-              </span>
-              <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
-                On-time Perf.
-              </span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 block tracking-tight leading-none mb-0.5">96%</span>
+              <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest block">On-time Perf.</span>
             </div>
           </div>
         </div>
