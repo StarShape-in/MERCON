@@ -7,7 +7,7 @@ import {
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
-  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2 
+  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -159,7 +159,10 @@ export default function CargoLoadingView() {
 
   const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
   const vehicleStatus: string = (vehicle?.status as string) || 'Loading';
-  const driverName = vehicle?.assignedDriver?.name || (vehicle as any)?.driver?.name || 'Marcus Lee';
+  const driverName = vehicle?.assignedDriver 
+    ? `${vehicle.assignedDriver.first_name || ''} ${vehicle.assignedDriver.last_name || ''}`.trim() 
+    : (vehicle as any)?.driver?.name || 'Marcus Lee';
+  const driverAvatar = vehicle?.assignedDriver?.avatar_url || (vehicle as any)?.driver?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
   const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
@@ -277,50 +280,151 @@ export default function CargoLoadingView() {
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
+            {/* Box Header */}
             <div className="flex items-center justify-between">
-              <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Truck Information</h2>
+              <h2 className="text-xs font-black text-slate-900 tracking-tight">Truck Information</h2>
               <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 font-bold px-2 py-0.5 text-[10px] rounded-md">
                 {capacityFormatted}
               </Badge>
             </div>
 
+            {/* Driver Information Row */}
             <div className="flex items-center justify-between pt-0.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                  <img src="https://i.pravatar.cc/150?u=marcus" alt="Driver" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                  <img 
+                    src={driverAvatar} 
+                    alt={driverName} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+                    }}
+                  />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-slate-800 leading-tight">{driverName}</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-600 truncate">{tripRoute}</span>
-                  </div>
+                  <p className="text-[10px] font-semibold text-slate-400">Driver</p>
+                  <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{driverName}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="w-7 h-7 rounded-lg border-slate-200 text-slate-500 hover:text-slate-800">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="w-8 h-8 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  onClick={() => {
+                    const phone = vehicle?.assignedDriver?.phone_primary;
+                    if (phone) window.open(`tel:${phone}`);
+                  }}
+                >
                   <Phone className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="outline" size="icon" className="w-7 h-7 rounded-lg border-slate-200 text-slate-500 hover:text-slate-800">
+                <Button variant="outline" size="icon" className="w-8 h-8 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                   <MessageSquare className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 bg-slate-50/80 rounded-lg p-2 border border-slate-100 text-[11px]">
-              <div>
-                <p className="text-[9px] font-bold text-slate-400">Truck ID</p>
-                <p className="font-black text-slate-800 truncate">{plateNumber}</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-slate-400">Dock</p>
-                <p className="font-black text-slate-800">Dock #3</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-slate-400">Capacity</p>
-                <p className="font-black text-slate-800 truncate">{capacityFormatted}</p>
-              </div>
+            {/* Dotted Divider */}
+            <div className="border-t border-dashed border-slate-200 my-0.5"></div>
+
+            {/* Dynamic Logical Route & Location Display */}
+            <div className="flex items-center justify-between px-1 py-1">
+              {vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-slate-100 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                      <Navigation className="w-3 h-3 fill-white text-white rotate-90" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-black text-slate-900 leading-none">BAH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Al Bahah</p>
+                  </div>
+                </>
+              ) : vehicleStatus === 'Loading' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh Hub</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-amber-100 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                      <Clock className="w-3 h-3 text-white animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-black text-slate-900 leading-none">DOCK #3</p>
+                    <p className="text-[10px] font-semibold text-amber-600 mt-1 truncate max-w-[75px]">Loading Yard</p>
+                  </div>
+                </>
+              ) : vehicleStatus === 'Maintenance' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-slate-900 leading-none">WRK</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Workshop</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-rose-100 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xs">
+                      <Wrench className="w-3 h-3 text-white" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-black text-slate-900 leading-none">BAY #2</p>
+                    <p className="text-[10px] font-semibold text-rose-600 mt-1 truncate max-w-[75px]">Service Bay</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Main Yard</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-slate-100 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center">
+                      <MapPin className="w-3 h-3 text-slate-600" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-black text-slate-400 leading-none">IDLE</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Unassigned</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Action Buttons: Change driver & Edit route */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/vehicles/${id || ''}/edit`)}
+                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs"
+              >
+                Change driver
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/trips/new?vehicle_id=${id || ''}`)}
+                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs"
+              >
+                Edit route
+              </Button>
             </div>
           </div>
 
