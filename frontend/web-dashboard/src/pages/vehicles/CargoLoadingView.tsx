@@ -605,6 +605,7 @@ export default function CargoLoadingView() {
                   </div>
                 </div>
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full hover:bg-emerald-50 shadow-none">Valid</Badge>
+              </div>
             </div>
           </div>
         </div>
