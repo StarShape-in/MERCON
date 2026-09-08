@@ -265,13 +265,13 @@ export default function CargoLoadingView() {
               <img src="/truck-new.png" alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Cargo Grid Overlay - Precisely aligned to the trailer part of the image */}
-              <div className="absolute top-[12%] left-[28%] w-[70%] h-[60%] grid grid-rows-3 grid-cols-6 gap-1.5 sm:gap-2">
+              <div className="absolute top-[12.5%] left-[28.3%] w-[68.2%] h-[50%] grid grid-rows-3 grid-cols-6 gap-1 sm:gap-1.5">
                 {slots.map(slot => (
                   <div 
                     key={slot.id}
                     onClick={() => slot.status === 'empty' && setSelectedSlot(slot.id)}
                     className={`
-                      relative rounded-lg border-2 flex flex-col items-start justify-between p-1.5 sm:p-2 cursor-pointer transition-all overflow-hidden
+                      relative rounded-lg border-2 flex flex-col items-start justify-between p-1 sm:p-1.5 cursor-pointer transition-all overflow-hidden
                       ${slot.status === 'empty' 
                           ? (selectedSlot === slot.id 
                               ? 'bg-slate-100 border-slate-400 border-solid shadow-md z-10' 
