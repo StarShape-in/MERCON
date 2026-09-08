@@ -108,6 +108,10 @@ const LiveNavigationScreen = () => {
     try {
       if (arrivalPhoto && trip.id) {
         try {
+          const arrivalOp = isHeadingToPickup
+            ? (legIndex === 1 ? 'return_loading_arrival' : 'pickup_arrival')
+            : (legIndex === 1 ? 'return_delivery_arrival' : 'delivery_arrival');
+
           await tripService.uploadPhoto(
             trip.id,
             isHeadingToPickup ? 'cargo' : 'pod',
@@ -122,7 +126,7 @@ const LiveNavigationScreen = () => {
               } : null,
             },
             legIndex,
-            'arrival'
+            arrivalOp
           );
         } catch (photoErr) {
           console.warn('Arrival photo upload warning:', photoErr);

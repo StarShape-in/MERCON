@@ -171,23 +171,6 @@ const DeliveryVerificationScreen = () => {
         }
         await SecureStore.setItemAsync('last_completed_trip_id', trip.id);
       }
-      // Upload POD photos via tripService.uploadPhoto
-      for (const p of photos) {
-        if (p.uri) {
-          try {
-            await tripService.uploadPhoto(trip.id, 'pod', {
-              uri: p.uri,
-              location: p.location ? {
-                latitude: p.location.latitude,
-                longitude: p.location.longitude,
-                timestamp: p.location.timestamp,
-              } : null,
-            });
-          } catch (photoErr) {
-            console.warn('POD photo upload warning:', photoErr);
-          }
-        }
-      }
       const ws = trip.driver_workflow_state || 'ASSIGNED';
       const isRoundTrip =
         trip.trip_type?.toLowerCase().includes('round') ||
@@ -199,6 +182,33 @@ const DeliveryVerificationScreen = () => {
         ws === 'IN_TRANSIT_RETURN' ||
         ws === 'ARRIVED_AT_FINAL_DELIVERY' ||
         ws === 'FINAL_DELIVERY_VERIFICATION';
+
+      const targetLegIndex = isRoundTrip && isFinalLeg ? 1 : 0;
+      const targetOp = isRoundTrip && isFinalLeg ? 'return_delivery' : 'delivery';
+
+      // Upload POD photos via tripService.uploadPhoto
+      for (const p of photos) {
+        if (p.uri) {
+          try {
+            await tripService.uploadPhoto(
+              trip.id,
+              'pod',
+              {
+                uri: p.uri,
+                location: p.location ? {
+                  latitude: p.location.latitude,
+                  longitude: p.location.longitude,
+                  timestamp: p.location.timestamp,
+                } : null,
+              },
+              targetLegIndex,
+              targetOp
+            );
+          } catch (photoErr) {
+            console.warn('POD photo upload warning:', photoErr);
+          }
+        }
+      }
 
       triggerGPayHapticsAndSound();
 

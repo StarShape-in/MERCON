@@ -193,14 +193,20 @@ const PickupVerificationScreen = () => {
       for (const p of photos) {
         if (p.uri) {
           try {
-            await tripService.uploadPhoto(trip.id, 'cargo', {
-              uri: p.uri,
-              location: p.location ? {
-                latitude: p.location.latitude,
-                longitude: p.location.longitude,
-                timestamp: p.location.timestamp,
-              } : null,
-            });
+            await tripService.uploadPhoto(
+              trip.id,
+              'cargo',
+              {
+                uri: p.uri,
+                location: p.location ? {
+                  latitude: p.location.latitude,
+                  longitude: p.location.longitude,
+                  timestamp: p.location.timestamp,
+                } : null,
+              },
+              isReturnLoading ? 1 : 0,
+              isReturnLoading ? 'return_loading' : 'pickup'
+            );
           } catch (photoErr) {
             console.warn('Cargo photo upload warning:', photoErr);
           }

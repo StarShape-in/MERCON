@@ -100,6 +100,7 @@ export default function TripDetailsPage() {
     queryKey: ['documents', 'Trip', tripEntityId],
     queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: tripEntityId, per_page: 50 }),
     enabled: !!tripEntityId,
+    refetchInterval: 5000,
   });
   const documents = docsRes?.data || [];
 

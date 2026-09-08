@@ -279,7 +279,7 @@ export default function TripPhotoEvidence({
         // Slot 1: Arrival Photo
         const arrivalDoc = photoDocs.find((d: any) =>
           d.ai_extracted_json?.operation === (isReturn ? 'return_loading_arrival' : 'pickup_arrival') ||
-          (d.ai_extracted_json?.operation === 'arrival' && (d.doc_type === 'Waybill' || d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0)))
+          (d.ai_extracted_json?.operation === 'arrival' && d.doc_type !== 'POD' && (d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0) || d.ai_extracted_json?.leg_index === undefined))
         );
         photos.push({
           id: `${seqStr}_arrival`,
@@ -379,7 +379,7 @@ export default function TripPhotoEvidence({
         // Slot 1: Arrival Photo
         const arrivalDoc = photoDocs.find((d: any) =>
           d.ai_extracted_json?.operation === (isReturn ? 'return_delivery_arrival' : 'delivery_arrival') ||
-          (d.ai_extracted_json?.operation === 'arrival' && (d.doc_type === 'POD' || d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0)))
+          (d.ai_extracted_json?.operation === 'arrival' && d.doc_type !== 'Waybill' && (d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0) || d.ai_extracted_json?.leg_index === undefined))
         );
         photos.push({
           id: `${seqStr}_arrival`,
