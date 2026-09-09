@@ -138,14 +138,7 @@ export default function CustomerPreviewModal({
               </div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-emerald-500" /> Credit Limit
-              </span>
-              <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 pt-0.5">
-                SAR {(customer.credit_limit || 0).toLocaleString()}
-              </div>
-            </div>
+
 
             <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">

@@ -298,14 +298,7 @@ export default function TripStepCustomer({
               <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{custPayment}</span>
             </div>
 
-            <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1">
-                <Building2 className="w-3 h-3" /> Account Credit
-              </span>
-              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 block truncate">
-                {selectedCustomer.credit_limit ? `SAR ${selectedCustomer.credit_limit.toLocaleString()}` : 'Good Standing'}
-              </span>
-            </div>
+
           </div>
         </Card>
       )}

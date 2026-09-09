@@ -73,7 +73,6 @@ export default function EditCustomerPage() {
     whatsapp_group_name: '',
     email: '',
     billing_address: '',
-    credit_limit: '50000',
     payment_terms: 'Net 30 Days',
     isActive: true,
   });
@@ -96,7 +95,6 @@ export default function EditCustomerPage() {
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: (customer.credit_limit || 0).toString(),
         payment_terms: customer.payment_terms || 'Net 30 Days',
         isActive: customer.isActive ?? true,
       });
@@ -196,7 +194,6 @@ export default function EditCustomerPage() {
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: (customer.credit_limit || 0).toString(),
         payment_terms: customer.payment_terms || 'Net 30 Days',
         isActive: customer.isActive ?? true,
       });
@@ -240,7 +237,6 @@ export default function EditCustomerPage() {
         primary_contact_phone: primary?.phone || effectivePhone,
         secondary_contact_person: secondary?.name || undefined,
         secondary_contact_phone: secondary?.phone || undefined,
-        credit_limit: parseFloat(formData.credit_limit) || 0,
         payment_terms: formData.payment_terms || undefined,
         isActive: formData.isActive,
       });
@@ -442,19 +438,7 @@ export default function EditCustomerPage() {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="credit_limit" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <DollarSign className="w-3 h-3 text-emerald-600" /> Credit Limit (SAR)
-                      </Label>
-                      <Input
-                        id="credit_limit"
-                        type="number"
-                        placeholder="50000"
-                        value={formData.credit_limit}
-                        onChange={(e) => handleChange('credit_limit', e.target.value)}
-                        className="h-8 text-xs font-mono font-medium"
-                      />
-                    </div>
+
 
                     <div className="space-y-1">
                       <Label htmlFor="payment_terms" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">

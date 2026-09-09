@@ -192,10 +192,7 @@ export default function CustomerDetailsPage() {
     .filter((inv: any) => inv.status === 'Pending' || inv.status === 'Overdue')
     .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
 
-  const creditLimit = customer.credit_limit || 500000;
-  const utilizedCredit = pendingInvoicesAmount > 0 ? pendingInvoicesAmount : Math.round(creditLimit * 0.35);
-  const availableCredit = Math.max(0, creditLimit - utilizedCredit);
-  const creditPct = Math.min(100, Math.round((utilizedCredit / creditLimit) * 100));
+
 
   // Trips data
   const customerTrips = customer.trips || [];
@@ -365,16 +362,6 @@ export default function CustomerDetailsPage() {
               Export
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-              title="Contracts & Rate Cards"
-            >
-              <FileText className="w-4 h-4" />
-              Contracts
-            </Button>
 
             <Button
               variant="outline"
@@ -407,9 +394,8 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. OVERVIEW STAT CARDS (Full Width 3-Column Instrument Panel) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-1">
-          
+        {/* ── 2. OVERVIEW STAT CARDS ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-1">
           {/* Overview 1: Total Billed */}
           <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -423,20 +409,7 @@ export default function CustomerDetailsPage() {
             </div>
           </div>
 
-          {/* Overview 2: Credit Limit */}
-          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Limit
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              SAR {creditLimit.toLocaleString()}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {creditPct}% Utilized ({utilizedCredit.toLocaleString()} SAR)
-            </div>
-          </div>
-
-          {/* Overview 3: Freight Dispatches */}
+          {/* Overview 2: Freight Dispatches */}
           <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
             <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-indigo-600" /> Freight Dispatches
@@ -448,33 +421,7 @@ export default function CustomerDetailsPage() {
               {activeTripsCount} Active In-Transit
             </div>
           </div>
-
         </div>
-
-        {/* ── 3. CREDIT EXPOSURE ALERT BANNER (only when high credit utilization) ── */}
-        {creditPct >= 80 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <div>
-                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                  High Credit Limit Utilization ({creditPct}%)
-                </h4>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  Customer has utilized SAR {utilizedCredit.toLocaleString()} out of SAR {creditLimit.toLocaleString()} credit limit. Only SAR {availableCredit.toLocaleString()} credit available.
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate('/invoices')}
-              className="h-8 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              Review Pending Invoices
-            </Button>
-          </div>
-        )}
 
         {/* ── 4. TWO-BOX GRID: CORPORATE PROFILE & OPERATIONAL CONTACT HUB ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -495,15 +442,6 @@ export default function CustomerDetailsPage() {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-                  {creditLimit >= 100000 ? (
-                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
-                      Enterprise Tier
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">
-                      Standard Tier
-                    </Badge>
-                  )}
                 </div>
               </div>
 
@@ -557,64 +495,13 @@ export default function CustomerDetailsPage() {
                 </div>
               </div>
 
-              {/* Section 2: Credit Exposure & Terms Governance */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Terms & Exposure
-                  </h4>
-                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
-                    {customer.payment_terms || 'Net 30 Days'}
-                  </span>
-                </div>
 
-                {/* Credit Limit Visual Progress Bar */}
-                <div className="p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/40 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Credit Limit Utilization</span>
-                    <span className={cn(
-                      "font-mono font-black text-xs px-2 py-0.5 rounded-full border",
-                      creditPct >= 80 
-                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900" 
-                        : creditPct >= 60 
-                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900" 
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900"
-                    )}>
-                      {creditPct}% Utilized
-                    </span>
-                  </div>
-
-                  {/* Progress Bar Track */}
-                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        creditPct >= 80 ? "bg-rose-500" : creditPct >= 60 ? "bg-amber-500" : "bg-indigo-600"
-                      )}
-                      style={{ width: `${creditPct}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] font-mono pt-0.5">
-                    <span className="text-slate-500">Utilized: <strong className="text-slate-900 dark:text-slate-100">SAR {utilizedCredit.toLocaleString()}</strong></span>
-                    <span className="text-slate-500">Available: <strong className="text-emerald-600 dark:text-emerald-400">SAR {availableCredit.toLocaleString()}</strong></span>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Bottom Governance Footer Note */}
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
               <span className="flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Contract Status: Verified SLA
               </span>
-              <button
-                type="button"
-                onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-                className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 text-[11px]"
-              >
-                Manage Rates & SLA <ArrowRight className="w-3 h-3" />
-              </button>
             </div>
           </Card>
 

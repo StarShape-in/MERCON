@@ -22,7 +22,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
   const [contactPhone, setContactPhone] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
-  const [creditLimit, setCreditLimit] = useState('50000');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +45,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
     setContactPhone('');
     setTaxNumber('');
     setPrimaryContactPerson('');
-    setCreditLimit('50000');
     setWhatsappGroupLink('');
     setError(null);
   };
@@ -64,7 +62,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
       contact_phone: contactPhone.trim() || 'N/A',
       tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
-      credit_limit: parseFloat(creditLimit) || 0,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
     } as any);
   };
@@ -128,33 +125,17 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="tax_number" className="text-xs font-semibold flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
-              </Label>
-              <Input
-                id="tax_number"
-                placeholder="3100XXXXXXXXXXX"
-                value={taxNumber}
-                onChange={(e) => setTaxNumber(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="credit_limit" className="text-xs font-semibold flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-slate-500" /> Credit Limit (SAR)
-              </Label>
-              <Input
-                id="credit_limit"
-                type="number"
-                placeholder="50000"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="tax_number" className="text-xs font-semibold flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
+            </Label>
+            <Input
+              id="tax_number"
+              placeholder="3100XXXXXXXXXXX"
+              value={taxNumber}
+              onChange={(e) => setTaxNumber(e.target.value)}
+              className="h-9 text-xs font-mono"
+            />
           </div>
 
           <div className="space-y-1.5">

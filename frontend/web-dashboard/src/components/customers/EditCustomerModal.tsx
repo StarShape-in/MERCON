@@ -26,7 +26,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const [contactPhone, setContactPhone] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
-  const [creditLimit, setCreditLimit] = useState('50000');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30 Days');
   const [isActive, setIsActive] = useState(true);
@@ -39,7 +38,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       setContactPhone(customer.contact_phone || customer.primary_contact_phone || customer.phone || '');
       setTaxNumber(customer.tax_number || '');
       setPrimaryContactPerson(customer.primary_contact_person || '');
-      setCreditLimit((customer.credit_limit || 0).toString());
       setWhatsappGroupLink(customer.whatsapp_group_link || '');
       setPaymentTerms(customer.payment_terms || 'Net 30 Days');
       setIsActive(customer.isActive ?? true);
@@ -84,7 +82,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       avatar_url: logoUrl || undefined,
       tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
-      credit_limit: parseFloat(creditLimit) || 0,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
       payment_terms: paymentTerms || undefined,
       isActive,
@@ -156,33 +153,17 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_tax_number" className="text-xs font-semibold flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
-              </Label>
-              <Input
-                id="edit_tax_number"
-                placeholder="3100XXXXXXXXXXX"
-                value={taxNumber}
-                onChange={(e) => setTaxNumber(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_credit_limit" className="text-xs font-semibold flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-slate-500" /> Credit Limit (SAR)
-              </Label>
-              <Input
-                id="edit_credit_limit"
-                type="number"
-                placeholder="50000"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit_tax_number" className="text-xs font-semibold flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
+            </Label>
+            <Input
+              id="edit_tax_number"
+              placeholder="3100XXXXXXXXXXX"
+              value={taxNumber}
+              onChange={(e) => setTaxNumber(e.target.value)}
+              className="h-9 text-xs font-mono"
+            />
           </div>
 
           <div className="space-y-1.5">

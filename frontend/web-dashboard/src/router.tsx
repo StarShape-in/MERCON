@@ -54,7 +54,6 @@ const CustomerListPage        = lazyWithRetry(() => import('@/pages/customers/Cu
 const CustomerDetailsPage     = lazyWithRetry(() => import('@/pages/customers/CustomerDetailsPage'));
 const AddCustomerPage         = lazyWithRetry(() => import('@/pages/customers/AddCustomerPage'));
 const EditCustomerPage        = lazyWithRetry(() => import('@/pages/customers/EditCustomerPage'));
-const CustomerContractsPage   = lazyWithRetry(() => import('@/pages/customers/CustomerContractsPage'));
 
 const LocationListPage        = lazyWithRetry(() => import('@/pages/locations/LocationListPage'));
 const AddLocationPage         = lazyWithRetry(() => import('@/pages/locations/AddLocationPage'));
@@ -206,7 +205,6 @@ export default function AppRouter() {
             <Route path="/customers/new"                      element={<AddCustomerPage />} />
             <Route path="/customers/:id"                      element={<CustomerDetailsPage />} />
             <Route path="/customers/:id/edit"                 element={<EditCustomerPage />} />
-            <Route path="/customers/:id/contracts"            element={<CustomerContractsPage />} />
             <Route path="/customers/:customerId/locations/create" element={<AddLocationPage />} />
             <Route path="/customers/:customerId/locations/new"    element={<AddLocationPage />} />
 
