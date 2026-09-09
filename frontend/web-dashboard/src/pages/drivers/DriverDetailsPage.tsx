@@ -7,7 +7,7 @@ import {
   ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
   MoreVertical, X, Activity, Award, Lock, FolderOpen, Mail, Gauge,
   TrendingUp, Star, DollarSign, Bolt, MessageSquare, ChevronDown, Eye,
-  Check, Maximize2, Shield, Leaf, File, ArrowRight, Zap
+  Check, Maximize2, Shield, Leaf, File, ArrowRight, Zap, Building2, Banknote
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -340,138 +340,131 @@ export default function DriverDetailsPage() {
             </div>
 
             {/* 1.2 CURRENT / RECENT DISPATCH CARD (Real Data with Active/Recent Fallback) */}
-            <div className="flex-1 rounded-[28px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-col justify-between overflow-hidden shadow-2xs min-h-0">
+            <div className="flex-1 rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-col justify-between shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative min-h-0">
               {displayTrip ? (
-                <>
-                  <div>
-                    {/* Header with See All */}
-                    <div className="flex items-center justify-between shrink-0 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-slate-900 dark:text-white fill-slate-900 dark:fill-white shrink-0" />
-                        <h3 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate">
-                          {isLiveTrip ? 'Current Dispatch' : 'Recent Dispatch'}
+                <div className="flex flex-col h-full">
+                  {/* Top Header: Customer & Status */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                        {displayTrip.customer?.logo_url || displayTrip.customer?.avatar_url ? (
+                          <img src={displayTrip.customer.logo_url || displayTrip.customer.avatar_url!} alt="Customer" className="w-full h-full object-cover" />
+                        ) : (
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">
+                          {isLiveTrip ? 'Live Trip' : 'Recent Dispatch'}
+                        </p>
+                        <h3 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate leading-none">
+                          {displayTrip.customer?.company_name || displayTrip.customer?.name || 'Walk-in Customer'}
                         </h3>
                       </div>
+                    </div>
+                    <span className={cn(
+                      'px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shrink-0 shadow-sm border',
+                      isLiveTrip
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/40'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    )}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', isLiveTrip ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
+                      {isLiveTrip ? 'In Progress' : (displayTrip.status || 'Completed')}
+                    </span>
+                  </div>
+
+                  {/* Route & Locations Box */}
+                  <div className="bg-[#F8F9FA] dark:bg-slate-950 rounded-[16px] p-3 mb-4 border border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-slate-400" />
+                        Ref: {displayTrip.ref_id || displayTrip.id.substring(0, 8)}
+                      </span>
                       <Button
                         onClick={() => navigate('/trips')}
-                        variant="outline"
-                        className="h-7 rounded-full px-3 text-[10.5px] font-extrabold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 shrink-0"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 -mr-2"
                       >
-                        See All
+                        View All
                       </Button>
                     </div>
-
-                    {/* Dispatch Ref & Route Name */}
-                    <div className="mb-3">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Dispatch Ref & Status
-                      </span>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="w-6 h-6 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center shrink-0">
-                            <Activity className="w-3.5 h-3.5" />
-                          </div>
-                          <span className="text-xs font-black text-slate-900 dark:text-white truncate">
-                            {displayTrip.ref_id || displayTrip.id} • {displayTripRoute.pickup}
-                          </span>
-                        </div>
-                        <span className={cn(
-                          'px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shrink-0',
-                          isLiveTrip
-                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        )}>
-                          <span className={cn('w-1.5 h-1.5 rounded-full', isLiveTrip ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
-                          {isLiveTrip ? 'In Progress' : (displayTrip.status || 'Completed')}
-                        </span>
+                    
+                    <div className="relative pl-6">
+                      {/* Timeline Line */}
+                      <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
+                      
+                      {/* Origin */}
+                      <div className="relative mb-3">
+                        <div className="absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-slate-900 border-2 border-blue-500 flex items-center justify-center shadow-sm"></div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Origin</p>
+                        <p className="text-xs font-black text-slate-900 dark:text-white truncate">{displayTripRoute.pickup}</p>
                       </div>
-                    </div>
-
-                    {/* 2 Columns: Origin & Destination */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 truncate">
-                          Origin (Pickup)
-                        </span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center shrink-0 text-[10px] font-black">
-                            P
-                          </div>
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
-                            {displayTripRoute.pickup}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 truncate">
-                          Destination (Dropoff)
-                        </span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center shrink-0 text-[10px] font-black">
-                            D
-                          </div>
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
-                            {displayTripRoute.dropoff}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 2 Columns: Assigned Vehicle & Timeline */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 truncate">
-                          Assigned Vehicle
-                        </span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 font-mono truncate">
-                            {displayTrip.vehicle?.plate_number || assignedVehicle?.plate_number || 'Unassigned'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 truncate">
-                          Time Line
-                        </span>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
-                            {displayTrip.planned_start
-                              ? formatInDeploymentTz(displayTrip.planned_start, tz, 'dd MMM yyyy')
-                              : (displayTrip.createdAt ? formatInDeploymentTz(displayTrip.createdAt, tz, 'dd MMM yyyy') : 'N/A')}
-                          </span>
-                        </div>
+                      
+                      {/* Destination */}
+                      <div className="relative">
+                        <div className="absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-slate-900 border-2 border-emerald-500 flex items-center justify-center shadow-sm"></div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Destination</p>
+                        <p className="text-xs font-black text-slate-900 dark:text-white truncate">{displayTripRoute.dropoff}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Description / Commercial Specs */}
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 truncate">
-                      Commercial Specs & Revenue
-                    </span>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                          {displayTrip.cargo_type || displayTrip.commodity_type || 'General Freight'}
-                          {displayTrip.total_distance ? ` • ${displayTrip.total_distance} km` : ''}
-                        </span>
+                  {/* 2-Column Grid: Vehicle & ETA */}
+                  <div className="grid grid-cols-2 gap-3 mb-auto">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                        <Truck className="w-3.5 h-3.5 text-slate-500" />
                       </div>
-                      <span className="text-xs font-black text-slate-900 dark:text-white shrink-0">
-                        {displayTrip.total_amount ? `₹ ${Number(displayTrip.total_amount).toLocaleString('en-IN')}` : '₹ 24,500'}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Assigned Vehicle</p>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
+                          {displayTrip.vehicle?.plate_number || assignedVehicle?.plate_number || 'Unassigned'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center shrink-0">
+                        <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Estimated ETA</p>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
+                          {displayTrip.planned_end
+                            ? formatInDeploymentTz(displayTrip.planned_end, tz, 'dd MMM, HH:mm')
+                            : 'Pending'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </>
+
+                  {/* Bottom: Finance / Revenue */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center">
+                        <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Finance / Revenue</p>
+                        <p className="text-xs font-black text-slate-900 dark:text-white">
+                          SAR {Number(displayTrip.billing_amount || displayTrip.applied_rate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                    {displayTrip.is_post_trip_settled && (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded-md">
+                        Settled
+                      </span>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                  <Truck className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                  <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-3">
+                    <Truck className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                  </div>
                   <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">No Dispatches Recorded</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5">This driver has no active or past dispatch history.</p>
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">This driver is not currently assigned to any active trips.</p>
                 </div>
               )}
             </div>
