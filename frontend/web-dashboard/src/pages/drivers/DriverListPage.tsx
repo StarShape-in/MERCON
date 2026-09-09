@@ -541,7 +541,9 @@ export default function DriverListPage() {
 
         return (
           <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-slate-600 shrink-0" />
+            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+              <Truck size={14} />
+            </div>
             <div className="flex flex-col">
               <span
                 className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer"
@@ -605,7 +607,7 @@ export default function DriverListPage() {
       accessor: (row: Driver) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Total Driver Charges',
+      header: 'Total Driver Charge',
       accessor: (row: Driver) => (
         <span
           className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400"
@@ -833,6 +835,39 @@ export default function DriverListPage() {
         onChange={setSortOrder}
         options={DRIVER_SORT_OPTIONS}
       />
+
+      {/* View Mode Switcher: List vs Grid */}
+      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700 ml-1">
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={cn(
+            "px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+            viewMode === 'list'
+              ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          )}
+          title="List view"
+        >
+          <List className="w-3.5 h-3.5" />
+          <span>List</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setViewMode('grid')}
+          className={cn(
+            "px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer",
+            viewMode === 'grid'
+              ? "bg-emerald-600 text-white shadow-2xs"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          )}
+          title="Grid view"
+        >
+          <LayoutGrid className="w-3.5 h-3.5" />
+          <span>Grid</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -994,7 +1029,13 @@ export default function DriverListPage() {
                   <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
                   Export PDF (.pdf)
                 </DropdownMenuItem>
-
+                <DropdownMenuItem
+                  onClick={() => handleQuickExport('csv')}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600 dark:text-slate-300"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedDriversForExport([]);
@@ -1034,32 +1075,34 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Card 1: Total Registered Drivers (Monthly Roster Trend Sparkline) */}
           <KpiCard
             title="TOTAL REGISTERED DRIVERS"
-            className="kpi-tint-drivers"
             value={
               <span>
                 {totalCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
               </span>
             }
-            variant="emerald"
-            trend="up"
-            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Standby`}
+            variant="slate"
+            className="kpi-tint-drivers"
+            description="Total driver profiles"
             icon={DriverBadge}
+            semiCircleGauge={{
+              segments: [
+                { label: "Available", count: availableCount, color: "#10B981" },
+                { label: "On Trip", count: onTripCount, color: "#64748B" },
+              ]
+            }}
             isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            chartData={[20, 22, 24, 25, 27, 28, totalCount || 30]}
           />
 
-          {/* Card 2: Dispatch Ready (Standby Capacity Gauge Progress Meter) */}
           <KpiCard
-            title="DISPATCH READY"
+            title="AVAILABLE NOW"
             className="kpi-tint-drivers"
             value={
               <span>
@@ -1069,66 +1112,64 @@ export default function DriverListPage() {
             }
             variant="emerald"
             trend="up"
-            trendValue={`${availableCount} Available`}
+            trendValue="Available"
+            description="Available for dispatch"
             icon={CheckBadge}
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 75,
+              label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
+              subtext: `${availableCount} Ready • ${onTripCount} On Trip`
+            }}
             isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            completionGauge={{
-              percentage: Math.round((availableCount / (totalCount || 1)) * 100),
-              label: 'Standby Capacity Pool',
-              subtext: `${availableCount} Available`
-            }}
           />
 
-          {/* Card 3: Active On Road (Live GPS Dispatch Pulse Track) */}
           <KpiCard
             title="ACTIVE ON ROAD"
             className="kpi-tint-drivers"
             value={
               <span>
                 {onTripCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Trip</span>
               </span>
             }
             variant="emerald"
-            trend={onTripCount > 0 ? 'up' : 'neutral'}
-            trendValue={`${onTripCount} Dispatched`}
+            trend="neutral"
+            trendValue="On Trip"
+            description="Active en-route drivers"
             icon={TruckMotion}
+            chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            livePulseTrack={{
-              statusText: `${onTripCount} Drivers Active On-Route`,
-              subText: 'GPS Telemetry'
-            }}
           />
 
-          {/* Card 4: Compliance Audit (MOT License Verification Audit Track) */}
           <KpiCard
-            title="COMPLIANCE AUDIT"
+            title="EXPIRED LICENSES"
             className="kpi-tint-drivers"
             value={
               <span>
                 {expiredLicenseCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Expired</span>
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Permits</span>
               </span>
             }
-            variant={expiredLicenseCount > 0 ? 'rose' : 'emerald'}
-            trend={expiredLicenseCount > 0 ? 'down' : 'up'}
-            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
+            variant="rose"
+            trend={expiredLicenseCount > 0 ? "down" : "neutral"}
+            trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
+            description="Permits requiring renewal"
             icon={RiskAlert}
+            progressSegments={[
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-rose-500' },
+              { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
+            ]}
             isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
-            }}
-            livePulseTrack={{
-              statusText: expiredLicenseCount > 0 ? `${expiredLicenseCount} MOT Licenses Expired` : '100% MOT Licenses Valid',
-              subText: expiredLicenseCount > 0 ? 'Action Required' : 'Verified'
             }}
           />
         </div>
@@ -1456,7 +1497,9 @@ export default function DriverListPage() {
         <Dialog open={showMotModal} onOpenChange={setShowMotModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
               <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
                 Saudi MOT & MOMRAH Compliance Status
               </DialogTitle>

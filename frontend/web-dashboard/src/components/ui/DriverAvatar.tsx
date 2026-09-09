@@ -59,8 +59,8 @@ export default function DriverAvatar({
     <div
       onClick={handleClick}
       className={cn(
-        'relative inline-block shrink-0 rounded-full group',
-        isInteractive && 'cursor-pointer hover:ring-2 hover:ring-brand/50 transition-all',
+        'relative inline-block shrink-0 overflow-hidden group',
+        isInteractive && 'cursor-pointer hover:opacity-95 transition-all',
         className
       )}
       title={isInteractive ? 'Click to preview driver profile photo & details' : undefined}
@@ -70,15 +70,12 @@ export default function DriverAvatar({
           src={src}
           alt={`${firstName} ${lastName}`.trim() || 'Driver avatar'}
           onError={() => setImageError(true)}
-          className={cn(
-            'rounded-full object-cover border border-slate-200 dark:border-slate-800 shadow-2xs',
-            sizeClass
-          )}
+          className="w-full h-full object-cover scale-[1.75] transform origin-center rounded-[inherit]"
         />
       ) : (
         <div
           className={cn(
-            'rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs',
+            'w-full h-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs rounded-[inherit]',
             sizeClass
           )}
         >
@@ -87,7 +84,7 @@ export default function DriverAvatar({
       )}
 
       {isInteractive && (
-        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+        <div className="absolute inset-0 rounded-[inherit] bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
           <Eye className="w-3.5 h-3.5" />
         </div>
       )}
