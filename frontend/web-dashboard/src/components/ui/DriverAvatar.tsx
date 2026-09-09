@@ -55,6 +55,9 @@ export default function DriverAvatar({
     }
   };
 
+  const isAbdulMalik = `${firstName} ${lastName}`.toUpperCase().includes('ABDUL MALIK');
+  const avatarSrc = isAbdulMalik ? '/drivers/abdul_malik.jpg' : src;
+
   return (
     <div
       onClick={handleClick}
@@ -66,9 +69,9 @@ export default function DriverAvatar({
       )}
       title={isInteractive ? 'Click to preview driver profile photo & details' : undefined}
     >
-      {src && !imageError ? (
+      {avatarSrc && !imageError ? (
         <img
-          src={src}
+          src={avatarSrc}
           alt={`${firstName} ${lastName}`.trim() || 'Driver avatar'}
           onError={() => setImageError(true)}
           className="w-full h-full object-cover rounded-full"
