@@ -342,15 +342,22 @@ export const tripService = {
       form.append('location_lng', String(asset.location.longitude));
       form.append('captured_at', String(asset.location.timestamp));
     }
+    const isVideo = operation === 'delay' || (asset.mimeType && asset.mimeType.startsWith('video/')) || (asset.fileName && /\.(mp4|mov|webm|3gp)$/i.test(asset.fileName));
+    const fileName = asset.fileName || (isVideo ? 'delay-video.mp4' : `${kind}.jpg`);
+    const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+
     form.append('file', {
       uri: asset.uri,
-      name: asset.fileName ?? `${kind}.jpg`,
-      type: asset.mimeType ?? 'image/jpeg',
+      name: fileName,
+      type: mimeType,
     } as unknown as Blob);
     // Don't set Content-Type manually — axios/RN needs to generate it
     // itself so it includes the multipart boundary. A hardcoded header
     // here strips the boundary and the backend fails to parse the body.
-    await api.post(`/mobile/trips/${id}/photo`, form);
+    // Use extended 180s timeout for video/media uploads to prevent ECONNABORTED
+    await api.post(`/mobile/trips/${id}/photo`, form, {
+      timeout: 180000,
+    });
   },
 };
 

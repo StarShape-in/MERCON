@@ -266,6 +266,13 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const isValidUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
 
+    const isVideo = (req.file.mimetype && req.file.mimetype.startsWith('video/')) ||
+      /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(req.file.originalname) ||
+      /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(req.file.filename);
+    const resolvedMime = isVideo
+      ? (req.file.mimetype && req.file.mimetype !== 'application/octet-stream' ? req.file.mimetype : 'video/mp4')
+      : (req.file.mimetype || 'image/jpeg');
+
     const document = await prisma.document.create({
       data: {
         entity_type: 'Trip',
@@ -273,7 +280,7 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         // No dedicated "cargo photo" enum value; POD for delivery, Waybill for pickup cargo.
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
-        mime_type: req.file.mimetype || 'image/jpeg',
+        mime_type: resolvedMime,
         ocr_raw_text: notes,
         ai_extracted_json: {
           gps: (location_lat && location_lng) ? { latitude: location_lat, longitude: location_lng, captured_at } : undefined,

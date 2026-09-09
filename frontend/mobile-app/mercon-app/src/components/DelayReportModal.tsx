@@ -209,7 +209,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
           {step === 'details' && (
             <View style={styles.footer}>
               <Button
-                title={loading ? 'Submitting…' : 'Submit Delay Report'}
+                title={loading ? (media ? 'Uploading Video…' : 'Submitting…') : 'Submit Delay Report'}
                 onPress={handleSubmit}
                 disabled={loading}
                 size="lg"
