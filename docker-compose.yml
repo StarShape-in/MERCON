@@ -3,8 +3,16 @@
 # (e.g. MTL) runs this same compose file on its own VPS with CLIENT_NAME,
 # POSTGRES_DB, and the port vars set in that host's .env — see
 # PROGRESS.md's new-client provisioning notes.
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "20m"
+      max-file: "3"
+
 services:
   postgres-db:
+    <<: *default-logging
     image: postgres:15-alpine
     container_name: "${CLIENT_NAME:-mercon}-postgres"
     restart: unless-stopped
@@ -23,6 +31,7 @@ services:
       retries: 5
 
   mercon-api:
+    <<: *default-logging
     build:
       context: .
       dockerfile: backend/api-server/Dockerfile
@@ -63,6 +72,7 @@ services:
       retries: 3
 
   mercon-frontend:
+    <<: *default-logging
     build:
       context: .
       dockerfile: frontend/web-dashboard/Dockerfile

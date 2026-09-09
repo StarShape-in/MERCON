@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Che
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -84,7 +84,8 @@ const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const isReturnLoading = ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED';
+  const isRound = isRoundTrip(trip);
+  const isReturnLoading = isRound && (ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED');
   const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP' || isReturnLoading;
 
   const targetSeq = isReturnLoading ? 3 : 1;
@@ -98,6 +99,9 @@ const PickupVerificationScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
+
+  const validPhotosCount = photos.filter((p) => !!p?.uri).length;
+  const hasAllPhotos = validPhotosCount >= 3;
 
   // Load draft photos
   useEffect(() => {
@@ -121,19 +125,25 @@ const PickupVerificationScreen = () => {
     loadDraft();
   }, [trip?.id, isReturnLoading]);
 
-  const addPhoto = async () => {
+  const addPhoto = async (slotIndex?: number) => {
     try {
       const photo = await choosePhoto();
       if (photo) {
         setPhotos((prev) => {
-          const next = [...prev, photo].slice(0, 3);
+          const next = [...prev];
+          if (slotIndex !== undefined && slotIndex < 3) {
+            next[slotIndex] = photo;
+          } else {
+            next.push(photo);
+          }
+          const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
             const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
             const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
-            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
-            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
+            SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
-          return next;
+          return valid;
         });
       }
     } catch (e) {
@@ -170,8 +180,11 @@ const PickupVerificationScreen = () => {
 
   const handleCompletePickup = async () => {
     if (!trip || submitting) return;
-    if (photos.length < 1) {
-      Alert.alert('Loading Photos Required', 'Please upload at least 1 photo of the loaded cargo before proceeding.');
+    if (validPhotosCount < 3) {
+      Alert.alert(
+        '3 Loading Photos Required',
+        `Please upload all 3 loading photos before proceeding (${validPhotosCount}/3 uploaded).`
+      );
       return;
     }
     setSubmitting(true);
@@ -193,14 +206,20 @@ const PickupVerificationScreen = () => {
       for (const p of photos) {
         if (p.uri) {
           try {
-            await tripService.uploadPhoto(trip.id, 'cargo', {
-              uri: p.uri,
-              location: p.location ? {
-                latitude: p.location.latitude,
-                longitude: p.location.longitude,
-                timestamp: p.location.timestamp,
-              } : null,
-            });
+            await tripService.uploadPhoto(
+              trip.id,
+              'cargo',
+              {
+                uri: p.uri,
+                location: p.location ? {
+                  latitude: p.location.latitude,
+                  longitude: p.location.longitude,
+                  timestamp: p.location.timestamp,
+                } : null,
+              },
+              isReturnLoading ? 1 : 0,
+              isReturnLoading ? 'return_loading' : 'pickup'
+            );
           } catch (photoErr) {
             console.warn('Cargo photo upload warning:', photoErr);
           }
@@ -315,7 +334,7 @@ const PickupVerificationScreen = () => {
                 key={i}
                 style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
                 activeOpacity={0.8}
-                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
+                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : () => addPhoto(i)}
               >
                 {photos[i] ? (
                   <>
@@ -345,14 +364,21 @@ const PickupVerificationScreen = () => {
 
           {/* Primary Action Button: LOADING COMPLETE */}
           <TouchableOpacity
-            style={styles.mainActionBtn}
+            style={[
+              styles.mainActionBtn,
+              !hasAllPhotos && styles.mainActionBtnDisabled,
+            ]}
             activeOpacity={0.85}
             onPress={handleCompletePickup}
-            disabled={submitting}
+            disabled={!hasAllPhotos || submitting}
           >
-            <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'PROCESSING…' : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}</Text>
-            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
+            <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
+            <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
+              {submitting
+                ? 'PROCESSING…'
+                : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}
+            </Text>
+            <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
 
@@ -635,6 +661,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  mainActionBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  mainActionBtnTextDisabled: {
+    color: '#94A3B8',
   },
   mainActionBtnText: {
     color: '#FFFFFF',

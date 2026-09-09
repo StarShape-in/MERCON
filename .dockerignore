@@ -1,4 +1,4 @@
-﻿**/.git
+**/.git
 **/.github
 **/node_modules
 **/dist
@@ -9,3 +9,11 @@ frontend/mobile-app
 .user_uploaded
 *.log
 .DS_Store
+docs/
+image/
+Trucks Docs (1)/
+*.pdf
+*.apk
+*.zip
+*.tar
+*.tar.gz

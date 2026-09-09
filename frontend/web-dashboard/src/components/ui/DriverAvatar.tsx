@@ -55,31 +55,31 @@ export default function DriverAvatar({
     }
   };
 
+  const isAbdulMalik = `${firstName} ${lastName}`.toUpperCase().includes('ABDUL MALIK');
+  const avatarSrc = isAbdulMalik ? '/drivers/abdul_malik.jpg' : src;
+
   return (
     <div
       onClick={handleClick}
       className={cn(
-        'relative inline-block shrink-0 rounded-full group',
-        isInteractive && 'cursor-pointer hover:ring-2 hover:ring-brand/50 transition-all',
+        'relative inline-block shrink-0 overflow-hidden group rounded-full',
+        sizeClass,
+        isInteractive && 'cursor-pointer hover:opacity-95 transition-all',
         className
       )}
       title={isInteractive ? 'Click to preview driver profile photo & details' : undefined}
     >
-      {src && !imageError ? (
+      {avatarSrc && !imageError ? (
         <img
-          src={src}
+          src={avatarSrc}
           alt={`${firstName} ${lastName}`.trim() || 'Driver avatar'}
           onError={() => setImageError(true)}
-          className={cn(
-            'rounded-full object-cover border border-slate-200 dark:border-slate-800 shadow-2xs',
-            sizeClass
-          )}
+          className="w-full h-full object-cover rounded-full"
         />
       ) : (
         <div
           className={cn(
-            'rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs',
-            sizeClass
+            'w-full h-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs rounded-full'
           )}
         >
           {initials}
@@ -87,7 +87,7 @@ export default function DriverAvatar({
       )}
 
       {isInteractive && (
-        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+        <div className="absolute inset-0 rounded-[inherit] bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
           <Eye className="w-3.5 h-3.5" />
         </div>
       )}

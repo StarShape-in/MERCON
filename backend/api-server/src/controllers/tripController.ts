@@ -537,7 +537,7 @@ export const getTripById = async (req: Request, res: Response) => {
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
     const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? 0);
     const totalAmount = baseRate + chargesTotal;
-    const paidAmount = Number(trip.paid_amount || 0);
+    const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
 
     const tripData = {

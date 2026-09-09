@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, Messag
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -83,7 +83,8 @@ const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
-  const isReturnDelivery = ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN';
+  const isRound = isRoundTrip(trip);
+  const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN');
 
   const targetSeq = isReturnDelivery ? 4 : 2;
   const dropoffStop =
@@ -97,6 +98,9 @@ const DeliveryVerificationScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
+
+  const validPhotosCount = photos.filter((p) => !!p?.uri).length;
+  const hasAllPhotos = validPhotosCount >= 3;
 
   // Load draft photos
   useEffect(() => {
@@ -120,19 +124,25 @@ const DeliveryVerificationScreen = () => {
     loadDraft();
   }, [trip?.id, isReturnDelivery]);
 
-  const addPhoto = async () => {
+  const addPhoto = async (slotIndex?: number) => {
     try {
       const photo = await choosePhoto();
       if (photo) {
         setPhotos((prev) => {
-          const next = [...prev, photo].slice(0, 3);
+          const next = [...prev];
+          if (slotIndex !== undefined && slotIndex < 3) {
+            next[slotIndex] = photo;
+          } else {
+            next.push(photo);
+          }
+          const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
             const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
             const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
-            SecureStore.setItemAsync(draftKey, JSON.stringify(next));
-            SecureStore.setItemAsync(completedKey, JSON.stringify(next));
+            SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
+            SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
-          return next;
+          return valid;
         });
       }
     } catch (e) {
@@ -155,6 +165,13 @@ const DeliveryVerificationScreen = () => {
 
   const handleCompleteDelivery = async () => {
     if (!trip || submitting) return;
+    if (validPhotosCount < 3) {
+      Alert.alert(
+        '3 Delivery Photos Required',
+        `Please upload all 3 delivery photos before completing delivery (${validPhotosCount}/3 uploaded).`
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       if (trip?.id) {
@@ -171,34 +188,41 @@ const DeliveryVerificationScreen = () => {
         }
         await SecureStore.setItemAsync('last_completed_trip_id', trip.id);
       }
+      const ws = trip.driver_workflow_state || 'ASSIGNED';
+      const isRound = isRoundTrip(trip);
+
+      const isFinalLeg =
+        !isRound ||
+        ws === 'IN_TRANSIT_RETURN' ||
+        ws === 'ARRIVED_AT_FINAL_DELIVERY' ||
+        ws === 'FINAL_DELIVERY_VERIFICATION';
+
+      const targetLegIndex = isRound && isFinalLeg ? 1 : 0;
+      const targetOp = isRound && isFinalLeg ? 'return_delivery' : 'delivery';
+
       // Upload POD photos via tripService.uploadPhoto
       for (const p of photos) {
         if (p.uri) {
           try {
-            await tripService.uploadPhoto(trip.id, 'pod', {
-              uri: p.uri,
-              location: p.location ? {
-                latitude: p.location.latitude,
-                longitude: p.location.longitude,
-                timestamp: p.location.timestamp,
-              } : null,
-            });
+            await tripService.uploadPhoto(
+              trip.id,
+              'pod',
+              {
+                uri: p.uri,
+                location: p.location ? {
+                  latitude: p.location.latitude,
+                  longitude: p.location.longitude,
+                  timestamp: p.location.timestamp,
+                } : null,
+              },
+              targetLegIndex,
+              targetOp
+            );
           } catch (photoErr) {
             console.warn('POD photo upload warning:', photoErr);
           }
         }
       }
-      const ws = trip.driver_workflow_state || 'ASSIGNED';
-      const isRoundTrip =
-        trip.trip_type?.toLowerCase().includes('round') ||
-        (trip.stops && trip.stops.length >= 3) ||
-        (trip.stops && trip.stops.length === 2 && trip.stops[0].location_name === trip.stops[1].location_name);
-
-      const isFinalLeg =
-        !isRoundTrip ||
-        ws === 'IN_TRANSIT_RETURN' ||
-        ws === 'ARRIVED_AT_FINAL_DELIVERY' ||
-        ws === 'FINAL_DELIVERY_VERIFICATION';
 
       triggerGPayHapticsAndSound();
 
@@ -312,7 +336,7 @@ const DeliveryVerificationScreen = () => {
                 key={i}
                 style={[styles.photoPreview, photos[i] ? styles.photoFilled : styles.photoEmpty]}
                 activeOpacity={0.8}
-                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : addPhoto}
+                onPress={photos[i] ? () => setPreviewPhoto(photos[i]) : () => addPhoto(i)}
               >
                 {photos[i] ? (
                   <>
@@ -342,14 +366,21 @@ const DeliveryVerificationScreen = () => {
 
           {/* Primary Action Button: DELIVERY COMPLETE */}
           <TouchableOpacity
-            style={styles.mainActionBtn}
+            style={[
+              styles.mainActionBtn,
+              !hasAllPhotos && styles.mainActionBtnDisabled,
+            ]}
             activeOpacity={0.85}
             onPress={handleCompleteDelivery}
-            disabled={submitting}
+            disabled={!hasAllPhotos || submitting}
           >
-            <Package size={22} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.mainActionBtnText}>{submitting ? 'COMPLETING…' : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}</Text>
-            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.2} />
+            <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
+            <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
+              {submitting
+                ? 'COMPLETING…'
+                : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}
+            </Text>
+            <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
         </View>
 
@@ -681,6 +712,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  mainActionBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  mainActionBtnTextDisabled: {
+    color: '#94A3B8',
   },
   mainActionBtnText: {
     color: '#FFFFFF',

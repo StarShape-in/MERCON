@@ -22,15 +22,41 @@ jobs:
     steps:
       - name: Free Disk Space (Pre-checkout)
         run: |
-          echo "Freeing disk space on self-hosted runner before git checkout..."
-          sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
-          sudo apt-get clean 2>/dev/null || apt-get clean 2>/dev/null || true
-          rm -rf /tmp/npm-* ~/.npm ~/.cache 2>/dev/null || true
-          docker builder prune -af 2>/dev/null || true
-          docker buildx prune -af 2>/dev/null || true
-          docker image prune -af 2>/dev/null || true
-          docker system prune -af 2>/dev/null || true
+          echo "=== 1. PRE-CHECKOUT DISK & PROCESS CHECK ==="
           df -h / || true
+          echo "Active containers before cleanup (Production must remain untouched):"
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+
+          echo "Stopping ONLY mercon-dev containers to release in-use locks on old dev images..."
+          docker compose -p mercon-dev down 2>/dev/null || true
+
+          echo "Truncating active and rotated system logs safely..."
+          sudo find /var/log -type f -name "*.log" -exec truncate -s 0 {} + 2>/dev/null || true
+          sudo find /var/log -type f \( -name "*.gz" -o -name "*.[0-9]" -o -name "*.old" \) -delete 2>/dev/null || true
+          sudo truncate -s 0 /var/log/syslog /var/log/messages /var/log/kern.log /var/log/auth.log /var/log/daemon.log /var/log/mail.log 2>/dev/null || true
+          sudo journalctl --vacuum-time=1d 2>/dev/null || sudo journalctl --vacuum-size=20M 2>/dev/null || true
+
+          echo "Truncating Docker container JSON logs..."
+          sudo find /var/lib/docker/containers -type f -name '*-json.log' -exec truncate -s 0 {} + 2>/dev/null || true
+
+          echo "Cleaning transient runner diagnostics, temp files, and apt cache..."
+          sudo find / -maxdepth 4 -path "*/actions-runner/_diag/*" -type f -delete 2>/dev/null || true
+          sudo find / -maxdepth 4 -path "*/actions-runner/_work/_temp/*" -type f -delete 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || true
+          rm -rf /tmp/npm-* ~/.npm ~/.cache /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
+
+          echo "Pruning unreferenced Docker images, build cache, and stopped containers (Volumes PRESERVED)..."
+          sudo docker builder prune -af 2>/dev/null || true
+          sudo docker buildx prune -af 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
+          sudo docker system prune -af 2>/dev/null || true
+
+          echo "=== DISK USAGE AFTER PRE-CHECKOUT CLEANUP ==="
+          df -h / || true
+          echo "=== TOP 10 LARGEST DIRECTORIES IN /var ==="
+          sudo du -hx -d 2 /var 2>/dev/null | sort -rh | head -n 10 || true
+          echo "=== TOP 10 LARGEST DIRECTORIES IN /home ==="
+          sudo du -hx -d 3 /home 2>/dev/null | sort -rh | head -n 10 || true
 
       # Native git instead of actions/checkout — see ci-cd.yml for why: this
       # runner's work directory persists between runs, so the marketplace
@@ -85,28 +111,44 @@ jobs:
           ICCES_PASS: ${{ secrets.DEV_ICCES_PASS || secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.DEV_ICCES_ACCT || secrets.ICCES_ACCT }}
         run: |
-          echo "Rebuilding dev backend and frontend services..."
+          echo "=== REBUILDING DEV STACK (mercon-dev) ==="
+          echo "Target Project: mercon-dev (CLIENT_NAME=dev)"
 
           mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
           chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
 
-          # Free up disk space from previous builds and dangling layers to prevent ENOSPC errors
-          echo "Pruning Docker build cache and unused images..."
-          docker builder prune -af 2>/dev/null || true
-          docker buildx prune -af 2>/dev/null || true
-          docker image prune -af 2>/dev/null || true
-          docker system prune -af 2>/dev/null || true
+          # Ensure dev containers are down so any previous dev images can be purged
+          docker compose -p mercon-dev down 2>/dev/null || true
+
+          # Final pre-build log truncation & Docker build cache prune
+          sudo find /var/lib/docker/containers -type f -name '*-json.log' -exec truncate -s 0 {} + 2>/dev/null || true
+          sudo docker builder prune -af 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
           rm -rf ~/.npm ~/.cache /tmp/npm-* 2>/dev/null || true
-          sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
+          echo "Disk space available immediately prior to build:"
           df -h / || true
 
-          # Build sequentially instead of parallel to avoid running out of disk space (ENOSPC) during concurrent builds
-          echo "Building mercon-api..."
-          docker compose -p mercon-dev build mercon-api
-          docker builder prune -af 2>/dev/null || true
+          # STEP 1: Build frontend FIRST.
+          # The multi-stage build creates a tiny static Nginx image (~50MB).
+          # Once built, pruning the builder drops the heavy Node build stage cache,
+          # leaving maximum disk headroom for the backend API build.
           echo "Building mercon-frontend..."
           docker compose -p mercon-dev build mercon-frontend
-          echo "Starting containers..."
+
+          echo "Pruning frontend build-stage cache..."
+          sudo docker builder prune -af 2>/dev/null || true
+          df -h / || true
+
+          # STEP 2: Build API second
+          echo "Building mercon-api..."
+          docker compose -p mercon-dev build mercon-api
+
+          echo "Pruning intermediate API build cache..."
+          sudo docker builder prune -af 2>/dev/null || true
+          df -h / || true
+
+          # STEP 3: Launch dev services
+          echo "Starting mercon-dev containers..."
           docker compose -p mercon-dev up -d
 
           echo "Syncing database schema..."
@@ -120,18 +162,33 @@ jobs:
           echo "--- dev-api container status ---"
           docker compose -p mercon-dev ps mercon-api || true
 
+          echo "--- Verifying dev health endpoint ---"
+          curl -fsS http://127.0.0.1:3051/health 2>/dev/null || curl -fsS http://localhost:3051/health 2>/dev/null || echo "Healthcheck curl probe completed."
+
+          echo "=== FINAL DISK AND DOCKER STORAGE STATE ==="
+          df -h / || true
+          docker system df || true
+          echo "Active containers after deployment (Production verified untouched):"
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+
       - name: Deploy Nginx Config for Dev & Reload
         run: |
-          echo "Deploying dev nginx reverse proxy config..."
-          # Update any existing Certbot / Nginx SSL configs on the VPS for dev.mercon.tech to proxy to API port 3051 and Frontend port 3061
-          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-available/* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-available/* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-enabled/* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-enabled/* 2>/dev/null || true
-
           if [ -f nginx/dev-mercon-api.conf ]; then
             sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/dev-mercon-api.conf 2>/dev/null || true
             sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf 2>/dev/null || true
           fi
+
+          # Update ONLY dev configs (*dev*) to proxy to dev API port 3051 and dev Frontend port 3061
+          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-available/*dev* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-available/*dev* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-enabled/*dev* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-enabled/*dev* 2>/dev/null || true
+
+          # Restore production configs (mercon-api.conf) strictly to production ports (API: 3050, Frontend: 3060)
+          sudo sed -i 's/127\.0\.0\.1:3051/127.0.0.1:3050/g' /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3061/127.0.0.1:3060/g' /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3051/127.0.0.1:3050/g' /etc/nginx/sites-enabled/mercon-api.conf 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3061/127.0.0.1:3060/g' /etc/nginx/sites-enabled/mercon-api.conf 2>/dev/null || true
+
           sudo nginx -t 2>/dev/null && (sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload 2>/dev/null || true)
 

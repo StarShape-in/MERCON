@@ -128,8 +128,8 @@ export default function TripPhotoEvidence({
                   isRealDoc: false,
                 },
                 {
-                  id: 'p1_proof',
-                  title: 'Pickup Loading Proof',
+                  id: 'p1_load1',
+                  title: 'Loading Photo 1',
                   type: 'proof',
                   status: 'Pending',
                   location: originCity,
@@ -138,9 +138,19 @@ export default function TripPhotoEvidence({
                   isRealDoc: false,
                 },
                 {
-                  id: 'p1_waybill',
-                  title: 'Pickup Waybill / Seal',
-                  type: 'document',
+                  id: 'p1_load2',
+                  title: 'Loading Photo 2',
+                  type: 'proof',
+                  status: 'Pending',
+                  location: originCity,
+                  time: 'Pending',
+                  sampleImg: '',
+                  isRealDoc: false,
+                },
+                {
+                  id: 'p1_load3',
+                  title: 'Loading Photo 3',
+                  type: 'proof',
                   status: 'Pending',
                   location: originCity,
                   time: 'Pending',
@@ -168,9 +178,9 @@ export default function TripPhotoEvidence({
                   isRealDoc: false,
                 },
                 {
-                  id: 'p2_unload',
-                  title: 'Cargo Unloading Proof',
-                  type: 'proof',
+                  id: 'p2_del1',
+                  title: 'Delivery Photo 1',
+                  type: 'document',
                   status: 'Pending',
                   location: destCity,
                   time: 'Pending',
@@ -178,8 +188,18 @@ export default function TripPhotoEvidence({
                   isRealDoc: false,
                 },
                 {
-                  id: 'p2_proof',
-                  title: 'Delivery Completion Proof',
+                  id: 'p2_del2',
+                  title: 'Delivery Photo 2',
+                  type: 'document',
+                  status: 'Pending',
+                  location: destCity,
+                  time: 'Pending',
+                  sampleImg: '',
+                  isRealDoc: false,
+                },
+                {
+                  id: 'p2_del3',
+                  title: 'Delivery Photo 3',
                   type: 'document',
                   status: 'Pending',
                   location: destCity,
@@ -210,14 +230,6 @@ export default function TripPhotoEvidence({
       const isTripDoc = d.doc_type === 'POD' || d.doc_type === 'Waybill' || d.doc_type === 'Other' || d.doc_type === 'Delivery';
       return (isImg || isTripDoc) && !!d.file_url;
     });
-
-    const podDocs = photoDocs.filter((d: any) => d.doc_type === 'POD');
-    const waybillDocs = photoDocs.filter((d: any) => d.doc_type === 'Waybill' || d.doc_type === 'Other');
-    const stopDocs = photoDocs.filter((d: any) => d.ai_extracted_json?.operation?.includes('stop'));
-
-    let waybillIdx = 0;
-    let podIdx = 0;
-    let stopDocIdx = 0;
 
     const buildLocation = (
       st: any,
@@ -264,10 +276,42 @@ export default function TripPhotoEvidence({
       const photos: PhotoCardItem[] = [];
 
       if (role === 'pickup' || role === 'return_loading') {
-        // Slot 1: Arrival Photo
-        const arrivalDoc = photoDocs.find((d: any) =>
-          d.ai_extracted_json?.operation === (isReturn ? 'return_loading_arrival' : 'pickup_arrival')
+        // Find explicit arrival doc if tagged
+        let arrivalDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_loading_arrival' : 'pickup_arrival') ||
+          (d.ai_extracted_json?.operation === 'arrival' && d.doc_type !== 'POD' && (d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0) || d.ai_extracted_json?.leg_index === undefined))
         );
+
+        // Candidate pickup cargo docs
+        const candidatePickupDocs = photoDocs.filter((d: any) => {
+          const op = d.ai_extracted_json?.operation;
+          if (op?.includes('stop') || op?.includes('delivery') || op?.includes('unload')) return false;
+          if (d.doc_type === 'POD') return false;
+          if (isReturn) {
+            return (
+              op === 'return_loading' ||
+              op === 'return_loading_proof' ||
+              op === 'return_waybill' ||
+              d.ai_extracted_json?.leg_index === 1
+            );
+          }
+          return (
+            op === 'pickup' ||
+            op === 'pickup_loading_proof' ||
+            op === 'pickup_waybill' ||
+            op === 'cargo' ||
+            d.doc_type === 'Waybill' ||
+            d.doc_type === 'Other' ||
+            d.ai_extracted_json?.leg_index === 0 ||
+            d.ai_extracted_json?.leg_index === undefined
+          );
+        });
+
+        // If no document was explicitly tagged as arrival, use the first photo as arrival photo:
+        if (!arrivalDoc && candidatePickupDocs.length > 0) {
+          arrivalDoc = candidatePickupDocs[0];
+        }
+
         photos.push({
           id: `${seqStr}_arrival`,
           title: isReturn ? 'Return Loading Arrival' : 'Pickup Arrival Photo',
@@ -279,46 +323,50 @@ export default function TripPhotoEvidence({
           isRealDoc: !!arrivalDoc,
         });
 
-        // Slot 2: Loading Proof (Waybill / Cargo photo)
-        const proofDoc =
-          photoDocs.find((d: any) =>
-            d.ai_extracted_json?.operation === (isReturn ? 'return_loading' : 'pickup') ||
-            d.ai_extracted_json?.operation === (isReturn ? 'return_loading_proof' : 'pickup_loading_proof')
-          );
+        // Loading photos: remaining candidate docs (excluding arrivalDoc)
+        const loadingDocs = candidatePickupDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
 
-        photos.push({
-          id: `${seqStr}_proof`,
-          title: isReturn ? 'Return Loading Proof' : 'Pickup Loading Proof',
-          type: 'proof',
-          status: proofDoc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
-          location: city,
-          time: proofDoc?.createdAt ? formatDocTime(proofDoc.createdAt) : stopArrivalTime,
-          sampleImg: proofDoc ? resolveDocUrl(proofDoc.file_url) : '',
-          isRealDoc: !!proofDoc,
-        });
-
-        // Slot 3: Waybill / Cargo Seal Proof
-        const waybillDoc =
-          photoDocs.find((d: any) =>
-            d.ai_extracted_json?.operation === (isReturn ? 'return_waybill' : 'pickup_waybill') ||
-            (d.doc_type === 'Waybill' && d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0))
-          ) || waybillDocs[waybillIdx++];
-
-        photos.push({
-          id: `${seqStr}_waybill`,
-          title: isReturn ? 'Return Waybill / Seal' : 'Pickup Waybill / Seal',
-          type: 'document',
-          status: waybillDoc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
-          location: city,
-          time: waybillDoc?.createdAt ? formatDocTime(waybillDoc.createdAt) : stopArrivalTime,
-          sampleImg: waybillDoc ? resolveDocUrl(waybillDoc.file_url) : '',
-          isRealDoc: !!waybillDoc,
-        });
+        for (let i = 0; i < 3; i++) {
+          const doc = loadingDocs[i];
+          photos.push({
+            id: `${seqStr}_load_${i + 1}`,
+            title: isReturn ? `Return Loading ${i + 1}` : `Loading Photo ${i + 1}`,
+            type: 'proof',
+            status: doc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
+            location: city,
+            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
+            isRealDoc: !!doc,
+          });
+        }
       } else if (role === 'stop' || role === 'return_stop') {
         // Slot 1: Stop Arrival Photo
-        const arrivalDoc = photoDocs.find((d: any) =>
-          d.ai_extracted_json?.operation === (isReturn ? 'return_stop_arrival' : 'stop_arrival')
+        let arrivalDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_stop_arrival' : 'stop_arrival') ||
+          (d.ai_extracted_json?.operation === 'arrival' && d.ai_extracted_json?.leg_index === overallIdx)
         );
+
+        // Intermediate stop inspection photos
+        const candidateStopDocs = photoDocs.filter((d: any) => {
+          const op = d.ai_extracted_json?.operation;
+          return (
+            op?.includes('stop') ||
+            d.ai_extracted_json?.operation === 'intermediate_stop' ||
+            d.ai_extracted_json?.operation === 'return_intermediate_stop'
+          );
+        });
+
+        if (!arrivalDoc && candidateStopDocs.length > 0) {
+          const explicitArrival = candidateStopDocs.find((d: any) => d.ai_extracted_json?.operation?.includes('arrival'));
+          if (explicitArrival) {
+            arrivalDoc = explicitArrival;
+          } else if (candidateStopDocs.length === 1 && !st.actual_departure) {
+            arrivalDoc = candidateStopDocs[0];
+          } else if (candidateStopDocs.length > 3) {
+            arrivalDoc = candidateStopDocs[0];
+          }
+        }
+
         photos.push({
           id: `${seqStr}_arrival`,
           title: isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo',
@@ -330,41 +378,64 @@ export default function TripPhotoEvidence({
           isRealDoc: !!arrivalDoc,
         });
 
-        // Slot 2: Stop Cargo Inspection
-        const doc =
-          stopDocs[stopDocIdx++] ||
-          photoDocs.find((d: any) => d.ai_extracted_json?.operation?.includes('stop'));
+        const stopPhotoList = candidateStopDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
 
-        photos.push({
-          id: `${seqStr}_stop`,
-          title: isReturn ? 'Return Stop Inspection' : 'Stop Cargo Inspection',
-          type: 'proof',
-          status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
-          sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
-          isRealDoc: !!doc,
-        });
-
-        // Slot 3: Stop Departure Proof
-        const departureDoc = photoDocs.find((d: any) =>
-          d.ai_extracted_json?.operation === (isReturn ? 'return_stop_departure' : 'stop_departure')
-        );
-        photos.push({
-          id: `${seqStr}_departure`,
-          title: isReturn ? 'Return Stop Departure' : 'Stop Departure Proof',
-          type: 'document',
-          status: departureDoc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
-          location: city,
-          time: departureDoc?.createdAt ? formatDocTime(departureDoc.createdAt) : stopArrivalTime,
-          sampleImg: departureDoc ? resolveDocUrl(departureDoc.file_url) : '',
-          isRealDoc: !!departureDoc,
-        });
+        for (let i = 0; i < 3; i++) {
+          const doc = stopPhotoList[i];
+          photos.push({
+            id: `${seqStr}_stop_${i + 1}`,
+            title: isReturn ? `Return Stop ${i + 1}` : `Stop Photo ${i + 1}`,
+            type: 'stop',
+            status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+            location: city,
+            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
+            isRealDoc: !!doc,
+          });
+        }
       } else {
+        // Delivery or Return Delivery
         // Slot 1: Arrival Photo
-        const arrivalDoc = photoDocs.find((d: any) =>
-          d.ai_extracted_json?.operation === (isReturn ? 'return_delivery_arrival' : 'delivery_arrival')
+        let arrivalDoc = photoDocs.find((d: any) =>
+          d.ai_extracted_json?.operation === (isReturn ? 'return_delivery_arrival' : 'delivery_arrival') ||
+          (d.ai_extracted_json?.operation === 'arrival' && d.doc_type !== 'Waybill' && (d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0) || d.ai_extracted_json?.leg_index === undefined))
         );
+
+        // Candidate Delivery Photos (POD / Unload / Completion)
+        const candidateDeliveryDocs = photoDocs.filter((d: any) => {
+          const op = d.ai_extracted_json?.operation;
+          if (op?.includes('stop') || op?.includes('pickup') || op?.includes('loading')) return false;
+          if (d.doc_type === 'Waybill') return false;
+          if (isReturn) {
+            return (
+              op === 'return_delivery' ||
+              op === 'return_unload' ||
+              d.ai_extracted_json?.leg_index === 1
+            );
+          }
+          return (
+            op === 'delivery' ||
+            op === 'delivery_unload' ||
+            op === 'delivery_cargo' ||
+            op === 'pod' ||
+            d.doc_type === 'POD' ||
+            d.doc_type === 'Delivery' ||
+            d.ai_extracted_json?.leg_index === 0 ||
+            d.ai_extracted_json?.leg_index === undefined
+          );
+        });
+
+        if (!arrivalDoc && candidateDeliveryDocs.length > 0) {
+          const explicitArrival = candidateDeliveryDocs.find((d: any) => d.ai_extracted_json?.operation?.includes('arrival'));
+          if (explicitArrival) {
+            arrivalDoc = explicitArrival;
+          } else if (candidateDeliveryDocs.length === 1 && !st.actual_departure && trip?.status !== 'Completed') {
+            arrivalDoc = candidateDeliveryDocs[0];
+          } else if (candidateDeliveryDocs.length > 3) {
+            arrivalDoc = candidateDeliveryDocs[0];
+          }
+        }
+
         photos.push({
           id: `${seqStr}_arrival`,
           title: isReturn ? 'Return Delivery Arrival' : 'Delivery Arrival Photo',
@@ -376,39 +447,22 @@ export default function TripPhotoEvidence({
           isRealDoc: !!arrivalDoc,
         });
 
-        // Slot 2: Cargo Unloading Proof
-        const unloadDoc = photoDocs.find((d: any) =>
-          d.ai_extracted_json?.operation === (isReturn ? 'return_unload' : 'delivery_unload') ||
-          d.ai_extracted_json?.operation === (isReturn ? 'return_cargo' : 'delivery_cargo')
-        );
-        photos.push({
-          id: `${seqStr}_unload`,
-          title: isReturn ? 'Return Unload Proof' : 'Cargo Unloading Proof',
-          type: 'proof',
-          status: unloadDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: unloadDoc?.createdAt ? formatDocTime(unloadDoc.createdAt) : stopArrivalTime,
-          sampleImg: unloadDoc ? resolveDocUrl(unloadDoc.file_url) : '',
-          isRealDoc: !!unloadDoc,
-        });
+        // Slots 2, 3, 4: Delivery Photos
+        const deliveryDocs = candidateDeliveryDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
 
-        // Slot 3: Delivery Completion Proof (POD)
-        const proofDoc =
-          photoDocs.find((d: any) =>
-            d.ai_extracted_json?.operation === (isReturn ? 'return_delivery' : 'delivery') ||
-            (d.doc_type === 'POD' && d.ai_extracted_json?.leg_index === (isReturn ? 1 : 0))
-          ) || podDocs[podIdx++];
-
-        photos.push({
-          id: `${seqStr}_proof`,
-          title: isReturn ? 'Return Delivery Proof' : 'Delivery Completion Proof',
-          type: 'document',
-          status: proofDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: proofDoc?.createdAt ? formatDocTime(proofDoc.createdAt) : stopArrivalTime,
-          sampleImg: proofDoc ? resolveDocUrl(proofDoc.file_url) : '',
-          isRealDoc: !!proofDoc,
-        });
+        for (let i = 0; i < 3; i++) {
+          const doc = deliveryDocs[i];
+          photos.push({
+            id: `${seqStr}_del_${i + 1}`,
+            title: isReturn ? `Return Delivery ${i + 1}` : `Delivery Photo ${i + 1}`,
+            type: 'document',
+            status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+            location: city,
+            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
+            isRealDoc: !!doc,
+          });
+        }
       }
 
       return {
@@ -489,7 +543,7 @@ export default function TripPhotoEvidence({
   }, [effectiveEvidence]);
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col gap-2">
+    <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col justify-between gap-2">
       
       {/* ── HEADER ROW ── */}
       <div className="flex items-center justify-between pb-1.5 border-b border-[#F3F4F6] shrink-0">
@@ -538,7 +592,7 @@ export default function TripPhotoEvidence({
       </div>
 
       {/* ── HORIZONTAL LEGS CONTENT CONTAINER ── */}
-      <div className="flex flex-col gap-2 pt-0.5">
+      <div className="flex flex-col gap-2 pt-0.5 flex-1 justify-between">
         {effectiveEvidence.map((leg) => {
           const filteredLocations =
             selectedLocation === 'all'
@@ -590,13 +644,15 @@ export default function TripPhotoEvidence({
                         </span>
                       </div>
 
-                      {/* Photo Cards Container (3 across) */}
+                      {/* Photo Cards Container (up to 4 across) */}
                       <div
                         className={`grid ${
                           loc.photos.length === 1
                             ? 'grid-cols-1'
                             : loc.photos.length === 2
                             ? 'grid-cols-2'
+                            : loc.photos.length === 4
+                            ? 'grid-cols-2 sm:grid-cols-4'
                             : 'grid-cols-3'
                         } gap-1 pt-1 items-stretch`}
                       >
@@ -663,7 +719,7 @@ export default function TripPhotoEvidence({
                                       date: photo.time,
                                     })
                                   }
-                                  className="relative w-full h-[38px] sm:h-[44px] rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
+                                  className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
                                 >
                                   <img
                                     src={photo.sampleImg}
@@ -674,12 +730,12 @@ export default function TripPhotoEvidence({
                                     }}
                                   />
                                   <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                    <Eye size={12} />
+                                    <Eye size={14} />
                                   </div>
                                 </div>
                               ) : (
-                                <div className="relative w-full h-[38px] sm:h-[44px] rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-0.5 text-slate-400 shrink-0">
-                                  <Camera size={13} className="text-slate-300" />
+                                <div className="relative w-full aspect-square rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
+                                  <Camera size={15} className="text-slate-300" />
                                   <span className="text-[7.5px] font-medium text-slate-400">No photo uploaded</span>
                                 </div>
                               )}

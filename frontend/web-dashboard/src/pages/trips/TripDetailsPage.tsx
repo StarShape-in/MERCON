@@ -100,6 +100,7 @@ export default function TripDetailsPage() {
     queryKey: ['documents', 'Trip', tripEntityId],
     queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: tripEntityId, per_page: 50 }),
     enabled: !!tripEntityId,
+    refetchInterval: 5000,
   });
   const documents = docsRes?.data || [];
 
@@ -149,19 +150,27 @@ export default function TripDetailsPage() {
 
   const handleShareWhatsApp = () => {
     if (!trip) return;
-    const pickupLoc = pickup ? resolveStopName(pickup, 'Riyadh') : 'Riyadh';
-    const dropoffLoc = dropoff ? resolveStopName(dropoff, 'Al Abha') : 'Al Abha';
-    const driverName = trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Khalid Ahmed';
-    const vehicleInfo = trip.vehicle ? trip.vehicle.plate_number : 'TRK-1187';
+    const pickupLoc = pickup ? resolveStopName(pickup, 'Pickup') : 'Pickup';
+    const dropoffLoc = dropoff ? resolveStopName(dropoff, 'Dropoff') : 'Dropoff';
+    const driverName = trip.is_third_party
+      ? trip.third_party_driver_name || 'Assigned Driver'
+      : trip.driver
+      ? `${trip.driver.first_name || ''} ${trip.driver.last_name || ''}`.trim() || 'Assigned Driver'
+      : 'Assigned Driver';
+    const vehicleInfo = trip.is_third_party
+      ? trip.third_party_vehicle_plate || 'Assigned Vehicle'
+      : trip.vehicle
+      ? trip.vehicle.plate_number
+      : 'Assigned Vehicle';
     const etaText = trip.planned_end
       ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
-      : '04:30 PM';
+      : 'On Schedule';
 
     const text = [
       `*MERCON Logistics - Trip Status Update*`,
       ``,
       `*Trip ID:* ${trip.ref_id || trip.id}`,
-      `*Customer:* ${trip.customer?.name || 'ABC Logistics Co.'}`,
+      `*Customer:* ${trip.customer?.name || trip.customer?.company_name || 'Customer'}`,
       `*Status:* ${trip.status.toUpperCase()}`,
       ``,
       `*Pickup:* ${pickupLoc}`,
@@ -255,17 +264,66 @@ export default function TripDetailsPage() {
     ? formatInDeploymentTz(trip.createdAt, tz, 'hh:mm a')
     : '04:40 PM';
 
-  const activitySteps = [
-    { label: 'Trip created', time: trip.createdAt || '02 Sep 2026, 04:40 PM', done: true },
-    { label: 'Arrived at Riyadh', time: pickup?.actual_arrival || '03 Sep 2026, 08:42 AM', done: true },
-    { label: 'Departed Riyadh', time: pickup?.actual_departure || '03 Sep 2026, 08:53 AM', done: true },
-    { label: 'Arrived at Al Kharj', time: '03 Sep 2026, 10:18 AM', done: true },
-    { label: 'Departed Al Kharj', time: '03 Sep 2026, 10:25 AM', done: true },
-    { label: 'In Transit to Al Wadi', time: '03 Sep 2026, 12:10 PM', done: true },
-    { label: 'Estimated arrival at Al Majmaah', time: '03 Sep 2026, 03:20 PM', done: false },
-    { label: 'Estimated arrival at Al Abha', time: '03 Sep 2026, 08:30 PM', done: false },
-    { label: 'Trip completed', time: trip.actual_end || null, done: trip.status === 'Completed' },
+  // Dynamically build real activity steps from trip metadata and actual stops
+  const activitySteps: { label: string; time: string | null; done: boolean }[] = [
+    {
+      label: 'Trip created',
+      time: trip.createdAt ? formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a') : null,
+      done: true,
+    },
   ];
+
+  if (trip.actual_start) {
+    activitySteps.push({
+      label: 'Trip started (In Transit)',
+      time: formatInDeploymentTz(trip.actual_start, tz, 'dd MMM yyyy, hh:mm a'),
+      done: true,
+    });
+  }
+
+  (trip.stops || []).forEach((stop: any, idx: number) => {
+    const stopName = resolveStopName(stop, `Stop ${idx + 1}`);
+    const isArrived = !!stop.actual_arrival;
+    const isDeparted = !!stop.actual_departure;
+
+    activitySteps.push({
+      label: isArrived ? `Arrived at ${stopName}` : `Planned arrival at ${stopName}`,
+      time: isArrived
+        ? formatInDeploymentTz(stop.actual_arrival, tz, 'dd MMM yyyy, hh:mm a')
+        : stop.planned_arrival
+        ? formatInDeploymentTz(stop.planned_arrival, tz, 'dd MMM yyyy, hh:mm a')
+        : null,
+      done: isArrived,
+    });
+
+    if (stop.delay_reason) {
+      activitySteps.push({
+        label: `Delay reported at ${stopName}: ${stop.delay_note || stop.delay_reason}`,
+        time: stop.delay_logged_at
+          ? formatInDeploymentTz(stop.delay_logged_at, tz, 'dd MMM yyyy, hh:mm a')
+          : null,
+        done: true,
+      });
+    }
+
+    if (isDeparted) {
+      activitySteps.push({
+        label: `Departed ${stopName}`,
+        time: formatInDeploymentTz(stop.actual_departure, tz, 'dd MMM yyyy, hh:mm a'),
+        done: true,
+      });
+    }
+  });
+
+  activitySteps.push({
+    label: trip.status === 'Completed' ? 'Trip completed' : 'Estimated trip completion',
+    time: trip.actual_end
+      ? formatInDeploymentTz(trip.actual_end, tz, 'dd MMM yyyy, hh:mm a')
+      : trip.planned_end
+      ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
+      : null,
+    done: trip.status === 'Completed',
+  });
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
@@ -397,15 +455,16 @@ export default function TripDetailsPage() {
         <div className="shrink-0">
           <TripOverviewBarCard
             trip={trip}
+            documents={documents}
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
             onPreviewImage={(img) => setPreviewImage(img)}
           />
         </div>
 
         {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
-        <div className="grid grid-cols-12 gap-3 items-start">
+        <div className="grid grid-cols-12 gap-3 items-stretch">
           {/* Financials Card (~25% / 3 Cols) */}
-          <div className="col-span-12 lg:col-span-3 flex flex-col">
+          <div className="col-span-12 lg:col-span-3 flex flex-col h-full">
             <ModernFinancialsCard
               baseRate={baseRate}
               additionalCharges={chargesTotal}
@@ -418,7 +477,7 @@ export default function TripDetailsPage() {
           </div>
 
           {/* Right Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
-          <div className="col-span-12 lg:col-span-9 flex flex-col">
+          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
             <TripPhotoEvidence
               documents={documents}
               stops={trip.stops}

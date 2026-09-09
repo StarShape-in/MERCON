@@ -444,7 +444,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Group 3: Vendor SuperAdmin Controls */}
-              {(user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin) && (
+              {((user?.role as string) === 'SuperAdmin' || (user as any)?.isSuperAdmin) && (
                 <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 dark:text-purple-400 px-1 flex items-center gap-1">
                     <Shield className="w-3 h-3 text-purple-600" /> Vendor SuperAdmin Controls

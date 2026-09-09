@@ -34,8 +34,8 @@ export default function SystemHealthPage() {
 
   useEffect(() => {
     if (settings) {
-      setMaintenanceMode(Boolean(settings.maintenanceMode));
-      setMaintenanceBanner(settings.maintenanceBanner || '');
+      setMaintenanceMode(Boolean((settings as any).maintenanceMode));
+      setMaintenanceBanner((settings as any).maintenanceBanner || '');
     }
   }, [settings]);
 

@@ -1,4 +1,4 @@
-import { MobileTrip, TripStop, stopLabel, stopAddress } from './trips';
+import { MobileTrip, TripStop, stopLabel, stopAddress, isRoundTrip } from './trips';
 
 export interface TimelineStop {
   id: string;
@@ -194,10 +194,7 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
   if (!trip) return [];
 
   const dbStops = trip.stops ?? [];
-  const isRoundTrip =
-    trip.trip_type?.toLowerCase().includes('round') ||
-    !!(trip.destination?.includes('[RETURN:')) ||
-    dbStops.some((s) => (s.location_name || '').includes('[RETURN:'));
+  const isRound = isRoundTrip(trip);
 
   // ── Strategy 1: Expand DB stops + [RETURN:] chain ────────────────────────
   const returnChain = extractReturnChain(trip);
@@ -230,7 +227,7 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
     const last = deduped[deduped.length - 1]?.toLowerCase().trim();
     const isCircular = first && last && first === last && deduped.length >= 3;
 
-    if (isCircular || isRoundTrip) {
+    if (isCircular || isRound) {
       // Outbound: everything up to (but not including) the final duplicate if circular
       const outboundNodes = isCircular ? deduped.slice(0, -1) : deduped;
 
@@ -239,14 +236,16 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
         // Strictly preserve the assigned sequence order
         const intermediates = outboundNodes.slice(1, -1);
         returnNodes = [outboundNodes[outboundNodes.length - 1], ...intermediates, outboundNodes[0]];
-      } else if (deduped.length > 2) {
-        const outboundIntermediates = deduped.slice(1, -1);
-        returnNodes = [deduped[deduped.length - 1], ...outboundIntermediates, deduped[0]];
-      } else if (deduped.length >= 2) {
-        returnNodes = [deduped[deduped.length - 1], deduped[0]];
+      } else if (isRound) {
+        if (deduped.length > 2) {
+          const outboundIntermediates = deduped.slice(1, -1);
+          returnNodes = [deduped[deduped.length - 1], ...outboundIntermediates, deduped[0]];
+        } else if (deduped.length >= 2) {
+          returnNodes = [deduped[deduped.length - 1], deduped[0]];
+        }
       }
 
-      if (outboundNodes.length >= 2) {
+      if (outboundNodes.length >= 2 && returnNodes.length > 0) {
         return buildTimeline(outboundNodes, returnNodes, dbStops);
       }
     }
@@ -283,7 +282,7 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
       : destClean;
     const outboundNodes = splitChain(fullChain);
     let returnNodes: string[] = [];
-    if (isRoundTrip && outboundNodes.length >= 2) {
+    if (isRound && outboundNodes.length >= 2) {
       returnNodes = [outboundNodes[outboundNodes.length - 1], outboundNodes[0]];
     }
     if (outboundNodes.length >= 2) {
@@ -298,7 +297,7 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
     const outbound = returnStartIdx !== -1 ? names.slice(0, returnStartIdx) : names;
     const ret = returnStartIdx !== -1
       ? names.slice(returnStartIdx)
-      : (isRoundTrip ? [names[names.length - 1], names[0]] : []);
+      : (isRound ? [names[names.length - 1], names[0]] : []);
     return buildTimeline(outbound, ret, dbStops);
   }
 

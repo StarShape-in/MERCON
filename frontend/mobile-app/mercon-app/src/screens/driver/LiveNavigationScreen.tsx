@@ -11,7 +11,7 @@ import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigat
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -47,12 +47,13 @@ const LiveNavigationScreen = () => {
   const mapRef = useRef<any>(null);
 
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const isRound = isRoundTrip(trip);
 
   // Determine if heading to pickup or delivery directly from workflow state
-  const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || ws === 'RETURN_LOADING';
+  const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || (isRound && ws === 'RETURN_LOADING');
 
   // Leg index: 0 for first leg, 1 for return leg
-  const legIndex = (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
+  const legIndex = isRound && (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
 
   // Find target stop based on current state and leg
   const activeStop = React.useMemo(() => {
@@ -108,6 +109,10 @@ const LiveNavigationScreen = () => {
     try {
       if (arrivalPhoto && trip.id) {
         try {
+          const arrivalOp = isHeadingToPickup
+            ? (legIndex === 1 ? 'return_loading_arrival' : 'pickup_arrival')
+            : (legIndex === 1 ? 'return_delivery_arrival' : 'delivery_arrival');
+
           await tripService.uploadPhoto(
             trip.id,
             isHeadingToPickup ? 'cargo' : 'pod',
@@ -122,7 +127,7 @@ const LiveNavigationScreen = () => {
               } : null,
             },
             legIndex,
-            'arrival'
+            arrivalOp
           );
         } catch (photoErr) {
           console.warn('Arrival photo upload warning:', photoErr);
@@ -139,8 +144,8 @@ const LiveNavigationScreen = () => {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        const isFinal = legIndex === 1 || (activeStop ? activeStop.stop_sequence === (trip.stops?.length ?? 1) : true);
-        const nextState = isFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
+        const isReturnFinal = isRound && (legIndex === 1 || ws === 'IN_TRANSIT_RETURN');
+        const nextState = isReturnFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
         await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
       }

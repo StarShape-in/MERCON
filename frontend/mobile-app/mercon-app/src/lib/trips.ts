@@ -152,11 +152,43 @@ export interface MobileTrip {
   applied_rate?: number | string | null;
   extra_driver_payment?: number | string | null;
   trip_type?: string | null;
+  quotation_line_type?: string | null;
+  rate_category?: string | null;
   customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
   origin?: string | null;
   destination?: string | null;
   stops: TripStop[];
+}
+
+/** Check whether a trip is genuinely a Round Trip */
+export function isRoundTrip(trip: MobileTrip | null | undefined): boolean {
+  if (!trip) return false;
+  const lineType = (
+    trip.quotation_line_type ||
+    trip.trip_type ||
+    (trip as any).rate_category ||
+    ''
+  ).toLowerCase().trim();
+  if (lineType.includes('round')) return true;
+
+  if (trip.destination?.includes('[RETURN:')) return true;
+  if (trip.stops?.some((s) => (s.location_name || '').includes('[RETURN:'))) return true;
+
+  const hasSecondPickup = (trip.stops ?? []).some((s, idx) => idx > 0 && s.stop_type === 'Pickup');
+  if (hasSecondPickup) return true;
+
+  // Check if first and last stop locations are identical (circular round trip)
+  const stops = trip.stops ?? [];
+  if (stops.length >= 3) {
+    const first = (stops[0].location_name || stops[0].location?.name || '').toLowerCase().trim();
+    const last = (stops[stops.length - 1].location_name || stops[stops.length - 1].location?.name || '').toLowerCase().trim();
+    if (first && last && first === last) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /** A road route to the trip's next stop, as MERCON returns it. */
@@ -298,27 +330,34 @@ export const tripService = {
     operation?: string,
   ): Promise<void> {
     const form = new FormData();
-    form.append('file', {
-      uri: asset.uri,
-      name: asset.fileName ?? `${kind}.jpg`,
-      type: asset.mimeType ?? 'image/jpeg',
-    } as unknown as Blob);
     form.append('kind', kind);
+    if (operation) {
+      form.append('operation', operation);
+    }
+    if (legIndex !== undefined) {
+      form.append('leg_index', String(legIndex));
+    }
     if (asset.location) {
       form.append('location_lat', String(asset.location.latitude));
       form.append('location_lng', String(asset.location.longitude));
       form.append('captured_at', String(asset.location.timestamp));
     }
-    if (legIndex !== undefined) {
-      form.append('leg_index', String(legIndex));
-    }
-    if (operation) {
-      form.append('operation', operation);
-    }
+    const isVideo = operation === 'delay' || (asset.mimeType && asset.mimeType.startsWith('video/')) || (asset.fileName && /\.(mp4|mov|webm|3gp)$/i.test(asset.fileName));
+    const fileName = asset.fileName || (isVideo ? 'delay-video.mp4' : `${kind}.jpg`);
+    const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+
+    form.append('file', {
+      uri: asset.uri,
+      name: fileName,
+      type: mimeType,
+    } as unknown as Blob);
     // Don't set Content-Type manually — axios/RN needs to generate it
     // itself so it includes the multipart boundary. A hardcoded header
     // here strips the boundary and the backend fails to parse the body.
-    await api.post(`/mobile/trips/${id}/photo`, form);
+    // Use extended 180s timeout for video/media uploads to prevent ECONNABORTED
+    await api.post(`/mobile/trips/${id}/photo`, form, {
+      timeout: 180000,
+    });
   },
 };
 

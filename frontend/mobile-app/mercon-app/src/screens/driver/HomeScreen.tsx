@@ -15,7 +15,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
+import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
@@ -254,6 +254,13 @@ const HomeScreen = () => {
       case 'DELIVERY_COMPLETED':
       case 'FIRST_DELIVERY_COMPLETED':
       case 'RETURN_LOADING':
+        if (!isRoundTrip(t)) {
+          return {
+            badgeLabel: 'Delivery Completed',
+            btnLabel: 'View Completed Summary',
+            onPress: () => router.push('/trip/completed'),
+          };
+        }
         return {
           badgeLabel: 'Delivery Completed',
           btnLabel: 'Start Return Loading',
@@ -288,15 +295,15 @@ const HomeScreen = () => {
       case 'ARRIVED_AT_FINAL_DELIVERY':
       case 'FINAL_DELIVERY_VERIFICATION':
         return {
-          badgeLabel: 'At Return Delivery',
-          btnLabel: 'Final Unload & Verify',
+          badgeLabel: isRoundTrip(t) ? 'At Return Delivery' : 'At Delivery',
+          btnLabel: isRoundTrip(t) ? 'Final Unload & Verify' : 'Unload & Verify',
           onPress: () => router.push('/trip/delivery'),
         };
       case 'RETURN_DELIVERY_COMPLETED':
       case 'REVIEW_COMPLETE':
       case 'COMPLETED':
         return {
-          badgeLabel: 'Return Delivery Completed',
+          badgeLabel: isRoundTrip(t) ? 'Return Delivery Completed' : 'Trip Completed',
           btnLabel: 'View Completed Summary',
           onPress: () => router.push('/trip/completed'),
         };

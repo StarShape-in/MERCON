@@ -9,7 +9,7 @@ import { GeotagPhotoModal } from '../../components';
 import { API_URL } from '../../lib/api';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useCargoPodPhotos } from '../../lib/documents';
-import { tripService, type MobileTrip } from '../../lib/trips';
+import { tripService, isRoundTrip as checkIsRoundTrip, type MobileTrip } from '../../lib/trips';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -158,10 +158,8 @@ const TripCompletedScreen = () => {
   const returnPodList = apiReturnPod.length > 0 ? apiReturnPod : localReturnDeliveryPhotos;
 
   const isRoundTrip =
-    activeTrip?.trip_type?.toLowerCase().includes('round') ||
-    (activeTrip?.stops && activeTrip.stops.length >= 3) ||
-    returnPolList.length > 0 ||
-    returnPodList.length > 0;
+    checkIsRoundTrip(activeTrip) ||
+    (returnPolList.length > 0 && returnPodList.length > 0);
 
   const handleShare = async () => {
     try {

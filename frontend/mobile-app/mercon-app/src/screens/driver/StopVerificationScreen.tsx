@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight, Camera, MapPin, Trash2, Check, Navigation, Send,
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, BilingualText, DelayReportModal, DelayButton, FadedBottomIllustration } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress } from '../../lib/trips';
+import { tripService, stopAddress, isRoundTrip } from '../../lib/trips';
 import { parseTripRouteNodes, TimelineStop } from '../../lib/routeParser';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
@@ -91,7 +91,8 @@ export default function StopVerificationScreen() {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
-  const isReturnLeg = paramLegIndex === '1' || (trip?.driver_workflow_state || '').includes('RETURN');
+  const isRound = isRoundTrip(trip);
+  const isReturnLeg = isRound && (paramLegIndex === '1' || (trip?.driver_workflow_state || '').includes('RETURN'));
 
   // Parse all route stops cleanly
   const allStops = parseTripRouteNodes(trip);
