@@ -33,7 +33,8 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
 import TripOverviewBarCard from '@/components/trips/TripOverviewBarCard';
 import ModernFinancialsCard from '@/components/trips/ModernFinancialsCard';
-import TripPhotoEvidence from '@/components/trips/TripPhotoEvidence';
+import TripPhotoEvidence, { PhotoPreviewItem } from '@/components/trips/TripPhotoEvidence';
+import GeotagEvidenceCard from '@/components/trips/GeotagEvidenceCard';
 
 const isUuidVal = (str?: string | null) =>
   str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
@@ -78,7 +79,7 @@ export default function TripDetailsPage() {
   const [isExpandMapOpen, setIsExpandMapOpen] = useState(false);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; date?: string } | null>(null);
+  const [previewImage, setPreviewImage] = useState<PhotoPreviewItem | null>(null);
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
 
   // Fetch Trip
@@ -667,17 +668,18 @@ export default function TripDetailsPage() {
         </div>
       )}
 
-      {/* ── Lightbox Image Preview Modal ── */}
+      {/* ── Lightbox Image Preview Modal with GPS Geotag Evidence ── */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={() => setPreviewImage(null)}
         >
           <div
-            className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl p-4 border border-[#E5E7EB]"
+            className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-[#E5E7EB] flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3 shrink-0 bg-white">
               <div>
                 <h3 className="text-sm font-bold text-[#1F2937]">{previewImage.title}</h3>
                 {previewImage.date && (
@@ -696,17 +698,30 @@ export default function TripDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setPreviewImage(null)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-center bg-black/90 rounded-xl overflow-hidden max-h-[70vh] p-2 mt-3">
-              <img
-                src={previewImage.url}
-                alt={previewImage.title}
-                className="max-h-[66vh] w-auto max-w-full object-contain rounded-lg"
+
+            {/* Scrollable Container with Photo + Geotag Evidence */}
+            <div className="overflow-y-auto p-4 space-y-3.5">
+              {/* Photo Viewport */}
+              <div className="flex items-center justify-center bg-black/95 rounded-xl overflow-hidden min-h-[260px] max-h-[46vh] p-2">
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.title}
+                  className="max-h-[44vh] w-auto max-w-full object-contain rounded-lg"
+                />
+              </div>
+
+              {/* GPS Geotag Evidence Card (Location, Time, Coordinates, Map) */}
+              <GeotagEvidenceCard
+                geotag={previewImage.geotag}
+                fallbackTitle={previewImage.title}
+                fallbackLocation={previewImage.location}
+                fallbackDate={previewImage.date}
               />
             </div>
           </div>

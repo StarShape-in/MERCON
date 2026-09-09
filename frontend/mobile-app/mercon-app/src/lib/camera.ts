@@ -142,6 +142,33 @@ export async function captureVideo(): Promise<CapturedMedia | null> {
 }
 
 /**
+ * Pick an existing video from the driver's device gallery.
+ */
+export async function pickVideoFromGallery(): Promise<CapturedMedia | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) {
+    throw new Error('Gallery permission is required to select videos.');
+  }
+
+  const [result, loc] = await Promise.all([
+    ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'videos',
+    }),
+    getDeviceLocationTag(),
+  ]);
+
+  if (result.canceled || !result.assets?.length) return null;
+  const asset = result.assets[0];
+  return {
+    uri: asset.uri,
+    type: 'video',
+    mimeType: asset.mimeType ?? 'video/mp4',
+    fileName: asset.fileName ?? 'delay-video.mp4',
+    location: loc,
+  };
+}
+
+/**
  * Ask the driver whether to take a photo or pick one from their gallery.
  */
 export async function choosePhoto(): Promise<CapturedPhoto | null> {

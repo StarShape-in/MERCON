@@ -31,6 +31,6 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 150 * 1024 * 1024, fieldSize: 150 * 1024 * 1024 },
   fileFilter: imageOrPdfFileFilter,
 });

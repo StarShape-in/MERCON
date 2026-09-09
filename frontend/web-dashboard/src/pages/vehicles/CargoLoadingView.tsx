@@ -99,26 +99,22 @@ export default function CargoLoadingView() {
 
     const rawTrips = vehicle.trips || [];
 
-    // Find active / live / assigned trip
-    const activeTrip = rawTrips.find((t: any) => 
+    // Find active / live / assigned trips currently on road or loading
+    const activeTrips = rawTrips.filter((t: any) => 
       ['OnTrip', 'InTransit', 'Loading', 'Dispatched', 'Scheduled', 'Delayed'].includes(t.status)
-    );
-
-    // Find previous completed / historic trips
-    const previousTrips = rawTrips.filter((t: any) => 
-      t.id !== activeTrip?.id && ['Completed', 'Delivered', 'Invoiced'].includes(t.status)
     );
 
     setSlots(() => {
       const nextSlots = INITIAL_SLOTS.map(s => ({ ...s }));
 
-      // 1. Center big slot B2 shows current live trip highlighted in green
-      if (activeTrip) {
+      // 1. Center main slot B2 shows the primary active trip
+      if (activeTrips.length > 0) {
+        const primaryTrip = activeTrips[0];
         const b2Index = nextSlots.findIndex(s => s.id === 'B2');
         if (b2Index !== -1) {
-          const tripIdLabel = activeTrip.ref_id || activeTrip.id?.slice(0, 8) || 'LIVE-TRIP';
-          const tripWeight = activeTrip.total_weight || activeTrip.planned_capacity_kg 
-            ? `${activeTrip.total_weight || activeTrip.planned_capacity_kg}kg` 
+          const tripIdLabel = primaryTrip.ref_id || primaryTrip.id?.slice(0, 8) || 'LIVE-TRIP';
+          const tripWeight = primaryTrip.total_weight || primaryTrip.planned_capacity_kg 
+            ? `${primaryTrip.total_weight || primaryTrip.planned_capacity_kg}kg` 
             : '1,000kg';
 
           nextSlots[b2Index] = {
@@ -132,25 +128,26 @@ export default function CargoLoadingView() {
         }
       }
 
-      // 2. Other slots show previous completed trips for this truck
-      let prevTripIdx = 0;
+      // 2. Additional active trips (if any) populate other slots
+      let extraTripIdx = 1;
       for (let i = 0; i < nextSlots.length; i++) {
-        if (nextSlots[i].id === 'B2') continue; // B2 is reserved for active trip
+        if (nextSlots[i].id === 'B2') continue;
 
-        if (prevTripIdx < previousTrips.length) {
-          const pTrip = previousTrips[prevTripIdx];
-          const tripIdLabel = pTrip.ref_id || pTrip.id?.slice(0, 8) || `TRP-${prevTripIdx + 1}`;
-          const tripWeight = pTrip.total_weight || pTrip.planned_capacity_kg 
-            ? `${pTrip.total_weight || pTrip.planned_capacity_kg}kg` 
+        if (extraTripIdx < activeTrips.length) {
+          const extraTrip = activeTrips[extraTripIdx];
+          const tripIdLabel = extraTrip.ref_id || extraTrip.id?.slice(0, 8) || `TRP-${extraTripIdx + 1}`;
+          const tripWeight = extraTrip.total_weight || extraTrip.planned_capacity_kg 
+            ? `${extraTrip.total_weight || extraTrip.planned_capacity_kg}kg` 
             : '500kg';
 
           nextSlots[i] = {
             ...nextSlots[i],
             status: 'loaded',
             shipmentId: tripIdLabel,
-            weight: tripWeight
+            weight: tripWeight,
+            color: 'blue'
           };
-          prevTripIdx++;
+          extraTripIdx++;
         }
       }
 

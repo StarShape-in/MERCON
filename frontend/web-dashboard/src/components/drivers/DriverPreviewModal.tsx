@@ -31,6 +31,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
 
   if (!driver) return null;
 
+  const isAbdulMalik = `${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK');
   const isLicenseExpired = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
   const daysUntilExpiry = driver.license_expiry
     ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -171,7 +172,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
           </div>
 
           {/* Zoomed Photo Modal Overlay if toggled */}
-          {photoZoom && driver.avatar_url && (
+          {photoZoom && (driver.avatar_url || isAbdulMalik) && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
               <div className="relative max-w-lg w-full bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl text-center">
                 <button
@@ -184,7 +185,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
                   {driver.first_name} {driver.last_name} — Profile Photo
                 </h3>
                 <img
-                  src={driver.avatar_url}
+                  src={isAbdulMalik ? '/drivers/abdul_malik.jpg' : driver.avatar_url!}
                   alt={`${driver.first_name} ${driver.last_name}`}
                   className="max-h-[60vh] max-w-full object-contain mx-auto rounded-xl shadow-lg border border-slate-800"
                   style={{ transform: `rotate(${rotation}deg)` }}
