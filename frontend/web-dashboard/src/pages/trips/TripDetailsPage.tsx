@@ -264,7 +264,66 @@ export default function TripDetailsPage() {
     ? formatInDeploymentTz(trip.createdAt, tz, 'hh:mm a')
     : '04:40 PM';
 
+  // Dynamically build real activity steps from trip metadata and actual stops
+  const activitySteps: { label: string; time: string | null; done: boolean }[] = [
+    {
+      label: 'Trip created',
+      time: trip.createdAt ? formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a') : null,
+      done: true,
+    },
+  ];
 
+  if (trip.actual_start) {
+    activitySteps.push({
+      label: 'Trip started (In Transit)',
+      time: formatInDeploymentTz(trip.actual_start, tz, 'dd MMM yyyy, hh:mm a'),
+      done: true,
+    });
+  }
+
+  (trip.stops || []).forEach((stop: any, idx: number) => {
+    const stopName = resolveStopName(stop, `Stop ${idx + 1}`);
+    const isArrived = !!stop.actual_arrival;
+    const isDeparted = !!stop.actual_departure;
+
+    activitySteps.push({
+      label: isArrived ? `Arrived at ${stopName}` : `Planned arrival at ${stopName}`,
+      time: isArrived
+        ? formatInDeploymentTz(stop.actual_arrival, tz, 'dd MMM yyyy, hh:mm a')
+        : stop.planned_arrival
+        ? formatInDeploymentTz(stop.planned_arrival, tz, 'dd MMM yyyy, hh:mm a')
+        : null,
+      done: isArrived,
+    });
+
+    if (stop.delay_reason) {
+      activitySteps.push({
+        label: `Delay reported at ${stopName}: ${stop.delay_note || stop.delay_reason}`,
+        time: stop.delay_logged_at
+          ? formatInDeploymentTz(stop.delay_logged_at, tz, 'dd MMM yyyy, hh:mm a')
+          : null,
+        done: true,
+      });
+    }
+
+    if (isDeparted) {
+      activitySteps.push({
+        label: `Departed ${stopName}`,
+        time: formatInDeploymentTz(stop.actual_departure, tz, 'dd MMM yyyy, hh:mm a'),
+        done: true,
+      });
+    }
+  });
+
+  activitySteps.push({
+    label: trip.status === 'Completed' ? 'Trip completed' : 'Estimated trip completion',
+    time: trip.actual_end
+      ? formatInDeploymentTz(trip.actual_end, tz, 'dd MMM yyyy, hh:mm a')
+      : trip.planned_end
+      ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
+      : null,
+    done: trip.status === 'Completed',
+  });
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
