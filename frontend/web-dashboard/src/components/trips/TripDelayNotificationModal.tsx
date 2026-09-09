@@ -79,7 +79,10 @@ export default function TripDelayNotificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-visible bg-transparent border-none shadow-none focus:outline-none">
+      <DialogContent
+        hideCloseButton
+        className="sm:max-w-[560px] p-0 overflow-visible bg-transparent border-none shadow-none focus:outline-none [&>button:last-child]:hidden"
+      >
         
         {/* Container: Character on left, speech card on right */}
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 pointer-events-auto">
