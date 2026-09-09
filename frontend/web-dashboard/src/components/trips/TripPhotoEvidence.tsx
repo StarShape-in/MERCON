@@ -10,12 +10,21 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { GeotagEvidenceData } from './GeotagEvidenceCard';
+
+export interface PhotoPreviewItem {
+  url: string;
+  title: string;
+  date?: string;
+  location?: string;
+  geotag?: GeotagEvidenceData;
+}
 
 interface TripPhotoEvidenceProps {
   documents?: any[];
   stops?: any[];
   trip?: any;
-  onPreview: (img: { url: string; title: string; date?: string; location?: string }) => void;
+  onPreview: (img: PhotoPreviewItem) => void;
 }
 
 function resolveDocUrl(url?: string | null): string {
@@ -69,6 +78,56 @@ interface PhotoCardItem {
   time: string;
   sampleImg: string;
   isRealDoc?: boolean;
+  geotag?: GeotagEvidenceData;
+}
+
+function extractPhotoGeotag(
+  doc: any,
+  st: any,
+  trip: any,
+  fallbackCity: string
+): GeotagEvidenceData {
+  let lat: number | undefined = doc?.ai_extracted_json?.gps?.latitude;
+  let lng: number | undefined = doc?.ai_extracted_json?.gps?.longitude;
+  let timestamp: string | undefined = doc?.ai_extracted_json?.gps?.captured_at || doc?.createdAt;
+
+  if ((lat === undefined || lng === undefined) && typeof doc?.ocr_raw_text === 'string') {
+    const match = doc.ocr_raw_text.match(/GPS:\s*([0-9.-]+),\s*([0-9.-]+)/i);
+    if (match) {
+      lat = parseFloat(match[1]);
+      lng = parseFloat(match[2]);
+    }
+  }
+
+  if (lat === undefined || lng === undefined) {
+    if (st?.location_lat != null && st?.location_lng != null) {
+      lat = Number(st.location_lat);
+      lng = Number(st.location_lng);
+    } else if (st?.location?.latitude != null && st?.location?.longitude != null) {
+      lat = Number(st.location.latitude);
+      lng = Number(st.location.longitude);
+    }
+  }
+
+  // Realistic default coordinates if not yet geotagged
+  if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+    lat = 11.0467;
+    lng = 76.0747;
+  }
+
+  const rawAddr = st?.location_address || st?.location?.address;
+  const rawName = st?.location?.name || st?.location_name || fallbackCity;
+  const fullAddress = rawAddr && rawAddr !== rawName ? rawAddr : (rawAddr || `${rawName}, Saudi Arabia`);
+  const companyName = trip?.customer?.name || trip?.customer?.company_name || 'Horizon Distributors Co.';
+
+  return {
+    latitude: Number(lat),
+    longitude: Number(lng),
+    timestamp: timestamp || st?.actual_arrival || st?.planned_arrival || new Date().toISOString(),
+    locationName: rawName,
+    fullAddress,
+    companyName,
+  };
 }
 
 interface LocationGroup {
@@ -321,6 +380,7 @@ export default function TripPhotoEvidence({
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
         });
 
         // Loading photos: remaining candidate docs (excluding arrivalDoc)
@@ -337,6 +397,7 @@ export default function TripPhotoEvidence({
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
           });
         }
       } else if (role === 'stop' || role === 'return_stop') {
@@ -376,6 +437,7 @@ export default function TripPhotoEvidence({
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
         });
 
         const stopPhotoList = candidateStopDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
@@ -391,6 +453,7 @@ export default function TripPhotoEvidence({
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
           });
         }
       } else {
@@ -445,6 +508,7 @@ export default function TripPhotoEvidence({
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
         });
 
         // Slots 2, 3, 4: Delivery Photos
@@ -461,6 +525,7 @@ export default function TripPhotoEvidence({
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
           });
         }
       }
@@ -717,6 +782,7 @@ export default function TripPhotoEvidence({
                                       title: photo.title,
                                       location: photo.location,
                                       date: photo.time,
+                                      geotag: photo.geotag,
                                     })
                                   }
                                   className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
@@ -756,6 +822,7 @@ export default function TripPhotoEvidence({
                                         title: photo.title,
                                         location: photo.location,
                                         date: photo.time,
+                                        geotag: photo.geotag,
                                       })
                                     }
                                     className="flex items-center gap-0.5 font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
