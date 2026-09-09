@@ -6,13 +6,7 @@ interface DelayAlertsCardProps {
   onViewAll?: () => void;
 }
 
-const DEFAULT_ALERTS = [
-  { id: '1', label: 'Delay at Al Wadi', delay: '+ 45 min', time: '1:15 PM', severe: true },
-  { id: '2', label: 'Estimated delay at Al Majmaah', delay: '+ 30 min', time: '3:20 PM', severe: true },
-  { id: '3', label: 'Possible delay at Al Abha', delay: '+ 20 min', time: '7:10 PM', severe: false },
-];
-
-export default function DelayAlertsCard({ alerts = DEFAULT_ALERTS, onViewAll }: DelayAlertsCardProps) {
+export default function DelayAlertsCard({ alerts = [], onViewAll }: DelayAlertsCardProps) {
   const hasAlerts = alerts && alerts.length > 0;
 
   return (

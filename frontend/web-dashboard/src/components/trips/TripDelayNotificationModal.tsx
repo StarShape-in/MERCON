@@ -5,8 +5,6 @@ import {
 } from '@/components/ui/dialog';
 import {
   X,
-  Play,
-  Pause,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -22,6 +20,8 @@ interface TripDelayNotificationModalProps {
     delay?: string;
     reason?: string;
     time?: string;
+    videoUrl?: string;
+    imageUrl?: string;
   };
 }
 
@@ -39,31 +39,32 @@ export default function TripDelayNotificationModal({
   trip,
   alert,
 }: TripDelayNotificationModalProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isAcknowledged, setIsAcknowledged] = useState(false);
 
   const truckNo = trip?.is_third_party
-    ? trip?.third_party_vehicle_plate || 'DRA-6455'
-    : trip?.vehicle?.plate_number || 'DRA-6455';
+    ? trip?.third_party_vehicle_plate || 'Unassigned'
+    : trip?.vehicle?.plate_number || 'Unassigned';
 
   const driverName = trip?.is_third_party
-    ? trip?.third_party_driver_name || 'Muhammad Yasin'
+    ? trip?.third_party_driver_name || 'Driver'
     : trip?.driver
-    ? `${trip?.driver.first_name} ${trip?.driver.last_name}`
-    : 'Muhammad Yasin';
+    ? `${trip?.driver.first_name || ''} ${trip?.driver.last_name || ''}`.trim() || 'Driver'
+    : 'Driver';
 
-  const locationName = alert?.location || 'Al Wadi';
-  const delayDuration = alert?.delay || '+ 45 min';
-  const delayTime = alert?.time || '1:15 PM';
+  const locationName = alert?.location || trip?.stops?.[0]?.location_name || 'Current Route';
+  const delayDuration = alert?.delay || 'Delay Reported';
+  const delayTime = alert?.time || '';
+  const delayReason = alert?.reason || 'Road conditions or operational delay.';
 
   const handleNotifyWhatsApp = () => {
     const text = encodeURIComponent(
       `⚠️ *Trip Delay Notification — MERCON Logistics*\n\n` +
-      `• *Trip Plate*: ${truckNo}\n` +
+      `• *Trip ID*: ${trip?.ref_id || trip?.id || '—'}\n` +
+      `• *Vehicle Plate*: ${truckNo}\n` +
       `• *Driver*: ${driverName}\n` +
       `• *Location*: ${locationName}\n` +
       `• *Delay Impact*: ${delayDuration}\n` +
-      `• *Reason*: Road congestion and highway maintenance queue.\n\n` +
+      `• *Reason*: ${delayReason}\n\n` +
       `Our operations dispatch team is monitoring the route.`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -107,7 +108,7 @@ export default function TripDelayNotificationModal({
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
                   <span>Delay Alert {delayDuration}</span>
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">{delayTime}</span>
+                {delayTime && <span className="text-[11px] font-mono text-slate-400">{delayTime}</span>}
               </div>
 
               <button
@@ -123,56 +124,74 @@ export default function TripDelayNotificationModal({
             {/* Assistant message */}
             <div className="space-y-0.5">
               <h4 className="font-extrabold text-[13.5px] text-slate-900 leading-tight">
-                Hey Ian! Traffic Delay at {locationName}
+                Delay Incident at {locationName}
               </h4>
               <p className="text-[11.5px] text-slate-600 leading-snug">
-                Truck <strong className="font-mono text-slate-800">{truckNo}</strong> ({driverName}) is delayed by{' '}
-                <strong className="text-rose-600 font-bold">{delayDuration}</strong> due to highway congestion.
+                Truck <strong className="font-mono text-slate-800">{truckNo}</strong> ({driverName}) reported a delay:{' '}
+                <strong className="text-rose-600 font-bold">{delayReason}</strong>
               </p>
             </div>
 
-            {/* ── VIDEO / DASHCAM PREVIEW ── */}
-            <div className="relative w-full h-[150px] sm:h-[165px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner group">
-              <img
-                src="/saudi_highway_panorama.png"
-                alt="Live Dashcam Stream"
-                className={`w-full h-full object-cover brightness-85 transition-transform duration-700 ${
-                  isPlaying ? 'scale-105 filter saturate-110' : 'scale-100 filter grayscale-20'
-                }`}
-              />
-
-              {/* HUD: Live status & telemetry */}
-              <div className="absolute top-2 left-2.5 right-2.5 flex items-center justify-between text-white text-[9.5px] font-mono z-10">
-                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  <span className="font-bold text-rose-300">LIVE DASHCAM</span>
-                </div>
-                <div className="bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded text-amber-300 font-bold">
-                  12 km/h · {locationName}
+            {/* ── DRIVER UPLOADED VIDEO OR PHOTO EVIDENCE ── */}
+            {alert?.videoUrl ? (
+              <div className="relative w-full h-[180px] sm:h-[210px] rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center group">
+                <video
+                  src={alert.videoUrl}
+                  controls
+                  playsInline
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute top-2 left-2.5 right-2.5 flex items-center justify-between text-white text-[9.5px] font-mono pointer-events-none z-10">
+                  <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded shadow">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="font-bold text-rose-300">DRIVER DELAY VIDEO</span>
+                  </div>
+                  <div className="bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-amber-300 font-bold shadow">
+                    {locationName}
+                  </div>
                 </div>
               </div>
-
-              {/* Play / Pause Toggle Button */}
-              <button
-                type="button"
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/10 transition-colors cursor-pointer group"
-                title={isPlaying ? 'Pause' : 'Play video'}
-              >
-                <div className="w-10 h-10 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  {isPlaying ? (
-                    <Pause size={16} />
-                  ) : (
-                    <Play size={16} className="ml-0.5 fill-slate-900" />
-                  )}
+            ) : alert?.imageUrl ? (
+              <div className="relative w-full h-[180px] sm:h-[210px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center group">
+                <img
+                  src={alert.imageUrl}
+                  alt="Driver Delay Evidence"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2.5 right-2.5 flex items-center justify-between text-white text-[9.5px] font-mono z-10">
+                  <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded shadow">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span className="font-bold text-amber-300">DRIVER PHOTO EVIDENCE</span>
+                  </div>
+                  <div className="bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-slate-200 font-bold shadow">
+                    {locationName}
+                  </div>
                 </div>
-              </button>
-
-              {/* Location footer pill */}
-              <div className="absolute bottom-2 left-2.5 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded text-slate-200 text-[9px] font-mono">
-                Route 65 · Al Wadi Sector
               </div>
-            </div>
+            ) : (
+              /* If no driver media was uploaded, display clean operational incident details */
+              <div className="w-full rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 flex flex-col gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle size={15} />
+                  </div>
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900">Incident Reason</span>
+                      {delayTime && <span className="text-[10px] font-mono text-slate-400">{delayTime}</span>}
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                      {delayReason}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[10.5px] text-slate-400 flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                  <Clock size={12} className="shrink-0" />
+                  <span>No delay video or photo evidence was attached by the driver.</span>
+                </div>
+              </div>
+            )}
 
             {/* Acknowledgement banner */}
             {isAcknowledged && (

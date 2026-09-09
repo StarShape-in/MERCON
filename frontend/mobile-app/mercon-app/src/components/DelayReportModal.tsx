@@ -78,12 +78,18 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
 
       // 1. Upload photo/video evidence if attached
       if (media) {
-        await tripService.uploadPhoto(tripId, 'cargo', {
-          uri: media.uri,
-          mimeType: media.mimeType,
-          fileName: media.fileName ?? (media.type === 'video' ? 'delay-video.mp4' : 'delay-photo.jpg'),
-          location: media.location,
-        });
+        await tripService.uploadPhoto(
+          tripId,
+          'cargo',
+          {
+            uri: media.uri,
+            mimeType: media.mimeType,
+            fileName: media.fileName ?? (media.type === 'video' ? 'delay-video.mp4' : 'delay-photo.jpg'),
+            location: media.location,
+          },
+          undefined,
+          'delay'
+        );
       }
 
       // 2. Update trip status to Delayed with reason
