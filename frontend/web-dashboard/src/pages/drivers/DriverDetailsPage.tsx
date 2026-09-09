@@ -7,7 +7,7 @@ import {
   ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
   MoreVertical, X, Activity, Award, Lock, FolderOpen, Mail, Gauge,
   TrendingUp, Star, DollarSign, Bolt, MessageSquare, ChevronDown, Eye,
-  Check, Maximize2, Shield, Leaf, File, ArrowRight
+  Check, Maximize2, Shield, Leaf, File, ArrowRight, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -270,137 +270,183 @@ export default function DriverDetailsPage() {
         <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 w-full overflow-hidden">
           
           {/* ════════════════════════════════════════════════
-              COLUMN 1 (LEFT): Profile & Live Trip Status
+              COLUMN 1 (LEFT): Profile & Current Dispatch (2 Equal Height Boxes)
              ════════════════════════════════════════════════ */}
           <div className="col-span-3 flex flex-col gap-4 h-full min-h-0">
             
-            {/* 1.1 PROFILE CARD */}
-            <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 shadow-2xs relative overflow-hidden">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">DRIVER ROSTER</span>
-                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Active
+            {/* 1.1 DRIVER PROFILE CARD (Equal Box 1/2) */}
+            <div className="flex-1 rounded-[28px] bg-gradient-to-b from-[#facc15] via-[#fbbf24] to-[#f59e0b] dark:from-amber-600 dark:to-amber-800 p-3.5 flex flex-col justify-between relative overflow-hidden shadow-sm min-h-0">
+              {/* Background Decorative SVG Wavy Pattern */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <path d="M0 30 Q 25 5, 50 30 T 100 30 V 100 H 0 Z" fill="white" />
+                  <path d="M0 60 Q 25 35, 50 60 T 100 60 V 100 H 0 Z" fill="white" opacity="0.5" />
+                </svg>
+              </div>
+
+              {/* Top Glassmorphic Pill */}
+              <div className="flex justify-center w-full relative z-10 pt-1">
+                <span className="bg-white/30 backdrop-blur-md border border-white/40 px-3.5 py-1 rounded-full text-[11px] font-black text-slate-900 flex items-center gap-1.5 shadow-2xs">
+                  5+ Years Experience 🏆
                 </span>
               </div>
 
-              <div className="flex items-center gap-3.5 my-1">
+              {/* Large Centered Avatar Cutout */}
+              <div className="flex-1 flex justify-center items-center py-1 relative z-10 my-auto">
                 <DriverAvatar
                   src={driver.avatar_url}
                   firstName={driver.first_name}
                   lastName={driver.last_name}
-                  size="xl"
+                  size="2xl"
                   status={driver.status}
                   showStatusDot={false}
                   previewable
-                  className="w-16 h-16 shrink-0 cursor-pointer hover:opacity-90 transition-opacity rounded-full border-2 border-slate-100 dark:border-slate-800 shadow-2xs object-cover"
+                  className="w-24 h-24 2xl:w-28 2xl:h-28 shrink-0 cursor-pointer hover:scale-105 transition-transform rounded-full border-4 border-white shadow-lg object-cover"
                   onPreview={() => setIsPhotoFullViewOpen(true)}
                 />
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-extrabold text-[#3E3C3D] dark:text-white leading-tight truncate">
-                    {driver.first_name} {driver.last_name}
-                  </h2>
-                  <p className="text-[11px] font-mono font-semibold text-slate-400 mt-0.5">
-                    Ref: {driver.ref_id || 'CL-25'}
-                  </p>
-                </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-slate-500 truncate">
-                  {driver.phone_primary || 'Phone not registered'}
-                </span>
-                <div className="flex items-center gap-1 shrink-0">
+              {/* Floating Bottom Card Overlapping Profile */}
+              <div className="w-full bg-white dark:bg-slate-900 rounded-[22px] p-3 flex items-center justify-between shadow-md border border-slate-100 dark:border-slate-800 relative z-10">
+                <div className="min-w-0 flex-1 pr-2">
+                  <h2 className="text-sm 2xl:text-base font-black text-slate-900 dark:text-white leading-tight truncate">
+                    {driver.first_name} {driver.last_name}
+                  </h2>
+                  <p className="text-[10.5px] font-semibold text-slate-400 mt-0.5">
+                    Average Work Time
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <a
                     href={`tel:${driver.phone_primary || ''}`}
-                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+                    className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-800 dark:text-slate-200 hover:bg-slate-200 transition-colors"
                     title="Call Driver"
                   >
-                    <Phone className="w-3.5 h-3.5" />
+                    <Phone className="w-4 h-4" />
                   </a>
                   <a
                     href={`mailto:${(driver as any).email || 'driver@mercon.com'}`}
-                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+                    className="w-9 h-9 rounded-full bg-slate-900 dark:bg-slate-100 flex items-center justify-center text-white dark:text-slate-900 hover:bg-slate-800 transition-colors"
                     title="Email Driver"
                   >
-                    <Mail className="w-3.5 h-3.5" />
+                    <Mail className="w-4 h-4" />
                   </a>
                 </div>
               </div>
             </div>
 
-            {/* 1.2 CURRENT TRIP CARD */}
-            <div className="flex-1 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-col justify-between overflow-hidden shadow-2xs min-h-0">
-              <div className="flex items-center justify-between shrink-0 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#FA634E]" />
-                  <h3 className="text-xs font-bold text-[#3E3C3D] dark:text-white uppercase tracking-wider">
-                    Current Dispatch
-                  </h3>
+            {/* 1.2 CURRENT DISPATCH CARD (Equal Box 2/2) */}
+            <div className="flex-1 rounded-[28px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 flex flex-col justify-between overflow-hidden shadow-2xs min-h-0">
+              <div>
+                {/* Header with See All */}
+                <div className="flex items-center justify-between shrink-0 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-slate-900 dark:text-white fill-slate-900 dark:fill-white" />
+                    <h3 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">
+                      Current Project
+                    </h3>
+                  </div>
+                  <Button
+                    onClick={() => navigate('/trips')}
+                    variant="outline"
+                    className="h-7 rounded-full px-3 text-[11px] font-extrabold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                  >
+                    See All
+                  </Button>
                 </div>
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                  On Trip
+
+                {/* Project / Trip Name */}
+                <div className="mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Project Name
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                        <Activity className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate">
+                        {activeTrip.ref_id} • {activeTripRoute.pickup}
+                      </span>
+                    </div>
+                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-slate-100"></span>
+                      In Progress
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2 Columns: Pickup & Dropoff */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Origin (Pickup)
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 text-[10px] font-black">
+                        P
+                      </div>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                        {activeTripRoute.pickup}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Destination (Dropoff)
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 text-[10px] font-black">
+                        D
+                      </div>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                        {activeTripRoute.dropoff}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2 Columns: Vehicle & Time Line */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Assigned Vehicle
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 font-mono truncate">
+                        {assignedVehicle?.plate_number || 'TN 38 AB 1234'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Time Line
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                        {activeTrip.departed || '10/09/2025'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description Project Specs */}
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Description Project
                 </span>
-              </div>
-
-              {/* Timeline Step Route */}
-              <div className="relative pl-5 space-y-3 py-1 shrink-0">
-                <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
-                
-                {/* Pickup */}
-                <div className="relative">
-                  <div className="absolute -left-[1.35rem] w-2.5 h-2.5 rounded-full bg-[#FA634E] border-2 border-white dark:border-slate-900 top-0.5"></div>
-                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-white leading-none">
-                    {activeTripRoute.pickup}
-                  </h4>
-                  <p className="text-[10px] font-medium text-slate-400 mt-1">
-                    Departed: {activeTrip.departed || '12 Sep, 08:00 AM'}
-                  </p>
-                </div>
-
-                {/* Dropoff */}
-                <div className="relative">
-                  <div className="absolute -left-[1.35rem] w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-600 border-2 border-white dark:border-slate-900 top-0.5"></div>
-                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-white leading-none">
-                    {activeTripRoute.dropoff}
-                  </h4>
-                  <p className="text-[10px] font-medium text-slate-400 mt-1">
-                    ETA: {activeTrip.expected || '13 Sep, 06:00 PM'}
-                  </p>
+                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                    Electronics • 350 km • Est. Revenue: ₹ 24,500
+                  </span>
                 </div>
               </div>
-
-              {/* Details Key-Value Table */}
-              <div className="my-3 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/80 space-y-2 text-[11px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Trip Ref</span>
-                  <span className="text-slate-900 dark:text-white font-mono font-bold">{activeTrip.ref_id}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Assigned Vehicle</span>
-                  <span className="text-slate-900 dark:text-white font-mono font-bold">{assignedVehicle?.plate_number || 'TN 38 AB 1234'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Cargo Category</span>
-                  <span className="text-slate-900 dark:text-white font-semibold">Electronics</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Distance</span>
-                  <span className="text-slate-900 dark:text-white font-semibold">350 km</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Commercial Value</span>
-                  <span className="text-[#3E3C3D] dark:text-white font-extrabold">₹ 24,500</span>
-                </div>
-              </div>
-
-              {/* View Details Action Button */}
-              <Button
-                onClick={() => navigate(`/trips/${activeTrip.id}`)}
-                className="w-full bg-[#3E3C3D] hover:bg-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs py-2 rounded-xl shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
-              >
-                View Dispatch Details <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
             </div>
 
           </div>
