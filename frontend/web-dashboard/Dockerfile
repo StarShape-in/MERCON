@@ -11,7 +11,11 @@ WORKDIR /app
 COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
-RUN npm install --workspace=@mercon/shared-types --workspace=@mercon/web-dashboard --legacy-peer-deps --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache && rm -rf /tmp/npm-cache /root/.npm && npm cache clean --force
+# Strip root devDependencies (concurrently, localtunnel) and linter (oxlint) which are unnecessary for the Vite dashboard build
+RUN node -e "const fs=require('fs'); const r=JSON.parse(fs.readFileSync('package.json')); delete r.devDependencies; fs.writeFileSync('package.json',JSON.stringify(r,null,2)); const d=JSON.parse(fs.readFileSync('frontend/web-dashboard/package.json')); if(d.devDependencies) delete d.devDependencies.oxlint; fs.writeFileSync('frontend/web-dashboard/package.json',JSON.stringify(d,null,2));" && \
+    npm install --workspace=@mercon/shared-types --workspace=@mercon/web-dashboard --legacy-peer-deps --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache && \
+    rm -rf /tmp/npm-cache /root/.npm /tmp/* && \
+    npm cache clean --force
 
 
 # Shared types (built explicitly since --ignore-scripts skips prepare)
