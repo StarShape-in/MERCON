@@ -1,6 +1,6 @@
 # Build from the repo root: docker build -f frontend/web-dashboard/Dockerfile .
 # Build stage
-FROM node:22-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
 # Workspace manifests first (for layer caching).
 # NOTE: the lockfile is intentionally NOT copied. It is generated on macOS
@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
-RUN npm install --workspace=@mercon/shared-types --workspace=@mercon/web-dashboard --legacy-peer-deps --ignore-scripts --no-audit --no-fund && npm cache clean --force
+RUN npm install --workspace=@mercon/shared-types --workspace=@mercon/web-dashboard --legacy-peer-deps --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache && rm -rf /tmp/npm-cache /root/.npm && npm cache clean --force
 
 
 # Shared types (built explicitly since --ignore-scripts skips prepare)

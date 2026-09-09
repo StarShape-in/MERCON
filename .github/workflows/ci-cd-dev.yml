@@ -25,14 +25,20 @@ jobs:
           echo "Freeing disk space on self-hosted runner before git checkout..."
           sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
           sudo apt-get clean 2>/dev/null || apt-get clean 2>/dev/null || true
-          sudo truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true
-          sudo rm -rf /var/log/*.gz /var/log/*.[0-9] /var/log/*.old 2>/dev/null || true
-          rm -rf /tmp/npm-* ~/.npm ~/.cache /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
+          sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true'
+          sudo sh -c 'rm -rf /var/log/*.gz /var/log/*.[0-9] /var/log/*.old /var/log/journal/* 2>/dev/null || true'
+          sudo sh -c 'rm -rf /tmp/* /var/tmp/* /root/.cache /root/.npm ~/.npm ~/.cache 2>/dev/null || true'
+          sudo docker volume prune -f 2>/dev/null || docker volume prune -f 2>/dev/null || true
           sudo docker builder prune -af 2>/dev/null || docker builder prune -af 2>/dev/null || true
           sudo docker buildx prune -af 2>/dev/null || docker buildx prune -af 2>/dev/null || true
           sudo docker image prune -af 2>/dev/null || docker image prune -af 2>/dev/null || true
           sudo docker system prune -af 2>/dev/null || docker system prune -af 2>/dev/null || true
+          echo "=== DISK USAGE ==="
           df -h / || true
+          echo "=== TOP 10 LARGEST DIRECTORIES IN /var ==="
+          sudo du -hx -d 2 /var 2>/dev/null | sort -rh | head -n 10 || true
+          echo "=== TOP 10 LARGEST DIRECTORIES IN /home ==="
+          sudo du -hx -d 3 /home 2>/dev/null | sort -rh | head -n 10 || true
 
       # Native git instead of actions/checkout — see ci-cd.yml for why: this
       # runner's work directory persists between runs, so the marketplace
@@ -94,14 +100,14 @@ jobs:
 
           # Free up disk space from previous builds and dangling layers to prevent ENOSPC errors
           echo "Pruning Docker build cache and unused images..."
-          sudo truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true
-          sudo rm -rf /var/log/*.gz /var/log/*.[0-9] /var/log/*.old 2>/dev/null || true
+          sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true'
+          sudo sh -c 'rm -rf /var/log/*.gz /var/log/*.[0-9] /var/log/*.old /var/log/journal/* 2>/dev/null || true'
+          sudo sh -c 'rm -rf /tmp/* /var/tmp/* /root/.cache /root/.npm ~/.npm ~/.cache 2>/dev/null || true'
+          sudo docker volume prune -f 2>/dev/null || docker volume prune -f 2>/dev/null || true
           sudo docker builder prune -af 2>/dev/null || docker builder prune -af 2>/dev/null || true
           sudo docker buildx prune -af 2>/dev/null || docker buildx prune -af 2>/dev/null || true
           sudo docker image prune -af 2>/dev/null || docker image prune -af 2>/dev/null || true
           sudo docker system prune -af 2>/dev/null || docker system prune -af 2>/dev/null || true
-          rm -rf ~/.npm ~/.cache /tmp/npm-* 2>/dev/null || true
-          sudo journalctl --vacuum-size=50M 2>/dev/null || journalctl --vacuum-size=50M 2>/dev/null || true
           df -h / || true
 
           # Build sequentially instead of parallel to avoid running out of disk space (ENOSPC) during concurrent builds
