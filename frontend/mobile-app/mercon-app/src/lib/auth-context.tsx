@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { safeSecureStore as SecureStore } from './secure-store';
-import { api, TOKEN_KEY, SESSION_KEY } from './api';
+import { api, TOKEN_KEY, SESSION_KEY, setAuthToken, ensureAuthToken } from './api';
 
 export type Role = 'Driver' | 'Operator' | 'Admin';
 
@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const [token, rawSession] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
+          ensureAuthToken(),
           SecureStore.getItemAsync(SESSION_KEY),
         ]);
         if (token && rawSession) {
+          setAuthToken(token);
           setSession(JSON.parse(rawSession));
         }
       } finally {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persist = async (token: string, next: Session) => {
+    setAuthToken(token);
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, token),
       SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(next)),
@@ -119,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    setAuthToken(null);
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(SESSION_KEY),

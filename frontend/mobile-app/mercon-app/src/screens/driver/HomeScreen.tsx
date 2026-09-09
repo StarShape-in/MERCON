@@ -169,6 +169,13 @@ const HomeScreen = () => {
     }
   }, [trip]);
 
+  // Load secondary data (scheduled trips & earnings) strictly after primary trip resolves, avoiding connection storms
+  useEffect(() => {
+    if (!loading) {
+      Promise.allSettled([fetchScheduled(), fetchEarnings()]);
+    }
+  }, [loading, fetchScheduled, fetchEarnings]);
+
   // Refresh the trip whenever Home regains focus
   const displayTrip = trip || (scheduledTrips.length > 0 ? scheduledTrips[0] : null);
   const remainingScheduled = scheduledTrips.filter((st) => st.id !== displayTrip?.id);
@@ -333,10 +340,9 @@ const HomeScreen = () => {
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={() => {
-              refetch();
-              fetchScheduled();
-              fetchEarnings();
+            onRefresh={async () => {
+              await refetch();
+              await Promise.allSettled([fetchScheduled(), fetchEarnings()]);
             }}
             tintColor="#FFFFFF"
             progressBackgroundColor="#FA634E"

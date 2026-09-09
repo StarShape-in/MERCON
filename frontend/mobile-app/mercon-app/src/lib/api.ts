@@ -27,14 +27,48 @@ export const SESSION_KEY = `${KEY_PREFIX}session`;
 
 const LOGIN_PATHS = ['/auth/login', '/mobile/auth/login'];
 
+let inMemoryToken: string | null = null;
+let restorePromise: Promise<string | null> | null = null;
+
+export function setAuthToken(token: string | null) {
+  inMemoryToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return inMemoryToken;
+}
+
+/**
+ * Returns the cached in-memory token, or awaits an in-flight restoration from SecureStore.
+ * Prevents multiple simultaneous SecureStore disk I/O restoration calls during startup.
+ */
+export async function ensureAuthToken(): Promise<string | null> {
+  if (inMemoryToken) return inMemoryToken;
+  if (!restorePromise) {
+    restorePromise = (async () => {
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        inMemoryToken = token;
+        return token;
+      } finally {
+        restorePromise = null;
+      }
+    })();
+  }
+  return restorePromise;
+}
+
 export const api = axios.create({
   baseURL: API_URL,
   timeout: 15000,
 });
 
-// Attach the saved JWT to every request
+// Attach the saved JWT to every request — using in-memory cache first to eliminate disk I/O delay
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  let token = inMemoryToken;
+  if (!token) {
+    token = await ensureAuthToken();
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -53,6 +87,7 @@ api.interceptors.response.use(
   async (error) => {
     const isLoginRequest = LOGIN_PATHS.some((p) => error.config?.url?.includes(p));
     if (error.response?.status === 401 && !isLoginRequest) {
+      setAuthToken(null);
       await Promise.all([
         SecureStore.deleteItemAsync(TOKEN_KEY),
         SecureStore.deleteItemAsync(SESSION_KEY),

@@ -351,6 +351,18 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
 
+    // Distinguish invalid coordinates from an unavailable routing provider:
+    if (
+      (target.location_lat === 0 && target.location_lng === 0) ||
+      target.location_lat < -90 || target.location_lat > 90 ||
+      target.location_lng < -180 || target.location_lng > 180
+    ) {
+      return res.status(422).json({
+        success: false,
+        error: { code: 'INVALID_STOP_COORDINATES', message: 'Destination coordinates are invalid for road routing' },
+      });
+    }
+
     const route = await getDrivingRoute(
       { lat: fromLat, lng: fromLng },
       { lat: target.location_lat, lng: target.location_lng },
