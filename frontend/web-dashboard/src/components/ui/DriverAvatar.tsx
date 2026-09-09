@@ -59,7 +59,8 @@ export default function DriverAvatar({
     <div
       onClick={handleClick}
       className={cn(
-        'relative inline-block shrink-0 overflow-hidden group',
+        'relative inline-block shrink-0 overflow-hidden group rounded-full',
+        sizeClass,
         isInteractive && 'cursor-pointer hover:opacity-95 transition-all',
         className
       )}
@@ -70,13 +71,12 @@ export default function DriverAvatar({
           src={src}
           alt={`${firstName} ${lastName}`.trim() || 'Driver avatar'}
           onError={() => setImageError(true)}
-          className="w-full h-full object-cover scale-[1.75] transform origin-center rounded-[inherit]"
+          className="w-full h-full object-cover rounded-full"
         />
       ) : (
         <div
           className={cn(
-            'w-full h-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs rounded-[inherit]',
-            sizeClass
+            'w-full h-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 select-none shadow-2xs rounded-full'
           )}
         >
           {initials}
