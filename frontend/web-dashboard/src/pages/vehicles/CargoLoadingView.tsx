@@ -668,114 +668,142 @@ export default function CargoLoadingView() {
         {/* ── Main Central & Bottom Area ── */}
         <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
-          {/* Truck Cargo Visualizer (Clean & Unobstructed Graphic) */}
+          {/* Truck Cargo Visualizer */}
           <div className="w-full relative flex items-center justify-end shrink-0 -mt-1 sm:-mt-2 pl-2 sm:pl-6 overflow-hidden">
+            
+            {/* Inner wrapper tightly hugging the image */}
             <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Floating Status Badges at top right of Truck Graphic */}
-              <div className="absolute top-2 right-4 flex items-center gap-2">
-                <Badge variant="outline" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-800 dark:text-slate-200 border-slate-200/90 font-bold px-3 py-1 text-xs rounded-xl shadow-xs flex items-center gap-1.5">
-                  <Gauge className="w-3.5 h-3.5 text-[#FA634E]" />
-                  Odometer: <strong className="text-slate-900 dark:text-white font-black">{vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}</strong>
-                </Badge>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-2.5 py-1 text-xs rounded-xl shadow-xs">
-                  Next Service: In 7,500 km
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Ultra-Rich Maintenance & Service Command Center ── */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3 shrink-0">
-            {/* Command Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-[#FA634E]/10 flex items-center justify-center text-[#FA634E] shadow-2xs">
-                  <Wrench className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-black text-slate-900 tracking-tight leading-none">
-                    Vehicle Maintenance & Service Ledger
-                  </h2>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 leading-none">
-                    Verified workshop service logs, parts replacement & odometer telemetry
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                  className="h-8 px-3 text-xs font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-xl shadow-2xs gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  + Log Service
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/maintenance')}
-                  className="h-8 px-3 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl gap-1"
-                >
-                  Full History
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Service History Ledger Rows */}
-            <div className="grid grid-cols-1 gap-2">
-              {serviceRecords.slice(0, 3).map((rec) => (
-                <div 
-                  key={rec.id}
-                  onClick={() => navigate(`/maintenance/${rec.id}`)}
-                  className="group bg-slate-50/80 hover:bg-slate-100/90 border border-slate-200/80 rounded-xl p-3 transition-all cursor-pointer flex items-center justify-between gap-4"
-                >
-                  {/* Left: Ref & Work Done */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wide px-2 py-1 bg-white border border-slate-200 rounded-lg shrink-0 shadow-2xs">
-                      {rec.ref_id}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-slate-900 truncate group-hover:text-[#FA634E] transition-colors leading-tight">
-                        {rec.work_done}
-                      </p>
-                      <p className="text-[11px] font-semibold text-slate-500 truncate mt-0.5">
-                        Workshop: <strong className="text-slate-700">{rec.workshop_name}</strong>
-                      </p>
+              {/* Single Seamless Vehicle Service History HUD Overlay inside Trailer */}
+              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
+                
+                <div className="grid grid-cols-12 gap-3 h-full items-stretch overflow-hidden">
+                  
+                  {/* ── LEFT SIDE: Clean Executive Odometer Card (Col-span-4) ── */}
+                  <div className="col-span-4 bg-slate-50/90 dark:bg-slate-950/60 rounded-xl p-3 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 shrink-0">
+                    
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-md bg-[#FA634E]/10 flex items-center justify-center text-[#FA634E]">
+                          <Gauge className="w-3 h-3" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                          Odometer
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-1.5 py-0.2 text-[9px] rounded-full">
+                        Active
+                      </Badge>
                     </div>
+
+                    {/* Main Odometer Value */}
+                    <div className="my-auto text-left py-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Current Reading</p>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+                          {vehicle?.current_odometer ? vehicle.current_odometer.toLocaleString() : '142,500'}
+                        </span>
+                        <span className="text-xs font-black text-slate-500 uppercase">km</span>
+                      </div>
+                    </div>
+
+                    {/* Service Progress & Next Due */}
+                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800 space-y-1">
+                      <div className="flex justify-between items-center text-[9.5px]">
+                        <span className="font-bold text-slate-500">Next Service</span>
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">in 7,500 km</span>
+                      </div>
+                      <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-[#FA634E] h-full w-[70%]" title="70% interval elapsed"></div>
+                      </div>
+                    </div>
+
                   </div>
 
-                  {/* Center: Service Date & Odometer */}
-                  <div className="flex items-center gap-6 shrink-0 text-right">
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Service Date</p>
-                      <p className="text-xs font-black text-slate-800">{rec.service_date}</p>
+                  {/* ── RIGHT SIDE: Clean Service History Details (Col-span-8) ── */}
+                  <div className="col-span-8 flex flex-col justify-between h-full min-h-0 overflow-hidden pl-0.5">
+                    
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
+                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                          Vehicle Service History
+                        </h3>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
+                          className="h-6 px-2.5 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          + Log Service
+                        </Button>
+                        <button
+                          onClick={() => navigate('/maintenance')}
+                          className="text-[10px] font-bold text-slate-500 hover:text-[#FA634E] flex items-center gap-0.5 transition-colors"
+                        >
+                          All <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Odometer</p>
-                      <p className="text-xs font-black text-slate-800">{rec.odometer_reading}</p>
+
+                    {/* Non-scrollable Service History Rows (2 clean rows) */}
+                    <div className="flex-1 min-h-0 flex flex-col justify-center gap-2 py-1 overflow-hidden">
+                      {serviceRecords.slice(0, 2).map((rec) => (
+                        <div 
+                          key={rec.id}
+                          onClick={() => navigate(`/maintenance/${rec.id}`)}
+                          className="group bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl p-2.5 transition-all cursor-pointer flex items-center justify-between gap-3 shrink-0"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wide px-1.5 py-0.5 bg-white border border-slate-200 rounded-md shrink-0">
+                                {rec.ref_id}
+                              </span>
+                              <p className="text-xs font-black text-slate-900 truncate leading-tight group-hover:text-[#FA634E] transition-colors">
+                                {rec.work_done}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-[10px] text-slate-500 mt-1">
+                              <span className="font-semibold truncate max-w-[150px]">{rec.workshop_name}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-medium text-slate-400">{rec.service_date}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0 text-right">
+                            <div>
+                              <p className="text-xs font-black text-slate-900 leading-tight">{rec.cost}</p>
+                              <p className="text-[9px] font-semibold text-slate-400 mt-0.5">{rec.odometer_reading}</p>
+                            </div>
+                            <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-none shrink-0 ${
+                              rec.status.toLowerCase().includes('in_progress') || rec.status.toLowerCase().includes('progress')
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {rec.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Cost</p>
-                      <p className="text-xs font-black text-[#FA634E]">{rec.cost}</p>
+
+                    {/* Footer info line */}
+                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
+                      <span className="font-medium">Verified Workshop Records</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Vehicle Health: Operational</span>
                     </div>
+
                   </div>
 
-                  {/* Right: Status Pill */}
-                  <div className="shrink-0">
-                    <Badge className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shadow-none ${
-                      rec.status.toLowerCase().includes('in_progress') || rec.status.toLowerCase().includes('progress')
-                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    }`}>
-                      {rec.status}
-                    </Badge>
-                  </div>
                 </div>
-              ))}
+
+              </div>
             </div>
           </div>
 
