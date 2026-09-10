@@ -1,19 +1,55 @@
-**/.git
-**/.github
+# Git and GitHub metadata
+.git
+.github
+
+# Node dependencies and build caches
 **/node_modules
 **/dist
 **/build
-**/.expo
+.npm
+.cache
+
+# Mobile application (built independently via Expo/Bitrise, never part of Docker)
 frontend/mobile-app
-.tempmediaStorage
-.user_uploaded
-*.log
-.DS_Store
-docs/
-image/
-Trucks Docs (1)/
-*.pdf
+**/.expo
+
+# Documentation and design assets
+docs
+image
+Trucks Docs (1)
+*.md
+
+# Large files, archives, binaries, and local spreadsheets
 *.apk
+*.aab
 *.zip
 *.tar
 *.tar.gz
+*.pdf
+/*.xlsx
+/*.xlsm
+/*.csv
+
+# Logs, dumps, and environment files
+*.log
+*.dump
+*.sql
+.env
+.env.*
+!.env.example
+
+# Temporary and upload directories
+.tempmediaStorage
+.user_uploaded
+.DS_Store
+Thumbs.db
+
+# IDE, editor, and agent folders
+.vscode
+.idea
+.claude
+.agents
+.kiro
+scripts/
+deploy/
+

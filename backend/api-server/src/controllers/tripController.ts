@@ -855,8 +855,11 @@ export const createTrip = async (req: Request, res: Response) => {
               } : {}),
               stops: {
                 create: resolvedStops.map((stop: any, index: number) => {
-                  const latVal = parseOptionalFloat(stop.lat);
-                  const lngVal = parseOptionalFloat(stop.lng);
+                  const rawLat = parseOptionalFloat(stop.lat);
+                  const rawLng = parseOptionalFloat(stop.lng);
+                  const isValidCoord = rawLat != null && rawLng != null && (rawLat !== 0 || rawLng !== 0) && rawLat >= -90 && rawLat <= 90 && rawLng >= -180 && rawLng <= 180;
+                  const latVal = isValidCoord ? rawLat : null;
+                  const lngVal = isValidCoord ? rawLng : null;
                   const precisionVal = stop.coordinate_precision || stop.location_coordinate_precision || (latVal == null || lngVal == null ? 'UNKNOWN' : 'APPROXIMATE');
                   let stopPlannedArrival: Date | null = null;
                   if (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival))) {
@@ -1145,6 +1148,33 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(row.third_party_cost)
           : undefined;
 
+        const parsedStops = (row.origin || row.destination)
+          ? parseFullTripStops(row.origin || '', row.destination || '')
+          : [];
+
+        const resolvedImportStops = await Promise.all(
+          parsedStops.map(async (st, idx, arr) => {
+            const coords = await resolveStopCoords(st.location_name, customer.id);
+            let latVal = coords?.lat ?? null;
+            let lngVal = coords?.lng ?? null;
+            // Enforce invariant: (0, 0) is never legitimate; unknown coordinates are strictly NULL
+            if (latVal === 0 && lngVal === 0) {
+              latVal = null;
+              lngVal = null;
+            }
+            return {
+              stop_sequence: st.stop_sequence,
+              stop_type: st.stop_type as any,
+              location_name: st.location_name,
+              location_address: coords?.address ?? null,
+              locationId: coords?.locationId ?? null,
+              location_lat: latVal,
+              location_lng: lngVal,
+              planned_arrival: idx === 0 ? parsedPlannedStart : (idx === arr.length - 1 ? parsedPlannedEnd : null),
+            };
+          })
+        );
+
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
             data: {
@@ -1175,16 +1205,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                 : (thirdPartyCostVal !== undefined ? { driver_charge: thirdPartyCostVal } : {})),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
-              ...((row.origin || row.destination) ? {
+              ...(resolvedImportStops.length > 0 ? {
                 stops: {
-                  create: parseFullTripStops(row.origin || '', row.destination || '').map((st, idx, arr) => ({
-                    stop_sequence: st.stop_sequence,
-                    stop_type: st.stop_type as any,
-                    location_name: st.location_name,
-                    location_lat: 0,
-                    location_lng: 0,
-                    planned_arrival: idx === 0 ? parsedPlannedStart : (idx === arr.length - 1 ? parsedPlannedEnd : null),
-                  }))
+                  create: resolvedImportStops,
                 }
               } : {})
             },
@@ -1752,14 +1775,27 @@ export const updateTripStop = async (req: Request, res: Response) => {
       }
     }
 
+    let latVal: number | null | undefined = undefined;
+    let lngVal: number | null | undefined = undefined;
+    if (lat !== undefined) {
+      latVal = lat != null && !isNaN(Number(lat)) ? Number(lat) : null;
+    }
+    if (lng !== undefined) {
+      lngVal = lng != null && !isNaN(Number(lng)) ? Number(lng) : null;
+    }
+    if (latVal === 0 && lngVal === 0) {
+      latVal = null;
+      lngVal = null;
+    }
+
     const updated = await prisma.tripStop.update({
       where: { id: stopId },
       data: {
         ...(location_name !== undefined ? { location_name: String(location_name).trim() || null } : {}),
         ...(location_address !== undefined ? { location_address: String(location_address).trim() || null } : {}),
         ...(location_id !== undefined ? { locationId: location_id || null } : {}),
-        ...(lat !== undefined ? { location_lat: Number(lat) } : {}),
-        ...(lng !== undefined ? { location_lng: Number(lng) } : {}),
+        ...(latVal !== undefined ? { location_lat: latVal } : {}),
+        ...(lngVal !== undefined ? { location_lng: lngVal } : {}),
         updated_by: (req as any).user?.id ?? null,
       },
       include: { location: { select: { id: true, name: true, address: true, code: true } } },
