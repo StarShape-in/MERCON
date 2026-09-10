@@ -641,8 +641,8 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 2: Vehicle Documents & Validity (Stretched to fill remaining height cleanly) */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+          {/* BOX 2: Vehicle Documents & Validity (Clean Vertically-Centered List + More Details Button) */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
             <div className="flex items-center justify-between shrink-0 mb-1">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
@@ -651,10 +651,10 @@ export default function CargoLoadingView() {
               <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
             </div>
 
-            {/* Document list stretching vertically */}
-            <div className="flex-1 my-1 flex flex-col justify-evenly rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30">
+            {/* Document list stretching vertically with equal centered slots */}
+            <div className="flex-1 my-1 flex flex-col rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30 min-h-0">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Istimara</span>
@@ -662,7 +662,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
               </div>
               {/* 2. Insurance */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Insurance</span>
@@ -670,7 +670,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
               </div>
               {/* 3. Operation Card */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
@@ -678,7 +678,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
               </div>
               {/* 4. SASO Plates */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
@@ -686,7 +686,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
               </div>
               {/* 5. FAHAS */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
@@ -699,7 +699,7 @@ export default function CargoLoadingView() {
             <Button
               variant="outline"
               onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-              className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0 mt-1"
+              className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0"
             >
               <span>More Details</span>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
@@ -718,33 +718,33 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[13.5%] left-[33.5%] w-[62%] h-[46.5%] flex items-stretch gap-2 sm:gap-2.5 pointer-events-auto">
+              <div className="absolute top-[10.5%] left-[28.2%] w-[68%] h-[52%] flex items-stretch gap-2.5 sm:gap-3.5 pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
-                <div className="w-[33%] bg-white rounded-xl p-2 sm:p-2.5 flex flex-col justify-between border border-slate-200/90 shadow-2xs shrink-0 overflow-hidden">
+                <div className="w-[36%] bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-100/90 shadow-sm shrink-0 overflow-hidden">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                        <Gauge className="w-3 h-3" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <div className="w-6 h-6 sm:w-7.5 sm:h-7.5 rounded-full bg-blue-50/80 text-blue-600 flex items-center justify-center shrink-0">
+                        <Gauge className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-[11px] font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
-                        <p className="text-[7.5px] text-slate-400 font-semibold leading-none mt-0.5 truncate">Total Distance</p>
+                        <h3 className="text-xs sm:text-sm font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
+                        <p className="text-[7.5px] sm:text-[9px] text-slate-400 font-medium leading-none mt-0.5 truncate">Total Distance Traveled</p>
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold px-1.5 py-0.2 text-[7.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
-                      <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <Badge className="bg-emerald-100/70 text-emerald-600 border-none font-bold px-2 py-0.5 text-[7.5px] sm:text-[9px] rounded-full shadow-none flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                       Active
                     </Badge>
                   </div>
 
-                  {/* Mechanical Rolling Counter Drum Wheels */}
+                  {/* 3D Rolling Drum Odometer Wheel Box */}
                   <div className="my-auto py-0.5">
-                    <div className="bg-slate-900 p-1 sm:p-1.5 rounded-lg border border-slate-800 shadow-inner flex items-center justify-center gap-1">
-                      <div className="flex items-center gap-0.5">
+                    <div className="bg-[#0F172A] p-1.5 sm:p-2 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1 sm:gap-1.5">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
                           const strOdo = String(rawOdo);
@@ -754,132 +754,165 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-3 h-5 sm:w-3.5 sm:h-5.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[10px] sm:text-[11px] rounded border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-7 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white font-mono font-bold text-[11px] sm:text-xs rounded border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
-                              {/* Glossy top glass reflection */}
-                              <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
-                              {/* Bottom shadow gradient */}
-                              <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                              {/* Center wheel seam line */}
-                              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/60 pointer-events-none" />
-
-                              <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                              <div className="absolute inset-x-0 top-0 h-[35%] bg-white/10 pointer-events-none rounded-t" />
+                              <span className="relative z-10">
                                 {digit}
                               </span>
                             </div>
                           ));
                         })()}
                       </div>
-                      <span className="text-[10px] font-black text-slate-200 ml-0.5 shrink-0">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-200 ml-0.5 shrink-0">
                         km
                       </span>
                     </div>
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-slate-50/90 border border-slate-200/90 rounded-lg p-1.5 space-y-0.5 shrink-0">
-                    <div className="flex justify-between items-center text-[8px]">
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
-                          <Wrench className="w-1.5 h-1.5 text-emerald-700" />
+                  <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-2 sm:p-2.5 space-y-1.5 shrink-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start gap-1.5 sm:gap-2">
+                        <div className="w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <Wrench className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600" />
                         </div>
                         <div>
-                          <p className="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Next Due</p>
-                          <p className="text-[9.5px] sm:text-[10px] font-black text-emerald-600 leading-tight mt-0.5">in 7,500 km</p>
+                          <p className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-semibold leading-tight">Next Service Due</p>
+                          <p className="text-xs sm:text-sm font-black text-emerald-600 leading-tight mt-0.5">
+                            7,500 km
+                          </p>
+                          <p className="text-[7px] sm:text-[8px] text-slate-400 font-medium leading-tight">remaining</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Target</p>
-                        <p className="text-[9.5px] font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
+                        <p className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-semibold leading-tight">Target</p>
+                        <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-slate-200/80 h-1 rounded-full overflow-hidden p-0.5 border border-slate-300/60">
-                      <div className="bg-emerald-500 h-full rounded-full w-[70%]" title="70% interval elapsed"></div>
+                    <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full w-[45%]"></div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[7px] text-slate-400 font-semibold">
-                      <span>142,500 km</span>
-                      <span>150,000 km</span>
+                    <div className="flex justify-between items-center text-[7.5px] sm:text-[8.5px]">
+                      <div>
+                        <span className="font-bold text-slate-700 block leading-tight">142,500 km</span>
+                        <span className="text-slate-400 font-medium leading-none">Current</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-slate-700 block leading-tight">150,000 km</span>
+                        <span className="text-slate-400 font-medium leading-none">Target</span>
+                      </div>
                     </div>
                   </div>
 
                 </div>
 
                 {/* ── RIGHT SUB-CARD: Vehicle Service History (Clean White Canvas Card) ── */}
-                <div className="flex-1 bg-white rounded-xl p-2 sm:p-2.5 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-2xs overflow-hidden">
+                <div className="flex-1 bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between min-w-0 border border-slate-100 shadow-sm overflow-hidden">
                   
                   {/* Header */}
-                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                        <Calendar className="w-3 h-3 text-slate-700" />
+                  <div className="flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <div className="w-6 h-6 sm:w-7.5 sm:h-7.5 rounded-full bg-blue-50/80 text-blue-600 flex items-center justify-center shrink-0">
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[7.5px] text-slate-400 font-semibold leading-none mt-0.5">Recent maintenance records</p>
+                        <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[7.5px] sm:text-[9px] text-slate-400 font-medium leading-none mt-0.5">Recent maintenance records</p>
                       </div>
                     </div>
 
-                    <span className="text-[8px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded-full shrink-0">
-                      {serviceRecords.length} Records
+                    <span className="text-[7.5px] sm:text-[9px] font-bold text-slate-700 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded-full shrink-0">
+                      3 Records
                     </span>
                   </div>
 
-                  {/* Table Header Bar */}
-                  <div className="flex items-center justify-between bg-slate-100/90 px-2 py-0.5 rounded text-[8px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-0.5 border border-slate-200/60">
-                    <span className="flex-1 min-w-0">Service</span>
-                    <span className="w-20 text-center shrink-0">Date</span>
-                    <span className="w-20 text-right shrink-0">Odometer</span>
-                  </div>
+                  {/* Service Timeline Entries */}
+                  <div className="relative flex-1 min-h-0 flex flex-col justify-between py-1 my-0.5">
+                    {/* Vertical Connector Line */}
+                    <div className="absolute left-[7px] sm:left-[8px] top-2.5 bottom-2.5 w-[1.5px] bg-slate-100" />
 
-                  {/* Service History Rows (Max 3 items, Clean White Cards, Zero Text Truncation) */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1">
-                    {serviceRecords.slice(0, 3).map((rec, idx) => {
-                      const rowStyles = [
-                        { icon: Droplets, iconBg: 'bg-rose-100 text-rose-700 border border-rose-200' },
-                        { icon: Disc, iconBg: 'bg-blue-100 text-blue-700 border border-blue-200' },
-                        { icon: Wind, iconBg: 'bg-amber-100 text-amber-700 border border-amber-200' },
-                      ];
-                      const style = rowStyles[idx % rowStyles.length];
-                      const IconComponent = style.icon;
-
+                    {[
+                      {
+                        id: 1,
+                        date: '12 Aug 2026',
+                        title: 'Engine Oil & Filter Service',
+                        workshop: 'Zahid Heavy Equipment Workshop',
+                        odometer: '142,500 km',
+                        icon: Droplets,
+                        iconBg: 'bg-rose-50 text-rose-500',
+                        isRecent: true,
+                      },
+                      {
+                        id: 2,
+                        date: '25 Jun 2026',
+                        title: 'Brake Pad Replacement',
+                        workshop: 'Al-Refaei Truck Service Center',
+                        odometer: '135,000 km',
+                        icon: Disc,
+                        iconBg: 'bg-blue-50 text-blue-500',
+                        isRecent: false,
+                      },
+                      {
+                        id: 3,
+                        date: '14 Mar 2026',
+                        title: 'Air Filter Replacement',
+                        workshop: 'Saudi Heavy Maintenance Hub',
+                        odometer: '128,300 km',
+                        icon: Wind,
+                        iconBg: 'bg-amber-50 text-amber-500',
+                        isRecent: false,
+                      },
+                    ].map((item) => {
+                      const IconComp = item.icon;
                       return (
-                        <div
-                          key={rec.id}
-                          onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50/70 border border-slate-200/70 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-2"
-                        >
-                          {/* Service Work Done & Workshop */}
-                          <div className="flex-1 flex items-center gap-2 min-w-0">
-                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
-                              <IconComponent className="w-2.5 h-2.5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-black text-slate-900 text-[10px] sm:text-[10.5px] leading-tight truncate">{rec.work_done}</p>
-                              <p className="text-[7.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
-                            </div>
+                        <div key={item.id} className="relative flex items-center justify-between gap-1.5 sm:gap-2 pl-3.5 sm:pl-4 min-w-0">
+                          {/* Timeline node dot */}
+                          <div
+                            className={`absolute left-[4.5px] sm:left-[5.5px] rounded-full z-10 ${
+                              item.isRecent
+                                ? 'w-2 h-2 bg-emerald-500 ring-2 ring-emerald-100'
+                                : 'w-1.5 h-1.5 bg-slate-400 ring-2 ring-slate-100'
+                            }`}
+                          />
+
+                          {/* Item Icon */}
+                          <div className={`w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`}>
+                            <IconComp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           </div>
 
-                          {/* Date */}
-                          <div className="w-20 text-center text-[9px] font-bold text-slate-600 whitespace-nowrap shrink-0">
-                            {rec.service_date}
+                          {/* Main Service Details */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[7px] sm:text-[8px] font-medium text-slate-400 leading-tight">{item.date}</p>
+                            <p className="text-[9.5px] sm:text-[11px] font-bold text-slate-900 leading-tight truncate">{item.title}</p>
+                            <p className="text-[7px] sm:text-[8px] font-medium text-slate-400 leading-tight truncate">{item.workshop}</p>
                           </div>
 
-                          {/* Odometer */}
-                          <div className="w-20 text-right text-[10px] font-black text-slate-900 whitespace-nowrap shrink-0">
-                            {rec.odometer_reading}
+                          {/* Right Side Odometer */}
+                          <div className="shrink-0 text-right">
+                            <div className="flex items-center gap-0.5 justify-end text-[7px] sm:text-[8px] font-medium text-slate-400">
+                              <Gauge className="w-2 h-2 text-slate-400" />
+                              <span>Odometer</span>
+                            </div>
+                            <p className="text-[9.5px] sm:text-[11px] font-bold text-slate-900 leading-tight mt-0.5">{item.odometer}</p>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Minimal Footer Info Bar */}
-                  <div className="pt-0.5 border-t border-slate-200/80 flex items-center justify-between text-[7.5px] font-mono uppercase text-slate-400 shrink-0">
-                    <span className="font-semibold">VERIFIED MAINTENANCE LOGS</span>
-                    <span className="font-bold text-slate-700">HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
+                  {/* Bottom Status Banner */}
+                  <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5 flex items-center justify-between text-[7.5px] sm:text-[9px] shrink-0">
+                    <div className="flex items-center gap-1 text-slate-600 font-semibold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span>All maintenance records verified</span>
+                    </div>
+                    <div className="text-slate-500 font-medium">
+                      Vehicle Health: <span className="font-black text-emerald-600 tracking-wider">OPERATIONAL</span>
+                    </div>
                   </div>
 
                 </div>
