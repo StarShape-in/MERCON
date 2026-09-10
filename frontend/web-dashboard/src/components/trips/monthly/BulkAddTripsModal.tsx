@@ -1782,10 +1782,12 @@ export default function BulkAddTripsModal({
                                           pickupTime={slot.pickupTime}
                                           dropoffTime={slot.dropoffTime}
                                           onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                            handleUpdateTripSlot(slot.id, {
-                                              dropoffTime: suggestedTime,
-                                              ...(isOvernight ? { isOvernight: true } : {}),
-                                            });
+                                            if (slot.pickupTime && slot.pickupTime.trim()) {
+                                              handleUpdateTripSlot(slot.id, {
+                                                dropoffTime: suggestedTime,
+                                                ...(isOvernight ? { isOvernight: true } : {}),
+                                              });
+                                            }
                                           }}
                                         />
                                       </div>
@@ -2146,10 +2148,12 @@ export default function BulkAddTripsModal({
                                           pickupTime={slot.pickupTime}
                                           dropoffTime={slot.dropoffTime}
                                           onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                                            handleUpdateTripSlot(slot.id, {
-                                              dropoffTime: suggestedTime,
-                                              ...(isOvernight ? { isOvernight: true } : {}),
-                                            });
+                                            if (slot.pickupTime && slot.pickupTime.trim()) {
+                                              handleUpdateTripSlot(slot.id, {
+                                                dropoffTime: suggestedTime,
+                                                ...(isOvernight ? { isOvernight: true } : {}),
+                                              });
+                                            }
                                           }}
                                         />
                                       </div>

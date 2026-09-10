@@ -572,10 +572,12 @@ export default function Step2RouteSlots({
                       pickupTime={slot.pickupTime}
                       dropoffTime={slot.dropoffTime}
                       onAutoSetDropoffTime={(suggestedTime, isOvernight) => {
-                        onUpdateSlot(slot.id, {
-                          dropoffTime: suggestedTime,
-                          ...(isOvernight ? { isOvernight: true } : {}),
-                        });
+                        if (slot.pickupTime && slot.pickupTime.trim()) {
+                          onUpdateSlot(slot.id, {
+                            dropoffTime: suggestedTime,
+                            ...(isOvernight ? { isOvernight: true } : {}),
+                          });
+                        }
                       }}
                     />
                   </div>

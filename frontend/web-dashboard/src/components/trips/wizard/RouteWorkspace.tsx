@@ -165,7 +165,9 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               pickupDate={slot.date || slot.pickupDate}
               pickupTime={slot.pickupTime || ''}
               onAutoSetDropoffDateTime={(dDate, dTime, isOvernight) => {
-                handleUpdateTripSlot(slot.id, { dropoffDate: dDate, dropoffTime: dTime, isOvernight });
+                if (slot.pickupTime && slot.pickupTime.trim()) {
+                  handleUpdateTripSlot(slot.id, { dropoffDate: dDate, dropoffTime: dTime, isOvernight });
+                }
               }}
               compact
             />
@@ -232,6 +234,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   onChange={(timeStr) => {
                     handleUpdateTripSlot(slot.id, {
                       pickupTime: timeStr,
+                      ...(!timeStr ? { dropoffTime: '' } : {}),
                     });
                   }}
                   placeholder="Select pickup time..."
@@ -241,12 +244,19 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 <DateTimePicker
                   value={pickupIsoValue}
                   onChange={(isoStr) => {
-                    if (!isoStr) return;
+                    if (!isoStr) {
+                      handleUpdateTripSlot(slot.id, {
+                        pickupTime: '',
+                        dropoffTime: '',
+                      });
+                      return;
+                    }
                     const [dPart, tPart] = isoStr.split('T');
                     const cleanTime = tPart ? tPart.substring(0, 5) : '';
                     handleUpdateTripSlot(slot.id, {
                       date: dPart,
                       pickupTime: cleanTime,
+                      ...(!cleanTime ? { dropoffTime: '' } : {}),
                     });
                   }}
                   placeholder="Pick date & time..."
@@ -347,9 +357,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   minDate={pickupDateObj}
                   error={!!scheduleError}
                   onChange={(isoStr) => {
-                    if (!isoStr) return;
+                    if (!isoStr) {
+                      handleUpdateTripSlot(slot.id, { dropoffDate: '', dropoffTime: '' });
+                      return;
+                    }
                     const [dPart, tPart] = isoStr.split('T');
-                    const cleanTime = tPart ? tPart.substring(0, 5) : '14:00';
+                    const cleanTime = tPart ? tPart.substring(0, 5) : '';
                     handleUpdateTripSlot(slot.id, { dropoffDate: dPart, dropoffTime: cleanTime });
                   }}
                   placeholder="Pick date & time..."
