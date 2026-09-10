@@ -798,6 +798,34 @@ export default function TripListPage() {
     }
   }, [searchParams, navigate]);
 
+  // Deep-link support: ?driver=UUID&driver_name=FirstName+LastName pre-fills search & switches to table view
+  // ?status=X pre-selects the status filter
+  // Run once on mount (searchParams is stable on initial render)
+  useEffect(() => {
+    const driverParam = searchParams.get('driver');
+    const driverNameParam = searchParams.get('driver_name');
+    const statusParam = searchParams.get('status') as TripStatusFilter | null;
+
+    if (statusParam && EXACT_SERVER_STATUSES.has(statusParam as any)) {
+      setSelectedStatus(statusParam);
+    }
+
+    if (driverParam || driverNameParam) {
+      // Switch to table view so the filtered rows are immediately visible
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('view', 'table');
+      newParams.delete('driver');
+      newParams.delete('driver_name');
+      newParams.delete('status');
+      setSearchParams(newParams, { replace: true });
+      // Pre-fill search with driver name so client-side filter matches correctly
+      if (driverNameParam) {
+        setSearch(driverNameParam);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);

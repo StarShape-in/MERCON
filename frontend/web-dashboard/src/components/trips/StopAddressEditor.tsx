@@ -5,7 +5,6 @@ import { Check, Loader2, MapPin } from 'lucide-react';
 import LocationPickerMap from '@/components/trips/LocationPickerMap';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { tripService, TripStop } from '@/services/tripService';
 import { cn } from '@/lib/utils';
 
@@ -74,18 +73,18 @@ export default function StopAddressEditor({
   const isPickup = stop.stop_type === 'Pickup';
   const isDropoff = stop.stop_type === 'Dropoff';
 
-  // Container styling matching CreateTripPage
+  // Container styling
   const cardBorderClass = isPickup
-    ? 'border-emerald-200/80 bg-emerald-50/30'
+    ? 'border-emerald-200/80 bg-emerald-50/20'
     : isDropoff
-    ? 'border-orange-200/80 bg-orange-50/30'
-    : 'border-blue-200/80 bg-blue-50/30';
+    ? 'border-orange-200/80 bg-orange-50/20'
+    : 'border-blue-200/80 bg-blue-50/20';
 
   const headerBgClass = isPickup
-    ? 'bg-emerald-50/80 border-b border-emerald-100'
+    ? 'bg-emerald-50/70 border-b border-emerald-100'
     : isDropoff
-    ? 'bg-orange-50/80 border-b border-orange-100'
-    : 'bg-blue-50/80 border-b border-blue-100';
+    ? 'bg-orange-50/70 border-b border-orange-100'
+    : 'bg-blue-50/70 border-b border-blue-100';
 
   const dotClass = isPickup
     ? 'bg-emerald-500 ring-2 ring-emerald-200'
@@ -106,9 +105,9 @@ export default function StopAddressEditor({
     : 'text-blue-900';
 
   return (
-    <div className={cn('rounded-xl border overflow-hidden space-y-2 shadow-2xs', cardBorderClass)}>
+    <div className={cn('rounded-xl border overflow-hidden shadow-2xs', cardBorderClass)}>
       {/* Header Bar */}
-      <div className={cn('p-2 flex items-center justify-between', headerBgClass)}>
+      <div className={cn('px-3 py-1.5 flex items-center justify-between', headerBgClass)}>
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={cn('w-2 h-2 rounded-full shrink-0', dotClass)} />
           <span className={cn('text-xs font-bold truncate', titleTextClass)}>
@@ -116,9 +115,6 @@ export default function StopAddressEditor({
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[9px] font-semibold text-slate-600 bg-white border border-slate-200/80 px-1.5 py-0.5 rounded">
-            Rate Hub & Maps
-          </span>
           {editable && (
             <Button
               type="button"
@@ -140,7 +136,7 @@ export default function StopAddressEditor({
         </div>
       </div>
 
-      <div className="p-3 space-y-3">
+      <div className="p-3 space-y-2">
         {!editable ? (
           <div className="space-y-1 text-xs">
             <p className="font-bold text-slate-900 dark:text-slate-100">
@@ -156,9 +152,8 @@ export default function StopAddressEditor({
         ) : (
           <>
             <div className="space-y-1">
-              <label className={cn('text-[10px] font-bold uppercase tracking-wider flex items-center justify-between', labelTextClass)}>
-                <span>{isPickup ? 'Pickup Location *' : isDropoff ? 'Dropoff Location *' : 'Stop Location *'}</span>
-                <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+              <label className={cn('text-[10px] font-bold uppercase tracking-wider block', labelTextClass)}>
+                {isPickup ? 'Pickup Location *' : isDropoff ? 'Dropoff Location *' : 'Stop Location *'}
               </label>
               <LocationCombobox
                 customerId={customerId}
@@ -174,14 +169,16 @@ export default function StopAddressEditor({
                 newLocationLat={lat}
                 newLocationLng={lng}
                 triggerClassName={cn(
-                  'h-8.5 bg-white shadow-2xs',
+                  'h-8 bg-white shadow-2xs',
                   isPickup ? 'border-emerald-200' : isDropoff ? 'border-orange-200' : 'border-blue-200'
                 )}
               />
             </div>
 
             <LocationPickerMap
-              label="Exact point pin, yard name & address"
+              label=""
+              compact={true}
+              mapHeight={160}
               lat={lat}
               lng={lng}
               onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }}
@@ -202,3 +199,4 @@ export default function StopAddressEditor({
     </div>
   );
 }
+
