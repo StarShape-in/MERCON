@@ -739,13 +739,13 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Dual-Card Vehicle Service History HUD Overlay inside Trailer */}
-              <div className="absolute top-[8.5%] left-[27.2%] w-[69.8%] h-[53.5%] rounded-2xl p-2 sm:p-2.5 flex items-stretch gap-2.5 sm:gap-3 overflow-hidden pointer-events-auto">
+              {/* Single Large Dark Field (#0D2E2B) HUD Overlay inside Trailer */}
+              <div className="absolute top-[8.5%] left-[27.2%] w-[69.8%] h-[53.5%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 border border-teal-800/60 shadow-xl flex items-stretch gap-3.5 sm:gap-4 overflow-hidden pointer-events-auto">
                 
-                {/* ── LEFT CARD: Dark Teal Odometer & Service Due ── */}
-                <div className="w-[40%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between border border-teal-800/60 shadow-lg shrink-0 overflow-hidden">
+                {/* ── LEFT SECTION: Odometer & Service Due ── */}
+                <div className="w-[38%] flex flex-col justify-between pr-3 border-r border-teal-800/50 shrink-0 overflow-hidden">
                   
-                  {/* Top Header: Gauge Icon + Title + Active Pill */}
+                  {/* Top Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
@@ -753,7 +753,7 @@ export default function CargoLoadingView() {
                       </div>
                       <div>
                         <h3 className="text-xs sm:text-sm font-bold text-white leading-tight tracking-tight">Odometer</h3>
-                        <p className="text-[9px] sm:text-[10px] text-teal-200/70 font-medium leading-none mt-0.5">Total Distance Travelled</p>
+                        <p className="text-[9px] sm:text-[10px] text-teal-200/70 font-medium leading-none mt-0.5">Total Distance</p>
                       </div>
                     </div>
 
@@ -763,7 +763,7 @@ export default function CargoLoadingView() {
                     </Badge>
                   </div>
 
-                  {/* Center Mechanical Rolling Counter Drum Wheels */}
+                  {/* Mechanical Rolling Counter Drum Wheels */}
                   <div className="my-auto py-1">
                     <div className="bg-[#051C19] p-2 sm:p-2.5 rounded-xl border border-teal-900/80 shadow-inner flex items-center justify-center gap-1 sm:gap-1.5">
                       <div className="flex items-center gap-0.5 sm:gap-1">
@@ -799,7 +799,7 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-[#08231F] border border-teal-800/40 rounded-xl p-2 sm:p-2.5 space-y-1">
+                  <div className="bg-[#061D1B] border border-teal-900/80 rounded-xl p-2 sm:p-2.5 space-y-1">
                     <div className="flex justify-between items-center text-[9.5px] sm:text-[10px]">
                       <div className="flex items-center gap-1.5">
                         <div className="w-4.5 h-4.5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 shrink-0">
@@ -811,7 +811,7 @@ export default function CargoLoadingView() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Target Kilometer</p>
+                        <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Target</p>
                         <p className="text-xs font-bold text-white leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
@@ -829,29 +829,21 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT CARD: Matching Dark Teal (#0D2E2B) Service History Card ── */}
-                <div className="flex-1 bg-[#0D2E2B] text-white rounded-2xl p-2.5 sm:p-3 border border-teal-800/60 shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
+                {/* ── RIGHT SECTION: Vehicle Service History (Clean Minimal Text) ── */}
+                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden">
                   
-                  {/* Top Header: Teal Calendar Icon + Title + Action */}
+                  {/* Header (No Log Service Button, Clean Minimal Title) */}
                   <div className="flex items-center justify-between shrink-0 pb-1 border-b border-teal-800/50">
-                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
                         <Calendar className="w-3.5 h-3.5 text-teal-300" />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight truncate">Vehicle Service History</h3>
-                        <p className="text-[8.5px] sm:text-[9.5px] text-teal-200/70 font-medium leading-none mt-0.5 truncate">Maintenance records & service details</p>
-                      </div>
+                      <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight truncate">Vehicle Service History</h3>
                     </div>
 
-                    <Button
-                      size="sm"
-                      onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                      className="h-5.5 px-2.5 text-[9px] sm:text-[9.5px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1 shrink-0 whitespace-nowrap border border-transparent"
-                    >
-                      <Plus className="w-2.5 h-2.5" />
-                      Log Service
-                    </Button>
+                    <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+                      5 Records
+                    </span>
                   </div>
 
                   {/* 4-Column Table Header */}
@@ -862,7 +854,7 @@ export default function CargoLoadingView() {
                     <div className="col-span-3 text-right whitespace-nowrap">Status</div>
                   </div>
 
-                  {/* 5 Color-Coded Maintenance Record Rows on Dark Teal */}
+                  {/* 5 Maintenance Record Rows */}
                   <div className="flex-1 min-h-0 flex flex-col justify-between gap-0.5 overflow-hidden">
                     {(() => {
                       const rowStyles = [
@@ -887,7 +879,7 @@ export default function CargoLoadingView() {
                               <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
                                 <IconComponent className="w-2.5 h-2.5" />
                               </div>
-                              <span className="font-extrabold text-white truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
+                              <span className="font-bold text-white truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
                             </div>
 
                             <div className="col-span-2 text-center text-[9px] sm:text-[9.5px] font-medium text-teal-200/80 whitespace-nowrap">
@@ -910,10 +902,9 @@ export default function CargoLoadingView() {
                     })()}
                   </div>
 
-                  {/* Uppercase Footer Info Bar */}
-                  <div className="pt-0.5 mt-0.5 border-t border-teal-800/40 flex items-center justify-between text-[8px] sm:text-[9px] font-mono tracking-wider uppercase text-teal-300/70 shrink-0">
-                    <span className="font-medium truncate">REGULAR SERVICE. A LONGER JOURNEY AHEAD.</span>
-                    <span className="font-bold text-teal-200 shrink-0 ml-1">VEHICLE HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
+                  {/* Minimal Footer Line */}
+                  <div className="pt-0.5 mt-0.5 border-t border-teal-800/40 flex items-center justify-end text-[8.5px] sm:text-[9px] font-mono uppercase shrink-0">
+                    <span className="font-bold text-teal-200">VEHICLE HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
