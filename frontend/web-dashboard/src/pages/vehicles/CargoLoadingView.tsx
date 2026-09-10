@@ -717,33 +717,33 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl mx-auto">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
-              {/* Framed Dark Field (#0B2724) HUD Overlay inside Trailer */}
-              <div className="absolute top-[10.2%] left-[27.8%] w-[68.4%] h-[51.2%] bg-[#0B2724] text-white rounded-2xl p-2 sm:p-2.5 border border-teal-800/60 shadow-xl flex items-stretch gap-2 sm:gap-2.5 overflow-hidden pointer-events-auto">
+              {/* Framed Default Light HUD Overlay inside Trailer */}
+              <div className="absolute top-[10.2%] left-[27.8%] w-[68.4%] h-[51.2%] bg-slate-100/90 backdrop-blur-sm text-slate-900 rounded-2xl p-2 sm:p-2.5 border border-slate-300/80 shadow-md flex items-stretch gap-2 sm:gap-2.5 overflow-hidden pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
-                <div className="w-[33%] bg-[#061D1B] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between border border-teal-900/80 shrink-0 overflow-hidden">
+                <div className="w-[33%] bg-white rounded-xl p-2 sm:p-2.5 flex flex-col justify-between border border-slate-200/90 shadow-2xs shrink-0 overflow-hidden">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-emerald-400 shadow-2xs shrink-0">
+                      <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                         <Gauge className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-xs font-bold text-white leading-tight tracking-tight truncate">Odometer</h3>
-                        <p className="text-[8.5px] text-teal-200/70 font-medium leading-none mt-0.5 truncate">Total Distance</p>
+                        <h3 className="text-xs font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
+                        <p className="text-[8.5px] text-slate-400 font-semibold leading-none mt-0.5 truncate">Total Distance</p>
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 font-extrabold px-1.5 py-0.2 text-[8.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
-                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold px-1.5 py-0.2 text-[8.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                       Active
                     </Badge>
                   </div>
 
-                  {/* Mechanical Rolling Counter Drum Wheels */}
+                  {/* Mechanical Rolling Counter Drum Wheels (Clean Centered Alignment) */}
                   <div className="my-auto py-0.5">
-                    <div className="bg-[#031412] p-1.5 rounded-lg border border-teal-950 shadow-inner flex items-center justify-center gap-1">
+                    <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800 shadow-inner flex items-center justify-center gap-1">
                       <div className="flex items-center gap-0.5">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -754,7 +754,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-6.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-6.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               {/* Glossy top glass reflection */}
                               <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
@@ -770,36 +770,36 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-[11px] sm:text-xs font-black text-white ml-0.5 shrink-0">
+                      <span className="text-[11px] sm:text-xs font-black text-slate-200 ml-0.5 shrink-0">
                         km
                       </span>
                     </div>
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-[#031412]/90 border border-teal-900/60 rounded-lg p-2 space-y-1">
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 space-y-1">
                     <div className="flex justify-between items-center text-[9px]">
                       <div className="flex items-center gap-1">
-                        <div className="w-3.5 h-3.5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 shrink-0">
-                          <Wrench className="w-2 h-2 text-teal-300" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                          <Wrench className="w-2 h-2 text-emerald-700" />
                         </div>
                         <div>
-                          <p className="text-[8px] text-teal-300/80 font-medium leading-none">Next Due</p>
-                          <p className="text-[10.5px] sm:text-xs font-black text-[#00E699] leading-tight mt-0.5">in 7,500 km</p>
+                          <p className="text-[8px] text-slate-400 font-extrabold uppercase leading-none">Next Due</p>
+                          <p className="text-[10.5px] sm:text-xs font-black text-emerald-600 leading-tight mt-0.5">in 7,500 km</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[8px] text-teal-300/80 font-medium leading-none">Target</p>
-                        <p className="text-[10.5px] font-bold text-white leading-tight mt-0.5">150,000 km</p>
+                        <p className="text-[8px] text-slate-400 font-extrabold uppercase leading-none">Target</p>
+                        <p className="text-[10.5px] font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-teal-950 h-1 rounded-full overflow-hidden p-0.5 border border-teal-900">
-                      <div className="bg-[#00E699] h-full rounded-full w-[70%] shadow-[0_0_8px_#00E699]" title="70% interval elapsed"></div>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-300/60">
+                      <div className="bg-emerald-500 h-full rounded-full w-[70%]" title="70% interval elapsed"></div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[7.5px] sm:text-[8px] text-teal-300/70 font-medium">
+                    <div className="flex justify-between items-center text-[7.5px] sm:text-[8px] text-slate-400 font-semibold">
                       <span>142,500 km</span>
                       <span>150,000 km</span>
                     </div>
@@ -807,40 +807,40 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT SUB-CARD: Vehicle Service History (Spacious & Framed) ── */}
-                <div className="flex-1 bg-[#061D1B] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between min-w-0 border border-teal-900/80 overflow-hidden">
+                {/* ── RIGHT SUB-CARD: Vehicle Service History (Clean White Theme) ── */}
+                <div className="flex-1 bg-white rounded-xl p-2 sm:p-2.5 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-2xs overflow-hidden">
                   
                   {/* Header */}
-                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-teal-800/40">
+                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-5.5 h-5.5 rounded-lg bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
-                        <Calendar className="w-3 h-3 text-teal-300" />
+                      <div className="w-5.5 h-5.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+                        <Calendar className="w-3 h-3 text-slate-700" />
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-white tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[8.5px] text-teal-300/70 font-medium leading-none mt-0.5">Recent maintenance records</p>
+                        <h3 className="text-xs font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[8.5px] text-slate-400 font-semibold leading-none mt-0.5">Recent maintenance records</p>
                       </div>
                     </div>
 
-                    <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.2 rounded-full shrink-0">
+                    <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.2 rounded-full shrink-0">
                       {serviceRecords.length} Records
                     </span>
                   </div>
 
                   {/* 3-Column Header Bar */}
-                  <div className="flex items-center justify-between bg-[#031412] px-2.5 py-0.5 rounded-md text-[8.5px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-0.5 border border-teal-950">
+                  <div className="flex items-center justify-between bg-slate-100 px-2.5 py-0.5 rounded-md text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-0.5 border border-slate-200/60">
                     <span className="flex-1 min-w-0">Service</span>
                     <span className="w-22 text-center">Date</span>
                     <span className="w-22 text-right">Odometer</span>
                   </div>
 
-                  {/* Service History Rows (Max 3 items, Never Truncated, Spacious Spacing) */}
+                  {/* Service History Rows (Max 3 items, Clean White Cards) */}
                   <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1">
                     {serviceRecords.slice(0, 3).map((rec, idx) => {
                       const rowStyles = [
-                        { icon: Droplets, iconBg: 'bg-rose-950/80 text-rose-400 border border-rose-800/50' },
-                        { icon: Disc, iconBg: 'bg-blue-950/80 text-blue-400 border border-blue-800/50' },
-                        { icon: Wind, iconBg: 'bg-amber-950/80 text-amber-400 border border-amber-800/50' },
+                        { icon: Droplets, iconBg: 'bg-rose-100 text-rose-700 border border-rose-200' },
+                        { icon: Disc, iconBg: 'bg-blue-100 text-blue-700 border border-blue-200' },
+                        { icon: Wind, iconBg: 'bg-amber-100 text-amber-700 border border-amber-200' },
                       ];
                       const style = rowStyles[idx % rowStyles.length];
                       const IconComponent = style.icon;
@@ -849,7 +849,7 @@ export default function CargoLoadingView() {
                         <div
                           key={rec.id}
                           onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="flex items-center justify-between px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0 gap-2"
+                          className="flex items-center justify-between px-2.5 py-1 sm:py-1.5 rounded-lg bg-slate-50/70 border border-slate-200/70 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-2"
                         >
                           {/* Service Work Done & Workshop */}
                           <div className="flex-1 flex items-center gap-2 min-w-0">
@@ -857,18 +857,18 @@ export default function CargoLoadingView() {
                               <IconComponent className="w-2.5 h-2.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-white text-[10px] sm:text-[11px] truncate leading-tight">{rec.work_done}</p>
-                              <p className="text-[8px] sm:text-[8.5px] font-medium text-teal-300/60 truncate mt-0.5">{rec.workshop_name}</p>
+                              <p className="font-black text-slate-900 text-[10px] sm:text-[11px] truncate leading-tight">{rec.work_done}</p>
+                              <p className="text-[8px] sm:text-[8.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
                             </div>
                           </div>
 
                           {/* Date */}
-                          <div className="w-22 text-center text-[9.5px] font-semibold text-teal-200/90 whitespace-nowrap">
+                          <div className="w-22 text-center text-[9.5px] font-bold text-slate-600 whitespace-nowrap">
                             {rec.service_date}
                           </div>
 
                           {/* Odometer */}
-                          <div className="w-22 text-right text-[10px] sm:text-[10.5px] font-bold text-teal-100 whitespace-nowrap">
+                          <div className="w-22 text-right text-[10px] sm:text-[10.5px] font-black text-slate-900 whitespace-nowrap">
                             {rec.odometer_reading}
                           </div>
                         </div>
@@ -877,9 +877,9 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Minimal Footer Info Bar */}
-                  <div className="pt-0.5 border-t border-teal-900/60 flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono uppercase text-teal-300/70 shrink-0">
+                  <div className="pt-0.5 border-t border-slate-200/80 flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono uppercase text-slate-400 shrink-0">
                     <span className="font-medium">VERIFIED MAINTENANCE LOGS</span>
-                    <span className="font-bold text-teal-200">HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
+                    <span className="font-bold text-slate-700">HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
