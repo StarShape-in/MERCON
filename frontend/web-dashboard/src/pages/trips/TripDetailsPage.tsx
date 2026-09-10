@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -61,6 +61,31 @@ const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>
     quantity: c.quantity,
     amount: c.amount,
   }));
+
+function deriveTripType(trip: any): string {
+  if (!trip) return 'Single Trip';
+  const raw = trip.quotation_line_type || (trip as any).line_type || (trip as any).trip_type || trip.rateCard?.rate_category;
+  if (raw) {
+    const s = String(raw).trim();
+    if (/round/i.test(s)) return 'Round Trip';
+    if (/single/i.test(s) || /one.?way/i.test(s)) return 'Single Trip';
+    if (/10.?hour/i.test(s)) return '10 Hours Duty';
+    if (/12.?hour/i.test(s)) return '12 Hours Duty';
+    return s;
+  }
+  const stops = trip.stops || [];
+  if (stops.length >= 3) {
+    const firstCity = stops[0]?.location_name?.toLowerCase().trim();
+    const lastCity = stops[stops.length - 1]?.location_name?.toLowerCase().trim();
+    if (firstCity && lastCity && firstCity === lastCity) {
+      return 'Round Trip';
+    }
+    if (stops.some((s: any) => s.is_return || s.leg_index === 1)) {
+      return 'Round Trip';
+    }
+  }
+  return 'Single Trip';
+}
 
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -250,30 +275,8 @@ export default function TripDetailsPage() {
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
 
-  // Trip Type
-  const tripType = useMemo(() => {
-    const raw = trip.quotation_line_type || (trip as any).line_type || (trip as any).trip_type || trip.rateCard?.rate_category;
-    if (raw) {
-      const s = String(raw).trim();
-      if (/round/i.test(s)) return 'Round Trip';
-      if (/single/i.test(s) || /one.?way/i.test(s)) return 'Single Trip';
-      if (/10.?hour/i.test(s)) return '10 Hours Duty';
-      if (/12.?hour/i.test(s)) return '12 Hours Duty';
-      return s;
-    }
-    const stops = trip.stops || [];
-    if (stops.length >= 3) {
-      const firstCity = stops[0]?.location_name?.toLowerCase().trim();
-      const lastCity = stops[stops.length - 1]?.location_name?.toLowerCase().trim();
-      if (firstCity && lastCity && firstCity === lastCity) {
-        return 'Round Trip';
-      }
-      if (stops.some((s: any) => s.is_return || s.leg_index === 1)) {
-        return 'Round Trip';
-      }
-    }
-    return 'Single Trip';
-  }, [trip]);
+  // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
+  const tripType = deriveTripType(trip);
 
   const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
   const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
@@ -762,6 +765,9 @@ export default function TripDetailsPage() {
                     src={previewImage.url}
                     alt={previewImage.title}
                     className="max-h-[44vh] w-auto max-w-full object-contain rounded-lg"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.opacity = '0.5';
+                    }}
                   />
                 )}
               </div>

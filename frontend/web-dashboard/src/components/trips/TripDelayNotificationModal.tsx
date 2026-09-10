@@ -40,6 +40,11 @@ export default function TripDelayNotificationModal({
   alert,
 }: TripDelayNotificationModalProps) {
   const [isAcknowledged, setIsAcknowledged] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
+
+  React.useEffect(() => {
+    setMediaError(false);
+  }, [alert?.imageUrl, alert?.videoUrl]);
 
   const truckNo = trip?.is_third_party
     ? trip?.third_party_vehicle_plate || 'Unassigned'
@@ -133,13 +138,14 @@ export default function TripDelayNotificationModal({
             </div>
 
             {/* ── DRIVER UPLOADED VIDEO OR PHOTO EVIDENCE ── */}
-            {alert?.videoUrl ? (
+            {!mediaError && alert?.videoUrl ? (
               <div className="relative w-full h-[180px] sm:h-[210px] rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center group">
                 <video
                   controls
                   playsInline
                   autoPlay
                   className="w-full h-full object-contain"
+                  onError={() => setMediaError(true)}
                 >
                   <source src={alert.videoUrl} type="video/mp4" />
                   <source src={alert.videoUrl} type="video/quicktime" />
@@ -155,12 +161,13 @@ export default function TripDelayNotificationModal({
                   </div>
                 </div>
               </div>
-            ) : alert?.imageUrl ? (
+            ) : !mediaError && alert?.imageUrl ? (
               <div className="relative w-full h-[180px] sm:h-[210px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center group">
                 <img
                   src={alert.imageUrl}
                   alt="Driver Delay Evidence"
                   className="w-full h-full object-cover"
+                  onError={() => setMediaError(true)}
                 />
                 <div className="absolute top-2 left-2.5 right-2.5 flex items-center justify-between text-white text-[9.5px] font-mono z-10">
                   <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded shadow">
@@ -169,6 +176,23 @@ export default function TripDelayNotificationModal({
                   </div>
                   <div className="bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-slate-200 font-bold shadow">
                     {locationName}
+                  </div>
+                </div>
+              </div>
+            ) : mediaError ? (
+              <div className="w-full rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5 flex flex-col gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertTriangle size={15} />
+                  </div>
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900">Attachment Unavailable</span>
+                      {delayTime && <span className="text-[10px] font-mono text-slate-400">{delayTime}</span>}
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                      Driver uploaded delay evidence, but the file is currently unreachable on storage.
+                    </p>
                   </div>
                 </div>
               </div>
