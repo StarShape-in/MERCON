@@ -717,16 +717,16 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl mx-auto">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
-              {/* Clean Direct HUD Sub-Cards inside Trailer Body (No Outer Gray Box Overlay) */}
-              <div className="absolute top-[10.5%] left-[32.5%] w-[63.2%] h-[51.5%] flex items-stretch gap-3 overflow-hidden pointer-events-auto">
+              {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (No Outer Gray Container) */}
+              <div className="absolute top-[11.2%] left-[31.5%] w-[64.5%] h-[50.5%] flex items-stretch gap-2.5 sm:gap-3 pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
-                <div className="w-[33%] bg-white/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-200/90 shadow-md shrink-0 overflow-hidden">
+                <div className="w-[33%] bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-200/90 shadow-sm shrink-0 overflow-hidden">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-5.5 h-5.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                         <Gauge className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
@@ -754,7 +754,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-6.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-3.5 h-5.5 sm:w-4 sm:h-6 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               {/* Glossy top glass reflection */}
                               <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
@@ -808,12 +808,12 @@ export default function CargoLoadingView() {
                 </div>
 
                 {/* ── RIGHT SUB-CARD: Vehicle Service History (Clean White Canvas Card) ── */}
-                <div className="flex-1 bg-white/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-md overflow-hidden">
+                <div className="flex-1 bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-sm overflow-hidden">
                   
                   {/* Header */}
                   <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+                      <div className="w-5.5 h-5.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
                         <Calendar className="w-3.5 h-3.5 text-slate-700" />
                       </div>
                       <div>
@@ -822,20 +822,20 @@ export default function CargoLoadingView() {
                       </div>
                     </div>
 
-                    <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full shrink-0">
+                    <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full shrink-0">
                       {serviceRecords.length} Records
                     </span>
                   </div>
 
                   {/* Table Header Bar */}
-                  <div className="flex items-center justify-between bg-slate-100/90 px-3 py-1 rounded-lg text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-1 border border-slate-200/60">
+                  <div className="flex items-center justify-between bg-slate-100/90 px-2.5 py-0.5 rounded-lg text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-0.5 border border-slate-200/60">
                     <span className="flex-1 min-w-0">Service</span>
-                    <span className="w-24 text-center shrink-0">Date</span>
-                    <span className="w-24 text-right shrink-0">Odometer</span>
+                    <span className="w-20 text-center shrink-0">Date</span>
+                    <span className="w-20 text-right shrink-0">Odometer</span>
                   </div>
 
-                  {/* Service History Rows (Max 3 items, Clean White Cards) */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1.5">
+                  {/* Service History Rows (Max 3 items, Clean White Cards, Zero Text Truncation) */}
+                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1">
                     {serviceRecords.slice(0, 3).map((rec, idx) => {
                       const rowStyles = [
                         { icon: Droplets, iconBg: 'bg-rose-100 text-rose-700 border border-rose-200' },
@@ -849,26 +849,26 @@ export default function CargoLoadingView() {
                         <div
                           key={rec.id}
                           onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-2"
+                          className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-slate-50/70 border border-slate-200/70 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-2"
                         >
                           {/* Service Work Done & Workshop */}
-                          <div className="flex-1 flex items-center gap-2.5 min-w-0">
-                            <div className={`w-5.5 h-5.5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                          <div className="flex-1 flex items-center gap-2 min-w-0">
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
                               <IconComponent className="w-2.5 h-2.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-black text-slate-900 text-[11px] truncate leading-tight">{rec.work_done}</p>
-                              <p className="text-[8.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
+                              <p className="font-black text-slate-900 text-[10.5px] sm:text-[11px] leading-tight truncate">{rec.work_done}</p>
+                              <p className="text-[8px] sm:text-[8.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
                             </div>
                           </div>
 
                           {/* Date */}
-                          <div className="w-24 text-center text-[10px] font-bold text-slate-600 whitespace-nowrap shrink-0">
+                          <div className="w-20 text-center text-[9.5px] font-bold text-slate-600 whitespace-nowrap shrink-0">
                             {rec.service_date}
                           </div>
 
                           {/* Odometer */}
-                          <div className="w-24 text-right text-[11px] font-black text-slate-900 whitespace-nowrap shrink-0">
+                          <div className="w-20 text-right text-[10.5px] font-black text-slate-900 whitespace-nowrap shrink-0">
                             {rec.odometer_reading}
                           </div>
                         </div>
@@ -877,7 +877,7 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Minimal Footer Info Bar */}
-                  <div className="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[8.5px] font-mono uppercase text-slate-400 shrink-0">
+                  <div className="pt-0.5 border-t border-slate-200/80 flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono uppercase text-slate-400 shrink-0">
                     <span className="font-semibold">VERIFIED MAINTENANCE LOGS</span>
                     <span className="font-bold text-slate-700">HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
                   </div>
