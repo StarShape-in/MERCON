@@ -27,9 +27,6 @@ jobs:
           echo "Active containers before cleanup (Production must remain untouched):"
           docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 
-          echo "Stopping ONLY mercon-dev containers to release in-use locks on old dev images..."
-          docker compose -p mercon-dev down 2>/dev/null || true
-
           echo "Truncating active and rotated system logs safely..."
           sudo find /var/log -type f -name "*.log" -exec truncate -s 0 {} + 2>/dev/null || true
           sudo find /var/log -type f \( -name "*.gz" -o -name "*.[0-9]" -o -name "*.old" \) -delete 2>/dev/null || true
@@ -45,11 +42,8 @@ jobs:
           sudo apt-get clean 2>/dev/null || true
           rm -rf /tmp/npm-* ~/.npm ~/.cache /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
 
-          echo "Pruning unreferenced Docker images, build cache, and stopped containers (Volumes PRESERVED)..."
-          sudo docker builder prune -af 2>/dev/null || true
-          sudo docker buildx prune -af 2>/dev/null || true
-          sudo docker image prune -af 2>/dev/null || true
-          sudo docker system prune -af 2>/dev/null || true
+          echo "Pruning dangling untagged images (BuildKit cache preserved)..."
+          sudo docker image prune -f 2>/dev/null || true
 
           echo "=== DISK USAGE AFTER PRE-CHECKOUT CLEANUP ==="
           df -h / || true
@@ -117,39 +111,11 @@ jobs:
           mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
           chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
 
-          # Ensure dev containers are down so any previous dev images can be purged
-          docker compose -p mercon-dev down 2>/dev/null || true
-
-          # Final pre-build log truncation & Docker build cache prune
-          sudo find /var/lib/docker/containers -type f -name '*-json.log' -exec truncate -s 0 {} + 2>/dev/null || true
-          sudo docker builder prune -af 2>/dev/null || true
-          sudo docker image prune -af 2>/dev/null || true
-          rm -rf ~/.npm ~/.cache /tmp/npm-* 2>/dev/null || true
           echo "Disk space available immediately prior to build:"
           df -h / || true
 
-          # STEP 1: Build frontend FIRST.
-          # The multi-stage build creates a tiny static Nginx image (~50MB).
-          # Once built, pruning the builder drops the heavy Node build stage cache,
-          # leaving maximum disk headroom for the backend API build.
-          echo "Building mercon-frontend..."
-          docker compose -p mercon-dev build mercon-frontend
-
-          echo "Pruning frontend build-stage cache..."
-          sudo docker builder prune -af 2>/dev/null || true
-          df -h / || true
-
-          # STEP 2: Build API second
-          echo "Building mercon-api..."
-          docker compose -p mercon-dev build mercon-api
-
-          echo "Pruning intermediate API build cache..."
-          sudo docker builder prune -af 2>/dev/null || true
-          df -h / || true
-
-          # STEP 3: Launch dev services
-          echo "Starting mercon-dev containers..."
-          docker compose -p mercon-dev up -d
+          echo "Building and updating mercon-dev services with BuildKit cache..."
+          docker compose -p mercon-dev up -d --build
 
           echo "Syncing database schema..."
           docker compose -p mercon-dev exec -T mercon-api npx prisma migrate deploy || true
