@@ -740,16 +740,16 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Dual-Card Vehicle Service History HUD Overlay inside Trailer */}
-              <div className="absolute top-[9.5%] left-[27.2%] w-[69.8%] h-[51.5%] rounded-2xl p-2 sm:p-2.5 flex items-stretch gap-2.5 sm:gap-3 overflow-hidden pointer-events-auto">
+              <div className="absolute top-[8.5%] left-[27.2%] w-[69.8%] h-[53.5%] rounded-2xl p-2 sm:p-2.5 flex items-stretch gap-2.5 sm:gap-3 overflow-hidden pointer-events-auto">
                 
                 {/* ── LEFT CARD: Dark Teal Odometer & Service Due ── */}
-                <div className="w-[41%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between border border-teal-800/60 shadow-lg shrink-0 overflow-hidden">
+                <div className="w-[40%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between border border-teal-800/60 shadow-lg shrink-0 overflow-hidden">
                   
                   {/* Top Header: Gauge Icon + Title + Active Pill */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs">
-                        <Gauge className="w-4 h-4 text-emerald-400" />
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
+                        <Gauge className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                       </div>
                       <div>
                         <h3 className="text-xs sm:text-sm font-bold text-white leading-tight tracking-tight">Odometer</h3>
@@ -757,15 +757,15 @@ export default function CargoLoadingView() {
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-2.5 py-0.5 text-[10px] rounded-full shadow-none flex items-center gap-1.5 hover:bg-emerald-950">
-                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-2 py-0.5 text-[9.5px] rounded-full shadow-none flex items-center gap-1 hover:bg-emerald-950 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                       Active
                     </Badge>
                   </div>
 
                   {/* Center Mechanical Rolling Counter Drum Wheels */}
                   <div className="my-auto py-1">
-                    <div className="bg-[#051C19] p-2 sm:p-2.5 rounded-xl border border-teal-900/80 shadow-inner flex items-center justify-center gap-1.5 sm:gap-2">
+                    <div className="bg-[#051C19] p-2 sm:p-2.5 rounded-xl border border-teal-900/80 shadow-inner flex items-center justify-center gap-1 sm:gap-1.5">
                       <div className="flex items-center gap-0.5 sm:gap-1">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -776,7 +776,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-4.5 h-6.5 sm:w-6 sm:h-8.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-xs sm:text-base rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-4 h-6 sm:w-5.5 sm:h-8 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-xs sm:text-sm rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               {/* Glossy top glass reflection */}
                               <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
@@ -799,19 +799,19 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-[#08231F] border border-teal-800/40 rounded-xl p-2 sm:p-2.5 space-y-1.5">
-                    <div className="flex justify-between items-center text-[10px]">
+                  <div className="bg-[#08231F] border border-teal-800/40 rounded-xl p-2 sm:p-2.5 space-y-1">
+                    <div className="flex justify-between items-center text-[9.5px] sm:text-[10px]">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300">
+                        <div className="w-4.5 h-4.5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 shrink-0">
                           <Wrench className="w-2.5 h-2.5 text-teal-300" />
                         </div>
                         <div>
-                          <p className="text-[9px] text-teal-300/80 font-medium leading-none">Next Service Due</p>
+                          <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Next Service Due</p>
                           <p className="text-xs sm:text-sm font-black text-[#00E699] leading-tight mt-0.5">in 7,500 km</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] text-teal-300/80 font-medium leading-none">Target Kilometer</p>
+                        <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Target Kilometer</p>
                         <p className="text-xs font-bold text-white leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
@@ -821,7 +821,7 @@ export default function CargoLoadingView() {
                       <div className="bg-[#00E699] h-full rounded-full w-[70%] shadow-[0_0_8px_#00E699]" title="70% interval elapsed"></div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[8.5px] text-teal-300/70 font-medium">
+                    <div className="flex justify-between items-center text-[8px] sm:text-[8.5px] text-teal-300/70 font-medium">
                       <span>142,500 km</span>
                       <span>150,000 km</span>
                     </div>
@@ -834,36 +834,36 @@ export default function CargoLoadingView() {
                   
                   {/* Top Header: Purple Calendar Icon + Title */}
                   <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 shadow-2xs shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 shadow-2xs shrink-0">
                         <Calendar className="w-3.5 h-3.5" />
                       </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-none mt-0.5">Maintenance records and service details</p>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-tight truncate">Vehicle Service History</h3>
+                        <p className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-medium leading-none mt-0.5 truncate">Maintenance records and service details</p>
                       </div>
                     </div>
 
                     <Button
                       size="sm"
                       onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                      className="h-6 px-2 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
+                      className="h-5.5 px-2 text-[9px] sm:text-[9.5px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1 shrink-0 whitespace-nowrap"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5" />
                       Log Service
                     </Button>
                   </div>
 
                   {/* 4-Column Table Header */}
-                  <div className="grid grid-cols-12 gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg text-[9.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0 my-1">
-                    <div className="col-span-5">Service</div>
-                    <div className="col-span-2 text-center">Date</div>
-                    <div className="col-span-2 text-center">Odometer</div>
-                    <div className="col-span-3 text-right">Status</div>
+                  <div className="grid grid-cols-12 gap-1 bg-slate-50 px-2 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0 my-0.5">
+                    <div className="col-span-4 truncate">Service</div>
+                    <div className="col-span-3 text-center whitespace-nowrap">Date</div>
+                    <div className="col-span-3 text-center whitespace-nowrap">Odometer</div>
+                    <div className="col-span-2 text-right whitespace-nowrap">Status</div>
                   </div>
 
                   {/* 5 Color-Coded Maintenance Record Rows */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-between gap-1 overflow-hidden">
+                  <div className="flex-1 min-h-0 flex flex-col justify-between gap-0.5 overflow-hidden">
                     {(() => {
                       const rowStyles = [
                         { icon: Droplets, iconBg: 'bg-rose-100 text-rose-600 border border-rose-200/60', rowBg: 'bg-rose-50/40' },
@@ -881,26 +881,26 @@ export default function CargoLoadingView() {
                           <div
                             key={rec.id}
                             onClick={() => navigate(`/maintenance/${rec.id}`)}
-                            className={`grid grid-cols-12 gap-1.5 px-2 py-1 rounded-xl items-center text-xs ${style.rowBg} border border-slate-100/80 transition-all hover:border-slate-300 cursor-pointer`}
+                            className={`grid grid-cols-12 gap-1 px-2 py-0.5 rounded-lg items-center text-xs ${style.rowBg} border border-slate-100/80 transition-all hover:border-slate-300 cursor-pointer shrink-0`}
                           >
-                            <div className="col-span-5 flex items-center gap-1.5 min-w-0">
-                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
-                                <IconComponent className="w-3 h-3" />
+                            <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                                <IconComponent className="w-2.5 h-2.5" />
                               </div>
-                              <span className="font-extrabold text-slate-900 truncate text-[10.5px] sm:text-xs">{rec.work_done}</span>
+                              <span className="font-extrabold text-slate-900 truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
                             </div>
 
-                            <div className="col-span-2 text-center text-[9.5px] sm:text-[10.5px] font-semibold text-slate-500">
+                            <div className="col-span-3 text-center text-[9px] sm:text-[10px] font-medium text-slate-500 whitespace-nowrap">
                               {rec.service_date}
                             </div>
 
-                            <div className="col-span-2 text-center text-[9.5px] sm:text-[10.5px] font-bold text-slate-700">
+                            <div className="col-span-3 text-center text-[9px] sm:text-[10px] font-bold text-slate-700 whitespace-nowrap">
                               {rec.odometer_reading}
                             </div>
 
-                            <div className="col-span-3 flex justify-end">
-                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200/80 font-bold px-2 py-0.5 text-[9px] sm:text-[10px] rounded-full flex items-center gap-1 shadow-none hover:bg-emerald-100">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                            <div className="col-span-2 flex justify-end whitespace-nowrap">
+                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200/80 font-bold px-1.5 py-0.2 text-[8.5px] sm:text-[9px] rounded-full flex items-center gap-0.5 shadow-none hover:bg-emerald-100 whitespace-nowrap">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                                 Completed
                               </Badge>
                             </div>
@@ -911,9 +911,9 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Uppercase Footer Info Bar */}
-                  <div className="pt-1 mt-1 border-t border-slate-100 flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-mono tracking-wider uppercase text-slate-400 shrink-0">
-                    <span className="font-medium">REGULAR SERVICE. A LONGER JOURNEY AHEAD.</span>
-                    <span className="font-bold text-slate-600">VEHICLE HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
+                  <div className="pt-0.5 mt-0.5 border-t border-slate-100 flex items-center justify-between text-[8px] sm:text-[9px] font-mono tracking-wider uppercase text-slate-400 shrink-0">
+                    <span className="font-medium truncate">REGULAR SERVICE. A LONGER JOURNEY AHEAD.</span>
+                    <span className="font-bold text-slate-600 shrink-0 ml-1">VEHICLE HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
