@@ -99,7 +99,7 @@ export default function CargoLoadingView() {
         odometer_reading: r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '142,500 km',
         cost: r.cost ? `SAR ${r.cost.toLocaleString()}` : 'SAR 1,450',
         status: r.status || 'Completed',
-        typeIndex: idx % 5,
+        typeIndex: idx % 3,
       }))
     : [
         {
@@ -134,28 +134,6 @@ export default function CargoLoadingView() {
           cost: 'SAR 650',
           status: 'Completed',
           typeIndex: 2,
-        },
-        {
-          id: 'mnt-4',
-          ref_id: 'MNT-024',
-          work_done: 'Coolant Change',
-          workshop_name: 'Main Fleet Workshop Riyadh',
-          service_date: '03 Jan 2026',
-          odometer_reading: '120,750 km',
-          cost: 'SAR 480',
-          status: 'Completed',
-          typeIndex: 3,
-        },
-        {
-          id: 'mnt-5',
-          ref_id: 'MNT-018',
-          work_done: 'Transmission Service',
-          workshop_name: 'Zahid Heavy Equipment Workshop',
-          service_date: '18 Sep 2025',
-          odometer_reading: '112,400 km',
-          cost: 'SAR 3,100',
-          status: 'Completed',
-          typeIndex: 4,
         },
       ];
 
@@ -829,86 +807,82 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT SECTION: Vehicle Service History (Clean Minimal Text) ── */}
-                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden">
+                {/* ── RIGHT SECTION: Vehicle Service History (Spacious & Perfectly Aligned) ── */}
+                <div className="flex-1 flex flex-col justify-between pl-1 min-w-0 overflow-hidden">
                   
-                  {/* Header (No Log Service Button, Clean Minimal Title) */}
-                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-teal-800/50">
+                  {/* Header */}
+                  <div className="flex items-center justify-between shrink-0 pb-1.5 border-b border-teal-800/50">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
+                      <div className="w-7 h-7 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
                         <Calendar className="w-3.5 h-3.5 text-teal-300" />
                       </div>
-                      <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight truncate">Vehicle Service History</h3>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[9.5px] text-teal-300/70 font-medium">Recent maintenance records</p>
+                      </div>
                     </div>
 
-                    <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                      5 Records
+                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.5 rounded-full shrink-0">
+                      {serviceRecords.length} {serviceRecords.length === 1 ? 'Record' : 'Records'}
                     </span>
                   </div>
 
-                  {/* 4-Column Table Header */}
-                  <div className="grid grid-cols-12 gap-1 bg-[#051C19] px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-0.5 border border-teal-900/60">
-                    <div className="col-span-5 truncate">Service</div>
-                    <div className="col-span-2 text-center whitespace-nowrap">Date</div>
-                    <div className="col-span-2 text-center whitespace-nowrap">Odometer</div>
-                    <div className="col-span-3 text-right whitespace-nowrap">Status</div>
+                  {/* 3-Column Header Bar */}
+                  <div className="flex items-center justify-between bg-[#051C19] px-3 py-1 rounded-lg text-[9.5px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-1 border border-teal-900/60">
+                    <span className="flex-1 min-w-0">Service</span>
+                    <span className="w-28 text-center">Date</span>
+                    <span className="w-28 text-right">Odometer</span>
                   </div>
 
-                  {/* 5 Maintenance Record Rows */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-between gap-0.5 overflow-hidden">
-                    {(() => {
+                  {/* Service History Rows (Spacious, Uncrowded - Max 3 items) */}
+                  <div className="flex-1 min-h-0 flex flex-col justify-around gap-1.5 py-0.5 overflow-hidden">
+                    {serviceRecords.slice(0, 3).map((rec, idx) => {
                       const rowStyles = [
                         { icon: Droplets, iconBg: 'bg-rose-950/80 text-rose-400 border border-rose-800/50' },
                         { icon: Disc, iconBg: 'bg-blue-950/80 text-blue-400 border border-blue-800/50' },
                         { icon: Wind, iconBg: 'bg-amber-950/80 text-amber-400 border border-amber-800/50' },
-                        { icon: Thermometer, iconBg: 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/50' },
-                        { icon: Settings, iconBg: 'bg-purple-950/80 text-purple-400 border border-purple-800/50' },
                       ];
+                      const style = rowStyles[idx % rowStyles.length];
+                      const IconComponent = style.icon;
 
-                      return serviceRecords.slice(0, 5).map((rec, idx) => {
-                        const style = rowStyles[idx % rowStyles.length];
-                        const IconComponent = style.icon;
-
-                        return (
-                          <div
-                            key={rec.id}
-                            onClick={() => navigate(`/maintenance/${rec.id}`)}
-                            className="grid grid-cols-12 gap-1 px-2 py-0.5 rounded-lg items-center text-xs bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0"
-                          >
-                            <div className="col-span-5 flex items-center gap-1.5 min-w-0">
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
-                                <IconComponent className="w-2.5 h-2.5" />
-                              </div>
-                              <span className="font-bold text-white truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
+                      return (
+                        <div
+                          key={rec.id}
+                          onClick={() => navigate(`/maintenance/${rec.id}`)}
+                          className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0 gap-3"
+                        >
+                          {/* Service Work Done & Workshop */}
+                          <div className="flex-1 flex items-center gap-2.5 min-w-0">
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                              <IconComponent className="w-3 h-3" />
                             </div>
-
-                            <div className="col-span-2 text-center text-[9px] sm:text-[9.5px] font-medium text-teal-200/80 whitespace-nowrap">
-                              {rec.service_date}
-                            </div>
-
-                            <div className="col-span-2 text-center text-[9px] sm:text-[9.5px] font-bold text-teal-100 whitespace-nowrap">
-                              {rec.odometer_reading}
-                            </div>
-
-                            <div className="col-span-3 flex justify-end whitespace-nowrap">
-                              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-1.5 py-0.2 text-[8.5px] sm:text-[9px] rounded-full flex items-center gap-0.5 shadow-none hover:bg-emerald-950 whitespace-nowrap">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-                                Completed
-                              </Badge>
+                            <div className="min-w-0">
+                              <p className="font-bold text-white text-xs truncate leading-tight">{rec.work_done}</p>
+                              <p className="text-[9.5px] font-medium text-teal-300/70 truncate mt-0.5">{rec.workshop_name}</p>
                             </div>
                           </div>
-                        );
-                      });
-                    })()}
+
+                          {/* Date */}
+                          <div className="w-28 text-center text-[10.5px] font-semibold text-teal-200/90 whitespace-nowrap">
+                            {rec.service_date}
+                          </div>
+
+                          {/* Odometer */}
+                          <div className="w-28 text-right text-[11px] font-bold text-teal-100 whitespace-nowrap">
+                            {rec.odometer_reading}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Minimal Footer Line */}
-                  <div className="pt-0.5 mt-0.5 border-t border-teal-800/40 flex items-center justify-end text-[8.5px] sm:text-[9px] font-mono uppercase shrink-0">
+                  {/* Minimal Footer Info Bar */}
+                  <div className="pt-1 border-t border-teal-800/40 flex items-center justify-between text-[9px] font-mono uppercase shrink-0">
+                    <span className="text-teal-300/70 font-medium">VERIFIED MAINTENANCE LOGS</span>
                     <span className="font-bold text-teal-200">VEHICLE HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
-
               </div>
             </div>
           </div>
