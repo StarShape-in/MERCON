@@ -675,60 +675,57 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Single Seamless Vehicle Service History HUD Overlay inside Trailer */}
-              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
                 
                 <div className="grid grid-cols-12 gap-3 h-full items-stretch overflow-hidden">
                   
-                  {/* ── LEFT SIDE: Premium Rich Odometer Widget (Col-span-4) ── */}
-                  <div className="col-span-4 bg-gradient-to-b from-[#3E3C3D] via-slate-800 to-[#2A292A] text-white rounded-xl p-2.5 flex flex-col justify-between border border-slate-700/80 shadow-xs relative overflow-hidden shrink-0">
-                    
-                    {/* Background Accent Glow */}
-                    <div className="absolute -right-6 -top-6 w-20 h-20 bg-[#FA634E]/20 rounded-full blur-xl pointer-events-none"></div>
+                  {/* ── LEFT SIDE: Clean Executive Odometer Card (Col-span-4) ── */}
+                  <div className="col-span-4 bg-slate-50/90 dark:bg-slate-950/60 rounded-xl p-3 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 shrink-0">
                     
                     {/* Header */}
-                    <div className="flex items-center justify-between z-10">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Gauge className="w-3.5 h-3.5 text-[#FA634E]" />
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Odometer</span>
+                        <div className="w-5 h-5 rounded-md bg-[#FA634E]/10 flex items-center justify-center text-[#FA634E]">
+                          <Gauge className="w-3 h-3" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                          Odometer
+                        </span>
                       </div>
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-1.5 py-0.2 text-[9px] rounded-full">
+                        Active
+                      </Badge>
                     </div>
 
-                    {/* Main Odometer Counter */}
-                    <div className="my-auto text-center z-10 py-1">
-                      {/* Digital Odometer Display Drum Box */}
-                      <div className="inline-flex items-center gap-0.5 bg-black/60 px-2.5 py-1.5 rounded-lg border border-slate-700/80 shadow-inner">
-                        <span className="font-mono text-base sm:text-lg font-black tracking-widest text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">
+                    {/* Main Odometer Value */}
+                    <div className="my-auto text-left py-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Current Reading</p>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
                           {vehicle?.current_odometer ? vehicle.current_odometer.toLocaleString() : '142,500'}
                         </span>
-                        <span className="text-[10px] font-extrabold text-slate-400 uppercase ml-1">KM</span>
+                        <span className="text-xs font-black text-slate-500 uppercase">km</span>
                       </div>
-                      <p className="text-[8.5px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
-                        Vehicle Reading
-                      </p>
                     </div>
 
                     {/* Service Progress & Next Due */}
-                    <div className="z-10 pt-1 border-t border-slate-700/60 text-[9px] space-y-1">
-                      <div className="flex justify-between items-center text-slate-300 font-bold">
-                        <span>Next Service</span>
-                        <span className="text-emerald-400 font-extrabold">in 7,500 km</span>
+                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800 space-y-1">
+                      <div className="flex justify-between items-center text-[9.5px]">
+                        <span className="font-bold text-slate-500">Next Service</span>
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">in 7,500 km</span>
                       </div>
-                      <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-700/50">
-                        <div className="bg-gradient-to-r from-emerald-500 to-[#FA634E] h-full w-[70%]" title="70% interval elapsed"></div>
+                      <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-[#FA634E] h-full w-[70%]" title="70% interval elapsed"></div>
                       </div>
                     </div>
 
                   </div>
 
-                  {/* ── RIGHT SIDE: Service History Details (Col-span-8) ── */}
+                  {/* ── RIGHT SIDE: Clean Service History Details (Col-span-8) ── */}
                   <div className="col-span-8 flex flex-col justify-between h-full min-h-0 overflow-hidden pl-0.5">
                     
                     {/* Header */}
-                    <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
                       <div className="flex items-center gap-1.5">
                         <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
                         <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight">
@@ -736,54 +733,54 @@ export default function CargoLoadingView() {
                         </h3>
                       </div>
                       
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                          className="h-5 px-2 text-[9px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-md gap-0.5"
+                          className="h-6 px-2.5 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
                         >
-                          <Plus className="w-2.5 h-2.5" />
-                          Add Log
+                          <Plus className="w-3 h-3" />
+                          Add Record
                         </Button>
                         <button
                           onClick={() => navigate('/maintenance')}
-                          className="text-[9px] font-bold text-slate-500 hover:text-[#FA634E] flex items-center gap-0.5 transition-colors ml-1"
+                          className="text-[10px] font-bold text-slate-500 hover:text-[#FA634E] flex items-center gap-0.5 transition-colors"
                         >
-                          All <ExternalLink className="w-2.5 h-2.5" />
+                          All <ExternalLink className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
 
                     {/* Non-scrollable Service History Rows (2 clean rows) */}
-                    <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5 py-1 overflow-hidden">
+                    <div className="flex-1 min-h-0 flex flex-col justify-center gap-2 py-1 overflow-hidden">
                       {serviceRecords.slice(0, 2).map((rec) => (
                         <div 
                           key={rec.id}
                           onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="group bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/80 rounded-lg px-2.5 py-1.5 transition-all cursor-pointer flex items-center justify-between gap-2 shrink-0"
+                          className="group bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl p-2.5 transition-all cursor-pointer flex items-center justify-between gap-3 shrink-0"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wide px-1.5 py-0.2 bg-white border border-slate-200 rounded-md shrink-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wide px-1.5 py-0.5 bg-white border border-slate-200 rounded-md shrink-0">
                                 {rec.ref_id}
                               </span>
-                              <p className="text-[11px] font-black text-slate-900 truncate leading-tight group-hover:text-[#FA634E] transition-colors">
+                              <p className="text-xs font-black text-slate-900 truncate leading-tight group-hover:text-[#FA634E] transition-colors">
                                 {rec.work_done}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 text-[9.5px] text-slate-500 mt-0.5">
-                              <span className="font-semibold truncate max-w-[130px]">{rec.workshop_name}</span>
+                            <div className="flex items-center gap-2.5 text-[10px] text-slate-500 mt-1">
+                              <span className="font-semibold truncate max-w-[150px]">{rec.workshop_name}</span>
                               <span className="text-slate-300">•</span>
                               <span className="font-medium text-slate-400">{rec.service_date}</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2.5 shrink-0 text-right">
+                          <div className="flex items-center gap-3 shrink-0 text-right">
                             <div>
-                              <p className="text-[11px] font-black text-slate-900 leading-tight">{rec.cost}</p>
-                              <p className="text-[8.5px] font-bold text-slate-400 mt-0.2">{rec.odometer_reading}</p>
+                              <p className="text-xs font-black text-slate-900 leading-tight">{rec.cost}</p>
+                              <p className="text-[9px] font-semibold text-slate-400 mt-0.5">{rec.odometer_reading}</p>
                             </div>
-                            <Badge className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded-full border shadow-none shrink-0 ${
+                            <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-none shrink-0 ${
                               rec.status.toLowerCase().includes('in_progress') || rec.status.toLowerCase().includes('progress')
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -796,9 +793,9 @@ export default function CargoLoadingView() {
                     </div>
 
                     {/* Footer info line */}
-                    <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] text-slate-400 shrink-0">
-                      <span>Verified Workshop Logs</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">Total Maintenance: {serviceRecords.length} Records</span>
+                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
+                      <span className="font-medium">Verified Workshop Records</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Vehicle Health: Operational</span>
                     </div>
 
                   </div>
