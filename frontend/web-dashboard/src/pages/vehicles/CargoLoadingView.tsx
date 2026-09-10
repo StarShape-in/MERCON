@@ -829,25 +829,25 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT CARD: White Service History Card with 5 Color-Coded Rows ── */}
-                <div className="flex-1 bg-white text-slate-900 rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
+                {/* ── RIGHT CARD: Matching Dark Teal (#0D2E2B) Service History Card ── */}
+                <div className="flex-1 bg-[#0D2E2B] text-white rounded-2xl p-2.5 sm:p-3 border border-teal-800/60 shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
                   
-                  {/* Top Header: Purple Calendar Icon + Title */}
-                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
+                  {/* Top Header: Teal Calendar Icon + Title + Action */}
+                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-teal-800/50">
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                      <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 shadow-2xs shrink-0">
-                        <Calendar className="w-3.5 h-3.5" />
+                      <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-teal-300" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-tight truncate">Vehicle Service History</h3>
-                        <p className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-medium leading-none mt-0.5 truncate">Maintenance records and service details</p>
+                        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight truncate">Vehicle Service History</h3>
+                        <p className="text-[8.5px] sm:text-[9.5px] text-teal-200/70 font-medium leading-none mt-0.5 truncate">Maintenance records & service details</p>
                       </div>
                     </div>
 
                     <Button
                       size="sm"
                       onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                      className="h-5.5 px-2 text-[9px] sm:text-[9.5px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1 shrink-0 whitespace-nowrap"
+                      className="h-5.5 px-2.5 text-[9px] sm:text-[9.5px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1 shrink-0 whitespace-nowrap border border-transparent"
                     >
                       <Plus className="w-2.5 h-2.5" />
                       Log Service
@@ -855,22 +855,22 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* 4-Column Table Header */}
-                  <div className="grid grid-cols-12 gap-1 bg-slate-50 px-2 py-0.5 rounded-md text-[9px] sm:text-[9.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0 my-0.5">
-                    <div className="col-span-4 truncate">Service</div>
-                    <div className="col-span-3 text-center whitespace-nowrap">Date</div>
-                    <div className="col-span-3 text-center whitespace-nowrap">Odometer</div>
-                    <div className="col-span-2 text-right whitespace-nowrap">Status</div>
+                  <div className="grid grid-cols-12 gap-1 bg-[#051C19] px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-0.5 border border-teal-900/60">
+                    <div className="col-span-5 truncate">Service</div>
+                    <div className="col-span-2 text-center whitespace-nowrap">Date</div>
+                    <div className="col-span-2 text-center whitespace-nowrap">Odometer</div>
+                    <div className="col-span-3 text-right whitespace-nowrap">Status</div>
                   </div>
 
-                  {/* 5 Color-Coded Maintenance Record Rows */}
+                  {/* 5 Color-Coded Maintenance Record Rows on Dark Teal */}
                   <div className="flex-1 min-h-0 flex flex-col justify-between gap-0.5 overflow-hidden">
                     {(() => {
                       const rowStyles = [
-                        { icon: Droplets, iconBg: 'bg-rose-100 text-rose-600 border border-rose-200/60', rowBg: 'bg-rose-50/40' },
-                        { icon: Disc, iconBg: 'bg-blue-100 text-blue-600 border border-blue-200/60', rowBg: 'bg-blue-50/40' },
-                        { icon: Wind, iconBg: 'bg-amber-100 text-amber-600 border border-amber-200/60', rowBg: 'bg-amber-50/40' },
-                        { icon: Thermometer, iconBg: 'bg-cyan-100 text-cyan-600 border border-cyan-200/60', rowBg: 'bg-cyan-50/40' },
-                        { icon: Settings, iconBg: 'bg-purple-100 text-purple-600 border border-purple-200/60', rowBg: 'bg-purple-50/40' },
+                        { icon: Droplets, iconBg: 'bg-rose-950/80 text-rose-400 border border-rose-800/50' },
+                        { icon: Disc, iconBg: 'bg-blue-950/80 text-blue-400 border border-blue-800/50' },
+                        { icon: Wind, iconBg: 'bg-amber-950/80 text-amber-400 border border-amber-800/50' },
+                        { icon: Thermometer, iconBg: 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/50' },
+                        { icon: Settings, iconBg: 'bg-purple-950/80 text-purple-400 border border-purple-800/50' },
                       ];
 
                       return serviceRecords.slice(0, 5).map((rec, idx) => {
@@ -881,26 +881,26 @@ export default function CargoLoadingView() {
                           <div
                             key={rec.id}
                             onClick={() => navigate(`/maintenance/${rec.id}`)}
-                            className={`grid grid-cols-12 gap-1 px-2 py-0.5 rounded-lg items-center text-xs ${style.rowBg} border border-slate-100/80 transition-all hover:border-slate-300 cursor-pointer shrink-0`}
+                            className="grid grid-cols-12 gap-1 px-2 py-0.5 rounded-lg items-center text-xs bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0"
                           >
-                            <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                            <div className="col-span-5 flex items-center gap-1.5 min-w-0">
                               <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
                                 <IconComponent className="w-2.5 h-2.5" />
                               </div>
-                              <span className="font-extrabold text-slate-900 truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
+                              <span className="font-extrabold text-white truncate text-[10px] sm:text-[10.5px]" title={rec.work_done}>{rec.work_done}</span>
                             </div>
 
-                            <div className="col-span-3 text-center text-[9px] sm:text-[10px] font-medium text-slate-500 whitespace-nowrap">
+                            <div className="col-span-2 text-center text-[9px] sm:text-[9.5px] font-medium text-teal-200/80 whitespace-nowrap">
                               {rec.service_date}
                             </div>
 
-                            <div className="col-span-3 text-center text-[9px] sm:text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                            <div className="col-span-2 text-center text-[9px] sm:text-[9.5px] font-bold text-teal-100 whitespace-nowrap">
                               {rec.odometer_reading}
                             </div>
 
-                            <div className="col-span-2 flex justify-end whitespace-nowrap">
-                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200/80 font-bold px-1.5 py-0.2 text-[8.5px] sm:text-[9px] rounded-full flex items-center gap-0.5 shadow-none hover:bg-emerald-100 whitespace-nowrap">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <div className="col-span-3 flex justify-end whitespace-nowrap">
+                              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-1.5 py-0.2 text-[8.5px] sm:text-[9px] rounded-full flex items-center gap-0.5 shadow-none hover:bg-emerald-950 whitespace-nowrap">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
                                 Completed
                               </Badge>
                             </div>
@@ -911,9 +911,9 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Uppercase Footer Info Bar */}
-                  <div className="pt-0.5 mt-0.5 border-t border-slate-100 flex items-center justify-between text-[8px] sm:text-[9px] font-mono tracking-wider uppercase text-slate-400 shrink-0">
+                  <div className="pt-0.5 mt-0.5 border-t border-teal-800/40 flex items-center justify-between text-[8px] sm:text-[9px] font-mono tracking-wider uppercase text-teal-300/70 shrink-0">
                     <span className="font-medium truncate">REGULAR SERVICE. A LONGER JOURNEY AHEAD.</span>
-                    <span className="font-bold text-slate-600 shrink-0 ml-1">VEHICLE HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
+                    <span className="font-bold text-teal-200 shrink-0 ml-1">VEHICLE HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
