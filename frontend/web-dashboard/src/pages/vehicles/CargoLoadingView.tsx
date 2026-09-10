@@ -8,7 +8,7 @@ import {
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
-  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2
+  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -622,122 +622,92 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Maintenance & Odometer Telemetry Overlay (Replaces Cargo Slots Grid inside Trailer Graphic) */}
-              <div className="absolute top-[8%] left-[28.4%] w-[68%] h-[82%] p-3 sm:p-4 flex flex-col justify-between overflow-hidden backdrop-blur-[2px] bg-slate-900/10 rounded-r-3xl border border-white/20">
+              {/* Single Seamless Telemetry HUD Overlay (Contains Odometer Dial & System Health inside Trailer) */}
+              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
                 
-                {/* Top Section: Odometer Gauge Dial (Left) + System Radial Health Gauges (Right) */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center flex-1">
-                  
-                  {/* Left: Interactive Odometer Gauge Dial */}
-                  <div className="sm:col-span-5 flex items-center justify-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                    <div className="relative flex flex-col items-center justify-center">
-                      <svg className="w-24 h-24 sm:w-28 sm:h-28 -rotate-90 transform drop-shadow-xs" viewBox="0 0 100 100">
-                        {/* Outer Background Track */}
-                        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="7" className="text-slate-100 dark:text-slate-800" fill="transparent" />
-                        {/* Progress Arc ring (84% health) */}
-                        <circle 
-                          cx="50" 
-                          cy="50" 
-                          r="40" 
-                          stroke="url(#odometerGrad)" 
-                          strokeWidth="7" 
-                          fill="transparent" 
-                          strokeDasharray={251.2} 
-                          strokeDashoffset={251.2 * (1 - 0.84)} 
-                          strokeLinecap="round" 
-                        />
-                        <defs>
-                          <linearGradient id="odometerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#10B981" />
-                            <stop offset="100%" stopColor="#FA634E" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      {/* Dial Center Text */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className="text-[8px] font-extrabold uppercase tracking-widest text-slate-400">Odometer</span>
-                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-none my-0.5">
-                          {vehicle?.current_odometer ? vehicle.current_odometer.toLocaleString() : '148,250'}
-                        </span>
-                        <span className="text-[9px] font-mono font-extrabold text-[#FA634E]">KM</span>
-                        <span className="text-[7.5px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded-full border border-emerald-200/60 mt-0.5">
-                          Due in 8.5k KM
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Telemetry Radial Health Gauges (Engine Oil & Brake Wear) */}
-                  <div className="sm:col-span-7 grid grid-cols-2 gap-2 h-full">
-                    {/* Gauge 1: Engine Oil */}
-                    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-2.5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Engine Oil</span>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      </div>
-                      <div className="flex items-center gap-2 my-1">
-                        <div className="relative w-10 h-10 shrink-0">
-                          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                            <path stroke="currentColor" strokeWidth="3.5" className="text-slate-100 dark:text-slate-800" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path stroke="#10B981" strokeWidth="3.5" strokeDasharray="78, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-900 dark:text-white">78%</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 leading-none">Optimal</p>
-                          <p className="text-[8px] font-semibold text-slate-400 mt-0.5 truncate">Next: 155k km</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Gauge 2: Brake Wear */}
-                    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-2.5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Brake Wear</span>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      </div>
-                      <div className="flex items-center gap-2 my-1">
-                        <div className="relative w-10 h-10 shrink-0">
-                          <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                            <path stroke="currentColor" strokeWidth="3.5" className="text-slate-100 dark:text-slate-800" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path stroke="#10B981" strokeWidth="3.5" strokeDasharray="92, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-900 dark:text-white">92%</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 leading-none">92% Good</p>
-                          <p className="text-[8px] font-semibold text-slate-400 mt-0.5 truncate">Pads: Excellent</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Section: Maintenance Timeline Bar & Tire Telemetry */}
-                <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-2.5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 mt-2">
-                  {/* Maintenance Timeline Strip */}
-                  <div className="flex-1 flex items-center gap-2">
-                    <Wrench className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between text-[9px] font-bold">
-                        <span className="text-emerald-700 dark:text-emerald-400">Last Service: 12 Aug (Done)</span>
-                        <span className="text-amber-700 dark:text-amber-400">Scheduled: Routine Inspection</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full flex overflow-hidden">
-                        <div className="h-full bg-emerald-500 w-[70%]" title="Service Healthy"></div>
-                        <div className="h-full bg-amber-500 w-[30%]" title="Scheduled Soon"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tire Pressure Telemetry Badges */}
-                  <div className="flex items-center gap-1.5 shrink-0 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-xl border border-slate-200/60 dark:border-slate-700">
-                    <span className="text-[9px] font-black text-slate-500 uppercase">Tires:</span>
-                    <span className="text-[9.5px] font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-1.5 py-0.2 rounded-md">
-                      32 PSI
+                {/* Header Row inside Trailer HUD */}
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5">
+                    <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Vehicle Telemetry & Service Health
                     </span>
                   </div>
+                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                    Operational (Healthy)
+                  </span>
                 </div>
+
+                {/* Middle Row: 3 Telemetry Indicators Side-by-Side */}
+                <div className="grid grid-cols-12 gap-2.5 items-center flex-1 my-1">
+                  
+                  {/* 1. Odometer Gauge Dial (Col-span-5) */}
+                  <div className="col-span-5 flex items-center gap-2 bg-slate-50/90 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                        <path stroke="currentColor" strokeWidth="3" className="text-slate-200 dark:text-slate-800" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path stroke="#FA634E" strokeWidth="3" strokeDasharray="84, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <Gauge className="w-3.5 h-3.5 text-[#FA634E]" />
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider">Odometer</p>
+                      <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight truncate">
+                        {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '7,944,500 km'}
+                      </p>
+                      <p className="text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">Due in 8,500 km</p>
+                    </div>
+                  </div>
+
+                  {/* 2. Engine Oil Arc Gauge (Col-span-3.5) */}
+                  <div className="col-span-3.5 sm:col-span-3.5 flex items-center gap-2 bg-slate-50/90 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                    <div className="relative w-10 h-10 shrink-0">
+                      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                        <path stroke="currentColor" strokeWidth="3.5" className="text-slate-200 dark:text-slate-800" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path stroke="#10B981" strokeWidth="3.5" strokeDasharray="78, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-900 dark:text-white">78%</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider">Engine Oil</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">Optimal</p>
+                    </div>
+                  </div>
+
+                  {/* 3. Brake Wear Arc Gauge (Col-span-3.5) */}
+                  <div className="col-span-3.5 sm:col-span-3.5 flex items-center gap-2 bg-slate-50/90 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                    <div className="relative w-10 h-10 shrink-0">
+                      <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                        <path stroke="currentColor" strokeWidth="3.5" className="text-slate-200 dark:text-slate-800" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path stroke="#10B981" strokeWidth="3.5" strokeDasharray="92, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-slate-900 dark:text-white">92%</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider">Brake Wear</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">Good</p>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Bottom Service Progress Timeline Strip */}
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-[10px]">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-bold text-slate-400 uppercase tracking-wider text-[8.5px] shrink-0">Service Log:</span>
+                    <div className="flex-1 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
+                      <div className="h-full bg-emerald-500 w-[70%]" title="70% Service Health"></div>
+                      <div className="h-full bg-amber-500 w-[30%]" title="30% Scheduled Interval"></div>
+                    </div>
+                    <span className="font-extrabold text-slate-700 dark:text-slate-300 shrink-0 text-[8.5px]">Last: 12 Aug 2026</span>
+                  </div>
+                  <span className="font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full text-[8.5px] shrink-0">
+                    Tires 32 PSI
+                  </span>
+                </div>
+
               </div>
             </div>
           </div>
