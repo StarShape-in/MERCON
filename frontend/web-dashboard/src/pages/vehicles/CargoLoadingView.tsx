@@ -151,6 +151,7 @@ export default function CargoLoadingView() {
   const [tripTab, setTripTab] = useState<'recent' | 'upcoming' | 'completed'>('recent');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeMilestoneId, setActiveMilestoneId] = useState<string>('mnt-1');
 
   const getNorm = (status?: string) => (status || '').toLowerCase().replace(/[\s\-_]+/g, '');
 
@@ -674,133 +675,129 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Single Seamless Vehicle Service History HUD Overlay inside Trailer */}
+              {/* Single Seamless Interactive Service History Timeline HUD Overlay inside Trailer */}
               <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
                 
-                <div className="grid grid-cols-12 gap-3 h-full items-stretch overflow-hidden">
-                  
-                  {/* ── LEFT SIDE: Clean Executive Odometer Card (Col-span-4) ── */}
-                  <div className="col-span-4 bg-slate-50/90 dark:bg-slate-950/60 rounded-xl p-3 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 shrink-0">
-                    
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-md bg-[#FA634E]/10 flex items-center justify-center text-[#FA634E]">
-                          <Gauge className="w-3 h-3" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          Odometer
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-1.5 py-0.2 text-[9px] rounded-full">
-                        Active
-                      </Badge>
+                {/* Top Header Row */}
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-md bg-[#FA634E]/10 flex items-center justify-center text-[#FA634E]">
+                      <Wrench className="w-3 h-3" />
                     </div>
-
-                    {/* Main Odometer Value */}
-                    <div className="my-auto text-left py-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Current Reading</p>
-                      <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
-                          {vehicle?.current_odometer ? vehicle.current_odometer.toLocaleString() : '142,500'}
-                        </span>
-                        <span className="text-xs font-black text-slate-500 uppercase">km</span>
-                      </div>
+                    <div>
+                      <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none flex items-center gap-1.5">
+                        Vehicle Service History & Milestone Timeline
+                      </h3>
+                      <p className="text-[9px] font-semibold text-slate-400 mt-0.5 leading-none">
+                        Click milestone nodes to inspect component service orders
+                      </p>
                     </div>
-
-                    {/* Service Progress & Next Due */}
-                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800 space-y-1">
-                      <div className="flex justify-between items-center text-[9.5px]">
-                        <span className="font-bold text-slate-500">Next Service</span>
-                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">in 7,500 km</span>
-                      </div>
-                      <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-[#FA634E] h-full w-[70%]" title="70% interval elapsed"></div>
-                      </div>
-                    </div>
-
                   </div>
 
-                  {/* ── RIGHT SIDE: Clean Service History Details (Col-span-8) ── */}
-                  <div className="col-span-8 flex flex-col justify-between h-full min-h-0 overflow-hidden pl-0.5">
-                    
-                    {/* Header */}
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                      <div className="flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
-                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                          Service History Details
-                        </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 font-bold px-2 py-0.5 text-[10px] rounded-md flex items-center gap-1">
+                      <Gauge className="w-3 h-3 text-[#FA634E]" />
+                      {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
+                      className="h-6 px-2.5 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add Service Log
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Center Horizontal Milestone Track */}
+                <div className="relative my-auto py-1.5 flex items-center justify-between px-6 sm:px-10 shrink-0">
+                  {/* Horizontal Connection Line */}
+                  <div className="absolute left-12 right-12 top-1/2 -translate-y-1/2 h-1 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                  <div className="absolute left-12 w-2/3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-emerald-500 via-emerald-400 to-[#FA634E] rounded-full"></div>
+
+                  {/* Milestone Nodes */}
+                  {serviceRecords.slice(0, 3).map((rec, index) => {
+                    const isSelected = activeMilestoneId === rec.id || (index === 0 && !activeMilestoneId);
+                    const systemLabel = index === 0 ? 'Engine & Oil' : index === 1 ? 'Brakes & Air' : 'Axles & Tires';
+
+                    return (
+                      <div 
+                        key={rec.id}
+                        onClick={() => setActiveMilestoneId(rec.id)}
+                        className="relative z-10 flex flex-col items-center cursor-pointer group transition-all"
+                      >
+                        {/* Node Badge */}
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shadow-xs transition-all ${
+                          isSelected 
+                            ? 'bg-[#FA634E] text-white border-white ring-4 ring-[#FA634E]/20 scale-110' 
+                            : 'bg-white dark:bg-slate-800 text-slate-700 border-emerald-500 hover:scale-105'
+                        }`}>
+                          {isSelected ? (
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                          ) : (
+                            <span className="text-[10px] font-black">{index + 1}</span>
+                          )}
+                        </div>
+
+                        {/* Node Title & Ref ID */}
+                        <div className="mt-1 text-center">
+                          <span className={`text-[9px] font-black uppercase tracking-wider block leading-none ${
+                            isSelected ? 'text-[#FA634E]' : 'text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {systemLabel}
+                          </span>
+                          <span className="text-[8.5px] font-bold text-slate-400 block mt-0.5">
+                            {rec.ref_id}
+                          </span>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
+                    );
+                  })}
+                </div>
+
+                {/* Active Milestone Service Details Banner */}
+                {(() => {
+                  const activeRecord = serviceRecords.find(r => r.id === activeMilestoneId) || serviceRecords[0];
+                  if (!activeRecord) return null;
+
+                  return (
+                    <div className="bg-slate-50/90 dark:bg-slate-950/70 border border-slate-200/90 dark:border-slate-800 rounded-xl p-2.5 shrink-0 flex items-center justify-between gap-3 shadow-2xs">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md shrink-0">
+                            {activeRecord.ref_id}
+                          </span>
+                          <p className="text-xs font-black text-slate-900 dark:text-white truncate leading-tight">
+                            {activeRecord.work_done}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-1">
+                          <span className="font-semibold truncate max-w-[160px]">{activeRecord.workshop_name}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className="font-medium text-slate-400">{activeRecord.service_date}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className="font-extrabold text-slate-900 dark:text-slate-200">{activeRecord.cost}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold px-2 py-0.5 text-[9px] rounded-full shadow-none">
+                          {activeRecord.status}
+                        </Badge>
                         <Button
                           size="sm"
-                          onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                          className="h-6 px-2.5 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
+                          variant="outline"
+                          onClick={() => navigate(`/maintenance/${activeRecord.id}`)}
+                          className="h-6 px-2 text-[10px] font-bold border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 gap-1"
                         >
-                          <Plus className="w-3 h-3" />
-                          Add Record
+                          Details
+                          <ExternalLink className="w-2.5 h-2.5" />
                         </Button>
-                        <button
-                          onClick={() => navigate('/maintenance')}
-                          className="text-[10px] font-bold text-slate-500 hover:text-[#FA634E] flex items-center gap-0.5 transition-colors"
-                        >
-                          All <ExternalLink className="w-3 h-3" />
-                        </button>
                       </div>
                     </div>
-
-                    {/* Non-scrollable Service History Rows (2 clean rows) */}
-                    <div className="flex-1 min-h-0 flex flex-col justify-center gap-2 py-1 overflow-hidden">
-                      {serviceRecords.slice(0, 2).map((rec) => (
-                        <div 
-                          key={rec.id}
-                          onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="group bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl p-2.5 transition-all cursor-pointer flex items-center justify-between gap-3 shrink-0"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wide px-1.5 py-0.5 bg-white border border-slate-200 rounded-md shrink-0">
-                                {rec.ref_id}
-                              </span>
-                              <p className="text-xs font-black text-slate-900 truncate leading-tight group-hover:text-[#FA634E] transition-colors">
-                                {rec.work_done}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2.5 text-[10px] text-slate-500 mt-1">
-                              <span className="font-semibold truncate max-w-[150px]">{rec.workshop_name}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="font-medium text-slate-400">{rec.service_date}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0 text-right">
-                            <div>
-                              <p className="text-xs font-black text-slate-900 leading-tight">{rec.cost}</p>
-                              <p className="text-[9px] font-semibold text-slate-400 mt-0.5">{rec.odometer_reading}</p>
-                            </div>
-                            <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-none shrink-0 ${
-                              rec.status.toLowerCase().includes('in_progress') || rec.status.toLowerCase().includes('progress')
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            }`}>
-                              {rec.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer info line */}
-                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-                      <span className="font-medium">Verified Workshop Records</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300">Vehicle Health: Operational</span>
-                    </div>
-
-                  </div>
-
-                </div>
+                  );
+                })()}
 
               </div>
             </div>
