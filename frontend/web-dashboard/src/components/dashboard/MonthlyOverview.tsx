@@ -155,7 +155,7 @@ export default function MonthlyOverview() {
                     onClick={() => setChartPeriod(p)}
                     className={`text-[9px] font-extrabold h-5 px-2.5 rounded-md transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-brand text-white shadow-xs'
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
                         : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
