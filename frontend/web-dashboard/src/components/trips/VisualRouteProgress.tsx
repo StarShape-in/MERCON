@@ -101,9 +101,83 @@ export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressPr
       </div>
 
       {/* ── 2. PROPER ROAD HIGHWAY & STOPS ── */}
-      <div className="relative w-full flex-1 flex flex-col justify-end pt-1">
-        {/* Stop Cards Row (Above the Road) */}
-        <div className="relative flex items-end justify-between w-full px-2 sm:px-6 z-20 mb-1.5">
+      <div className="relative w-full flex-1 flex flex-col pt-1">
+        {/* Proper Road Track Row (with nodes on the road) */}
+        <div className="relative flex items-center justify-between w-full px-2 sm:px-6 h-6 sm:h-7">
+          {/* The Asphalt Highway Surface spanning from first stop center to last stop center */}
+          <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 bg-[#2B2F38] dark:bg-[#1E2128] rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] flex items-center overflow-hidden border-y border-slate-600/70 z-0">
+            {/* Top white shoulder curb */}
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-slate-300/40" />
+
+            {/* Traveled Highway Progress (illuminated asphalt) */}
+            {progressPercent > 0 && (
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-emerald-500/25 border-r-2 border-emerald-400 transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            )}
+
+            {/* Center highway dashed lane line */}
+            <div className="w-full border-t-[1.5px] border-dashed border-amber-300/85 dark:border-amber-400/80 z-0" />
+
+            {/* Bottom white shoulder curb */}
+            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-slate-300/40" />
+          </div>
+
+          {/* Delivery Truck Driving Along Road (Enlarged & Prominent) */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-700 pointer-events-none"
+            style={{
+              left: `calc(1.5rem + ${Math.max(2, Math.min(96, truckPositionPercent))}% - 30px)`,
+            }}
+          >
+            <div className="relative flex items-center justify-center filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.3)]">
+              <svg viewBox="0 0 64 32" className="w-13 h-6.5 sm:w-16 sm:h-8">
+                <rect x="2" y="5" width="38" height="19" rx="1.5" fill="#FFFFFF" stroke="#475569" strokeWidth="1.2" />
+                <line x1="2" y1="14" x2="40" y2="14" stroke="#CBD5E1" strokeWidth="1" />
+                <rect x="6" y="9" width="14" height="2.5" rx="1" fill="#FA634E" />
+                <path d="M40 9 L53 9 L59 16.5 L59 24 L40 24 Z" fill="#FA634E" />
+                <path d="M42 11 L51 11 L56 16.5 L42 16.5 Z" fill="#93C5FD" />
+                <rect x="0" y="24" width="60" height="3" fill="#1E293B" />
+                <circle cx="10" cy="26.5" r="4.2" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
+                <circle cx="10" cy="26.5" r="1.5" fill="#FFFFFF" />
+                <circle cx="22" cy="26.5" r="4.2" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
+                <circle cx="22" cy="26.5" r="1.5" fill="#FFFFFF" />
+                <circle cx="50" cy="26.5" r="4.2" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
+                <circle cx="50" cy="26.5" r="1.5" fill="#FFFFFF" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Stop Milestone Circles on the Road */}
+          {normalizedStops.map((stop) => {
+            const isCompleted = stop.status === 'completed';
+            const isCurrent = stop.status === 'current';
+
+            return (
+              <div
+                key={`node-${stop.id}`}
+                className="relative z-20 flex flex-col items-center justify-center min-w-[75px] sm:min-w-[95px]"
+              >
+                <div
+                  className={cn(
+                    "w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black text-[10px] transition-all duration-200 shadow-sm",
+                    isCompleted
+                      ? "bg-emerald-600 text-white ring-2 ring-white dark:ring-slate-900"
+                      : isCurrent
+                      ? "bg-[#FA634E] text-white ring-3 ring-orange-200 dark:ring-orange-950 shadow-orange-500/25 scale-105"
+                      : "bg-slate-700 text-slate-200 ring-2 ring-white dark:ring-slate-900 border border-slate-500"
+                  )}
+                >
+                  {isCompleted ? <Check size={11} className="stroke-[3]" /> : stop.seq}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Stop Cards Row (Underneath the Road) */}
+        <div className="relative flex items-start justify-between w-full px-2 sm:px-6 z-20 mt-1.5">
           {normalizedStops.map((stop) => {
             const isCompleted = stop.status === 'completed';
             const isCurrent = stop.status === 'current';
@@ -113,7 +187,7 @@ export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressPr
                 key={`card-${stop.id}`}
                 className="flex flex-col items-center text-center min-w-[75px] sm:min-w-[95px] max-w-[130px]"
               >
-                <div className="flex flex-col items-center px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-2xs w-full transition-all hover:bg-white dark:hover:bg-slate-750">
+                <div className="flex flex-col items-center px-2 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-2xs w-full transition-all hover:bg-white dark:hover:bg-slate-750">
                   <span className="font-extrabold text-[11px] text-slate-900 dark:text-slate-100 tracking-tight leading-tight truncate w-full text-center" title={stop.city}>
                     {stop.city}
                   </span>
@@ -132,80 +206,6 @@ export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressPr
                   <span className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 mt-0.5 leading-none">
                     {stop.time}
                   </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Proper Road Track Row (with nodes on the road) */}
-        <div className="relative flex items-center justify-between w-full px-2 sm:px-6 h-8 sm:h-9">
-          {/* The Asphalt Highway Surface spanning from first stop center to last stop center */}
-          <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-7 sm:h-8 bg-[#2B2F38] dark:bg-[#1E2128] rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] flex items-center overflow-hidden border-y-[1.5px] border-slate-500/80 z-0">
-            {/* Top white shoulder curb */}
-            <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-slate-200/50" />
-
-            {/* Traveled Highway Progress (illuminated asphalt) */}
-            {progressPercent > 0 && (
-              <div
-                className="absolute top-0 bottom-0 left-0 bg-emerald-500/25 border-r-2 border-emerald-400 transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            )}
-
-            {/* Center highway dashed lane line */}
-            <div className="w-full border-t-[2px] border-dashed border-amber-300/85 dark:border-amber-400/80 z-0" />
-
-            {/* Bottom white shoulder curb */}
-            <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-slate-200/50" />
-          </div>
-
-          {/* Delivery Truck Driving Along Road */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 z-10 transition-all duration-700 pointer-events-none drop-shadow-md"
-            style={{
-              left: `calc(1.5rem + ${Math.max(2, Math.min(94, truckPositionPercent))}% - 22px)`,
-            }}
-          >
-            <div className="relative flex items-center justify-center filter drop-shadow-md">
-              <svg viewBox="0 0 64 32" className="w-10 h-5">
-                <rect x="2" y="5" width="38" height="19" rx="1.5" fill="#FFFFFF" stroke="#64748B" strokeWidth="1" />
-                <line x1="2" y1="14" x2="40" y2="14" stroke="#CBD5E1" strokeWidth="1" />
-                <rect x="6" y="9" width="14" height="2.5" rx="1" fill="#FA634E" />
-                <path d="M40 10 L52 10 L58 17 L58 24 L40 24 Z" fill="#FA634E" />
-                <path d="M42 12 L50 12 L55 17 L42 17 Z" fill="#93C5FD" />
-                <rect x="0" y="24" width="60" height="3" fill="#1E293B" />
-                <circle cx="10" cy="26.5" r="4" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
-                <circle cx="10" cy="26.5" r="1.5" fill="#FFFFFF" />
-                <circle cx="22" cy="26.5" r="4" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
-                <circle cx="22" cy="26.5" r="1.5" fill="#FFFFFF" />
-                <circle cx="50" cy="26.5" r="4" fill="#0F172A" stroke="#94A3B8" strokeWidth="1.2" />
-                <circle cx="50" cy="26.5" r="1.5" fill="#FFFFFF" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Stop Milestone Circles on the Road */}
-          {normalizedStops.map((stop) => {
-            const isCompleted = stop.status === 'completed';
-            const isCurrent = stop.status === 'current';
-
-            return (
-              <div
-                key={`node-${stop.id}`}
-                className="relative z-20 flex flex-col items-center justify-center min-w-[75px] sm:min-w-[95px]"
-              >
-                <div
-                  className={cn(
-                    "w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full flex items-center justify-center font-black text-[11px] transition-all duration-200 shadow-md",
-                    isCompleted
-                      ? "bg-emerald-600 text-white ring-3 ring-white dark:ring-slate-900"
-                      : isCurrent
-                      ? "bg-[#FA634E] text-white ring-4 ring-orange-200 dark:ring-orange-950 shadow-orange-500/25 scale-105"
-                      : "bg-slate-700 text-slate-200 ring-3 ring-white dark:ring-slate-900 border border-slate-500"
-                  )}
-                >
-                  {isCompleted ? <Check size={13} className="stroke-[3]" /> : stop.seq}
                 </div>
               </div>
             );
