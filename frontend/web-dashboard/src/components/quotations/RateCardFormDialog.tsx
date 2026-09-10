@@ -55,6 +55,8 @@ export default function QuotationFormDialog({
   const [customerId, setCustomerId] = useState('');
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
+  const [originName, setOriginName] = useState('');
+  const [destinationName, setDestinationName] = useState('');
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
@@ -91,6 +93,10 @@ export default function QuotationFormDialog({
       setCustomerId(quotation.customerId || '');
       setOriginId(quotation.originLocationId || '');
       setDestinationId(quotation.destinationLocationId || '');
+      const firstStop = quotation.stops?.[0];
+      const lastStop = quotation.stops?.[quotation.stops.length - 1];
+      setOriginName(firstStop?.source_label || firstStop?.location?.name || quotation.origin_name || quotation.route_origin || '');
+      setDestinationName(lastStop?.source_label || lastStop?.location?.name || quotation.destination_name || quotation.route_destination || '');
       setPrice(String(quotation.rate ?? quotation.base_price ?? ''));
       setDriverPayout(quotation.driver_payout != null ? String(quotation.driver_payout) : '');
       setCurrency(quotation.currency || 'SAR');
@@ -108,6 +114,8 @@ export default function QuotationFormDialog({
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
+      setOriginName('');
+      setDestinationName('');
       setPrice(defaultPrice || '');
       setDriverPayout('');
       setCurrency('SAR');
@@ -138,6 +146,12 @@ export default function QuotationFormDialog({
         customerId: effectiveCustomerId,
         origin_location_id: originId || null,
         destination_location_id: destinationId || null,
+        origin_name: originName || undefined,
+        destination_name: destinationName || undefined,
+        stops: [
+          ...(originId || originName ? [{ sequence: 1, locationId: originId || null, location_id: originId || null, source_label: originName || null, stop_type: 'Pickup' }] : []),
+          ...(destinationId || destinationName ? [{ sequence: 2, locationId: destinationId || null, location_id: destinationId || null, source_label: destinationName || null, stop_type: 'Dropoff' }] : []),
+        ],
         vehicle_class: vehicleClass.trim() || null,
         source_vehicle_label: sourceVehicleLabel.trim() || null,
         vehicle_type: sourceVehicleLabel.trim() || vehicleClass.trim() || null,
@@ -238,7 +252,11 @@ export default function QuotationFormDialog({
                 </Label>
                 <LocationCombobox
                   value={originId}
-                  onChange={setOriginId}
+                  onChange={(val, loc) => {
+                    setOriginId(val);
+                    if (loc?.name) setOriginName(loc.name);
+                    else setOriginName(val);
+                  }}
                   placeholder="Search origin..."
                 />
               </div>
@@ -249,7 +267,11 @@ export default function QuotationFormDialog({
                 </Label>
                 <LocationCombobox
                   value={destinationId}
-                  onChange={setDestinationId}
+                  onChange={(val, loc) => {
+                    setDestinationId(val);
+                    if (loc?.name) setDestinationName(loc.name);
+                    else setDestinationName(val);
+                  }}
                   placeholder="Search destination..."
                 />
               </div>

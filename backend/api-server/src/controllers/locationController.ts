@@ -58,7 +58,7 @@ export const resolveLocation = async (
 ) => {
   const validUserId = getValidUuid(userId);
   const idToUse = getValidUuid(input.id);
-  const customerIdToUse = getValidUuid(input.customerId);
+  const customerIdToUse = getValidUuid(input.customerId) || undefined;
 
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse } });
@@ -69,14 +69,10 @@ export const resolveLocation = async (
   const name = String(input.name || '').trim();
   if (!name) return null;
 
-  if (!customerIdToUse) {
-    throw new Error('Customer ID is required for customer-scoped location lookup');
-  }
-
   const slug = toSlug(name);
   const inputCode = input.code ? String(input.code).trim().toUpperCase() : null;
 
-  if (inputCode) {
+  if (inputCode && customerIdToUse) {
     const codeClash = await tx.location.findFirst({
       where: {
         customerId: customerIdToUse,
@@ -91,15 +87,16 @@ export const resolveLocation = async (
     }
   }
 
-  // 1. Search for existing location strictly by exact Code, Slug, or exact Name for this customer
+  // 1. Search for existing location strictly by exact Code, Slug, or exact Name
   let found = await tx.location.findFirst({
     where: {
-      customerId: customerIdToUse,
+      ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
       OR: [
         { slug },
         { name: { equals: name, mode: 'insensitive' as const } },
         ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
       ],
+      deletedAt: null,
     },
   });
 
@@ -114,7 +111,7 @@ export const resolveLocation = async (
     if (inputCode && inputCode !== found.code) {
       const codeInUse = await tx.location.findFirst({
         where: {
-          customerId: customerIdToUse,
+          ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
           code: { equals: inputCode, mode: 'insensitive' as const },
           id: { not: found.id },
         },
@@ -139,6 +136,10 @@ export const resolveLocation = async (
       where: { id: found.id },
       data: updateData,
     });
+  }
+
+  if (!customerIdToUse) {
+    return null;
   }
 
   // 2. Generating code & ensuring slug uniqueness for new creation

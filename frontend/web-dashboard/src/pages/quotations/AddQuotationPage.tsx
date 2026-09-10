@@ -53,6 +53,8 @@ export interface QuotationLineItem {
   id: string;
   originLocationId: string;
   destinationLocationId: string;
+  originName?: string;
+  destinationName?: string;
   vehicleClass: string;
   lineType: string;
   pricingBasis: 'PER_TRIP' | 'PER_MONTH' | 'NULL';
@@ -60,7 +62,7 @@ export interface QuotationLineItem {
   driverPayout: string;
   currency: string;
   sourceVehicleLabel: string;
-  viaStops: Array<{ id: string; locationId: string }>;
+  viaStops: Array<{ id: string; locationId: string; locationName?: string }>;
 }
 
 export interface QuotationSurchargeRule {
@@ -322,13 +324,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     );
   };
 
-  const handleUpdateViaStop = (lineIndex: number, viaIndex: number, locationId: string) => {
+  const handleUpdateViaStop = (lineIndex: number, viaIndex: number, locationId: string, locationName?: string) => {
     setLineItems((prev) =>
       prev.map((line, idx) =>
         idx === lineIndex
           ? {
               ...line,
-              viaStops: line.viaStops.map((via, i) => (i === viaIndex ? { ...via, locationId } : via)),
+              viaStops: line.viaStops.map((via, i) => (i === viaIndex ? { ...via, locationId, locationName: locationName || via.locationName || locationId } : via)),
             }
           : line
       )
@@ -404,11 +406,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
-      if (!item.originLocationId) {
+      if (!item.originLocationId && !item.originName) {
         setFormError(`Line #${i + 1}: Origin pickup location is required.`);
         return false;
       }
-      if (!item.destinationLocationId) {
+      if (!item.destinationLocationId && !item.destinationName) {
         setFormError(`Line #${i + 1}: Destination dropoff location is required.`);
         return false;
       }
@@ -459,10 +461,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         if (isEdit && id) {
           // Single quotation update
           const line = lineItems[0];
+          const rawOrigin = locationMap.get(line.originLocationId) || '';
+          const rawDest = locationMap.get(line.destinationLocationId) || '';
+          const origName = line.originName || (rawOrigin.includes('—') ? rawOrigin.split('—')[1].trim() : rawOrigin) || undefined;
+          const destName = line.destinationName || (rawDest.includes('—') ? rawDest.split('—')[1].trim() : rawDest) || undefined;
+
           const payload: CreateQuotationPayload = {
             customerId,
-            origin_location_id: line.originLocationId,
-            destination_location_id: line.destinationLocationId,
+            origin_location_id: line.originLocationId || null,
+            destination_location_id: line.destinationLocationId || null,
+            origin_name: origName,
+            destination_name: destName,
             vehicle_class: line.vehicleClass,
             billing_type: operationType,
             line_type: line.lineType,
@@ -474,9 +483,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             valid_from: validFrom || undefined,
             valid_to: validTo || undefined,
             stops: [
-              ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
-              ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
-              ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
+              ...(line.originLocationId || origName ? [{ sequence: 1, locationId: line.originLocationId || null, location_id: line.originLocationId || null, source_label: origName || null, stop_type: 'Pickup' as const }] : []),
+              ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId || null, location_id: v.locationId || null, source_label: v.locationName || null, stop_type: 'Rest' as const })),
+              ...(line.destinationLocationId || destName ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId || null, location_id: line.destinationLocationId || null, source_label: destName || null, stop_type: 'Dropoff' as const }] : []),
             ],
           };
           const updated = await quotationService.update(id, payload);
@@ -484,10 +493,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         } else {
           // Create multiple rate lines in parallel for customer
           const requests = lineItems.map((line) => {
+            const rawOrigin = locationMap.get(line.originLocationId) || '';
+            const rawDest = locationMap.get(line.destinationLocationId) || '';
+            const origName = line.originName || (rawOrigin.includes('—') ? rawOrigin.split('—')[1].trim() : rawOrigin) || undefined;
+            const destName = line.destinationName || (rawDest.includes('—') ? rawDest.split('—')[1].trim() : rawDest) || undefined;
+
             const payload: CreateQuotationPayload = {
               customerId,
-              origin_location_id: line.originLocationId,
-              destination_location_id: line.destinationLocationId,
+              origin_location_id: line.originLocationId || null,
+              destination_location_id: line.destinationLocationId || null,
+              origin_name: origName,
+              destination_name: destName,
               vehicle_class: line.vehicleClass,
               billing_type: operationType,
               line_type: line.lineType,
@@ -499,9 +515,9 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               valid_from: validFrom || undefined,
               valid_to: validTo || undefined,
               stops: [
-                ...(line.originLocationId ? [{ sequence: 1, locationId: line.originLocationId, stop_type: 'Pickup' as const }] : []),
-                ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId, stop_type: 'Rest' as const })),
-                ...(line.destinationLocationId ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId, stop_type: 'Dropoff' as const }] : []),
+                ...(line.originLocationId || origName ? [{ sequence: 1, locationId: line.originLocationId || null, location_id: line.originLocationId || null, source_label: origName || null, stop_type: 'Pickup' as const }] : []),
+                ...line.viaStops.map((v, i) => ({ sequence: i + 2, locationId: v.locationId || null, location_id: v.locationId || null, source_label: v.locationName || null, stop_type: 'Rest' as const })),
+                ...(line.destinationLocationId || destName ? [{ sequence: line.viaStops.length + 2, locationId: line.destinationLocationId || null, location_id: line.destinationLocationId || null, source_label: destName || null, stop_type: 'Dropoff' as const }] : []),
               ],
             };
             return quotationService.create(payload);
@@ -893,6 +909,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.originLocationId}
                         onChange={(val, loc) => {
                           handleUpdateLine(index, 'originLocationId', val);
+                          if (loc?.name) handleUpdateLine(index, 'originName', loc.name);
+                          else if (val) handleUpdateLine(index, 'originName', val);
                           if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
                         }}
                         placeholder="Select origin location..."
@@ -909,6 +927,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         value={line.destinationLocationId}
                         onChange={(val, loc) => {
                           handleUpdateLine(index, 'destinationLocationId', val);
+                          if (loc?.name) handleUpdateLine(index, 'destinationName', loc.name);
+                          else if (val) handleUpdateLine(index, 'destinationName', val);
                           if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
                         }}
                         placeholder="Select destination location..."
@@ -969,7 +989,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                                 customerId={customerId}
                                 value={via.locationId}
                                 onChange={(val, loc) => {
-                                  handleUpdateViaStop(index, viaIdx, val);
+                                  handleUpdateViaStop(index, viaIdx, val, loc?.name || val);
                                   if (loc?.customerId && !customerId) setCustomerId(loc.customerId);
                                 }}
                                 placeholder="Select intermediate stop..."

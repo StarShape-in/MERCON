@@ -93,17 +93,23 @@ export const createQuotation = async (req: Request, res: Response) => {
       let stopData: Array<{ sequence: number; locationId: string | null; stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel'; source_label?: string | null }> = [];
       if (Array.isArray(req.body.stops) && req.body.stops.length > 0) {
         stopData = await Promise.all(req.body.stops.map(async (s: any, idx: number) => {
-          const rawLocId = s.locationId || s.location_id || null;
+          const rawLocId = getValidUuid(s.locationId || s.location_id || null);
+          const rawName = s.source_label || s.location_name || s.name || s.label || null;
           let validLocId: string | null = null;
-          if (rawLocId) {
-            const loc = await resolveLocation(tx, { id: rawLocId, customerId: normalisedCustomerId }, userId);
-            validLocId = loc ? loc.id : null;
+          let locName: string | null = rawName;
+
+          if (rawLocId || rawName) {
+            const loc = await resolveLocation(tx, { id: rawLocId, name: rawName, customerId: normalisedCustomerId }, userId);
+            if (loc) {
+              validLocId = loc.id;
+              locName = loc.name;
+            }
           }
           return {
             sequence: s.sequence ?? idx + 1,
             locationId: validLocId,
-            stop_type: s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest'),
-            source_label: s.source_label || s.location_name || null,
+            stop_type: (s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest')) as any,
+            source_label: locName || rawName || null,
           };
         }));
       } else if (origin && destination) {
@@ -114,7 +120,12 @@ export const createQuotation = async (req: Request, res: Response) => {
         ];
       }
 
-      const quotationName = String(name || '').trim() || (origin && destination ? `${origin.name} → ${destination.name}` : 'Quotation');
+      const pickupStop = stopData.find((s) => s.stop_type === 'Pickup') || stopData[0];
+      const dropoffStop = stopData.filter((s) => s.stop_type === 'Dropoff').pop() || stopData[stopData.length - 1];
+      const originLabel = pickupStop?.source_label || origin?.name || 'Origin';
+      const destLabel = dropoffStop?.source_label || destination?.name || 'Destination';
+
+      const quotationName = String(name || '').trim() || `${originLabel} → ${destLabel}`;
 
       const newQuotation = await tx.quotation.create({
         data: {
