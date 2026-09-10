@@ -357,41 +357,47 @@ export default function CargoLoadingView() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
-        
         {/* ── Left Sidebar: 3 Fixed Boxes ── */}
         <div className="xl:col-span-3 flex flex-col justify-between gap-3 h-full overflow-hidden">
           
           {/* BOX 1: Truck & Driver Information */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[24px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 shrink-0">
             {/* Box Header */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black text-slate-900 tracking-tight">Truck Information</h2>
-              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 font-bold px-2 py-0.5 text-[10px] rounded-md">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs">
+                  <Truck className="w-3.5 h-3.5 text-[#FA634E]" />
+                </div>
+                <h2 className="text-xs font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider">
+                  Truck Info
+                </h2>
+              </div>
+              <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/80 font-black px-2.5 py-0.5 text-[10px] rounded-full shadow-2xs">
                 {capacityFormatted}
               </Badge>
             </div>
 
             {/* Driver Information Row */}
             <div className="flex items-center justify-between pt-0.5">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <DriverAvatar
                   src={driverAvatar}
                   firstName={driverFirstName}
                   lastName={driverLastName}
                   size="md"
-                  className="w-10 h-10 border border-slate-200 shadow-2xs shrink-0"
+                  className="w-10 h-10 border-2 border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0"
                 />
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-400">Driver</p>
-                  <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{driverName}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Assigned Driver</p>
+                  <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate leading-tight mt-0.5">{driverName}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="w-8 h-8 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  className="w-8 h-8 rounded-xl border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 shadow-2xs"
                   onClick={() => {
                     const phone = vehicle?.assignedDriver?.phone_primary;
                     if (phone) window.open(`tel:${phone}`);
@@ -399,85 +405,82 @@ export default function CargoLoadingView() {
                 >
                   <Phone className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="outline" size="icon" className="w-8 h-8 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                <Button variant="outline" size="icon" className="w-8 h-8 rounded-xl border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 shadow-2xs">
                   <MessageSquare className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
 
-            {/* Dotted Divider */}
-            <div className="border-t border-dashed border-slate-200 my-0.5"></div>
-
-            {/* Dynamic Logical Route & Location Display */}
-            <div className="flex items-center justify-between px-1 py-1">
+            {/* Route Bar */}
+            <div className="bg-[#F8F9FA] dark:bg-slate-950 p-2.5 rounded-[16px] border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between shadow-2xs">
               {vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? (
                 <>
                   <div className="text-left">
-                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">RUH</p>
                     <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh</p>
                   </div>
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
-                    <div className="w-full h-1 bg-slate-100 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
-                      <Navigation className="w-3 h-3 fill-white text-white rotate-90" />
+                    <div className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-[#3E3C3D] text-white flex items-center justify-center shadow-2xs">
+                      <Navigation className="w-3 h-3 text-[#FA634E] rotate-90" />
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm font-black text-slate-900 leading-none">BAH</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">BAH</p>
                     <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Al Bahah</p>
                   </div>
                 </>
               ) : vehicleStatus === 'Loading' ? (
                 <>
                   <div className="text-left">
-                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">RUH</p>
                     <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh Hub</p>
                   </div>
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
-                    <div className="w-full h-1 bg-amber-100 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                    <div className="w-full h-1 bg-amber-100 dark:bg-amber-950/40 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-2xs">
                       <Clock className="w-3 h-3 text-white animate-pulse" />
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm font-black text-slate-900 leading-none">DOCK #3</p>
-                    <p className="text-[10px] font-semibold text-amber-600 mt-1 truncate max-w-[75px]">Loading Yard</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">DOCK #3</p>
+                    <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 mt-1 truncate max-w-[75px]">Loading Yard</p>
                   </div>
                 </>
               ) : vehicleStatus === 'Maintenance' ? (
                 <>
                   <div className="text-left">
-                    <p className="text-sm font-black text-slate-900 leading-none">WRK</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">WRK</p>
                     <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Workshop</p>
                   </div>
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
-                    <div className="w-full h-1 bg-rose-100 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xs">
+                    <div className="w-full h-1 bg-rose-100 dark:bg-rose-950/40 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-2xs">
                       <Wrench className="w-3 h-3 text-white" />
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm font-black text-slate-900 leading-none">BAY #2</p>
-                    <p className="text-[10px] font-semibold text-rose-600 mt-1 truncate max-w-[75px]">Service Bay</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">BAY #2</p>
+                    <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 mt-1 truncate max-w-[75px]">Service Bay</p>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="text-left">
-                    <p className="text-sm font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none">RUH</p>
                     <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Main Yard</p>
                   </div>
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
-                    <div className="w-full h-1 bg-slate-100 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center">
-                      <MapPin className="w-3 h-3 text-slate-600" />
+                    <div className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                    <div className="absolute w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 flex items-center justify-center">
+                      <MapPin className="w-3 h-3 text-slate-600 dark:text-slate-300" />
                     </div>
                   </div>
 
@@ -494,47 +497,51 @@ export default function CargoLoadingView() {
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/vehicles/${id || ''}/edit`)}
-                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs"
+                className="w-full h-8 font-bold text-xs border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 shadow-2xs"
               >
                 Change driver
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/trips/new?vehicle_id=${id || ''}`)}
-                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs"
+                className="w-full h-8 font-bold text-xs border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 shadow-2xs"
               >
                 Edit route
               </Button>
             </div>
           </div>
 
-          {/* BOX 2: Maintenance Information (Clean Real DB Fields) */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2.5 shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-slate-500" />
-                Maintenance Status
-              </h2>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+          {/* BOX 2: Maintenance Information */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[24px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 shrink-0">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs">
+                  <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
+                </div>
+                <h2 className="text-xs font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider">
+                  Maintenance Status
+                </h2>
+              </div>
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${
                 vehicle?.status === 'Maintenance' 
-                  ? 'text-rose-700 bg-rose-50 border-rose-200' 
-                  : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  ? 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300' 
+                  : 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
               }`}>
                 {vehicle?.status === 'Maintenance' ? 'In Workshop' : 'Healthy'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-                <p className="text-[9px] font-bold text-slate-400">Current Odometer</p>
-                <p className="font-black text-slate-900 leading-tight mt-0.5">
+              <div className="bg-[#F8F9FA] dark:bg-slate-950 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-800/80 shadow-2xs">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Current Odometer</p>
+                <p className="font-black text-slate-900 dark:text-white leading-tight mt-0.5">
                   {vehicle?.current_odometer ? `${vehicle.current_odometer.toLocaleString()} km` : '142,500 km'}
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-                <p className="text-[9px] font-bold text-slate-400">Previous Service Date</p>
-                <p className="font-black text-slate-900 leading-tight mt-0.5 truncate">
+              <div className="bg-[#F8F9FA] dark:bg-slate-950 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-800/80 shadow-2xs">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Previous Service</p>
+                <p className="font-black text-slate-900 dark:text-white leading-tight mt-0.5 truncate">
                   {vehicle?.active_maintenance?.end_date 
                     ? new Date(vehicle.active_maintenance.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                     : '12 Aug 2026'}
@@ -543,70 +550,74 @@ export default function CargoLoadingView() {
             </div>
 
             {/* See Details bar */}
-            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between bg-[#F8F9FA] dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 rounded-xl px-3 py-2 shadow-2xs">
               <div className="flex items-center gap-2">
-                <Wrench className="w-3 h-3 text-slate-400" />
-                <span className="text-[10px] font-semibold text-slate-500">Next service due in <strong className="text-slate-800">8,500 km</strong></span>
+                <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[10px] font-semibold text-slate-500">Next service due in <strong className="text-slate-900 dark:text-white">8,500 km</strong></span>
               </div>
               <button
                 onClick={() => navigate(`/vehicles/${vehicle?.id || id}/financials`)}
-                className="text-[10px] font-bold text-[#FA634E] hover:underline flex items-center gap-0.5"
+                className="text-[10px] font-bold text-[#FA634E] hover:underline flex items-center gap-0.5 cursor-pointer"
               >
                 See Details
               </button>
             </div>
           </div>
 
-          {/* BOX 3: Vehicle Documents & Validity (5 Exact Registered Docs - Compact Clean Layout) */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col gap-2 flex-1 min-h-0 overflow-hidden">
-            <div className="flex items-center justify-between shrink-0 mb-0.5">
-              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                Documents & Validity
-              </h2>
-              <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
+          {/* BOX 3: Vehicle Documents & Validity */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[24px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-2 flex-1 min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 mb-0.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs">
+                  <FileText className="w-3.5 h-3.5 text-[#FA634E]" />
+                </div>
+                <h2 className="text-xs font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider">
+                  Documents & Validity
+                </h2>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full shadow-2xs">5 Registered</span>
             </div>
 
-            <div className="flex flex-col flex-1 justify-between gap-px">
+            <div className="flex flex-col flex-1 justify-between gap-1.5">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F8F9FA] dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 hover:bg-slate-100/70 transition-all shadow-2xs">
                 <div className="flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Istimara</span>
+                  <span className="text-[11px] font-black text-slate-900 dark:text-white">Istimara</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
               </div>
               {/* 2. Insurance */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F8F9FA] dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 hover:bg-slate-100/70 transition-all shadow-2xs">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Insurance</span>
+                  <span className="text-[11px] font-black text-slate-900 dark:text-white">Insurance</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
               </div>
               {/* 3. Operation Card */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-amber-50/60 border border-amber-200/70 hover:bg-amber-50 transition-all">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 hover:bg-amber-50 transition-all shadow-2xs">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
+                  <span className="text-[11px] font-black text-slate-900 dark:text-white">Operation Card</span>
                 </div>
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-900/50 border border-amber-300/60 px-2 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
               </div>
               {/* 4. SASO Plates */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F8F9FA] dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 hover:bg-slate-100/70 transition-all shadow-2xs">
                 <div className="flex items-center gap-2">
                   <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
+                  <span className="text-[11px] font-black text-slate-900 dark:text-white">SASO Plates</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
               </div>
               {/* 5. FAHAS */}
-              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50/80 border border-slate-100/80 hover:bg-slate-50 transition-all">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F8F9FA] dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 hover:bg-slate-100/70 transition-all shadow-2xs">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
+                  <span className="text-[11px] font-black text-slate-900 dark:text-white">FAHAS</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (20 May 2027)</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (20 May 2027)</span>
               </div>
             </div>
           </div>
@@ -698,22 +709,22 @@ export default function CargoLoadingView() {
           </div>
 
           {/* Bottom Assignment & Trip Status Box */}
-          <div className={`bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100">
+          <div className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[24px] p-4 2xl:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
               
               {/* Tab Filter Buttons */}
-              <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setTripTab('recent')}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                     tripTab === 'recent' 
-                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
                 >
                   Recent Trips
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-full">
                     {recentTripsList.length}
                   </span>
                 </button>
@@ -721,14 +732,14 @@ export default function CargoLoadingView() {
                 <button
                   type="button"
                   onClick={() => setTripTab('upcoming')}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                     tripTab === 'upcoming' 
-                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
                 >
                   Upcoming
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-amber-100 text-amber-700 rounded-full">
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-full">
                     {upcomingTripsList.length}
                   </span>
                 </button>
@@ -736,14 +747,14 @@ export default function CargoLoadingView() {
                 <button
                   type="button"
                   onClick={() => setTripTab('completed')}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                     tripTab === 'completed' 
-                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
                 >
                   Completed Trips
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-200 text-slate-600 rounded-full">
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full">
                     {completedTripsList.length}
                   </span>
                 </button>
@@ -757,11 +768,11 @@ export default function CargoLoadingView() {
                     placeholder="Search trip..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-40 sm:w-48" 
+                    className="pl-8 h-8 text-[11px] rounded-xl border-slate-200 dark:border-slate-800 w-40 sm:w-48" 
                   />
                 </div>
 
-                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-50">
+                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-2xs">
                   <SlidersHorizontal className="w-3 h-3 text-slate-500" /> Sort by creation
                 </Button>
 
@@ -770,7 +781,7 @@ export default function CargoLoadingView() {
                   size="icon"
                   onClick={() => setIsExpanded(!isExpanded)}
                   title={isExpanded ? 'Collapse box' : 'Expand box'}
-                  className="w-8 h-8 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  className="w-8 h-8 rounded-xl border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 shadow-2xs"
                 >
                   {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </Button>
