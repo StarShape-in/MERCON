@@ -229,7 +229,14 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          activeOpacity={0.8}
+          onPress={async () => {
+            await signOut();
+            router.replace('/login');
+          }}
+        >
           <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
           <Text style={styles.logoutText}>{t('action_logout', 'Logout')}</Text>
         </TouchableOpacity>

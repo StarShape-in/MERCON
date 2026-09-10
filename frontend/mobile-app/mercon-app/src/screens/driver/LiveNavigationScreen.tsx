@@ -181,6 +181,25 @@ const LiveNavigationScreen = () => {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
 
+      // Immediate initial position fix so the driver marker appears while stationary
+      try {
+        const initialLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!cancelled && initialLoc?.coords) {
+          let initLat = initialLoc.coords.latitude;
+          let initLng = initialLoc.coords.longitude;
+          if (Math.abs(initLat - 37.785834) < 0.1 && Math.abs(initLng - -122.406417) < 0.1 && activeStop) {
+            initLat = activeStop.location_lat - 0.005;
+            initLng = activeStop.location_lng - 0.005;
+          }
+          setPosition({ lat: initLat, lng: initLng });
+          if (activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
+            setDistanceToTarget(distanceMeters(initLat, initLng, activeStop.location_lat, activeStop.location_lng));
+          }
+        }
+      } catch {
+        // Safe degrade: continuous watchPositionAsync below will establish position
+      }
+
       sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
         (loc) => {

@@ -39,7 +39,14 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
   style,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
+  const isReadyRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
+
+  // Fixed initial center determined at mount time — MUST NOT change when live GPS updates arrive
+  const initialMapCenter = useRef<LatLng>({
+    latitude: initialCenter?.latitude ?? destination?.coordinate.latitude ?? DEFAULT_CENTER.latitude,
+    longitude: initialCenter?.longitude ?? destination?.coordinate.longitude ?? DEFAULT_CENTER.longitude,
+  }).current;
 
   React.useImperativeHandle(ref, () => ({
     recenter: () => {
@@ -92,11 +99,8 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
     return filtered.length > 0 ? filtered : null;
   }, [routeCoordinates]);
 
-  // Determine starting center
-  const centerLat = validDriverPos?.latitude ?? validDestination?.coordinate.latitude ?? initialCenter?.latitude ?? DEFAULT_CENTER.latitude;
-  const centerLng = validDriverPos?.longitude ?? validDestination?.coordinate.longitude ?? initialCenter?.longitude ?? DEFAULT_CENTER.longitude;
-
-  // Generate self-contained Leaflet HTML with locally bundled assets
+  // Generate self-contained Leaflet HTML with locally bundled assets.
+  // Must ONLY be generated once per mount and NEVER reloaded when driver coordinates update.
   const htmlContent = useMemo(() => {
     return `<!DOCTYPE html>
 <html>
@@ -180,7 +184,7 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
     var map = L.map('map', {
       zoomControl: false,
       attributionControl: true
-    }).setView([${centerLat}, ${centerLng}], ${zoomLevel});
+    }).setView([${initialMapCenter.latitude}, ${initialMapCenter.longitude}], ${zoomLevel});
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -191,6 +195,7 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
     var pickupMarker = null;
     var driverMarker = null;
     var routePolyline = null;
+    var hasFittedBounds = false;
 
     // Custom Icon Creators
     function createDestIcon() {
@@ -253,7 +258,7 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
         }
 
         // 3. Driver
-        if (data.driverPosition) {
+        if (data.driverPosition && typeof data.driverPosition.latitude === 'number' && typeof data.driverPosition.longitude === 'number') {
           var driverLatLng = [data.driverPosition.latitude, data.driverPosition.longitude];
           pointsToFit.push(driverLatLng);
           if (!driverMarker) {
@@ -285,12 +290,15 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
           routePolyline = null;
         }
 
-        // Fit Bounds if multiple points, else center
-        if (pointsToFit.length > 1) {
-          var bounds = L.latLngBounds(pointsToFit);
-          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-        } else if (pointsToFit.length === 1) {
-          map.panTo(pointsToFit[0]);
+        // Fit Bounds once initially if points available, else pan to single point
+        if (!hasFittedBounds) {
+          if (pointsToFit.length > 1) {
+            map.fitBounds(L.latLngBounds(pointsToFit), { padding: [50, 50], maxZoom: 16 });
+            hasFittedBounds = true;
+          } else if (pointsToFit.length === 1) {
+            map.panTo(pointsToFit[0]);
+            hasFittedBounds = true;
+          }
         }
       } catch (err) {
         // Safe degrade
@@ -304,19 +312,19 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
   </script>
 </body>
 </html>`;
-  }, [centerLat, centerLng, zoomLevel]);
+  }, [initialMapCenter.latitude, initialMapCenter.longitude, zoomLevel]);
 
   // Sync data updates to WebView
-  const syncMapData = useCallback(() => {
-    if (!isReady || !webViewRef.current) return;
-    const payload = JSON.stringify({
+  const syncMapData = useCallback((forcePayload?: any) => {
+    if (!isReadyRef.current || !webViewRef.current) return;
+    const payload = JSON.stringify(forcePayload || {
       destination: validDestination,
       pickup: validPickup,
       driverPosition: validDriverPos,
       routeCoordinates: validRoute,
     });
     webViewRef.current.injectJavaScript(`window.updateData(${payload}); true;`);
-  }, [isReady, validDestination, validPickup, validDriverPos, validRoute]);
+  }, [validDestination, validPickup, validDriverPos, validRoute]);
 
   useEffect(() => {
     syncMapData();
@@ -329,15 +337,21 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
         if (!raw) return;
         const msg = JSON.parse(raw);
         if (msg?.type === 'MAP_READY') {
+          isReadyRef.current = true;
           setIsReady(true);
           onMapReady?.();
-          syncMapData();
+          syncMapData({
+            destination: validDestination,
+            pickup: validPickup,
+            driverPosition: validDriverPos,
+            routeCoordinates: validRoute,
+          });
         }
       } catch {
         // Safe ignore
       }
     },
-    [onMapReady, syncMapData]
+    [onMapReady, syncMapData, validDestination, validPickup, validDriverPos, validRoute]
   );
 
   return (
