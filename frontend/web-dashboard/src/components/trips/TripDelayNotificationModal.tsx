@@ -136,12 +136,15 @@ export default function TripDelayNotificationModal({
             {alert?.videoUrl ? (
               <div className="relative w-full h-[180px] sm:h-[210px] rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center group">
                 <video
-                  src={alert.videoUrl}
                   controls
                   playsInline
                   autoPlay
                   className="w-full h-full object-contain"
-                />
+                >
+                  <source src={alert.videoUrl} type="video/mp4" />
+                  <source src={alert.videoUrl} type="video/quicktime" />
+                  <source src={alert.videoUrl} />
+                </video>
                 <div className="absolute top-2 left-2.5 right-2.5 flex items-center justify-between text-white text-[9.5px] font-mono pointer-events-none z-10">
                   <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded shadow">
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />

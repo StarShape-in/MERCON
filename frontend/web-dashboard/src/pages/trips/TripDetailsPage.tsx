@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -250,6 +250,31 @@ export default function TripDetailsPage() {
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
 
+  // Trip Type
+  const tripType = useMemo(() => {
+    const raw = trip.quotation_line_type || (trip as any).line_type || (trip as any).trip_type || trip.rateCard?.rate_category;
+    if (raw) {
+      const s = String(raw).trim();
+      if (/round/i.test(s)) return 'Round Trip';
+      if (/single/i.test(s) || /one.?way/i.test(s)) return 'Single Trip';
+      if (/10.?hour/i.test(s)) return '10 Hours Duty';
+      if (/12.?hour/i.test(s)) return '12 Hours Duty';
+      return s;
+    }
+    const stops = trip.stops || [];
+    if (stops.length >= 3) {
+      const firstCity = stops[0]?.location_name?.toLowerCase().trim();
+      const lastCity = stops[stops.length - 1]?.location_name?.toLowerCase().trim();
+      if (firstCity && lastCity && firstCity === lastCity) {
+        return 'Round Trip';
+      }
+      if (stops.some((s: any) => s.is_return || s.leg_index === 1)) {
+        return 'Round Trip';
+      }
+    }
+    return 'Single Trip';
+  }, [trip]);
+
   const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
   const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
 
@@ -472,6 +497,7 @@ export default function TripDetailsPage() {
               totalAmount={totalAmount}
               paidAmount={paidAmount}
               balanceDue={balanceDue}
+              tripType={tripType}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />
@@ -693,7 +719,7 @@ export default function TripDetailsPage() {
                   rel="noopener noreferrer"
                   className="px-3 py-1 text-xs font-semibold rounded-lg border border-[#E5E7EB] text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
                 >
-                  Open Original
+                  {previewImage.isVideo || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(previewImage.url) ? 'Open / Download Video' : 'Open Original'}
                 </a>
                 <button
                   type="button"
@@ -705,15 +731,39 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* Scrollable Container with Photo + Geotag Evidence */}
+            {/* Scrollable Container with Photo/Video + Geotag Evidence */}
             <div className="overflow-y-auto p-4 space-y-3.5">
-              {/* Photo Viewport */}
-              <div className="flex items-center justify-center bg-black/95 rounded-xl overflow-hidden min-h-[260px] max-h-[46vh] p-2">
-                <img
-                  src={previewImage.url}
-                  alt={previewImage.title}
-                  className="max-h-[44vh] w-auto max-w-full object-contain rounded-lg"
-                />
+              {/* Media Viewport (Video or Image) */}
+              <div className="flex items-center justify-center bg-black/95 rounded-xl overflow-hidden min-h-[260px] max-h-[50vh] p-2">
+                {previewImage.isVideo || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(previewImage.url) ? (
+                  <video
+                    controls
+                    autoPlay
+                    playsInline
+                    className="max-h-[48vh] w-auto max-w-full rounded-lg shadow-2xl bg-black"
+                  >
+                    <source src={previewImage.url} type="video/mp4" />
+                    <source src={previewImage.url} type="video/quicktime" />
+                    <source src={previewImage.url} />
+                    <div className="p-4 text-center text-white space-y-2">
+                      <p className="text-xs text-slate-300">Video format preview not supported directly by this browser engine.</p>
+                      <a
+                        href={previewImage.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-3 py-1.5 bg-[#FA634E] text-white font-bold rounded-lg text-xs"
+                      >
+                        Download / Play in External Player
+                      </a>
+                    </div>
+                  </video>
+                ) : (
+                  <img
+                    src={previewImage.url}
+                    alt={previewImage.title}
+                    className="max-h-[44vh] w-auto max-w-full object-contain rounded-lg"
+                  />
+                )}
               </div>
 
               {/* GPS Geotag Evidence Card (Location, Time, Coordinates, Map) */}
