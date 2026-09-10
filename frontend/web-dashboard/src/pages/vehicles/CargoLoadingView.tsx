@@ -718,7 +718,7 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[12.8%] left-[32.8%] w-[63.2%] h-[47.8%] flex items-stretch gap-2.5 sm:gap-3.5 pointer-events-auto">
+              <div className="absolute top-[5.5%] left-[5.5%] w-[92.5%] h-[60.5%] flex items-stretch gap-3 sm:gap-4 pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
                 <div className="w-[36%] bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-100/90 shadow-sm shrink-0 overflow-hidden">
@@ -973,32 +973,15 @@ export default function CargoLoadingView() {
                 </button>
               </div>
 
-              {/* Action Controls: Search, Sort By, Expand Button */}
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                  <Input 
-                    placeholder="Search trip..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 text-[11px] rounded-lg border-slate-200 w-40 sm:w-48" 
-                  />
-                </div>
-
-                <Button variant="outline" className="h-8 gap-1.5 text-[11px] border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-50">
-                  <SlidersHorizontal className="w-3 h-3 text-slate-500" /> Sort by creation
-                </Button>
-
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  title={isExpanded ? 'Collapse box' : 'Expand box'}
-                  className="w-8 h-8 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                </Button>
-              </div>
+              {/* Action Control: All Trips Redirect Button */}
+              <Button
+                variant="outline"
+                onClick={() => navigate('/trips')}
+                className="h-8 px-3.5 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors flex items-center gap-1.5"
+              >
+                <span>All Trips</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </Button>
             </div>
 
             {/* Fixed 3-Column Data Cards / Blank Boxes Grid */}
