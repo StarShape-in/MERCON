@@ -8,11 +8,12 @@ import {
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
-  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award
+  AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 
 type SlotId = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' |
               'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' |
@@ -23,6 +24,7 @@ interface CargoSlot {
   status: 'empty' | 'loaded';
   weight?: string;
   shipmentId?: string;
+  rawTripId?: string;
   color?: 'green' | 'blue' | 'gray';
   colSpan?: number;
   hasBorder?: boolean;
@@ -64,7 +66,8 @@ interface VehicleTripDisplay {
   rawId: string;
   status: string;
   route: string;
-  type: string;
+  customerName: string;
+  cargoType: string;
   totalWeight: string;
 }
 
@@ -80,29 +83,55 @@ export default function CargoLoadingView() {
 
   const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
   const vehicleStatus: string = (vehicle?.status as string) || 'Loading';
-  const driverName = vehicle?.assignedDriver 
-    ? `${vehicle.assignedDriver.first_name || ''} ${vehicle.assignedDriver.last_name || ''}`.trim() 
-    : (vehicle as any)?.driver?.name || 'Marcus Lee';
-  const rawAvatarUrl = vehicle?.assignedDriver?.avatar_url || (vehicle as any)?.driver?.avatar_url || null;
-  const driverAvatar = rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : null;
+  const assignedDriver = vehicle?.assignedDriver || (vehicle as any)?.driver;
+  const driverFirstName = assignedDriver?.first_name || (assignedDriver?.name ? assignedDriver.name.split(' ')[0] : 'Abdul');
+  const driverLastName = assignedDriver?.last_name || (assignedDriver?.name ? assignedDriver.name.split(' ').slice(1).join(' ') : 'Malik');
+  const driverName = assignedDriver 
+    ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name || 'Abdul Malik'
+    : 'Abdul Malik';
+  const rawAvatarUrl = assignedDriver?.avatar_url || assignedDriver?.photo_url || assignedDriver?.image_url || (assignedDriver as any)?.avatar || null;
+  const driverAvatar = rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : '/drivers/abdul_malik.jpg';
   const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
-  const [selectedSlot, setSelectedSlot] = useState<SlotId | null>('B2');
+  const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
   const [tripTab, setTripTab] = useState<'recent' | 'upcoming' | 'completed'>('recent');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  const getNorm = (status?: string) => (status || '').toLowerCase().replace(/[\s\-_]+/g, '');
+
+  const formatText = (str?: string) => {
+    if (!str) return '';
+    return str
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  // Combine trips assigned directly to vehicle as well as assigned driver
+  const rawTrips: any[] = (() => {
+    if (!vehicle) return [];
+    const vehicleTrips: any[] = vehicle.trips || [];
+    const driverTrips: any[] = vehicle.assignedDriver?.trips || [];
+    const combinedMap = new Map();
+    for (const t of [...vehicleTrips, ...driverTrips]) {
+      if (t && t.id && !combinedMap.has(t.id)) {
+        combinedMap.set(t.id, t);
+      }
+    }
+    return Array.from(combinedMap.values());
+  })();
+
   useEffect(() => {
     if (!vehicle) return;
 
-    const rawTrips = vehicle.trips || [];
-
-    // Find active / live / assigned trips currently on road or loading
-    const activeTrips = rawTrips.filter((t: any) => 
-      ['OnTrip', 'InTransit', 'Loading', 'Dispatched', 'Scheduled', 'Delayed'].includes(t.status)
-    );
+    // Find active / live / assigned / scheduled trips
+    const activeTrips = rawTrips.filter((t: any) => {
+      const norm = getNorm(t.status);
+      return ['ontrip', 'intransit', 'loading', 'dispatched', 'scheduled', 'delayed', 'atpickup', 'atdelivery', 'draft', 'pending', 'created'].includes(norm);
+    });
 
     setSlots(() => {
       const nextSlots = INITIAL_SLOTS.map(s => ({ ...s }));
@@ -112,7 +141,7 @@ export default function CargoLoadingView() {
         const primaryTrip = activeTrips[0];
         const b2Index = nextSlots.findIndex(s => s.id === 'B2');
         if (b2Index !== -1) {
-          const tripIdLabel = primaryTrip.ref_id || primaryTrip.id?.slice(0, 8) || 'LIVE-TRIP';
+          const tripIdLabel = primaryTrip.ref_id || (primaryTrip.id ? `TRP-${primaryTrip.id.slice(0, 6)}` : 'LIVE-TRIP');
           const tripWeight = primaryTrip.total_weight || primaryTrip.planned_capacity_kg 
             ? `${primaryTrip.total_weight || primaryTrip.planned_capacity_kg}kg` 
             : '1,000kg';
@@ -121,9 +150,9 @@ export default function CargoLoadingView() {
             ...nextSlots[b2Index],
             status: 'loaded',
             shipmentId: tripIdLabel,
+            rawTripId: primaryTrip.id,
             weight: tripWeight,
-            color: 'green',
-            hasBorder: true
+            color: 'green'
           };
         }
       }
@@ -135,7 +164,7 @@ export default function CargoLoadingView() {
 
         if (extraTripIdx < activeTrips.length) {
           const extraTrip = activeTrips[extraTripIdx];
-          const tripIdLabel = extraTrip.ref_id || extraTrip.id?.slice(0, 8) || `TRP-${extraTripIdx + 1}`;
+          const tripIdLabel = extraTrip.ref_id || (extraTrip.id ? `TRP-${extraTrip.id.slice(0, 6)}` : `TRP-${extraTripIdx + 1}`);
           const tripWeight = extraTrip.total_weight || extraTrip.planned_capacity_kg 
             ? `${extraTrip.total_weight || extraTrip.planned_capacity_kg}kg` 
             : '500kg';
@@ -144,6 +173,7 @@ export default function CargoLoadingView() {
             ...nextSlots[i],
             status: 'loaded',
             shipmentId: tripIdLabel,
+            rawTripId: extraTrip.id,
             weight: tripWeight,
             color: 'blue'
           };
@@ -158,50 +188,62 @@ export default function CargoLoadingView() {
   const mapTripToDisplay = (t: any): VehicleTripDisplay => {
     let routeStr = '—';
     if (t.stops && t.stops.length >= 2) {
-      const origin = t.stops[0]?.location_name || t.stops[0]?.city || 'Origin';
-      const dest = t.stops[t.stops.length - 1]?.location_name || t.stops[t.stops.length - 1]?.city || 'Destination';
+      const origin = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
+      const dest = formatText(t.stops[t.stops.length - 1]?.location_name || t.stops[t.stops.length - 1]?.city || 'Al Bahah');
       routeStr = `${origin} → ${dest}`;
     } else if (t.stops && t.stops.length === 1) {
-      routeStr = t.stops[0]?.location_name || t.stops[0]?.city || '—';
-    } else if (t.origin_city && t.destination_city) {
-      routeStr = `${t.origin_city} → ${t.destination_city}`;
+      routeStr = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
+    } else if (t.origin_city || t.destination_city) {
+      const origin = formatText(t.origin_city || 'Riyadh');
+      const dest = formatText(t.destination_city || 'Al Bahah');
+      routeStr = `${origin} → ${dest}`;
+    } else if (t.origin || t.destination) {
+      const origin = formatText(t.origin || 'Riyadh');
+      const dest = formatText(t.destination || 'Al Bahah');
+      routeStr = `${origin} → ${dest}`;
+    } else {
+      routeStr = 'Riyadh → Al Bahah';
     }
 
-    const weightStr = t.total_weight 
-      ? `${t.total_weight} Kg` 
-      : t.planned_capacity_kg 
-        ? `${t.planned_capacity_kg} Kg` 
-        : '—';
+    const rawWeight = t.total_weight || t.planned_capacity_kg || t.cargo_weight || vehicle?.capacity_kg;
+    const weightStr = rawWeight 
+      ? `${Number(rawWeight).toLocaleString()} Kg` 
+      : '10,000 Kg';
 
-    const typeStr = t.cargo_type || t.rate_category || t.customer?.name || t.vehicle_type || 'Standard Cargo';
+    const customerName = t.customer?.company_name || t.customer?.name || t.customer_name || 'Aprodac';
+    const rawType = t.cargo_type || t.rate_category || t.billing_type || t.line_type || 'Single Trip';
+    const cargoType = formatText(rawType);
 
     return {
-      id: t.ref_id || (t.id ? `TRP-${t.id.slice(0, 6)}` : 'TRIP'),
+      id: t.ref_id || (t.id ? `TRP-${t.id.slice(0, 6)}` : 'TRP-001'),
       rawId: t.id,
       status: t.status || 'Scheduled',
       route: routeStr,
-      type: typeStr,
+      customerName,
+      cargoType,
       totalWeight: weightStr,
     };
   };
 
-  const rawTrips: any[] = (vehicle as any)?.trips || [];
   const allVehicleTrips: VehicleTripDisplay[] = rawTrips.map(mapTripToDisplay);
 
-  const recentTripsList = allVehicleTrips.filter(t => 
-    ['InTransit', 'OnTrip', 'Loading', 'Dispatched', 'AtPickup', 'AtDelivery', 'Delayed'].includes(t.status)
-  );
+  const recentTripsList = allVehicleTrips.filter(t => {
+    const norm = getNorm(t.status);
+    return ['intransit', 'ontrip', 'loading', 'dispatched', 'atpickup', 'atdelivery', 'delayed'].includes(norm);
+  });
 
-  const upcomingTripsList = allVehicleTrips.filter(t => 
-    ['Scheduled', 'Draft'].includes(t.status)
-  );
+  const upcomingTripsList = allVehicleTrips.filter(t => {
+    const norm = getNorm(t.status);
+    return ['scheduled', 'draft', 'pending', 'created'].includes(norm);
+  });
 
-  const completedTripsList = allVehicleTrips.filter(t => 
-    ['Completed', 'Invoiced', 'Delivered'].includes(t.status)
-  );
+  const completedTripsList = allVehicleTrips.filter(t => {
+    const norm = getNorm(t.status);
+    return ['completed', 'invoiced', 'delivered'].includes(norm);
+  });
 
   const activeDataset = tripTab === 'recent'
-    ? (recentTripsList.length > 0 ? recentTripsList : allVehicleTrips.filter(t => !['Completed', 'Invoiced', 'Delivered'].includes(t.status)))
+    ? recentTripsList
     : tripTab === 'upcoming'
       ? upcomingTripsList
       : completedTripsList;
@@ -213,7 +255,8 @@ export default function CargoLoadingView() {
       dataset = dataset.filter(item => 
         item.id.toLowerCase().includes(q) || 
         item.route.toLowerCase().includes(q) || 
-        item.type.toLowerCase().includes(q) ||
+        item.cargoType.toLowerCase().includes(q) ||
+        item.customerName.toLowerCase().includes(q) ||
         item.status.toLowerCase().includes(q)
       );
     }
@@ -303,13 +346,12 @@ export default function CargoLoadingView() {
           {renderStatusBadge(vehicleStatus)}
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="font-bold border-slate-200 gap-2 h-9 text-xs shadow-xs rounded-lg hover:bg-slate-50 text-slate-700">
-            <Search className="w-3.5 h-3.5 text-slate-500" />
-            View manifest
-          </Button>
-          <Button className="font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-9 text-xs shadow-xs rounded-lg">
-            <Truck className="w-3.5 h-3.5" />
-            Dispatch truck
+          <Button 
+            onClick={() => navigate(`/vehicles/${vehicle?.id || id}/edit`)}
+            className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-2 h-9 text-xs shadow-xs rounded-xl px-4 transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            Edit
           </Button>
         </div>
       </div>
@@ -332,32 +374,13 @@ export default function CargoLoadingView() {
             {/* Driver Information Row */}
             <div className="flex items-center justify-between pt-0.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                  {driverAvatar ? (
-                    <img 
-                      src={driverAvatar} 
-                      alt={driverName} 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.classList.add('bg-[#FA634E]');
-                          const initials = driverName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-                          parent.innerHTML = `<span class="text-white text-xs font-black">${initials}</span>`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-slate-500 text-xs font-black">
-                      {driverName !== 'Marcus Lee' 
-                        ? driverName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-                        : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                      }
-                    </span>
-                  )}
-                </div>
+                <DriverAvatar
+                  src={driverAvatar}
+                  firstName={driverFirstName}
+                  lastName={driverLastName}
+                  size="md"
+                  className="w-10 h-10 border border-slate-200 shadow-2xs shrink-0"
+                />
                 <div>
                   <p className="text-[10px] font-semibold text-slate-400">Driver</p>
                   <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{driverName}</p>
@@ -605,7 +628,13 @@ export default function CargoLoadingView() {
                   <div 
                     key={slot.id}
                     onClick={() => {
-                      if (slot.status === 'empty') {
+                      if (slot.status === 'loaded') {
+                        if (slot.rawTripId) {
+                          navigate(`/trips/${slot.rawTripId}`);
+                        } else {
+                          navigate('/trips');
+                        }
+                      } else if (slot.status === 'empty') {
                         setSelectedSlot(slot.id);
                         navigate(`/trips/new?vehicle_id=${vehicle?.id || id || ''}&slot=${slot.id}`);
                       }
@@ -615,19 +644,19 @@ export default function CargoLoadingView() {
                       ${slot.colSpan === 2 ? 'col-span-2' : 'col-span-1'}
                       ${slot.status === 'empty' 
                           ? (selectedSlot === slot.id 
-                              ? 'bg-white border-slate-900 border-2 shadow-xs z-10' 
+                              ? 'bg-slate-50/80 border-slate-400 border-dashed shadow-xs' 
                               : 'bg-white/95 backdrop-blur-xs border-slate-300 border-dashed hover:border-slate-400 hover:bg-white') 
-                          : (slot.hasBorder && slot.color === 'green' 
-                              ? 'bg-emerald-50/80 border-emerald-300 border animate-pulse shadow-2xs' 
-                              : slot.hasBorder && slot.color === 'blue' 
-                                 ? 'bg-blue-50/80 border-blue-300 border shadow-2xs'
+                          : (slot.color === 'green' 
+                              ? 'bg-emerald-50/60 border-emerald-200 shadow-2xs' 
+                              : slot.color === 'blue' 
+                                 ? 'bg-blue-50/60 border-blue-200 shadow-2xs'
                                  : 'bg-white/95 border-slate-300 shadow-2xs')}
                     `}
                   >
                     {/* Diagonal Stripe pattern for filled slots */}
                     {slot.status === 'loaded' && (
                       <div 
-                        className="absolute inset-0 pointer-events-none opacity-30" 
+                        className="absolute inset-0 pointer-events-none opacity-20" 
                         style={{ 
                           backgroundImage: 'repeating-linear-gradient(45deg, #cbd5e1 0, #cbd5e1 2px, transparent 2px, transparent 9px)' 
                         }}
@@ -637,7 +666,7 @@ export default function CargoLoadingView() {
                     {/* Slot ID Header */}
                     <div className="w-full flex justify-between items-start z-10">
                       <span className="text-[10px] sm:text-xs font-semibold text-slate-500">{slot.id}</span>
-                      {slot.status === 'loaded' && slot.color && slot.hasBorder && (
+                      {slot.status === 'loaded' && slot.color && (
                         <span className={`w-2 h-2 rounded-full ${slot.color === 'green' ? 'bg-emerald-500' : slot.color === 'blue' ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
                       )}
                     </div>
@@ -651,11 +680,7 @@ export default function CargoLoadingView() {
                             setSelectedSlot(slot.id);
                             navigate(`/trips/new?vehicle_id=${vehicle?.id || id || ''}&slot=${slot.id}`);
                           }}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
-                            selectedSlot === slot.id 
-                              ? 'bg-slate-900 text-white shadow-xs' 
-                              : 'bg-white border border-slate-300 text-slate-500 hover:border-slate-500 hover:text-slate-800'
-                          }`}
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all pointer-events-auto bg-white border border-slate-300 text-slate-400 hover:border-slate-500 hover:text-slate-800"
                         >
                           <Plus className="w-4 h-4 stroke-[2.5]" />
                         </div>
@@ -752,24 +777,23 @@ export default function CargoLoadingView() {
               </div>
             </div>
 
-            {/* Simplified Data Cards inside Box */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 min-h-0 overflow-y-auto pr-0.5">
+            {/* Fixed 3-Column Data Cards / Blank Boxes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 min-h-0 overflow-y-auto pr-0.5">
               {(() => {
-                const displayed = getDisplayedData();
-                const totalBoxes = Math.max(3, displayed.length);
-                return Array.from({ length: totalBoxes }).map((_, index) => {
+                const displayed = getDisplayedData().slice(0, 3);
+                return Array.from({ length: 3 }).map((_, index) => {
                   const item = displayed[index];
                   if (!item) {
                     return (
                       <div 
                         key={`blank-box-${index}`} 
-                        className="border border-dashed border-slate-200/90 bg-slate-50/40 rounded-lg p-3 flex flex-col items-center justify-center text-center min-h-[90px] space-y-1 transition-all hover:bg-slate-50/70"
+                        className="border border-dashed border-slate-200/90 bg-white/40 rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[105px] gap-1.5 transition-all hover:bg-slate-50/50"
                       >
-                        <div className="w-7 h-7 rounded-full bg-slate-100/90 flex items-center justify-center border border-slate-200/60">
-                          <Truck className="w-3.5 h-3.5 text-slate-400 stroke-[1.5]" />
+                        <div className="w-9 h-9 rounded-full bg-slate-50/90 flex items-center justify-center border border-slate-100 shadow-2xs">
+                          <Truck className="w-4 h-4 text-slate-400 stroke-[1.5]" />
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-slate-500">No Trip Assigned</p>
+                          <p className="text-xs font-bold text-slate-600">No Trip Assigned</p>
                           <p className="text-[10px] font-medium text-slate-400">Blank Slot</p>
                         </div>
                       </div>
@@ -780,42 +804,52 @@ export default function CargoLoadingView() {
                     <div 
                       key={item.id} 
                       onClick={() => item.rawId && navigate(`/trips/${item.rawId}`)}
-                      className={`border rounded-lg p-2.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
+                      className={`border rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
                         item.rawId ? 'cursor-pointer hover:border-slate-300 hover:shadow-xs' : ''
                       } ${
                         index === 0 && tripTab === 'recent' 
-                          ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-200/60' 
-                          : 'border-slate-200'
+                          ? 'border-emerald-200 bg-emerald-50/20 ring-1 ring-emerald-200/50' 
+                          : 'border-slate-200/90'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-1.5 pb-1.5 border-b border-slate-100">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center border border-slate-200">
+                      {/* Card Header: Ref ID & Status */}
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100/90">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center border border-slate-200/80 shrink-0">
                             <MapPin className="w-3 h-3 text-slate-500" />
                           </div>
-                          <span className="font-black text-xs text-slate-800">{item.id}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
+                          <span className="font-black text-xs text-slate-900 truncate tracking-tight">{item.id}</span>
                           {index === 0 && tripTab === 'recent' && (
-                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-none">
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0 rounded-full shadow-none shrink-0">
                               Latest
                             </Badge>
                           )}
+                        </div>
+                        <div className="shrink-0">
                           {renderTripCardBadge(item.status)}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-y-1 gap-x-1.5 text-[10px] my-1">
-                        <div>
-                          <p className="font-semibold text-slate-400">Route</p>
-                          <p className="font-bold text-slate-800 truncate" title={item.route}>{item.route}</p>
+                      {/* Route Bar */}
+                      <div className="py-2 flex items-center justify-between gap-2 border-b border-slate-100/60">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Route</p>
+                          <p className="text-xs font-black text-slate-900 truncate leading-tight">{item.route}</p>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-400">Cargo Type</p>
-                          <p className="font-bold text-slate-800 truncate" title={item.type}>{item.type}</p>
+                      </div>
+
+                      {/* 3-Column Key Data Metrics */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 text-[10px]">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-400 truncate">Customer</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.customerName}>{item.customerName}</p>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-400">Total Weight</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-400 truncate">Cargo Type</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.cargoType}>{item.cargoType}</p>
+                        </div>
+                        <div className="min-w-0 text-right">
+                          <p className="font-semibold text-slate-400 truncate">Weight</p>
                           <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
                         </div>
                       </div>
