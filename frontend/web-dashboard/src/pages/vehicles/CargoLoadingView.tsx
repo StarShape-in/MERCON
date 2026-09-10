@@ -717,33 +717,33 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl mx-auto">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
-              {/* Framed Default Light HUD Overlay inside Trailer (Perfectly Symmetrical Inside White Panel) */}
-              <div className="absolute top-[12.8%] left-[33.2%] w-[62.2%] h-[47.8%] bg-slate-100/95 backdrop-blur-sm text-slate-900 rounded-xl p-1.5 sm:p-2 border border-slate-300/80 shadow-md flex items-stretch gap-1.5 sm:gap-2 overflow-hidden pointer-events-auto">
+              {/* Clean Direct HUD Sub-Cards inside Trailer Body (No Outer Gray Box Overlay) */}
+              <div className="absolute top-[10.5%] left-[32.5%] w-[63.2%] h-[51.5%] flex items-stretch gap-3 overflow-hidden pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
-                <div className="w-[33%] bg-white rounded-lg p-1.5 sm:p-2 flex flex-col justify-between border border-slate-200/90 shadow-2xs shrink-0 overflow-hidden">
+                <div className="w-[33%] bg-white/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-200/90 shadow-md shrink-0 overflow-hidden">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                        <Gauge className="w-3 h-3" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+                        <Gauge className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-[11px] font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
-                        <p className="text-[7.5px] text-slate-400 font-semibold leading-none mt-0.5 truncate">Total Distance</p>
+                        <h3 className="text-xs font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
+                        <p className="text-[8.5px] text-slate-400 font-semibold leading-none mt-0.5 truncate">Total Distance</p>
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold px-1.5 py-0.2 text-[7.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
-                      <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold px-2 py-0.5 text-[8.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                       Active
                     </Badge>
                   </div>
 
                   {/* Mechanical Rolling Counter Drum Wheels */}
                   <div className="my-auto py-0.5">
-                    <div className="bg-slate-900 p-1 sm:p-1.5 rounded-lg border border-slate-800 shadow-inner flex items-center justify-center gap-1">
+                    <div className="bg-slate-900 p-1.5 sm:p-2 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1.5">
                       <div className="flex items-center gap-0.5">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -754,7 +754,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-3 h-5 sm:w-3.5 sm:h-5.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[10px] sm:text-[11px] rounded border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-6.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               {/* Glossy top glass reflection */}
                               <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
@@ -770,36 +770,36 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-[10px] font-black text-slate-200 ml-0.5 shrink-0">
+                      <span className="text-[11px] sm:text-xs font-black text-slate-200 ml-0.5 shrink-0">
                         km
                       </span>
                     </div>
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-slate-50/90 border border-slate-200/90 rounded-md p-1.5 space-y-0.5 shrink-0">
-                    <div className="flex justify-between items-center text-[8px]">
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
-                          <Wrench className="w-1.5 h-1.5 text-emerald-700" />
+                  <div className="bg-slate-50/90 border border-slate-200/90 rounded-xl p-2 sm:p-2.5 space-y-1 shrink-0">
+                    <div className="flex justify-between items-center text-[9px]">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                          <Wrench className="w-2 h-2 text-emerald-700" />
                         </div>
                         <div>
-                          <p className="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Next Due</p>
-                          <p className="text-[9.5px] sm:text-[10px] font-black text-emerald-600 leading-tight mt-0.5">in 7,500 km</p>
+                          <p className="text-[8px] text-slate-400 font-extrabold uppercase leading-none">Next Due</p>
+                          <p className="text-[10.5px] sm:text-xs font-black text-emerald-600 leading-tight mt-0.5">in 7,500 km</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[7px] text-slate-400 font-extrabold uppercase leading-none">Target</p>
-                        <p className="text-[9.5px] font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
+                        <p className="text-[8px] text-slate-400 font-extrabold uppercase leading-none">Target</p>
+                        <p className="text-[10.5px] font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-slate-200/80 h-1 rounded-full overflow-hidden p-0.5 border border-slate-300/60">
+                    <div className="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden p-0.5 border border-slate-300/60">
                       <div className="bg-emerald-500 h-full rounded-full w-[70%]" title="70% interval elapsed"></div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[7px] text-slate-400 font-semibold">
+                    <div className="flex justify-between items-center text-[7.5px] sm:text-[8px] text-slate-400 font-semibold">
                       <span>142,500 km</span>
                       <span>150,000 km</span>
                     </div>
@@ -807,35 +807,35 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT SUB-CARD: Vehicle Service History (Perfect Fit inside Trailer) ── */}
-                <div className="flex-1 bg-white rounded-lg p-1.5 sm:p-2 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-2xs overflow-hidden">
+                {/* ── RIGHT SUB-CARD: Vehicle Service History (Clean White Canvas Card) ── */}
+                <div className="flex-1 bg-white/95 backdrop-blur-sm rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between min-w-0 border border-slate-200/90 shadow-md overflow-hidden">
                   
                   {/* Header */}
                   <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-4.5 h-4.5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
-                        <Calendar className="w-2.5 h-2.5 text-slate-700" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-2xs shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-slate-700" />
                       </div>
                       <div>
-                        <h3 className="text-[11px] font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[7.5px] text-slate-400 font-semibold leading-none mt-0.5">Recent maintenance records</p>
+                        <h3 className="text-xs font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[8.5px] text-slate-400 font-semibold leading-none mt-0.5">Recent maintenance records</p>
                       </div>
                     </div>
 
-                    <span className="text-[8px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded-full shrink-0">
+                    <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full shrink-0">
                       {serviceRecords.length} Records
                     </span>
                   </div>
 
                   {/* Table Header Bar */}
-                  <div className="flex items-center justify-between bg-slate-100/90 px-2 py-0.5 rounded text-[8px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-0.5 border border-slate-200/60">
+                  <div className="flex items-center justify-between bg-slate-100/90 px-3 py-1 rounded-lg text-[8.5px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0 my-1 border border-slate-200/60">
                     <span className="flex-1 min-w-0">Service</span>
-                    <span className="w-22 text-center shrink-0">Date</span>
-                    <span className="w-22 text-right shrink-0">Odometer</span>
+                    <span className="w-24 text-center shrink-0">Date</span>
+                    <span className="w-24 text-right shrink-0">Odometer</span>
                   </div>
 
-                  {/* Service History Rows (Max 3 items, Clean Spacing) */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1">
+                  {/* Service History Rows (Max 3 items, Clean White Cards) */}
+                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1.5">
                     {serviceRecords.slice(0, 3).map((rec, idx) => {
                       const rowStyles = [
                         { icon: Droplets, iconBg: 'bg-rose-100 text-rose-700 border border-rose-200' },
@@ -849,26 +849,26 @@ export default function CargoLoadingView() {
                         <div
                           key={rec.id}
                           onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="flex items-center justify-between px-2 py-1 rounded-md bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-1.5"
+                          className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:border-slate-300 hover:bg-slate-100/80 transition-all cursor-pointer shrink-0 gap-2"
                         >
                           {/* Service Work Done & Workshop */}
-                          <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                            <div className={`w-4.5 h-4.5 rounded flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                          <div className="flex-1 flex items-center gap-2.5 min-w-0">
+                            <div className={`w-5.5 h-5.5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
                               <IconComponent className="w-2.5 h-2.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-black text-slate-900 text-[10px] sm:text-[10.5px] truncate leading-tight">{rec.work_done}</p>
-                              <p className="text-[7.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
+                              <p className="font-black text-slate-900 text-[11px] truncate leading-tight">{rec.work_done}</p>
+                              <p className="text-[8.5px] font-medium text-slate-500 truncate mt-0.5">{rec.workshop_name}</p>
                             </div>
                           </div>
 
                           {/* Date */}
-                          <div className="w-22 text-center text-[9px] font-bold text-slate-600 whitespace-nowrap shrink-0">
+                          <div className="w-24 text-center text-[10px] font-bold text-slate-600 whitespace-nowrap shrink-0">
                             {rec.service_date}
                           </div>
 
                           {/* Odometer */}
-                          <div className="w-22 text-right text-[10px] font-black text-slate-900 whitespace-nowrap shrink-0">
+                          <div className="w-24 text-right text-[11px] font-black text-slate-900 whitespace-nowrap shrink-0">
                             {rec.odometer_reading}
                           </div>
                         </div>
@@ -877,7 +877,7 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Minimal Footer Info Bar */}
-                  <div className="pt-0.5 border-t border-slate-200/80 flex items-center justify-between text-[7.5px] font-mono uppercase text-slate-400 shrink-0">
+                  <div className="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[8.5px] font-mono uppercase text-slate-400 shrink-0">
                     <span className="font-semibold">VERIFIED MAINTENANCE LOGS</span>
                     <span className="font-bold text-slate-700">HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
                   </div>
