@@ -14,9 +14,9 @@ export function useTripRateLookup(
   const navigate = useNavigate();
 
   const { data: rateCardsRes } = useQuery({
-    queryKey: ['quotations-select-all'],
+    queryKey: ['quotations', 'select-all'],
     queryFn: () => quotationService.getAll({ active_only: true }),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0,
   });
 
   const allRateCards: RateCard[] = rateCardsRes?.data ?? [];

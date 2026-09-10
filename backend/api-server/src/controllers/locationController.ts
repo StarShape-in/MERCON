@@ -63,9 +63,6 @@ export const resolveLocation = async (
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse } });
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
-    if (customerIdToUse && existing.customerId !== customerIdToUse) {
-      throw new Error('CROSS_CUSTOMER_LOCATION_MISMATCH: Location belongs to a different customer.');
-    }
     return existing;
   }
 

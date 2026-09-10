@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -312,7 +312,10 @@ function ValidityStatusCell({ quotation }: { quotation: Quotation }) {
 
 export default function QuotationListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const urlCustomerId = searchParams.get('customer_id');
 
   // Customer Workspace Sub-Tab State ('routes' | 'surcharges')
   const [customerWorkspaceTab, setCustomerWorkspaceTab] = useState<'routes' | 'surcharges'>('routes');
@@ -324,7 +327,16 @@ export default function QuotationListPage() {
 
   // Customer Navigator Search (Left panel)
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(urlCustomerId);
+
+  const handleSelectCustomer = (id: string) => {
+    setSelectedCustomerId(id);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('customer_id', id);
+      return next;
+    }, { replace: true });
+  };
 
   // Global Route Workspace Filters (Right panel toolbar)
   const [search, setSearch] = useState('');
@@ -413,14 +425,18 @@ export default function QuotationListPage() {
     return groups.sort((a, b) => a.name.localeCompare(b.name));
   }, [rawQuotations, sortedCustomers]);
 
-  // Auto-select first customer
+  // Auto-select customer from URL or first customer
   useEffect(() => {
     if (companyGroups.length > 0) {
-      if (!selectedCustomerId || !companyGroups.some((g) => g.id === selectedCustomerId)) {
+      if (urlCustomerId && companyGroups.some((g) => g.id === urlCustomerId)) {
+        if (selectedCustomerId !== urlCustomerId) {
+          setSelectedCustomerId(urlCustomerId);
+        }
+      } else if (!selectedCustomerId || !companyGroups.some((g) => g.id === selectedCustomerId)) {
         setSelectedCustomerId(companyGroups[0].id);
       }
     }
-  }, [companyGroups, selectedCustomerId]);
+  }, [companyGroups, urlCustomerId, selectedCustomerId]);
 
   // Filtered customer navigator list for left panel search
   const navCustomerGroups = useMemo(() => {
@@ -642,7 +658,7 @@ export default function QuotationListPage() {
                       <button
                         key={group.id}
                         type="button"
-                        onClick={() => setSelectedCustomerId(group.id)}
+                        onClick={() => handleSelectCustomer(group.id)}
                         className={cn(
                           "w-full text-left p-2.5 rounded-lg transition-all flex items-center justify-between gap-2.5 cursor-pointer group border-l-4",
                           isSelected

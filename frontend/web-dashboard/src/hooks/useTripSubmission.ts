@@ -208,7 +208,9 @@ export function useTripSubmission(
 
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] });
       queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations', 'select-all'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['rate-card-lookup'] });
       queryClient.invalidateQueries({ queryKey: ['locations-list'] });

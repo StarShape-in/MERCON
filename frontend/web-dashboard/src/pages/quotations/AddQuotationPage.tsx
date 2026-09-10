@@ -533,6 +533,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
       queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
       queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
       setIsPreviewOpen(false);
@@ -556,7 +558,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             ? 'Quotation updated successfully'
             : `Successfully saved ${parts.length > 0 ? parts.join(' and ') : 'commercial agreement'}`
         );
-        navigate('/quotations');
+        navigate(customerId ? `/quotations?customer_id=${customerId}` : '/quotations');
       }
     },
     onError: (err: any) => {
