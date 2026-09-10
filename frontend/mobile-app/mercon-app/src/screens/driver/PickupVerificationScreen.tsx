@@ -17,21 +17,21 @@ import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
 import { getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops } from '../../lib/routeParser';
 
-// Orange Camera Icon with Plus Badge for Photo Upload Slots
-const OrangeCameraPlusIcon = () => (
+// Blue Camera Icon with Plus Badge for Loading Photo Upload Slots
+const BlueCameraPlusIcon = () => (
   <View style={{ width: 34, height: 30, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={30} height={28} viewBox="0 0 30 28">
       <Path
         d="M 4 8 C 2.9 8 2 8.9 2 10 L 2 23 C 2 24.1 2.9 25 4 25 L 21 25 C 22.1 25 23 24.1 23 23 L 23 10 C 23 8.9 22.1 8 21 8 Z"
         fill="none"
-        stroke="#E8450F"
+        stroke="#2563EB"
         strokeWidth={2.2}
       />
-      <Path d="M 8 8 L 10 5 L 15 5 L 17 8 Z" fill="none" stroke="#E8450F" strokeWidth={2.2} />
-      <Circle cx={12.5} cy={16.5} r={4.5} fill="none" stroke="#E8450F" strokeWidth={2.2} />
+      <Path d="M 8 8 L 10 5 L 15 5 L 17 8 Z" fill="none" stroke="#2563EB" strokeWidth={2.2} />
+      <Circle cx={12.5} cy={16.5} r={4.5} fill="none" stroke="#2563EB" strokeWidth={2.2} />
 
       {/* Plus Badge */}
-      <Circle cx={22} cy={19} r={5.5} fill="#E8450F" />
+      <Circle cx={22} cy={19} r={5.5} fill="#2563EB" />
       <Line x1={22} y1={16} x2={22} y2={22} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
       <Line x1={19} y1={19} x2={25} y2={19} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
     </Svg>
@@ -323,7 +323,7 @@ const PickupVerificationScreen = () => {
           <View style={styles.uploadHeaderRow}>
             <Text style={styles.uploadTitle}>{isReturnLoading ? 'UPLOAD RETURN LOADING PHOTOS' : 'UPLOAD LOADING PHOTOS'}</Text>
             <View style={styles.cameraIconCircle}>
-              <Camera size={16} color="#E8450F" strokeWidth={2.2} />
+              <Camera size={16} color="#2563EB" strokeWidth={2.2} />
             </View>
           </View>
 
@@ -354,7 +354,7 @@ const PickupVerificationScreen = () => {
                   </>
                 ) : (
                   <View style={styles.photoPlaceholder}>
-                    <OrangeCameraPlusIcon />
+                    <BlueCameraPlusIcon />
                     <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
                   </View>
                 )}
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 11,
-    color: '#C2410C',
+    color: '#2563EB',
     fontWeight: '600',
     flex: 1,
   },
@@ -614,9 +614,9 @@ const styles = StyleSheet.create({
   },
   photoEmpty: {
     borderWidth: 1.5,
-    borderColor: '#FDBA74',
+    borderColor: '#93C5FD',
     borderStyle: 'dashed',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F0F7FF',
   },
   photoFilled: {
     borderWidth: 0,
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   photoPlaceholderText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#2563EB',
     marginTop: 4,
   },
   deletePhotoBtn: {
@@ -650,13 +650,13 @@ const styles = StyleSheet.create({
   mainActionBtn: {
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#FA634E',
+    backgroundColor: '#2563EB',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    shadowColor: '#FA634E',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
