@@ -415,11 +415,11 @@ export default function CargoLoadingView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards ── */}
-        <div className="xl:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards (Stretched h-full) ── */}
+        <div className="xl:col-span-3 flex flex-col gap-3.5 h-full overflow-hidden">
           
-          {/* BOX 1: Truck & Driver Information (Semantic Logical Colors) */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 shrink-0">
+          {/* BOX 1: Truck & Driver Information */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
             {/* Box Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
@@ -432,14 +432,14 @@ export default function CargoLoadingView() {
             </div>
 
             {/* Driver Information Row */}
-            <div className="flex items-center justify-between bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
+            <div className="flex items-center justify-between bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80">
               <div className="flex items-center gap-2.5">
                 <DriverAvatar
                   src={driverAvatar}
                   firstName={driverFirstName}
                   lastName={driverLastName}
                   size="md"
-                  className="w-10 h-10 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
+                  className="w-9 h-9 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
                 />
                 <div>
                   <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Driver</p>
@@ -451,7 +451,7 @@ export default function CargoLoadingView() {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="w-8 h-8 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs"
+                  className="w-7.5 h-7.5 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs"
                   onClick={() => {
                     const phone = vehicle?.assignedDriver?.phone_primary;
                     if (phone) window.open(`tel:${phone}`);
@@ -459,36 +459,36 @@ export default function CargoLoadingView() {
                 >
                   <Phone className="w-3.5 h-3.5 text-slate-600" />
                 </Button>
-                <Button variant="outline" size="icon" className="w-8 h-8 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs">
+                <Button variant="outline" size="icon" className="w-7.5 h-7.5 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs">
                   <MessageSquare className="w-3.5 h-3.5 text-slate-600" />
                 </Button>
               </div>
             </div>
 
-            {/* Real ERP Vehicle Specifications Grid (Clean Logical Semantic Styling) */}
-            <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-              {/* Card 1: Plate & Ref ID (Neutral Specification) */}
+            {/* Vehicle Specs Grid */}
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              {/* Card 1: Plate & Ref ID */}
               <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Plate & Ref ID</p>
-                  <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
-                    <FileText className="w-3 h-3" />
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <FileText className="w-2.5 h-2.5" />
                   </div>
                 </div>
                 <p className="font-mono font-black text-slate-900 leading-tight text-xs">
                   {plateNumber}
                 </p>
                 <p className="text-[9.5px] font-mono font-semibold text-slate-500 truncate mt-0.5">
-                  Ref: {vehicle?.ref_id || 'TRK-128'}
+                  Ref: {vehicle?.ref_id || 'TRK-129'}
                 </p>
               </div>
 
-              {/* Card 2: Asset & Capacity (Neutral Specification) */}
+              {/* Card 2: Asset & Capacity */}
               <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Asset & Capacity</p>
-                  <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
-                    <Package className="w-3 h-3" />
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <Package className="w-2.5 h-2.5" />
                   </div>
                 </div>
                 <p className="font-black text-slate-900 leading-tight text-xs">
@@ -501,28 +501,28 @@ export default function CargoLoadingView() {
                 </div>
               </div>
 
-              {/* Card 3: Driver Contact (Neutral Specification) */}
+              {/* Card 3: Driver Contact */}
               <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Driver Contact</p>
-                  <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
-                    <Phone className="w-3 h-3" />
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <Phone className="w-2.5 h-2.5" />
                   </div>
                 </div>
                 <p className="font-mono font-black text-slate-900 leading-tight text-xs truncate">
-                  {assignedDriver?.phone_primary || assignedDriver?.phone || '+966 50 123 4567'}
+                  {assignedDriver?.phone_primary || assignedDriver?.phone || '+966546126286'}
                 </p>
                 <p className="text-[9.5px] font-semibold text-slate-500 truncate mt-0.5">
                   {assignedDriver ? 'Assigned Phone' : 'Primary Contact'}
                 </p>
               </div>
 
-              {/* Card 4: Telematics & GPS (Semantic Green for Live Active Status) */}
+              {/* Card 4: Telematics & GPS */}
               <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-200/60 shadow-2xs flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider">Telematics & GPS</p>
-                  <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-                    <Radio className="w-3 h-3 animate-pulse" />
+                  <div className="w-4.5 h-4.5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+                    <Radio className="w-2.5 h-2.5 animate-pulse" />
                   </div>
                 </div>
                 <p className="font-mono font-bold text-emerald-950 leading-tight text-xs flex items-center gap-1.5">
@@ -533,16 +533,16 @@ export default function CargoLoadingView() {
                   {vehicle?.gps_device_id ? `GPS: ${vehicle.gps_device_id}` : 'GPS: Active'}
                 </p>
                 <p className="text-[9.5px] font-mono font-semibold text-emerald-700/80 truncate mt-0.5">
-                  {vehicle?.icces_device_id ? `ICCES: ${vehicle.icces_device_id}` : 'ICCES: Connected'}
+                  {vehicle?.icces_device_id ? `ICCES: ${vehicle.icces_device_id}` : 'ICCES: 8676048587338...'}
                 </p>
               </div>
             </div>
 
-            {/* Dotted Divider */}
+            {/* Divider */}
             <div className="border-t border-dashed border-slate-200 my-0.5"></div>
 
-            {/* Dynamic Logical Route & Location Display */}
-            <div className="flex items-center justify-between p-2.5 px-3 bg-slate-50/70 rounded-xl border border-slate-200/80">
+            {/* Dynamic Location Display */}
+            <div className="flex items-center justify-between p-2 px-3 bg-slate-50/70 rounded-xl border border-slate-200/80">
               {vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? (
                 <>
                   <div className="text-left">
@@ -552,7 +552,7 @@ export default function CargoLoadingView() {
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
                     <div className="w-full h-1 bg-emerald-200 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
                       <Navigation className="w-3 h-3 fill-white text-white rotate-90" />
                     </div>
                   </div>
@@ -571,7 +571,7 @@ export default function CargoLoadingView() {
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
                     <div className="w-full h-1 bg-amber-200 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
                       <Clock className="w-3 h-3 text-white animate-pulse" />
                     </div>
                   </div>
@@ -590,7 +590,7 @@ export default function CargoLoadingView() {
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
                     <div className="w-full h-1 bg-rose-200 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
                       <Wrench className="w-3 h-3 text-white" />
                     </div>
                   </div>
@@ -609,7 +609,7 @@ export default function CargoLoadingView() {
 
                   <div className="flex-1 mx-3 flex items-center justify-center relative">
                     <div className="w-full h-1 bg-slate-200 rounded-full"></div>
-                    <div className="absolute w-6 h-6 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center shadow-2xs ring-2 ring-white">
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center shadow-2xs ring-2 ring-white">
                       <MapPin className="w-3 h-3 text-slate-700" />
                     </div>
                   </div>
@@ -622,18 +622,18 @@ export default function CargoLoadingView() {
               )}
             </div>
 
-            {/* Action Buttons: Change driver & Edit route */}
+            {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-0.5">
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/vehicles/${id || ''}/edit`)}
-                className="w-full h-8.5 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-100 text-slate-800 shadow-2xs bg-white hover:border-slate-300 transition-all"
+                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-100 text-slate-800 shadow-2xs bg-white hover:border-slate-300 transition-all"
               >
                 Change driver
               </Button>
               <Button 
                 onClick={() => navigate(`/trips/new?vehicle_id=${id || ''}`)}
-                className="w-full h-8.5 font-bold text-xs bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-xl shadow-xs border border-transparent transition-all flex items-center justify-center gap-1.5"
+                className="w-full h-8 font-bold text-xs bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-xl shadow-xs border border-transparent transition-all flex items-center justify-center gap-1.5"
               >
                 <span>Edit route</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -641,9 +641,9 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 2: Vehicle Documents & Validity (Fully-Visible List + Horizontal More Details Button) */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs flex flex-col gap-2 shrink-0 overflow-hidden">
-            <div className="flex items-center justify-between shrink-0 mb-0.5">
+          {/* BOX 2: Vehicle Documents & Validity (Stretched to fill remaining height cleanly) */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 mb-1">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
                 Documents & Validity
@@ -651,10 +651,10 @@ export default function CargoLoadingView() {
               <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
             </div>
 
-            {/* Contiguous compact document list fitting all 5 items perfectly */}
-            <div className="flex flex-col rounded-lg border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shrink-0">
+            {/* Document list stretching vertically */}
+            <div className="flex-1 my-1 flex flex-col justify-evenly rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Istimara</span>
@@ -662,7 +662,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
               </div>
               {/* 2. Insurance */}
-              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Insurance</span>
@@ -670,7 +670,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
               </div>
               {/* 3. Operation Card */}
-              <div className="flex items-center justify-between px-2.5 py-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
@@ -678,7 +678,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
               </div>
               {/* 4. SASO Plates */}
-              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
@@ -686,7 +686,7 @@ export default function CargoLoadingView() {
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
               </div>
               {/* 5. FAHAS */}
-              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
@@ -699,7 +699,7 @@ export default function CargoLoadingView() {
             <Button
               variant="outline"
               onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-              className="w-full h-7.5 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0"
+              className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0 mt-1"
             >
               <span>More Details</span>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
@@ -708,43 +708,43 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col justify-between gap-3 h-full overflow-hidden">
+        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5 h-full overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-end shrink-0 -mt-1 sm:-mt-2 pl-2 sm:pl-6 overflow-hidden">
+          <div className="w-full relative flex items-center justify-center shrink-0 overflow-hidden">
             
             {/* Inner wrapper tightly hugging the image */}
-            <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
-              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
+            <div className="relative w-full max-w-6xl xl:max-w-7xl mx-auto">
+              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
-              {/* Single Large Dark Field (#0D2E2B) HUD Overlay inside Trailer */}
-              <div className="absolute top-[8.5%] left-[27.2%] w-[69.8%] h-[53.5%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 border border-teal-800/60 shadow-xl flex items-stretch gap-3.5 sm:gap-4 overflow-hidden pointer-events-auto">
+              {/* Framed Dark Field (#0B2724) HUD Overlay inside Trailer */}
+              <div className="absolute top-[10.2%] left-[27.8%] w-[68.4%] h-[51.2%] bg-[#0B2724] text-white rounded-2xl p-2 sm:p-2.5 border border-teal-800/60 shadow-xl flex items-stretch gap-2 sm:gap-2.5 overflow-hidden pointer-events-auto">
                 
-                {/* ── LEFT SECTION: Odometer & Service Due ── */}
-                <div className="w-[38%] flex flex-col justify-between pr-3 border-r border-teal-800/50 shrink-0 overflow-hidden">
+                {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
+                <div className="w-[33%] bg-[#061D1B] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between border border-teal-900/80 shrink-0 overflow-hidden">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
-                        <Gauge className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-emerald-400 shadow-2xs shrink-0">
+                        <Gauge className="w-3.5 h-3.5" />
                       </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-white leading-tight tracking-tight">Odometer</h3>
-                        <p className="text-[9px] sm:text-[10px] text-teal-200/70 font-medium leading-none mt-0.5">Total Distance</p>
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-bold text-white leading-tight tracking-tight truncate">Odometer</h3>
+                        <p className="text-[8.5px] text-teal-200/70 font-medium leading-none mt-0.5 truncate">Total Distance</p>
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-2 py-0.5 text-[9.5px] rounded-full shadow-none flex items-center gap-1 hover:bg-emerald-950 shrink-0">
+                    <Badge className="bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 font-extrabold px-1.5 py-0.2 text-[8.5px] rounded-full shadow-none flex items-center gap-1 shrink-0">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                       Active
                     </Badge>
                   </div>
 
                   {/* Mechanical Rolling Counter Drum Wheels */}
-                  <div className="my-auto py-1">
-                    <div className="bg-[#051C19] p-2 sm:p-2.5 rounded-xl border border-teal-900/80 shadow-inner flex items-center justify-center gap-1 sm:gap-1.5">
-                      <div className="flex items-center gap-0.5 sm:gap-1">
+                  <div className="my-auto py-0.5">
+                    <div className="bg-[#031412] p-1.5 rounded-lg border border-teal-950 shadow-inner flex items-center justify-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
                           const strOdo = String(rawOdo);
@@ -754,7 +754,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-4 h-6 sm:w-5.5 sm:h-8 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-xs sm:text-sm rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-3.5 h-5.5 sm:w-4.5 sm:h-6.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-[11px] sm:text-xs rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               {/* Glossy top glass reflection */}
                               <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
@@ -770,36 +770,36 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-xs sm:text-sm font-black text-white ml-0.5 shrink-0">
+                      <span className="text-[11px] sm:text-xs font-black text-white ml-0.5 shrink-0">
                         km
                       </span>
                     </div>
                   </div>
 
                   {/* Bottom Next Service Due Box */}
-                  <div className="bg-[#061D1B] border border-teal-900/80 rounded-xl p-2 sm:p-2.5 space-y-1">
-                    <div className="flex justify-between items-center text-[9.5px] sm:text-[10px]">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-4.5 h-4.5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 shrink-0">
-                          <Wrench className="w-2.5 h-2.5 text-teal-300" />
+                  <div className="bg-[#031412]/90 border border-teal-900/60 rounded-lg p-2 space-y-1">
+                    <div className="flex justify-between items-center text-[9px]">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3.5 h-3.5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300 shrink-0">
+                          <Wrench className="w-2 h-2 text-teal-300" />
                         </div>
                         <div>
-                          <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Next Service Due</p>
-                          <p className="text-xs sm:text-sm font-black text-[#00E699] leading-tight mt-0.5">in 7,500 km</p>
+                          <p className="text-[8px] text-teal-300/80 font-medium leading-none">Next Due</p>
+                          <p className="text-[10.5px] sm:text-xs font-black text-[#00E699] leading-tight mt-0.5">in 7,500 km</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-[8.5px] sm:text-[9px] text-teal-300/80 font-medium leading-none">Target</p>
-                        <p className="text-xs font-bold text-white leading-tight mt-0.5">150,000 km</p>
+                        <p className="text-[8px] text-teal-300/80 font-medium leading-none">Target</p>
+                        <p className="text-[10.5px] font-bold text-white leading-tight mt-0.5">150,000 km</p>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-teal-950 h-1.5 rounded-full overflow-hidden p-0.5 border border-teal-900">
+                    <div className="w-full bg-teal-950 h-1 rounded-full overflow-hidden p-0.5 border border-teal-900">
                       <div className="bg-[#00E699] h-full rounded-full w-[70%] shadow-[0_0_8px_#00E699]" title="70% interval elapsed"></div>
                     </div>
 
-                    <div className="flex justify-between items-center text-[8px] sm:text-[8.5px] text-teal-300/70 font-medium">
+                    <div className="flex justify-between items-center text-[7.5px] sm:text-[8px] text-teal-300/70 font-medium">
                       <span>142,500 km</span>
                       <span>150,000 km</span>
                     </div>
@@ -807,35 +807,35 @@ export default function CargoLoadingView() {
 
                 </div>
 
-                {/* ── RIGHT SECTION: Vehicle Service History (Spacious & Perfectly Aligned) ── */}
-                <div className="flex-1 flex flex-col justify-between pl-1 min-w-0 overflow-hidden">
+                {/* ── RIGHT SUB-CARD: Vehicle Service History (Spacious & Framed) ── */}
+                <div className="flex-1 bg-[#061D1B] rounded-xl p-2 sm:p-2.5 flex flex-col justify-between min-w-0 border border-teal-900/80 overflow-hidden">
                   
                   {/* Header */}
-                  <div className="flex items-center justify-between shrink-0 pb-1.5 border-b border-teal-800/50">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
-                        <Calendar className="w-3.5 h-3.5 text-teal-300" />
+                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-teal-800/40">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-5.5 h-5.5 rounded-lg bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs shrink-0">
+                        <Calendar className="w-3 h-3 text-teal-300" />
                       </div>
                       <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[9.5px] text-teal-300/70 font-medium">Recent maintenance records</p>
+                        <h3 className="text-xs font-bold text-white tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[8.5px] text-teal-300/70 font-medium leading-none mt-0.5">Recent maintenance records</p>
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.5 rounded-full shrink-0">
-                      {serviceRecords.length} {serviceRecords.length === 1 ? 'Record' : 'Records'}
+                    <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.2 rounded-full shrink-0">
+                      {serviceRecords.length} Records
                     </span>
                   </div>
 
                   {/* 3-Column Header Bar */}
-                  <div className="flex items-center justify-between bg-[#051C19] px-3 py-1 rounded-lg text-[9.5px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-1 border border-teal-900/60">
+                  <div className="flex items-center justify-between bg-[#031412] px-2.5 py-0.5 rounded-md text-[8.5px] font-bold text-teal-300/80 uppercase tracking-wider shrink-0 my-0.5 border border-teal-950">
                     <span className="flex-1 min-w-0">Service</span>
-                    <span className="w-28 text-center">Date</span>
-                    <span className="w-28 text-right">Odometer</span>
+                    <span className="w-22 text-center">Date</span>
+                    <span className="w-22 text-right">Odometer</span>
                   </div>
 
-                  {/* Service History Rows (Spacious, Uncrowded - Max 3 items) */}
-                  <div className="flex-1 min-h-0 flex flex-col justify-around gap-1.5 py-0.5 overflow-hidden">
+                  {/* Service History Rows (Max 3 items, Never Truncated, Spacious Spacing) */}
+                  <div className="flex-1 min-h-0 flex flex-col justify-between py-0.5 overflow-hidden gap-1">
                     {serviceRecords.slice(0, 3).map((rec, idx) => {
                       const rowStyles = [
                         { icon: Droplets, iconBg: 'bg-rose-950/80 text-rose-400 border border-rose-800/50' },
@@ -849,26 +849,26 @@ export default function CargoLoadingView() {
                         <div
                           key={rec.id}
                           onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0 gap-3"
+                          className="flex items-center justify-between px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#08231F] border border-teal-800/40 hover:border-teal-600/60 hover:bg-[#0C322E] transition-all cursor-pointer shrink-0 gap-2"
                         >
                           {/* Service Work Done & Workshop */}
-                          <div className="flex-1 flex items-center gap-2.5 min-w-0">
-                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
-                              <IconComponent className="w-3 h-3" />
+                          <div className="flex-1 flex items-center gap-2 min-w-0">
+                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                              <IconComponent className="w-2.5 h-2.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-white text-xs truncate leading-tight">{rec.work_done}</p>
-                              <p className="text-[9.5px] font-medium text-teal-300/70 truncate mt-0.5">{rec.workshop_name}</p>
+                              <p className="font-bold text-white text-[10px] sm:text-[11px] truncate leading-tight">{rec.work_done}</p>
+                              <p className="text-[8px] sm:text-[8.5px] font-medium text-teal-300/60 truncate mt-0.5">{rec.workshop_name}</p>
                             </div>
                           </div>
 
                           {/* Date */}
-                          <div className="w-28 text-center text-[10.5px] font-semibold text-teal-200/90 whitespace-nowrap">
+                          <div className="w-22 text-center text-[9.5px] font-semibold text-teal-200/90 whitespace-nowrap">
                             {rec.service_date}
                           </div>
 
                           {/* Odometer */}
-                          <div className="w-28 text-right text-[11px] font-bold text-teal-100 whitespace-nowrap">
+                          <div className="w-22 text-right text-[10px] sm:text-[10.5px] font-bold text-teal-100 whitespace-nowrap">
                             {rec.odometer_reading}
                           </div>
                         </div>
@@ -877,18 +877,19 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Minimal Footer Info Bar */}
-                  <div className="pt-1 border-t border-teal-800/40 flex items-center justify-between text-[9px] font-mono uppercase shrink-0">
-                    <span className="text-teal-300/70 font-medium">VERIFIED MAINTENANCE LOGS</span>
-                    <span className="font-bold text-teal-200">VEHICLE HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
+                  <div className="pt-0.5 border-t border-teal-900/60 flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono uppercase text-teal-300/70 shrink-0">
+                    <span className="font-medium">VERIFIED MAINTENANCE LOGS</span>
+                    <span className="font-bold text-teal-200">HEALTH: <span className="text-emerald-400 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
+
               </div>
             </div>
           </div>
 
           {/* Bottom Assignment & Trip Status Box */}
-          <div className={`bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
+          <div className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100">
               
               {/* Tab Filter Buttons */}
@@ -977,14 +978,14 @@ export default function CargoLoadingView() {
                     return (
                       <div 
                         key={`blank-box-${index}`} 
-                        className="border border-dashed border-slate-200/90 bg-white/40 rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[105px] gap-1.5 transition-all hover:bg-slate-50/50"
+                        className="border border-dashed border-slate-200/90 bg-slate-50/40 rounded-xl p-3.5 flex flex-col items-center justify-center text-center h-full gap-2 transition-all hover:bg-slate-50/70"
                       >
-                        <div className="w-9 h-9 rounded-full bg-slate-50/90 flex items-center justify-center border border-slate-100 shadow-2xs">
-                          <Truck className="w-4 h-4 text-slate-400 stroke-[1.5]" />
+                        <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-slate-200/80 shadow-2xs">
+                          <Truck className="w-4.5 h-4.5 text-slate-400 stroke-[1.5]" />
                         </div>
                         <div>
                           <p className="text-xs font-bold text-slate-600">No Trip Assigned</p>
-                          <p className="text-[10px] font-medium text-slate-400">Blank Slot</p>
+                          <p className="text-[10px] font-medium text-slate-400 mt-0.5">Blank Slot</p>
                         </div>
                       </div>
                     );
@@ -994,7 +995,7 @@ export default function CargoLoadingView() {
                     <div 
                       key={item.id} 
                       onClick={() => item.rawId && navigate(`/trips/${item.rawId}`)}
-                      className={`border rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between bg-white shadow-2xs transition-all ${
+                      className={`border rounded-xl p-3 sm:p-3.5 flex flex-col justify-between h-full bg-white shadow-2xs transition-all ${
                         item.rawId ? 'cursor-pointer hover:border-slate-300 hover:shadow-xs' : ''
                       } ${
                         index === 0 && tripTab === 'recent' 
