@@ -33,7 +33,8 @@ import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
 import TripOverviewBarCard from '@/components/trips/TripOverviewBarCard';
 import ModernFinancialsCard from '@/components/trips/ModernFinancialsCard';
-import TripPhotoEvidence from '@/components/trips/TripPhotoEvidence';
+import TripPhotoEvidence, { PhotoPreviewItem } from '@/components/trips/TripPhotoEvidence';
+import GeotagEvidenceCard from '@/components/trips/GeotagEvidenceCard';
 
 const isUuidVal = (str?: string | null) =>
   str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
@@ -61,6 +62,31 @@ const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>
     amount: c.amount,
   }));
 
+function deriveTripType(trip: any): string {
+  if (!trip) return 'Single Trip';
+  const raw = trip.quotation_line_type || (trip as any).line_type || (trip as any).trip_type || trip.rateCard?.rate_category;
+  if (raw) {
+    const s = String(raw).trim();
+    if (/round/i.test(s)) return 'Round Trip';
+    if (/single/i.test(s) || /one.?way/i.test(s)) return 'Single Trip';
+    if (/10.?hour/i.test(s)) return '10 Hours Duty';
+    if (/12.?hour/i.test(s)) return '12 Hours Duty';
+    return s;
+  }
+  const stops = trip.stops || [];
+  if (stops.length >= 3) {
+    const firstCity = stops[0]?.location_name?.toLowerCase().trim();
+    const lastCity = stops[stops.length - 1]?.location_name?.toLowerCase().trim();
+    if (firstCity && lastCity && firstCity === lastCity) {
+      return 'Round Trip';
+    }
+    if (stops.some((s: any) => s.is_return || s.leg_index === 1)) {
+      return 'Round Trip';
+    }
+  }
+  return 'Single Trip';
+}
+
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,7 +104,7 @@ export default function TripDetailsPage() {
   const [isExpandMapOpen, setIsExpandMapOpen] = useState(false);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; date?: string } | null>(null);
+  const [previewImage, setPreviewImage] = useState<PhotoPreviewItem | null>(null);
   const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
 
   // Fetch Trip
@@ -248,6 +274,9 @@ export default function TripDetailsPage() {
   const totalAmount = Number(tAny.total_amount ?? (baseRate + chargesTotal));
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
+
+  // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
+  const tripType = deriveTripType(trip);
 
   const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
   const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
@@ -471,6 +500,7 @@ export default function TripDetailsPage() {
               totalAmount={totalAmount}
               paidAmount={paidAmount}
               balanceDue={balanceDue}
+              tripType={tripType}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />
@@ -667,17 +697,18 @@ export default function TripDetailsPage() {
         </div>
       )}
 
-      {/* ── Lightbox Image Preview Modal ── */}
+      {/* ── Lightbox Image Preview Modal with GPS Geotag Evidence ── */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={() => setPreviewImage(null)}
         >
           <div
-            className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl p-4 border border-[#E5E7EB]"
+            className="relative max-w-3xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-[#E5E7EB] flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3 shrink-0 bg-white">
               <div>
                 <h3 className="text-sm font-bold text-[#1F2937]">{previewImage.title}</h3>
                 {previewImage.date && (
@@ -691,22 +722,62 @@ export default function TripDetailsPage() {
                   rel="noopener noreferrer"
                   className="px-3 py-1 text-xs font-semibold rounded-lg border border-[#E5E7EB] text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors"
                 >
-                  Open Original
+                  {previewImage.isVideo || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(previewImage.url) ? 'Open / Download Video' : 'Open Original'}
                 </a>
                 <button
                   type="button"
                   onClick={() => setPreviewImage(null)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-center bg-black/90 rounded-xl overflow-hidden max-h-[70vh] p-2 mt-3">
-              <img
-                src={previewImage.url}
-                alt={previewImage.title}
-                className="max-h-[66vh] w-auto max-w-full object-contain rounded-lg"
+
+            {/* Scrollable Container with Photo/Video + Geotag Evidence */}
+            <div className="overflow-y-auto p-4 space-y-3.5">
+              {/* Media Viewport (Video or Image) */}
+              <div className="flex items-center justify-center bg-black/95 rounded-xl overflow-hidden min-h-[260px] max-h-[50vh] p-2">
+                {previewImage.isVideo || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(previewImage.url) ? (
+                  <video
+                    controls
+                    autoPlay
+                    playsInline
+                    className="max-h-[48vh] w-auto max-w-full rounded-lg shadow-2xl bg-black"
+                  >
+                    <source src={previewImage.url} type="video/mp4" />
+                    <source src={previewImage.url} type="video/quicktime" />
+                    <source src={previewImage.url} />
+                    <div className="p-4 text-center text-white space-y-2">
+                      <p className="text-xs text-slate-300">Video format preview not supported directly by this browser engine.</p>
+                      <a
+                        href={previewImage.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-3 py-1.5 bg-[#FA634E] text-white font-bold rounded-lg text-xs"
+                      >
+                        Download / Play in External Player
+                      </a>
+                    </div>
+                  </video>
+                ) : (
+                  <img
+                    src={previewImage.url}
+                    alt={previewImage.title}
+                    className="max-h-[44vh] w-auto max-w-full object-contain rounded-lg"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.opacity = '0.5';
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* GPS Geotag Evidence Card (Location, Time, Coordinates, Map) */}
+              <GeotagEvidenceCard
+                geotag={previewImage.geotag}
+                fallbackTitle={previewImage.title}
+                fallbackLocation={previewImage.location}
+                fallbackDate={previewImage.date}
               />
             </div>
           </div>

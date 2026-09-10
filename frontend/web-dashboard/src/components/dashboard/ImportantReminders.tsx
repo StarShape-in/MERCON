@@ -11,17 +11,40 @@ import {
   FileText,
   CheckCircle2,
   ChevronRight,
+  AlertTriangle,
+  Video,
+  MapPin,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { documentService } from '@/services/documentService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
+import { Trip, tripService } from '@/services/tripService';
+import { notificationService } from '@/services/notificationService';
 import { documentDisplayName, daysUntil } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
 interface ImportantRemindersProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  trips?: Trip[];
+}
+
+export interface DelayAlertItem {
+  id: string;
+  tripId: string;
+  tripRef: string;
+  customerName: string;
+  driverName: string;
+  driverPhone?: string;
+  vehiclePlate?: string;
+  origin?: string;
+  destination?: string;
+  route: string;
+  reason: string;
+  timeAgo: string;
+  hasVideo?: boolean;
+  severity: 'delay';
 }
 
 export interface ComplianceDocIssue {
@@ -47,9 +70,10 @@ export interface OwnerComplianceGroup {
 export default function ImportantReminders({
   collapsed = false,
   onToggleCollapse,
+  trips: propTrips,
 }: ImportantRemindersProps) {
   const navigate = useNavigate();
-  const [activeSeverityFilter, setActiveSeverityFilter] = useState<'all' | 'expired' | 'critical' | 'warning'>('all');
+  const [activeSeverityFilter, setActiveSeverityFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'delay'>('all');
 
   // Fetch document & entity records
   const { data: docs = [] } = useQuery({
@@ -67,8 +91,151 @@ export default function ImportantReminders({
     queryFn: async () => (await vehicleService.getAll()).data,
   });
 
+  const { data: fallbackTripsRes } = useQuery({
+    queryKey: ['dashboard-trips'],
+    queryFn: () => tripService.getAll({ per_page: 200 }),
+    enabled: !propTrips,
+    staleTime: 10000,
+  });
+
+  const { data: notificationsRes } = useQuery({
+    queryKey: ['dashboard-notifications'],
+    queryFn: () => notificationService.getAll(),
+    refetchInterval: 10000,
+  });
+
+  const allTrips = useMemo<Trip[]>(() => {
+    return (propTrips && propTrips.length > 0) ? propTrips : (fallbackTripsRes?.data || []);
+  }, [propTrips, fallbackTripsRes?.data]);
+
   const driverMap = useMemo(() => new Map<string, Driver>(drivers.map((d) => [d.id, d])), [drivers]);
   const vehicleMap = useMemo(() => new Map<string, Vehicle>(vehicles.map((v) => [v.id, v])), [vehicles]);
+
+  // Extract Delay Alerts from trips and notifications
+  const delayAlerts = useMemo<DelayAlertItem[]>(() => {
+    const alerts: DelayAlertItem[] = [];
+    const seenTripIds = new Set<string>();
+
+    // 1. Check trips for reported delays or delay statuses
+    for (const trip of allTrips) {
+      const isStatusDelayed = trip.status === 'Delayed' || String(trip.status).toLowerCase() === 'delayed';
+      const hasDelayNote = typeof trip.notes === 'string' && trip.notes.includes('[DELAY REPORT]');
+      const delayedStop = trip.stops?.find((s: any) => s.delay_reason || s.delay_note || s.status === 'Delayed');
+      
+      const isOverdueSchedule = Boolean(
+        !isStatusDelayed &&
+        trip.planned_end &&
+        ['InTransit', 'AtPickup', 'Loading'].includes(trip.status) &&
+        new Date(trip.planned_end).getTime() < (Date.now() - 30 * 60 * 1000)
+      );
+
+      if (isStatusDelayed || hasDelayNote || delayedStop || isOverdueSchedule) {
+        seenTripIds.add(trip.id);
+        if (trip.ref_id) seenTripIds.add(trip.ref_id);
+
+        let cleanReason = '';
+        if (hasDelayNote) {
+          cleanReason = trip.notes!.replace(/^\[DELAY REPORT\]:\s*/i, '').trim();
+        } else if (delayedStop?.delay_note) {
+          cleanReason = delayedStop.delay_note;
+        } else if (delayedStop?.delay_reason) {
+          cleanReason = `Delay: ${delayedStop.delay_reason}`;
+        } else if (isOverdueSchedule) {
+          cleanReason = 'Schedule overrun — estimated arrival exceeded';
+        } else {
+          cleanReason = 'Driver reported operational delay';
+        }
+
+        const origin = trip.stops?.[0]?.location_name || (trip as any).pickup || 'Origin';
+        const dest = trip.stops?.[trip.stops.length - 1]?.location_name || (trip as any).dropoff || 'Destination';
+        const routeLabel = origin && dest ? `${origin} → ${dest}` : (trip as any).route || 'Route';
+
+        const driverName = trip.driver
+          ? `${trip.driver.first_name || ''} ${trip.driver.last_name || ''}`.trim()
+          : trip.third_party_driver_name || 'Driver';
+
+        const customerName = trip.customer?.name || (trip as any).customerName || 'Customer';
+        const vehiclePlate = trip.vehicle?.plate_number || trip.third_party_vehicle_plate;
+
+        const hasVideo = docs.some((d: any) => 
+          (d.entity_id === trip.id || d.entity_id === trip.ref_id) &&
+          (d.doc_type === 'DelayEvidence' || d.file_type?.includes('video') || d.mime_type?.includes('video') || d.category === 'delay')
+        );
+
+        const timeRef = delayedStop?.delay_logged_at || trip.updatedAt || trip.createdAt;
+        let timeAgo = 'Just now';
+        if (timeRef) {
+          const diffMs = Date.now() - new Date(timeRef).getTime();
+          const mins = Math.floor(diffMs / (60 * 1000));
+          if (mins < 1) timeAgo = 'Just now';
+          else if (mins < 60) timeAgo = `${mins}m ago`;
+          else {
+            const hrs = Math.floor(mins / 60);
+            timeAgo = hrs < 24 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
+          }
+        }
+
+        alerts.push({
+          id: `delay-trip-${trip.id}`,
+          tripId: trip.id,
+          tripRef: trip.ref_id || trip.id,
+          customerName,
+          driverName,
+          driverPhone: trip.driver?.phone_primary || trip.third_party_driver_phone || undefined,
+          vehiclePlate: trip.vehicle?.plate_number || trip.third_party_vehicle_plate || undefined,
+          origin,
+          destination: dest,
+          route: routeLabel,
+          reason: cleanReason,
+          timeAgo,
+          hasVideo,
+          severity: 'delay',
+        });
+      }
+    }
+
+    // 2. Check notifications for delays
+    const rawNotifications = notificationsRes?.data || [];
+    for (const notif of rawNotifications) {
+      const isDelayNotif = notif.type === 'Delay' || 
+        notif.title?.toLowerCase().includes('delay') || 
+        notif.message?.toLowerCase().includes('delay');
+
+      if (isDelayNotif) {
+        const tripEntityId = notif.entity_type === 'Trip' ? notif.entity_id : undefined;
+        if (tripEntityId && seenTripIds.has(tripEntityId)) {
+          continue;
+        }
+
+        const diffMs = Date.now() - new Date(notif.createdAt).getTime();
+        const mins = Math.floor(diffMs / (60 * 1000));
+        let timeAgo = 'Just now';
+        if (mins >= 1 && mins < 60) timeAgo = `${mins}m ago`;
+        else if (mins >= 60) {
+          const hrs = Math.floor(mins / 60);
+          timeAgo = hrs < 24 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
+        }
+
+        const tripRefMatch = notif.message?.match(/TRP-[\w-]+/i) || notif.title?.match(/TRP-[\w-]+/i);
+        const ref = tripRefMatch ? tripRefMatch[0] : (tripEntityId || 'TRP-ALERT');
+
+        alerts.push({
+          id: `delay-notif-${notif.id}`,
+          tripId: tripEntityId || ref,
+          tripRef: ref,
+          customerName: 'Fleet Operations',
+          driverName: 'Driver',
+          route: 'Active Transit Route',
+          reason: notif.message || notif.title || 'Delay reported',
+          timeAgo,
+          hasVideo: false,
+          severity: 'delay',
+        });
+      }
+    }
+
+    return alerts;
+  }, [allTrips, docs, notificationsRes]);
 
   // Group compliance issues by Owner (Vehicle, Driver, Company)
   const { ownerGroups, counts } = useMemo(() => {
@@ -366,26 +533,28 @@ export default function ImportantReminders({
                 <TooltipTrigger>
                   <div onClick={onToggleCollapse} className="relative flex flex-col items-center cursor-pointer group/bell">
                     <div className="relative">
-                      {counts.total > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
+                      {(counts.total + delayAlerts.length) > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
                       <div className={cn(
                         'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
-                        counts.total > 0 
+                        (counts.total + delayAlerts.length) > 0 
                           ? 'bg-amber-50 border-amber-200 text-[#FA634E] dark:bg-amber-950/40 dark:border-amber-900/50'
                           : 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900/50'
                       )}>
-                        {counts.total > 0 ? <Bell className="w-4.5 h-4.5 fill-current" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
+                        {(counts.total + delayAlerts.length) > 0 ? <Bell className="w-4.5 h-4.5 fill-current" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
                       </div>
                     </div>
                     <span className={cn(
                       'mt-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs',
-                      counts.total > 0 ? 'bg-[#FA634E]' : 'bg-emerald-500'
+                      (counts.total + delayAlerts.length) > 0 ? 'bg-[#FA634E]' : 'bg-emerald-500'
                     )}>
-                      {counts.total}
+                      {counts.total + delayAlerts.length}
                     </span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="left" sideOffset={12} className="font-bold text-[11px] bg-[#3E3C3D] text-white border border-slate-800 shadow-xl px-3 py-1.5 rounded-lg z-[10000]">
-                  {counts.total > 0 ? `${counts.total} Compliance Issues — Click to Expand` : 'All compliance permits valid'}
+                  {(counts.total + delayAlerts.length) > 0 
+                    ? `${delayAlerts.length > 0 ? `${delayAlerts.length} Delay Alert${delayAlerts.length === 1 ? '' : 's'}${counts.total > 0 ? ', ' : ''}` : ''}${counts.total > 0 ? `${counts.total} Compliance Issues` : ''} — Click to Expand` 
+                    : 'All fleet & compliance monitors clear'}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -410,23 +579,39 @@ export default function ImportantReminders({
                   <span>Important Reminders</span>
                 </h3>
                 <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  Compliance &amp; expiry radar
+                  Operations &amp; compliance radar
                 </p>
               </div>
 
-              {/* Top-Right Total Issues Indicator (Not misleading ACTIVE!) */}
+              {/* Top-Right Total Issues Indicator */}
               <div className="text-right shrink-0">
                 <span className="font-mono text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 block leading-none">
-                  {counts.total}
+                  {counts.total + delayAlerts.length}
                 </span>
                 <span className="text-[9.5px] font-bold uppercase tracking-wide text-slate-400">
-                  issues
+                  reminders
                 </span>
               </div>
             </div>
 
             {/* 2. PRIORITY SUMMARY FILTERS */}
             <div className="py-2 flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
+              {delayAlerts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSeverityFilter(activeSeverityFilter === 'delay' ? 'all' : 'delay')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer shrink-0",
+                    activeSeverityFilter === 'delay'
+                      ? "bg-rose-600 text-white border-rose-600 shadow-2xs font-extrabold ring-1 ring-rose-600/30"
+                      : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/60"
+                  )}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  <span>{delayAlerts.length} {delayAlerts.length === 1 ? 'Delay' : 'Delays'}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setActiveSeverityFilter(activeSeverityFilter === 'expired' ? 'all' : 'expired')}
@@ -480,17 +665,85 @@ export default function ImportantReminders({
               )}
             </div>
 
-            {/* 3. OWNER-GROUPED COMPLIANCE LIST */}
+            {/* 3. OPERATIONAL DELAY NOTIFICATIONS & OWNER-GROUPED COMPLIANCE LIST */}
             <div className="flex-1 min-h-0 flex flex-col justify-start gap-2 py-1 overflow-y-auto pr-1 overflow-x-hidden custom-scrollbar">
-              {displayGroups.length === 0 ? (
-                <div className="p-4 text-center my-auto bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col items-center justify-center gap-1">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">All Records Compliant</h4>
-                  <p className="text-[10.5px] text-slate-500 max-w-xs">
-                    No documents or permits are expiring within the next 30 days.
-                  </p>
+              
+              {/* Delay Alerts Section */}
+              {(activeSeverityFilter === 'all' || activeSeverityFilter === 'delay') && delayAlerts.length > 0 && (
+                <div className="space-y-1.5 pb-1">
+                  <div className="flex items-center justify-between px-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                        Delay Alerts ({delayAlerts.length})
+                      </span>
+                    </div>
+                    <span className="text-[9.5px] font-bold text-slate-400">
+                      Live reports
+                    </span>
+                  </div>
+
+                  {delayAlerts.map((delay) => (
+                    <div
+                      key={delay.id}
+                      onClick={() => navigate(`/trips/${delay.tripId}`)}
+                      className="group relative p-2.5 rounded-xl border border-rose-200/90 dark:border-rose-900/60 bg-gradient-to-r from-rose-50/80 via-white to-rose-50/30 dark:from-rose-950/30 dark:to-slate-900 shadow-2xs hover:shadow-xs hover:border-rose-300 dark:hover:border-rose-800 transition-all duration-150 cursor-pointer space-y-1.5"
+                    >
+                      {/* Top row: Trip ID + DELAY badge + Video tag + Review link */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                          <div className="w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center shrink-0">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse" />
+                          </div>
+                          <span className="font-extrabold text-[11.5px] text-[#3E3C3D] dark:text-slate-100 font-mono tracking-tight shrink-0">
+                            {delay.tripRef}
+                          </span>
+                          <span className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-rose-600 text-white flex items-center gap-1 leading-none shadow-2xs shrink-0">
+                            <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                            DELAY
+                          </span>
+                          {delay.hasVideo && (
+                            <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-0.5 shrink-0" title="Video evidence attached">
+                              <Video className="w-2.5 h-2.5" />
+                              <span>Video</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] font-extrabold text-[#FA634E] inline-flex items-center group-hover:underline">
+                            Review <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Reason snippet */}
+                      <div className="text-[10.5px] font-semibold text-rose-950 dark:text-rose-200 bg-rose-50/90 dark:bg-rose-900/20 px-2 py-1 rounded-md border border-rose-200/60 dark:border-rose-900/40 line-clamp-2">
+                        <span className="font-bold text-rose-700 dark:text-rose-400 mr-1">Reason:</span>
+                        {delay.reason}
+                      </div>
+
+                      {/* Driver, Customer, Route & Timestamp */}
+                      <div className="flex items-center justify-between text-[9.5px] text-slate-500 dark:text-slate-400 pt-0.5 gap-2">
+                        <div className="flex items-center gap-1 truncate min-w-0">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">{delay.driverName}</span>
+                          <span>•</span>
+                          <span className="truncate">{delay.customerName}</span>
+                        </div>
+                        <span className="font-mono text-rose-600/90 dark:text-rose-400 font-bold shrink-0">
+                          {delay.timeAgo}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
+              )}
+
+              {/* Compliance Groups Section (when not filtering for delays only) */}
+              {activeSeverityFilter !== 'delay' && displayGroups.length > 0 && (
                 displayGroups.map((group) => {
                   let OwnerIcon = Truck;
                   if (group.ownerType === 'Driver') OwnerIcon = User;
@@ -559,6 +812,27 @@ export default function ImportantReminders({
                     </div>
                   );
                 })
+              )}
+
+              {/* Contextual Empty States */}
+              {activeSeverityFilter === 'delay' && delayAlerts.length === 0 && (
+                <div className="p-4 text-center my-auto bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col items-center justify-center gap-1">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">No Active Delays</h4>
+                  <p className="text-[10.5px] text-slate-500 max-w-xs">
+                    All monitored transit fleet trips are currently running on schedule.
+                  </p>
+                </div>
+              )}
+
+              {activeSeverityFilter !== 'delay' && displayGroups.length === 0 && delayAlerts.length === 0 && (
+                <div className="p-4 text-center my-auto bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 flex flex-col items-center justify-center gap-1">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h4 className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">All Records Compliant</h4>
+                  <p className="text-[10.5px] text-slate-500 max-w-xs">
+                    No documents or permits are expiring within the next 30 days.
+                  </p>
+                </div>
               )}
             </div>
 

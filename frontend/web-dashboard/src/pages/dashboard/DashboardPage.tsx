@@ -254,6 +254,24 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
 
 const FALLBACK_KANBAN_TRIPS: Trip[] = [
   {
+    id: 'TRP-0048',
+    ref_id: 'TRP-0048',
+    status: 'Delayed',
+    notes: '[DELAY REPORT]: Traffic congestion due to road construction on Highway 40',
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    updatedAt: new Date(Date.now() - 900000).toISOString(),
+    planned_start: new Date(Date.now() - 7200000).toISOString(),
+    customer: { id: 'c7', name: 'Almarai Logistics', contact_phone: '+966 50 777 8888', credit_limit: 90000, isActive: true, createdAt: new Date().toISOString() },
+    driver: { id: 'd7', first_name: 'Liaqat', last_name: 'Ali Muhammad', phone: '+966 50 789 0123', iqama_number: '2345678907', license_number: 'LIC-9994', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    vehicle: { id: 'v7', plate_number: 'ERA-9380', ref_id: 'VEH-016', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    stops: [
+      { id: 's13', trip_id: 'TRP-0048', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Hub', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 's14', trip_id: 'TRP-0048', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, delay_reason: 'Traffic', delay_note: 'Road construction on Highway 40', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ],
+    billing_amount: 2950,
+    planned_distance: 980,
+  } as any,
+  {
     id: 'TRP-0134',
     ref_id: 'TRP-0134',
     status: 'InTransit',
@@ -1428,6 +1446,7 @@ export default function DashboardPage() {
               <ImportantReminders
                 collapsed={isRemindersCollapsed}
                 onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}
+                trips={(rawTrips.length > 0 ? rawTrips : FALLBACK_KANBAN_TRIPS) as Trip[]}
               />
             </div>
 

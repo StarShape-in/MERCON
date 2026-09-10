@@ -3,10 +3,11 @@ import { openInGoogleMaps } from '../../lib/maps';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Image,
 } from 'react-native';
-import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { OsmMapView, type OsmMapViewRef } from '../../components/common/OsmMapView';
+import { isValidCoordinate } from '../../lib/geo';
 import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation, Camera, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
@@ -44,7 +45,7 @@ const LiveNavigationScreen = () => {
   const [arrivalPhoto, setArrivalPhoto] = useState<CapturedPhoto | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const hasArrivedRef = useRef(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<OsmMapViewRef>(null);
 
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
   const isRound = isRoundTrip(trip);
@@ -180,6 +181,25 @@ const LiveNavigationScreen = () => {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
 
+      // Immediate initial position fix so the driver marker appears while stationary
+      try {
+        const initialLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!cancelled && initialLoc?.coords) {
+          let initLat = initialLoc.coords.latitude;
+          let initLng = initialLoc.coords.longitude;
+          if (Math.abs(initLat - 37.785834) < 0.1 && Math.abs(initLng - -122.406417) < 0.1 && activeStop) {
+            initLat = activeStop.location_lat - 0.005;
+            initLng = activeStop.location_lng - 0.005;
+          }
+          setPosition({ lat: initLat, lng: initLng });
+          if (activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
+            setDistanceToTarget(distanceMeters(initLat, initLng, activeStop.location_lat, activeStop.location_lng));
+          }
+        }
+      } catch {
+        // Safe degrade: continuous watchPositionAsync below will establish position
+      }
+
       sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
         (loc) => {
@@ -211,10 +231,12 @@ const LiveNavigationScreen = () => {
             });
           }
 
-          if (activeStop) {
+          if (activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
             const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
             setDistanceToTarget(dist);
             if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current && arrivalPhoto) goToStop();
+          } else {
+            setDistanceToTarget(null);
           }
         },
       );
@@ -229,6 +251,10 @@ const LiveNavigationScreen = () => {
 
   useEffect(() => {
     if (!trip || !position || !activeStop) return;
+    if (!isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
+      setRouteCoords(null);
+      return;
+    }
     if (routeFetchedRef.current === activeStop.id) return;
 
     routeFetchedRef.current = activeStop.id;
@@ -239,48 +265,17 @@ const LiveNavigationScreen = () => {
         setBaseDistance(route.distanceMeters);
         setRouteCoords(route.geometry.map((c) => ({ latitude: c[1], longitude: c[0] })));
       } catch (e) {
-        console.warn('Failed to fetch route:', e);
+        // Route API failure (e.g. 503 or network) must NEVER crash or block the map display
+        console.warn('Route polyline unavailable, rendering destination directly on OSM map:', e);
+        setRouteCoords(null);
       }
     };
     fetchRoute();
   }, [trip, position, activeStop]);
 
   const recenterMap = useCallback(() => {
-    if (!mapRef.current) return;
-    if (position && activeStop) {
-      mapRef.current.fitToCoordinates(
-        [
-          { latitude: position.lat, longitude: position.lng },
-          { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
-        ],
-        { edgePadding: { top: 200, right: 60, bottom: 300, left: 60 }, animated: true }
-      );
-    } else if (position) {
-      mapRef.current.animateToRegion({
-        latitude: position.lat,
-        longitude: position.lng,
-        latitudeDelta: 0.04,
-        longitudeDelta: 0.04,
-      }, 500);
-    } else if (activeStop) {
-      mapRef.current.animateToRegion({
-        latitude: activeStop.location_lat,
-        longitude: activeStop.location_lng,
-        latitudeDelta: 0.04,
-        longitudeDelta: 0.04,
-      }, 500);
-    }
-  }, [position, activeStop]);
-
-  const initialFitDone = useRef(false);
-  useEffect(() => {
-    if ((position || activeStop) && mapRef.current && !initialFitDone.current) {
-      initialFitDone.current = true;
-      setTimeout(() => {
-        recenterMap();
-      }, 600);
-    }
-  }, [position, activeStop, recenterMap]);
+    mapRef.current?.recenter();
+  }, []);
 
   if (loading && !trip) {
     return (
@@ -313,104 +308,26 @@ const LiveNavigationScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      {/* ── Background Map (OpenStreetMap OSM Layer) ────────────────────── */}
+      {/* ── Background Map (OpenStreetMap OSM Layer via Leaflet WebView) ─── */}
       <View style={StyleSheet.absoluteFill}>
-        {Platform.OS === 'web' || !MapView ? (
-          <View style={[StyleSheet.absoluteFill, styles.centerBox, { backgroundColor: '#EEF1F6' }]}>
-            <MapPin size={36} color="#FA634E" />
-            <Text style={{ color: '#3E3C3D', marginTop: 12, fontWeight: '700', fontSize: Typography.base }}>
-              OpenStreetMap View
-            </Text>
-            <Text style={{ color: '#64748B', marginTop: 4, fontSize: Typography.xs }}>
-              Open on mobile device for interactive OpenStreetMap navigation
-            </Text>
-          </View>
-        ) : (
-          <MapView
-            ref={mapRef}
-            provider={PROVIDER_DEFAULT}
-            style={StyleSheet.absoluteFill}
-            initialRegion={{
-              latitude: center.lat,
-              longitude: center.lng,
-              latitudeDelta: 0.08,
-              longitudeDelta: 0.08,
-            }}
-            showsUserLocation={false}
-            showsMyLocationButton={false}
-            showsCompass={false}
-            toolbarEnabled={false}
-            rotateEnabled={true}
-            scrollEnabled={true}
-            zoomEnabled={true}
-          >
-            {/* OpenStreetMap (OSM) Tile Layer */}
-            <UrlTile
-              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maximumZ={19}
-              minimumZ={1}
-              flipY={false}
-              shouldReplaceMapContent={true}
-              tileSize={256}
-              zIndex={1}
-            />
-
-            {/* Route Polyline */}
-            {routeCoords && routeCoords.length > 0 ? (
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor="#FA634E"
-                strokeWidth={5}
-                lineCap="round"
-                lineJoin="round"
-                zIndex={5}
-              />
-            ) : position && activeStop ? (
-              <Polyline
-                coordinates={[
-                  { latitude: position.lat, longitude: position.lng },
-                  { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
-                ]}
-                strokeColor="#FA634E"
-                strokeWidth={4}
-                lineDashPattern={[6, 6]}
-                zIndex={5}
-              />
-            ) : null}
-
-            {/* Destination Stop Marker */}
-            {activeStop && (
-              <Marker
-                coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }}
-                anchor={{ x: 0.5, y: 0.9 }}
-                zIndex={10}
-              >
-                <View style={styles.destPinOuter}>
-                  <View style={styles.destPinInner}>
-                    <MapPin size={18} color="#FFFFFF" strokeWidth={2.4} />
-                  </View>
-                  <View style={styles.destPinArrow} />
-                </View>
-              </Marker>
-            )}
-
-            {/* Live Driver Truck Marker */}
-            {position && (
-              <Marker
-                coordinate={{ latitude: position.lat, longitude: position.lng }}
-                anchor={{ x: 0.5, y: 0.5 }}
-                flat
-                zIndex={20}
-              >
-                <View style={styles.driverPinPulse}>
-                  <View style={styles.driverPinOuter}>
-                    <Truck size={17} color="#FFFFFF" strokeWidth={2.4} />
-                  </View>
-                </View>
-              </Marker>
-            )}
-          </MapView>
-        )}
+        <OsmMapView
+          ref={mapRef}
+          destination={
+            activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)
+              ? {
+                  coordinate: { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
+                  title: stopLabel(activeStop),
+                  address: stopAddress(activeStop),
+                }
+              : null
+          }
+          driverPosition={
+            position && isValidCoordinate(position.lat, position.lng)
+              ? { latitude: position.lat, longitude: position.lng }
+              : null
+          }
+          routeCoordinates={routeCoords}
+        />
       </View>
 
       {/* ── Top Header Overlay ─────────────────────────────────────────── */}

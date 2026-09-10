@@ -271,10 +271,16 @@ export async function estimateTravelTimeByName(
  * Also returns `isOvernight` if arrival time rolls over past midnight.
  */
 export function calculateArrivalDropoffTime(
-  pickupTimeStr: string = '08:00',
+  pickupTimeStr: string = '',
   durationMinutes: number
 ): { dropoffTime: string; isOvernight: boolean; formattedArrival: string } {
-  if (!pickupTimeStr) pickupTimeStr = '08:00';
+  if (!pickupTimeStr || !pickupTimeStr.trim()) {
+    return {
+      dropoffTime: '',
+      isOvernight: false,
+      formattedArrival: '',
+    };
+  }
 
   // Parse pickup time (e.g. "08:00" or "08:00 AM" or "14:30")
   let hours = 8;
@@ -319,11 +325,19 @@ export function calculateArrivalDropoffTime(
  */
 export function calculateArrivalDropoffDateAndTime(
   pickupDateStr: string = '',
-  pickupTimeStr: string = '08:00',
+  pickupTimeStr: string = '',
   durationMinutes: number
 ): { dropoffDate: string; dropoffTime: string; isOvernight: boolean; formattedArrival: string } {
+  if (!pickupTimeStr || !pickupTimeStr.trim()) {
+    return {
+      dropoffDate: pickupDateStr || '',
+      dropoffTime: '',
+      isOvernight: false,
+      formattedArrival: '',
+    };
+  }
+
   if (!pickupDateStr) pickupDateStr = new Date().toISOString().slice(0, 10);
-  if (!pickupTimeStr) pickupTimeStr = '08:00';
 
   let hours = 8;
   let minutes = 0;

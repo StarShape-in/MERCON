@@ -61,7 +61,7 @@ services:
       # mercon's existing host path is literally "/tmp/uploads" — deriving it
       # from CLIENT_NAME would silently move prod to a new, empty directory.
       - "/tmp/${CLIENT_NAME:-mercon}-uploads:/app/backend/api-server/uploads"
-      - "${TMP_UPLOADS_DIR:-/tmp/uploads}:/tmp/uploads"
+      - "${DEV_UPLOADS_DIR:-${TMP_UPLOADS_DIR:-/tmp/uploads}}:/tmp/uploads"
     depends_on:
       postgres-db:
         condition: service_healthy

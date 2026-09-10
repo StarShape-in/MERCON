@@ -347,6 +347,11 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
                     <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-blue-600">
                       {alert.label}
                     </span>
+                    {alert.videoUrl && (
+                      <span className="px-1 py-0.2 rounded text-[7.5px] font-black bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
+                        VIDEO
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0 font-mono text-[9.5px]">

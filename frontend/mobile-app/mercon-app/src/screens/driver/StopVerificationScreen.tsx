@@ -59,21 +59,21 @@ const SideMapTileBox = () => (
     </View>
   </View>
 );
-// Orange Camera Icon with Plus Badge for Photo Upload Slots
-const OrangeCameraPlusIcon = () => (
+// Red Camera Icon with Plus Badge for Stop Photo Upload Slots
+const RedCameraPlusIcon = () => (
   <View style={{ width: 34, height: 30, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={30} height={28} viewBox="0 0 30 28">
       <Path
-        d="M 4 8 C 2.9 8 2 8.9 2 10 L 2 23 C 2 24.1 2.9 25 4 25 L 21 25 C 23 8.9 22.1 8 21 8 Z"
+        d="M 4 8 C 2.9 8 2 8.9 2 10 L 2 23 C 2 24.1 2.9 25 4 25 L 21 25 C 22.1 25 23 23 L 23 10 C 23 8.9 22.1 8 21 8 Z"
         fill="none"
-        stroke="#FA634E"
+        stroke="#DC2626"
         strokeWidth={2.2}
       />
-      <Path d="M 8 8 L 10 5 L 15 5 L 17 8 Z" fill="none" stroke="#FA634E" strokeWidth={2.2} />
-      <Circle cx={12.5} cy={16.5} r={4.5} fill="none" stroke="#FA634E" strokeWidth={2.2} />
+      <Path d="M 8 8 L 10 5 L 15 5 L 17 8 Z" fill="none" stroke="#DC2626" strokeWidth={2.2} />
+      <Circle cx={12.5} cy={16.5} r={4.5} fill="none" stroke="#DC2626" strokeWidth={2.2} />
 
       {/* Plus Badge */}
-      <Circle cx={22} cy={19} r={5.5} fill="#FA634E" />
+      <Circle cx={22} cy={19} r={5.5} fill="#DC2626" />
       <Line x1={22} y1={16} x2={22} y2={22} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
       <Line x1={19} y1={19} x2={25} y2={19} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
     </Svg>
@@ -261,7 +261,7 @@ export default function StopVerificationScreen() {
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={handleAddPhoto}>
               <View style={styles.cameraCircleBadge}>
-                <Camera size={16} color="#FA634E" strokeWidth={2.2} />
+                <Camera size={16} color="#DC2626" strokeWidth={2.2} />
               </View>
             </TouchableOpacity>
           </View>
@@ -288,7 +288,7 @@ export default function StopVerificationScreen() {
                   </>
                 ) : (
                   <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                    <OrangeCameraPlusIcon />
+                    <RedCameraPlusIcon />
                     <Text style={styles.addPhotoLabel}>Photo {i + 1}</Text>
                   </View>
                 )}
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -524,28 +524,28 @@ const styles = StyleSheet.create({
     aspectRatio: 1.1,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#FDBA74',
+    borderColor: '#FCA5A5',
     borderStyle: 'dashed',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   addPhotoLabel: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#DC2626',
     marginTop: 4,
   },
   completeBtn: {
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#FA634E',
+    backgroundColor: '#DC2626',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    shadowColor: '#FA634E',
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

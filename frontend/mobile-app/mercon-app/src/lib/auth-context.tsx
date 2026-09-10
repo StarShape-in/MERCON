@@ -11,7 +11,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { safeSecureStore as SecureStore } from './secure-store';
-import { api, TOKEN_KEY, SESSION_KEY } from './api';
+import { api, TOKEN_KEY, SESSION_KEY, setAuthToken, ensureAuthToken } from './api';
+import { queryClient } from './query-client';
 
 export type Role = 'Driver' | 'Operator' | 'Admin';
 
@@ -37,9 +38,8 @@ interface AuthContextValue {
   isLoggedIn: boolean;
   isLoading: boolean; // true while restoring the session on app start
   /**
-   * Single entry point for both user types. Tries the endpoint the credentials
-   * most likely belong to first (phone-shaped identifier → driver), then falls
-   * back to the other. Routing to the right app happens off `role` afterwards.
+   * Single entry point for both user types. Phone-shaped identifier calls driver
+   * endpoint directly; otherwise calls operator endpoint.
    */
   signIn: (identifier: string, secret: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const [token, rawSession] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
+          ensureAuthToken(),
           SecureStore.getItemAsync(SESSION_KEY),
         ]);
         if (token && rawSession) {
+          setAuthToken(token);
           setSession(JSON.parse(rawSession));
         }
       } finally {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persist = async (token: string, next: Session) => {
+    setAuthToken(token);
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, token),
       SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(next)),
@@ -91,38 +93,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // A wrong-credentials response (bad login) — safe to try the other endpoint.
-  // Network/timeout/server errors are NOT this, so we surface them immediately.
-  const isBadCredentials = (err: unknown) =>
-    axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 400);
-
   const signIn = async (identifier: string, secret: string) => {
     const id = identifier.trim();
     // Driver identifiers are phone numbers (digits / +); operators use a username.
     const looksLikePhone = /^\+?[\d\s()-]+$/.test(id);
-    const attempts = looksLikePhone
-      ? [() => signInDriver(id, secret.trim()), () => signInOperator(id, secret)]
-      : [() => signInOperator(id, secret), () => signInDriver(id, secret.trim())];
-
-    let lastErr: unknown;
-    for (const attempt of attempts) {
-      try {
-        await attempt();
-        return;
-      } catch (err) {
-        lastErr = err;
-        // Only fall through to the other endpoint on a credentials mismatch.
-        if (!isBadCredentials(err)) throw err;
-      }
+    if (looksLikePhone) {
+      // Direct driver login without falling through to operator on credential failure
+      await signInDriver(id, secret.trim());
+      return;
     }
-    throw lastErr;
+    // Operator login
+    await signInOperator(id, secret);
   };
 
   const signOut = async () => {
+    // 1. Purge query cache so previous driver data cannot linger in memory
+    queryClient.clear();
+    // 2. Clear in-memory token
+    setAuthToken(null);
+    // 3. Clear SecureStore items
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(SESSION_KEY),
     ]);
+    // 4. Reset auth session state
     setSession(null);
   };
 

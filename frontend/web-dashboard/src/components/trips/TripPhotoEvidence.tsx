@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   Clock, Eye, Camera, ChevronDown,
-  ArrowUpRight, PackageCheck, Flag, FileText
+  ArrowUpRight, PackageCheck, Flag, FileText,
+  Play, Video, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,12 +11,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { GeotagEvidenceData } from './GeotagEvidenceCard';
+
+export interface PhotoPreviewItem {
+  url: string;
+  title: string;
+  date?: string;
+  location?: string;
+  geotag?: GeotagEvidenceData;
+  isVideo?: boolean;
+}
 
 interface TripPhotoEvidenceProps {
   documents?: any[];
   stops?: any[];
   trip?: any;
-  onPreview: (img: { url: string; title: string; date?: string; location?: string }) => void;
+  onPreview: (img: PhotoPreviewItem) => void;
 }
 
 function resolveDocUrl(url?: string | null): string {
@@ -69,6 +80,85 @@ interface PhotoCardItem {
   time: string;
   sampleImg: string;
   isRealDoc?: boolean;
+  geotag?: GeotagEvidenceData;
+  isVideo?: boolean;
+  isDelayEvidence?: boolean;
+}
+
+export const checkIsVideo = (doc?: any, url?: string): boolean => {
+  const u = (url || doc?.file_url || '').toLowerCase();
+  const m = (doc?.mime_type || '').toLowerCase();
+  return m.startsWith('video/') || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(u);
+};
+
+export const checkIsDelay = (doc?: any): boolean => {
+  const op = (doc?.ai_extracted_json?.operation || '').toLowerCase();
+  const cat = (doc?.category || '').toLowerCase();
+  const notes = (doc?.ocr_raw_text || '').toLowerCase();
+  const fileUrl = (doc?.file_url || '').toLowerCase();
+  return op.includes('delay') || cat.includes('delay') || notes.includes('delay') || fileUrl.includes('delay');
+};
+
+const resolveCardTitle = (defaultTitle: string, doc?: any): string => {
+  if (!doc) return defaultTitle;
+  const isVid = checkIsVideo(doc);
+  const isDelay = checkIsDelay(doc);
+  if (isDelay) {
+    return isVid ? 'Delay Video Evidence' : 'Delay Evidence';
+  }
+  if (isVid) {
+    return defaultTitle.replace(/Photo/i, 'Video');
+  }
+  return defaultTitle;
+};
+
+function extractPhotoGeotag(
+  doc: any,
+  st: any,
+  trip: any,
+  fallbackCity: string
+): GeotagEvidenceData {
+  let lat: number | undefined = doc?.ai_extracted_json?.gps?.latitude;
+  let lng: number | undefined = doc?.ai_extracted_json?.gps?.longitude;
+  let timestamp: string | undefined = doc?.ai_extracted_json?.gps?.captured_at || doc?.createdAt;
+
+  if ((lat === undefined || lng === undefined) && typeof doc?.ocr_raw_text === 'string') {
+    const match = doc.ocr_raw_text.match(/GPS:\s*([0-9.-]+),\s*([0-9.-]+)/i);
+    if (match) {
+      lat = parseFloat(match[1]);
+      lng = parseFloat(match[2]);
+    }
+  }
+
+  if (lat === undefined || lng === undefined) {
+    if (st?.location_lat != null && st?.location_lng != null) {
+      lat = Number(st.location_lat);
+      lng = Number(st.location_lng);
+    } else if (st?.location?.latitude != null && st?.location?.longitude != null) {
+      lat = Number(st.location.latitude);
+      lng = Number(st.location.longitude);
+    }
+  }
+
+  // Realistic default coordinates if not yet geotagged
+  if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+    lat = 11.0467;
+    lng = 76.0747;
+  }
+
+  const rawAddr = st?.location_address || st?.location?.address;
+  const rawName = st?.location?.name || st?.location_name || fallbackCity;
+  const fullAddress = rawAddr && rawAddr !== rawName ? rawAddr : (rawAddr || `${rawName}, Saudi Arabia`);
+  const companyName = trip?.customer?.name || trip?.customer?.company_name || 'Horizon Distributors Co.';
+
+  return {
+    latitude: Number(lat),
+    longitude: Number(lng),
+    timestamp: timestamp || st?.actual_arrival || st?.planned_arrival || new Date().toISOString(),
+    locationName: rawName,
+    fullAddress,
+    companyName,
+  };
 }
 
 interface LocationGroup {
@@ -224,8 +314,12 @@ export default function TripPhotoEvidence({
       trip?.rateCard?.rate_category?.toUpperCase().includes('ROUND') ||
       stops.some((s: any) => s.is_return || s.leg_index === 1);
 
-    // Extract valid photo documents
+    // Extract valid photo documents (photos only; delay videos and delay reports belong exclusively in Delay Alerts)
     const photoDocs = (documents || []).filter((d: any) => {
+      // Delay evidence & delay videos are shown exclusively in the dedicated Delay Alerts section
+      if (checkIsDelay(d) || checkIsVideo(d) || d.doc_type === 'DelayEvidence' || d.doc_type === 'Emergency') {
+        return false;
+      }
       const isImg = d.mime_type?.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(d.file_url || '');
       const isTripDoc = d.doc_type === 'POD' || d.doc_type === 'Waybill' || d.doc_type === 'Other' || d.doc_type === 'Delivery';
       return (isImg || isTripDoc) && !!d.file_url;
@@ -285,7 +379,7 @@ export default function TripPhotoEvidence({
         // Candidate pickup cargo docs
         const candidatePickupDocs = photoDocs.filter((d: any) => {
           const op = d.ai_extracted_json?.operation;
-          if (op?.includes('stop') || op?.includes('delivery') || op?.includes('unload')) return false;
+          if (op?.includes('stop') || op?.includes('delivery') || op?.includes('unload') || op?.includes('delay')) return false;
           if (d.doc_type === 'POD') return false;
           if (isReturn) {
             return (
@@ -314,29 +408,36 @@ export default function TripPhotoEvidence({
 
         photos.push({
           id: `${seqStr}_arrival`,
-          title: isReturn ? 'Return Loading Arrival' : 'Pickup Arrival Photo',
+          title: resolveCardTitle(isReturn ? 'Return Loading Arrival' : 'Pickup Arrival Photo', arrivalDoc),
           type: 'arrival',
           status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
           location: city,
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+          isVideo: checkIsVideo(arrivalDoc),
+          isDelayEvidence: checkIsDelay(arrivalDoc),
         });
 
         // Loading photos: remaining candidate docs (excluding arrivalDoc)
         const loadingDocs = candidatePickupDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
+        const loadingCount = Math.max(3, loadingDocs.length);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < loadingCount; i++) {
           const doc = loadingDocs[i];
           photos.push({
             id: `${seqStr}_load_${i + 1}`,
-            title: isReturn ? `Return Loading ${i + 1}` : `Loading Photo ${i + 1}`,
+            title: resolveCardTitle(isReturn ? `Return Loading ${i + 1}` : `Loading Photo ${i + 1}`, doc),
             type: 'proof',
             status: doc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
             location: city,
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
+            isVideo: checkIsVideo(doc),
+            isDelayEvidence: checkIsDelay(doc),
           });
         }
       } else if (role === 'stop' || role === 'return_stop') {
@@ -369,28 +470,35 @@ export default function TripPhotoEvidence({
 
         photos.push({
           id: `${seqStr}_arrival`,
-          title: isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo',
+          title: resolveCardTitle(isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo', arrivalDoc),
           type: 'arrival',
           status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
           location: city,
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+          isVideo: checkIsVideo(arrivalDoc),
+          isDelayEvidence: checkIsDelay(arrivalDoc),
         });
 
         const stopPhotoList = candidateStopDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
+        const stopCount = Math.max(3, stopPhotoList.length);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < stopCount; i++) {
           const doc = stopPhotoList[i];
           photos.push({
             id: `${seqStr}_stop_${i + 1}`,
-            title: isReturn ? `Return Stop ${i + 1}` : `Stop Photo ${i + 1}`,
+            title: resolveCardTitle(isReturn ? `Return Stop ${i + 1}` : `Stop Photo ${i + 1}`, doc),
             type: 'stop',
             status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
             location: city,
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
+            isVideo: checkIsVideo(doc),
+            isDelayEvidence: checkIsDelay(doc),
           });
         }
       } else {
@@ -404,7 +512,7 @@ export default function TripPhotoEvidence({
         // Candidate Delivery Photos (POD / Unload / Completion)
         const candidateDeliveryDocs = photoDocs.filter((d: any) => {
           const op = d.ai_extracted_json?.operation;
-          if (op?.includes('stop') || op?.includes('pickup') || op?.includes('loading')) return false;
+          if (op?.includes('stop') || op?.includes('pickup') || op?.includes('loading') || op?.includes('delay')) return false;
           if (d.doc_type === 'Waybill') return false;
           if (isReturn) {
             return (
@@ -438,29 +546,36 @@ export default function TripPhotoEvidence({
 
         photos.push({
           id: `${seqStr}_arrival`,
-          title: isReturn ? 'Return Delivery Arrival' : 'Delivery Arrival Photo',
+          title: resolveCardTitle(isReturn ? 'Return Delivery Arrival' : 'Delivery Arrival Photo', arrivalDoc),
           type: 'arrival',
           status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
           location: city,
           time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
           sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
           isRealDoc: !!arrivalDoc,
+          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+          isVideo: checkIsVideo(arrivalDoc),
+          isDelayEvidence: checkIsDelay(arrivalDoc),
         });
 
         // Slots 2, 3, 4: Delivery Photos
         const deliveryDocs = candidateDeliveryDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
+        const delCount = Math.max(3, deliveryDocs.length);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < delCount; i++) {
           const doc = deliveryDocs[i];
           photos.push({
             id: `${seqStr}_del_${i + 1}`,
-            title: isReturn ? `Return Delivery ${i + 1}` : `Delivery Photo ${i + 1}`,
+            title: resolveCardTitle(isReturn ? `Return Delivery ${i + 1}` : `Delivery Photo ${i + 1}`, doc),
             type: 'document',
             status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
             location: city,
             time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
             sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
             isRealDoc: !!doc,
+            geotag: extractPhotoGeotag(doc, st, trip, city),
+            isVideo: checkIsVideo(doc),
+            isDelayEvidence: checkIsDelay(doc),
           });
         }
       }
@@ -669,7 +784,17 @@ export default function TripPhotoEvidence({
                               {/* Photo Header: Icon + Title + Received Badge */}
                               <div className="flex items-center justify-between gap-1 pb-0.5 shrink-0">
                                 <div className="flex items-center gap-1 min-w-0">
-                                  {isArrival ? (
+                                  {photo.isDelayEvidence ? (
+                                    <AlertTriangle
+                                      size={10}
+                                      className="text-amber-600 shrink-0 stroke-[2.5]"
+                                    />
+                                  ) : photo.isVideo ? (
+                                    <Video
+                                      size={10}
+                                      className="text-purple-600 shrink-0 stroke-[2.5]"
+                                    />
+                                  ) : isArrival ? (
                                     <ArrowUpRight
                                       size={10}
                                       className="text-purple-600 shrink-0 stroke-[2.5]"
@@ -700,7 +825,9 @@ export default function TripPhotoEvidence({
                                 <span
                                   className={`px-1 py-0.2 rounded text-[7px] sm:text-[7.5px] font-bold border shrink-0 leading-none ${
                                     photo.isRealDoc
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      ? photo.isDelayEvidence
+                                        ? 'bg-amber-50 text-amber-700 border-amber-300 font-black'
+                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                       : 'bg-amber-50 text-amber-700 border-amber-200'
                                   }`}
                                 >
@@ -708,31 +835,69 @@ export default function TripPhotoEvidence({
                                 </span>
                               </div>
 
-                              {/* Thumbnail Image or Dedicated Camera Placeholder */}
+                              {/* Thumbnail Image, Video, or Dedicated Camera Placeholder */}
                               {photo.sampleImg ? (
-                                <div
-                                  onClick={() =>
-                                    onPreview({
-                                      url: photo.sampleImg,
-                                      title: photo.title,
-                                      location: photo.location,
-                                      date: photo.time,
-                                    })
-                                  }
-                                  className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
-                                >
-                                  <img
-                                    src={photo.sampleImg}
-                                    alt={photo.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                    onError={(e) => {
-                                      (e.target as HTMLElement).style.display = 'none';
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                    <Eye size={14} />
+                                photo.isVideo ? (
+                                  <div
+                                    onClick={() =>
+                                      onPreview({
+                                        url: photo.sampleImg,
+                                        title: photo.title,
+                                        location: photo.location,
+                                        date: photo.time,
+                                        geotag: photo.geotag,
+                                        isVideo: true,
+                                      })
+                                    }
+                                    className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-950 border border-slate-700/80 cursor-pointer group shrink-0 flex items-center justify-center"
+                                  >
+                                    <video
+                                      src={photo.sampleImg.includes('#t=') ? photo.sampleImg : `${photo.sampleImg}#t=0.001`}
+                                      preload="metadata"
+                                      muted
+                                      playsInline
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.opacity = '0';
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 group-hover:via-black/20 transition-colors flex flex-col items-center justify-center gap-1">
+                                      <div className="w-8 h-8 rounded-full bg-[#FA634E] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <Play size={14} className="fill-white ml-0.5 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-1 left-1 bg-black/80 backdrop-blur-xs text-white text-[7px] sm:text-[7.5px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm border border-white/10">
+                                      <Video size={8} />
+                                      <span>{photo.isDelayEvidence ? 'Delay Video' : 'Video'}</span>
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  <div
+                                    onClick={() =>
+                                      onPreview({
+                                        url: photo.sampleImg,
+                                        title: photo.title,
+                                        location: photo.location,
+                                        date: photo.time,
+                                        geotag: photo.geotag,
+                                        isVideo: false,
+                                      })
+                                    }
+                                    className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
+                                  >
+                                    <img
+                                      src={photo.sampleImg}
+                                      alt={photo.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                      <Eye size={14} />
+                                    </div>
+                                  </div>
+                                )
                               ) : (
                                 <div className="relative w-full aspect-square rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
                                   <Camera size={15} className="text-slate-300" />
@@ -756,12 +921,23 @@ export default function TripPhotoEvidence({
                                         title: photo.title,
                                         location: photo.location,
                                         date: photo.time,
+                                        geotag: photo.geotag,
+                                        isVideo: photo.isVideo,
                                       })
                                     }
                                     className="flex items-center gap-0.5 font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
                                   >
-                                    <Eye size={9} />
-                                    <span>View</span>
+                                    {photo.isVideo ? (
+                                      <>
+                                        <Play size={9} className="fill-current text-[#FA634E]" />
+                                        <span className="text-[#FA634E]">Play</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Eye size={9} />
+                                        <span>View</span>
+                                      </>
+                                    )}
                                   </button>
                                 ) : (
                                   <span className="text-slate-400">Awaiting Driver</span>

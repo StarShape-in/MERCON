@@ -63,7 +63,7 @@ const MoreScreen = () => {
           activeOpacity={0.8}
           onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+            { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/login'); } },
           ])}
         >
           <LogOut size={20} color={Colors.error} strokeWidth={2.2} />

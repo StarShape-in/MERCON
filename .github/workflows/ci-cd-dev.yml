@@ -27,9 +27,6 @@ jobs:
           echo "Active containers before cleanup (Production must remain untouched):"
           docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 
-          echo "Stopping ONLY mercon-dev containers to release in-use locks on old dev images..."
-          docker compose -p mercon-dev down 2>/dev/null || true
-
           echo "Truncating active and rotated system logs safely..."
           sudo find /var/log -type f -name "*.log" -exec truncate -s 0 {} + 2>/dev/null || true
           sudo find /var/log -type f \( -name "*.gz" -o -name "*.[0-9]" -o -name "*.old" \) -delete 2>/dev/null || true
@@ -43,13 +40,10 @@ jobs:
           sudo find / -maxdepth 4 -path "*/actions-runner/_diag/*" -type f -delete 2>/dev/null || true
           sudo find / -maxdepth 4 -path "*/actions-runner/_work/_temp/*" -type f -delete 2>/dev/null || true
           sudo apt-get clean 2>/dev/null || true
-          rm -rf /tmp/npm-* ~/.npm ~/.cache /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
+          rm -rf /tmp/npm-* ~/.npm ~/.cache 2>/dev/null || true
 
-          echo "Pruning unreferenced Docker images, build cache, and stopped containers (Volumes PRESERVED)..."
-          sudo docker builder prune -af 2>/dev/null || true
-          sudo docker buildx prune -af 2>/dev/null || true
-          sudo docker image prune -af 2>/dev/null || true
-          sudo docker system prune -af 2>/dev/null || true
+          echo "Pruning dangling untagged images (BuildKit cache preserved)..."
+          sudo docker image prune -f 2>/dev/null || true
 
           echo "=== DISK USAGE AFTER PRE-CHECKOUT CLEANUP ==="
           df -h / || true
@@ -105,7 +99,8 @@ jobs:
           API_PORT: 3051
           FRONTEND_PORT: 3061
           DB_TUNNEL_PORT: 15433
-          TMP_UPLOADS_DIR: /tmp/mercon-dev-tmp-uploads
+          DEV_UPLOADS_DIR: /var/lib/mercon/dev-uploads
+          TMP_UPLOADS_DIR: /var/lib/mercon/dev-uploads
           # ICCES GPS tracking credentials — injected from repo/environment secrets
           ICCES_USER: ${{ secrets.DEV_ICCES_USER || secrets.ICCES_USER }}
           ICCES_PASS: ${{ secrets.DEV_ICCES_PASS || secrets.ICCES_PASS }}
@@ -114,42 +109,21 @@ jobs:
           echo "=== REBUILDING DEV STACK (mercon-dev) ==="
           echo "Target Project: mercon-dev (CLIENT_NAME=dev)"
 
-          mkdir -p /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads
-          chmod -R 777 /tmp/dev-uploads /tmp/mercon-dev-tmp-uploads 2>/dev/null || true
+          echo "Ensuring persistent dev uploads directory exists..."
+          sudo mkdir -p /var/lib/mercon/dev-uploads
+          sudo chmod -R 777 /var/lib/mercon/dev-uploads 2>/dev/null || true
 
-          # Ensure dev containers are down so any previous dev images can be purged
-          docker compose -p mercon-dev down 2>/dev/null || true
+          # One-time migration of any surviving files from legacy tmp uploads
+          if [ -d /tmp/mercon-dev-tmp-uploads ] && [ "$(ls -A /tmp/mercon-dev-tmp-uploads 2>/dev/null)" ]; then
+            echo "Migrating legacy dev uploads to /var/lib/mercon/dev-uploads..."
+            sudo cp -rn /tmp/mercon-dev-tmp-uploads/* /var/lib/mercon/dev-uploads/ 2>/dev/null || true
+          fi
 
-          # Final pre-build log truncation & Docker build cache prune
-          sudo find /var/lib/docker/containers -type f -name '*-json.log' -exec truncate -s 0 {} + 2>/dev/null || true
-          sudo docker builder prune -af 2>/dev/null || true
-          sudo docker image prune -af 2>/dev/null || true
-          rm -rf ~/.npm ~/.cache /tmp/npm-* 2>/dev/null || true
           echo "Disk space available immediately prior to build:"
           df -h / || true
 
-          # STEP 1: Build frontend FIRST.
-          # The multi-stage build creates a tiny static Nginx image (~50MB).
-          # Once built, pruning the builder drops the heavy Node build stage cache,
-          # leaving maximum disk headroom for the backend API build.
-          echo "Building mercon-frontend..."
-          docker compose -p mercon-dev build mercon-frontend
-
-          echo "Pruning frontend build-stage cache..."
-          sudo docker builder prune -af 2>/dev/null || true
-          df -h / || true
-
-          # STEP 2: Build API second
-          echo "Building mercon-api..."
-          docker compose -p mercon-dev build mercon-api
-
-          echo "Pruning intermediate API build cache..."
-          sudo docker builder prune -af 2>/dev/null || true
-          df -h / || true
-
-          # STEP 3: Launch dev services
-          echo "Starting mercon-dev containers..."
-          docker compose -p mercon-dev up -d
+          echo "Building and updating mercon-dev services with BuildKit cache..."
+          docker compose -p mercon-dev up -d --build
 
           echo "Syncing database schema..."
           docker compose -p mercon-dev exec -T mercon-api npx prisma migrate deploy || true

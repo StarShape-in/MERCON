@@ -80,13 +80,17 @@ export default function TransitTimeBadge({
 
   // Auto-update dropoff date and time when estimate, pickupDate, or pickupTime changes
   useEffect(() => {
-    if (estimate) {
+    if (estimate && pickupTime && pickupTime.trim()) {
       if (onAutoSetDropoffDateTime) {
         const arrivalCalc = calculateArrivalDropoffDateAndTime(pickupDate, pickupTime, estimate.durationMinutes);
-        onAutoSetDropoffDateTime(arrivalCalc.dropoffDate, arrivalCalc.dropoffTime, arrivalCalc.isOvernight, estimate);
-      } else if (onAutoSetDropoffTime && pickupTime) {
+        if (arrivalCalc.dropoffTime) {
+          onAutoSetDropoffDateTime(arrivalCalc.dropoffDate, arrivalCalc.dropoffTime, arrivalCalc.isOvernight, estimate);
+        }
+      } else if (onAutoSetDropoffTime) {
         const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
-        onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
+        if (arrivalCalc.dropoffTime) {
+          onAutoSetDropoffTime(arrivalCalc.dropoffTime, arrivalCalc.isOvernight);
+        }
       }
     }
   }, [estimate, pickupDate, pickupTime, onAutoSetDropoffDateTime, onAutoSetDropoffTime]);
@@ -116,7 +120,7 @@ export default function TransitTimeBadge({
 
   if (loading) {
     return (
-      <div className={cn('p-3.5 rounded-2xl bg-[#FFF5F2] border border-[#FFDCD6] text-xs font-semibold text-[#FA634E] flex items-center gap-2 animate-pulse', className)}>
+      <div className={cn("flex items-center gap-2 p-3 rounded-2xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40 text-xs font-bold text-brand animate-pulse", className)}>
         <Clock className="w-4 h-4 text-[#FA634E] shrink-0 animate-spin" />
         <span>Calculating transit estimate...</span>
       </div>
@@ -126,8 +130,6 @@ export default function TransitTimeBadge({
   if (!estimate) {
     return null;
   }
-
-  const arrivalCalc = calculateArrivalDropoffTime(pickupTime, estimate.durationMinutes);
 
   return (
     <div className={cn('p-3.5 rounded-2xl bg-[#FFF5F2] border border-[#FFDCD6] space-y-2.5 text-[#3E3C3D] shadow-2xs', className)}>

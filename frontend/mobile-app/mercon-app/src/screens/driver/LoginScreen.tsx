@@ -19,6 +19,8 @@ import { useAuth } from '../../lib/auth-context';
 import { api, getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 
+import { useRouter } from 'expo-router';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../../assets/images/mercon-logo.png');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -37,6 +39,7 @@ const formatPhoneForAuth = (raw: string): string => {
 };
 
 const LoginScreen = () => {
+  const router = useRouter();
   const { signIn } = useAuth();
   const { language, openLanguageModal, t } = useLanguage();
 
@@ -76,7 +79,8 @@ const LoginScreen = () => {
     const formattedPhone = formatPhoneForAuth(identifier);
     try {
       await signIn(formattedPhone, secret);
-      // Success: the auth guard in app/_layout.tsx switches away from login.
+      // Navigate explicitly to authenticated root
+      router.replace('/');
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {

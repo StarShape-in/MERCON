@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
@@ -23,6 +23,7 @@ const TAB_ROUTES = [
 ];
 
 function RootNavigator() {
+  const router = useRouter();
   const { isLoggedIn, isLoading, role } = useAuth();
   const pathname = usePathname();
 
@@ -33,6 +34,13 @@ function RootNavigator() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [isLoading]);
+
+  // Auth guard: redirect unauthenticated sessions away from protected screens
+  useEffect(() => {
+    if (!isLoading && !isLoggedIn && pathname !== '/login') {
+      router.replace('/login');
+    }
+  }, [isLoading, isLoggedIn, pathname, router]);
 
   if (isLoading) {
     return (
