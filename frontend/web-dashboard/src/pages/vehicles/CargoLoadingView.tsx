@@ -10,7 +10,7 @@ import {
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
-  History, ExternalLink, Package, Radio
+  History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,7 +90,7 @@ export default function CargoLoadingView() {
   });
 
   const serviceRecords = (maintenanceData?.data && maintenanceData.data.length > 0)
-    ? maintenanceData.data.map(r => ({
+    ? maintenanceData.data.map((r, idx) => ({
         id: r.id,
         ref_id: r.ref_id || `MNT-${r.id.slice(0, 5).toUpperCase()}`,
         work_done: r.work_done || r.maintenance_type || 'General Service',
@@ -99,37 +99,63 @@ export default function CargoLoadingView() {
         odometer_reading: r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '142,500 km',
         cost: r.cost ? `SAR ${r.cost.toLocaleString()}` : 'SAR 1,450',
         status: r.status || 'Completed',
+        typeIndex: idx % 5,
       }))
     : [
         {
           id: 'mnt-1',
           ref_id: 'MNT-048',
-          work_done: 'Engine Oil & Filter Service (50k Interval)',
+          work_done: 'Engine Oil & Filter Service',
           workshop_name: 'Zahid Heavy Equipment Workshop',
           service_date: '12 Aug 2026',
           odometer_reading: '142,500 km',
           cost: 'SAR 1,450',
           status: 'Completed',
+          typeIndex: 0,
         },
         {
           id: 'mnt-2',
           ref_id: 'MNT-039',
-          work_done: 'Brake Pad Replacement & Air System Check',
+          work_done: 'Brake Pad Replacement',
           workshop_name: 'Al-Refaei Truck Service Center',
           service_date: '25 Jun 2026',
           odometer_reading: '135,000 km',
           cost: 'SAR 2,200',
           status: 'Completed',
+          typeIndex: 1,
         },
         {
           id: 'mnt-3',
-          ref_id: 'MNT-024',
-          work_done: 'Front Axle Alignment & Tire Balancing',
-          workshop_name: 'Main Fleet Workshop Riyadh',
-          service_date: '10 Apr 2026',
-          odometer_reading: '128,000 km',
-          cost: 'SAR 850',
+          ref_id: 'MNT-031',
+          work_done: 'Air Filter Replacement',
+          workshop_name: 'Saudi Heavy Maintenance Hub',
+          service_date: '14 Mar 2026',
+          odometer_reading: '128,300 km',
+          cost: 'SAR 650',
           status: 'Completed',
+          typeIndex: 2,
+        },
+        {
+          id: 'mnt-4',
+          ref_id: 'MNT-024',
+          work_done: 'Coolant Change',
+          workshop_name: 'Main Fleet Workshop Riyadh',
+          service_date: '03 Jan 2026',
+          odometer_reading: '120,750 km',
+          cost: 'SAR 480',
+          status: 'Completed',
+          typeIndex: 3,
+        },
+        {
+          id: 'mnt-5',
+          ref_id: 'MNT-018',
+          work_done: 'Transmission Service',
+          workshop_name: 'Zahid Heavy Equipment Workshop',
+          service_date: '18 Sep 2025',
+          odometer_reading: '112,400 km',
+          cost: 'SAR 3,100',
+          status: 'Completed',
+          typeIndex: 4,
         },
       ];
 
@@ -637,9 +663,9 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 2: Vehicle Documents & Validity (Contiguous Evenly-Spaced List + Horizontal More Details Button) */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col justify-between flex-1 min-h-0 overflow-hidden">
-            <div className="flex items-center justify-between shrink-0 mb-1.5">
+          {/* BOX 2: Vehicle Documents & Validity (Fully-Visible List + Horizontal More Details Button) */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs flex flex-col gap-2 shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 mb-0.5">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
                 Documents & Validity
@@ -647,43 +673,43 @@ export default function CargoLoadingView() {
               <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
             </div>
 
-            {/* Contiguous document list expanding evenly across available height */}
-            <div className="flex flex-col flex-1 min-h-0 my-1 rounded-lg border border-slate-200/80 divide-y divide-slate-100 overflow-hidden">
+            {/* Contiguous compact document list fitting all 5 items perfectly */}
+            <div className="flex flex-col rounded-lg border border-slate-200/80 divide-y divide-slate-100 overflow-hidden shrink-0">
               {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-3 py-2 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Istimara</span>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
               </div>
               {/* 2. Insurance */}
-              <div className="flex items-center justify-between px-3 py-2 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Insurance</span>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
               </div>
               {/* 3. Operation Card */}
-              <div className="flex items-center justify-between px-3 py-2 flex-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2.5 py-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+                <div className="flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
                 </div>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
               </div>
               {/* 4. SASO Plates */}
-              <div className="flex items-center justify-between px-3 py-2 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
                 </div>
                 <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
               </div>
               {/* 5. FAHAS */}
-              <div className="flex items-center justify-between px-3 py-2 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
                 </div>
@@ -695,7 +721,7 @@ export default function CargoLoadingView() {
             <Button
               variant="outline"
               onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-              className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs shrink-0 mt-1.5 justify-center gap-1.5"
+              className="w-full h-7.5 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0"
             >
               <span>More Details</span>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
@@ -713,156 +739,181 @@ export default function CargoLoadingView() {
             <div className="relative w-full max-w-6xl xl:max-w-7xl translate-x-2 sm:translate-x-5">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Single Seamless Vehicle Service History HUD Overlay inside Trailer */}
-              <div className="absolute top-[11.2%] left-[28.4%] w-[67.2%] h-[47.8%] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between overflow-hidden">
+              {/* Dual-Card Vehicle Service History HUD Overlay inside Trailer */}
+              <div className="absolute top-[9.5%] left-[27.2%] w-[69.8%] h-[51.5%] rounded-2xl p-2 sm:p-2.5 flex items-stretch gap-2.5 sm:gap-3 overflow-hidden pointer-events-auto">
                 
-                <div className="grid grid-cols-12 gap-3 h-full items-stretch overflow-hidden">
+                {/* ── LEFT CARD: Dark Teal Odometer & Service Due ── */}
+                <div className="w-[41%] bg-[#0D2E2B] text-white rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between border border-teal-800/60 shadow-lg shrink-0 overflow-hidden">
                   
-                  {/* ── LEFT SIDE: Rolling Counter Odometer Drum Wheels (Col-span-5) ── */}
-                  <div className="col-span-5 bg-slate-50/90 dark:bg-slate-950/60 rounded-xl p-3 flex flex-col justify-between border border-slate-200/80 dark:border-slate-800 shrink-0">
-                    
-                    {/* Header: Icon + ODOMETER + Active Pill */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-2xs">
-                          <Gauge className="w-3 h-3 text-slate-700 dark:text-slate-300" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                          ODOMETER
-                        </span>
+                  {/* Top Header: Gauge Icon + Title + Active Pill */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-teal-800/50 border border-teal-500/30 flex items-center justify-center text-teal-300 shadow-2xs">
+                        <Gauge className="w-4 h-4 text-emerald-400" />
                       </div>
-
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200/80 font-extrabold px-2.5 py-0.5 text-[10px] rounded-full shadow-none flex items-center gap-1.5 hover:bg-emerald-50">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                        Active
-                      </Badge>
-                    </div>
-
-                    {/* Mechanical Rolling Counter Drum Wheels */}
-                    <div className="my-auto py-1">
-                      <div className="inline-flex items-center gap-1">
-                        <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shadow-inner">
-                          {(() => {
-                            const rawOdo = vehicle?.current_odometer || 7944500;
-                            const strOdo = String(rawOdo);
-                            const padLen = Math.max(7, strOdo.length);
-                            const digitArray = strOdo.padStart(padLen, '0').split('');
-
-                            return digitArray.map((digit, idx) => (
-                              <div
-                                key={idx}
-                                className="relative w-4.5 h-6.5 sm:w-6 sm:h-8.5 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white font-mono font-black text-xs sm:text-base rounded-md border border-slate-700/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
-                              >
-                                {/* Glossy top glass reflection */}
-                                <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
-                                {/* Bottom shadow gradient */}
-                                <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                                {/* Center wheel seam line */}
-                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/50 pointer-events-none" />
-
-                                <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                  {digit}
-                                </span>
-                              </div>
-                            ));
-                          })()}
-                        </div>
-                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white ml-1 shrink-0">
-                          km
-                        </span>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-bold text-white leading-tight tracking-tight">Odometer</h3>
+                        <p className="text-[9px] sm:text-[10px] text-teal-200/70 font-medium leading-none mt-0.5">Total Distance Travelled</p>
                       </div>
                     </div>
 
-                    {/* Service Progress & Next Due */}
-                    <div className="pt-1.5 border-t border-slate-200/70 dark:border-slate-800 space-y-1">
-                      <div className="flex justify-between items-center text-[9.5px]">
-                        <span className="font-bold text-slate-500">Next Service</span>
-                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">in 7,500 km</span>
-                      </div>
-                      <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-[#FA634E] h-full w-[70%]" title="70% interval elapsed"></div>
-                      </div>
-                    </div>
-
+                    <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 font-extrabold px-2.5 py-0.5 text-[10px] rounded-full shadow-none flex items-center gap-1.5 hover:bg-emerald-950">
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                      Active
+                    </Badge>
                   </div>
 
-                  {/* ── RIGHT SIDE: Clean Service History Details (Col-span-7) ── */}
-                  <div className="col-span-7 flex flex-col justify-between h-full min-h-0 overflow-hidden pl-0.5">
-                    
-                    {/* Header */}
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                      <div className="flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
-                        <h3 className="text-xs font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                          Vehicle Service History
-                        </h3>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
-                          className="h-6 px-2.5 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
-                        >
-                          <Plus className="w-3 h-3" />
-                          + Log Service
-                        </Button>
-                        <button
-                          onClick={() => navigate('/maintenance')}
-                          className="text-[10px] font-bold text-slate-500 hover:text-[#FA634E] flex items-center gap-0.5 transition-colors"
-                        >
-                          All <ExternalLink className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
+                  {/* Center Mechanical Rolling Counter Drum Wheels */}
+                  <div className="my-auto py-1">
+                    <div className="bg-[#051C19] p-2 sm:p-2.5 rounded-xl border border-teal-900/80 shadow-inner flex items-center justify-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        {(() => {
+                          const rawOdo = vehicle?.current_odometer || 7944500;
+                          const strOdo = String(rawOdo);
+                          const padLen = Math.max(7, strOdo.length);
+                          const digitArray = strOdo.padStart(padLen, '0').split('');
 
-                    {/* Non-scrollable Service History Rows (2 clean rows) */}
-                    <div className="flex-1 min-h-0 flex flex-col justify-center gap-2 py-1 overflow-hidden">
-                      {serviceRecords.slice(0, 2).map((rec) => (
-                        <div 
-                          key={rec.id}
-                          onClick={() => navigate(`/maintenance/${rec.id}`)}
-                          className="group bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl p-2.5 transition-all cursor-pointer flex items-center justify-between gap-3 shrink-0"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wide px-1.5 py-0.5 bg-white border border-slate-200 rounded-md shrink-0">
-                                {rec.ref_id}
+                          return digitArray.map((digit, idx) => (
+                            <div
+                              key={idx}
+                              className="relative w-4.5 h-6.5 sm:w-6 sm:h-8.5 bg-gradient-to-b from-[#0A120E] via-[#17261F] to-[#0A120E] text-white font-mono font-black text-xs sm:text-base rounded-md border border-teal-900/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] flex items-center justify-center overflow-hidden shrink-0 select-none"
+                            >
+                              {/* Glossy top glass reflection */}
+                              <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-md" />
+                              {/* Bottom shadow gradient */}
+                              <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                              {/* Center wheel seam line */}
+                              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-black/50 pointer-events-none" />
+
+                              <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                {digit}
                               </span>
-                              <p className="text-xs font-black text-slate-900 truncate leading-tight group-hover:text-[#FA634E] transition-colors">
-                                {rec.work_done}
-                              </p>
                             </div>
-                            <div className="flex items-center gap-2.5 text-[10px] text-slate-500 mt-1">
-                              <span className="font-semibold truncate max-w-[150px]">{rec.workshop_name}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="font-medium text-slate-400">{rec.service_date}</span>
-                            </div>
-                          </div>
+                          ));
+                        })()}
+                      </div>
+                      <span className="text-xs sm:text-sm font-black text-white ml-0.5 shrink-0">
+                        km
+                      </span>
+                    </div>
+                  </div>
 
-                          <div className="flex items-center gap-3 shrink-0 text-right">
-                            <div>
-                              <p className="text-xs font-black text-slate-900 leading-tight">{rec.cost}</p>
-                              <p className="text-[9px] font-semibold text-slate-400 mt-0.5">{rec.odometer_reading}</p>
-                            </div>
-                            <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-none shrink-0 ${
-                              rec.status.toLowerCase().includes('in_progress') || rec.status.toLowerCase().includes('progress')
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            }`}>
-                              {rec.status}
-                            </Badge>
-                          </div>
+                  {/* Bottom Next Service Due Box */}
+                  <div className="bg-[#08231F] border border-teal-800/40 rounded-xl p-2 sm:p-2.5 space-y-1.5">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-teal-900/60 border border-teal-700/50 flex items-center justify-center text-teal-300">
+                          <Wrench className="w-2.5 h-2.5 text-teal-300" />
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-[9px] text-teal-300/80 font-medium leading-none">Next Service Due</p>
+                          <p className="text-xs sm:text-sm font-black text-[#00E699] leading-tight mt-0.5">in 7,500 km</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] text-teal-300/80 font-medium leading-none">Target Kilometer</p>
+                        <p className="text-xs font-bold text-white leading-tight mt-0.5">150,000 km</p>
+                      </div>
                     </div>
 
-                    {/* Footer info line */}
-                    <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-                      <span className="font-medium">Verified Workshop Records</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300">Vehicle Health: Operational</span>
+                    {/* Progress bar */}
+                    <div className="w-full bg-teal-950 h-1.5 rounded-full overflow-hidden p-0.5 border border-teal-900">
+                      <div className="bg-[#00E699] h-full rounded-full w-[70%] shadow-[0_0_8px_#00E699]" title="70% interval elapsed"></div>
                     </div>
 
+                    <div className="flex justify-between items-center text-[8.5px] text-teal-300/70 font-medium">
+                      <span>142,500 km</span>
+                      <span>150,000 km</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ── RIGHT CARD: White Service History Card with 5 Color-Coded Rows ── */}
+                <div className="flex-1 bg-white text-slate-900 rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
+                  
+                  {/* Top Header: Purple Calendar Icon + Title */}
+                  <div className="flex items-center justify-between shrink-0 pb-1 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 shadow-2xs shrink-0">
+                        <Calendar className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
+                        <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-none mt-0.5">Maintenance records and service details</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/maintenance/new?vehicle_id=${id}`)}
+                      className="h-6 px-2 text-[10px] font-bold bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-lg shadow-2xs gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Log Service
+                    </Button>
+                  </div>
+
+                  {/* 4-Column Table Header */}
+                  <div className="grid grid-cols-12 gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg text-[9.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0 my-1">
+                    <div className="col-span-5">Service</div>
+                    <div className="col-span-2 text-center">Date</div>
+                    <div className="col-span-2 text-center">Odometer</div>
+                    <div className="col-span-3 text-right">Status</div>
+                  </div>
+
+                  {/* 5 Color-Coded Maintenance Record Rows */}
+                  <div className="flex-1 min-h-0 flex flex-col justify-between gap-1 overflow-hidden">
+                    {(() => {
+                      const rowStyles = [
+                        { icon: Droplets, iconBg: 'bg-rose-100 text-rose-600 border border-rose-200/60', rowBg: 'bg-rose-50/40' },
+                        { icon: Disc, iconBg: 'bg-blue-100 text-blue-600 border border-blue-200/60', rowBg: 'bg-blue-50/40' },
+                        { icon: Wind, iconBg: 'bg-amber-100 text-amber-600 border border-amber-200/60', rowBg: 'bg-amber-50/40' },
+                        { icon: Thermometer, iconBg: 'bg-cyan-100 text-cyan-600 border border-cyan-200/60', rowBg: 'bg-cyan-50/40' },
+                        { icon: Settings, iconBg: 'bg-purple-100 text-purple-600 border border-purple-200/60', rowBg: 'bg-purple-50/40' },
+                      ];
+
+                      return serviceRecords.slice(0, 5).map((rec, idx) => {
+                        const style = rowStyles[idx % rowStyles.length];
+                        const IconComponent = style.icon;
+
+                        return (
+                          <div
+                            key={rec.id}
+                            onClick={() => navigate(`/maintenance/${rec.id}`)}
+                            className={`grid grid-cols-12 gap-1.5 px-2 py-1 rounded-xl items-center text-xs ${style.rowBg} border border-slate-100/80 transition-all hover:border-slate-300 cursor-pointer`}
+                          >
+                            <div className="col-span-5 flex items-center gap-1.5 min-w-0">
+                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs ${style.iconBg}`}>
+                                <IconComponent className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-900 truncate text-[10.5px] sm:text-xs">{rec.work_done}</span>
+                            </div>
+
+                            <div className="col-span-2 text-center text-[9.5px] sm:text-[10.5px] font-semibold text-slate-500">
+                              {rec.service_date}
+                            </div>
+
+                            <div className="col-span-2 text-center text-[9.5px] sm:text-[10.5px] font-bold text-slate-700">
+                              {rec.odometer_reading}
+                            </div>
+
+                            <div className="col-span-3 flex justify-end">
+                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200/80 font-bold px-2 py-0.5 text-[9px] sm:text-[10px] rounded-full flex items-center gap-1 shadow-none hover:bg-emerald-100">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                Completed
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Uppercase Footer Info Bar */}
+                  <div className="pt-1 mt-1 border-t border-slate-100 flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-mono tracking-wider uppercase text-slate-400 shrink-0">
+                    <span className="font-medium">REGULAR SERVICE. A LONGER JOURNEY AHEAD.</span>
+                    <span className="font-bold text-slate-600">VEHICLE HEALTH: <span className="text-emerald-600 font-black">OPERATIONAL</span></span>
                   </div>
 
                 </div>
