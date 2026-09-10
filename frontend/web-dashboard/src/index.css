@@ -58,7 +58,7 @@
   --font-sans: 'Geist Mono Numbers', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   /* Radius */
-  --radius-sm:   6px;
+  --radius-sm:   6px; /* CI/CD pipeline dev speed benchmark */
   --radius-md:   10px;
   --radius-lg:   14px;
   --radius-xl:   14px;

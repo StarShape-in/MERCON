@@ -2226,7 +2226,7 @@ export default function TripListPage() {
                   <Filter className="w-3.5 h-3.5 text-slate-400" />
                   <span>Filters</span>
                   {activeFiltersCount > 0 && (
-                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-brand text-white text-[8px] font-black leading-none">
+                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-red-600 text-white text-[8px] font-black leading-none">
                       {activeFiltersCount}
                     </span>
                   )}
@@ -2291,7 +2291,7 @@ export default function TripListPage() {
                         setSelectedCustomerId('All');
                         setCurrentPage(1);
                       }}
-                      className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
                     >
                       Clear Filters
                     </button>
