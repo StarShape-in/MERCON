@@ -14,14 +14,18 @@ import {
   RotateCcw, 
   Eye, 
   Save, 
-  ShieldCheck 
+  ShieldCheck,
+  UserRound,
+  FileText
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StopAddressEditor from '@/components/trips/StopAddressEditor';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import { tripService, TripStatus } from '@/services/tripService';
-import { driverService } from '@/services/driverService';
+import { driverService, Driver } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +93,10 @@ export default function EditTripPage() {
   const [billingAmountInput, setBillingAmountInput] = useState<string>('');
   const [tripChargesInput, setTripChargesInput] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // Preview modals state
+  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
+  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
 
   // Fetch trip data
   const { data: trip, isLoading, refetch } = useQuery({
@@ -202,8 +210,8 @@ export default function EditTripPage() {
 
   const isSubmitting = updateStatusMutation.isPending || dispatchMutation.isPending || updateFinancialsMutation.isPending;
   const currentStatusInfo = STATUS_DESCRIPTIONS[status] || STATUS_DESCRIPTIONS['Draft'];
-  const assignedDriverObj = driversRes?.data?.find((d) => d.id === selectedDriverId);
-  const assignedVehicleObj = vehiclesRes?.data?.find((v) => v.id === selectedVehicleId);
+  const assignedDriverObj = driversRes?.data?.find((d) => d.id === selectedDriverId) || (trip.driver as any);
+  const assignedVehicleObj = vehiclesRes?.data?.find((v) => v.id === selectedVehicleId) || (trip.vehicle as any);
 
   // ERP Keyboard Shortcuts Integration
   useFormKeyboardShortcuts({
@@ -214,18 +222,31 @@ export default function EditTripPage() {
     isSubmitting,
   });
 
-  const pickupStop = (trip.stops ?? []).find((s) => s.stop_type === 'Pickup');
-  const dropoffStop = (trip.stops ?? []).find((s) => s.stop_type === 'Dropoff');
+  const stopsList = (trip.stops ?? []).slice().sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const pickupStop = stopsList.find((s) => s.stop_type === 'Pickup') || stopsList[0];
+  const dropoffStop = stopsList.find((s) => s.stop_type === 'Dropoff') || (stopsList.length > 1 ? stopsList[stopsList.length - 1] : null);
+
+  // Completion Tracking (matching Vehicle edit style)
+  const completionFields = [
+    { label: 'Customer Context', filled: !!trip.customer },
+    { label: 'Operational Status', filled: !!status },
+    { label: 'Assigned Driver', filled: !!selectedDriverId },
+    { label: 'Assigned Truck', filled: !!selectedVehicleId },
+    { label: 'Route Pickup / Dropoff', filled: stopsList.length >= 2 },
+    { label: 'Client Financial Billing', filled: parseFloat(billingAmountInput) > 0 },
+  ];
+  const filledCount = completionFields.filter((f) => f.filled).length;
+  const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
   return (
     <DashboardLayout active="Trips" title={`Edit ${trip.ref_id || 'Trip Manifest'}`}>
       <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
         
-        {/* Slim Top Action Strip */}
+        {/* Slim Top Action Strip (Matching EditVehiclePage) */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <Truck className="w-3 h-3 mr-1 inline text-indigo-600" /> Edit Manifest
+            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 font-bold border-none text-[11px] px-2 py-0.5">
+              <Truck className="w-3 h-3 mr-1 inline text-amber-600" /> Edit Trip Manifest
             </Badge>
             <span className="text-xs text-slate-400 font-mono font-medium hidden sm:inline">
               Ref: {trip.ref_id || 'TRIP-LOG'}
@@ -239,7 +260,7 @@ export default function EditTripPage() {
               onClick={() => navigate(`/trips/${id}`)}
               className="h-7 text-xs text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 px-2"
             >
-              <Eye className="w-3.5 h-3.5 mr-1" /> View Details
+              <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" /> View Details
             </Button>
             <Button 
               variant="ghost" 
@@ -268,7 +289,7 @@ export default function EditTripPage() {
           </div>
         </div>
 
-        {/* 2-Column High-Density Layout */}
+        {/* 2-Column High-Density Layout (Matching EditVehiclePage) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
           {/* Main Form Column (8 cols) */}
@@ -276,19 +297,19 @@ export default function EditTripPage() {
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
               <CardContent className="p-3.5 sm:p-4 space-y-3.5">
 
-                {/* Section 1: Customer & Progress Stage */}
-                <div className="space-y-2.5">
+                {/* Section 1: Primary Manifest & Operational Stage */}
+                <div className="space-y-3">
                   <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-brand" /> Customer & Operational Stage
+                      <Building2 className="w-3.5 h-3.5 text-brand" /> Primary Manifest & Operational Stage
                     </h2>
-                    <span className="text-[10px] text-slate-400 font-mono">Manifest ID: {trip.ref_id}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Manifest: {trip.ref_id}</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Customer / Client Company
+                        Customer / Client Account
                       </Label>
                       <Input
                         disabled
@@ -305,7 +326,7 @@ export default function EditTripPage() {
                         value={status}
                         onValueChange={(val: TripStatus) => setStatus(val)}
                       >
-                        <SelectTrigger id="status" className="h-8 text-xs">
+                        <SelectTrigger id="status" className="h-8 text-xs font-semibold">
                           <SelectValue placeholder="Select status..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -330,19 +351,31 @@ export default function EditTripPage() {
                   </div>
                 </div>
 
-                {/* Section 2: Driver & Vehicle Resource Assignment */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                {/* Section 2: Dispatch & Fleet Resource Assignment */}
+                <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Dispatch & Fleet Assignment
+                      <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Dispatch & Resource Roster
                     </h2>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Driver Selection */}
                     <div className="space-y-1">
-                      <Label htmlFor="selectedDriverId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Assigned Driver
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="selectedDriverId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                          <UserRound className="w-3 h-3 text-indigo-500" /> Assigned Driver
+                        </Label>
+                        {selectedDriverId && assignedDriverObj && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDriver(assignedDriverObj)}
+                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" /> View Driver Profile
+                          </button>
+                        )}
+                      </div>
                       <Select
                         value={selectedDriverId}
                         onValueChange={(val) => setSelectedDriverId(val)}
@@ -352,7 +385,7 @@ export default function EditTripPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="" className="text-xs italic text-slate-400">
-                            -- No driver assigned (Assign Later) --
+                            -- No driver assigned (Unassigned) --
                           </SelectItem>
                           {driversRes?.data?.map((d) => {
                             const embeddedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object' ? (d.assignedVehicle as any) : null;
@@ -374,10 +407,22 @@ export default function EditTripPage() {
                       </Select>
                     </div>
 
+                    {/* Truck Selection */}
                     <div className="space-y-1">
-                      <Label htmlFor="selectedVehicleId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Assigned Vehicle / Truck
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="selectedVehicleId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                          <Truck className="w-3 h-3 text-amber-500" /> Assigned Vehicle / Truck
+                        </Label>
+                        {selectedVehicleId && assignedVehicleObj && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewVehicle(assignedVehicleObj)}
+                            className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" /> View Truck Profile
+                          </button>
+                        )}
+                      </div>
                       <Select
                         value={selectedVehicleId}
                         onValueChange={(val) => setSelectedVehicleId(val)}
@@ -387,7 +432,7 @@ export default function EditTripPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="" className="text-xs italic text-slate-400">
-                            -- No truck assigned (Assign Later) --
+                            -- No truck assigned (Unassigned) --
                           </SelectItem>
                           {vehiclesRes?.data?.map((v) => (
                             <SelectItem key={v.id} value={v.id} className="text-xs font-mono font-medium">
@@ -446,6 +491,7 @@ export default function EditTripPage() {
                           <TransitTimeBadge
                             origin={pickupStop.location_name || pickupStop.location_address || ''}
                             destination={dropoffStop.location_name || dropoffStop.location_address || ''}
+                            compact={true}
                           />
                         )}
 
@@ -486,11 +532,11 @@ export default function EditTripPage() {
                   })()}
                 </div>
 
-                {/* Section 4: Commercial Financials & Invoicing */}
+                {/* Section 4: Commercial Financials & Driver Payout */}
                 <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Commercial Financials
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Commercial Financials & Driver Payout
                     </h2>
                   </div>
 
@@ -546,17 +592,21 @@ export default function EditTripPage() {
             )}
           </div>
 
-          {/* Right Sidebar Column (4 cols) */}
+          {/* Right Sidebar Column (4 cols) (Matching EditVehiclePage) */}
           <div className="lg:col-span-4 space-y-3 sticky top-2">
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-3.5 space-y-3 shadow-2xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Manifest Summary</span>
-                <StatusBadge status={status} />
+                <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
+                  {completionPct}% Complete
+                </Badge>
               </div>
 
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <Truck className="w-5 h-5 text-indigo-600 shrink-0" />
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-200 dark:border-indigo-900/50">
+                    <Truck className="w-5 h-5 text-indigo-600" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100 truncate">
                       {trip.ref_id || 'TRIP-MANIFEST'}
@@ -565,6 +615,12 @@ export default function EditTripPage() {
                       Client: {trip.customer?.name || 'Standard Client'}
                     </span>
                   </div>
+                </div>
+
+                {/* Status Indicator */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Current Stage</span>
+                  <StatusBadge status={status} />
                 </div>
 
                 {/* Route Summary */}
@@ -576,7 +632,7 @@ export default function EditTripPage() {
                       Origin: {pickupStop?.location_name || pickupStop?.location_address || 'Pickup Yard'}
                     </p>
                     <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                      <span className="w-2 h-2 rounded-full bg-brand inline-block"></span>
                       Dest: {dropoffStop?.location_name || dropoffStop?.location_address || 'Delivery Dock'}
                     </p>
                   </div>
@@ -586,7 +642,7 @@ export default function EditTripPage() {
                 <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
                   <span className="text-[9px] text-slate-400 uppercase font-bold block">Assigned Driver & Truck</span>
                   <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate">
-                    {assignedDriverObj ? `${assignedDriverObj.first_name} ${assignedDriverObj.last_name}` : 'Driver: Unassigned'}
+                    {assignedDriverObj ? `${assignedDriverObj.first_name || ''} ${assignedDriverObj.last_name || ''}`.trim() || 'Assigned Driver' : 'Driver: Unassigned'}
                   </p>
                   <p className="text-[10px] font-mono text-slate-500 truncate">
                     {assignedVehicleObj ? `Plate: ${assignedVehicleObj.plate_number} (${assignedVehicleObj.asset_type})` : 'Vehicle: Unassigned'}
@@ -595,10 +651,24 @@ export default function EditTripPage() {
 
                 {/* Billing Financials Summary */}
                 <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Financial Total</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Financial Billing Total</span>
                   <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    SAR {((parseFloat(billingAmountInput) || 0) + (parseFloat(tripChargesInput) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    SAR {(parseFloat(billingAmountInput) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
+                </div>
+              </div>
+
+              {/* Progress Bar (Matching EditVehiclePage) */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                  <span>Requirements</span>
+                  <span>{filledCount} of {completionFields.length}</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-brand h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${completionPct}%` }}
+                  />
                 </div>
               </div>
 
@@ -615,6 +685,22 @@ export default function EditTripPage() {
 
         </div>
       </div>
+
+      {/* Preview Modals */}
+      <VehiclePreviewModal
+        vehicle={previewVehicle}
+        isOpen={!!previewVehicle}
+        onClose={() => setPreviewVehicle(null)}
+        onSelectDriver={(d) => setPreviewDriver(d)}
+      />
+
+      <DriverPreviewModal
+        driver={previewDriver}
+        isOpen={!!previewDriver}
+        onClose={() => setPreviewDriver(null)}
+        onSelectVehicle={(v) => setPreviewVehicle(v)}
+      />
     </DashboardLayout>
   );
 }
+

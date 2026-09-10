@@ -203,7 +203,7 @@ export default function DriverDetailsPage() {
   const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
 
   // Trips Overview Filter State (This Week vs Choose Date Range: 1st Click = Start, 2nd Click = End)
-  const [tripsOverviewFilter, setTripsOverviewFilter] = useState<'week' | 'custom'>('week');
+  const [tripsOverviewFilter, setTripsOverviewFilter] = useState<'week' | 'month' | 'custom'>('week');
   const [tripsDateRange, setTripsDateRange] = useState<DateRange | undefined>(undefined);
   const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);

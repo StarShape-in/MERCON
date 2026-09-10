@@ -331,18 +331,18 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         {searchField}
         {languagePicker}
 
-        {/* What the driver will actually receive, in one glance. */}
-        <div className="rounded-lg border bg-muted/25 px-3 py-2 space-y-1">
+        {/* Driver location summary */}
+        <div className="rounded-lg border bg-muted/20 px-2.5 py-1.5 space-y-0.5">
           <p className={cn('text-xs font-bold truncate', !name.trim() && 'font-medium text-muted-foreground')}>
-            {name.trim() || 'Not named yet — search above, or type it below'}
+            {name.trim() || 'Unnamed Location'}
           </p>
           {address?.trim() && (
-            <p className="text-[11px] text-muted-foreground line-clamp-2">{address}</p>
+            <p className="text-[11px] text-muted-foreground line-clamp-1">{address}</p>
           )}
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 truncate">
-              <MapPin size={10} className="shrink-0" />
-              {hasPin ? `${lat!.toFixed(5)}, ${lng!.toFixed(5)}` : 'No pin dropped'}
+              <MapPin size={10} className="shrink-0 text-brand" />
+              {hasPin ? `${lat!.toFixed(4)}, ${lng!.toFixed(4)}` : 'No pin set'}
             </span>
             <div className="flex items-center gap-1 shrink-0">
               <button
@@ -359,12 +359,12 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
                 className={cn(
                   'flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors',
                   mapOpen
-                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    ? 'border-brand/40 bg-brand/10 text-brand'
                     : 'border-border/70 bg-background hover:bg-muted'
                 )}
               >
                 <MapIcon size={10} />
-                {mapOpen ? 'Hide map' : 'Adjust pin'}
+                {mapOpen ? 'Hide map' : 'Map Pin'}
               </button>
             </div>
           </div>
@@ -381,7 +381,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
           <div className="flex flex-col gap-1">
             {mapBlock}
             <span className="text-[10px] text-muted-foreground">
-              Click the map or drag the pin to move the exact stop.
+              Click map or drag pin to adjust coordinates.
             </span>
           </div>
         )}
