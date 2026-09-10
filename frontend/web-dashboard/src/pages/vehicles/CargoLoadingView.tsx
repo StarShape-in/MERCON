@@ -718,7 +718,7 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[10.5%] left-[28.2%] w-[68%] h-[52%] flex items-stretch gap-2.5 sm:gap-3.5 pointer-events-auto">
+              <div className="absolute top-[12.8%] left-[32.8%] w-[63.2%] h-[47.8%] flex items-stretch gap-2.5 sm:gap-3.5 pointer-events-auto">
                 
                 {/* ── LEFT SUB-CARD: Odometer & Service Progress ── */}
                 <div className="w-[36%] bg-white rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between border border-slate-100/90 shadow-sm shrink-0 overflow-hidden">
