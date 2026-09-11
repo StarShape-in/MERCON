@@ -9,7 +9,7 @@ import { RouteMiniMap } from '@/components/trips/RouteMiniMap';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAllTaxonomyOptions, resolveTaxonomyOption } from '@/utils/taxonomyRegistry';
 import { isDateTimeInPast } from '@/utils/pastDateTripUtils';
-import { cn } from '@/lib/utils';
+import { cn, isUuid } from '@/lib/utils';
 
 interface RouteWorkspaceProps {
   slot: any;
@@ -280,7 +280,10 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                     <LocationCombobox
                       customerId={contractCustomer}
                       value={stopVal}
-                      onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                      onChange={(locId, locObj) => {
+                        const val = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                        handleUpdateSlotIntermediate(slot.id, idx, val);
+                      }}
                       placeholder={`Search intermediate stop #${idx + 1}...`}
                       triggerClassName="h-8 text-xs font-semibold"
                     />
@@ -386,7 +389,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 space-y-2 pt-2.5 animate-fade-in">
             <div className="flex items-center justify-between pb-1 border-b border-amber-200/80 dark:border-amber-900/80">
               <span className="text-[11px] font-extrabold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" /> LEG 2: RETURN JOURNEY ({slot.destination || 'Destination'} → {slot.returnDestination || slot.origin || 'Origin'})
+                <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" /> LEG 2: RETURN JOURNEY ({slot.destination || 'Destination'} → {(!slot.returnDestination || isUuid(slot.returnDestination)) ? (slot.origin || 'Origin') : slot.returnDestination})
               </span>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100">
                 🔄 Round Trip Active
@@ -401,7 +404,10 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 <LocationCombobox
                   customerId={contractCustomer}
                   value={slot.returnDestination || slot.origin}
-                  onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
+                  onChange={(locId, locObj) => {
+                    const val = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                    handleUpdateTripSlot(slot.id, { returnDestination: val });
+                  }}
                   placeholder="Search return destination (defaults to Origin)..."
                   triggerClassName="h-9 border-slate-200 bg-[#FFFFFF] text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
                 />
@@ -434,9 +440,10 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                       <LocationCombobox
                         customerId={contractCustomer}
                         value={rStop}
-                        onChange={(locName) =>
-                          handleUpdateSlotReturnIntermediate && handleUpdateSlotReturnIntermediate(slot.id, rIdx, locName)
-                        }
+                        onChange={(locId, locObj) => {
+                          const val = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                          handleUpdateSlotReturnIntermediate && handleUpdateSlotReturnIntermediate(slot.id, rIdx, val);
+                        }}
                         placeholder={`Search return stop #${rIdx + 1}...`}
                         triggerClassName="h-8 text-xs font-semibold"
                       />
