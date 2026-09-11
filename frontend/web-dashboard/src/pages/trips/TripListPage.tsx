@@ -651,13 +651,13 @@ export default function TripListPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const viewMode = searchParams.get('view') === 'table' ? 'table' : 'kanban';
+  const viewMode = searchParams.get('view') === 'kanban' ? 'kanban' : 'table';
   const setViewMode = (mode: 'table' | 'kanban') => {
     const newParams = new URLSearchParams(searchParams);
-    if (mode === 'table') {
-      newParams.set('view', 'table');
-    } else {
+    if (mode === 'kanban') {
       newParams.set('view', 'kanban');
+    } else {
+      newParams.delete('view');
     }
     setSearchParams(newParams, { replace: true });
   };
@@ -2200,368 +2200,372 @@ export default function TripListPage() {
           </div>
         )}
 
-        {/* Control Toolbar (Search, Filter, View Switcher, Actions) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* Reset Filters / Total Trips Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCustomerId('All');
-                setDateFilter('Today');
-                setSearch('');
-                setCurrentPage(1);
-                setTotalTripsResetKey(prev => prev + 1);
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-[11px] font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-8 shrink-0 group"
-              title="Click to reset all filters"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Trips:</span>
-              <span className="font-mono text-[10px] font-black text-brand bg-white dark:bg-slate-900 px-1 py-0.2 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
-                {rawTrips.length}
-              </span>
-            </button>
+        {/* ── Control Toolbar & Views ───────────────────── */}
+        {(() => {
+          const filterControls = (
+            <>
+              {/* Search Input */}
+              <div className="relative w-full sm:w-56 lg:w-64 shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search trip ID, driver, vehicle..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 h-8 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-            {/* Search Input */}
-            <div className="relative w-full sm:flex-1 sm:min-w-[200px] lg:max-w-md shrink-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, driver, vehicle..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+              {/* Multi-Filter Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer rounded-lg px-2.5 shrink-0"
+                  >
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Filters</span>
+                    {activeFiltersCount > 0 && (
+                      <span className="ml-0.5 px-1 py-0.2 rounded-full bg-red-600 text-white text-[8px] font-black leading-none">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                    <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+                    Filter Trips
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+                  
+                  <div className="space-y-2.5">
+                    {/* Status Group / Exact State Filter */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => {
+                          setSelectedStatus(e.target.value as any);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Dispatched">Dispatched</option>
+                        <option value="AtPickup">Loading</option>
+                        <option value="InTransit">In Transit</option>
+                        <option value="AtDelivery">At Delivery</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Invoiced">Invoiced</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
 
-            {/* Multi-Filter Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer rounded-lg px-2.5 shrink-0"
-                >
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Filters</span>
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-red-600 text-white text-[8px] font-black leading-none">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
-                  Filter Trips
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
-                
-                <div className="space-y-2.5">
-                  {/* Status Group / Exact State Filter */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => {
-                        setSelectedStatus(e.target.value as any);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All Statuses</option>
-                      <option value="Active">Active</option>
-                      <option value="Draft">Draft</option>
-                      <option value="Dispatched">Dispatched</option>
-                      <option value="AtPickup">Loading</option>
-                      <option value="InTransit">In Transit</option>
-                      <option value="AtDelivery">At Delivery</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Invoiced">Invoiced</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                    {/* Company Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+                      <Combobox
+                        options={companyOptions}
+                        value={selectedCustomerId}
+                        onChange={(val) => {
+                          setSelectedCustomerId(val);
+                          setCurrentPage(1);
+                        }}
+                        placeholder="Select Company..."
+                        searchPlaceholder="Search company..."
+                        emptyText="No companies found."
+                        triggerClassName="h-8 rounded-lg border-slate-200 dark:border-slate-800 text-xs font-semibold shadow-3xs"
+                      />
+                    </div>
                   </div>
 
-                  {/* Company Filter */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
-                    <Combobox
-                      options={companyOptions}
-                      value={selectedCustomerId}
-                      onChange={(val) => {
-                        setSelectedCustomerId(val);
-                        setCurrentPage(1);
+                  {activeFiltersCount > 0 && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus('All');
+                          setSelectedCustomerId('All');
+                          setCurrentPage(1);
+                        }}
+                        className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Date Filter Picker */}
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={setCustomDateRange}
+              />
+            </>
+          );
+
+          const actionControls = (
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {/* View Mode Switcher */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="List View"
+                >
+                  <LayoutList className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('kanban')}
+                  className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
+                    viewMode === 'kanban'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Kanban View"
+                >
+                  <Kanban className="w-4 h-4" />
+                </button>
+              </div>
+
+              <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                    <span className="hidden sm:inline">Export & Import</span>
+                    <span className="sm:hidden">Export</span>
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Export Operations
+                  </DropdownMenuLabel>
+                  
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      triggerExport({ type: 'all', format: 'xlsx' });
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
+                    <span>Export to Excel</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      runExport('pdf', { statusGroup: 'All' });
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
+                    <span>Export to PDF</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedTripsForExport([]);
+                      setExportMenuOpen(false);
+                      setIsCustomExportOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
+                  >
+                    <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
+                    <span>Custom Export...</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Import Operations
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      setImportDialogOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
+                  >
+                    <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
+                    <span>Import File (Excel / CSV)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
+                  >
+                    <span>New Trip</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Plus className="w-4 h-4 text-brand shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
+                      <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/monthly?bulk=true')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
+                      <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+
+          return (
+            <>
+              {/* Standalone Control Toolbar for Kanban View only */}
+              {viewMode === 'kanban' && (
+                <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+                  <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                    {filterControls}
+                  </div>
+                  {actionControls}
+                </div>
+              )}
+
+              {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
+              {viewMode === 'kanban' ? (
+                <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
+                  {/* Full-Height Kanban Board Canvas */}
+                  <div className="flex-1 min-h-0 relative">
+                    <TripKanbanBoard
+                      ref={kanbanBoardRef}
+                      trips={trips}
+                      statusFilter={selectedStatus !== 'All' ? (selectedStatus as string) : undefined}
+                      onStatusChange={handleKanbanStatusChange}
+                      onLogDelay={(trip) => setStatusDialogTrip(trip)}
+                      onShareWhatsapp={(trip) => openWhatsappShare([trip])}
+                      onDelete={(trip) => {
+                        setConfirmModal({
+                          isOpen: true,
+                          title: 'Delete Trip',
+                          message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
+                          onConfirm: async () => {
+                            try {
+                              await tripService.bulkDelete([trip.id]);
+                              queryClient.invalidateQueries({ queryKey: ['trips'] });
+                              queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                              toast.success(`Deleted trip ${trip.ref_id}`);
+                            } catch (e) {
+                              toast.error('Failed to delete trip');
+                            }
+                          }
+                        });
                       }}
-                      placeholder="Select Company..."
-                      searchPlaceholder="Search company..."
-                      emptyText="No companies found."
-                      triggerClassName="h-8 rounded-lg border-slate-200 dark:border-slate-800 text-xs font-semibold shadow-3xs"
+                      onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
+                      onCreateTrip={() => navigate('/trips/new')}
+                      isLoading={isLoading}
+                      isError={isError}
+                      onRetry={() => refetch()}
                     />
                   </div>
                 </div>
+              ) : (
+                <div className="w-full flex flex-col gap-3 animate-fade-in">
 
-                {activeFiltersCount > 0 && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedStatus('All');
-                        setSelectedCustomerId('All');
-                        setCurrentPage(1);
-                      }}
-                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Date Filter Picker */}
-            <TripDateFilterPicker
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-            />
-          </div>
+                  {/* Active Filter Indicator Banner */}
+                  {selectedStatus !== 'All' && (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                        <span>
+                          Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_LABELS[selectedStatus] || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedStatus('All');
+                          setCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Show All Operations</span>
+                        <X className="w-3 h-3 shrink-0" />
+                      </button>
+                    </div>
+                  )}
 
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-                title="List View"
-              >
-                <LayoutList className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('kanban')}
-                className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
-                  viewMode === 'kanban'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-                title="Kanban View"
-              >
-                <Kanban className="w-4 h-4" />
-              </button>
-            </div>
-
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-[11px] font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  <span className="hidden sm:inline">Export & Import</span>
-                  <span className="sm:hidden">Export</span>
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Export Operations
-                </DropdownMenuLabel>
-                
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    triggerExport({ type: 'all', format: 'xlsx' });
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
-                  <span>Export to Excel</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    runExport('pdf', { statusGroup: 'All' });
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
-                  <span>Export to PDF</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedTripsForExport([]);
-                    setExportMenuOpen(false);
-                    setIsCustomExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
-                >
-                  <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
-                  <span>Custom Export...</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Operations
-                </DropdownMenuLabel>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setExportMenuOpen(false);
-                    setImportDialogOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
-                >
-                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
-                  <span>Import File (Excel / CSV)</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-[11px] font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
-                >
-                  <span>New Trip</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Plus className="w-4 h-4 text-brand shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly?bulk=true')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
-        {viewMode === 'kanban' ? (
-          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
-            {/* Full-Height Kanban Board Canvas */}
-            <div className="flex-1 min-h-0 relative">
-              <TripKanbanBoard
-                ref={kanbanBoardRef}
-                trips={trips}
-                statusFilter={selectedStatus !== 'All' ? (selectedStatus as string) : undefined}
-                onStatusChange={handleKanbanStatusChange}
-                onLogDelay={(trip) => setStatusDialogTrip(trip)}
-                onShareWhatsapp={(trip) => openWhatsappShare([trip])}
-                onDelete={(trip) => {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: 'Delete Trip',
-                    message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
-                    onConfirm: async () => {
-                      try {
-                        await tripService.bulkDelete([trip.id]);
-                        queryClient.invalidateQueries({ queryKey: ['trips'] });
-                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-                        toast.success(`Deleted trip ${trip.ref_id}`);
-                      } catch (e) {
-                        toast.error('Failed to delete trip');
+                  <div className="w-full flex flex-col">
+                    <DataTable
+                      key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
+                      title={
+                        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Layers className="w-4 h-4 text-brand" />
+                            <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</span>
+                            <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                              {trips.length} {trips.length === 1 ? 'record' : 'records'}
+                            </Badge>
+                          </div>
+                          {filterControls}
+                        </div>
                       }
-                    }
-                  });
-                }}
-                onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
-                onCreateTrip={() => navigate('/trips/new')}
-                isLoading={isLoading}
-                isError={isError}
-                onRetry={() => refetch()}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full flex flex-col gap-3 animate-fade-in">
-            {/* Active Filter Indicator Banner */}
-            {selectedStatus !== 'All' && (
-              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-                  <span>
-                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_LABELS[selectedStatus] || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
-                  </span>
+                      hideRecordCount={true}
+                      data={trips}
+                      columns={columns}
+                      enableSelection={true}
+                      selectionResetKey={selectionResetKey}
+                      compact={true}
+                      isLoading={isLoading}
+                      isError={isError}
+                      errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+                      actionsElement={actionControls}
+                      bulkActions={bulkActions}
+                      pageSize={pageSize}
+                      onPageSizeChange={(size) => setPageSize(size)}
+                      onRowClick={(row) => navigate(`/trips/${row.id}`)}
+                    />
+                  </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedStatus('All');
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Show All Operations</span>
-                  <X className="w-3 h-3 shrink-0" />
-                </button>
-              </div>
-            )}
-
-            <div className="w-full flex flex-col">
-              <DataTable
-                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
-                title={
-                  <span className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-brand" />
-                    <span>Trip Ledger</span>
-                  </span>
-                }
-
-                data={trips}
-                columns={columns}
-                enableSelection={true}
-                selectionResetKey={selectionResetKey}
-                compact={true}
-                isLoading={isLoading}
-                isError={isError}
-                errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                actionsElement={undefined}
-                bulkActions={bulkActions}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => setPageSize(size)}
-                onRowClick={(row) => navigate(`/trips/${row.id}`)}
-              />
-            </div>
-          </div>
-        )}
+              )}
+            </>
+          );
+        })()}
 
         {/* Quick Status Update Modal (Dialog) */}
         <Dialog open={!!statusDialogTrip} onOpenChange={(open) => !open && setStatusDialogTrip(null)}>

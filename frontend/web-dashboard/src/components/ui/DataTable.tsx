@@ -275,7 +275,7 @@ export default function DataTable<T>({
           {/* Row 1: Title Header & Primary Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
             {title && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                 {typeof title === 'string' ? (
                   <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     {title}
