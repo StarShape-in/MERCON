@@ -394,7 +394,7 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full xl:h-[calc(100vh-4rem)] bg-[#FDFDFD] text-slate-900 font-sans p-4 sm:p-5 flex flex-col gap-3.5 overflow-hidden">
+    <div className="w-full min-h-[calc(100vh-4rem)] bg-[#FDFDFD] text-slate-900 font-sans p-4 sm:p-5 flex flex-col gap-3.5 overflow-y-auto">
       
       {/* ── Top Header ── */}
       <div className="flex items-center justify-between shrink-0">
@@ -413,10 +413,10 @@ export default function CargoLoadingView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards (Stretched h-full) ── */}
-        <div className="xl:col-span-3 flex flex-col gap-3.5 h-full overflow-hidden">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards ── */}
+        <div className="xl:col-span-3 flex flex-col gap-3.5">
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
@@ -708,7 +708,7 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5 h-full overflow-hidden">
+        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5">
           
           {/* Truck Cargo Visualizer */}
           <div className="w-full relative flex items-center justify-center shrink-0 overflow-hidden">
@@ -925,7 +925,7 @@ export default function CargoLoadingView() {
           </div>
 
           {/* Bottom Assignment & Trip Status Box */}
-          <div className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : 'overflow-hidden'}`}>
+          <div className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : ''}`}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100">
               
               {/* Tab Filter Buttons */}
@@ -988,7 +988,7 @@ export default function CargoLoadingView() {
             </div>
 
             {/* Fixed 3-Column Data Cards / Blank Boxes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 min-h-0 overflow-y-auto pr-0.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
               {(() => {
                 const displayed = getDisplayedData().slice(0, 3);
                 return Array.from({ length: 3 }).map((_, index) => {
