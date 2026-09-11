@@ -2034,7 +2034,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       let nextTripCharges = Number(trip.driver_charge);
       const inputCharges = req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges;
       if (inputCharges !== undefined) {
-        nextTripCharges = parseOptionalFloat(inputCharges) ?? Number(trip.driver_charge);
+        nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
       } else if (trip.is_third_party) {
         if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
           nextTripCharges = Number(trip.third_party_cost);
@@ -2100,7 +2100,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
         where: { id: tripId },
         data: {
           driver_charge: nextTripCharges,
-          billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? trip.billing_amount) : trip.billing_amount,
+          billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? 0) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,
