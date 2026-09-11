@@ -28,6 +28,28 @@ const tripInclude = {
   },
 };
 
+const attachTripDocuments = async (trip: any) => {
+  if (!trip) return trip;
+  try {
+    const docs = await prisma.document.findMany({
+      where: { entity_type: 'Trip', entity_id: trip.id, deletedAt: null },
+      select: {
+        id: true,
+        doc_type: true,
+        file_url: true,
+        mime_type: true,
+        createdAt: true,
+        ai_extracted_json: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { ...trip, documents: docs };
+  } catch (e) {
+    logger.warn({ err: e }, 'Failed to attach trip documents:');
+    return { ...trip, documents: [] };
+  }
+};
+
 export const getCurrentTrip = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
@@ -68,7 +90,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({ success: true, data: trip ?? null });
+    res.json({ success: true, data: trip ? await attachTripDocuments(trip) : null });
   } catch (error) {
     logger.error({ err: error }, 'getCurrentTrip error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
@@ -153,7 +175,7 @@ export const getMobileTripDetails = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
     }
 
-    res.json({ success: true, data: trip });
+    res.json({ success: true, data: await attachTripDocuments(trip) });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
@@ -201,7 +223,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
         where: { id: updatedTrip.id },
         include: tripInclude,
       });
-      return res.json({ success: true, data: full });
+      return res.json({ success: true, data: await attachTripDocuments(full) });
     }
 
     // This is the path the driver's app actually takes — including the GPS
@@ -232,7 +254,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     // driver's status update.
     if (delay) await notifyOperatorsOfDelay(delay);
 
-    res.json({ success: true, data: updatedTrip });
+    res.json({ success: true, data: await attachTripDocuments(updatedTrip) });
   } catch (error: any) {
     logger.error({ err: error }, 'updateTripStatus error:');
     res.status(500).json({ success: false, error: { message: error?.message || 'Failed to update trip status' } });

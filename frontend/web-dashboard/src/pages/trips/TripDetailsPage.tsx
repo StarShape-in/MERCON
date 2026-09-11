@@ -267,13 +267,40 @@ export default function TripDetailsPage() {
   const nextStatusOption = getNextStatus(trip.status) || 'AtDelivery';
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
 
-  // Financials
+  // Financials & Economics (Per-Trip Economics matching Trip Creation Page)
   const tAny = trip as any;
-  const chargesTotal = Number(tAny.charges_total ?? (trip.charges || []).reduce((sum, c) => sum + Number(c.amount || 0), 0));
-  const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
-  const totalAmount = Number(tAny.total_amount ?? (baseRate + chargesTotal));
+  const isMonthlyContract = Boolean(
+    (trip.quotation_billing_type || trip.billing_type || trip.rateCard?.billing_type || tAny.quotation?.billing_type || '').toLowerCase().includes('monthly')
+  );
+  const monthlyContractRate = Number(
+    tAny.quotation?.rate ?? trip.applied_rate ?? trip.rateCard?.base_price ?? trip.billing_amount ?? 0
+  );
+
+  // Per-Trip Customer Billing calculation
+  let customerBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
+  if (isMonthlyContract && monthlyContractRate > 0) {
+    if (trip.billing_amount && Number(trip.billing_amount) > 0 && Number(trip.billing_amount) < monthlyContractRate) {
+      customerBilling = Number(trip.billing_amount);
+    } else {
+      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
+    }
+  }
+
+  const chargesList = trip.charges || [];
+  const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c) => sum + Number(c.amount || 0), 0));
+  const totalAmount = Number(tAny.total_amount ?? (customerBilling + chargesTotal));
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
+
+  // Driver charge / 3PL cost
+  const is3PL = Boolean(trip.is_third_party);
+  const extraDriverPayment = Number(trip.extra_driver_payment ?? 0);
+  const driverPayout = is3PL
+    ? Number(trip.third_party_cost ?? 0)
+    : Number(trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0) + extraDriverPayment;
+
+  const balanceMargin = totalAmount - driverPayout;
+  const marginPercent = totalAmount > 0 ? ((balanceMargin / totalAmount) * 100).toFixed(1) : '0.0';
 
   // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
   const tripType = deriveTripType(trip);
@@ -495,12 +522,21 @@ export default function TripDetailsPage() {
           {/* Financials Card (~25% / 3 Cols) */}
           <div className="col-span-12 lg:col-span-3 flex flex-col h-full">
             <ModernFinancialsCard
-              baseRate={baseRate}
+              customerBilling={customerBilling}
+              baseRate={customerBilling}
+              driverPayout={driverPayout}
+              is3PL={is3PL}
+              extraDriverPayment={extraDriverPayment}
               additionalCharges={chargesTotal}
+              additionalChargesCount={chargesList.length}
+              balanceMargin={balanceMargin}
+              marginPercent={marginPercent}
               totalAmount={totalAmount}
               paidAmount={paidAmount}
               balanceDue={balanceDue}
               tripType={tripType}
+              isMonthlyContract={isMonthlyContract}
+              monthlyContractRate={monthlyContractRate}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

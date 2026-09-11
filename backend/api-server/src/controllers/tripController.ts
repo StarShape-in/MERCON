@@ -507,6 +507,7 @@ export const getTripById = async (req: Request, res: Response) => {
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },
         },
+        charges: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
@@ -534,11 +535,33 @@ export const getTripById = async (req: Request, res: Response) => {
       resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
     }
 
+    const isMonthlyContract = Boolean(
+      (trip.quotation_billing_type || trip.billing_type || (trip as any).quotation?.billing_type || '').toLowerCase().includes('monthly')
+    );
+    const contractRate = Number((trip as any).quotation?.rate ?? trip.applied_rate ?? trip.billing_amount ?? 0);
+
+    // Per trip billing calculation
+    let perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? 0);
+    if (isMonthlyContract && contractRate > 0) {
+      if (trip.billing_amount && Number(trip.billing_amount) > 0 && Number(trip.billing_amount) < contractRate) {
+        perTripBilling = Number(trip.billing_amount);
+      } else {
+        perTripBilling = Math.round((contractRate / 30) * 100) / 100;
+      }
+    }
+
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? 0);
-    const totalAmount = baseRate + chargesTotal;
+    const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
+
+    const baseDriverPayout = trip.is_third_party
+      ? Number(trip.third_party_cost ?? 0)
+      : Number(trip.driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
+    const extraDriverPayout = Number(trip.extra_driver_payment ?? 0);
+    const totalDriverPayout = baseDriverPayout + extraDriverPayout;
+    const balanceMargin = totalAmount - totalDriverPayout;
+    const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
 
     const tripData = {
       ...trip,
@@ -546,6 +569,12 @@ export const getTripById = async (req: Request, res: Response) => {
       balance_due: balanceDue,
       total_amount: totalAmount,
       charges_total: chargesTotal,
+      per_trip_billing: perTripBilling,
+      driver_charge: totalDriverPayout,
+      balance_margin: balanceMargin,
+      margin_percent: marginPercent,
+      is_monthly_contract: isMonthlyContract,
+      monthly_contract_rate: isMonthlyContract ? contractRate : null,
       vehicle: trip.vehicle
         ? {
             ...trip.vehicle,

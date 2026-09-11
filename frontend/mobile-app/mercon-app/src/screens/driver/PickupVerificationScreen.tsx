@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Che
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -83,7 +83,7 @@ const SideMapTileBox = () => (
 const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
-  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const ws = getEffectiveWorkflowState(trip);
   const isRound = isRoundTrip(trip);
   const isReturnLoading = isRound && (ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED');
   const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP' || isReturnLoading;
@@ -100,10 +100,18 @@ const PickupVerificationScreen = () => {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
+  // If this pickup stop is already completed and departed, navigate forward to the next stage
+  useEffect(() => {
+    if (loading || !trip || !pickupStop) return;
+    if (pickupStop.actual_departure) {
+      router.replace('/trip/navigate');
+    }
+  }, [loading, trip?.id, pickupStop?.id, pickupStop?.actual_departure]);
+
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;
 
-  // Load draft photos
+  // Load draft photos or prefill with already uploaded server documents
   useEffect(() => {
     if (!trip?.id) return;
     const loadDraft = async () => {
@@ -114,16 +122,39 @@ const PickupVerificationScreen = () => {
         const saved = await SecureStore.getItemAsync(draftKey);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setPhotos(parsed);
-        } else {
-          setPhotos([]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPhotos(parsed);
+            return;
+          }
         }
+
+        // Fallback: If photos were already uploaded to server for this stop/leg, display them
+        if (trip.documents && trip.documents.length > 0) {
+          const expectedLeg = isReturnLoading ? 1 : 0;
+          const serverCargoDocs = trip.documents.filter((d: any) => {
+            const op = d.ai_extracted_json?.operation;
+            const leg = d.ai_extracted_json?.leg_index;
+            const isArrival = op?.includes('arrival');
+            return !isArrival && (leg === expectedLeg || leg === undefined);
+          });
+          if (serverCargoDocs.length > 0) {
+            setPhotos(
+              serverCargoDocs.slice(0, 3).map((d: any) => ({
+                uri: d.file_url,
+                mimeType: d.mime_type || 'image/jpeg',
+              }))
+            );
+            return;
+          }
+        }
+
+        setPhotos([]);
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id, isReturnLoading]);
+  }, [trip?.id, isReturnLoading, trip?.documents]);
 
   const addPhoto = async (slotIndex?: number) => {
     try {

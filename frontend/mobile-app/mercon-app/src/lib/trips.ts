@@ -159,6 +159,14 @@ export interface MobileTrip {
   origin?: string | null;
   destination?: string | null;
   stops: TripStop[];
+  documents?: Array<{
+    id: string;
+    doc_type?: string;
+    file_url: string;
+    mime_type?: string;
+    ai_extracted_json?: any;
+    createdAt?: string;
+  }> | null;
 }
 
 /** Check whether a trip is genuinely a Round Trip */
@@ -189,6 +197,85 @@ export function isRoundTrip(trip: MobileTrip | null | undefined): boolean {
   }
 
   return false;
+}
+
+/**
+ * Intelligently derives the true driver workflow state from both the explicit
+ * driver_workflow_state and the real-world stop progress (actual_arrival and actual_departure).
+ * This ensures that completed stops (e.g. Stop 1 arrived or loaded or departed)
+ * NEVER regress to ASSIGNED or GOING_TO_PICKUP if the cache or local state was cleared.
+ */
+export function getEffectiveWorkflowState(trip: MobileTrip | null | undefined): string {
+  if (!trip) return 'ASSIGNED';
+  const ws = trip.driver_workflow_state;
+  const stops = [...(trip.stops || [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const isRound = isRoundTrip(trip);
+
+  if (trip.status === 'Completed' || trip.status === 'Invoiced' || ws === 'COMPLETED') {
+    return 'COMPLETED';
+  }
+
+  if (stops.length > 0) {
+    const s1 = stops.find((s) => s.stop_sequence === 1) || stops[0];
+    const s2 = stops.find((s) => s.stop_sequence === 2) || stops[1];
+    const s3 = isRound ? stops.find((s) => s.stop_sequence === 3) : null;
+    const s4 = isRound ? (stops.find((s) => s.stop_sequence === 4) || stops[stops.length - 1]) : null;
+
+    // 1. Final Delivery (Stop 4 for round trip, Stop 2 for single trip)
+    if (isRound && s4) {
+      if (s4.actual_departure || ws === 'RETURN_DELIVERY_COMPLETED' || ws === 'COMPLETED') {
+        return 'COMPLETED';
+      }
+      if (s4.actual_arrival || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION') {
+        return ws && ['ARRIVED_AT_FINAL_DELIVERY', 'FINAL_DELIVERY_VERIFICATION'].includes(ws) ? ws : 'ARRIVED_AT_FINAL_DELIVERY';
+      }
+    }
+
+    // 2. Return Loading (Stop 3 for round trip)
+    if (isRound && s3) {
+      if (s3.actual_departure) {
+        // Return loading completed and departed -> In transit to return delivery
+        return (ws && ['IN_TRANSIT_RETURN', 'ARRIVED_AT_FINAL_DELIVERY', 'FINAL_DELIVERY_VERIFICATION'].includes(ws))
+          ? ws
+          : 'IN_TRANSIT_RETURN';
+      }
+      if (s3.actual_arrival || ws === 'RETURN_LOADING' || ws === 'RETURN_LOADING_COMPLETED') {
+        return ws && ['RETURN_LOADING', 'RETURN_LOADING_COMPLETED'].includes(ws) ? ws : 'RETURN_LOADING';
+      }
+    }
+
+    // 3. Outbound Delivery (Stop 2)
+    if (s2) {
+      if (s2.actual_departure) {
+        if (isRound) {
+          // First delivery completed and departed -> Ready for return loading
+          return (ws && ['RETURN_LOADING', 'RETURN_LOADING_COMPLETED', 'IN_TRANSIT_RETURN', 'ARRIVED_AT_FINAL_DELIVERY'].includes(ws))
+            ? ws
+            : 'RETURN_LOADING';
+        } else {
+          return 'COMPLETED';
+        }
+      }
+      if (s2.actual_arrival || ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED') {
+        return ws && ['ARRIVED_AT_DELIVERY', 'DELIVERY_VERIFICATION', 'FIRST_DELIVERY_COMPLETED'].includes(ws) ? ws : 'ARRIVED_AT_DELIVERY';
+      }
+    }
+
+    // 4. Initial Pickup (Stop 1)
+    if (s1) {
+      if (s1.actual_departure) {
+        // Pickup departed -> In transit to delivery
+        return (ws && ['IN_TRANSIT', 'GOING_TO_STOP', 'ARRIVED_AT_STOP', 'STOP_VERIFICATION', 'ARRIVED_AT_DELIVERY', 'DELIVERY_VERIFICATION'].includes(ws))
+          ? ws
+          : 'IN_TRANSIT';
+      }
+      if (s1.actual_arrival || ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'LOADING_COMPLETED') {
+        return ws && ['ARRIVED_AT_PICKUP', 'LOADING', 'LOADING_COMPLETED'].includes(ws) ? ws : 'ARRIVED_AT_PICKUP';
+      }
+    }
+  }
+
+  return ws || 'ASSIGNED';
 }
 
 /** A road route to the trip's next stop, as MERCON returns it. */
