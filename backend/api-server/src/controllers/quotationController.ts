@@ -152,31 +152,31 @@ export const createQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      try {
-        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
-        const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
-
-        await tx.quotationHistory.create({
-          data: {
-            quotationId: newQuotation.id,
-            old_rate: null,
-            new_rate: price,
-            old_driver_payout: null,
-            new_driver_payout: payoutVal,
-            changed_by: userName,
-            changed_by_user_id: userId || null,
-            changed_by_name: userName,
-            reason: req.body.reason || req.body.change_reason || 'Initial Quotation creation',
-            source: req.body.source || 'QUOTATION_MODULE',
-            trip_id: req.body.trip_id || null,
-          },
-        });
-      } catch (historyErr: any) {
-        logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry — quotation created successfully');
-      }
-
       return newQuotation;
     });
+
+    try {
+      const userObj = userId ? await prisma.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+      const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+
+      await prisma.quotationHistory.create({
+        data: {
+          quotationId: quotation.id,
+          old_rate: null,
+          new_rate: price,
+          old_driver_payout: null,
+          new_driver_payout: payoutVal,
+          changed_by: userName,
+          changed_by_user_id: userId || null,
+          changed_by_name: userName,
+          reason: req.body.reason || req.body.change_reason || 'Initial Quotation creation',
+          source: req.body.source || 'QUOTATION_MODULE',
+          trip_id: req.body.trip_id || null,
+        },
+      });
+    } catch (historyErr: any) {
+      logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry — quotation created successfully');
+    }
 
     res.status(201).json({ success: true, data: quotation });
   } catch (error: any) {
@@ -325,7 +325,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
 
     const { vehicleType: sentVehicleType, rateCategory: sentRateCategory, billingType: sentBillingType, vehicleClass: sentVehicleClass, pricingBasis: sentPricingBasis, validFrom: sentValidFrom, validTo: sentValidTo, sourceType: sentSourceType, sourceReference: sentSourceReference } = parseTierFields(req.body);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const { updatedQuotation, priceChanged, payoutChanged, oldRate, newRate, oldPayout, newPayout } = await prisma.$transaction(async (tx) => {
       const existing = await tx.quotation.findFirst({ where: { id: id as string, deletedAt: null } });
       if (!existing) throw new Error('NOT_FOUND');
 
@@ -420,11 +420,23 @@ export const updateQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      if (priceChanged || payoutChanged) {
-        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+      return {
+        updatedQuotation,
+        priceChanged,
+        payoutChanged,
+        oldRate,
+        newRate,
+        oldPayout,
+        newPayout,
+      };
+    });
+
+    if (priceChanged || payoutChanged) {
+      try {
+        const userObj = userId ? await prisma.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
         const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
 
-        await tx.quotationHistory.create({
+        await prisma.quotationHistory.create({
           data: {
             quotationId: updatedQuotation.id,
             old_rate: priceChanged ? oldRate : null,
@@ -439,12 +451,12 @@ export const updateQuotation = async (req: Request, res: Response) => {
             trip_id: req.body.trip_id || null,
           },
         });
+      } catch (historyErr: any) {
+        logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry on quotation update');
       }
+    }
 
-      return updatedQuotation;
-    });
-
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: updatedQuotation });
   } catch (error: any) {
     if (error.code === 'VALIDATION_ERROR') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.message } });
