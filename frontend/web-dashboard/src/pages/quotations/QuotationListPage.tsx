@@ -375,7 +375,6 @@ export default function QuotationListPage() {
         ...(vehicleClassFilter !== 'ALL' ? { vehicle_class: vehicleClassFilter } : {}),
         ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
       }),
-    placeholderData: keepPreviousData,
     refetchOnMount: 'always',
     staleTime: 0,
   });

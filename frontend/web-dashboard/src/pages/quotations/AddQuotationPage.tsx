@@ -561,16 +561,15 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       return { createdQuotationsCount: createdQuotations.length, surchargesCount: surchargeRules.length };
     },
     onSuccess: (data) => {
-      // Refetch and invalidate so the list page gets fresh data immediately
-      Promise.all([
-        queryClient.refetchQueries({ queryKey: ['quotations'] }),
-        queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' }),
-        queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' }),
-        queryClient.invalidateQueries({ queryKey: ['surcharge-rules'], refetchType: 'all' }),
-      ]).catch(() => {/* ignore refetch errors */});
+      // Invalidate and reset all quotation queries so unmounted list pages fetch fresh data on navigate
+      queryClient.invalidateQueries({ queryKey: ['quotations'], refetchType: 'all' });
+      queryClient.resetQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'], refetchType: 'all' });
       setIsPreviewOpen(false);
 
       if (isReturnToTrip) {
