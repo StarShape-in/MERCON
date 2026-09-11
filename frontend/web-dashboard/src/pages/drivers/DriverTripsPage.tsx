@@ -476,7 +476,7 @@ export default function DriverTripsPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`Driver Trips & Delays — ${driverName}`}>
-      <div className="flex flex-col min-h-0 max-w-[1600px] mx-auto px-4 sm:px-6 pb-6 pt-1 gap-3.5 animate-fade-in" style={{ height: 'calc(100vh - 56px)' }}>
+      <div className="flex flex-col min-h-[calc(100vh-56px)] overflow-y-auto w-full max-w-[1600px] mx-auto px-4 sm:px-6 pb-6 pt-1 gap-3.5 animate-fade-in">
 
         {/* ── Driver Profile & Header Bar ── */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">

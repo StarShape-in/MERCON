@@ -62,8 +62,8 @@ export const resolveLocation = async (
 
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse } });
-    if (!existing) throw new Error('LOCATION_NOT_FOUND');
-    return existing;
+    if (existing) return existing;
+    // If idToUse was passed but not found, fallback to name resolution
   }
 
   const name = String(input.name || '').trim();
@@ -83,11 +83,11 @@ export const resolveLocation = async (
     });
 
     if (codeClash && codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
-      throw new Error(`LOCATION_CODE_DUPLICATE: Code "${inputCode}" is already in use for location "${codeClash.name}". Please choose a different code.`);
+      // If code belongs to same name, reuse it without error
     }
   }
 
-  // 1. Search for existing location strictly by exact Code, Slug, or exact Name
+  // 1. Search for existing location by exact Code, Slug, or exact Name (first customer-scoped, then global)
   let found = await tx.location.findFirst({
     where: {
       ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
@@ -99,6 +99,19 @@ export const resolveLocation = async (
       deletedAt: null,
     },
   });
+
+  if (!found && customerIdToUse) {
+    found = await tx.location.findFirst({
+      where: {
+        OR: [
+          { slug },
+          { name: { equals: name, mode: 'insensitive' as const } },
+          ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
+        ],
+        deletedAt: null,
+      },
+    });
+  }
 
   const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
 

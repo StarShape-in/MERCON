@@ -236,7 +236,7 @@ export default function DriverDetailsPage() {
 
   return (
     <DashboardLayout active="Drivers" title="Driver Details">
-      <div className="p-3.5 2xl:p-4 max-w-[1600px] mx-auto w-full h-[calc(100vh-76px)] flex flex-col overflow-hidden bg-[#EEF1F6]/50 dark:bg-slate-950">
+      <div className="p-3.5 2xl:p-4 max-w-[1600px] mx-auto w-full min-h-[calc(100vh-76px)] flex flex-col overflow-y-auto bg-[#EEF1F6]/50 dark:bg-slate-950">
         
         {/* ── COMPACT PAGE HEADER BAR ── */}
         <div className="flex items-center justify-between pb-2 shrink-0">
@@ -274,12 +274,12 @@ export default function DriverDetailsPage() {
         </div>
 
         {/* ── 3-COLUMN BENTO SYSTEM ── */}
-        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 w-full overflow-hidden">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 w-full">
           
           {/* ════════════════════════════════════════════════
               COLUMN 1 (LEFT): Profile & Current Dispatch (2 Equal Height Boxes)
              ════════════════════════════════════════════════ */}
-          <div className="col-span-3 flex flex-col gap-4 h-full min-h-0">
+          <div className="col-span-12 xl:col-span-3 flex flex-col gap-4 h-full min-h-0">
             
             {/* 1.1 DRIVER PROFILE CARD (Reference Layout Design) */}
             <div className="flex-1 rounded-[24px] bg-[#E8F0F8] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-4 pt-4 pb-1.5 flex flex-col justify-end shadow-2xs relative overflow-hidden min-h-0 group">
@@ -521,7 +521,7 @@ export default function DriverDetailsPage() {
           {/* ════════════════════════════════════════════════
               COLUMN 2 (MIDDLE): Performance & Work Analytics
              ════════════════════════════════════════════════ */}
-          <div className="col-span-5 flex flex-col gap-4 h-full min-h-0">
+          <div className="col-span-12 xl:col-span-5 flex flex-col gap-4 h-full min-h-0">
             
             {/* 2.1 TRIPS OVERVIEW (Upgraded Executive Bento & Pipeline Design) */}
             <div className="rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
@@ -794,7 +794,7 @@ export default function DriverDetailsPage() {
           {/* ════════════════════════════════════════════════
               COLUMN 3 (RIGHT): Operational Efficiency & Compliance
              ════════════════════════════════════════════════ */}
-          <div className="col-span-4 flex flex-col gap-4 h-full min-h-0">
+          <div className="col-span-12 xl:col-span-4 flex flex-col gap-4 h-full min-h-0">
             
             {/* 3.1 OPERATIONAL EFFICIENCY CARD (Compact & Focused) */}
             <div className="rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">

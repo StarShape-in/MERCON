@@ -376,6 +376,7 @@ export default function QuotationListPage() {
         ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
       }),
     placeholderData: keepPreviousData,
+    staleTime: 0, // Always fetch fresh data when this page mounts (e.g. after create/edit redirect)
   });
 
   const rawQuotations = quotationsRes?.data || [];
