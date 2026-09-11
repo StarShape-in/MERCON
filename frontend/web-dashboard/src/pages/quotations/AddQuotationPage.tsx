@@ -463,10 +463,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   // Batch Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const parseSafeDecimal = (val?: string | number | null): number | undefined => {
-        if (val === null || val === undefined || val === '' || val === 'NULL') return undefined;
+      const parseSafeDecimal = (val?: string | number | null): number | null => {
+        if (val === null || val === undefined || val === '' || val === 'NULL') return null;
         const num = typeof val === 'number' ? val : parseFloat(String(val));
-        if (isNaN(num) || !isFinite(num) || num < 0) return undefined;
+        if (isNaN(num) || !isFinite(num) || num < 0) return null;
         return Math.min(num, 999999999.99);
       };
 
