@@ -80,7 +80,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
     : [{ step: 1, label: '1. Configure & Dispatch', icon: MapPin }];
 
   const quickNavItems = [
-    { label: 'Trips Kanban', path: '/trips?view=kanban', icon: Truck, color: 'text-orange-500 bg-orange-50 hover:bg-orange-100 border-orange-200' },
+    { label: 'Trips', path: '/trips', icon: Truck, color: 'text-orange-500 bg-orange-50 hover:bg-orange-100 border-orange-200' },
     { label: 'Monthly Board', path: '/trips/monthly', icon: CalendarRange, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 border-purple-200' },
     { label: 'Drivers', path: '/drivers', icon: Users, color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-200' },
     { label: 'Vehicles', path: '/vehicles', icon: Car, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100 border-blue-200' },

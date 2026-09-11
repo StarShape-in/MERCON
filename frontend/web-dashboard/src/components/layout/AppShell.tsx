@@ -52,7 +52,7 @@ function ShellInner() {
 
     const searchParams = new URLSearchParams(location.search);
     const view = searchParams.get('view');
-    const isTripsKanban = location.pathname === '/trips' && view !== 'table';
+    const isTripsKanban = location.pathname === '/trips' && view === 'kanban';
     const isQuotations = location.pathname.startsWith('/quotations');
     if (isTripsKanban || isQuotations) {
       setSidebarCollapsed(true);

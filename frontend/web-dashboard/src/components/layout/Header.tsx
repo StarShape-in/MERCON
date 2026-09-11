@@ -25,7 +25,7 @@ interface HeaderProps {
 const operationsItems = [
   {
     label: 'Trips',
-    path: '/trips?view=kanban',
+    path: '/trips',
     icon: Truck,
     iconColor: 'text-orange-500 dark:text-orange-400',
     activeClass: 'text-orange-600 dark:text-orange-400 bg-orange-50/90 dark:bg-orange-950/40 font-extrabold',

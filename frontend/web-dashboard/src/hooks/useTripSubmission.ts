@@ -55,7 +55,7 @@ export function useTripSubmission(
 
       if (data.imported >= 1) {
         toast.success(data.imported === 1 ? 'Trip created successfully' : `${data.imported} Trips created successfully`);
-        navigate('/trips?view=kanban');
+        navigate('/trips');
       } else {
         const firstErr = data?.results?.find((r: any) => !r.success)?.error;
         toast.error(firstErr || 'Failed to create trip');
