@@ -659,31 +659,28 @@ export default function CompanyReportsGeneratorPage() {
   }, [generatedReports, reportSearchQuery]);
 
   return (
-    <DashboardLayout active="Company Reports" title="Company Reports Studio">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
+    <DashboardLayout active="Company Reports" title="Company Reports">
+      <div className="px-4 sm:px-6 py-5 w-full flex flex-col animate-fade-in gap-4 bg-[#EEF1F6] dark:bg-slate-950 min-h-screen">
 
-        {/* ─── Card 1: Generate Company Report ─── */}
-        <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-6 shadow-xs space-y-6 mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#10B981] text-white p-6 -mx-6 -mt-6 mb-6 rounded-t-2xl">
-            <div>
-              <h2 className="text-base font-black tracking-tight text-white">Generate Company Report</h2>
-              <p className="text-[11px] text-white/85 mt-0.5">Define constraints and format template mapping parameters</p>
-            </div>
+        {/* ─── Card 1: Generate Report Controls ─── */}
+        <div id="generate-report-card" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-xs space-y-4">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h2 className="text-sm font-bold text-[#3E3C3D] dark:text-slate-100">Generate Report</h2>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsUploadModalOpen(true)}
-              className="h-8 gap-1.5 text-xs font-bold border-white/20 bg-white/10 hover:bg-white/20 text-white dark:border-white/20 dark:hover:bg-white/20"
+              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200"
             >
-              <Upload className="w-3.5 h-3.5 text-white" /> Import New Format
+              <Upload className="w-3.5 h-3.5 text-slate-500" /> Import Format
             </Button>
           </div>
 
-          {/* Form Rows Grid */}
-          <div className="flex flex-wrap items-end justify-between gap-4 w-full">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="w-[240px] space-y-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Company</label>
+          {/* Form Filter Row */}
+          <div className="flex flex-wrap items-end justify-between gap-3 w-full">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-[220px] space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Customer</label>
                 <Combobox
                   options={customerComboboxOptions}
                   value={selectedCustomerId || 'all'}
@@ -692,16 +689,16 @@ export default function CompanyReportsGeneratorPage() {
                     const firstTpl = templates.find(t => t.customerId === val);
                     if (firstTpl) setSelectedTemplateId(firstTpl.id);
                   }}
-                  placeholder="Search Customer..."
-                  searchPlaceholder="Search company name..."
-                  className="h-8 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+                  placeholder="Select Customer..."
+                  searchPlaceholder="Search customer..."
+                  className="h-8 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 />
               </div>
 
               <div className="w-[200px] space-y-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Report Format</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Report Format</label>
                 <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
                     <SelectValue placeholder="Choose Template..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -710,11 +707,9 @@ export default function CompanyReportsGeneratorPage() {
                       .map((t) => (
                         <SelectItem key={t.id} value={t.id}>
                           <span className="flex items-center gap-2">
-                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
                             <span>{t.name}</span>
-                            <Badge variant="secondary" className="text-[8px] font-bold px-1 py-0 bg-slate-100 text-slate-500">
-                              v{t.version || 1}
-                            </Badge>
+                            <span className="text-[9px] font-mono text-slate-400">v{t.version || 1}</span>
                           </span>
                         </SelectItem>
                       ))}
@@ -722,11 +717,11 @@ export default function CompanyReportsGeneratorPage() {
                 </Select>
               </div>
 
-              <div className="w-[120px] space-y-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Data Type</label>
+              <div className="w-[110px] space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Data Type</label>
                 <Select value={selectedDataType} onValueChange={setSelectedDataType}>
-                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                    <SelectValue placeholder="Select Data Type" />
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Data Type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Trips">Trips</SelectItem>
@@ -736,59 +731,57 @@ export default function CompanyReportsGeneratorPage() {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-[125px] space-y-1">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Period Preset</label>
-                  <Select
-                    value={preset}
-                    onValueChange={(val: string) => {
-                      setPreset(val as DatePreset);
-                      if (val !== 'custom') {
+              <div className="w-[125px] space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Period</label>
+                <Select
+                  value={preset}
+                  onValueChange={(val: string) => {
+                    setPreset(val as DatePreset);
+                    if (val !== 'custom') {
+                      setCustomStart('');
+                      setCustomEnd('');
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
+                    <SelectValue placeholder="Choose Period..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this_month">This Month</SelectItem>
+                    <SelectItem value="this_week">This Week</SelectItem>
+                    <SelectItem value="last_month">Last Month</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {preset === 'custom' && (
+                <div className="w-[200px] space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#FA634E]">Date Range</label>
+                  <DateRangePicker
+                    value={{
+                      from: customStart ? new Date(customStart) : undefined,
+                      to: customEnd ? new Date(customEnd) : undefined
+                    }}
+                    onChange={(range) => {
+                      if (!range) {
                         setCustomStart('');
                         setCustomEnd('');
+                      } else {
+                        if (range.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
+                        if (range.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
                       }
                     }}
-                  >
-                    <SelectTrigger className="h-8 bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg">
-                      <SelectValue placeholder="Choose Period..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="this_month">This Month</SelectItem>
-                      <SelectItem value="this_week">This Week</SelectItem>
-                      <SelectItem value="last_month">Last Month</SelectItem>
-                      <SelectItem value="custom">Custom Range</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    buttonClassName="h-8 w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg"
+                  />
                 </div>
-
-                {preset === 'custom' && (
-                  <div className="w-[200px] space-y-1 animate-fade-in">
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-[#FA634E] font-bold">Custom Range Dates</label>
-                    <DateRangePicker
-                      value={{
-                        from: customStart ? new Date(customStart) : undefined,
-                        to: customEnd ? new Date(customEnd) : undefined
-                      }}
-                      onChange={(range) => {
-                        if (!range) {
-                          setCustomStart('');
-                          setCustomEnd('');
-                        } else {
-                          if (range.from) setCustomStart(format(range.from, 'yyyy-MM-dd'));
-                          if (range.to) setCustomEnd(format(range.to, 'yyyy-MM-dd'));
-                        }
-                      }}
-                      buttonClassName="h-8 w-full bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             <Button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="h-8 px-5 rounded-lg bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs shrink-0"
+              className="h-8 px-4 rounded-lg bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs shrink-0"
             >
               {isGenerating ? (
                 <>
@@ -796,47 +789,43 @@ export default function CompanyReportsGeneratorPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" /> Generate
+                  <Sparkles className="w-3.5 h-3.5" /> Generate Report
                 </>
               )}
             </Button>
           </div>
 
-          {/* Info Status Strip underneath */}
+          {/* Format Info Strip */}
           {selectedTemplate && (
-            <div className="bg-[#EEF1F6]/50 dark:bg-slate-900/60 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs border border-slate-100 dark:border-slate-800">
-              <div className="flex flex-wrap items-center gap-5 text-slate-500 font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  Format: <strong className="text-slate-800 dark:text-slate-200">Excel (.xlsx)</strong>
+            <div className="bg-[#EEF1F6]/60 dark:bg-slate-800/40 rounded-lg px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs border border-slate-200/50 dark:border-slate-800">
+              <div className="flex flex-wrap items-center gap-4 text-slate-600 dark:text-slate-300 font-medium">
+                <span className="flex items-center gap-1">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                  Format: <strong className="text-slate-800 dark:text-slate-100">{selectedTemplate.name}</strong>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-blue-500" />
-                  Last Updated: <strong className="text-slate-800 dark:text-slate-200">29 Aug 2026</strong>
+                <span className="flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-slate-500" />
+                  Columns: <strong className="text-slate-800 dark:text-slate-100">{selectedTemplate.layout?.columns?.length || 18}</strong>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-purple-500" />
-                  Columns: <strong className="text-slate-800 dark:text-slate-200">{selectedTemplate.layout?.columns?.length || 18}</strong>
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 animate-pulse" />
-                  Mapped Fields: <strong>{selectedTemplate.layout?.columns?.filter(c => c.source?.kind === 'field').length || 18} / {selectedTemplate.layout?.columns?.length || 18}</strong>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Mapped: <strong className="text-slate-800 dark:text-slate-100">{selectedTemplate.layout?.columns?.filter(c => c.source?.kind === 'field').length || 18} / {selectedTemplate.layout?.columns?.filter(c => c.source?.kind === 'field').length || 18}</strong>
                 </span>
               </div>
 
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   if (selectedTemplate) {
                     setSelectedReportForPreview({
                       id: 'temp-prev',
                       companyId: selectedCustomerId,
-                      companyName: customers.find((c: any) => c.id === selectedCustomerId)?.name || 'iMile',
-                      companyLogo: 'iM',
+                      companyName: customers.find((c: any) => c.id === selectedCustomerId)?.name || 'Customer',
+                      companyLogo: 'CR',
                       formatName: selectedTemplate.name,
                       dataType: selectedDataType,
-                      period: preset === 'this_month' ? '01 Aug 2026 - 31 Aug 2026' : 'Active Period',
+                      period: preset === 'this_month' ? 'Active Month' : 'Active Period',
                       recordsCount: filteredRows.length,
                       generatedOn: '',
                       generatedBy: '',
@@ -844,36 +833,31 @@ export default function CompanyReportsGeneratorPage() {
                     });
                   }
                 }}
-                className="h-7 px-2.5 gap-1 text-[10px] font-extrabold border-slate-200 hover:bg-slate-50 text-indigo-600 dark:text-indigo-400 bg-white shadow-2xs"
+                className="h-6 px-2 gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-white dark:hover:bg-slate-800"
               >
-                <Eye className="w-3 h-3 text-indigo-500" /> Preview Format
+                <Eye className="w-3 h-3" /> Preview Data
               </Button>
             </div>
           )}
         </div>
 
-        {/* ─── 2-Column Grid Workspace ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-start">
+        {/* ─── 2-Column Operational Grid ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-start">
 
-          {/* Left Column (70%): Generated Reports history list */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Generated Reports</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">View, download and manage previously generated reports</p>
-              </div>
+          {/* Left Column (70%): Generated Reports history table */}
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-xs space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h2 className="text-sm font-bold text-[#3E3C3D] dark:text-slate-100">Generated Reports</h2>
 
-              <div className="flex items-center gap-2">
-                <div className="relative w-full max-w-[240px]">
-                  <Search className="absolute inset-y-0 left-3 h-full w-3.5 text-slate-400 flex items-center pointer-events-none" />
-                  <input
-                    type="text"
-                    value={reportSearchQuery}
-                    onChange={(e) => setReportSearchQuery(e.target.value)}
-                    placeholder="Search report, company or type..."
-                    className="w-full h-8 pl-9 pr-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-[#FA634E] text-slate-800 dark:text-slate-150 font-semibold"
-                  />
-                </div>
+              <div className="relative w-full max-w-[220px]">
+                <Search className="absolute inset-y-0 left-2.5 h-full w-3.5 text-slate-400 flex items-center pointer-events-none" />
+                <input
+                  type="text"
+                  value={reportSearchQuery}
+                  onChange={(e) => setReportSearchQuery(e.target.value)}
+                  placeholder="Search reports..."
+                  className="w-full h-7 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-[#FA634E] text-slate-800 dark:text-slate-200"
+                />
               </div>
             </div>
 
@@ -881,84 +865,69 @@ export default function CompanyReportsGeneratorPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                    <th className="py-3 px-2">Company</th>
-                    <th className="py-3 px-2">Report Format</th>
-                    <th className="py-3 px-2">Data Type</th>
-                    <th className="py-3 px-2">Period</th>
-                    <th className="py-3 px-2 text-center">Records</th>
-                    <th className="py-3 px-2">Generated On</th>
-                    <th className="py-3 px-2 text-center">Status</th>
-                    <th className="py-3 px-2 text-right">Actions</th>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                    <th className="py-2 px-2">Company</th>
+                    <th className="py-2 px-2">Report Format</th>
+                    <th className="py-2 px-2">Data Type</th>
+                    <th className="py-2 px-2">Period</th>
+                    <th className="py-2 px-2 text-center">Records</th>
+                    <th className="py-2 px-2">Generated On</th>
+                    <th className="py-2 px-2 text-center">Status</th>
+                    <th className="py-2 px-2 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-850/50">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredReports.map((report) => {
-                    const logoBgColors: Record<string, string> = {
-                      'iM': 'bg-violet-100 text-violet-850 dark:bg-violet-950/45 dark:text-violet-300',
-                      'Ax': 'bg-rose-100 text-rose-850 dark:bg-rose-950/45 dark:text-rose-300',
-                      'DL': 'bg-amber-100 text-amber-900 dark:bg-amber-950/45 dark:text-amber-300',
-                      'Tb': 'bg-orange-100 text-orange-850 dark:bg-orange-950/45 dark:text-orange-300',
-                      'Nn': 'bg-yellow-100 text-yellow-900 dark:bg-yellow-950/45 dark:text-yellow-300',
-                    };
-                    const colorClass = logoBgColors[report.companyLogo] || 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
-
                     return (
                       <tr 
                         key={report.id} 
                         onClick={() => setSelectedReportForDetails(report)}
-                        className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                       >
-                        <td className="py-3 px-2 font-bold text-slate-900 dark:text-slate-100">
-                          <span className="flex items-center gap-2">
-                            <span className={cn("h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-black uppercase shrink-0", colorClass)}>
-                              {report.companyLogo}
-                            </span>
-                            <span>{report.companyName}</span>
-                          </span>
+                        <td className="py-2 px-2 font-semibold text-slate-900 dark:text-slate-100">
+                          {report.companyName}
                         </td>
-                        <td className="py-3 px-2 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                        <td className="py-2 px-2 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
                           {report.formatName}
                         </td>
-                        <td className="py-3 px-2 font-medium text-slate-550 dark:text-slate-400">
+                        <td className="py-2 px-2 text-slate-600 dark:text-slate-400">
                           {report.dataType}
                         </td>
-                        <td className="py-3 px-2 text-slate-500 font-mono text-[10px]">
+                        <td className="py-2 px-2 text-slate-500 font-mono text-[10px]">
                           {report.period}
                         </td>
-                        <td className="py-3 px-2 text-center font-bold font-mono text-slate-800 dark:text-slate-200">
+                        <td className="py-2 px-2 text-center font-semibold font-mono text-slate-800 dark:text-slate-200">
                           {report.recordsCount}
                         </td>
-                        <td className="py-3 px-2 text-slate-400 text-[10px]">
-                          <div>{report.generatedOn}</div>
-                          <div className="font-semibold text-slate-500">By {report.generatedBy}</div>
+                        <td className="py-2 px-2 text-slate-500 text-[10px]">
+                          {report.generatedOn}
                         </td>
-                        <td className="py-3 px-2 text-center">
+                        <td className="py-2 px-2 text-center">
                           {report.status === 'Ready' && (
-                            <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px] shadow-none rounded px-1.5 py-0.2">
                               Ready
                             </Badge>
                           )}
                           {report.status === 'Processing' && (
-                            <Badge className="bg-amber-50 text-amber-800 border border-amber-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5 animate-pulse">
+                            <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[10px] shadow-none rounded px-1.5 py-0.2 animate-pulse">
                               Processing
                             </Badge>
                           )}
                           {report.status === 'Failed' && (
-                            <Badge className="bg-rose-50 text-rose-800 border border-rose-200 font-extrabold text-[10px] shadow-none rounded-md px-2 py-0.5">
+                            <Badge className="bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[10px] shadow-none rounded px-1.5 py-0.2">
                               Failed
                             </Badge>
                           )}
                         </td>
-                        <td className="py-3 px-2 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-2 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
                             {report.status === 'Ready' ? (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDownloadReportById(report);
                                 }}
-                                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
                                 title="Download Report"
                               >
                                 <Download className="w-3.5 h-3.5" />
@@ -976,10 +945,10 @@ export default function CompanyReportsGeneratorPage() {
                                     setGeneratedReports(prev => 
                                       prev.map(r => r.id === report.id ? { ...r, status: 'Ready' } : r)
                                     );
-                                    toast.success('Report generation retried successfully!');
+                                    toast.success('Report generation retried successfully');
                                   }, 2000);
                                 }}
-                                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
+                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900"
                                 title="Retry Generation"
                               >
                                 <RefreshCw className="w-3.5 h-3.5 text-rose-500" />
@@ -991,8 +960,8 @@ export default function CompanyReportsGeneratorPage() {
                                   e.stopPropagation();
                                   handleDeleteGeneratedReport(report.id);
                               }}
-                              className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600"
-                              title="Delete Run Entry"
+                              className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600"
+                              title="Delete Record"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1006,30 +975,32 @@ export default function CompanyReportsGeneratorPage() {
             </div>
 
             {/* Pagination strip */}
-            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 text-slate-400 font-semibold text-[11px]">
-              <span>Showing 1 to {filteredReports.length} of {filteredReports.length} reports</span>
+            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 text-slate-500 text-[11px]">
+              <span>Showing {filteredReports.length} reports</span>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-slate-200 text-slate-500">&lt;</Button>
-                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-[#FA634E] text-[#FA634E] font-bold bg-orange-50/50">1</Button>
-                <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-md border-slate-200 text-slate-500">&gt;</Button>
+                <Button variant="outline" size="sm" className="h-6 w-6 p-0 rounded border-slate-200 text-slate-500">&lt;</Button>
+                <Button variant="outline" size="sm" className="h-6 w-6 p-0 rounded border-[#FA634E] text-[#FA634E] font-bold bg-orange-50/40">1</Button>
+                <Button variant="outline" size="sm" className="h-6 w-6 p-0 rounded border-slate-200 text-slate-500">&gt;</Button>
               </div>
             </div>
           </div>
 
-          {/* Right Column (30%): Active report templates list */}
-          <div id="your-formats-card" className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-black/[0.05] dark:border-slate-800 p-5 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-base font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight">Your Report Formats</h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">Active company report formats</p>
+          {/* Right Column (30%): Active report formats list */}
+          <div id="your-formats-card" className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h2 className="text-sm font-bold text-[#3E3C3D] dark:text-slate-100">Report Formats</h2>
+              <Badge variant="outline" className="text-[10px] font-mono text-slate-500 border-slate-200">
+                {templates.length} Active
+              </Badge>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {templatesLoading ? (
-                <div className="text-center py-6 text-xs text-slate-400 font-medium animate-pulse">
-                  Loading active formats...
+                <div className="text-center py-6 text-xs text-slate-400 animate-pulse">
+                  Loading formats...
                 </div>
               ) : templates.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-400 font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <div className="text-center py-6 text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
                   No formats loaded
                 </div>
               ) : (
@@ -1038,23 +1009,20 @@ export default function CompanyReportsGeneratorPage() {
                     key={tpl.id}
                     onClick={() => handleOpenFormatDetails(tpl)}
                     className={cn(
-                      "p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group relative",
+                      "p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 group",
                       selectedTemplateId === tpl.id
-                        ? "bg-orange-50/30 border-[#FA634E]/40 dark:bg-slate-800/40 shadow-xs ring-1 ring-[#FA634E]/20"
-                        : "bg-white border-slate-100 hover:bg-slate-50 hover:border-[#FA634E]/25 dark:bg-slate-900 dark:border-slate-800"
+                        ? "bg-slate-50 border-[#FA634E]/60 dark:bg-slate-800/60 ring-1 ring-[#FA634E]/20"
+                        : "bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200 dark:bg-slate-900 dark:border-slate-800"
                     )}
-                    title="Click to view format details, mock Excel preview, and column mappings"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 shrink-0">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FileSpreadsheet className="w-4 h-4 text-slate-500 shrink-0" />
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate pr-4">
+                        <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                           {tpl.name}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5 font-mono">
-                          {tpl.layout?.columns?.length || 11} Columns Mapped
+                        <div className="text-[10px] text-slate-400 truncate font-mono">
+                          {tpl.layout?.columns?.length || 11} cols · v{tpl.version || 1}
                         </div>
                       </div>
                     </div>
@@ -1065,10 +1033,10 @@ export default function CompanyReportsGeneratorPage() {
                           e.stopPropagation();
                           handleOpenFormatDetails(tpl);
                         }}
-                        className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700"
-                        title="View Format Details & Mappings"
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700"
+                        title="Format Mappings"
                       >
-                        <Settings2 className="w-3.5 h-3.5 text-slate-500" />
+                        <Settings2 className="w-3.5 h-3.5" />
                       </button>
                       
                       <button
@@ -1076,8 +1044,8 @@ export default function CompanyReportsGeneratorPage() {
                           e.stopPropagation();
                           handleDeleteTemplate(tpl.id, e);
                         }}
-                        className="p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete Format Template"
+                        className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete Template"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -1091,9 +1059,9 @@ export default function CompanyReportsGeneratorPage() {
               variant="outline"
               size="sm"
               onClick={() => setIsUploadModalOpen(true)}
-              className="w-full h-9 gap-1.5 text-xs font-bold border-slate-200 hover:bg-slate-50 rounded-xl bg-white"
+              className="w-full h-8 gap-1 text-xs font-semibold border-slate-200 hover:bg-slate-50 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-slate-500" /> Manage All Formats
+              <Plus className="w-3.5 h-3.5 text-slate-500" /> Add New Format
             </Button>
           </div>
 
@@ -1102,75 +1070,59 @@ export default function CompanyReportsGeneratorPage() {
 
 
 
-        {/* ─── Report Run Details Modal (Clean Executive View) ─── */}
+        {/* ─── Report Run Details Modal (Clean Operational View) ─── */}
         <Dialog open={!!selectedReportForDetails} onOpenChange={() => setSelectedReportForDetails(null)}>
-          <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
-            {/* Standard Clean White Dialog Header */}
-            <DialogHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl">
+            <DialogHeader className="p-4 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-orange-50 text-[#FA634E] dark:bg-slate-800 shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-[#FA634E]" />
                   <div>
-                    <DialogTitle className="text-base font-black tracking-tight text-slate-900 dark:text-slate-100">
+                    <DialogTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       Report Run Details
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                      Execution parameters and schema column mapping breakdown
+                    <DialogDescription className="text-xs text-slate-500">
+                      Run parameters and column mapping summary
                     </DialogDescription>
                   </div>
                 </div>
 
                 {selectedReportForDetails && (
                   <Badge className={cn(
-                    "font-extrabold text-xs shadow-none rounded-lg px-3 py-1 border shrink-0",
+                    "font-bold text-xs shadow-none rounded px-2.5 py-0.5 border shrink-0",
                     selectedReportForDetails.status === 'Ready' && "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300",
                     selectedReportForDetails.status === 'Processing' && "bg-amber-50 text-amber-700 border-amber-200 animate-pulse dark:bg-amber-950/40",
                     selectedReportForDetails.status === 'Failed' && "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40"
                   )}>
-                    {selectedReportForDetails.status === 'Ready' ? '✓ Ready' : selectedReportForDetails.status}
+                    {selectedReportForDetails.status}
                   </Badge>
                 )}
               </div>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/50 dark:bg-slate-950">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950">
               {selectedReportForDetails && (
                 <>
-                  {/* Company & Format Identity Card */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <span className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black uppercase shrink-0 shadow-2xs border border-black/5",
-                        selectedReportForDetails.companyLogo === 'iM' && "bg-violet-100 text-violet-850 dark:bg-violet-950/60 dark:text-violet-300",
-                        selectedReportForDetails.companyLogo === 'Ax' && "bg-rose-100 text-rose-850 dark:bg-rose-950/60 dark:text-rose-300",
-                        selectedReportForDetails.companyLogo === 'DL' && "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300",
-                        selectedReportForDetails.companyLogo === 'Tb' && "bg-orange-100 text-orange-850 dark:bg-orange-950/60 dark:text-orange-300",
-                        selectedReportForDetails.companyLogo === 'Nn' && "bg-yellow-100 text-yellow-900 dark:bg-yellow-950/60 dark:text-yellow-300",
-                        !['iM','Ax','DL','Tb','Nn'].includes(selectedReportForDetails.companyLogo) && "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
-                      )}>
-                        {selectedReportForDetails.companyLogo}
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                          {selectedReportForDetails.companyName}
-                        </h4>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">
-                          Format: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong>
-                        </p>
-                      </div>
+                  {/* Company & Format Identity */}
+                  <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {selectedReportForDetails.companyName}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        Format: <strong className="text-slate-800 dark:text-slate-200">{selectedReportForDetails.formatName}</strong>
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-700 font-mono text-xs">
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded border border-slate-200/60 dark:border-slate-700 font-mono text-xs">
                       <span className="text-slate-400">Run ID:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{selectedReportForDetails.id}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedReportForDetails.id}</span>
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(selectedReportForDetails.id);
-                          toast.success('Run ID copied to clipboard');
+                          toast.success('Run ID copied');
                         }}
-                        className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700"
+                        className="ml-1 text-slate-400 hover:text-slate-700"
                         title="Copy Run ID"
                       >
                         <Copy className="w-3 h-3" />
@@ -1178,52 +1130,49 @@ export default function CompanyReportsGeneratorPage() {
                     </div>
                   </div>
 
-                  {/* 4 Clean, Hyper-Focused KPI Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Category</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        {selectedReportForDetails.dataType} Ledger
+                  {/* 4 Focused Detail Pills */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Category</span>
+                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {selectedReportForDetails.dataType}
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Date Horizon / Period</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
-                        <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Period</span>
+                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono">
                         {selectedReportForDetails.period}
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Rows Extracted</span>
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 font-mono">
-                        <PackageCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                    <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Rows</span>
+                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono">
                         {selectedReportForDetails.recordsCount} Rows
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Generated Stamp</span>
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono whitespace-nowrap">
+                    <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Generated On</span>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono truncate">
                         {selectedReportForDetails.generatedOn}
                       </div>
                     </div>
                   </div>
 
-                  {/* Clean Mapped Schema Columns Section */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Exported Schema Columns & Mapping Breakdown
+                  {/* Schema Columns Mapping Section */}
+                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 p-3 space-y-2.5">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Exported Columns Mapping
                       </h4>
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 border-emerald-200 text-[10px] font-bold font-mono">
-                        100% Normalized
+                      <Badge variant="outline" className="text-[10px] font-mono text-slate-500">
+                        Normalized
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
                         { col: 'C', header: 'VENDOR NAME', field: 'Carrier / 3rd Party' },
                         { col: 'D', header: 'DATE', field: 'Trip Date' },
@@ -1235,16 +1184,16 @@ export default function CompanyReportsGeneratorPage() {
                         { col: 'J', header: 'UUID NUMBER', field: 'Trip / Job Ref ID' },
                         { col: 'K', header: 'CHARGES', field: 'Billing Amount (Base Rate)' },
                       ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-mono text-[10px] font-extrabold text-emerald-700 bg-emerald-100 dark:bg-emerald-950 px-1.5 py-0.5 rounded shrink-0 border border-emerald-200">
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded border border-slate-200/60 dark:border-slate-700 flex items-center justify-between text-xs gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-200/70 dark:bg-slate-700 px-1 py-0.2 rounded shrink-0">
                               {item.col}
                             </span>
-                            <span className="font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                               {item.header}
                             </span>
                           </div>
-                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap text-right">
+                          <span className="text-[10px] text-slate-500 truncate text-right">
                             {item.field}
                           </span>
                         </div>
@@ -1256,14 +1205,14 @@ export default function CompanyReportsGeneratorPage() {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-4 px-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0">
+            <div className="p-3 px-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-3 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedReportForDetails(null)}
-                className="h-9 px-4 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                className="h-8 px-3 rounded-lg text-xs font-semibold"
               >
-                Close Details
+                Close
               </Button>
 
               <div className="flex items-center gap-2">
@@ -1274,9 +1223,9 @@ export default function CompanyReportsGeneratorPage() {
                       handleDownloadReportById(selectedReportForDetails);
                       setSelectedReportForDetails(null);
                     }}
-                    className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
+                    className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-8 px-4 rounded-lg font-bold text-xs gap-1.5"
                   >
-                    <Download className="w-4 h-4" /> Download Report (.xlsx)
+                    <Download className="w-3.5 h-3.5" /> Download Report (.xlsx)
                   </Button>
                 )}
               </div>
@@ -1286,53 +1235,49 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Dedicated Report Format Details Dialog Modal ─── */}
         <Dialog open={!!selectedFormatForDetails} onOpenChange={() => setSelectedFormatForDetails(null)}>
-          <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
+          <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl">
             {/* Modal Header */}
-            <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shrink-0 relative">
+            <DialogHeader className="p-4 pb-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 rounded-xl bg-white/10 text-emerald-400 border border-white/10 backdrop-blur-xs shrink-0">
-                    <FileSpreadsheet className="w-5 h-5" />
-                  </div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <FileSpreadsheet className="w-4 h-4 text-slate-600 shrink-0" />
                   <div className="min-w-0">
-                    <DialogTitle className="text-base font-black tracking-tight text-white flex items-center gap-2 truncate">
+                    <DialogTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
                       {selectedFormatForDetails?.name || 'Report Format Details'}
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-300 mt-0.5 font-mono truncate">
+                    <DialogDescription className="text-[11px] text-slate-500 font-mono truncate">
                       {selectedFormatForDetails?.original_filename || 'Excel Template'} · Version v{selectedFormatForDetails?.version || 1}
                     </DialogDescription>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-extrabold text-xs shadow-none rounded-lg px-3 py-1">
-                    Active Format
-                  </Badge>
-                </div>
+                <Badge variant="outline" className="text-[10px] font-semibold border-slate-200 shrink-0">
+                  Active Format
+                </Badge>
               </div>
 
               {/* Navigation Tabs Bar */}
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10 text-xs">
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveFormatDetailsTab('mock_preview')}
                   className={cn(
-                    "px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                    "px-3 py-1 rounded-md font-semibold transition-all flex items-center gap-1.5 cursor-pointer",
                     activeFormatDetailsTab === 'mock_preview'
-                      ? "bg-[#FA634E] text-white shadow-xs"
-                      : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
+                      ? "bg-[#FA634E] text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                   )}
                 >
-                  <Eye className="w-3.5 h-3.5" /> Visual Mock Format Preview
+                  <Eye className="w-3.5 h-3.5" /> Layout Preview
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveFormatDetailsTab('edit_mappings')}
                   className={cn(
-                    "px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                    "px-3 py-1 rounded-md font-semibold transition-all flex items-center gap-1.5 cursor-pointer",
                     activeFormatDetailsTab === 'edit_mappings'
-                      ? "bg-[#FA634E] text-white shadow-xs"
-                      : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
+                      ? "bg-[#FA634E] text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                   )}
                 >
                   <Settings2 className="w-3.5 h-3.5" /> Edit Column Mappings
@@ -1340,142 +1285,94 @@ export default function CompanyReportsGeneratorPage() {
               </div>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-950">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-slate-950">
               {activeFormatDetailsTab === 'mock_preview' ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Top Metadata Info Strip */}
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Assigned Target Customer</span>
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-[#FA634E]" />
+                  <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Target Customer</span>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                         {selectedFormatForDetails?.customer?.name || 'Shared / Any Customer'}
                       </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Mapped Columns</span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
-                        {editingLayout?.columns?.length || selectedFormatForDetails?.layout?.columns?.length || 11} Columns Configured
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Columns Mapped</span>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">
+                        {editingLayout?.columns?.length || selectedFormatForDetails?.layout?.columns?.length || 11} Columns
                       </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Data Start Row</span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
-                        Row {editingLayout?.dataStartRow || 4} to Row {editingLayout?.dataEndRow || 10}
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Data Range</span>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">
+                        Row {editingLayout?.dataStartRow || 4} - Row {editingLayout?.dataEndRow || 10}
                       </span>
                     </div>
                   </div>
 
-                  {/* 📊 Visual Mock Excel Report Layout Spreadsheet Preview */}
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs space-y-0">
-                    <div className="bg-slate-100 dark:bg-slate-800/80 px-4 py-2 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                        Mock Excel Layout Preview ({selectedFormatForDetails?.name || 'Format Preview'})
+                  {/* Spreadsheet Layout Preview */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden space-y-0">
+                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-mono">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
+                        Excel Layout Preview ({selectedFormatForDetails?.name || 'Format'})
                       </span>
-                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
-                        Visual Excel Render
-                      </Badge>
-                    </div>
-
-                    {/* Banner Title Inside Mock Excel */}
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900 text-center border-b border-slate-200 dark:border-slate-800 font-black text-sm text-slate-800 dark:text-slate-100 tracking-tight uppercase">
-                      {selectedFormatForDetails?.name?.toUpperCase() || 'COMPANY LOGISTICS REPORT'} OF JUNE-2026
                     </div>
 
                     {/* Interactive Mock Excel Table Grid */}
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-center border-collapse">
-                        {/* Header Row (Styled in Cyan/Blue Excel Header Style #00A3E0) */}
-                        <thead className="bg-[#00A3E0] text-white font-extrabold text-[11px] uppercase tracking-wide border-b-2 border-slate-400">
+                        <thead className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-[11px] uppercase border-b border-slate-300 dark:border-slate-700">
                           <tr>
                             {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <th key={idx} className="px-3 py-2.5 border-r border-white/20 whitespace-nowrap min-w-[110px]">
+                              <th key={idx} className="px-3 py-2 border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
                                 {col.headerText || `HEADER ${col.colIndex}`}
                               </th>
                             ))}
                           </tr>
                         </thead>
 
-                        {/* Sample Subheader / Guideline Row */}
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-[11px]">
-                          <tr className="bg-slate-100/70 dark:bg-slate-800/50 font-semibold text-slate-600 dark:text-slate-300 italic">
-                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800">
-                                {col.headerText.toLowerCase().includes('date') ? 'Date' :
-                                 col.headerText.toLowerCase().includes('vendor') ? 'Company Name' :
-                                 col.headerText.toLowerCase().includes('type') ? '5ton/10ton/40fit' :
-                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? 'Quotation Price' :
-                                 col.headerText.toLowerCase().includes('uuid') ? 'UUID/Departure ID' : 'Sample Data'}
-                              </td>
-                            ))}
-                          </tr>
-
-                          {/* Generated Data Sample Rows */}
                           <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
                             {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                 {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
-                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
+                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026' :
                                  col.headerText.toLowerCase().includes('from') ? 'Khamis Station' :
                                  col.headerText.toLowerCase().includes('dest') ? 'Abha Station' :
                                  col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
                                  col.headerText.toLowerCase().includes('type') ? '10 TON' :
                                  col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? '5049-3531' :
-                                 col.headerText.toLowerCase().includes('uuid') ? '(450*30)' :
-                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '13,500.00' :
-                                 col.headerText.toLowerCase().includes('inc') ? '15,525.00' :
-                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '2,025.00' : '—'}
+                                 col.headerText.toLowerCase().includes('uuid') ? 'TRP-9402' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '13,500.00' : '—'}
                               </td>
                             ))}
                           </tr>
 
                           <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
                             {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                 {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
-                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
+                                 col.headerText.toLowerCase().includes('date') ? '02-06-2026' :
                                  col.headerText.toLowerCase().includes('from') ? 'Riyadh Station' :
                                  col.headerText.toLowerCase().includes('dest') ? 'Al Baha Station' :
                                  col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
                                  col.headerText.toLowerCase().includes('type') ? '10 TON' :
-                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? '012-4207-3999' :
-                                 col.headerText.toLowerCase().includes('uuid') ? '(1750*30)' :
-                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '52,500.00' :
-                                 col.headerText.toLowerCase().includes('inc') ? '60,375.00' :
-                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '7,875.00' : '—'}
+                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? '012-4207' :
+                                 col.headerText.toLowerCase().includes('uuid') ? 'TRP-9403' :
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '52,500.00' : '—'}
                               </td>
                             ))}
                           </tr>
 
-                          <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                          {/* Excel Totals Summary Row */}
+                          <tr className="bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-300 dark:border-slate-700">
                             {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <td key={idx} className="px-3 py-2 border-r border-slate-200 dark:border-slate-800 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                                {col.headerText.toLowerCase().includes('vendor') ? 'MERCON' :
-                                 col.headerText.toLowerCase().includes('date') ? '01-06-2026 TO 30-06-2026' :
-                                 col.headerText.toLowerCase().includes('from') ? 'Riyadh Station' :
-                                 col.headerText.toLowerCase().includes('dest') ? 'Riyadh (LOCAL 10hrs)' :
-                                 col.headerText.toLowerCase().includes('rental') || col.headerText.toLowerCase().includes('method') ? 'Monthly' :
-                                 col.headerText.toLowerCase().includes('type') ? '10 TON' :
-                                 col.headerText.toLowerCase().includes('number') || col.headerText.toLowerCase().includes('veh') ? 'VRA5510' :
-                                 col.headerText.toLowerCase().includes('uuid') ? '(430*30)' :
-                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '12,900.00' :
-                                 col.headerText.toLowerCase().includes('inc') ? '14,835.00' :
-                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '1,935.00' : '—'}
-                              </td>
-                            ))}
-                          </tr>
-
-                          {/* Yellow Highlighted Excel Totals Summary Row */}
-                          <tr className="bg-[#FEF08A] text-slate-900 font-extrabold border-t-2 border-slate-400">
-                            {(editingLayout?.columns || selectedFormatForDetails?.layout?.columns || []).map((col, idx) => (
-                              <td key={idx} className="px-3 py-2.5 border-r border-slate-300 font-mono whitespace-nowrap text-rose-700">
+                              <td key={idx} className="px-3 py-2 border-r border-slate-300 dark:border-slate-700 font-mono whitespace-nowrap">
                                 {idx === 0 ? 'TOTAL' :
-                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '1,19,370.00' :
-                                 col.headerText.toLowerCase().includes('inc') ? '1,37,275.50' :
-                                 col.headerText.toLowerCase().includes('vat') || col.headerText.toLowerCase().includes('tax') ? '17,905.50' : ''}
+                                 col.headerText.toLowerCase().includes('charge') || col.headerText.toLowerCase().includes('rate') ? '66,000.00' : ''}
                               </td>
                             ))}
                           </tr>
@@ -1486,7 +1383,7 @@ export default function CompanyReportsGeneratorPage() {
                 </div>
               ) : (
                 /* Edit Column Mappings Tab */
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {formatInspection && editingLayout && (
                     <TemplateMappingEditor
                       inspection={formatInspection}
@@ -1499,12 +1396,12 @@ export default function CompanyReportsGeneratorPage() {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-4 px-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="p-3 px-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedFormatForDetails(null)}
-                className="h-9 px-4 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                className="h-8 px-3 rounded-lg text-xs font-semibold"
               >
                 Close
               </Button>
@@ -1518,21 +1415,21 @@ export default function CompanyReportsGeneratorPage() {
                     setSelectedFormatForDetails(null);
                     const genCard = document.getElementById('generate-report-card');
                     if (genCard) genCard.scrollIntoView({ behavior: 'smooth' });
-                    toast.success(`Selected "${selectedFormatForDetails?.name}" for report generation`);
+                    toast.success(`Selected "${selectedFormatForDetails?.name}" for generation`);
                   }}
-                  className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
+                  className="bg-[#FA634E] hover:bg-[#FA634E]/90 text-white h-8 px-4 rounded-lg font-bold text-xs gap-1.5"
                 >
-                  <Check className="w-4 h-4" /> Select Format For Generation
+                  <Check className="w-3.5 h-3.5" /> Select Format
                 </Button>
                 {activeFormatDetailsTab === 'edit_mappings' && (
                   <Button
                     size="sm"
                     onClick={handleSaveMapping}
                     disabled={isSavingMapping}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-5 rounded-xl font-bold text-xs gap-2 shadow-xs"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-4 rounded-lg font-bold text-xs gap-1.5"
                   >
                     {isSavingMapping && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                    Save Mapping Changes
+                    Save Mappings
                   </Button>
                 )}
               </div>
@@ -1588,39 +1485,34 @@ export default function CompanyReportsGeneratorPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ─── Add Template Dialog Modal (Redesigned Zero-Configuration) ─── */}
+        {/* ─── Add Template Dialog Modal ─── */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
           <DialogContent className={cn("flex flex-col max-h-[88vh] transition-all duration-300", inspection ? "sm:max-w-4xl" : "sm:max-w-md")}>
             <DialogHeader className="shrink-0">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                <Plus className="w-4 h-4 text-brand" /> Add Company Format
+              <DialogTitle className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                <Plus className="w-4 h-4 text-[#FA634E]" /> Add Company Format
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
-                {inspection 
-                  ? "Review and adjust how spreadsheet columns map to MERCON ERP fields before saving." 
-                  : "Upload a company Excel format file. MERCON will automatically inspect and map the layout."}
-              </DialogDescription>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto py-2 space-y-4 pr-1 min-h-0">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <div className="flex-1 overflow-y-auto py-2 space-y-3 pr-1 min-h-0">
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Format Name
                     </label>
                     <input
                       type="text"
                       value={draftName}
                       onChange={(e) => setDraftName(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-850 dark:text-slate-100 outline-none focus:border-brand"
-                      placeholder="e.g. Aramco Monthly Logistics"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
+                      placeholder="e.g. Aramco Logistics Format"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Target Customer (Optional)
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Target Customer
                     </label>
                     <Combobox
                       options={[
@@ -1629,32 +1521,31 @@ export default function CompanyReportsGeneratorPage() {
                           value: c.id,
                           label: c.name || c.company_name || 'Customer Account',
                           keywords: `${c.name || ''} ${c.company_name || ''}`,
-                          icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+                          icon: <Building2 className="w-3.5 h-3.5 text-slate-400" />,
                         })),
                       ]}
                       value={draftCustomerId}
                       onChange={setDraftCustomerId}
-                      placeholder="Select target customer..."
+                      placeholder="Select customer..."
                       searchPlaceholder="Search customer..."
-                      triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                      triggerClassName="w-full h-8 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
                     />
                   </div>
                 </div>
 
                 {!inspection && (
-                  <div className="space-y-1.5 pt-2">
+                  <div className="space-y-1.5 pt-1">
                     {(isInspecting || isSaving) ? (
-                      <div className="flex flex-col items-center justify-center gap-3 py-8 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
-                        <RefreshCw className="w-6 h-6 animate-spin text-brand" />
+                      <div className="flex flex-col items-center justify-center gap-2 py-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                        <RefreshCw className="w-5 h-5 animate-spin text-[#FA634E]" />
                         <span className="text-xs text-slate-500 font-semibold animate-pulse">
-                          Analyzing and mapping format layout...
+                          Analyzing format layout...
                         </span>
                       </div>
                     ) : (
-                      <label className="cursor-pointer group flex flex-col items-center justify-center gap-2.5 px-4 py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand bg-slate-50 dark:bg-slate-800/40 hover:bg-brand/5 transition-all text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand w-full">
-                        <Upload className="w-6 h-6 text-slate-400 group-hover:text-brand group-hover:scale-110 transition-all" />
-                        <span className="text-xs font-bold">Upload customer Excel format (.xlsx)</span>
-                        <span className="text-[11px] font-normal text-slate-400">Drag & drop or click to browse</span>
+                      <label className="cursor-pointer group flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-[#FA634E] bg-slate-50 dark:bg-slate-800/40 transition-all text-xs font-semibold text-slate-500 hover:text-[#FA634E] w-full">
+                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-[#FA634E] transition-all" />
+                        <span className="font-bold">Upload Excel format file (.xlsx)</span>
                         <input
                           type="file"
                           accept=".xlsx,.xlsm"
@@ -1681,12 +1572,12 @@ export default function CompanyReportsGeneratorPage() {
             </div>
 
             {inspection && (
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={resetUploadFlow}
-                  className="h-9 px-4 rounded-lg text-xs font-bold"
+                  className="h-8 px-3 rounded-lg text-xs font-semibold"
                 >
                   Cancel
                 </Button>
@@ -1694,10 +1585,10 @@ export default function CompanyReportsGeneratorPage() {
                   size="sm"
                   onClick={handleSaveTemplate}
                   disabled={isSaving}
-                  className="h-9 px-4 rounded-lg text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm flex items-center gap-1.5"
+                  className="h-8 px-4 rounded-lg text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white flex items-center gap-1.5"
                 >
                   {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  Confirm & Save Format
+                  Save Format
                 </Button>
               </div>
             )}
@@ -1708,18 +1599,15 @@ export default function CompanyReportsGeneratorPage() {
         <Dialog open={isEditingMappingOpen} onOpenChange={setIsEditingMappingOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col">
             <DialogHeader className="shrink-0">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                <Settings2 className="w-4 h-4 text-indigo-650" /> Edit Column Mappings
+              <DialogTitle className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                <Settings2 className="w-4 h-4 text-slate-600" /> Edit Column Mappings
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
-                Adjust how spreadsheet columns map to MERCON ERP fields. Saving will increment format version to v{((editingTemplate?.version || 1) + 1)}.
-              </DialogDescription>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto py-2 space-y-4 pr-1 min-h-0">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <div className="flex-1 overflow-y-auto py-2 space-y-3 pr-1 min-h-0">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Format Name
                   </label>
                   <input
@@ -1730,13 +1618,13 @@ export default function CompanyReportsGeneratorPage() {
                         setEditingTemplate({ ...editingTemplate, name: e.target.value });
                       }
                     }}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-850 dark:text-slate-100 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#FA634E]"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Target Customer (Optional)
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Target Customer
                   </label>
                   <Combobox
                     options={[
@@ -1745,7 +1633,7 @@ export default function CompanyReportsGeneratorPage() {
                         value: c.id,
                         label: c.name || c.company_name || 'Customer Account',
                         keywords: `${c.name || ''} ${c.company_name || ''}`,
-                        icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+                        icon: <Building2 className="w-3.5 h-3.5 text-slate-400" />,
                       })),
                     ]}
                     value={editingTemplate?.customerId || 'all'}
@@ -1754,9 +1642,9 @@ export default function CompanyReportsGeneratorPage() {
                         setEditingTemplate({ ...editingTemplate, customerId: val === 'all' ? null : val });
                       }
                     }}
-                    placeholder="Select target customer..."
+                    placeholder="Select customer..."
                     searchPlaceholder="Search customer..."
-                    triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                    triggerClassName="w-full h-8 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
                   />
                 </div>
               </div>
@@ -1785,7 +1673,7 @@ export default function CompanyReportsGeneratorPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -1794,7 +1682,7 @@ export default function CompanyReportsGeneratorPage() {
                   setEditingTemplate(null);
                   setEditingLayout(null);
                 }}
-                className="h-9 px-4 rounded-lg text-xs font-bold"
+                className="h-8 px-3 rounded-lg text-xs font-semibold"
               >
                 Cancel
               </Button>
@@ -1802,10 +1690,10 @@ export default function CompanyReportsGeneratorPage() {
                 size="sm"
                 onClick={handleSaveMapping}
                 disabled={isSavingMapping}
-                className="h-9 px-4 rounded-lg text-xs font-bold bg-indigo-650 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5"
+                className="h-8 px-4 rounded-lg text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white flex items-center gap-1.5"
               >
                 {isSavingMapping && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                Save Mappings (v{(editingTemplate?.version || 1) + 1})
+                Save Mappings
               </Button>
             </div>
           </DialogContent>

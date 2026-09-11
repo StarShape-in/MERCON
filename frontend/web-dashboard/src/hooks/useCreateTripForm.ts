@@ -45,8 +45,9 @@ export const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter(
 ).map((cat) => ((cat as any) === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 export const isRoundTripCategory = (cat: string) => {
-  const c = (cat || '').toLowerCase().trim();
-  return c === 'round trip' || c === 'trip/round trip';
+  if (!cat) return false;
+  const c = String(cat).toLowerCase().replace(/_/g, ' ').trim();
+  return c.includes('round') || c === 'round trip' || c === 'trip/round trip';
 };
 
 export const getVehicleTypeFromCapacity = (capacityKg?: number | null): string => {

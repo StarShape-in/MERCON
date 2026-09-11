@@ -359,7 +359,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
 
   const columnWidthClass =
     zoomLevel === 'fit'
-      ? 'flex-1 min-w-[210px]'
+      ? 'flex-1 min-w-[240px]'
       : zoomLevel === 'normal'
       ? 'w-[290px] min-w-[290px] max-w-[290px]'
       : 'w-[360px] min-w-[360px] max-w-[360px]';
@@ -614,48 +614,43 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                 {/* Column Sticky Header */}
                 <div
                   className={cn(
-                    'px-3.5 py-3 rounded-t-2xl border-b backdrop-blur-xs flex items-center justify-between gap-2 shrink-0',
+                    'px-3 py-2.5 rounded-t-2xl border-b backdrop-blur-xs flex items-center justify-between gap-1.5 shrink-0 select-none',
                     col.headerBg,
                     col.headerBorder
                   )}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <Checkbox
                       checked={activeSelectionColumn === col.id}
                       onCheckedChange={() => handleToggleColumnSelection(col.id)}
                       disabled={activeSelectionColumn !== null && activeSelectionColumn !== col.id}
-                      className="border-slate-300 dark:border-slate-600 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                      className="border-slate-300 dark:border-slate-600 data-[state=checked]:bg-brand data-[state=checked]:border-brand shrink-0"
                     />
-                    <div className={cn('w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white dark:ring-slate-900', col.dotColor)} />
-                    <Icon size={15} className={col.accentColor} />
-                    <span className="font-extrabold text-[13px] text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                    <Icon size={14} className={cn('shrink-0', col.accentColor)} />
+                    <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
                       {col.label}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
                     <span
                       className={cn(
-                        'font-mono text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0',
+                        'font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 leading-none',
                         col.badgeClass
                       )}
                     >
-                      {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
+                      {rawColTrips.length}
                     </span>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFocusedStage(col.id);
-                      }}
-                      className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all shadow-3xs cursor-pointer ml-1"
-                      title={`View all ${col.label} trips in expanded table`}
-                    >
-                      <Maximize2 className="w-3 h-3 text-brand" />
-                      <span>View All</span>
-                    </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFocusedStage(col.id);
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-brand hover:bg-slate-200/60 dark:hover:bg-slate-800/80 transition-colors cursor-pointer shrink-0"
+                    title={`View all ${col.label} trips in expanded table`}
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {/* Column Scrollable Cards Body */}
