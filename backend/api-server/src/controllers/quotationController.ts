@@ -77,7 +77,7 @@ export const createQuotation = async (req: Request, res: Response) => {
     const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
     const payoutVal = parseDecimalSafe(rawPayout);
 
-    const normalisedCustomerId = getValidUuid(customerId);
+    const normalisedCustomerId = getValidUuid(customerId || req.body.customer_id);
     if (!normalisedCustomerId) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this quotation is for' } });
     }
@@ -452,13 +452,16 @@ export const updateQuotation = async (req: Request, res: Response) => {
 export const deleteQuotation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = getValidUuid((req as any).user?.id);
+    const targetId = id as string;
 
-    await prisma.quotation.update({
-      where: { id: id as string },
-      data: { deletedAt: new Date(), deleted_by: userId, is_active: false }
-    });
-    res.json({ success: true, message: 'Quotation deleted successfully' });
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { quotationId: targetId }, data: { quotationId: null } }),
+      prisma.surchargeRule.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotationStop.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotationHistory.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotation.delete({ where: { id: targetId } })
+    ]);
+    res.json({ success: true, message: 'Quotation permanently deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
@@ -466,22 +469,20 @@ export const deleteQuotation = async (req: Request, res: Response) => {
 
 export const bulkDeleteQuotations = async (req: Request, res: Response) => {
   try {
-    const userId = getValidUuid((req as any).user?.id);
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.quotation.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        is_active: false,
-        deleted_by: userId
-      }
-    });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} quotations` } });
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { quotationId: { in: ids } }, data: { quotationId: null } }),
+      prisma.surchargeRule.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotationStop.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotationHistory.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotation.deleteMany({ where: { id: { in: ids } } })
+    ]);
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} quotations` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete quotations` } });
   }

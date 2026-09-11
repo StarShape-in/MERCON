@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 const getProxyTarget = (url?: string) => {
+  if (process.env.VITE_BACKEND_URL) return process.env.VITE_BACKEND_URL;
   if (!url || url.startsWith('/')) return 'https://dev.mercon.tech';
   return url.replace(/\/api\/?$/, '');
 };

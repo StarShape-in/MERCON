@@ -188,15 +188,32 @@ export const updateCustomer = async (req: Request, res: Response) => {
 
 export const deleteCustomer = async (req: Request, res: Response) => {
   try {
-    await prisma.customer.update({
-      where: { id: req.params.id as string },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: (req as any).user?.id
-      }
-    });
-    res.json({ success: true, data: { message: 'Customer deleted successfully' } });
+    const id = req.params.id as string;
+    // Check linked active trips or invoices
+    const [tripCount, invoiceCount] = await Promise.all([
+      prisma.trip.count({ where: { customerId: id } }),
+      prisma.invoice.count({ where: { customerId: id } })
+    ]);
+
+    if (tripCount > 0 || invoiceCount > 0) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'CUSTOMER_IN_USE',
+          message: `Cannot delete customer because they have ${tripCount} trip(s) and ${invoiceCount} invoice(s) linked.`
+        }
+      });
+    }
+
+    // Hard delete associated non-operational items like locations & surcharge rules, then the customer
+    await prisma.$transaction([
+      prisma.surchargeRule.deleteMany({ where: { customerId: id } }),
+      prisma.location.deleteMany({ where: { customerId: id } }),
+      prisma.reportTemplate.deleteMany({ where: { customerId: id } }),
+      prisma.customer.delete({ where: { id } })
+    ]);
+
+    res.json({ success: true, data: { message: 'Customer permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete customer' } });
   }

@@ -65,10 +65,10 @@ export const createSavedReport = async (req: Request, res: Response): Promise<vo
 export const deleteSavedReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
-    await prisma.savedReport.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    await prisma.$transaction([
+      prisma.scheduledReport.deleteMany({ where: { savedReportId: id } }),
+      prisma.savedReport.delete({ where: { id } })
+    ]);
     res.json({ success: true, data: { id } });
   } catch (err: any) {
     logger.error('Failed to delete saved report:', err);
@@ -133,9 +133,8 @@ export const updateScheduledReport = async (req: Request, res: Response): Promis
 export const deleteScheduledReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
-    await prisma.scheduledReport.update({
+    await prisma.scheduledReport.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
     res.json({ success: true, data: { id } });
   } catch (err: any) {

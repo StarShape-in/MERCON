@@ -453,22 +453,14 @@ export const deleteDriver = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.driver.update({
-      where: { id: driverId },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId,
-        // Free the unique phone number so a new driver can reuse it.
-        // The record is kept (soft delete) so any trips that referenced it stay valid.
-        phone_primary: null,
-        // Free the assigned vehicle's unique slot so it can be reassigned to
-        // another driver — otherwise it stays permanently "taken" even
-        // though the driver holding it is gone.
-        assignedVehicleId: null
-      }
-    });
-    res.json({ success: true, data: { message: 'Driver deleted successfully' } });
+    // Hard delete driver: unlink optional historical trip/expense pointers, clear vehicle assignment, then delete record
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { driverId }, data: { driverId: null } }),
+      prisma.expense.updateMany({ where: { driverId }, data: { driverId: null } }),
+      prisma.driverVehicleAssignment.deleteMany({ where: { driverId } }),
+      prisma.driver.delete({ where: { id: driverId } })
+    ]);
+    res.json({ success: true, data: { message: 'Driver permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
   }
@@ -515,9 +507,9 @@ export const getDriverUsage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const [activeTrips, totalTrips, expenses] = await Promise.all([
-      prisma.trip.count({ where: { driverId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
-      prisma.trip.count({ where: { driverId: id, deletedAt: null } }),
-      prisma.expense.count({ where: { driverId: id, deletedAt: null } })
+      prisma.trip.count({ where: { driverId: id, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
+      prisma.trip.count({ where: { driverId: id } }),
+      prisma.expense.count({ where: { driverId: id } })
     ]);
     res.json({ success: true, data: { activeTrips, totalTrips, expenses } });
   } catch (error) {
@@ -527,7 +519,6 @@ export const getDriverUsage = async (req: Request, res: Response) => {
 
 export const bulkDeleteDrivers = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -535,7 +526,7 @@ export const bulkDeleteDrivers = async (req: Request, res: Response) => {
     }
 
     const inUse = await prisma.trip.findMany({
-      where: { driverId: { in: ids }, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } },
+      where: { driverId: { in: ids }, status: { in: ACTIVE_TRIP_STATUSES as any } },
       select: { driverId: true },
       distinct: ['driverId']
     });
@@ -543,15 +534,12 @@ export const bulkDeleteDrivers = async (req: Request, res: Response) => {
     const deletableIds = ids.filter((id: string) => !inUseIds.has(id));
 
     if (deletableIds.length > 0) {
-      await prisma.driver.updateMany({
-        where: { id: { in: deletableIds } },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-          deleted_by: userId,
-          assignedVehicleId: null
-        }
-      });
+      await prisma.$transaction([
+        prisma.trip.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
+        prisma.expense.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
+        prisma.driverVehicleAssignment.deleteMany({ where: { driverId: { in: deletableIds } } }),
+        prisma.driver.deleteMany({ where: { id: { in: deletableIds } } })
+      ]);
     }
 
     const skippedMessage = inUseIds.size > 0 ? ` ${inUseIds.size} skipped (active trip in progress).` : '';

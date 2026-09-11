@@ -254,15 +254,10 @@ export const createSavedWorkshop = async (req: Request, res: Response) => {
 export const deleteSavedWorkshop = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    await prisma.savedWorkshop.update({
+    await prisma.savedWorkshop.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        updated_by: (req as any).user?.id,
-      },
     });
-    res.json({ success: true, message: 'Saved workshop deleted successfully' });
+    res.json({ success: true, message: 'Saved workshop permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete saved workshop');
     res.status(500).json({
@@ -368,15 +363,10 @@ export const createSavedWorkItem = async (req: Request, res: Response) => {
 export const deleteSavedWorkItem = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    await prisma.savedWorkDone.update({
+    await prisma.savedWorkDone.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        updated_by: (req as any).user?.id,
-      },
     });
-    res.json({ success: true, message: 'Saved work item deleted successfully' });
+    res.json({ success: true, message: 'Saved work item permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete saved work item');
     res.status(500).json({
@@ -778,16 +768,8 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.maintenanceRecord.update({
-      where: { id: existing.id },
-      data: {
-        // Releasing the ref_id frees its number for the next service order, so the
-        // sequence stays gapless (delete MNT-005 → the next order becomes MNT-005).
-        // `ref_id` is unique across deleted rows too, so it must be cleared, not kept.
-        ref_id: null,
-        deletedAt: new Date(),
-        deleted_by: (req as any).user?.id,
-      },
+    await prisma.maintenanceRecord.delete({
+      where: { id: existing.id }
     });
 
     // Deleting the order that put the vehicle in the workshop must let it out again.

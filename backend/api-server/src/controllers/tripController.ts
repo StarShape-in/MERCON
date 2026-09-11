@@ -1824,22 +1824,22 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      // Deleting an in-flight trip must release its driver/vehicle back to
-      // Available — otherwise they stay stuck on "OnTrip" forever with no
-      // trip left to complete them (this was a real bug: deleted trip, driver
-      // still showed on duty).
+      // Deleting an in-flight trip must release its driver/vehicle back to Available
       const trips = await tx.trip.findMany({
-        where: { id: { in: ids }, deletedAt: null, status: { in: IN_FLIGHT_STATUSES } },
+        where: { id: { in: ids }, status: { in: IN_FLIGHT_STATUSES } },
         select: { driverId: true, vehicleId: true },
       });
 
-      await tx.trip.updateMany({
-        where: { id: { in: ids } },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-          deleted_by: userId
-        }
+      // Clear child dependencies before deleting trips
+      await tx.tripStop.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripLocation.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripCharge.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripDriver.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripAssignmentEvent.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.invoice.deleteMany({ where: { tripId: { in: ids } } });
+
+      await tx.trip.deleteMany({
+        where: { id: { in: ids } }
       });
 
       const driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
@@ -1853,7 +1853,7 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} trips` } });
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} trips` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete trips` } });
   }

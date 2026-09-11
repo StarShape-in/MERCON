@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -245,10 +245,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   }, [isEdit, existingQuotation]);
 
   const isReturnToTrip = searchParams.get('return_to_trip') === 'true';
+  const hasInitializedRef = useRef(false);
 
-  // Populate state from search params if passed from /trips/new
+  // Populate state from search params if passed from /trips/new or /quotations
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
     const custId = searchParams.get('customer_id');
     const origId = searchParams.get('origin_id');
@@ -559,17 +561,16 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       return { createdQuotationsCount: createdQuotations.length, surchargesCount: surchargeRules.length };
     },
     onSuccess: (data) => {
-      // Refetch (not just invalidate) so the list page gets fresh data immediately
+      // Refetch and invalidate so the list page gets fresh data immediately
       Promise.all([
         queryClient.refetchQueries({ queryKey: ['quotations'] }),
-        queryClient.invalidateQueries({ queryKey: ['rate-cards'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-all'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] }),
-        queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] }),
+        queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: ['surcharge-rules'], refetchType: 'all' }),
       ]).catch(() => {/* ignore refetch errors */});
-
       setIsPreviewOpen(false);
 
       if (isReturnToTrip) {
@@ -597,6 +598,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       }
     },
     onError: (err: any) => {
+      console.error('❌ [AddQuotationPage] Save failed:', {
+        status: err.response?.status,
+        errorData: err.response?.data,
+        message: err.message,
+      });
       const errData = err.response?.data?.error;
       const msg = errData?.message || err.message || 'Failed to save agreement rates';
       const detail = errData?.code ? ` (${errData.code})` : '';

@@ -172,15 +172,10 @@ export const bulkDeleteInvoices = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.invoice.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
-      }
+    await prisma.invoice.deleteMany({
+      where: { id: { in: ids } }
     });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} invoices` } });
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} invoices` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete invoices` } });
   }
@@ -340,9 +335,8 @@ export const unmarkTripInvoiced = async (req: Request, res: Response) => {
 
       const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id, deletedAt: null } });
       if (existingInvoice) {
-        await tx.invoice.update({
-          where: { id: existingInvoice.id },
-          data: { deletedAt: new Date(), isActive: false, deleted_by: userId ?? undefined }
+        await tx.invoice.delete({
+          where: { id: existingInvoice.id }
         });
       }
 
