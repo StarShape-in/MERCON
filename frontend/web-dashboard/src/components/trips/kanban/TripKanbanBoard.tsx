@@ -19,6 +19,9 @@ import {
   ZoomOut,
   AlertTriangle,
   Siren,
+  Maximize2,
+  ArrowLeft,
+  X,
 } from 'lucide-react';
 import { Trip, TripStatus, TripStop } from '@/services/tripService';
 import { openMultipleWhatsappMessages } from '@/utils/whatsappFormatter';
@@ -26,6 +29,7 @@ import TripKanbanCard from './TripKanbanCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +54,8 @@ export interface TripKanbanBoardProps {
   onRetry?: () => void;
   zoomLevel?: 'fit' | 'normal' | 'in';
   statusFilter?: string;
+  focusedStage?: string | null;
+  onStageFocusChange?: (stage: string | null) => void;
 }
 
 interface ColumnConfig {
@@ -185,9 +191,24 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
     onRetry,
     zoomLevel = 'fit',
     statusFilter,
+    focusedStage: focusedStageProp,
+    onStageFocusChange,
   },
   ref
 ) {
+  const [internalFocusedStage, setInternalFocusedStage] = useState<string | null>(null);
+  const [stageSearchTerm, setStageSearchTerm] = useState<string>('');
+
+  const activeFocusedStage = focusedStageProp !== undefined ? focusedStageProp : internalFocusedStage;
+
+  const setFocusedStage = (stage: string | null) => {
+    if (onStageFocusChange) {
+      onStageFocusChange(stage);
+    }
+    setInternalFocusedStage(stage);
+    setStageSearchTerm('');
+  };
+
   const [dragOverColumn, setDragOverColumn] = useState<TripStatus | 'Delayed' | null>(null);
   const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
   const [visibleLimits, setVisibleLimits] = useState<Record<string, number>>({});
@@ -346,6 +367,137 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
   const cardDensity =
     zoomLevel === 'fit' ? 'compact' : zoomLevel === 'normal' ? 'normal' : 'expanded';
 
+  if (activeFocusedStage) {
+    const focusCol = COLUMNS.find((c) => c.id === activeFocusedStage) || COLUMNS.find((c) => c.id === 'InTransit') || COLUMNS[0];
+    const FocusIcon = focusCol.icon;
+    const rawFocusTrips = groupedTrips[focusCol.id] || [];
+    const filterTerm = stageSearchTerm.toLowerCase().trim();
+
+    const focusTrips = filterTerm
+      ? rawFocusTrips.filter(
+          (t) =>
+            t.ref_id.toLowerCase().includes(filterTerm) ||
+            (t.customer?.name && t.customer.name.toLowerCase().includes(filterTerm)) ||
+            (t.driver && `${t.driver.first_name} ${t.driver.last_name}`.toLowerCase().includes(filterTerm)) ||
+            (t.vehicle?.plate_number && t.vehicle.plate_number.toLowerCase().includes(filterTerm))
+        )
+      : rawFocusTrips;
+
+    return (
+      <div className={cn('w-full h-full flex flex-col min-h-0 rounded-2xl border transition-all shadow-xs overflow-hidden', focusCol.columnBg)}>
+        {/* Stage Focus Top Header Banner */}
+        <div className={cn('px-4 py-3 rounded-t-2xl border-b backdrop-blur-xs flex flex-wrap items-center justify-between gap-3 shrink-0', focusCol.headerBg, focusCol.headerBorder)}>
+          {/* Left: Back Button & Stage Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFocusedStage(null)}
+              className="h-8 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs rounded-xl cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+              <span>Full Board</span>
+            </Button>
+
+            <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 shrink-0" />
+
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={cn('w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white dark:ring-slate-900', focusCol.dotColor)} />
+              <FocusIcon size={16} className={focusCol.accentColor} />
+              <h2 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">
+                {focusCol.label} Operations
+              </h2>
+              <span className={cn('font-mono text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0', focusCol.badgeClass)}>
+                {rawFocusTrips.length} {rawFocusTrips.length === 1 ? 'Trip' : 'Trips'}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Quick Stage Navigation Pills Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1 shrink-0">Stage:</span>
+            {COLUMNS.map((c) => {
+              const isActive = c.id === activeFocusedStage;
+              const count = (groupedTrips[c.id] || []).length;
+              const CIcon = c.icon;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFocusedStage(c.id)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0',
+                    isActive
+                      ? c.badgeClass + ' font-extrabold shadow-3xs'
+                      : 'bg-white/70 dark:bg-slate-900/70 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-900'
+                  )}
+                >
+                  <CIcon className={cn('w-3.5 h-3.5', c.accentColor)} />
+                  <span>{c.label}</span>
+                  <span className="font-mono text-[10px] font-bold opacity-80">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* In-Stage Filter & Controls Bar */}
+        <div className="px-4 py-2 bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Input
+              placeholder={`Filter ${focusCol.label} trips by ID, driver, vehicle...`}
+              value={stageSearchTerm}
+              onChange={(e) => setStageSearchTerm(e.target.value)}
+              className="pl-8 h-7 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+            />
+            {stageSearchTerm && (
+              <button onClick={() => setStageSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
+            Expanded Matrix View (3–4 Columns)
+          </span>
+        </div>
+
+        {/* Multi-Column Grid Matrix Body */}
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-44 rounded-xl bg-white/60 dark:bg-slate-800/60 animate-pulse border border-slate-200/50" />
+              ))}
+            </div>
+          ) : focusTrips.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <FocusIcon size={36} className={cn('mb-2.5 opacity-50', focusCol.accentColor)} />
+              <h3 className="text-sm font-extrabold text-slate-700 dark:text-slate-300">No {focusCol.label} Trips</h3>
+              <p className="text-xs text-slate-400 max-w-xs mt-1">
+                {stageSearchTerm ? 'No trips match your search term in this stage.' : `There are currently no trips in ${focusCol.label} stage.`}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
+              {focusTrips.map((trip) => (
+                <TripKanbanCard
+                  key={trip.id}
+                  trip={trip}
+                  density="expanded"
+                  onLogDelay={onLogDelay}
+                  onShareWhatsapp={onShareWhatsapp}
+                  onDelete={onDelete}
+                  onOpenSettlement={onOpenSettlement}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
 
@@ -428,14 +580,28 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                     </span>
                   </div>
 
-                  <span
-                    className={cn(
-                      'font-mono text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0',
-                      col.badgeClass
-                    )}
-                  >
-                    {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
-                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span
+                      className={cn(
+                        'font-mono text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0',
+                        col.badgeClass
+                      )}
+                    >
+                      {rawColTrips.length} {rawColTrips.length === 1 ? 'Trip' : 'Trips'}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFocusedStage(col.id);
+                      }}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title={`View all ${col.label} trips in expanded matrix view`}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Column Scrollable Cards Body */}

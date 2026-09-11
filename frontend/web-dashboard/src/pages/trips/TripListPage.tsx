@@ -658,6 +658,18 @@ export default function TripListPage() {
       newParams.set('view', 'kanban');
     } else {
       newParams.delete('view');
+      newParams.delete('stage');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const stageParam = searchParams.get('stage');
+  const handleStageFocusChange = (stage: string | null) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (stage) {
+      newParams.set('stage', stage);
+    } else {
+      newParams.delete('stage');
     }
     setSearchParams(newParams, { replace: true });
   };
@@ -2477,6 +2489,8 @@ export default function TripListPage() {
                       ref={kanbanBoardRef}
                       trips={trips}
                       statusFilter={selectedStatus !== 'All' ? (selectedStatus as string) : undefined}
+                      focusedStage={stageParam}
+                      onStageFocusChange={handleStageFocusChange}
                       onStatusChange={handleKanbanStatusChange}
                       onLogDelay={(trip) => setStatusDialogTrip(trip)}
                       onShareWhatsapp={(trip) => openWhatsappShare([trip])}
