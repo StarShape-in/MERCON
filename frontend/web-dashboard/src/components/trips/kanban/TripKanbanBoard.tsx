@@ -649,10 +649,11 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
                         e.stopPropagation();
                         setFocusedStage(col.id);
                       }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title={`View all ${col.label} trips in expanded matrix view`}
+                      className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all shadow-3xs cursor-pointer ml-1"
+                      title={`View all ${col.label} trips in expanded table`}
                     >
-                      <Maximize2 className="w-3.5 h-3.5" />
+                      <Maximize2 className="w-3 h-3 text-brand" />
+                      <span>View All</span>
                     </button>
                   </div>
                 </div>

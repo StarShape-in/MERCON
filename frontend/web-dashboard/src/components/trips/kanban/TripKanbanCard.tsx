@@ -283,7 +283,7 @@ export default function TripKanbanCard({
                   .map((s) => (
                     <DropdownMenuItem
                       key={s}
-                      onClick={() => onStatusChange(trip, s)}
+                      onClick={() => onStatusChange?.(trip, s)}
                       className="cursor-pointer text-xs font-semibold py-1 px-2 rounded-md capitalize"
                     >
                       Move to {s === 'Draft' ? 'Scheduled' : s}
