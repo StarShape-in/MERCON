@@ -193,7 +193,9 @@ export default function QuotationFormDialog({
   const handleSubmit = () => {
     setError(null);
     if (!effectiveCustomerId) return setError('Choose which customer this quotation is for.');
-    if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
+    if ((!originId && !originName.trim()) || (!destinationId && !destinationName.trim())) {
+      return setError('Pick both an origin and a destination.');
+    }
     if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a rate greater than 0.');
     saveMutation.mutate();
   };

@@ -215,26 +215,36 @@ export const getQuotations = async (req: Request, res: Response) => {
 
     const targetCustomerId = (customerId || req.query.customer_id) as string;
     if (targetCustomerId) whereClause.customerId = targetCustomerId;
-    if (vehicle_type) whereClause.OR = [{ source_vehicle_label: vehicle_type as string }, { vehicle_class: vehicle_type as string }];
+
+    if (vehicle_type) {
+      whereClause.AND = whereClause.AND || [];
+      whereClause.AND.push({
+        OR: [{ source_vehicle_label: vehicle_type as string }, { vehicle_class: vehicle_type as string }],
+      });
+    }
+
     if (line_type || rate_category) whereClause.line_type = (line_type || rate_category) as string;
     if (billing_type) whereClause.billing_type = billing_type as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
-      whereClause.OR = [
-        { name: { contains: term, mode: 'insensitive' } },
-        { line_type: { contains: term, mode: 'insensitive' } },
-        { billing_type: { contains: term, mode: 'insensitive' } },
-        { source_vehicle_label: { contains: term, mode: 'insensitive' } },
-        { vehicle_class: { contains: term, mode: 'insensitive' } },
-        { customer: { name: { contains: term, mode: 'insensitive' } } },
-      ];
+      whereClause.AND = whereClause.AND || [];
+      whereClause.AND.push({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { line_type: { contains: term, mode: 'insensitive' } },
+          { billing_type: { contains: term, mode: 'insensitive' } },
+          { source_vehicle_label: { contains: term, mode: 'insensitive' } },
+          { vehicle_class: { contains: term, mode: 'insensitive' } },
+          { customer: { name: { contains: term, mode: 'insensitive' } } },
+        ],
+      });
     }
 
-    const isPaginated = page !== undefined || (per_page !== undefined && per_page !== 'all');
-    const pageNumber = Math.max(1, parseInt((page as string) || '1', 10));
-    const limit = Math.max(1, parseInt((per_page as string) || '10', 10));
-    const skip = (pageNumber - 1) * limit;
+    const isPaginated = per_page !== 'all' && (page !== undefined || per_page !== undefined);
+    const pageNumber = isPaginated ? Math.max(1, parseInt((page as string) || '1', 10)) : 1;
+    const limit = isPaginated ? Math.max(1, parseInt((per_page as string) || '10', 10)) : 0;
+    const skip = isPaginated ? (pageNumber - 1) * limit : 0;
 
     const [quotations, total] = await Promise.all([
       prisma.quotation.findMany({
@@ -253,7 +263,7 @@ export const getQuotations = async (req: Request, res: Response) => {
         page: isPaginated ? pageNumber : 1,
         per_page: isPaginated ? limit : total,
         total,
-        total_pages: isPaginated ? Math.ceil(total / limit) : 1,
+        total_pages: isPaginated ? Math.ceil(total / Math.max(1, limit)) : 1,
       },
     });
   } catch (error: any) {

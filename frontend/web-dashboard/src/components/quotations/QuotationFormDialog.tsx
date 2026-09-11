@@ -175,9 +175,9 @@ export default function QuotationFormDialog({
         : quotationService.create(payload);
     },
     onSuccess: (saved) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' });
       onSaved?.(saved);
       onClose();
     },
