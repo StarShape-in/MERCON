@@ -324,7 +324,8 @@ function TemplateBigCard({
     (t) => (t.status || '').toLowerCase() === 'completed' || (t.status || '').toLowerCase() === 'invoiced'
   ).length;
   const remainingTrips = Math.max(0, totalTrips - completedTrips);
-  const remainingCount = totalTrips - displayedTrips.length;
+  const hiddenCount = Math.max(0, totalTrips - group.threeDayTrips.length);
+  const hasMoreTrips = hiddenCount > 0;
 
   const lineTypeUpper = group.lineType.replace(/\s+/g, '_').toUpperCase();
   const palette = getTemplatePalette(index);
@@ -395,13 +396,13 @@ function TemplateBigCard({
       )}
 
       {/* ── 6. Bottom Footer Link ── */}
-      {remainingCount > 0 ? (
+      {hasMoreTrips ? (
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           className="text-left text-xs font-extrabold text-purple-700 dark:text-purple-300 hover:underline pt-0.5 cursor-pointer flex items-center gap-1"
         >
-          <span>{isExpanded ? `Show less ▴` : `+ ${remainingCount} more trips`}</span>
+          <span>{isExpanded ? 'Show less ▴' : `+ ${hiddenCount} more trips`}</span>
         </button>
       ) : (
         <button
