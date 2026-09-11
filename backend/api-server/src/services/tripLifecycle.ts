@@ -165,46 +165,74 @@ export async function stampWorkflowTransition(
   workflowState: string,
 ) {
   const now = new Date();
-  
-  if (workflowState === 'ARRIVED_AT_PICKUP') {
+  const stops = await tx.tripStop.findMany({
+    where: { tripId, deletedAt: null },
+    orderBy: { stop_sequence: 'asc' },
+  });
+  if (stops.length === 0) return;
+
+  const firstStop = stops[0];
+  const lastStop = stops[stops.length - 1];
+  const isRound = stops.length >= 3 && (
+    (firstStop.location_name || '').toLowerCase().trim() === (lastStop.location_name || '').toLowerCase().trim() ||
+    stops.some(s => s.stop_sequence >= 3)
+  );
+
+  if (workflowState === 'ARRIVED_AT_PICKUP' || workflowState === 'LOADING') {
     // Stamp Stop 1 arrival
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 1, actual_arrival: null, deletedAt: null },
+      where: { id: firstStop.id, actual_arrival: null },
       data: { actual_arrival: now },
     });
-  } else if (workflowState === 'IN_TRANSIT') {
+  } else if (workflowState === 'IN_TRANSIT' || workflowState === 'LOADING_COMPLETED') {
     // Stamp Stop 1 departure
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 1, actual_departure: null, deletedAt: null },
+      where: { id: firstStop.id, actual_departure: null },
       data: { actual_departure: now },
     });
   } else if (workflowState === 'ARRIVED_AT_DELIVERY') {
-    // Stamp Stop 2 arrival
+    // Delivery of outbound leg (stop sequence 2, or last stop for single trip)
+    const leg0Delivery = stops.find(s => s.stop_sequence === (isRound ? 2 : stops.length)) || stops[1] || lastStop;
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 2, actual_arrival: null, deletedAt: null },
+      where: { id: leg0Delivery.id, actual_arrival: null },
       data: { actual_arrival: now },
     });
-  } else if (workflowState === 'IN_TRANSIT_RETURN') {
-    // Stamp Stop 2 departure
-    await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 2, actual_departure: null, deletedAt: null },
-      data: { actual_departure: now },
-    });
+  } else if (workflowState === 'FIRST_DELIVERY_COMPLETED' || workflowState === 'RETURN_LOADING') {
+    // Leg 0 delivery departed
+    const leg0Delivery = stops.find(s => s.stop_sequence === 2) || stops[1];
+    if (leg0Delivery) {
+      await tx.tripStop.updateMany({
+        where: { id: leg0Delivery.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
+    // Return loading stop arrived
+    const returnLoadingStop = stops.find(s => s.stop_sequence === 3);
+    if (returnLoadingStop) {
+      await tx.tripStop.updateMany({
+        where: { id: returnLoadingStop.id, actual_arrival: null },
+        data: { actual_arrival: now },
+      });
+    }
+  } else if (workflowState === 'IN_TRANSIT_RETURN' || workflowState === 'RETURN_LOADING_COMPLETED') {
+    // Return loading stop departed
+    const returnLoadingStop = stops.find(s => s.stop_sequence === 3);
+    if (returnLoadingStop) {
+      await tx.tripStop.updateMany({
+        where: { id: returnLoadingStop.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
   } else if (workflowState === 'ARRIVED_AT_FINAL_DELIVERY') {
-    // Stamp Stop 3 arrival
+    // Final delivery stop arrived
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 3, actual_arrival: null, deletedAt: null },
+      where: { id: lastStop.id, actual_arrival: null },
       data: { actual_arrival: now },
     });
-  } else if (workflowState === 'COMPLETED') {
+  } else if (workflowState === 'COMPLETED' || workflowState === 'RETURN_DELIVERY_COMPLETED') {
     // Stamp final stop departure
-    const stops = await tx.tripStop.findMany({
-      where: { tripId, deletedAt: null },
-      select: { stop_sequence: true },
-    });
-    const maxSeq = Math.max(...stops.map((s) => s.stop_sequence), 1);
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: maxSeq, actual_departure: null, deletedAt: null },
+      where: { id: lastStop.id, actual_departure: null },
       data: { actual_departure: now },
     });
   }

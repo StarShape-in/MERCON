@@ -15,7 +15,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, type TripStatus, type MobileTrip } from '../../lib/trips';
+import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage } from '../../lib/language-context';
 import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
@@ -132,7 +132,7 @@ const HomeScreen = () => {
   useEffect(() => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
-    const ws = trip.driver_workflow_state || 'ASSIGNED';
+    const ws = getEffectiveWorkflowState(trip);
     if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
       router.push('/trip/navigate');
     } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
@@ -193,7 +193,7 @@ const HomeScreen = () => {
   }
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
-    const ws = t.driver_workflow_state || 'ASSIGNED';
+    const ws = getEffectiveWorkflowState(t);
     const outboundStops = getOutboundIntermediateStops(t);
     const returnStops = getReturnIntermediateStops(t);
     const hasStops = outboundStops.length > 0;
