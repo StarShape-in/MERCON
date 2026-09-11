@@ -27,6 +27,8 @@ export function useTripRateLookup(
   const handleOpenCreateQuotation = (slot?: any) => {
     const originId = slot?.originLocationId || '';
     const destId = slot?.destinationLocationId || '';
+    const originName = slot?.originLocationName || slot?.origin || '';
+    const destName = slot?.destinationLocationName || slot?.destination || '';
     const vClass = normalizeVehicleClass(contractVehicleType);
     const lType = normalizeRateCategory(contractRateCategory);
     const bType = normalizeBillingType(contractBillingType);
@@ -38,6 +40,8 @@ export function useTripRateLookup(
       customer_id: contractCustomer || '',
       origin_id: originId,
       destination_id: destId,
+      origin_name: originName,
+      destination_name: destName,
       vehicle_class: vClass,
       line_type: lType,
       billing_type: bType,

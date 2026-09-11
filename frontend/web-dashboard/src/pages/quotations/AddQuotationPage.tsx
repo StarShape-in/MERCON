@@ -213,21 +213,30 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     const originId = pickupStop?.locationId || (pickupStop as any)?.location_id || existingQuotation.originLocationId || (existingQuotation as any).origin_location_id || '';
     const destId = dropoffStop?.locationId || (dropoffStop as any)?.location_id || existingQuotation.destinationLocationId || (existingQuotation as any).destination_location_id || '';
 
+    const origName = pickupStop?.source_label || (pickupStop as any)?.location?.name || existingQuotation.origin_name || existingQuotation.route_origin || '';
+    const destName = dropoffStop?.source_label || (dropoffStop as any)?.location?.name || existingQuotation.destination_name || existingQuotation.route_destination || '';
+
     // Extract intermediate stops
     const restStops = stopsArr
       .filter((s: any) => s !== pickupStop && s !== dropoffStop)
-      .map((s: any, idx: number) => ({ id: `via-${idx}`, locationId: s.locationId || (s as any).location_id || '' }));
+      .map((s: any, idx: number) => ({
+        id: `via-${idx}`,
+        locationId: s.locationId || (s as any).location_id || '',
+        locationName: s.source_label || s.location?.name || '',
+      }));
 
     setLineItems([
       {
         id: `edit-${existingQuotation.id}`,
         originLocationId: originId,
         destinationLocationId: destId,
+        originName: origName,
+        destinationName: destName,
         vehicleClass: existingQuotation.vehicle_class || '10 TON',
         lineType: existingQuotation.line_type || 'SINGLE_TRIP',
         pricingBasis: (existingQuotation.pricing_basis as any) || 'NULL',
         rate: String(existingQuotation.rate || ''),
-        driverPayout: String(existingQuotation.driver_payout || ''),
+        driverPayout: existingQuotation.driver_payout != null ? String(existingQuotation.driver_payout) : '',
         currency: existingQuotation.currency || 'SAR',
         sourceVehicleLabel: existingQuotation.source_vehicle_label || '',
         viaStops: restStops,
@@ -244,6 +253,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
     const custId = searchParams.get('customer_id');
     const origId = searchParams.get('origin_id');
     const destId = searchParams.get('destination_id');
+    const origName = searchParams.get('origin_name');
+    const destName = searchParams.get('destination_name');
     const vClass = searchParams.get('vehicle_class');
     const lType = searchParams.get('line_type');
     const bType = searchParams.get('billing_type');
@@ -255,11 +266,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       setOperationType(normB);
     }
 
-    if (origId || destId || vClass || lType || priceVal) {
+    if (origId || destId || origName || destName || vClass || lType || priceVal) {
       setLineItems([
         createEmptyLine({
           originLocationId: origId || '',
           destinationLocationId: destId || '',
+          originName: origName || '',
+          destinationName: destName || '',
           vehicleClass: vClass || '10 TON',
           lineType: lType || 'SINGLE_TRIP',
           rate: priceVal || '',
@@ -546,13 +559,17 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       return { createdQuotationsCount: createdQuotations.length, surchargesCount: surchargeRules.length };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
-      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
-      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] });
+      // Refetch (not just invalidate) so the list page gets fresh data immediately
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['quotations'] }),
+        queryClient.invalidateQueries({ queryKey: ['rate-cards'] }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-select'] }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] }),
+        queryClient.invalidateQueries({ queryKey: ['quotations-all'] }),
+        queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] }),
+        queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] }),
+      ]).catch(() => {/* ignore refetch errors */});
+
       setIsPreviewOpen(false);
 
       if (isReturnToTrip) {
@@ -560,7 +577,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         toast.success('Commercial Quotation created successfully! Returning to Trip creation...');
         setTimeout(() => {
           navigate(`/trips/new?step=${returnStep}`);
-        }, 300);
+        }, 500);
       } else {
         const parts: string[] = [];
         if (data.createdQuotationsCount > 0) {
@@ -569,17 +586,21 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
         if (data.surchargesCount > 0) {
           parts.push(`${data.surchargesCount} surcharge rule${data.surchargesCount > 1 ? 's' : ''}`);
         }
-        toast.success(
-          isEdit
-            ? 'Quotation updated successfully'
-            : `Successfully saved ${parts.length > 0 ? parts.join(' and ') : 'commercial agreement'}`
-        );
-        navigate(customerId ? `/quotations?customer_id=${customerId}` : '/quotations');
+        const successMsg = isEdit
+          ? 'Quotation updated successfully'
+          : `Successfully saved ${parts.length > 0 ? parts.join(' and ') : 'commercial agreement'}`;
+        toast.success(successMsg);
+        // Delay navigation slightly so refetch can populate the cache before the list page mounts
+        setTimeout(() => {
+          navigate(customerId ? `/quotations?customer_id=${customerId}` : '/quotations');
+        }, 400);
       }
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error?.message || err.message || 'Failed to save agreement rates';
-      setFormError(msg);
+      const errData = err.response?.data?.error;
+      const msg = errData?.message || err.message || 'Failed to save agreement rates';
+      const detail = errData?.code ? ` (${errData.code})` : '';
+      setFormError(msg + detail);
       toast.error(msg);
     },
   });

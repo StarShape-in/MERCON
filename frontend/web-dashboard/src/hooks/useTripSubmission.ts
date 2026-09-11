@@ -180,6 +180,8 @@ export function useTripSubmission(
               origin_lng: slot.originLng ?? null,
               destination_lat: slot.destinationLat ?? null,
               destination_lng: slot.destinationLng ?? null,
+              vehicle_class: contractVehicleType || null,
+              source_vehicle_label: contractVehicleType || null,
               vehicle_type: contractVehicleType || null,
               line_type: contractRateCategory || null,
               billing_type: contractBillingType || null,

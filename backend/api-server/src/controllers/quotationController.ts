@@ -330,20 +330,76 @@ export const updateQuotation = async (req: Request, res: Response) => {
       const newPayout = payoutVal !== undefined ? payoutVal : oldPayout;
       const payoutChanged = payoutVal !== undefined && oldPayout !== newPayout;
 
+      let stopData: Array<{ sequence: number; locationId: string | null; stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel'; source_label?: string | null }> | null = null;
+
+      if (Array.isArray(req.body.stops) && req.body.stops.length > 0) {
+        stopData = await Promise.all(req.body.stops.map(async (s: any, idx: number) => {
+          const rawLocId = getValidUuid(s.locationId || s.location_id || null);
+          const rawName = s.source_label || s.location_name || s.name || s.label || null;
+          let validLocId: string | null = null;
+          let locName: string | null = rawName;
+
+          if (rawLocId || rawName) {
+            const loc = await resolveLocation(tx, { id: rawLocId, name: rawName, customerId: normalisedCustomerId }, userId);
+            if (loc) {
+              validLocId = loc.id;
+              locName = loc.name;
+            }
+          }
+          return {
+            sequence: s.sequence ?? idx + 1,
+            locationId: validLocId,
+            stop_type: (s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest')) as any,
+            source_label: locName || rawName || null,
+          };
+        }));
+      } else if (req.body.origin_location_id || req.body.destination_location_id || req.body.origin_name || req.body.destination_name) {
+        const { origin, destination } = await resolveLane(tx, req.body, userId);
+        if (origin && destination) {
+          stopData = [
+            { sequence: 1, locationId: origin.id, stop_type: 'Pickup', source_label: origin.name },
+            ...(req.body.via_location ? [{ sequence: 2, locationId: null, stop_type: 'Rest' as const, source_label: String(req.body.via_location).trim() }] : []),
+            { sequence: req.body.via_location ? 3 : 2, locationId: destination.id, stop_type: 'Dropoff', source_label: destination.name },
+          ];
+        }
+      }
+
+      if (stopData && stopData.length > 0) {
+        await tx.quotationStop.deleteMany({ where: { quotationId: id as string } });
+        await tx.quotationStop.createMany({
+          data: stopData.map((s) => ({ ...s, quotationId: id as string })),
+        });
+      }
+
+      const lineTypeToUse = sentRateCategory || req.body.line_type || req.body.rate_category || undefined;
+      const billingTypeToUse = sentBillingType || req.body.billing_type || undefined;
+      const pricingBasisToUse = sentPricingBasis || req.body.pricing_basis || undefined;
+      const vehicleClassToUse = sentVehicleClass || req.body.vehicle_class || undefined;
+      const vehicleTypeToUse = sentVehicleType || req.body.source_vehicle_label || req.body.vehicle_type || undefined;
+
+      let nameToUse = name ? String(name).trim() : undefined;
+      if (!nameToUse && stopData && stopData.length > 0) {
+        const pickupStop = stopData.find((s) => s.stop_type === 'Pickup') || stopData[0];
+        const dropoffStop = stopData.filter((s) => s.stop_type === 'Dropoff').pop() || stopData[stopData.length - 1];
+        const originLabel = pickupStop?.source_label || 'Origin';
+        const destLabel = dropoffStop?.source_label || 'Destination';
+        nameToUse = `${originLabel} → ${destLabel}`;
+      }
+
       const updatedQuotation = await tx.quotation.update({
         where: { id: id as string },
         data: {
-          ...(name !== undefined ? { name: String(name).trim() } : {}),
+          ...(nameToUse !== undefined ? { name: nameToUse } : {}),
           ...(priceVal !== undefined ? { rate: newRate } : {}),
           ...(payoutVal !== undefined ? { driver_payout: payoutVal } : {}),
           ...(currency !== undefined ? { currency } : {}),
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),
-          ...(sentRateCategory !== null ? { line_type: sentRateCategory } : {}),
-          ...(sentBillingType !== null ? { billing_type: sentBillingType } : {}),
-          ...(sentPricingBasis !== null ? { pricing_basis: sentPricingBasis } : {}),
-          ...(sentVehicleClass !== null ? { vehicle_class: sentVehicleClass } : {}),
-          ...(sentVehicleType !== null ? { source_vehicle_label: sentVehicleType } : {}),
+          ...(lineTypeToUse !== undefined ? { line_type: lineTypeToUse } : {}),
+          ...(billingTypeToUse !== undefined ? { billing_type: billingTypeToUse } : {}),
+          ...(pricingBasisToUse !== undefined ? { pricing_basis: pricingBasisToUse } : {}),
+          ...(vehicleClassToUse !== undefined ? { vehicle_class: vehicleClassToUse } : {}),
+          ...(vehicleTypeToUse !== undefined ? { source_vehicle_label: vehicleTypeToUse } : {}),
           ...(sentValidFrom !== null ? { valid_from: sentValidFrom } : {}),
           ...(sentValidTo !== null ? { valid_to: sentValidTo } : {}),
           ...(sentSourceType !== null ? { source_type: sentSourceType } : {}),

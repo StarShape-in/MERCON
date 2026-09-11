@@ -255,7 +255,7 @@ export default function EditDriverPage() {
 
   return (
     <DashboardLayout active="Drivers" title={`Edit: ${driverFullName}`}>
-      <div className="px-3 sm:px-5 pb-3 pt-1 flex flex-col h-[calc(100vh-76px)] overflow-hidden max-w-[1350px] mx-auto gap-2.5 animate-fade-in">
+      <div className="px-3 sm:px-5 pb-3 pt-1 flex flex-col min-h-[calc(100vh-76px)] overflow-y-auto max-w-[1350px] mx-auto gap-2.5 animate-fade-in">
 
         {/* ── Slim Top Action Strip ── */}
         <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
