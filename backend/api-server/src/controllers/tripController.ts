@@ -535,22 +535,8 @@ export const getTripById = async (req: Request, res: Response) => {
       resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
     }
 
-    const isMonthlyContract = Boolean(
-      (trip.quotation_billing_type || trip.billing_type || (trip as any).quotation?.billing_type || '').toLowerCase().includes('monthly')
-    );
-    const contractRate = Number((trip as any).quotation?.rate ?? trip.applied_rate ?? trip.billing_amount ?? 0);
-
-    // Per trip billing calculation
-    let perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? 0);
-    if (isMonthlyContract && contractRate > 0) {
-      if (trip.billing_amount && Number(trip.billing_amount) > 0 && Number(trip.billing_amount) < contractRate) {
-        perTripBilling = Number(trip.billing_amount);
-      } else {
-        perTripBilling = Math.round((contractRate / 30) * 100) / 100;
-      }
-    }
-
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
+    const perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
     const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
@@ -573,8 +559,6 @@ export const getTripById = async (req: Request, res: Response) => {
       driver_charge: totalDriverPayout,
       balance_margin: balanceMargin,
       margin_percent: marginPercent,
-      is_monthly_contract: isMonthlyContract,
-      monthly_contract_rate: isMonthlyContract ? contractRate : null,
       vehicle: trip.vehicle
         ? {
             ...trip.vehicle,

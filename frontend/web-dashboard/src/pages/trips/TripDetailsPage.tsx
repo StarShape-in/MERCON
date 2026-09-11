@@ -267,24 +267,9 @@ export default function TripDetailsPage() {
   const nextStatusOption = getNextStatus(trip.status) || 'AtDelivery';
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
 
-  // Financials & Economics (Per-Trip Economics matching Trip Creation Page)
+  // Financials & Economics (matching Trip Creation Page)
   const tAny = trip as any;
-  const isMonthlyContract = Boolean(
-    (trip.quotation_billing_type || trip.billing_type || trip.rateCard?.billing_type || tAny.quotation?.billing_type || '').toLowerCase().includes('monthly')
-  );
-  const monthlyContractRate = Number(
-    tAny.quotation?.rate ?? trip.applied_rate ?? trip.rateCard?.base_price ?? trip.billing_amount ?? 0
-  );
-
-  // Per-Trip Customer Billing calculation
-  let customerBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? 0);
-  if (isMonthlyContract && monthlyContractRate > 0) {
-    if (trip.billing_amount && Number(trip.billing_amount) > 0 && Number(trip.billing_amount) < monthlyContractRate) {
-      customerBilling = Number(trip.billing_amount);
-    } else {
-      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
-    }
-  }
+  const customerBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate ?? 0);
 
   const chargesList = trip.charges || [];
   const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c) => sum + Number(c.amount || 0), 0));
@@ -535,8 +520,6 @@ export default function TripDetailsPage() {
               paidAmount={paidAmount}
               balanceDue={balanceDue}
               tripType={tripType}
-              isMonthlyContract={isMonthlyContract}
-              monthlyContractRate={monthlyContractRate}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

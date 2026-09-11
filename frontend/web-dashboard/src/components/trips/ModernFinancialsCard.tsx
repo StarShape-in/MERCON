@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Plus, FileText, ChevronDown, CheckCircle } from 'lucide-react';
+import { DollarSign, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 import { cn } from '@/lib/utils';
@@ -38,12 +38,10 @@ export default function ModernFinancialsCard({
   paidAmount = 0,
   balanceDue,
   tripType,
-  isMonthlyContract = false,
-  monthlyContractRate = 0,
   onAddCharge,
   onViewBreakdown,
 }: ModernFinancialsCardProps) {
-  // Resolve customer billing amount (Per-Trip)
+  // Resolve customer billing amount
   const billingVal = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
   const addChargesVal = additionalCharges ?? 0;
   const driverPayoutVal = driverPayout ?? 0;
@@ -64,60 +62,32 @@ export default function ModernFinancialsCard({
     <div className="w-full h-full bg-white dark:bg-slate-900 rounded-2xl border border-[#E5E7EB] dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4.5 py-4 flex flex-col justify-between gap-3 text-[#3E3C3D] dark:text-slate-100">
       {/* Top Section */}
       <div className="flex flex-col gap-2.5">
-        {/* HEADER: $ FINANCIAL SUMMARY + PROMINENT ADD CHARGES BUTTON */}
+        {/* HEADER: $ FINANCIAL SUMMARY */}
         <div className="pb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <DollarSign className="w-4 h-4 text-[#FA634E] shrink-0" />
             <h4 className="text-[11px] font-extrabold text-[#FA634E] uppercase tracking-wider">
               FINANCIAL SUMMARY
             </h4>
-            {tripType && (
-              <TaxonomyBadge
-                category="LINE_TYPE"
-                value={tripType}
-                fallbackText="Single Trip"
-                size="sm"
-                className="shrink-0"
-              />
-            )}
           </div>
-
-          <button
-            type="button"
-            onClick={onAddCharge}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-[#FA634E] dark:bg-orange-950/40 dark:hover:bg-orange-900/60 dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/60 text-[10px] font-extrabold transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-          >
-            <Plus className="w-3 h-3 text-[#FA634E] dark:text-orange-400" />
-            <span>{additionalChargesCount > 0 ? `Manage (${additionalChargesCount})` : '+ Add Charges'}</span>
-          </button>
+          {tripType && (
+            <TaxonomyBadge
+              category="LINE_TYPE"
+              value={tripType}
+              fallbackText="Single Trip"
+              size="sm"
+              className="shrink-0"
+            />
+          )}
         </div>
 
-        {/* MONTHLY CONTRACT CONTEXT PILL (When under a monthly contract) */}
-        {isMonthlyContract && monthlyContractRate > 0 && (
-          <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-[10.5px]">
-            <span className="font-bold text-purple-700 dark:text-purple-300">
-              Monthly Agreement Rate
-            </span>
-            <span className="font-mono font-black text-purple-800 dark:text-purple-200">
-              SAR {monthlyContractRate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} /mo
-            </span>
-          </div>
-        )}
-
-        {/* METRIC ROWS — EXACTLY MATCHING TRIP CREATION PAGE */}
+        {/* METRIC ROWS — MATCHING TRIP CREATION PAGE */}
         <div className="space-y-1">
           {/* ROW 1: CUSTOMER BILLING */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Customer Billing
-              </span>
-              {isMonthlyContract && (
-                <span className="text-[9px] font-bold text-slate-400">
-                  Per Trip (1/30th month)
-                </span>
-              )}
-            </div>
+            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Customer Billing
+            </span>
             <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white">
               SAR {billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
@@ -131,7 +101,7 @@ export default function ModernFinancialsCard({
               </span>
               {extraDriverPayment > 0 && (
                 <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
-                  Incl. SAR {extraDriverPayment} extra payment
+                  Incl. SAR {extraDriverPayment} extra
                 </span>
               )}
             </div>
@@ -207,7 +177,7 @@ export default function ModernFinancialsCard({
           className="h-8 rounded-xl border-orange-200 text-[#FA634E] hover:bg-orange-50 dark:border-orange-900/60 dark:text-orange-400 dark:hover:bg-orange-950/40 text-[11px] font-bold gap-1 shadow-none cursor-pointer"
         >
           <Plus size={13} />
-          Add Charge
+          {additionalChargesCount > 0 ? `Charges (${additionalChargesCount})` : 'Add Charge'}
         </Button>
         <Button
           variant="outline"
