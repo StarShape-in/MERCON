@@ -12,7 +12,7 @@ import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigat
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -32,7 +32,7 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) 
 const LiveNavigationScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { trip, loading, refetch, setTrip } = useCurrentTrip();
+  const { trip, loading, refetch } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
@@ -47,146 +47,64 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<OsmMapViewRef>(null);
 
-  const effectiveWs = getEffectiveWorkflowState(trip);
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
   const isRound = isRoundTrip(trip);
 
-  // Find target stop based on real-world stop progress and current state
-  const activeStop = React.useMemo(() => {
-    if (!trip?.stops || trip.stops.length === 0) return null;
-    const sortedStops = [...trip.stops].sort((a, b) => a.stop_sequence - b.stop_sequence);
-
-    // 1. Explicit return leg workflow states
-    if (isRound && (effectiveWs === 'RETURN_LOADING' || effectiveWs === 'RETURN_LOADING_COMPLETED')) {
-      return sortedStops.find((s) => s.stop_sequence === 3) ?? sortedStops.find((s) => s.stop_sequence > 2 && s.stop_type === 'Pickup') ?? sortedStops[2] ?? sortedStops[0];
-    }
-    if (isRound && (effectiveWs === 'IN_TRANSIT_RETURN' || effectiveWs === 'ARRIVED_AT_FINAL_DELIVERY' || effectiveWs === 'FINAL_DELIVERY_VERIFICATION')) {
-      return sortedStops.find((s) => s.stop_sequence === 4) ?? sortedStops.find((s) => s.stop_sequence > 2 && s.stop_type === 'Dropoff') ?? sortedStops[sortedStops.length - 1];
-    }
-
-    // 2. Otherwise find the first stop that has NOT completed departure
-    const incomplete = sortedStops.find((s) => !s.actual_departure);
-    if (incomplete) {
-      return incomplete;
-    }
-
-    // 3. Fallback to final stop
-    return sortedStops[sortedStops.length - 1];
-  }, [trip?.stops, effectiveWs, isRound]);
+  // Determine if heading to pickup or delivery directly from workflow state
+  const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || (isRound && ws === 'RETURN_LOADING');
 
   // Leg index: 0 for first leg, 1 for return leg
-  const legIndex = isRound && (
-    (activeStop && activeStop.stop_sequence >= 3) ||
-    effectiveWs === 'RETURN_LOADING' ||
-    effectiveWs === 'RETURN_LOADING_COMPLETED' ||
-    effectiveWs === 'IN_TRANSIT_RETURN' ||
-    effectiveWs === 'ARRIVED_AT_FINAL_DELIVERY' ||
-    effectiveWs === 'FINAL_DELIVERY_VERIFICATION' ||
-    effectiveWs === 'FIRST_DELIVERY_COMPLETED' ||
-    effectiveWs.includes('RETURN_STOP')
-  ) ? 1 : 0;
+  const legIndex = isRound && (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
 
-  // Heading to pickup vs delivery directly from active stop
-  const isHeadingToPickup = activeStop?.stop_type === 'Pickup';
+  // 1. Identify the trip's pickup stop
+  const pickupStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    const targetSeq = legIndex === 1 ? 3 : 1;
+    return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
+           trip.stops.find((s) => s.stop_type === 'Pickup') ??
+           trip.stops[0];
+  }, [trip?.stops, legIndex]);
 
-  // Determine expected arrival operation identifier
-  const expectedArrivalOp = React.useMemo(() => {
-    if (!activeStop) return 'pickup_arrival';
-    if (activeStop.stop_type === 'Pickup') {
-      return legIndex === 1 ? 'return_loading_arrival' : 'pickup_arrival';
+  // 2. Identify the trip's drop-off / delivery stop
+  const dropoffStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    if (legIndex === 1) {
+      return trip.stops.find((s) => s.stop_sequence === 4) ??
+             trip.stops.find((s) => s.stop_type === 'Dropoff' && s.stop_sequence > 2) ??
+             trip.stops[trip.stops.length - 1];
     }
-    if (activeStop.stop_type === 'Dropoff') {
-      return legIndex === 1 ? 'return_delivery_arrival' : 'delivery_arrival';
-    }
-    return legIndex === 1 ? 'return_stop_arrival' : 'stop_arrival';
-  }, [activeStop, legIndex]);
+    return trip.stops.find((s) => s.stop_type === 'Dropoff') ??
+           trip.stops.find((s) => s.stop_sequence === 2) ??
+           trip.stops[trip.stops.length - 1];
+  }, [trip?.stops, legIndex]);
 
-  // Check if an arrival photo document was already uploaded to the server
-  const existingArrivalDoc = React.useMemo(() => {
-    if (!trip?.documents) return null;
-    return trip.documents.find((d: any) => {
-      const op = d.ai_extracted_json?.operation;
-      const leg = d.ai_extracted_json?.leg_index;
-      if (op === expectedArrivalOp) return true;
-      if (op?.includes('arrival')) {
-        return leg === legIndex || leg === undefined;
-      }
-      return false;
-    });
-  }, [trip?.documents, expectedArrivalOp, legIndex]);
+  // 3. Active stop preserves existing workflow behavior (action card, status update, photos, ETA)
+  const activeStop = React.useMemo(() => {
+    return isHeadingToPickup ? pickupStop : dropoffStop;
+  }, [isHeadingToPickup, pickupStop, dropoffStop]);
 
-  // Check if arrival has ALREADY been recorded for this stop
-  const isAlreadyArrived = React.useMemo(() => {
-    if (!activeStop) return false;
-    if (activeStop.actual_arrival) return true;
-    if (existingArrivalDoc) return true;
+  // 4. Create independent MarkerInfo objects for the map
+  const pickupMarker = React.useMemo(() => {
+    if (!pickupStop || !isValidCoordinate(pickupStop.location_lat, pickupStop.location_lng)) {
+      return null;
+    }
+    return {
+      coordinate: { latitude: pickupStop.location_lat, longitude: pickupStop.location_lng },
+      title: stopLabel(pickupStop, 'Pickup Location'),
+      address: stopAddress(pickupStop),
+    };
+  }, [pickupStop]);
 
-    // Check workflow state matching
-    if (activeStop.stop_type === 'Pickup') {
-      if (legIndex === 1) {
-        return effectiveWs === 'RETURN_LOADING' || effectiveWs === 'RETURN_LOADING_COMPLETED';
-      }
-      return effectiveWs === 'ARRIVED_AT_PICKUP' || effectiveWs === 'LOADING' || effectiveWs === 'LOADING_COMPLETED';
+  const dropoffMarker = React.useMemo(() => {
+    if (!dropoffStop || !isValidCoordinate(dropoffStop.location_lat, dropoffStop.location_lng)) {
+      return null;
     }
-    if (activeStop.stop_type === 'Dropoff') {
-      if (legIndex === 1) {
-        return effectiveWs === 'ARRIVED_AT_FINAL_DELIVERY' || effectiveWs === 'FINAL_DELIVERY_VERIFICATION' || effectiveWs === 'RETURN_DELIVERY_COMPLETED' || effectiveWs === 'COMPLETED';
-      }
-      return effectiveWs === 'ARRIVED_AT_DELIVERY' || effectiveWs === 'DELIVERY_VERIFICATION' || effectiveWs === 'DELIVERY_COMPLETED' || effectiveWs === 'FIRST_DELIVERY_COMPLETED';
-    }
-    return effectiveWs === 'ARRIVED_AT_STOP' || effectiveWs === 'STOP_VERIFICATION' || effectiveWs === 'ARRIVED_AT_RETURN_STOP' || effectiveWs === 'RETURN_STOP_VERIFICATION';
-  }, [activeStop, existingArrivalDoc, effectiveWs, legIndex]);
-
-  // Step 1: Pickup, Step 2: Loading, Step 3: Delivery / In Transit
-  const stepperStep = React.useMemo(() => {
-    if (activeStop?.stop_type === 'Pickup') {
-      return isAlreadyArrived ? 2 : 1;
-    }
-    return 3;
-  }, [activeStop, isAlreadyArrived]);
-
-  const headerStateTitle = React.useMemo(() => {
-    if (activeStop?.stop_type === 'Pickup') {
-      if (isAlreadyArrived) {
-        return legIndex === 1 ? 'Arrived at return loading' : 'Arrived at pickup';
-      }
-      return legIndex === 1 ? 'On the way to return loading' : 'On the way to pickup';
-    }
-    if (activeStop?.stop_type === 'Dropoff') {
-      if (isAlreadyArrived) {
-        return legIndex === 1 ? 'Arrived at return delivery' : 'Arrived at delivery';
-      }
-      return legIndex === 1 ? 'On the way to return delivery' : 'On the way to delivery';
-    }
-    return isAlreadyArrived ? 'Arrived at stop' : 'On the way to stop';
-  }, [activeStop, isAlreadyArrived, legIndex]);
-
-  const destinationLabel = React.useMemo(() => {
-    if (activeStop?.stop_type === 'Pickup') {
-      return legIndex === 1 ? 'RETURN LOADING AT' : 'PICKING UP AT';
-    }
-    if (activeStop?.stop_type === 'Dropoff') {
-      return legIndex === 1 ? 'RETURN DELIVERY AT' : 'DELIVERING TO';
-    }
-    return 'STOP AT';
-  }, [activeStop, legIndex]);
-
-  // If arrival is already recorded for this stop and we entered navigation, seamlessly transition forward
-  const autoRedirectedRef = useRef(false);
-  useEffect(() => {
-    if (loading || !trip || !activeStop || autoRedirectedRef.current) return;
-    if (isAlreadyArrived) {
-      if (activeStop.stop_type === 'Pickup' && (effectiveWs === 'ARRIVED_AT_PICKUP' || effectiveWs === 'LOADING' || effectiveWs === 'RETURN_LOADING')) {
-        autoRedirectedRef.current = true;
-        router.replace('/trip/pickup' as any);
-      } else if (activeStop.stop_type === 'Dropoff' && (effectiveWs === 'ARRIVED_AT_DELIVERY' || effectiveWs === 'DELIVERY_VERIFICATION' || effectiveWs === 'ARRIVED_AT_FINAL_DELIVERY' || effectiveWs === 'FINAL_DELIVERY_VERIFICATION')) {
-        autoRedirectedRef.current = true;
-        router.replace('/trip/delivery' as any);
-      } else if (activeStop.stop_type !== 'Pickup' && activeStop.stop_type !== 'Dropoff' && (effectiveWs === 'ARRIVED_AT_STOP' || effectiveWs === 'STOP_VERIFICATION' || effectiveWs === 'ARRIVED_AT_RETURN_STOP' || effectiveWs === 'RETURN_STOP_VERIFICATION')) {
-        autoRedirectedRef.current = true;
-        router.replace({ pathname: '/trip/stop', params: { legIndex: String(legIndex) } } as any);
-      }
-    }
-  }, [loading, trip?.id, activeStop?.id, isAlreadyArrived, effectiveWs]);
+    return {
+      coordinate: { latitude: dropoffStop.location_lat, longitude: dropoffStop.location_lng },
+      title: stopLabel(dropoffStop, 'Delivery Destination'),
+      address: stopAddress(dropoffStop),
+    };
+  }, [dropoffStop]);
 
   const handleAddPhoto = async () => {
     try {
@@ -202,7 +120,7 @@ const LiveNavigationScreen = () => {
   const goToStop = async () => {
     if (!trip || hasArrivedRef.current) return;
 
-    if (!isAlreadyArrived && !arrivalPhoto) {
+    if (!arrivalPhoto) {
       Alert.alert(
         'Arrival Photo Required',
         'Please capture or attach an arrival photo before confirming arrival.',
@@ -217,15 +135,15 @@ const LiveNavigationScreen = () => {
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      if (!isAlreadyArrived && arrivalPhoto && trip.id) {
+      if (arrivalPhoto && trip.id) {
         try {
-          const arrivalOp = activeStop?.stop_type === 'Pickup'
+          const arrivalOp = isHeadingToPickup
             ? (legIndex === 1 ? 'return_loading_arrival' : 'pickup_arrival')
             : (legIndex === 1 ? 'return_delivery_arrival' : 'delivery_arrival');
 
           await tripService.uploadPhoto(
             trip.id,
-            activeStop?.stop_type === 'Pickup' ? 'cargo' : 'pod',
+            isHeadingToPickup ? 'cargo' : 'pod',
             {
               uri: arrivalPhoto.uri,
               fileName: arrivalPhoto.fileName,
@@ -244,24 +162,19 @@ const LiveNavigationScreen = () => {
         }
       }
 
-      if (activeStop?.stop_type !== 'Pickup' && activeStop?.stop_type !== 'Dropoff') {
-        const nextState = legIndex === 1 ? 'ARRIVED_AT_RETURN_STOP' : 'ARRIVED_AT_STOP';
-        const updated = await tripService.updateStatus(trip.id, 'InTransit', nextState);
-        setTrip(updated);
-        refetch();
-        router.replace({ pathname: '/trip/stop', params: { legIndex: String(legIndex) } } as any);
-      } else if (activeStop?.stop_type === 'Pickup') {
-        const nextState = legIndex === 1 ? 'RETURN_LOADING' : 'ARRIVED_AT_PICKUP';
-        const updated = await tripService.updateStatus(trip.id, 'Loading', nextState);
-        setTrip(updated);
-        refetch();
+      if (ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION') {
+        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_RETURN_STOP');
+        router.replace({ pathname: '/trip/stop', params: { legIndex: '1' } } as any);
+      } else if (ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'STOP_VERIFICATION') {
+        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_STOP');
+        router.replace({ pathname: '/trip/stop', params: { legIndex: '0' } } as any);
+      } else if (isHeadingToPickup) {
+        await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        const isReturnFinal = isRound && legIndex === 1;
+        const isReturnFinal = isRound && (legIndex === 1 || ws === 'IN_TRANSIT_RETURN');
         const nextState = isReturnFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
-        const updated = await tripService.updateStatus(trip.id, 'InTransit', nextState);
-        setTrip(updated);
-        refetch();
+        await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
       }
     } catch (e) {
@@ -426,15 +339,8 @@ const LiveNavigationScreen = () => {
       <View style={StyleSheet.absoluteFill}>
         <OsmMapView
           ref={mapRef}
-          destination={
-            activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)
-              ? {
-                  coordinate: { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
-                  title: stopLabel(activeStop),
-                  address: stopAddress(activeStop),
-                }
-              : null
-          }
+          pickup={pickupMarker}
+          destination={dropoffMarker}
           driverPosition={
             position && isValidCoordinate(position.lat, position.lng)
               ? { latitude: position.lat, longitude: position.lng }
@@ -466,7 +372,7 @@ const LiveNavigationScreen = () => {
                   <Text style={styles.currentStepTag}>CURRENT STEP</Text>
                 </View>
                 <Text style={styles.headerStateTitle} numberOfLines={1}>
-                  {headerStateTitle}
+                  {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
                 </Text>
               </View>
 
@@ -478,11 +384,7 @@ const LiveNavigationScreen = () => {
 
             {/* Row 2: Full Width Connected 4-Stage Stepper */}
             <View style={styles.fullWidthStepperContainer}>
-              <TripProgressStepper
-                currentStep={stepperStep}
-                customStep1Label={isRound && legIndex === 1 ? 'Return Load' : 'Pickup'}
-                customStep3Label={isRound && legIndex === 1 ? 'Return Delivery' : 'Delivery'}
-              />
+              <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
             </View>
           </View>
         </View>
@@ -524,7 +426,7 @@ const LiveNavigationScreen = () => {
             <View style={styles.destinationRow}>
               <View style={styles.destinationTextCol}>
                 <Text style={styles.destinationLabel}>
-                  {destinationLabel}
+                  {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
                 </Text>
                 <Text style={styles.destinationName} numberOfLines={1}>
                   {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
@@ -534,24 +436,8 @@ const LiveNavigationScreen = () => {
                 </Text>
               </View>
 
-              {/* Photo Upload Tile: shows confirmed if already arrived/uploaded, thumbnail if selected, or Add Image button */}
-              {existingArrivalDoc ? (
-                <View style={styles.photoTileWrapper}>
-                  <TouchableOpacity
-                    style={styles.arrivalPhotoThumbBox}
-                    activeOpacity={0.85}
-                    onPress={() => setPreviewPhoto({ uri: existingArrivalDoc.file_url } as any)}
-                  >
-                    <Image source={{ uri: existingArrivalDoc.file_url }} style={styles.arrivalPhotoThumb} />
-                    <View style={styles.photoCheckBadge}>
-                      <CheckCircle2 size={11} color="#FFFFFF" strokeWidth={2.5} />
-                    </View>
-                  </TouchableOpacity>
-                  <View style={styles.confirmedBadgeOverlay}>
-                    <Text style={styles.confirmedBadgeText}>Uploaded</Text>
-                  </View>
-                </View>
-              ) : arrivalPhoto ? (
+              {/* Photo Upload Tile (Matching user screenshot) */}
+              {arrivalPhoto ? (
                 <View style={styles.photoTileWrapper}>
                   <TouchableOpacity
                     style={styles.arrivalPhotoThumbBox}
@@ -571,14 +457,6 @@ const LiveNavigationScreen = () => {
                     <Trash2 size={11} color="#FFFFFF" strokeWidth={2.2} />
                   </TouchableOpacity>
                 </View>
-              ) : isAlreadyArrived ? (
-                <View style={styles.arrivedConfirmedTile}>
-                  <View style={styles.arrivedCheckCircle}>
-                    <CheckCircle2 size={20} color="#10B981" strokeWidth={2.5} />
-                  </View>
-                  <Text style={styles.arrivedConfirmedText}>Arrival Confirmed</Text>
-                  <Text style={styles.arrivedCompletedBadge}>Completed</Text>
-                </View>
               ) : (
                 <TouchableOpacity
                   style={styles.addArrivalPhotoBtn}
@@ -595,35 +473,25 @@ const LiveNavigationScreen = () => {
             </View>
           </View>
 
-          {/* 2. PRIMARY ACTION: PROCEED / ARRIVED */}
+          {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
           <TouchableOpacity
             style={[
               styles.primaryArrivedBtn,
-              {
-                backgroundColor: isAlreadyArrived
-                  ? (activeStop?.stop_type === 'Pickup' ? '#FA634E' : '#10B981')
-                  : (!arrivalPhoto ? '#94A3B8' : (activeStop?.stop_type === 'Pickup' ? '#FA634E' : '#10B981')),
-              },
+              { backgroundColor: !arrivalPhoto ? '#94A3B8' : (isHeadingToPickup ? '#FA634E' : '#10B981') },
               arriving && { opacity: 0.6 }
             ]}
             activeOpacity={0.88}
             onPress={goToStop}
-            disabled={arriving || (!isAlreadyArrived && !arrivalPhoto)}
+            disabled={arriving}
           >
             <Text style={styles.primaryArrivedBtnText}>
               {arriving
                 ? 'Updating State…'
-                : isAlreadyArrived
-                ? (activeStop?.stop_type === 'Pickup'
-                    ? (legIndex === 1 ? 'PROCEED TO RETURN LOADING' : 'PROCEED TO LOADING')
-                    : activeStop?.stop_type === 'Dropoff'
-                    ? (legIndex === 1 ? 'PROCEED TO RETURN DELIVERY' : 'PROCEED TO DELIVERY')
-                    : 'PROCEED TO STOP VERIFICATION')
                 : !arrivalPhoto
                 ? 'ADD IMAGE TO CONFIRM ARRIVAL'
-                : (activeStop?.stop_type === 'Pickup'
-                    ? (legIndex === 1 ? "I'VE ARRIVED AT RETURN LOADING" : "I'VE ARRIVED AT PICKUP")
-                    : (legIndex === 1 ? "I'VE ARRIVED AT FINAL DELIVERY" : "I'VE ARRIVED AT DELIVERY"))}
+                : isHeadingToPickup
+                ? "I'VE ARRIVED AT PICKUP"
+                : "I'VE ARRIVED AT DELIVERY"}
             </Text>
           </TouchableOpacity>
 
@@ -1035,53 +903,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: 72,
     height: 72,
-  },
-  arrivedConfirmedTile: {
-    width: 80,
-    height: 72,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#10B981',
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 4,
-  },
-  arrivedCheckCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#D1FAE5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  arrivedConfirmedText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#065F46',
-    textAlign: 'center',
-  },
-  arrivedCompletedBadge: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#10B981',
-    marginTop: 1,
-  },
-  confirmedBadgeOverlay: {
-    position: 'absolute',
-    bottom: -4,
-    left: '50%',
-    transform: [{ translateX: -24 }],
-    backgroundColor: '#10B981',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  confirmedBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '800',
   },
   arrivalPhotoThumbBox: {
     width: 72,

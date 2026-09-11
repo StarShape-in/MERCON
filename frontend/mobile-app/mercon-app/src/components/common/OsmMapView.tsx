@@ -56,8 +56,8 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
 
   // Fixed initial center determined at mount time — MUST NOT change when live GPS updates arrive
   const initialMapCenter = useRef<LatLng>({
-    latitude: initialCenter?.latitude ?? destination?.coordinate.latitude ?? DEFAULT_CENTER.latitude,
-    longitude: initialCenter?.longitude ?? destination?.coordinate.longitude ?? DEFAULT_CENTER.longitude,
+    latitude: initialCenter?.latitude ?? pickup?.coordinate.latitude ?? destination?.coordinate.latitude ?? DEFAULT_CENTER.latitude,
+    longitude: initialCenter?.longitude ?? pickup?.coordinate.longitude ?? destination?.coordinate.longitude ?? DEFAULT_CENTER.longitude,
   }).current;
 
   React.useImperativeHandle(ref, () => ({

@@ -43,5 +43,4 @@ EXPOSE 3000
 # failure there is worth shouting about but not worth taking the API down for.
 #
 # NOTE: `migrate deploy` requires the database to have a `_prisma_migrations`
-# table. A database previously managed by `db push` has none, so it must be
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss 2>/dev/null || true; npx prisma generate 2>/dev/null || true; node dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && node dist/index.js"]
