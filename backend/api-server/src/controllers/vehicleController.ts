@@ -650,23 +650,14 @@ export const deleteVehicle = async (req: Request, res: Response) => {
     }
 
     await prisma.$transaction([
-      prisma.vehicle.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-          deleted_by: (req as any).user?.id
-        }
-      }),
-      // Free any driver still pointing at this vehicle so the assignment
-      // doesn't silently keep referencing a deleted vehicle, and so the
-      // vehicle's unique assignedVehicleId slot can be reused.
-      prisma.driver.updateMany({
-        where: { assignedVehicleId: id },
-        data: { assignedVehicleId: null }
-      })
+      prisma.trip.updateMany({ where: { vehicleId: id }, data: { vehicleId: null } }),
+      prisma.expense.updateMany({ where: { vehicleId: id }, data: { vehicleId: null } }),
+      prisma.maintenanceRecord.deleteMany({ where: { vehicleId: id } }),
+      prisma.driverVehicleAssignment.deleteMany({ where: { vehicleId: id } }),
+      prisma.driver.updateMany({ where: { assignedVehicleId: id }, data: { assignedVehicleId: null } }),
+      prisma.vehicle.delete({ where: { id } })
     ]);
-    res.json({ success: true, data: { message: 'Vehicle deleted successfully' } });
+    res.json({ success: true, data: { message: 'Vehicle permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete vehicle' } });
   }
@@ -770,10 +761,10 @@ export const getVehicleUsage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const [activeTrips, totalTrips, maintenanceRecords, expenses] = await Promise.all([
-      prisma.trip.count({ where: { vehicleId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
-      prisma.trip.count({ where: { vehicleId: id, deletedAt: null } }),
-      prisma.maintenanceRecord.count({ where: { vehicleId: id, deletedAt: null } }),
-      prisma.expense.count({ where: { vehicleId: id, deletedAt: null } })
+      prisma.trip.count({ where: { vehicleId: id, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
+      prisma.trip.count({ where: { vehicleId: id } }),
+      prisma.maintenanceRecord.count({ where: { vehicleId: id } }),
+      prisma.expense.count({ where: { vehicleId: id } })
     ]);
     res.json({ success: true, data: { activeTrips, totalTrips, maintenanceRecords, expenses } });
   } catch (error) {
@@ -783,7 +774,6 @@ export const getVehicleUsage = async (req: Request, res: Response) => {
 
 export const bulkDeleteVehicles = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -791,7 +781,7 @@ export const bulkDeleteVehicles = async (req: Request, res: Response) => {
     }
 
     const inUse = await prisma.trip.findMany({
-      where: { vehicleId: { in: ids }, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } },
+      where: { vehicleId: { in: ids }, status: { in: ACTIVE_TRIP_STATUSES as any } },
       select: { vehicleId: true },
       distinct: ['vehicleId']
     });
@@ -800,18 +790,12 @@ export const bulkDeleteVehicles = async (req: Request, res: Response) => {
 
     if (deletableIds.length > 0) {
       await prisma.$transaction([
-        prisma.vehicle.updateMany({
-          where: { id: { in: deletableIds } },
-          data: {
-            deletedAt: new Date(),
-            isActive: false,
-            deleted_by: userId
-          }
-        }),
-        prisma.driver.updateMany({
-          where: { assignedVehicleId: { in: deletableIds } },
-          data: { assignedVehicleId: null }
-        })
+        prisma.trip.updateMany({ where: { vehicleId: { in: deletableIds } }, data: { vehicleId: null } }),
+        prisma.expense.updateMany({ where: { vehicleId: { in: deletableIds } }, data: { vehicleId: null } }),
+        prisma.maintenanceRecord.deleteMany({ where: { vehicleId: { in: deletableIds } } }),
+        prisma.driverVehicleAssignment.deleteMany({ where: { vehicleId: { in: deletableIds } } }),
+        prisma.driver.updateMany({ where: { assignedVehicleId: { in: deletableIds } }, data: { assignedVehicleId: null } }),
+        prisma.vehicle.deleteMany({ where: { id: { in: deletableIds } } })
       ]);
     }
 

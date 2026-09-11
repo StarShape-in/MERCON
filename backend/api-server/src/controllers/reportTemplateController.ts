@@ -156,9 +156,8 @@ export const deleteReportTemplate = async (req: Request, res: Response) => {
     if (!existing) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Report template not found' } });
     }
-    await prisma.reportTemplate.update({
+    await prisma.reportTemplate.delete({
       where: { id: req.params.id as string },
-      data: { deletedAt: new Date(), deleted_by: (req as any).user?.id, isActive: false },
     });
     res.json({ success: true, data: { id: req.params.id as string } });
   } catch (error) {

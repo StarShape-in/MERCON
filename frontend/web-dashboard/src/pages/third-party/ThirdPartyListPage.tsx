@@ -319,7 +319,7 @@ export default function ThirdPartyListPage() {
     setConfirmModal({
       isOpen: true,
       title: 'Remove Third-Party Provider',
-      message: `Are you sure you want to delete "${provider.name}"? This action can be undone from Recycle Bin.`,
+      message: `Are you sure you want to permanently delete "${provider.name}"? This action cannot be undone.`,
       isDestructive: true,
       onConfirm: async () => {
         try {
@@ -502,7 +502,7 @@ export default function ThirdPartyListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Providers',
-          message: `Are you sure you want to delete ${selectedRows.length} third-party providers? This action can be undone from Recycle Bin.`,
+          message: `Are you sure you want to permanently delete ${selectedRows.length} third-party providers? This action cannot be undone.`,
           isDestructive: true,
           onConfirm: async () => {
             try {

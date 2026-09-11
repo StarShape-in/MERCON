@@ -164,13 +164,16 @@ export const deleteUser = async (req: Request, res: Response) => {
        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Cannot delete your own account' } });
     }
 
-    // Soft delete (deactivate) for safety
-    await prisma.user.update({
-      where: { id: id as string },
-      data: { isActive: false, deletedAt: new Date() }
-    });
+    // Hard delete user record
+    await prisma.$transaction([
+      prisma.document.updateMany({ where: { verified_by: id as string }, data: { verified_by: null } }),
+      prisma.trip.updateMany({ where: { payment_approved_by: id as string }, data: { payment_approved_by: null } }),
+      prisma.driver.updateMany({ where: { userId: id as string }, data: { userId: null } }),
+      prisma.notification.deleteMany({ where: { userId: id as string } }),
+      prisma.user.delete({ where: { id: id as string } })
+    ]);
 
-    res.json({ success: true, message: 'User deactivated successfully' });
+    res.json({ success: true, message: 'User permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Error deleting user:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });

@@ -371,19 +371,11 @@ export const deleteExpense = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.expense.update({
-      where: { id: existing.id },
-      data: {
-        // Releasing the ref_id frees its number for the next expense, so the
-        // sequence stays gapless — ref_id is unique across deleted rows too,
-        // so it must be cleared, not kept.
-        ref_id: null,
-        deletedAt: new Date(),
-        deleted_by: (req as any).user?.id,
-      },
+    await prisma.expense.delete({
+      where: { id: existing.id }
     });
 
-    res.json({ success: true, message: 'Expense deleted successfully' });
+    res.json({ success: true, message: 'Expense permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete expense');
     res.status(500).json({

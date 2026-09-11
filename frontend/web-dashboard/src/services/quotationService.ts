@@ -260,13 +260,39 @@ export const quotationService = {
   },
 
   async create(payload: CreateQuotationPayload): Promise<Quotation> {
-    const res = await api.post<ApiResponse<Quotation>>('/quotations', payload);
-    return res.data.data;
+    console.log('🚀 [quotationService.create] Sending payload:', payload);
+    try {
+      const res = await api.post<ApiResponse<Quotation>>('/quotations', payload);
+      console.log('✅ [quotationService.create] Success response:', res.data);
+      return res.data.data;
+    } catch (err: any) {
+      console.error('❌ [quotationService.create] Request failed:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        errorData: err.response?.data,
+        message: err.message,
+        payloadSent: payload,
+      });
+      throw err;
+    }
   },
 
   async update(id: string, payload: Partial<CreateQuotationPayload>): Promise<Quotation> {
-    const res = await api.put<ApiResponse<Quotation>>(`/quotations/${id}`, payload);
-    return res.data.data;
+    console.log(`🚀 [quotationService.update] Updating quotation ID ${id}:`, payload);
+    try {
+      const res = await api.put<ApiResponse<Quotation>>(`/quotations/${id}`, payload);
+      console.log('✅ [quotationService.update] Success response:', res.data);
+      return res.data.data;
+    } catch (err: any) {
+      console.error('❌ [quotationService.update] Request failed:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        errorData: err.response?.data,
+        message: err.message,
+        payloadSent: payload,
+      });
+      throw err;
+    }
   },
 
   async getHistory(id: string): Promise<QuotationHistory[]> {

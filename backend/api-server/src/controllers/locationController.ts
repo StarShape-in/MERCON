@@ -62,8 +62,7 @@ export const resolveLocation = async (
 
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse } });
-    if (!existing) throw new Error('LOCATION_NOT_FOUND');
-    return existing;
+    if (existing) return existing;
   }
 
   const name = String(input.name || '').trim();
@@ -618,16 +617,13 @@ export const deleteLocation = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
 
-    await prisma.location.update({
-      where: { id: id as string },
-      data: {
-        deletedAt: new Date(),
-        is_active: false,
-        deleted_by: getValidUuid((req as any).user?.id),
-      },
-    });
+    await prisma.$transaction([
+      prisma.tripStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.quotationStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.location.delete({ where: { id: id as string } })
+    ]);
 
-    res.json({ success: true, message: 'Location deleted successfully' });
+    res.json({ success: true, message: 'Location permanently deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete location' } });
   }
