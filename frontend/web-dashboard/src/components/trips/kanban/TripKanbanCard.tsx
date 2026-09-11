@@ -30,7 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export interface TripKanbanCardProps {
   trip: Trip;
-  onStatusChange: (trip: Trip, newStatus: TripStatus) => void;
+  onStatusChange?: (trip: Trip, newStatus: TripStatus) => void;
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
