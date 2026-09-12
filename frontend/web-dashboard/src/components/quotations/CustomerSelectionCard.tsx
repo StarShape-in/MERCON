@@ -77,9 +77,9 @@ export const CustomerSelectionCard: React.FC<CustomerSelectionCardProps> = ({
       {selectedCust ? (
         <div className="p-3 rounded-xl border border-[#FA634E]/30 bg-orange-50/40 dark:bg-slate-800/60 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {selectedCust.logo_url || selectedCust.avatar_url ? (
+            {(selectedCust.logo_url || selectedCust.avatar_url) ? (
               <img
-                src={selectedCust.logo_url || selectedCust.avatar_url}
+                src={(selectedCust.logo_url || selectedCust.avatar_url) ?? undefined}
                 alt={selectedCust.name}
                 className="w-9 h-9 rounded-xl object-cover border border-[#FA634E]/30 shadow-2xs shrink-0 bg-white"
               />
@@ -147,9 +147,9 @@ export const CustomerSelectionCard: React.FC<CustomerSelectionCardProps> = ({
                       className="p-2.5 rounded-xl border transition-all duration-200 text-left flex flex-col justify-between h-[96px] w-full bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none border-slate-200 dark:border-slate-700 hover:border-[#FA634E] hover:bg-orange-50/50 dark:hover:bg-slate-700/80 group"
                     >
                       <div className="flex items-center gap-2.5">
-                        {c.logo_url || c.avatar_url ? (
+                        {(c.logo_url || c.avatar_url) ? (
                           <img
-                            src={c.logo_url || c.avatar_url}
+                            src={(c.logo_url || c.avatar_url) ?? undefined}
                             alt={c.name}
                             className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
                           />
@@ -208,9 +208,9 @@ export const CustomerSelectionCard: React.FC<CustomerSelectionCardProps> = ({
                         className="p-2.5 rounded-xl border transition-all duration-200 text-left flex flex-col justify-between h-[96px] w-[calc(33.333%-8px)] min-w-[200px] shrink-0 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none border-slate-200 dark:border-slate-700 hover:border-[#FA634E] hover:bg-orange-50/50 dark:hover:bg-slate-700/80 group"
                       >
                         <div className="flex items-center gap-2.5">
-                          {c.logo_url || c.avatar_url ? (
+                          {(c.logo_url || c.avatar_url) ? (
                             <img
-                              src={c.logo_url || c.avatar_url}
+                              src={(c.logo_url || c.avatar_url) ?? undefined}
                               alt={c.name}
                               className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
                             />
