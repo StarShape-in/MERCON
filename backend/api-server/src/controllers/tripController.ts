@@ -482,6 +482,7 @@ export const getTripById = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({
       where: whereClause,
       include: {
+        financials: true,
         driver: true,
         vehicle: true,
         customer: true,
@@ -536,7 +537,7 @@ export const getTripById = async (req: Request, res: Response) => {
     }
 
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
+    const perTripBilling = Number((trip as any).financials?.applied_rate ?? trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
     const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
