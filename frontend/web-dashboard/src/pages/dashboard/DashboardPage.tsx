@@ -28,8 +28,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ImportantReminders from '@/components/dashboard/ImportantReminders';
-import OperatorActionCenter from '@/components/dashboard/OperatorActionCenter';
+import OperatorCommandCenter from '@/components/dashboard/OperatorCommandCenter';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -1207,15 +1206,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
-          <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
+          {/* ── TOP ROW: Unified 2-Column Command Center + Active Fleet Map ─────────── */}
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Left Card (~32%): Operational Action Center / Live Delay Watch */}
-            <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
-              <OperatorActionCenter trips={rawTrips} />
+            {/* 1. Unified 2-Column Operator Command Center (~58% width) */}
+            <div className="w-full lg:w-[58%] xl:w-[60%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
+              <OperatorCommandCenter trips={rawTrips} />
             </div>
 
-            {/* 2. Active Trips Live Map (expands when reminders collapses) */}
+            {/* 2. Active Trips Live Map (~42% width) */}
             <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
 
               {/* Map Canvas with Overlays */}
@@ -1434,15 +1433,6 @@ export default function DashboardPage() {
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* 3. Important Reminders */}
-            <div className={`shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out ${isRemindersCollapsed ? 'w-full lg:w-[76px]' : 'w-full lg:w-[330px] xl:w-[360px]'}`}>
-              <ImportantReminders
-                collapsed={isRemindersCollapsed}
-                onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}
-                trips={(rawTrips.length > 0 ? rawTrips : FALLBACK_KANBAN_TRIPS) as Trip[]}
-              />
             </div>
 
           </div>
