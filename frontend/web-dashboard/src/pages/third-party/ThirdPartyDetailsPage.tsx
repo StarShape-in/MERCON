@@ -78,9 +78,11 @@ export default function ThirdPartyDetailsPage() {
 
   useEffect(() => {
     if (provider && provider.id && id !== provider.id) {
-      navigate(`/third-party/${provider.id}`, { replace: true });
+      if ((provider as any).ref_id && id?.toLowerCase() === (provider as any).ref_id.toLowerCase()) {
+        navigate(`/third-party/${provider.id}`, { replace: true });
+      }
     }
-  }, [provider?.id, id, navigate]);
+  }, [provider?.id, (provider as any)?.ref_id, id, navigate]);
 
   if (isLoading) {
     return (

@@ -85,9 +85,11 @@ export default function DriverDetailsPage() {
   // URL normalization: if navigated using ref_id, replace with canonical UUID
   useEffect(() => {
     if (driver && driver.id && id !== driver.id) {
-      navigate(`/drivers/${driver.id}`, { replace: true });
+      if (driver.ref_id && id?.toLowerCase() === driver.ref_id.toLowerCase()) {
+        navigate(`/drivers/${driver.id}`, { replace: true });
+      }
     }
-  }, [driver?.id, id, navigate]);
+  }, [driver?.id, driver?.ref_id, id, navigate]);
 
   const { data: docsRes } = useQuery({
     queryKey: ['documents', 'Driver', id],
@@ -391,7 +393,7 @@ export default function DriverDetailsPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
                         <Activity className="w-3.5 h-3.5 text-slate-400" />
-                        Ref: {displayTrip.ref_id || displayTrip.id.substring(0, 8)}
+                        Ref: {displayTrip.ref_id || displayTrip.id?.substring(0, 8) || 'N/A'}
                       </span>
                       <span className="text-[10px] font-bold text-[#FA634E] flex items-center gap-1 opacity-0 group-hover/dispatch:opacity-100 transition-opacity">
                         <ArrowUpRight className="w-3 h-3" /> View Trip

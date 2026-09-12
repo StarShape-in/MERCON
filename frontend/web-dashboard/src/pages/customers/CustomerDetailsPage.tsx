@@ -90,12 +90,14 @@ export default function CustomerDetailsPage() {
     enabled: !!id,
   });
 
-  // URL normalization: if navigated using name/id, replace with canonical UUID
+  // URL normalization: if navigated using ref_id, replace with canonical UUID
   useEffect(() => {
     if (customer && customer.id && id !== customer.id) {
-      navigate(`/customers/${customer.id}`, { replace: true });
+      if ((customer as any).ref_id && id?.toLowerCase() === (customer as any).ref_id.toLowerCase()) {
+        navigate(`/customers/${customer.id}`, { replace: true });
+      }
     }
-  }, [customer?.id, id, navigate]);
+  }, [customer?.id, (customer as any)?.ref_id, id, navigate]);
 
   // Fetch Invoices for this customer
   const { data: invoicesResponse } = useQuery({
