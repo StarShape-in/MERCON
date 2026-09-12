@@ -370,7 +370,7 @@ export default function DriverDetailsPage() {
                           </p>
                         </div>
                         <h3 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate leading-tight">
-                          {displayTrip.customer?.company_name || displayTrip.customer?.name || 'Walk-in Customer'}
+                          {displayTrip.customer?.name || 'Walk-in Customer'}
                         </h3>
                       </div>
                     </div>

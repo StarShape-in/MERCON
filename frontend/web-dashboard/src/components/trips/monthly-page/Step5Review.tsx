@@ -268,7 +268,7 @@ export default function Step5Review({
               <User className="w-2.5 h-2.5" /> Customer
             </span>
             <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
-              {(selectedCustomer as any)?.company_name || (selectedCustomer as any)?.name || '—'}
+              {(selectedCustomer as any)?.name || '—'}
             </p>
             <p className="text-[9px] text-slate-400 truncate">{contractRateCategory} · {contractVehicleType}</p>
           </div>

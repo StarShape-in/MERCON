@@ -189,7 +189,6 @@ model Customer {
   id                      String   @id @default(uuid()) @db.Uuid
   name                    String
   contact_phone           String
-  company_name            String?
   avatar_url              String?
   logo_url                String?
   primary_contact_person  String?
@@ -299,7 +298,6 @@ model Vehicle {
   // When current_odometer was last changed — drives the "reading is stale,
   // ask the operator to update it" prompt. Null means never recorded.
   odometer_updated_at DateTime?   @db.Timestamptz
-  gps_device_id       String?
   image_url           String?
   last_lat            Float?
   last_lng            Float?

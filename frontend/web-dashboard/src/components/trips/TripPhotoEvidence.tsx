@@ -149,7 +149,7 @@ function extractPhotoGeotag(
   const rawAddr = st?.location_address || st?.location?.address;
   const rawName = st?.location?.name || st?.location_name || fallbackCity;
   const fullAddress = rawAddr && rawAddr !== rawName ? rawAddr : (rawAddr || `${rawName}, Saudi Arabia`);
-  const companyName = trip?.customer?.name || trip?.customer?.company_name || 'Horizon Distributors Co.';
+  const companyName = trip?.customer?.name || 'Horizon Distributors Co.';
 
   return {
     latitude: Number(lat),

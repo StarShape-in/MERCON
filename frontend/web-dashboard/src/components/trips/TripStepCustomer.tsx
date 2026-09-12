@@ -43,7 +43,6 @@ export default function TripStepCustomer({
   };
 
   const custPhone = selectedCustomer ? (selectedCustomer.phone || selectedCustomer.contact_phone || 'N/A') : 'N/A';
-  const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Commercial Shipper') : 'Commercial Shipper';
   const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
 
   // Frequent Shippers — ranked by trip count, highest first, not list order.
@@ -109,7 +108,7 @@ export default function TripStepCustomer({
                     {c.name}
                   </span>
                   <span className="text-[10px] text-slate-400 block truncate font-mono mt-0.5">
-                    {(c._count?.trips ?? 0) > 0 ? `${c._count!.trips} trips` : c.company_name || 'Commercial'}
+                    {(c._count?.trips ?? 0) > 0 ? `${c._count!.trips} trips` : 'Commercial'}
                   </span>
                 </button>
               );
@@ -153,9 +152,6 @@ export default function TripStepCustomer({
                   <span className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
                     {selectedCustomer.name}
                   </span>
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal truncate hidden sm:inline">
-                    • {selectedCustomer.company_name || 'Commercial Shipper'}
-                  </span>
                 </div>
               ) : (
                 <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -172,7 +168,6 @@ export default function TripStepCustomer({
                 if (!customer) return 0;
                 return matchesSearch(search, [
                   customer.name,
-                  customer.company_name,
                   customer.phone,
                   customer.contact_phone,
                   customer.payment_terms,
@@ -180,7 +175,7 @@ export default function TripStepCustomer({
               }}
             >
               <CommandInput
-                placeholder="Search by customer name, company, or phone..."
+                placeholder="Search by customer name or phone..."
                 className="h-10 text-xs"
               />
               <CommandList className="max-h-64 p-1 overflow-y-auto overscroll-contain">
@@ -223,7 +218,7 @@ export default function TripStepCustomer({
                               {c.name}
                             </p>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                              {c.company_name || 'Commercial'} • {c.phone || c.contact_phone || 'No Phone'}
+                              {c.phone || c.contact_phone || 'No Phone'}
                             </p>
                           </div>
                         </div>
@@ -264,7 +259,6 @@ export default function TripStepCustomer({
               </div>
               <div>
                 <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{selectedCustomer.name}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{custCompany}</p>
               </div>
             </div>
 

@@ -126,7 +126,6 @@ export default function TripStepReview({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         <ReviewSection icon={<User className="w-3.5 h-3.5 text-brand" />} title="Customer" step={1} onEditStep={onEditStep}>
           <Row label="Account" value={selectedCustomer?.name || 'Not selected'} />
-          {selectedCustomer?.company_name && <Row label="Company" value={selectedCustomer.company_name} />}
         </ReviewSection>
 
         <ReviewSection icon={<Navigation className="w-3.5 h-3.5 text-brand" />} title="Route" step={2} onEditStep={onEditStep}>

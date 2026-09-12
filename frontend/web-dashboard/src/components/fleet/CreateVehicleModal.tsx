@@ -27,7 +27,6 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
   const [capacityTon, setCapacityTon] = useState<string>('20');
   const [trailerNumber, setTrailerNumber] = useState('');
   const [iccesDeviceId, setIccesDeviceId] = useState('');
-  const [gpsDeviceId, setGpsDeviceId] = useState('');
   const [assignedDriverId, setAssignedDriverId] = useState<string>('unassigned');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +72,6 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
     setCapacityTon('20');
     setTrailerNumber('');
     setIccesDeviceId('');
-    setGpsDeviceId('');
     setAssignedDriverId('unassigned');
     setImageUrl(null);
     setError(null);
@@ -94,7 +92,6 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
       capacity_kg: capacityKg,
       trailer_number: trailerNumber.trim() || undefined,
       icces_device_id: iccesDeviceId.trim() || undefined,
-      gps_device_id: gpsDeviceId.trim() || undefined,
       image_url: imageUrl || undefined,
     });
   };
@@ -187,32 +184,17 @@ export default function CreateVehicleModal({ isOpen, onClose, onSuccess }: Creat
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-slate-500" /> Saudi ICCES ID
-              </Label>
-              <Input
-                id="icces_device_id"
-                placeholder="e.g. ICCES-4401"
-                value={iccesDeviceId}
-                onChange={(e) => setIccesDeviceId(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="gps_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-slate-500" /> GPS Device ID
-              </Label>
-              <Input
-                id="gps_device_id"
-                placeholder="e.g. GPS-9920"
-                value={gpsDeviceId}
-                onChange={(e) => setGpsDeviceId(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-slate-500" /> Saudi ICCES ID (Optional)
+            </Label>
+            <Input
+              id="icces_device_id"
+              placeholder="e.g. ICCES-4401"
+              value={iccesDeviceId}
+              onChange={(e) => setIccesDeviceId(e.target.value)}
+              className="h-9 text-xs font-mono"
+            />
           </div>
 
           <div className="space-y-1.5">

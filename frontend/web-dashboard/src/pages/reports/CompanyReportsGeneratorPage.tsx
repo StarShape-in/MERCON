@@ -608,9 +608,9 @@ export default function CompanyReportsGeneratorPage() {
     customers.forEach((c: any) => {
       list.push({
         value: c.id,
-        label: c.name || c.company_name,
+        label: c.name,
         icon: <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />,
-        keywords: c.name || c.company_name,
+        keywords: c.name,
       });
     });
     return list;
@@ -1519,8 +1519,8 @@ export default function CompanyReportsGeneratorPage() {
                         { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
                         ...customers.map((c: any) => ({
                           value: c.id,
-                          label: c.name || c.company_name || 'Customer Account',
-                          keywords: `${c.name || ''} ${c.company_name || ''}`,
+                          label: c.name || 'Customer Account',
+                          keywords: c.name || '',
                           icon: <Building2 className="w-3.5 h-3.5 text-slate-400" />,
                         })),
                       ]}
@@ -1631,8 +1631,8 @@ export default function CompanyReportsGeneratorPage() {
                       { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
                       ...customers.map((c: any) => ({
                         value: c.id,
-                        label: c.name || c.company_name || 'Customer Account',
-                        keywords: `${c.name || ''} ${c.company_name || ''}`,
+                        label: c.name || 'Customer Account',
+                        keywords: c.name || '',
                         icon: <Building2 className="w-3.5 h-3.5 text-slate-400" />,
                       })),
                     ]}

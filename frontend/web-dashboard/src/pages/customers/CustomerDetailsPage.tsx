@@ -456,8 +456,8 @@ export default function CustomerDetailsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Corporate Entity</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate block" title={customer.company_name || customer.name}>
-                      {customer.company_name || customer.name}
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate block" title={customer.name}>
+                      {customer.name}
                     </span>
                   </div>
 
@@ -553,7 +553,7 @@ export default function CustomerDetailsPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const email = `logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+                        const email = `logistics@${customer.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
                         navigator.clipboard.writeText(email);
                         toast.success(`Copied contact email: ${email}`);
                       }}
@@ -561,7 +561,7 @@ export default function CustomerDetailsPage() {
                       title="Copy Email"
                     >
                       <Mail className="w-3 h-3 shrink-0 text-slate-400" />
-                      <span className="truncate">{`logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}</span>
+                      <span className="truncate">{`logistics@${customer.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}</span>
                     </button>
                   </div>
                 </div>

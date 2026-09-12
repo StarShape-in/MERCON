@@ -271,7 +271,6 @@ export const bulkImportLocationsBody = z.object({
     lng: coercedNumber(z.number().min(-180).max(180).optional()),
     codes: safeImportString(z.string().trim().max(500).optional()),
     customer_name: safeImportString(z.string().trim().max(200).optional()),
-    company_name: safeImportString(z.string().trim().max(200).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
@@ -416,7 +415,6 @@ export const updateDriverBody = z.object({
 export const createCustomerBody = z.object({
   name: nonEmpty('Customer name'),
   contact_phone: nonEmpty('Contact phone'),
-  company_name: z.string().trim().optional(),
   avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
@@ -433,7 +431,6 @@ export const createCustomerBody = z.object({
 export const updateCustomerBody = z.object({
   name: nonEmpty('Customer name').optional(),
   contact_phone: nonEmpty('Contact phone').optional(),
-  company_name: z.string().trim().optional(),
   avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
@@ -455,7 +452,6 @@ export const createVehicleBody = z.object({
   trailer_number: saudiTrailerPlateSchema,
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional().nullable(),
   trailer_capacity_kg: z.coerce.number().int().positive().optional().nullable(),
-  gps_device_id: z.string().trim().optional().nullable(),
   icces_device_id: z.string().trim().optional().nullable(),
   image_url: z.string().nullable().optional(),
 });
@@ -468,7 +464,6 @@ export const updateVehicleBody = z.object({
   trailer_number: saudiTrailerPlateSchema,
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional().nullable(),
   trailer_capacity_kg: z.coerce.number().int().positive().optional().nullable(),
-  gps_device_id: z.string().trim().optional().nullable(),
   icces_device_id: z.string().trim().optional().nullable(),
   status: z.enum(['Available', 'OnTrip', 'Maintenance', 'Inactive']).optional(),
   image_url: z.string().nullable().optional(),

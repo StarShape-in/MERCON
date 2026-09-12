@@ -9,7 +9,7 @@ interface CustomerInfoCardProps {
 export default function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
   const navigate = useNavigate();
 
-  const companyName = customer?.company_name || customer?.name || 'ABC Logistics Co.';
+  const companyName = customer?.name || 'ABC Logistics Co.';
   const contactPerson = customer?.primary_contact_person || 'Mohammed Al-Qahtani';
   const contactPhone = customer?.contact_phone || '+966 11 234 5678';
   const contactEmail = customer?.email || 'm.alqahtani@abclogistics.sa';

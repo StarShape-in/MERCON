@@ -84,7 +84,7 @@ export default function EditCustomerPage() {
     if (customer) {
       setFormData({
         name: customer.name || '',
-        trade_alias: customer.company_name || '',
+        trade_alias: '',
         logo_url: customer.logo_url || customer.avatar_url || null,
         industry: 'Logistics',
         cr_number: '',
@@ -183,7 +183,7 @@ export default function EditCustomerPage() {
     if (customer) {
       setFormData({
         name: customer.name || '',
-        trade_alias: customer.company_name || '',
+        trade_alias: '',
         logo_url: customer.logo_url || customer.avatar_url || null,
         industry: 'Logistics',
         cr_number: '',
@@ -231,7 +231,6 @@ export default function EditCustomerPage() {
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
-        company_name: formData.trade_alias.trim() || undefined,
         primary_contact_person: primary?.name || undefined,
         primary_contact_phone: primary?.phone || effectivePhone,
         secondary_contact_person: secondary?.name || undefined,

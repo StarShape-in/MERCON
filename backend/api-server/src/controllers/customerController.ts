@@ -35,7 +35,6 @@ export const getCustomers = async (req: Request, res: Response) => {
           select: {
             id: true,
             name: true,
-            company_name: true,
             contact_phone: true,
             primary_contact_person: true,
             primary_contact_phone: true,
@@ -122,7 +121,6 @@ export const createCustomer = async (req: Request, res: Response) => {
     const {
       name,
       contact_phone,
-      company_name,
       avatar_url,
       logo_url,
       primary_contact_person,
@@ -140,7 +138,6 @@ export const createCustomer = async (req: Request, res: Response) => {
       data: {
         name,
         contact_phone,
-        company_name,
         avatar_url,
         logo_url,
         primary_contact_person,

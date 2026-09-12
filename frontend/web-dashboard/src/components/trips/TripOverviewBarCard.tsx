@@ -152,7 +152,7 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
   const driverAvatar = (trip.driver as any)?.avatar_url;
 
   // 3. Company / Customer info (Name & Logo only)
-  const companyName = trip.customer?.company_name || trip.customer?.name || 'Customer';
+  const companyName = trip.customer?.name || 'Customer';
   const companyLogo = trip.customer?.logo_url || trip.customer?.avatar_url;
 
   // 4. Alerts (derived from real trip and documents)

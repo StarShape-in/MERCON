@@ -43,7 +43,7 @@ export default function TripReceiptCard({
   onEditCharges,
 }: TripReceiptCardProps) {
   const refId = trip.ref_id || trip.id || 'TRP-0234';
-  const customerName = trip.customer?.company_name || trip.customer?.name || 'iMILE DELIVERY';
+  const customerName = trip.customer?.name || 'iMILE DELIVERY';
   const customerLogo = (trip.customer as any)?.avatar_url || (trip.customer as any)?.logo_url;
 
   const driverName = trip.is_third_party

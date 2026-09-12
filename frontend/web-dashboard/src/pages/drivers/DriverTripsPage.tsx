@@ -244,7 +244,7 @@ function TripRow({ trip, tz, onClick }: { trip: Trip; tz: string; onClick: () =>
         {/* Customer */}
         <div className="w-[145px] shrink-0 min-w-0">
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
-            {(trip.customer as any)?.company_name || trip.customer?.name || 'Walk-in Customer'}
+            {trip.customer?.name || 'Walk-in Customer'}
           </p>
           <p className="text-[10px] text-slate-400 font-medium">Customer</p>
         </div>
@@ -397,7 +397,7 @@ export default function DriverTripsPage() {
       const q = search.trim().toLowerCase();
       list = list.filter(t => {
         const ref      = (t.ref_id || '').toLowerCase();
-        const customer = ((t.customer as any)?.company_name || t.customer?.name || '').toLowerCase();
+        const customer = (t.customer?.name || '').toLowerCase();
         const pickup   = resolveStopLabel(getPickupStop(t)).toLowerCase();
         const dropoff  = resolveStopLabel(getDropoffStop(t)).toLowerCase();
         const plate    = (t.vehicle?.plate_number || '').toLowerCase();

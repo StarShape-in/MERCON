@@ -237,7 +237,7 @@ export default function CustomerListPage() {
   const handleExportCSV = (rowsToExport: Customer[]) => {
     const data = rowsToExport.map(c => ({
       customer_id: `CUST-${c.id.slice(0, 5).toUpperCase()}`,
-      company_name: c.name,
+      customer_name: c.name,
       phone: c.contact_phone || c.phone || '',
       contact_person: c.primary_contact_person || getPrimaryContactPerson(c.name),
       payment_terms: c.payment_terms || 'Standard',
