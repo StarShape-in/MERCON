@@ -219,7 +219,6 @@ export default function AddCustomerPage() {
     createMutation.mutate({
       name: formData.name.trim(),
       contact_phone: effectivePhone,
-      company_name: formData.trade_alias.trim() || undefined,
       logo_url: formData.logo_url || undefined,
       avatar_url: formData.logo_url || undefined,
       primary_contact_person: primaryContact?.name?.trim() || undefined,

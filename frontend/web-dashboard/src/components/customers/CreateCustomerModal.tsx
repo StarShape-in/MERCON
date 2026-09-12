@@ -81,12 +81,12 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="company_name" className="text-xs font-bold flex items-center gap-1.5">
+            <Label htmlFor="name" className="text-xs font-bold flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-slate-500" />
-              Company / Customer Name <span className="text-rose-500">*</span>
+              Customer Name <span className="text-rose-500">*</span>
             </Label>
             <Input
-              id="company_name"
+              id="name"
               placeholder="e.g. Saudi Aramco Logistics Division"
               value={name}
               onChange={(e) => setName(e.target.value)}

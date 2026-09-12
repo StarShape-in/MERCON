@@ -176,7 +176,6 @@ model Vehicle {
   status           AssetStatus @default(Available)
   capacity_kg      Int
   current_odometer Float       @default(0.0)
-  gps_device_id    String?
   last_lat         Float?
   last_lng         Float?
 

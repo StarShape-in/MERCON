@@ -18,7 +18,6 @@ const VEHICLE_SEARCH_FIELDS = [
   'plate_number',
   'ref_id',
   'trailer_number',
-  'gps_device_id',
   'icces_device_id',
   'assignedDriver.first_name',
   'assignedDriver.last_name',
@@ -106,7 +105,6 @@ export const getVehicles = async (req: Request, res: Response) => {
             status: true,
             capacity_kg: true,
             current_odometer: true,
-            gps_device_id: true,
             icces_device_id: true,
             createdAt: true,
             last_lat: true,
@@ -575,7 +573,6 @@ export const createVehicle = async (req: Request, res: Response) => {
       trailer_number,
       trailer_type,
       trailer_capacity_kg,
-      gps_device_id,
       icces_device_id,
       image_url
     } = req.body;
@@ -592,7 +589,6 @@ export const createVehicle = async (req: Request, res: Response) => {
         trailer_number,
         trailer_type: trailer_type ? (trailer_type as AssetType) : null,
         trailer_capacity_kg,
-        gps_device_id,
         icces_device_id,
         image_url,
         odometer_updated_at: new Date(),

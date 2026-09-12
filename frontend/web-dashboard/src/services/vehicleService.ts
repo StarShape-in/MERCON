@@ -58,7 +58,6 @@ export interface Vehicle {
   current_odometer: number;
   /** When current_odometer was last changed. Null means never recorded. */
   odometer_updated_at?: string | null;
-  gps_device_id: string | null;
   trailer_number: string | null;
   trailer_type: AssetType | null;
   trailer_capacity_kg: number | null;
@@ -86,7 +85,6 @@ export interface CreateVehiclePayload {
   trailer_number?: string;
   trailer_type?: AssetType;
   trailer_capacity_kg?: number;
-  gps_device_id?: string;
   icces_device_id?: string;
   image_url?: string | null;
 }

@@ -267,7 +267,7 @@ export default function CargoLoadingView() {
       ? `${Number(rawWeight).toLocaleString()} Kg` 
       : '10,000 Kg';
 
-    const customerName = t.customer?.company_name || t.customer?.name || t.customer_name || 'Aprodac';
+    const customerName = t.customer?.name || t.customer_name || 'Aprodac';
     const rawType = t.cargo_type || t.rate_category || t.billing_type || t.line_type || 'Single Trip';
     const cargoType = formatText(rawType);
 
@@ -530,10 +530,7 @@ export default function CargoLoadingView() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  {vehicle?.gps_device_id ? `GPS: ${vehicle.gps_device_id}` : 'GPS: Active'}
-                </p>
-                <p className="text-[9.5px] font-mono font-semibold text-emerald-700/80 truncate mt-0.5">
-                  {vehicle?.icces_device_id ? `ICCES: ${vehicle.icces_device_id}` : 'ICCES: 8676048587338...'}
+                  {vehicle?.icces_device_id ? `ICCES: ${vehicle.icces_device_id}` : 'GPS Telemetry: Active'}
                 </p>
               </div>
             </div>

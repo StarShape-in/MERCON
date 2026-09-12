@@ -42,7 +42,7 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
 
   // Resolve customer ID
   const selectedCustomerObj = customers.find(
-    (c: any) => c.id === contractCustomer || c.name === contractCustomer || c.company_name === contractCustomer
+    (c: any) => c.id === contractCustomer || c.name === contractCustomer
   );
   const customerId = selectedCustomerObj?.id || (contractCustomer && isUuid(contractCustomer) ? contractCustomer : undefined);
 

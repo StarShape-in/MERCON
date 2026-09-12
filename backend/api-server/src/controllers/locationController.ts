@@ -229,7 +229,7 @@ export const getLocationById = async (req: Request, res: Response) => {
     const location = await prisma.location.findFirst({
       where: { id: req.params.id as string },
       include: {
-        customer: { select: { id: true, name: true, company_name: true } },
+        customer: { select: { id: true, name: true } },
         _count: {
           select: {
             quotationStops: true,
@@ -426,7 +426,7 @@ export const updateLocation = async (req: Request, res: Response) => {
       where: { id: id as string },
       data: updateData,
       include: {
-        customer: { select: { id: true, name: true, company_name: true } },
+        customer: { select: { id: true, name: true } },
         _count: {
           select: {
             quotationStops: true,
@@ -455,13 +455,10 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       const key = clean.toUpperCase();
       if (customerCache.has(key)) return customerCache.get(key);
 
-      // 1. Exact match on name or company_name
+      // 1. Exact match on name
       let cust = await prisma.customer.findFirst({
         where: {
-          OR: [
-            { name: { equals: clean, mode: 'insensitive' } },
-            { company_name: { equals: clean, mode: 'insensitive' } },
-          ],
+          name: { equals: clean, mode: 'insensitive' },
           deletedAt: null,
         },
       });
@@ -486,10 +483,9 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
           searchTerms = [clean];
         }
 
-        const orClauses = searchTerms.flatMap((term) => [
-          { name: { contains: term, mode: 'insensitive' as const } },
-          { company_name: { contains: term, mode: 'insensitive' as const } },
-        ]);
+        const orClauses = searchTerms.map((term) => ({
+          name: { contains: term, mode: 'insensitive' as const },
+        }));
 
         cust = await prisma.customer.findFirst({
           where: {
@@ -503,10 +499,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       if (!cust && clean.length >= 3) {
         cust = await prisma.customer.findFirst({
           where: {
-            OR: [
-              { name: { contains: clean, mode: 'insensitive' } },
-              { company_name: { contains: clean, mode: 'insensitive' } },
-            ],
+            name: { contains: clean, mode: 'insensitive' },
             deletedAt: null,
           },
         });

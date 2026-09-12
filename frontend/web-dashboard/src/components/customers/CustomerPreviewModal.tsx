@@ -108,11 +108,6 @@ export default function CustomerPreviewModal({
                 <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {customer.name}
                 </h2>
-                {customer.company_name && customer.company_name !== customer.name && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    ({customer.company_name})
-                  </span>
-                )}
               </div>
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-xs">

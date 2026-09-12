@@ -196,7 +196,7 @@ export default function TripDetailsPage() {
       `*MERCON Logistics - Trip Status Update*`,
       ``,
       `*Trip ID:* ${trip.ref_id || trip.id}`,
-      `*Customer:* ${trip.customer?.name || trip.customer?.company_name || 'Customer'}`,
+      `*Customer:* ${trip.customer?.name || 'Customer'}`,
       `*Status:* ${trip.status.toUpperCase()}`,
       ``,
       `*Pickup:* ${pickupLoc}`,

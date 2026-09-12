@@ -95,7 +95,6 @@ function extractValue(val: any, tz: string = DEFAULT_EXPORT_TZ): string {
     }
     if (val.plate_number) return String(val.plate_number);
     if (val.ref_id) return String(val.ref_id);
-    if (val.company_name) return String(val.company_name);
     if (val.username) return String(val.username);
     if (val.title) return String(val.title);
     return '';

@@ -39,7 +39,6 @@ const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
     const driver = v.assignedDriver || activeTrip?.driver;
     return driver ? `${driver.first_name} ${driver.last_name}` : 'Unassigned';
   }},
-  { id: 'gps_device_id', label: 'GPS Device ID', accessor: (v) => v.gps_device_id || '—' },
   { id: 'icces_device_id', label: 'ICCES Device ID', accessor: (v) => v.icces_device_id || '—' },
   { id: 'trailer_number', label: 'Trailer Number', accessor: (v) => v.trailer_number || '—' },
 ];
@@ -629,7 +628,7 @@ export default function VehicleListPage() {
         row.status,
         row.capacity_kg,
         row.current_odometer,
-        row.gps_device_id || 'N/A',
+        row.icces_device_id || 'N/A',
         row.trailer_number || 'N/A',
         assignedDriver
       ];
@@ -646,7 +645,7 @@ export default function VehicleListPage() {
       'Status',
       'Capacity (KG)',
       'Odometer (KM)',
-      'GPS ID',
+      'ICCES ID',
       'Assigned Driver'
     ];
 
@@ -664,7 +663,7 @@ export default function VehicleListPage() {
         row.status,
         String(row.capacity_kg ?? '-'),
         String(row.current_odometer ?? '-'),
-        row.gps_device_id || 'N/A',
+        row.icces_device_id || 'N/A',
         assignedDriver
       ];
     });
@@ -686,7 +685,7 @@ export default function VehicleListPage() {
         status: row.status,
         capacity_kg: row.capacity_kg,
         current_odometer: row.current_odometer,
-        gps_device_id: row.gps_device_id || '',
+        icces_device_id: row.icces_device_id || '',
         trailer_number: row.trailer_number || '',
         assigned_driver: assignedDriver,
       };

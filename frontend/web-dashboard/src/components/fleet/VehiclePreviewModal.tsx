@@ -205,12 +205,6 @@ export default function VehiclePreviewModal({
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">GPS Device ID:</span>
-                <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                  {vehicle.gps_device_id || 'Not Installed'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-slate-500">ICCES Device ID:</span>
                 <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                   {vehicle.icces_device_id || 'Not Installed'}
