@@ -415,8 +415,8 @@ export default function CargoLoadingView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards ── */}
-        <div className="xl:col-span-3 flex flex-col gap-3.5">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards (Wider 1st Column) ── */}
+        <div className="xl:col-span-4 flex flex-col gap-3.5">
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
@@ -708,13 +708,13 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col justify-start gap-3.5 min-w-0">
+        <div className="xl:col-span-8 flex flex-col justify-start gap-3.5 min-w-0">
           
           {/* Truck Cargo Visualizer */}
           <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
             
             {/* Inner wrapper starting flush near left sidebar and extending out right */}
-            <div className="relative w-[112%] sm:w-[116%] max-w-none -ml-3 sm:-ml-5 transition-all">
+            <div className="relative w-[110%] sm:w-[114%] max-w-none -ml-2 sm:-ml-3 transition-all">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
