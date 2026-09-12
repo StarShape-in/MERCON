@@ -135,8 +135,8 @@ export default function DriverDetailsPage() {
       ['Duty Status', driver.status],
       ['License Number', driver.license_number || 'N/A'],
       ['License Expiry', driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd/MM/yyyy') : 'N/A'],
-      ['Assigned Vehicle', driver.assignedVehicle?.plate_number || 'TN 38 AB 1234'],
-      ['Total Dispatch Trips', `${driver.trips?.length || 12}`]
+      ['Assigned Vehicle', driver.assignedVehicle?.plate_number || 'Unassigned'],
+      ['Total Dispatch Trips', `${driver.trips?.length || 0}`]
     ];
 
     await exportExcelTable(
@@ -220,15 +220,95 @@ export default function DriverDetailsPage() {
   const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
 
 
-  const workTimeStackedData = [
-    { day: 'Mon', driving: 5.2, remaining: 18.8 },
-    { day: 'Tue', driving: 6.5, remaining: 17.5 },
-    { day: 'Wed', driving: 5.8, remaining: 18.2 },
-    { day: 'Thu', driving: 7.2, remaining: 16.8 },
-    { day: 'Fri', driving: 6.0, remaining: 18.0 },
-    { day: 'Sat', driving: 4.8, remaining: 19.2 },
-    { day: 'Sun', driving: 5.5, remaining: 18.5 },
-  ];
+  const metrics = useMemo(() => {
+    const tripList: any[] = driver?.trips || [];
+    const totalCount = tripList.length;
+
+    const completed = tripList.filter((t) => {
+      const s = (t.status || '').toLowerCase();
+      return s === 'completed' || s === 'invoiced' || s === 'delivered';
+    });
+    const inTransit = tripList.filter((t) => {
+      const s = (t.status || '').toLowerCase();
+      return s === 'intransit' || s === 'loading' || s === 'atpickup' || s === 'atdelivery';
+    });
+    const dispatched = tripList.filter((t) => {
+      const s = (t.status || '').toLowerCase();
+      return s === 'dispatched' || s === 'scheduled' || s === 'draft';
+    });
+
+    const completedCount = completed.length;
+    const inTransitCount = inTransit.length;
+    const dispatchedCount = dispatched.length;
+
+    const completedPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const inTransitPct = totalCount > 0 ? Math.round((inTransitCount / totalCount) * 100) : 0;
+    const dispatchedPct = totalCount > 0 ? Math.round((dispatchedCount / totalCount) * 100) : 0;
+
+    let onTimeCount = 0;
+    completed.forEach((t) => {
+      if (!t.actual_end || !t.planned_end) {
+        onTimeCount++;
+      } else {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        if (actual <= planned + 15 * 60 * 1000) {
+          onTimeCount++;
+        }
+      }
+    });
+
+    const onTimePct = completedCount > 0
+      ? ((onTimeCount / completedCount) * 100).toFixed(1)
+      : (totalCount > 0 ? '100.0' : '0.0');
+
+    const totalRevenue = tripList.reduce((sum, t) => sum + Number(t.billing_amount || t.driver_charge || t.trip_charges || 0), 0);
+    const totalDistance = tripList.reduce((sum, t) => sum + Number(t.planned_distance || t.distance_km || t.actual_distance || 0), 0);
+    const avgDistance = totalCount > 0 ? Math.round(totalDistance / totalCount) : 0;
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const hoursPerDay: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+
+    tripList.forEach((t) => {
+      const startStr = t.actual_start || t.planned_start;
+      const endStr = t.actual_end || t.planned_end;
+      if (startStr && endStr) {
+        const d = new Date(startStr);
+        const dayName = dayNames[d.getDay()];
+        const durHours = Math.max(0, (new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 60 * 60));
+        if (hoursPerDay[dayName] !== undefined) {
+          hoursPerDay[dayName] += durHours;
+        }
+      }
+    });
+
+    const workTimeStackedData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+      const driving = Math.min(24, Math.round((hoursPerDay[day] || 0) * 10) / 10);
+      const remaining = Math.max(0, Math.round((24 - driving) * 10) / 10);
+      return { day, driving, remaining };
+    });
+
+    const weeklyLoggedHours = workTimeStackedData.reduce((acc, d) => acc + d.driving, 0);
+    const avgDailyDuty = Math.round((weeklyLoggedHours / 7) * 10) / 10;
+
+    return {
+      totalCount,
+      completedCount,
+      inTransitCount,
+      dispatchedCount,
+      completedPct,
+      inTransitPct,
+      dispatchedPct,
+      onTimeCount,
+      onTimePct,
+      totalRevenue,
+      totalDistance,
+      avgDistance,
+      weeklyLoggedHours: Math.round(weeklyLoggedHours * 10) / 10,
+      avgDailyDuty,
+      workTimeStackedData,
+    };
+  }, [driver?.trips]);
 
   // Document rows list (Driver License, IQAMA, Driver Card, Passport)
   const documentList = [
@@ -584,7 +664,7 @@ export default function DriverDetailsPage() {
                       className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      9 Delivered (75%)
+                      {metrics.completedCount} Delivered ({metrics.completedPct}%)
                     </button>
                     <button
                       type="button"
@@ -592,7 +672,7 @@ export default function DriverDetailsPage() {
                       className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                      2 In Transit (17%)
+                      {metrics.inTransitCount} In Transit ({metrics.inTransitPct}%)
                     </button>
                     <button
                       type="button"
@@ -600,7 +680,7 @@ export default function DriverDetailsPage() {
                       className="flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                      1 Dispatched (8%)
+                      {metrics.dispatchedCount} Dispatched ({metrics.dispatchedPct}%)
                     </button>
                   </div>
                   <button
@@ -608,7 +688,7 @@ export default function DriverDetailsPage() {
                     onClick={() => navigate(`/drivers/${driver.id}/trips`)}
                     className="text-slate-400 font-semibold hover:text-slate-700 hover:underline cursor-pointer"
                   >
-                    12 Total Dispatches
+                    {metrics.totalCount} Total Dispatches
                   </button>
                 </div>
 
@@ -616,26 +696,26 @@ export default function DriverDetailsPage() {
                 <div className="h-2 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden flex gap-0.5 p-0.5">
                   <div
                     className="h-full bg-emerald-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ width: '75%' }}
-                    title="75% Delivered — click to view"
+                    style={{ width: `${metrics.completedPct}%` }}
+                    title={`${metrics.completedPct}% Delivered — click to view`}
                     onClick={() => navigate(`/drivers/${driver.id}/trips?status=Completed`)}
                   />
                   <div
                     className="h-full bg-blue-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ width: '17%' }}
-                    title="17% In Transit — click to view"
+                    style={{ width: `${metrics.inTransitPct}%` }}
+                    title={`${metrics.inTransitPct}% In Transit — click to view`}
                     onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
                   />
                   <div
                     className="h-full bg-amber-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ width: '8%' }}
-                    title="8% Dispatched — click to view"
+                    style={{ width: `${metrics.dispatchedPct}%` }}
+                    title={`${metrics.dispatchedPct}% Dispatched — click to view`}
                     onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
                   />
                 </div>
               </div>
 
-              {/* 4 Bento Metric Cards — Static non-clickable display boxes */}
+              {/* 4 Bento Metric Cards — Dynamic display boxes */}
               <div className="grid grid-cols-4 gap-3">
                 {/* 1. Total Dispatches (Blue Theme) */}
                 <div
@@ -648,10 +728,10 @@ export default function DriverDetailsPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-2xl 2xl:text-3xl font-black text-blue-950 dark:text-white leading-none">{trips.length || 12}</div>
+                    <div className="text-2xl 2xl:text-3xl font-black text-blue-950 dark:text-white leading-none">{metrics.totalCount}</div>
                     <div className="mt-2.5 pt-1.5 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center">
                       <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/50 px-2 py-0.5 rounded-full border border-blue-200/60">
-                        {trips.filter(t => (t.status || '').toLowerCase() === 'delivered').length || 9} Delivered
+                        {metrics.completedCount} Delivered
                       </span>
                     </div>
                   </div>
@@ -668,10 +748,10 @@ export default function DriverDetailsPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-2xl 2xl:text-3xl font-black text-emerald-700 dark:text-emerald-400 leading-none">91.7%</div>
+                    <div className="text-2xl 2xl:text-3xl font-black text-emerald-700 dark:text-emerald-400 leading-none">{metrics.onTimePct}%</div>
                     <div className="mt-2.5 pt-1.5 border-t border-emerald-200/50 dark:border-emerald-900/40 flex items-center">
                       <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                        11 / 12 On-Time
+                        {metrics.onTimeCount} / {metrics.completedCount || metrics.totalCount} On-Time
                       </span>
                     </div>
                   </div>
@@ -689,11 +769,11 @@ export default function DriverDetailsPage() {
                   </div>
                   <div>
                     <div className="text-xs 2xl:text-sm font-black text-[#FA634E] dark:text-rose-400 leading-none">
-                      SAR {trips.reduce((sum, t) => sum + Number(t.billing_amount || t.applied_rate || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) || '124,500'}
+                      SAR {metrics.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                     </div>
                     <div className="mt-2.5 pt-1.5 border-t border-rose-200/50 dark:border-rose-900/40 flex items-center">
                       <span className="text-[9px] font-bold text-[#FA634E] dark:text-rose-300 bg-rose-100/80 dark:bg-rose-900/50 px-2 py-0.5 rounded-full border border-rose-200/60">
-                        +12.4% yield
+                        {metrics.totalCount} Trips Total
                       </span>
                     </div>
                   </div>
@@ -711,11 +791,11 @@ export default function DriverDetailsPage() {
                   </div>
                   <div>
                     <div className="text-xl 2xl:text-2xl font-black text-indigo-950 dark:text-white leading-none">
-                      2,850 <span className="text-xs font-bold text-indigo-600/80">km</span>
+                      {metrics.totalDistance.toLocaleString()} <span className="text-xs font-bold text-indigo-600/80">km</span>
                     </div>
                     <div className="mt-2.5 pt-1.5 border-t border-indigo-200/50 dark:border-indigo-900/40 flex items-center">
                       <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full border border-indigo-200/60">
-                        Avg 237 km / trip
+                        Avg {metrics.avgDistance} km / trip
                       </span>
                     </div>
                   </div>
@@ -744,7 +824,7 @@ export default function DriverDetailsPage() {
                 <div className="flex items-center gap-2 text-[10px] font-bold">
                   <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-lg border border-rose-200/50">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#FA634E]"></span>
-                    <span className="text-[#FA634E] dark:text-rose-400">Driver Runned (37.3h)</span>
+                    <span className="text-[#FA634E] dark:text-rose-400">Driving ({metrics.weeklyLoggedHours}h)</span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-200/50">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#38BDF8]"></span>
@@ -758,8 +838,8 @@ export default function DriverDetailsPage() {
                 <div className="flex items-center gap-4">
                   <div>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl 2xl:text-3xl font-black text-[#3E3C3D] dark:text-white leading-none">37.3</span>
-                      <span className="text-xs font-bold text-slate-400">/ 48 hrs</span>
+                      <span className="text-2xl 2xl:text-3xl font-black text-[#3E3C3D] dark:text-white leading-none">{metrics.weeklyLoggedHours}</span>
+                      <span className="text-xs font-bold text-slate-400">/ 168 hrs</span>
                     </div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1 block">Weekly Logged Duty</span>
                   </div>
@@ -767,14 +847,14 @@ export default function DriverDetailsPage() {
 
                 <div className="text-right hidden sm:block">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Avg Daily Duty</span>
-                  <span className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">6.2 hrs / day</span>
+                  <span className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">{metrics.avgDailyDuty} hrs / day</span>
                 </div>
               </div>
 
               {/* 24h Bar Chart with Green Driver Runned Hours & Soft Neutral Remaining Hours */}
               <div className="flex-1 w-full min-h-0 pt-1">
                 <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-                  <BarChart data={workTimeStackedData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                  <BarChart data={metrics.workTimeStackedData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} />
                     <YAxis domain={[0, 24]} ticks={[0, 6, 12, 18, 24]} axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} tickFormatter={(val) => `${val}h`} />
