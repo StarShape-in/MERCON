@@ -268,8 +268,9 @@ export const getVehicleById = async (req: Request, res: Response) => {
             stops: true
           },
           orderBy: {
-            planned_start: 'asc'
-          }
+            planned_start: 'desc'
+          },
+          take: 100
         },
         maintenanceRecords: {
           where: {

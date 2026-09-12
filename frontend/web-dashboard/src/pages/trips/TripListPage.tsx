@@ -948,26 +948,25 @@ export default function TripListPage() {
       ? format(customDateRange.to, 'yyyy-MM-dd')
       : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined));
 
-  // Fetch trips using React Query.
-  // NOTE: Search is intentionally NOT sent to the backend — the backend search was unreliable
-  // and could return 0 results, defeating the client-side computeTripSearchRelevance filter below.
-  // We fetch all trips up to per_page=1000 and let the trips memo handle filtering client-side.
+  // Fetch trips using React Query with server-side pagination (10 trips default, 30s polling).
   const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr],
+    queryKey: ['trips', selectedStatus, selectedCustomerId, dateFilter, startDateStr, endDateStr, currentPage, pageSize, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
+      customer_id: selectedCustomerId !== 'All' ? selectedCustomerId : undefined,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
-      per_page: 1000,
+      search: debouncedSearch || undefined,
+      page: currentPage,
+      per_page: pageSize,
     }),
     // Keep the previous rows on screen while a new search/page loads.
     placeholderData: keepPreviousData,
-    // Always fetch fresh data when this page mounts (e.g. after creating a trip and navigating back).
-    // placeholderData above ensures the cached list shows instantly while the refetch runs in background.
+    // Always fetch fresh data when this page mounts.
     refetchOnMount: true,
-    // Auto-poll every 10s so driver app updates move Kanban cards live without manual page reload
-    refetchInterval: 10000,
+    // Auto-poll every 30s for smooth background status updates
+    refetchInterval: 30000,
   });
 
   // The unfiltered trip ledger, for the export sheet. Despite the old name this
@@ -2570,8 +2569,15 @@ export default function TripListPage() {
                       errorMessage={(error as Error)?.message || 'Failed to load trips.'}
                       actionsElement={actionControls}
                       bulkActions={bulkActions}
+                      currentPage={currentPage}
+                      onPageChange={(page) => setCurrentPage(page)}
                       pageSize={pageSize}
-                      onPageSizeChange={(size) => setPageSize(size)}
+                      onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                      }}
+                      totalRecords={tripsRes?.meta?.total ?? trips.length}
+                      totalPages={tripsRes?.meta?.total_pages ?? Math.ceil((tripsRes?.meta?.total ?? trips.length) / pageSize)}
                       onRowClick={(row) => navigate(`/trips/${row.id}`)}
                     />
                   </div>

@@ -197,7 +197,8 @@ export const getDriverById = async (req: Request, res: Response) => {
           include: {
             trips: {
               where: { deletedAt: null, status: { notIn: ['Cancelled'] } },
-              orderBy: { planned_start: 'asc' },
+              take: 100,
+              orderBy: { planned_start: 'desc' },
               include: { vehicle: true, customer: true, stops: true }
             },
             assignedVehicle: true
