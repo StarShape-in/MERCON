@@ -359,14 +359,6 @@ model Trip {
   // Dedicated 1-to-1 Commercial Financials Snapshot
   financials TripFinancials?
 
-  // Commercial Pricing Snapshot fields (legacy / fallback)
-  quotation_line_type            String?
-  quotation_billing_type         String?
-  quotation_pricing_basis        String?
-  applied_rate                   Decimal? @db.Decimal(12, 2)
-  quotation_vehicle_class        String?
-  quotation_source_vehicle_label String?
-
   vehicle_type  String?
   rate_category String?
   billing_type  String?
