@@ -291,6 +291,29 @@ export default function DriverDetailsPage() {
     const weeklyLoggedHours = workTimeStackedData.reduce((acc, d) => acc + d.driving, 0);
     const avgDailyDuty = Math.round((weeklyLoggedHours / 7) * 10) / 10;
 
+    const delayedTrips = tripList.filter((t) => {
+      const s = (t.status || '').toLowerCase();
+      if (s === 'delayed') return true;
+      if (t.actual_end && t.planned_end) {
+        return new Date(t.actual_end).getTime() > new Date(t.planned_end).getTime() + 15 * 60 * 1000;
+      }
+      return false;
+    });
+    const delayedCount = delayedTrips.length;
+
+    let totalDelayMins = 0;
+    delayedTrips.forEach((t) => {
+      if (t.actual_end && t.planned_end) {
+        const diff = (new Date(t.actual_end).getTime() - new Date(t.planned_end).getTime()) / (1000 * 60);
+        if (diff > 0) totalDelayMins += diff;
+      }
+    });
+    const avgDelayMins = delayedCount > 0 ? Math.round(totalDelayMins / delayedCount) : 0;
+
+    const delayPct = completedCount > 0 ? (100 - parseFloat(onTimePct)).toFixed(1) : '0.0';
+    const numericOnTime = parseFloat(onTimePct);
+    const performanceBadge = totalCount === 0 ? 'No Data' : (numericOnTime >= 90 ? 'Above Target' : (numericOnTime >= 75 ? 'Target Met' : 'Needs Review'));
+
     return {
       totalCount,
       completedCount,
@@ -301,6 +324,10 @@ export default function DriverDetailsPage() {
       dispatchedPct,
       onTimeCount,
       onTimePct,
+      delayedCount,
+      delayPct,
+      avgDelayMins,
+      performanceBadge,
       totalRevenue,
       totalDistance,
       avgDistance,
@@ -895,36 +922,46 @@ export default function DriverDetailsPage() {
                   </h3>
                 </div>
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
-                  Above Target
+                  {metrics.performanceBadge}
                 </span>
               </div>
 
               {/* Score Row */}
               <div className="flex items-baseline justify-between">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl 2xl:text-4xl font-black text-[#3E3C3D] dark:text-white leading-none">90%</span>
+                  <span className="text-3xl 2xl:text-4xl font-black text-[#3E3C3D] dark:text-white leading-none">
+                    {metrics.totalCount === 0 ? '—' : `${metrics.onTimePct}%`}
+                  </span>
                 </div>
                 <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200/50">
-                  Top 5% Fleet
+                  {metrics.totalCount === 0 ? 'N/A' : (parseFloat(metrics.onTimePct) >= 90 ? 'Top 10% Fleet' : 'Standard Fleet')}
                 </span>
               </div>
 
               {/* 2 Segment Progress Bar System (On-Time & Delay) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 px-0.5">
-                  <span className="text-emerald-600 dark:text-emerald-400">90% On-Time</span>
-                  <span className="text-rose-500 dark:text-rose-400">10% Delay</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{metrics.onTimePct}% On-Time</span>
+                  <span className="text-rose-500 dark:text-rose-400">{metrics.delayPct}% Delay</span>
                 </div>
                 
                 <div className="h-7 w-full p-1 bg-slate-100 dark:bg-slate-800 rounded-xl flex gap-1 shadow-inner">
                   {/* Segment 1: On-Time (Solid Emerald Green) */}
-                  <div className="h-full w-[90%] bg-emerald-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs">
+                  <div
+                    className="h-full bg-emerald-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs transition-all"
+                    style={{ width: `${metrics.completedCount > 0 ? metrics.onTimePct : 100}%` }}
+                  >
                     On-Time
                   </div>
                   {/* Segment 2: Delay (Solid Coral Red) */}
-                  <div className="h-full w-[10%] bg-rose-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs">
-                    Delay
-                  </div>
+                  {parseFloat(metrics.delayPct) > 0 && (
+                    <div
+                      className="h-full bg-rose-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs transition-all"
+                      style={{ width: `${metrics.delayPct}%` }}
+                    >
+                      Delay
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -932,15 +969,15 @@ export default function DriverDetailsPage() {
               <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                 <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">On-Time Trips</span>
-                  <div className="text-xs 2xl:text-sm font-black text-emerald-600 dark:text-emerald-400">11 Trips</div>
+                  <div className="text-xs 2xl:text-sm font-black text-emerald-600 dark:text-emerald-400">{metrics.onTimeCount} Trips</div>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">Delayed Trips</span>
-                  <div className="text-xs 2xl:text-sm font-black text-rose-500 dark:text-rose-400">1 Trip</div>
+                  <div className="text-xs 2xl:text-sm font-black text-rose-500 dark:text-rose-400">{metrics.delayedCount} {metrics.delayedCount === 1 ? 'Trip' : 'Trips'}</div>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">Avg. Delay</span>
-                  <div className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">14 mins</div>
+                  <div className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">{metrics.avgDelayMins} mins</div>
                 </div>
               </div>
             </div>
