@@ -415,8 +415,8 @@ export default function CargoLoadingView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards (Expanded to xl:col-span-5) ── */}
-        <div className="xl:col-span-5 flex flex-col gap-3.5">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards ── */}
+        <div className="xl:col-span-3 flex flex-col gap-3.5">
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
@@ -708,13 +708,13 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-7 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
+        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-end shrink-0 overflow-hidden rounded-2xl [mask-image:linear-gradient(to_right,black_80%,transparent_98%)] [-webkit-mask-image:linear-gradient(to_right,black_80%,transparent_98%)]">
+          <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
             
-            {/* Inner wrapper shifted 1/6th to the right out of frame */}
-            <div className="relative w-[118%] max-w-none translate-x-[16.6%] transition-transform">
+            {/* Inner wrapper starting flush near left sidebar and extending out right */}
+            <div className="relative w-[112%] sm:w-[116%] max-w-none -ml-3 sm:-ml-5 transition-all">
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
