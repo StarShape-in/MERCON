@@ -13,6 +13,9 @@ import {
   Phone,
   ExternalLink,
   Check,
+  User,
+  Truck,
+  MapPin,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
