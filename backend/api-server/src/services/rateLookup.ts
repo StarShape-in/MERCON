@@ -65,8 +65,20 @@ export const findQuotationForLane = async (
     deletedAt: null,
   };
 
-  if (lineType && lineType.trim()) {
-    whereClause.line_type = lineType.trim();
+  const getLineTypeVariants = (rawLineType?: string | null): string[] => {
+    if (!rawLineType || !rawLineType.trim()) return [];
+    const s = rawLineType.trim().toUpperCase().replace(/_/g, ' ');
+    if (s.includes('10')) return ['10_HRS', '10 Hours Duty', '10 Hrs Duty', '10 Hours Shift', '10_HOURS', '10 HOURS'];
+    if (s.includes('12')) return ['12_HRS', '12 Hours Duty', '12 Hrs Duty', '12 Hours Shift', '12_HOURS', '12 HOURS'];
+    if (s.includes('ROUND')) return ['ROUND_TRIP', 'Round Trip', 'Trip/Round Trip'];
+    if (s.includes('SINGLE')) return ['SINGLE_TRIP', 'Single Trip'];
+    return [rawLineType.trim()];
+  };
+
+  const ltVariants = getLineTypeVariants(lineType);
+
+  if (ltVariants.length > 0) {
+    whereClause.line_type = { in: ltVariants };
   }
   if (billingType && billingType.trim()) {
     whereClause.billing_type = billingType.trim();
@@ -107,7 +119,7 @@ export const findQuotationForLane = async (
           is_active: true,
           deletedAt: null,
         };
-        if (lineType && lineType.trim()) fallbackWhere.line_type = lineType.trim();
+        if (ltVariants.length > 0) fallbackWhere.line_type = { in: ltVariants };
         if (billingType && billingType.trim()) fallbackWhere.billing_type = billingType.trim();
         if (vehicleClass !== undefined && vehicleClass !== null) {
           fallbackWhere.vehicle_class = vehicleClass;

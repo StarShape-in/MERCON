@@ -118,16 +118,27 @@ export function useTripRateLookup(
       return matchLocation(rcO, origin || '') && matchLocation(rcD, destination || '');
     };
 
+    const normalizeLineTypeToken = (s?: string | null): string => {
+      if (!s) return '';
+      const str = String(s).toUpperCase().replace(/_/g, ' ');
+      if (str.includes('10')) return '10_HRS';
+      if (str.includes('12')) return '12_HRS';
+      if (str.includes('ROUND')) return 'ROUND_TRIP';
+      if (str.includes('SINGLE')) return 'SINGLE_TRIP';
+      return str.replace(/[\s,_()[\]\/{}\-.]/g, '');
+    };
+
     const exact = customerRateCards.find((rc) => {
       if (!checkValidity(rc)) return false;
       if (!matchLane(rc)) return false;
 
       const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
-      const rcC = norm(rc.rate_category || rc.line_type);
+      const rcC = normalizeLineTypeToken(rc.rate_category || rc.line_type);
+      const targetC = normalizeLineTypeToken(rateCategory);
       const rcB = norm(rc.billing_type);
 
       const vMatch = !vNorm || !rcV || rcV === vNorm;
-      const cMatch = !cNorm || !rcC || rcC === cNorm || rcC.includes(cNorm) || cNorm.includes(rcC);
+      const cMatch = !targetC || !rcC || rcC === targetC;
       const bMatch = !bNormTarget || !rcB || rcB === bNormTarget;
 
       return vMatch && cMatch && bMatch;

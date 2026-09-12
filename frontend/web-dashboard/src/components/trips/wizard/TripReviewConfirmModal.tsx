@@ -15,6 +15,7 @@ interface TripReviewConfirmModalProps {
   contractSlots: any[];
   contractBillingType: string;
   contractVehicleType: string;
+  contractRateCategory?: string;
   selectedMonth?: string;
   selectedDates?: string[];
   assignmentType?: 'own' | 'third_party';
@@ -43,6 +44,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   contractSlots = [],
   contractBillingType,
   contractVehicleType,
+  contractRateCategory = '',
   selectedMonth,
   selectedDates = [],
   assignmentType = 'own',
@@ -68,7 +70,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   const originName = primarySlot.originName || primarySlot.origin || 'Origin';
   const destName = primarySlot.destinationName || primarySlot.destination || 'Destination';
   const intermediates: string[] = primarySlot.intermediates || [];
-  const rateCategory = primarySlot.rateCategory || 'Single Trip';
+  const rateCategory = contractRateCategory || primarySlot.rateCategory || 'Single Trip';
 
   // Calculate Totals
   const totalOperatingDays = selectedDates.length || 1;

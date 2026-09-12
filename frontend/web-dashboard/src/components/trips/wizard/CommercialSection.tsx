@@ -3,7 +3,7 @@ import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronR
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
-import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
+import { getAllTaxonomyOptions, normalizeCode } from '@/utils/taxonomyRegistry';
 import { normalizeRateCategory, normalizeVehicleClass } from '@/hooks/useCreateTripForm';
 import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 
@@ -515,7 +515,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   </label>
                   <select
                     value={contractBillingType?.toLowerCase() === 'extra' ? 'Extra' : 'Monthly'}
-                    onChange={(e) => setContractBillingType?.(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractBillingType?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null });
+                    }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
                     <option value="Monthly">Monthly (Contract Duty)</option>
@@ -533,7 +537,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     onChange={(e) => {
                       const val = e.target.value;
                       setContractVehicleType?.(val);
-                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val });
+                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val, matchedRateCard: null });
                     }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
@@ -551,11 +555,17 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     Line Type
                   </label>
                   <select
-                    value={contractRateCategory || 'Single Trip'}
+                    value={
+                      lineTypeOptions.find(
+                        (opt) => opt.code === contractRateCategory || opt.label === contractRateCategory || normalizeCode(opt.code) === normalizeCode(contractRateCategory)
+                      )?.code || contractRateCategory || 'SINGLE_TRIP'
+                    }
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setContractRateCategory?.(val);
-                      handleUpdateTripSlot(primarySlot.id, { rateCategory: val });
+                      const rawVal = e.target.value;
+                      const optObj = lineTypeOptions.find((opt) => opt.code === rawVal || opt.label === rawVal);
+                      const normVal = optObj?.label || normalizeRateCategory(rawVal);
+                      setContractRateCategory?.(normVal);
+                      handleUpdateTripSlot(primarySlot.id, { rateCategory: normVal, matchedRateCard: null });
                     }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
