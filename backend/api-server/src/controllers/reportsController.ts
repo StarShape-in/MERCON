@@ -345,7 +345,6 @@ export const getCustomReport = async (req: Request, res: Response) => {
       vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
       stops: { orderBy: { stop_sequence: 'asc' as const } },
       charges: true,
-      ...(invoicesOn ? { invoices: true } : {}),
     };
 
     // No row cap — page internally so a full month's ledger exports
