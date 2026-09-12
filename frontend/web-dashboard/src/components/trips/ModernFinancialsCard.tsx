@@ -124,10 +124,10 @@ export default function ModernFinancialsCard({
             </span>
           </div>
 
-          {/* ROW 4: BALANCE / MARGIN */}
-          <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-orange-50/40 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-900/50 mt-1">
+          {/* ROW 4: BALANCE */}
+          <div className="flex items-center justify-between py-2 px-2.5 rounded-lg bg-orange-50/40 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-900/50 mt-1">
             <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              Balance / Margin
+              Balance
             </span>
             <div className="flex items-center gap-1.5 font-mono">
               <span className={cn(
@@ -145,25 +145,6 @@ export default function ModernFinancialsCard({
                 {resolvedMarginPercent}%
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* INVOICING / SETTLEMENT STATUS PILL */}
-        <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 mt-0.5">
-          <div>
-            <span className="text-[9.5px] font-bold text-[#6B7280] dark:text-slate-400 block uppercase">Paid</span>
-            <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-              SAR {paidAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div>
-            <span className="text-[9.5px] font-bold text-[#6B7280] dark:text-slate-400 block uppercase">Balance Due</span>
-            <span className={cn(
-              "font-mono font-bold text-xs",
-              calculatedBalance > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
-            )}>
-              SAR {calculatedBalance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </span>
           </div>
         </div>
       </div>
