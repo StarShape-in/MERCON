@@ -394,7 +394,7 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] bg-[#FDFDFD] text-slate-900 font-sans px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1 flex flex-col gap-2.5 overflow-y-auto">
+    <div className="w-full bg-[#FDFDFD] text-slate-900 font-sans px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1 flex flex-col gap-2.5 overflow-y-auto">
       
       {/* ── Top Header ── */}
       <div className="flex items-center justify-between shrink-0">
@@ -708,7 +708,7 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
+        <div className="xl:col-span-9 flex flex-col justify-start gap-3.5 min-w-0">
           
           {/* Truck Cargo Visualizer */}
           <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
