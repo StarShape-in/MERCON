@@ -348,6 +348,13 @@ export const bulkImportTripsBody = z.object({
     // (e.g. a month's worth of trip logs) so they don't sit on the live ops
     // board looking like an active dispatch.
     status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
+    is_third_party: z.boolean().optional(),
+    third_party_provider_id: z.string().uuid().nullable().optional(),
+    third_party_driver_name: z.string().trim().optional(),
+    third_party_driver_phone: z.string().trim().optional(),
+    third_party_vehicle_plate: z.string().trim().optional(),
+    third_party_vehicle_type: z.string().trim().optional(),
+    third_party_cost: z.coerce.number().optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
   }).refine((data) => {

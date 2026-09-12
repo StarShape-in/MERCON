@@ -216,7 +216,7 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
 
           <div className="min-w-0 space-y-0.5">
             <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-              DRIVER
+              {trip.is_third_party ? '3PL DRIVER' : 'DRIVER'}
             </span>
             <h4 className="font-extrabold text-[13px] text-[#111827] truncate leading-tight">
               {driverName}
@@ -252,7 +252,7 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
 
         <div className="min-w-0 flex-1 space-y-0.5">
           <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            TRUCK
+            {trip.is_third_party ? '3PL TRUCK' : 'TRUCK'}
           </span>
           <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
             {truckNo}

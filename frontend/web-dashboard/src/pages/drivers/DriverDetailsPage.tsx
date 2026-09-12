@@ -147,6 +147,21 @@ export default function DriverDetailsPage() {
     );
   };
 
+  // ── ALL HOOKS MUST BE BEFORE ANY EARLY RETURNS (Rules of Hooks) ──────────
+  // Trips Overview Filter State
+  const [tripsOverviewFilter, setTripsOverviewFilter] = useState<'week' | 'month' | 'custom'>('week');
+  const [tripsDateRange, setTripsDateRange] = useState<DateRange | undefined>(undefined);
+  const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Sync tempRange when calendar popover opens
+  useEffect(() => {
+    if (isCalendarOpen) {
+      setTempRange(tripsDateRange);
+    }
+  }, [isCalendarOpen, tripsDateRange]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
@@ -204,20 +219,7 @@ export default function DriverDetailsPage() {
   const isLiveTrip = !!activeTrip;
   const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
 
-  // Trips Overview Filter State (This Week vs Choose Date Range: 1st Click = Start, 2nd Click = End)
-  const [tripsOverviewFilter, setTripsOverviewFilter] = useState<'week' | 'month' | 'custom'>('week');
-  const [tripsDateRange, setTripsDateRange] = useState<DateRange | undefined>(undefined);
-  const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Sync tempRange when calendar popover opens
-  useEffect(() => {
-    if (isCalendarOpen) {
-      setTempRange(tripsDateRange);
-    }
-  }, [isCalendarOpen, tripsDateRange]);
-
-  // Stacked Bar Data for Work Time (HOS & Duty Analysis: 24h Daily Scale)
   const workTimeStackedData = [
     { day: 'Mon', driving: 5.2, remaining: 18.8 },
     { day: 'Tue', driving: 6.5, remaining: 17.5 },
@@ -288,7 +290,7 @@ export default function DriverDetailsPage() {
               
               {/* Absolute Driver Image */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0">
-                {`${driver.first_name} ${driver.last_name}`.toUpperCase().includes('ABDUL MALIK') ? (
+                {`${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK') ? (
                   <img
                     src="/drivers/abdul_malik_transparent.png"
                     alt="Abdul Malik"
@@ -771,7 +773,7 @@ export default function DriverDetailsPage() {
 
               {/* 24h Bar Chart with Green Driver Runned Hours & Soft Neutral Remaining Hours */}
               <div className="flex-1 w-full min-h-0 pt-1">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={180}>
                   <BarChart data={workTimeStackedData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} />

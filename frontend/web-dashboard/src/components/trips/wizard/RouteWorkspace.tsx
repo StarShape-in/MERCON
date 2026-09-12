@@ -190,7 +190,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
       {/* UNIFIED LOCATION & SCHEDULE INPUT FIELDS */}
       <div className="w-full space-y-2.5">
           {/* LINE 1: ORIGIN + UNIFIED PICKUP DATETIME */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start">
             {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
             <div className="md:col-span-8 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
@@ -313,7 +313,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           </div>
 
           {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end pt-1 border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start pt-1 border-t border-slate-100 dark:border-slate-800">
             {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
             <div className="md:col-span-8 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">

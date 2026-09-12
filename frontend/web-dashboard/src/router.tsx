@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import type { ComponentType } from 'react';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
@@ -9,6 +10,18 @@ import RequireModule from '@/components/auth/RequireModule';
 import AppShell from '@/components/layout/AppShell';
 import { useApplyBranding } from '@/hooks/useBranding';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
+
+/**
+ * WithIdKey — wraps a page component and uses the `:id` URL param as the
+ * React `key`. This forces a full unmount + remount whenever the ID changes,
+ * completely eliminating stale React-Query cache data race conditions that
+ * caused the ErrorBoundary "Something went wrong" crash when navigating
+ * between different detail pages (drivers, customers, third-parties, etc.).
+ */
+function WithIdKey({ Page }: { Page: ComponentType }) {
+  const { id } = useParams<{ id: string }>();
+  return <Page key={id} />;
+}
 
 /* ─── Auth pages (eager — small, always needed) ──────────────────────────── */
 import LoginPage         from '@/pages/auth/LoginPage';
@@ -181,10 +194,10 @@ export default function AppRouter() {
 
             {/* Third Party */}
             <Route path="/third-party"              element={<ThirdPartyListPage />} />
-            <Route path="/third-party/:id"          element={<ThirdPartyDetailsPage />} />
+            <Route path="/third-party/:id"          element={<WithIdKey Page={ThirdPartyDetailsPage} />} />
             <Route path="/drivers"                  element={<DriverListPage />} />
             <Route path="/drivers/new"              element={<AddDriverPage />} />
-            <Route path="/drivers/:id"              element={<DriverDetailsPage />} />
+            <Route path="/drivers/:id"              element={<WithIdKey Page={DriverDetailsPage} />} />
             <Route path="/drivers/:id/edit"         element={<EditDriverPage />} />
             <Route path="/drivers/:id/documents"    element={<DriverDocumentsPage />} />
             <Route path="/drivers/:id/trips"        element={<DriverTripsPage />} />
@@ -205,7 +218,7 @@ export default function AppRouter() {
             {/* Customers */}
             <Route path="/customers"                          element={<CustomerListPage />} />
             <Route path="/customers/new"                      element={<AddCustomerPage />} />
-            <Route path="/customers/:id"                      element={<CustomerDetailsPage />} />
+            <Route path="/customers/:id"                      element={<WithIdKey Page={CustomerDetailsPage} />} />
             <Route path="/customers/:id/edit"                 element={<EditCustomerPage />} />
             <Route path="/customers/:customerId/locations/create" element={<AddLocationPage />} />
             <Route path="/customers/:customerId/locations/new"    element={<AddLocationPage />} />
