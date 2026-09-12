@@ -637,7 +637,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
         </div>
 
         {/* ── COLUMN 2: CLEAN INSPECTOR PANEL (7/12) ───────────────────────────── */}
-        <div className="col-span-7 bg-[#EEF1F6]/40 dark:bg-slate-800/40 rounded-xl border border-[#EEF1F6] dark:border-slate-700/80 p-3 flex flex-col justify-between h-full overflow-hidden">
+        <div className="col-span-7 bg-[#EEF1F6]/30 dark:bg-slate-800/30 rounded-xl border border-[#EEF1F6] dark:border-slate-700/80 p-3 flex flex-col justify-between h-full overflow-hidden">
           
           {!selectedItem ? (
             <div className="my-auto text-center text-xs font-semibold text-slate-400">
@@ -650,21 +650,31 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-orange-100 text-[#FA634E] flex items-center justify-center font-extrabold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200/80 text-[#FA634E] flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedItem.initials}
                   </div>
-                  <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
-                    {selectedItem.entityName} · {selectedItem.tripRef}
+                  <div className="min-w-0">
+                    <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 block truncate">
+                      {selectedItem.entityName}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400 block truncate">
+                      {selectedItem.tripRef}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-[#FA634E] border border-rose-200/60 dark:bg-rose-950/40 dark:border-rose-900/50">
+                    {selectedItem.badgeLabel}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {selectedItem.delayTimeAgo}
                   </span>
                 </div>
-                <span className="text-[10.5px] font-bold text-slate-400 shrink-0">
-                  {selectedItem.delayTimeAgo}
-                </span>
               </div>
 
-              {/* Video Evidence Player Frame */}
-              <div className="flex-1 min-h-0 bg-slate-950 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-xs">
-                {selectedItem.hasVideo ? (
+              {/* Main Content: Video Player if hasVideo, else Clean Structured Telemetry Card */}
+              {selectedItem.hasVideo ? (
+                <div className="flex-1 min-h-0 bg-slate-950 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-xs">
                   <video
                     src={selectedItem.videoUrl || '/sample_delay_video.mp4'}
                     controls
@@ -675,19 +685,61 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                   >
                     Video evidence player
                   </video>
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-3 text-center gap-1 text-slate-400">
-                    <Video className="w-5 h-5 text-slate-500" />
-                    <span className="text-[10px] font-bold">No Video Evidence Attached</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                /* Structured Operational Telemetry & Driver Audit Card (NO Pitch-black Box!) */
+                <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-1.5">
+                  
+                  {/* Top Driver & Vehicle Metadata Row */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Driver</span>
+                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
+                          {selectedItem.trip?.driver
+                            ? `${selectedItem.trip.driver.first_name || ''} ${selectedItem.trip.driver.last_name || ''}`.trim()
+                            : (selectedItem.trip as any)?.driver_name || 'Liaqat Ali'}
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Reason Snippet */}
-              <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800 text-[11px] text-[#3E3C3D] dark:text-slate-200 shrink-0 line-clamp-2">
-                <span className="font-bold text-[#FA634E] mr-1">Reason:</span>
-                {selectedItem.delayReason}
-              </div>
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                      <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Vehicle</span>
+                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
+                          {selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delay Reason Log Box */}
+                  <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border-l-3 border-l-amber-500 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-[#3E3C3D] dark:text-slate-200">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-extrabold text-[9.5px] uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" /> Operational Delay Logged
+                      </span>
+                      <span className="text-[9.5px] font-semibold text-slate-400">Written Report</span>
+                    </div>
+                    <p className="font-semibold text-slate-700 dark:text-slate-300 leading-snug line-clamp-2">
+                      {selectedItem.delayReason}
+                    </p>
+                  </div>
+
+                  {/* Operational Status bar */}
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                    <span className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
+                      <MapPin className="w-3 h-3 text-[#FA634E] shrink-0" /> {selectedItem.subtitle.split(' • ')[1] || 'En route'}
+                    </span>
+                    <span className="font-extrabold text-[9px] text-slate-400 uppercase tracking-wider shrink-0">
+                      No Video Attached
+                    </span>
+                  </div>
+
+                </div>
+              )}
 
               {/* Clean Action Bar */}
               <div className="flex items-center gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
@@ -728,7 +780,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
             <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedItem.initials}
                   </div>
                   <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
@@ -798,7 +850,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
             <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedItem.initials}
                   </div>
                   <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
@@ -854,7 +906,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
             <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
               <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-purple-50 border border-purple-200/80 text-purple-800 flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedItem.initials}
                   </div>
                   <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
