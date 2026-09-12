@@ -202,8 +202,8 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           trip: t,
           delayReason: cleanReason,
           delayTimeAgo: timeAgo,
-          hasVideo: Boolean(delayDoc) || t.ref_id === 'TRP-0048',
-          videoUrl: delayDoc?.file_url || (delayDoc as any)?.file_path || (t.ref_id === 'TRP-0048' ? '/sample_delay_video.mp4' : undefined),
+          hasVideo: Boolean(delayDoc?.file_url || (delayDoc as any)?.file_path),
+          videoUrl: delayDoc?.file_url || (delayDoc as any)?.file_path || undefined,
         });
       }
 
@@ -343,8 +343,8 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           } as any,
           delayReason: 'Traffic congestion due to road construction on Highway 40',
           delayTimeAgo: '15m ago',
-          hasVideo: true,
-          videoUrl: '/sample_delay_video.mp4',
+          hasVideo: false,
+          videoUrl: undefined,
         },
         {
           id: 'fallback-doc-1',
