@@ -721,7 +721,7 @@ export default function CargoLoadingView() {
               <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
                 
                 {/* ── LEFT SECTION: Odometer & Service Progress ── */}
-                <div className="w-[36%] flex flex-col justify-between shrink-0 min-w-0 space-y-1">
+                <div className="w-[36%] flex flex-col justify-start gap-2 pt-0.5 shrink-0 min-w-0">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between shrink-0">
@@ -740,9 +740,9 @@ export default function CargoLoadingView() {
                     </Badge>
                   </div>
 
-                  {/* 3D Rolling Drum Odometer Wheel Box */}
-                  <div className="my-auto py-0.5">
-                    <div className="bg-[#0F172A] p-2 sm:p-2.5 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1">
+                  {/* Clean Subtle Odometer Wheel Box */}
+                  <div className="pt-1">
+                    <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center gap-1">
                       <div className="flex items-center gap-0.5 sm:gap-1">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -753,9 +753,8 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-4.5 h-7 sm:w-5 sm:h-8 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white font-mono font-bold text-xs sm:text-base rounded border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-4.5 h-6.5 sm:w-5 sm:h-7 bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 font-mono font-black text-xs sm:text-sm rounded border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
-                              <div className="absolute inset-x-0 top-0 h-[35%] bg-white/10 pointer-events-none rounded-t" />
                               <span className="relative z-10">
                                 {digit}
                               </span>
@@ -763,7 +762,7 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-xs sm:text-sm font-bold text-slate-200 ml-1 shrink-0">
+                      <span className="text-xs font-black text-[#3E3C3D] dark:text-slate-200 ml-1 shrink-0">
                         km
                       </span>
                     </div>
@@ -846,6 +845,7 @@ export default function CargoLoadingView() {
                             <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
                             <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 leading-tight truncate">{item.title}</p>
                             <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
+                          </div>
                         </div>
                       );
                     })}
