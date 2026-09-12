@@ -415,8 +415,8 @@ export default function CargoLoadingView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards (Expanded to Right) ── */}
-        <div className="xl:col-span-4 flex flex-col gap-3.5">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards (Expanded to xl:col-span-5) ── */}
+        <div className="xl:col-span-5 flex flex-col gap-3.5">
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
@@ -708,7 +708,7 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-8 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
+        <div className="xl:col-span-7 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
           <div className="w-full relative flex items-center justify-end shrink-0 overflow-hidden rounded-2xl [mask-image:linear-gradient(to_right,black_80%,transparent_98%)] [-webkit-mask-image:linear-gradient(to_right,black_80%,transparent_98%)]">
