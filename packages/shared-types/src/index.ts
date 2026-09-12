@@ -338,15 +338,21 @@ export interface ApiResponse<T> {
 }
 
 // ─── Commercial Pricing Snapshot DTO ────────────────────────────────
-export interface TripCommercialSnapshot {
+export interface TripFinancialsDto {
+  id?: string;
+  tripId?: string;
   quotationId?: string | null;
+  applied_rate?: number | string | null;
   quotation_line_type?: LineType | string | null;
   quotation_billing_type?: BillingType | string | null;
   quotation_pricing_basis?: PricingBasisType | string | null;
-  applied_rate?: number | string | null;
   quotation_vehicle_class?: string | null;
   quotation_source_vehicle_label?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export interface TripCommercialSnapshot extends TripFinancialsDto {}
 
 // ─── Quotation V1 DTOs ──────────────────────────────────────────
 export interface QuotationStop {

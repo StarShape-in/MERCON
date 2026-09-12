@@ -135,7 +135,8 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
     ? trip.third_party_vehicle_plate || 'Unassigned'
     : trip.vehicle?.plate_number || 'Unassigned';
 
-  const rawTon = trip.quotation_vehicle_class
+  const rawTon = trip.financials?.quotation_vehicle_class
+    || trip.quotation_vehicle_class
     || (trip.vehicle?.capacity_kg ? `${Math.round(trip.vehicle.capacity_kg / 1000)} TON` : null)
     || trip.rateCard?.vehicle_type
     || trip.vehicle_type
