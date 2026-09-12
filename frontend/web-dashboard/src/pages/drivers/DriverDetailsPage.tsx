@@ -162,64 +162,6 @@ export default function DriverDetailsPage() {
   }, [isCalendarOpen, tripsDateRange]);
   // ─────────────────────────────────────────────────────────────────────────
 
-  if (isLoading) {
-    return (
-      <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="p-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
-          <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-64"></div>
-          <div className="grid grid-cols-12 gap-4 h-[75vh]">
-            <div className="col-span-3 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="col-span-5 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="col-span-4 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (error || !driver) {
-    return (
-      <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="p-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
-          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
-          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
-          <p className="text-xs text-slate-500 max-w-md">
-            The requested driver profile does not exist or may have been deleted from the MERCON roster.
-          </p>
-          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-xs">
-            Return to Driver Roster
-          </Button>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  const trips = driver.trips || [];
-  const assignedVehicle = driver.assignedVehicle;
-
-  // Active Live Trip (if currently on trip)
-  const activeTrip = trips.find(t => {
-    const s = (t.status || '').toLowerCase();
-    return s === 'intransit' || s === 'atpickup' || s === 'atdelivery' || s === 'active' || s === 'dispatched';
-  });
-
-  // Most Recent Trip (Fallback if no active live trip)
-  const recentTrip = (() => {
-    if (trips.length === 0) return null;
-    const sorted = [...trips].sort((a, b) => {
-      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
-      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
-      return dateB - dateA;
-    });
-    return sorted[0];
-  })();
-
-  // Display Trip: Live trip if active, otherwise most recent trip
-  const displayTrip = activeTrip || recentTrip;
-  const isLiveTrip = !!activeTrip;
-  const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
-
-
   const metrics = useMemo(() => {
     const tripList: any[] = driver?.trips || [];
     const totalCount = tripList.length;
@@ -360,6 +302,63 @@ export default function DriverDetailsPage() {
       workTimeStackedData,
     };
   }, [driver?.trips]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout active="Drivers" title="Driver Details">
+        <div className="p-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
+          <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-64"></div>
+          <div className="grid grid-cols-12 gap-4 h-[75vh]">
+            <div className="col-span-3 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="col-span-5 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="col-span-4 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !driver) {
+    return (
+      <DashboardLayout active="Drivers" title="Driver Details">
+        <div className="p-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+          <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
+          <p className="text-xs text-slate-500 max-w-md">
+            The requested driver profile does not exist or may have been deleted from the MERCON roster.
+          </p>
+          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-xs">
+            Return to Driver Roster
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const trips = driver.trips || [];
+  const assignedVehicle = driver.assignedVehicle;
+
+  // Active Live Trip (if currently on trip)
+  const activeTrip = trips.find(t => {
+    const s = (t.status || '').toLowerCase();
+    return s === 'intransit' || s === 'atpickup' || s === 'atdelivery' || s === 'active' || s === 'dispatched';
+  });
+
+  // Most Recent Trip (Fallback if no active live trip)
+  const recentTrip = (() => {
+    if (trips.length === 0) return null;
+    const sorted = [...trips].sort((a, b) => {
+      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
+      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return sorted[0];
+  })();
+
+  // Display Trip: Live trip if active, otherwise most recent trip
+  const displayTrip = activeTrip || recentTrip;
+  const isLiveTrip = !!activeTrip;
+  const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
 
   // Document rows list (Driver License, IQAMA, Driver Card, Passport)
   const documentList = [
