@@ -718,7 +718,7 @@ export default function CargoLoadingView() {
               <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[12.5%] left-[33.5%] w-[62%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
+              <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
                 
                 {/* ── LEFT SECTION: Odometer & Service Progress ── */}
                 <div className="w-[36%] flex flex-col justify-between shrink-0 min-w-0 space-y-1">
@@ -731,7 +731,6 @@ export default function CargoLoadingView() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight tracking-tight truncate">Odometer</h3>
-                        <p className="text-[10px] text-slate-500 font-semibold leading-none mt-0.5 truncate">Total Distance Traveled</p>
                       </div>
                     </div>
 
@@ -743,7 +742,7 @@ export default function CargoLoadingView() {
 
                   {/* 3D Rolling Drum Odometer Wheel Box */}
                   <div className="my-auto py-0.5">
-                    <div className="bg-[#0F172A] p-1.5 sm:p-2 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1">
+                    <div className="bg-[#0F172A] p-2 sm:p-2.5 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1">
                       <div className="flex items-center gap-0.5 sm:gap-1">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -754,7 +753,7 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-4 h-6 sm:w-4.5 sm:h-7 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white font-mono font-bold text-xs sm:text-sm rounded border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-4.5 h-7 sm:w-5 sm:h-8 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white font-mono font-bold text-xs sm:text-base rounded border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
                               <div className="absolute inset-x-0 top-0 h-[35%] bg-white/10 pointer-events-none rounded-t" />
                               <span className="relative z-10">
@@ -764,47 +763,9 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-xs font-bold text-slate-200 ml-1 shrink-0">
+                      <span className="text-xs sm:text-sm font-bold text-slate-200 ml-1 shrink-0">
                         km
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Next Service Due Box */}
-                  <div className="bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 space-y-1.5 shrink-0">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start gap-1.5">
-                        <div className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-300 dark:border-slate-600">
-                          <Wrench className="w-3 h-3 text-[#3E3C3D] dark:text-slate-200" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-tight">Next Service</p>
-                          <p className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight mt-0.5">
-                            7,500 km
-                          </p>
-                          <p className="text-[10px] text-slate-500 font-semibold leading-tight">remaining</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-tight">Target</p>
-                        <p className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight mt-0.5">150,000 km</p>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full bg-slate-300 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#3E3C3D] dark:bg-slate-200 h-full rounded-full w-[45%]"></div>
-                    </div>
-
-                    <div className="flex justify-between items-center text-[10px]">
-                      <div>
-                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 block leading-tight">142,500 km</span>
-                        <span className="text-slate-500 font-semibold leading-none">Current</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 block leading-tight">150,000 km</span>
-                        <span className="text-slate-500 font-semibold leading-none">Target</span>
-                      </div>
                     </div>
                   </div>
 
@@ -824,7 +785,6 @@ export default function CargoLoadingView() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight leading-tight truncate">Vehicle Service History</h3>
-                        <p className="text-[10px] text-slate-500 font-semibold leading-none mt-0.5 truncate">Recent maintenance records</p>
                       </div>
                     </div>
 
@@ -844,7 +804,6 @@ export default function CargoLoadingView() {
                         date: '12 Aug 2026',
                         title: 'Engine Oil & Filter Service',
                         workshop: 'Zahid Heavy Equipment Workshop',
-                        odometer: '142,500 km',
                         icon: Droplets,
                         isRecent: true,
                       },
@@ -853,7 +812,6 @@ export default function CargoLoadingView() {
                         date: '25 Jun 2026',
                         title: 'Brake Pad Replacement',
                         workshop: 'Al-Refaei Truck Service Center',
-                        odometer: '135,000 km',
                         icon: Disc,
                         isRecent: false,
                       },
@@ -862,7 +820,6 @@ export default function CargoLoadingView() {
                         date: '14 Mar 2026',
                         title: 'Air Filter Replacement',
                         workshop: 'Saudi Heavy Maintenance Hub',
-                        odometer: '128,300 km',
                         icon: Wind,
                         isRecent: false,
                       },
@@ -889,30 +846,9 @@ export default function CargoLoadingView() {
                             <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
                             <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 leading-tight truncate">{item.title}</p>
                             <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
-                          </div>
-
-                          {/* Right Side Odometer */}
-                          <div className="shrink-0 text-right">
-                            <div className="flex items-center gap-1 justify-end text-[10px] font-bold text-slate-500">
-                              <Gauge className="w-3 h-3 text-slate-500" />
-                              <span>Odometer</span>
-                            </div>
-                            <p className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight mt-0.5">{item.odometer}</p>
-                          </div>
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Bottom Status Banner */}
-                  <div className="bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs shrink-0">
-                    <div className="flex items-center gap-1.5 text-[#3E3C3D] dark:text-slate-200 font-bold">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#3E3C3D] dark:text-slate-200 shrink-0" />
-                      <span>All maintenance records verified</span>
-                    </div>
-                    <div className="text-slate-500 font-medium">
-                      Vehicle Health: <span className="font-black text-[#3E3C3D] dark:text-slate-100 tracking-wider">OPERATIONAL</span>
-                    </div>
                   </div>
 
                 </div>
