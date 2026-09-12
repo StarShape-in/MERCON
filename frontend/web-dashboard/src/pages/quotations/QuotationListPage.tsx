@@ -363,18 +363,10 @@ export default function QuotationListPage() {
     setIsDrawerOpen(true);
   };
 
-  // Fetch Quotations list
+  // Fetch Quotations list (Full dataset for workspace navigator and customer grouping)
   const { data: quotationsRes, isLoading, refetch } = useQuery({
-    queryKey: ['quotations', search, billingTypeFilter, lineTypeFilter, vehicleClassFilter, statusFilter],
-    queryFn: () =>
-      quotationService.getAll({
-        per_page: 'all', // Fetch all commercial routes for customer workspace grouping
-        ...(search ? { search } : {}),
-        ...(billingTypeFilter !== 'ALL' ? { billing_type: billingTypeFilter } : {}),
-        ...(lineTypeFilter !== 'ALL' ? { line_type: lineTypeFilter } : {}),
-        ...(vehicleClassFilter !== 'ALL' ? { vehicle_class: vehicleClassFilter } : {}),
-        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
-      }),
+    queryKey: ['quotations'],
+    queryFn: () => quotationService.getAll({ per_page: 'all' }),
     refetchOnMount: 'always',
     staleTime: 0,
   });
@@ -507,10 +499,20 @@ export default function QuotationListPage() {
 
   const totalWorkspacePages = Math.ceil(filteredWorkspaceRoutes.length / workspacePerPage) || 1;
 
-  // Reset workspace page on selection / filter change
+  // Reset workspace filters when changing selected customer
+  useEffect(() => {
+    setSearch('');
+    setBillingTypeFilter('ALL');
+    setVehicleClassFilter('ALL');
+    setLineTypeFilter('ALL');
+    setStatusFilter('ALL');
+    setWorkspacePage(1);
+  }, [selectedCustomerId]);
+
+  // Reset workspace page on filter change
   useEffect(() => {
     setWorkspacePage(1);
-  }, [selectedCustomerId, search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+  }, [search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
 
   const handleDelete = async () => {
     if (!selectedQuotation) return;
