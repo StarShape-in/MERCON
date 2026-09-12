@@ -119,7 +119,6 @@ export const REPORT_SCHEMA: ReportModule[] = [
     fields: [
       { key: 'customers.name', label: 'Customer Name', type: 'string' },
       { key: 'customers.contact_phone', label: 'Contact', type: 'string' },
-      { key: 'customers.credit_limit', label: 'Credit Limit', type: 'money', aggregatable: true },
     ],
     joins: [
       { toModule: 'trips', via: 'Customer Trips', relationField: 'trips', cardinality: 'toMany' },

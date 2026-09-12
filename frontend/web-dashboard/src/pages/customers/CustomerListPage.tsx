@@ -197,8 +197,6 @@ export default function CustomerListPage() {
       'Primary Phone',
       'Contact Person',
       'Payment Terms',
-      'Tax Number',
-      'Credit Limit (SAR)',
       'Status'
     ];
 
@@ -208,8 +206,6 @@ export default function CustomerListPage() {
       c.contact_phone || c.phone || 'N/A',
       c.primary_contact_person || getPrimaryContactPerson(c.name),
       c.payment_terms || 'Standard',
-      c.tax_number || 'N/A',
-      c.credit_limit || 0,
       c.isActive ? 'Active' : 'Inactive'
     ]);
 
@@ -223,7 +219,6 @@ export default function CustomerListPage() {
       'Phone',
       'Contact Person',
       'Terms',
-      'Credit Limit (SAR)',
       'Status'
     ];
 
@@ -233,7 +228,6 @@ export default function CustomerListPage() {
       c.contact_phone || c.phone || 'N/A',
       c.primary_contact_person || getPrimaryContactPerson(c.name),
       c.payment_terms || 'Standard',
-      `SAR ${(c.credit_limit || 0).toLocaleString()}`,
       c.isActive ? 'Active' : 'Inactive'
     ]);
 
@@ -247,8 +241,6 @@ export default function CustomerListPage() {
       phone: c.contact_phone || c.phone || '',
       contact_person: c.primary_contact_person || getPrimaryContactPerson(c.name),
       payment_terms: c.payment_terms || 'Standard',
-      tax_number: c.tax_number || '',
-      credit_limit: c.credit_limit || 0,
       status: c.isActive ? 'Active' : 'Inactive',
     }));
     downloadCSV(data, `customers_${new Date().toISOString().slice(0, 10)}.csv`);

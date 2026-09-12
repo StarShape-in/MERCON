@@ -117,12 +117,6 @@ export default function CustomerPreviewModal({
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-xs">
                 {phoneToUse && <PhoneDisplay phone={phoneToUse} showActions variant="badge" />}
-                {customer.tax_number && (
-                  <span className="flex items-center gap-1.5 font-mono font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1 text-slate-700 dark:text-slate-200 shadow-2xs">
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    VAT/CR: {customer.tax_number}
-                  </span>
-                )}
               </div>
             </div>
           </div>

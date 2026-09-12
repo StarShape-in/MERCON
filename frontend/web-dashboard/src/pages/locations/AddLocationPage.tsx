@@ -463,7 +463,7 @@ export default function AddLocationPage() {
     return customers.map((c) => ({
       value: c.id,
       label: c.name,
-      keywords: `${c.name} ${c.company_name || ''} ${c.tax_number || ''}`,
+      keywords: `${c.name} ${c.company_name || ''}`,
     }));
   }, [customers]);
 

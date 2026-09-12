@@ -81,7 +81,6 @@ const FIELD_LABELS: Record<string, string> = {
 
   'customers.name': 'Customer Name',
   'customers.contact_phone': 'Contact Phone',
-  'customers.credit_limit': 'Credit Limit',
 
   'thirdParty.name': 'Vendor Name',
   'thirdParty.contact_person': 'Contact Person',
@@ -112,7 +111,6 @@ const MONEY_FIELDS = new Set([
   'trips.revenue',
   'trips.trip_charges',
   'trips.third_party_cost',
-  'customers.credit_limit',
   'maintenance.cost',
   'expenses.amount',
   'invoices.total_amount',

@@ -78,7 +78,7 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
       return obj.status === 'Pending' || obj.status === 'Overdue' ? Number(obj.total_amount ?? 0) : 0;
     default: {
       const v = obj[fieldName];
-      // Money columns (trip_charges, credit_limit, total_amount, ...) are
+      // Money columns (trip_charges, total_amount, ...) are
       // Decimal at runtime, not number — every consumer of this function
       // (extractMetricValue/extractDimensionValue below, and the aggregate()
       // reducer they feed) only accepts `typeof v === 'number'`, filtering

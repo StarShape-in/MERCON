@@ -460,26 +460,6 @@ export default function CustomerDetailsPage() {
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">VAT / CR Registration</span>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                        {customer.tax_number || '310492810400003'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(customer.tax_number || '310492810400003');
-                          toast.success('CR / VAT Number copied to clipboard');
-                        }}
-                        className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                        title="Copy CR/VAT Number"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Account Code</span>
                     <span className="font-mono text-xs font-extrabold text-indigo-600 dark:text-indigo-400 block">
                       {`CUST-${customer.id.slice(0, 8).toUpperCase()}`}

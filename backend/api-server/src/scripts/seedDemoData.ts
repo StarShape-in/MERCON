@@ -33,7 +33,6 @@ async function main() {
     primary_contact_person: 'Abdullah Al-Rashid',
     primary_contact_phone: '+966500000002',
     payment_terms: 'Net 30',
-    credit_limit: 50000,
     isActive: true,
   }, H);
   const customer = custData.data;

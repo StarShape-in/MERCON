@@ -17,14 +17,8 @@ export interface Customer {
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
-  tax_number?: string;
-  credit_limit: number;
   isActive: boolean;
   createdAt: string;
-  default_pickup_lat?: number | null;
-  default_pickup_lng?: number | null;
-  default_dropoff_lat?: number | null;
-  default_dropoff_lng?: number | null;
   trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
   /** Present on list responses only — total trip count, used to rank frequent shippers. */
   _count?: { trips: number };
@@ -41,16 +35,10 @@ export interface CreateCustomerPayload {
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
-  tax_number?: string;
-  credit_limit?: number;
   isActive?: boolean;
   whatsapp_number?: string;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
-  default_pickup_lat?: number | null;
-  default_pickup_lng?: number | null;
-  default_dropoff_lat?: number | null;
-  default_dropoff_lng?: number | null;
 }
 
 export interface CustomerFilters {

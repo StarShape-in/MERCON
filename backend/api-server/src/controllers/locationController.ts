@@ -229,7 +229,7 @@ export const getLocationById = async (req: Request, res: Response) => {
     const location = await prisma.location.findFirst({
       where: { id: req.params.id as string },
       include: {
-        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        customer: { select: { id: true, name: true, company_name: true } },
         _count: {
           select: {
             quotationStops: true,
@@ -426,7 +426,7 @@ export const updateLocation = async (req: Request, res: Response) => {
       where: { id: id as string },
       data: updateData,
       include: {
-        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        customer: { select: { id: true, name: true, company_name: true } },
         _count: {
           select: {
             quotationStops: true,

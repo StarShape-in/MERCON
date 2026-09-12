@@ -21,11 +21,6 @@ export interface RawCustomer {
   id: string;
   name: string;
   contact_phone: string;
-  credit_limit: number;
-  default_pickup_lat: number | null;
-  default_pickup_lng: number | null;
-  default_dropoff_lat: number | null;
-  default_dropoff_lng: number | null;
   isActive: boolean;
   createdAt: string;
 }

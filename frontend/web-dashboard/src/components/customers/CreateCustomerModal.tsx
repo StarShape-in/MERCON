@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, User, Phone, FileText, CreditCard, Loader2 } from 'lucide-react';
+import { Building2, User, Phone, Loader2 } from 'lucide-react';
 import { customerService, Customer } from '@/services/customerService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -20,7 +20,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
 
   const [name, setName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
-  const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +42,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
   const resetForm = () => {
     setName('');
     setContactPhone('');
-    setTaxNumber('');
     setPrimaryContactPerson('');
     setWhatsappGroupLink('');
     setError(null);
@@ -60,7 +58,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
     createMutation.mutate({
       name: name.trim(),
       contact_phone: contactPhone.trim() || 'N/A',
-      tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
     } as any);
@@ -123,19 +120,6 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
                 placeholder="50 123 4567"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="tax_number" className="text-xs font-semibold flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
-            </Label>
-            <Input
-              id="tax_number"
-              placeholder="3100XXXXXXXXXXX"
-              value={taxNumber}
-              onChange={(e) => setTaxNumber(e.target.value)}
-              className="h-9 text-xs font-mono"
-            />
           </div>
 
           <div className="space-y-1.5">

@@ -45,13 +45,8 @@ export const getCustomers = async (req: Request, res: Response) => {
             whatsapp_group_link: true,
             whatsapp_group_name: true,
             payment_terms: true,
-            credit_limit: true,
             isActive: true,
             createdAt: true,
-            default_pickup_lat: true,
-            default_pickup_lng: true,
-            default_dropoff_lat: true,
-            default_dropoff_lng: true,
           },
         }),
         prisma.customer.count({ where: whereClause }),
@@ -77,10 +72,10 @@ export const getCustomers = async (req: Request, res: Response) => {
         orderBy: { name: 'asc' },
         include: { _count: { select: { trips: true } } },
       }),
-      prisma.customer.count({ where: whereClause })
+      prisma.customer.count({ where: whereClause }),
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: customers,
       meta: {
@@ -135,11 +130,9 @@ export const createCustomer = async (req: Request, res: Response) => {
       secondary_contact_person,
       secondary_contact_phone,
       payment_terms,
-      tax_number,
       whatsapp_number,
       whatsapp_group_link,
       whatsapp_group_name,
-      credit_limit,
       isActive,
     } = req.body;
     
@@ -155,11 +148,9 @@ export const createCustomer = async (req: Request, res: Response) => {
         secondary_contact_person,
         secondary_contact_phone,
         payment_terms,
-        tax_number,
         whatsapp_number,
         whatsapp_group_link,
         whatsapp_group_name,
-        credit_limit: credit_limit || 0,
         isActive: isActive ?? true,
         created_by: (req as any).user?.id
       }
