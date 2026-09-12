@@ -72,8 +72,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
 
-  const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
-  const activeSelectedId = primarySlot.matchedRateCard?.id || matchedRateCard?.id;
+  const matchedRateCard = primarySlot.matchedRateCard || null;
+  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -696,7 +696,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                 {displayedRateCards.map((rc, idx) => {
-                  const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
+                  const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
                   const rateVal = rc.rate ?? rc.base_price ?? 0;
                   const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                   const rCat = rc.rate_category || rc.line_type || contractRateCategory;
@@ -833,7 +833,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {displayedRateCards.map((rc, idx) => {
-                    const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
+                    const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
                     const rateVal = rc.rate ?? rc.base_price ?? 0;
                     const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                     const rCat = rc.rate_category || rc.line_type || contractRateCategory;
