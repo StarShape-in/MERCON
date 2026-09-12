@@ -125,7 +125,7 @@ export default function TripDetailsPage() {
   const { data: docsRes } = useQuery({
     queryKey: ['documents', 'Trip', tripEntityId],
     queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: tripEntityId, per_page: 50 }),
-    enabled: !!tripEntityId,
+    enabled: !!tripEntityId && !!trip,
     refetchInterval: 5000,
   });
   const documents = docsRes?.data || [];
@@ -239,13 +239,20 @@ export default function TripDetailsPage() {
       <DashboardLayout active="Trips" title="Trip Details">
         <div className="h-full flex flex-col items-center justify-center text-center gap-3 p-4">
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
-          <h2 className="text-lg font-bold text-[#1F2937]">Failed to Load Trip</h2>
+          <h2 className="text-lg font-bold text-[#1F2937]">Trip Not Found</h2>
           <p className="text-xs text-slate-500 max-w-sm">
-            The requested trip could not be loaded. Please try again.
+            The requested trip could not be loaded or does not exist.
           </p>
-          <Button onClick={() => refetch()} size="sm" className="bg-[#FA634E] hover:bg-[#e0523d] text-white">
-            Retry
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/trips">
+              <Button size="sm" className="bg-[#FA634E] hover:bg-[#e0523d] text-white">
+                Back to Trips
+              </Button>
+            </Link>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              Retry
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
