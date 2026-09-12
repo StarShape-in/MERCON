@@ -8,8 +8,8 @@ export interface CustomerOption {
   name: string;
   code?: string;
   city?: string;
-  avatar_url?: string;
-  logo_url?: string;
+  avatar_url?: string | null;
+  logo_url?: string | null;
 }
 
 interface CustomerSelectionCardProps {
