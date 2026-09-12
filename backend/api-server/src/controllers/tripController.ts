@@ -366,20 +366,6 @@ export const getTrips = async (req: Request, res: Response) => {
               name: true,
             }
           },
-          tripDrivers: {
-            where: { removedAt: null },
-            include: {
-              driver: {
-                select: {
-                  id: true,
-                  ref_id: true,
-                  first_name: true,
-                  last_name: true,
-                  phone_primary: true,
-                },
-              },
-            },
-          },
           stops: {
             orderBy: { stop_sequence: 'asc' },
             select: {
@@ -486,25 +472,7 @@ export const getTripById = async (req: Request, res: Response) => {
         driver: true,
         vehicle: true,
         customer: true,
-        invoices: true,
-        quotation: {
-          include: {
-            customer: { select: { id: true, name: true } },
-            stops: {
-              include: {
-                location: { select: { id: true, name: true, lat: true, lng: true } },
-              },
-              orderBy: { sequence: 'asc' },
-            },
-          }
-        },
         thirdPartyProvider: true,
-        tripDrivers: {
-          include: {
-            driver: true,
-          },
-          orderBy: { assignedAt: 'asc' },
-        },
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },
         },
