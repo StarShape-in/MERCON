@@ -220,7 +220,6 @@ export default function AddCustomerPage() {
       name: formData.name.trim(),
       contact_phone: effectivePhone,
       logo_url: formData.logo_url || undefined,
-      avatar_url: formData.logo_url || undefined,
       primary_contact_person: primaryContact?.name?.trim() || undefined,
       primary_contact_phone: primaryContact?.phone?.trim() || effectivePhone,
       secondary_contact_person: secondaryContact?.name?.trim() || undefined,

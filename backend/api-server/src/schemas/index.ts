@@ -422,7 +422,6 @@ export const updateDriverBody = z.object({
 export const createCustomerBody = z.object({
   name: nonEmpty('Customer name'),
   contact_phone: nonEmpty('Contact phone'),
-  avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
   primary_contact_phone: z.string().trim().optional(),
@@ -438,7 +437,6 @@ export const createCustomerBody = z.object({
 export const updateCustomerBody = z.object({
   name: nonEmpty('Customer name').optional(),
   contact_phone: nonEmpty('Contact phone').optional(),
-  avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
   primary_contact_phone: z.string().trim().optional(),

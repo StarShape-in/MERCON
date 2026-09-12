@@ -102,7 +102,7 @@ const ChargeRowItem = ({
   const toCity = stopLabel(dropoff) ?? 'Destination';
   const dateSource = item.actual_end ?? item.planned_end ?? item.actual_start ?? item.planned_start ?? null;
 
-  const rawLogo = item.customer?.logo_url || item.customer?.avatar_url || null;
+  const rawLogo = item.customer?.logo_url || null;
   const logoUrl = resolveLogoUrl(rawLogo);
   const showLogo = logoUrl && !imgError;
 

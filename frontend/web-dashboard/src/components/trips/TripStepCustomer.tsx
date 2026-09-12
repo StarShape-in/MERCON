@@ -91,8 +91,8 @@ export default function TripStepCustomer({
                       "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] overflow-hidden shrink-0",
                       isSelected ? "bg-brand text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                     )}>
-                      {c.logo_url || c.avatar_url ? (
-                        <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                      {c.logo_url ? (
+                        <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
                         c.name.substring(0, 2).toUpperCase()
                       )}
@@ -143,8 +143,8 @@ export default function TripStepCustomer({
               {selectedCustomer ? (
                 <div className="flex items-center gap-2.5 min-w-0 truncate">
                   <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60 overflow-hidden">
-                    {selectedCustomer.logo_url || selectedCustomer.avatar_url ? (
-                      <img src={selectedCustomer.logo_url || selectedCustomer.avatar_url || ''} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                    {selectedCustomer.logo_url ? (
+                      <img src={selectedCustomer.logo_url} alt={selectedCustomer.name} className="w-full h-full object-cover" />
                     ) : (
                       selectedCustomer.name.substring(0, 2).toUpperCase()
                     )}
@@ -207,8 +207,8 @@ export default function TripStepCustomer({
                               ? "bg-brand text-white"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                           )}>
-                            {c.logo_url || c.avatar_url ? (
-                              <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                            {c.logo_url ? (
+                              <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
                             ) : (
                               c.name.substring(0, 2).toUpperCase()
                             )}
@@ -251,8 +251,8 @@ export default function TripStepCustomer({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60 overflow-hidden shrink-0">
-                {selectedCustomer.logo_url || selectedCustomer.avatar_url ? (
-                  <img src={selectedCustomer.logo_url || selectedCustomer.avatar_url || ''} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                {selectedCustomer.logo_url ? (
+                  <img src={selectedCustomer.logo_url} alt={selectedCustomer.name} className="w-full h-full object-cover" />
                 ) : (
                   selectedCustomer.name.substring(0, 2).toUpperCase()
                 )}

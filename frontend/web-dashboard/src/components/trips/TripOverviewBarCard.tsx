@@ -153,7 +153,7 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
 
   // 3. Company / Customer info (Name & Logo only)
   const companyName = trip.customer?.name || 'Customer';
-  const companyLogo = trip.customer?.logo_url || trip.customer?.avatar_url;
+  const companyLogo = trip.customer?.logo_url;
 
   // 4. Alerts (derived from real trip and documents)
   const alerts = extractTripDelayAlerts(trip, documents);

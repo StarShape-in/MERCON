@@ -2242,7 +2242,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
       take: MONTHLY_BOARD_TRIP_CAP,
       orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       include: {
-        customer: { select: { id: true, name: true, contact_phone: true, avatar_url: true, logo_url: true } },
+        customer: { select: { id: true, name: true, contact_phone: true, logo_url: true } },
         driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true, deletedAt: true } },
         vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true, deletedAt: true } },
         quotation: {
@@ -2316,7 +2316,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
     }
 
     interface CompanyGroup {
-      customer: { id: string; name: string; contact_phone: string; avatar_url?: string | null; logo_url?: string | null };
+      customer: { id: string; name: string; contact_phone: string; logo_url?: string | null };
       trips: BoardTrip[];
       drivers: Map<string, { id: string; name: string; ref_id: string | null; trips: number }>;
       vehicles: Map<string, { id: string; plate_number: string; trips: number }>;

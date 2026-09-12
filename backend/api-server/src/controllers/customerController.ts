@@ -38,7 +38,6 @@ export const getCustomers = async (req: Request, res: Response) => {
             contact_phone: true,
             primary_contact_person: true,
             primary_contact_phone: true,
-            avatar_url: true,
             logo_url: true,
             whatsapp_number: true,
             whatsapp_group_link: true,
@@ -121,7 +120,6 @@ export const createCustomer = async (req: Request, res: Response) => {
     const {
       name,
       contact_phone,
-      avatar_url,
       logo_url,
       primary_contact_person,
       primary_contact_phone,
@@ -138,7 +136,6 @@ export const createCustomer = async (req: Request, res: Response) => {
       data: {
         name,
         contact_phone,
-        avatar_url,
         logo_url,
         primary_contact_person,
         primary_contact_phone,

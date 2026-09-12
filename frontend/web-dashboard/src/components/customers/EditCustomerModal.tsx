@@ -33,7 +33,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   useEffect(() => {
     if (customer) {
       setName(customer.name || '');
-      setLogoUrl(customer.logo_url || customer.avatar_url || null);
+      setLogoUrl(customer.logo_url || null);
       setContactPhone(customer.contact_phone || customer.primary_contact_phone || customer.phone || '');
       setPrimaryContactPerson(customer.primary_contact_person || '');
       setWhatsappGroupLink(customer.whatsapp_group_link || '');
@@ -77,7 +77,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       name: name.trim(),
       contact_phone: contactPhone.trim(),
       logo_url: logoUrl || undefined,
-      avatar_url: logoUrl || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
       payment_terms: paymentTerms || undefined,

@@ -93,7 +93,7 @@ export default function DriverTripDetailsScreen() {
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   const intermediateStops = trip?.stops?.filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff') ?? [];
 
-  const rawLogo = trip?.customer?.logo_url || trip?.customer?.avatar_url || null;
+  const rawLogo = trip?.customer?.logo_url || null;
   const logoUrl = resolveLogoUrl(rawLogo);
   const showLogo = logoUrl && !logoError;
 

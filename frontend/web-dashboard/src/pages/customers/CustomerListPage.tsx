@@ -286,9 +286,9 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Company Name',
       accessor: (row: Customer) => (
         <div className="flex items-center gap-3">
-          {row.logo_url || row.avatar_url ? (
+          {row.logo_url ? (
             <img
-              src={row.logo_url || row.avatar_url || ''}
+              src={row.logo_url}
               alt={row.name}
               className="w-8 h-8 object-contain shrink-0"
             />
@@ -795,9 +795,9 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      {c.logo_url || c.avatar_url ? (
+                      {c.logo_url ? (
                         <img
-                          src={c.logo_url || c.avatar_url || ''}
+                          src={c.logo_url}
                           alt={c.name}
                           className="w-10 h-10 object-contain shrink-0"
                         />

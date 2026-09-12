@@ -1444,8 +1444,8 @@ export default function BulkAddTripsModal({
                                   <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 overflow-hidden ${
                                     isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
                                   }`}>
-                                    {c.logo_url || c.avatar_url ? (
-                                      <img src={c.logo_url || c.avatar_url || ''} alt={c.name} className="w-full h-full object-cover" />
+                                    {c.logo_url ? (
+                                      <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
                                     ) : (
                                       initials
                                     )}

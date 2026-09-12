@@ -85,7 +85,7 @@ export default function EditCustomerPage() {
       setFormData({
         name: customer.name || '',
         trade_alias: '',
-        logo_url: customer.logo_url || customer.avatar_url || null,
+        logo_url: customer.logo_url || null,
         industry: 'Logistics',
         cr_number: '',
         vat_number: '',
@@ -184,7 +184,7 @@ export default function EditCustomerPage() {
       setFormData({
         name: customer.name || '',
         trade_alias: '',
-        logo_url: customer.logo_url || customer.avatar_url || null,
+        logo_url: customer.logo_url || null,
         industry: 'Logistics',
         cr_number: '',
         vat_number: '',
@@ -227,7 +227,6 @@ export default function EditCustomerPage() {
         name: formData.name.trim(),
         contact_phone: effectivePhone,
         logo_url: formData.logo_url || undefined,
-        avatar_url: formData.logo_url || undefined,
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,

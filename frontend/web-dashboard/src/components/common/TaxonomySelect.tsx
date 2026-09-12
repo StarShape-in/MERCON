@@ -34,6 +34,7 @@ export interface TaxonomySelectProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   allowClear?: boolean;
+  clearLabel?: string;
   disabled?: boolean;
   className?: string;
   size?: 'sm' | 'default' | 'lg';
@@ -49,6 +50,7 @@ export function TaxonomySelect({
   onValueChange,
   placeholder,
   allowClear = true,
+  clearLabel,
   disabled = false,
   className,
   size = 'default',
@@ -67,6 +69,8 @@ export function TaxonomySelect({
       : 'Operation Type';
 
   const defaultPlaceholder = placeholder || `Select ${categoryTitle}...`;
+  const displayClearLabel =
+    clearLabel || (placeholder && placeholder.toLowerCase().startsWith('all') ? placeholder : 'None / Unspecified');
 
   const refreshOptions = () => {
     setOptions(getAllTaxonomyOptions(category));
@@ -134,8 +138,8 @@ export function TaxonomySelect({
 
         <SelectContent className="z-[9999] max-h-64 shadow-xl border-slate-200 dark:border-slate-800 w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]">
           {allowClear && (
-            <SelectItem value={NONE_VALUE} className="text-xs font-medium text-slate-400">
-              None / Unspecified
+            <SelectItem value={NONE_VALUE} className="text-xs font-medium text-slate-500">
+              {displayClearLabel}
             </SelectItem>
           )}
 

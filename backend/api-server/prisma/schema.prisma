@@ -189,7 +189,6 @@ model Customer {
   id                      String   @id @default(uuid()) @db.Uuid
   name                    String
   contact_phone           String
-  avatar_url              String?
   logo_url                String?
   primary_contact_person  String?
   primary_contact_phone   String?

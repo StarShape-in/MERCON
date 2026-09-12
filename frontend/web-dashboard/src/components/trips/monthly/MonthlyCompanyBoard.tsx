@@ -97,8 +97,8 @@ function shouldShowTripOnMonthlyBoard(trip: MonthlyBoardTrip, todayStr: string):
   return true;
 }
 
-function CompanyProfileLogo({ customer }: { customer: { name: string; avatar_url?: string | null; logo_url?: string | null } }) {
-  const logoUrl = customer.logo_url || customer.avatar_url;
+function CompanyProfileLogo({ customer }: { customer: { name: string; logo_url?: string | null } }) {
+  const logoUrl = customer.logo_url;
   if (logoUrl) {
     return (
       <img

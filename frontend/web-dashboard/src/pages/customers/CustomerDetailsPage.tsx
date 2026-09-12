@@ -291,9 +291,9 @@ export default function CustomerDetailsPage() {
           <div className="flex items-start gap-4 min-w-0">
             
             {/* Standalone Logo */}
-            {customer.logo_url || customer.avatar_url ? (
+            {customer.logo_url ? (
               <img
-                src={customer.logo_url || customer.avatar_url || ''}
+                src={customer.logo_url}
                 alt={customer.name}
                 className="h-12 sm:h-14 max-w-[140px] object-contain shrink-0 mt-0.5"
               />

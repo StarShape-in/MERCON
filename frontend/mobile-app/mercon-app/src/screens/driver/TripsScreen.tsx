@@ -117,7 +117,7 @@ function toCard(t: MobileTrip, isCompletedTab: boolean): CardData {
   const fromCity = stopLabel(pickup, 'Pickup Location') ?? 'Pickup Location';
   const toCity = stopLabel(dropoff, 'Dropoff Location') ?? 'Dropoff Location';
   const isComp = t.status === 'Completed' || t.status === 'Invoiced' || isCompletedTab;
-  const logoUrl = resolveLogoUrl(t.customer?.logo_url || t.customer?.avatar_url || null);
+  const logoUrl = resolveLogoUrl(t.customer?.logo_url || null);
   const chargeValue = getTripChargeValue(t);
 
   return {

@@ -769,6 +769,7 @@ export default function QuotationListPage() {
                             value={billingTypeFilter === 'ALL' ? '' : billingTypeFilter}
                             onValueChange={(val: string) => { setBillingTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
                             placeholder="All Operations"
+                            clearLabel="All Operations"
                             size="sm"
                           />
                         </div>
@@ -780,6 +781,7 @@ export default function QuotationListPage() {
                             value={vehicleClassFilter === 'ALL' ? '' : vehicleClassFilter}
                             onValueChange={(val: string) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
                             placeholder="All Vehicles"
+                            clearLabel="All Vehicles"
                             size="sm"
                           />
                         </div>
@@ -791,6 +793,7 @@ export default function QuotationListPage() {
                             value={lineTypeFilter === 'ALL' ? '' : lineTypeFilter}
                             onValueChange={(val: string) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
                             placeholder="All Line Types"
+                            clearLabel="All Line Types"
                             size="sm"
                           />
                         </div>

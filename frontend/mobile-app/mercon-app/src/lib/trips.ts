@@ -154,7 +154,7 @@ export interface MobileTrip {
   trip_type?: string | null;
   quotation_line_type?: string | null;
   rate_category?: string | null;
-  customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
+  customer?: { id: string; name: string; logo_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
   origin?: string | null;
   destination?: string | null;
