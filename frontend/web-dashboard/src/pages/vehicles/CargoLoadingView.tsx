@@ -711,7 +711,7 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-8 flex flex-col justify-between gap-3.5 min-w-0 overflow-hidden">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-end shrink-0 overflow-hidden rounded-2xl">
+          <div className="w-full relative flex items-center justify-end shrink-0 overflow-hidden rounded-2xl [mask-image:linear-gradient(to_right,black_80%,transparent_98%)] [-webkit-mask-image:linear-gradient(to_right,black_80%,transparent_98%)]">
             
             {/* Inner wrapper shifted 1/6th to the right out of frame */}
             <div className="relative w-[118%] max-w-none translate-x-[16.6%] transition-transform">
