@@ -98,6 +98,19 @@ export interface Trip {
   driver_charge?: number;
   trip_charges?: number;
   billing_amount?: number;
+  financials?: {
+    id?: string;
+    tripId?: string;
+    quotationId?: string | null;
+    applied_rate?: number | null;
+    quotation_line_type?: string | null;
+    quotation_billing_type?: string | null;
+    quotation_pricing_basis?: string | null;
+    quotation_vehicle_class?: string | null;
+    quotation_source_vehicle_label?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  } | null;
   quotationId?: string | null;
   quotation_id?: string | null;
   quotation_line_type?: string | null;
