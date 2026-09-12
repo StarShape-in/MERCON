@@ -501,7 +501,11 @@ export const getTripById = async (req: Request, res: Response) => {
 
     let resolvedLocation = null;
     if (trip.vehicle) {
-      resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
+      try {
+        resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
+      } catch (e) {
+        logger.warn({ err: e }, 'Failed to resolve vehicle location in getTripById');
+      }
     }
 
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
@@ -539,9 +543,18 @@ export const getTripById = async (req: Request, res: Response) => {
     };
 
     res.json({ success: true, data: tripData });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to fetch trip by id:', error);
     logger.error({ err: error }, 'Failed to fetch trip by id');
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trip' } });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error?.message || 'Failed to fetch trip',
+        stack: error?.stack,
+        details: String(error)
+      }
+    });
   }
 };
 
