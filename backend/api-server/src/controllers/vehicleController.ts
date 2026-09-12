@@ -888,7 +888,6 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       include: {
         customer: { select: { name: true } },
-        ...(invoicesOn ? { invoices: { where: { deletedAt: null } } } : {}),
       },
     });
 
