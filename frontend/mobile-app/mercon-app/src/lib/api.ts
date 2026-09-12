@@ -110,9 +110,14 @@ api.interceptors.response.use(
 export function getApiErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 401) {
-      return err.response?.data?.error?.message || 'Invalid credentials. Please check your username/phone and password/license.';
+      return (
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        'Invalid credentials. Please check your username/phone and password/license.'
+      );
     }
     if (err.response?.data?.error?.message) return err.response.data.error.message;
+    if (err.response?.data?.message) return err.response.data.message;
     if (err.code === 'ECONNABORTED') return 'Request timed out. Check your connection.';
     if (!err.response) {
       return `Cannot reach the server (${err.message || err.code || 'network error'}). Check your connection.`;

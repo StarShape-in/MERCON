@@ -45,13 +45,8 @@ export const getCustomers = async (req: Request, res: Response) => {
             whatsapp_group_link: true,
             whatsapp_group_name: true,
             payment_terms: true,
-            credit_limit: true,
             isActive: true,
             createdAt: true,
-            default_pickup_lat: true,
-            default_pickup_lng: true,
-            default_dropoff_lat: true,
-            default_dropoff_lng: true,
           },
         }),
         prisma.customer.count({ where: whereClause }),
@@ -77,10 +72,10 @@ export const getCustomers = async (req: Request, res: Response) => {
         orderBy: { name: 'asc' },
         include: { _count: { select: { trips: true } } },
       }),
-      prisma.customer.count({ where: whereClause })
+      prisma.customer.count({ where: whereClause }),
     ]);
 
-    res.json({
+    return res.json({
       success: true,
       data: customers,
       meta: {
@@ -135,11 +130,9 @@ export const createCustomer = async (req: Request, res: Response) => {
       secondary_contact_person,
       secondary_contact_phone,
       payment_terms,
-      tax_number,
       whatsapp_number,
       whatsapp_group_link,
       whatsapp_group_name,
-      credit_limit,
       isActive,
     } = req.body;
     
@@ -155,11 +148,9 @@ export const createCustomer = async (req: Request, res: Response) => {
         secondary_contact_person,
         secondary_contact_phone,
         payment_terms,
-        tax_number,
         whatsapp_number,
         whatsapp_group_link,
         whatsapp_group_name,
-        credit_limit: credit_limit || 0,
         isActive: isActive ?? true,
         created_by: (req as any).user?.id
       }
@@ -188,15 +179,32 @@ export const updateCustomer = async (req: Request, res: Response) => {
 
 export const deleteCustomer = async (req: Request, res: Response) => {
   try {
-    await prisma.customer.update({
-      where: { id: req.params.id as string },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: (req as any).user?.id
-      }
-    });
-    res.json({ success: true, data: { message: 'Customer deleted successfully' } });
+    const id = req.params.id as string;
+    // Check linked active trips or invoices
+    const [tripCount, invoiceCount] = await Promise.all([
+      prisma.trip.count({ where: { customerId: id } }),
+      prisma.invoice.count({ where: { customerId: id } })
+    ]);
+
+    if (tripCount > 0 || invoiceCount > 0) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'CUSTOMER_IN_USE',
+          message: `Cannot delete customer because they have ${tripCount} trip(s) and ${invoiceCount} invoice(s) linked.`
+        }
+      });
+    }
+
+    // Hard delete associated non-operational items like locations & surcharge rules, then the customer
+    await prisma.$transaction([
+      prisma.surchargeRule.deleteMany({ where: { customerId: id } }),
+      prisma.location.deleteMany({ where: { customerId: id } }),
+      prisma.reportTemplate.deleteMany({ where: { customerId: id } }),
+      prisma.customer.delete({ where: { id } })
+    ]);
+
+    res.json({ success: true, data: { message: 'Customer permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete customer' } });
   }

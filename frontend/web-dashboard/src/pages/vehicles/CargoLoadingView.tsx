@@ -394,7 +394,7 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] bg-[#FDFDFD] text-slate-900 font-sans p-4 sm:p-5 flex flex-col gap-3.5 overflow-y-auto">
+    <div className="w-full bg-[#FDFDFD] text-slate-900 font-sans px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1 flex flex-col gap-2.5 overflow-y-auto">
       
       {/* ── Top Header ── */}
       <div className="flex items-center justify-between shrink-0">
@@ -415,8 +415,8 @@ export default function CargoLoadingView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* ── Left Sidebar: 2 Clean Balanced Cards ── */}
-        <div className="xl:col-span-3 flex flex-col gap-3.5">
+        {/* ── Left Sidebar: 2 Clean Balanced Cards (Wider 1st Column) ── */}
+        <div className="xl:col-span-4 flex flex-col gap-3.5">
           
           {/* BOX 1: Truck & Driver Information */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
@@ -708,42 +708,41 @@ export default function CargoLoadingView() {
         </div>
 
         {/* ── Main Central & Bottom Area ── */}
-        <div className="xl:col-span-9 flex flex-col justify-between gap-3.5">
+        <div className="xl:col-span-8 flex flex-col justify-start gap-3.5 min-w-0">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
             
-            {/* Inner wrapper tightly hugging the image */}
-            <div className="relative w-full max-w-6xl xl:max-w-7xl mx-auto">
-              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block mx-auto" />
+            {/* Inner wrapper starting flush near left sidebar and extending out right */}
+            <div className="relative w-[110%] sm:w-[114%] max-w-none -ml-2 sm:-ml-3 transition-all">
+              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
               {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[13.5%] left-[33.5%] w-[62%] h-[46.5%] flex items-stretch gap-2.5 sm:gap-3.5 pointer-events-auto p-0.5 overflow-hidden">
+              <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
                 
                 {/* ── LEFT SECTION: Odometer & Service Progress ── */}
-                <div className="w-[36%] flex flex-col justify-between shrink-0 min-w-0">
+                <div className="w-[36%] flex flex-col justify-start gap-2 pt-0.5 shrink-0 min-w-0">
                   
                   {/* Top Header */}
                   <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                        <Gauge className="w-3.5 h-3.5 text-blue-600" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                        <Gauge className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-xs font-black text-slate-900 leading-tight tracking-tight truncate">Odometer</h3>
-                        <p className="text-[8px] text-slate-400 font-medium leading-none mt-0.5 truncate">Total Distance Traveled</p>
+                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight tracking-tight truncate">Odometer</h3>
                       </div>
                     </div>
 
-                    <Badge className="bg-emerald-100/80 text-emerald-700 border-none font-bold px-2 py-0.5 text-[8px] rounded-full shadow-none flex items-center gap-1 shrink-0">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                    <Badge className="bg-slate-100 text-[#3E3C3D] dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold px-2 py-0.5 text-[9px] rounded-lg shadow-none flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-[#3E3C3D] dark:bg-slate-300 rounded-full"></span>
                       Active
                     </Badge>
                   </div>
 
-                  {/* 3D Rolling Drum Odometer Wheel Box */}
-                  <div className="my-auto py-0.5">
-                    <div className="bg-[#0F172A] p-1.5 sm:p-2 rounded-xl border border-slate-800 shadow-inner flex items-center justify-center gap-1">
+                  {/* Clean Subtle Odometer Wheel Box */}
+                  <div className="pt-1">
+                    <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center gap-1">
                       <div className="flex items-center gap-0.5 sm:gap-1">
                         {(() => {
                           const rawOdo = vehicle?.current_odometer || 7944500;
@@ -754,9 +753,8 @@ export default function CargoLoadingView() {
                           return digitArray.map((digit, idx) => (
                             <div
                               key={idx}
-                              className="relative w-3.5 h-5.5 sm:w-4 sm:h-6.5 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white font-mono font-bold text-[11px] sm:text-xs rounded border border-slate-700 shadow-inner flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              className="relative w-4.5 h-6.5 sm:w-5 sm:h-7 bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 font-mono font-black text-xs sm:text-sm rounded border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center justify-center overflow-hidden shrink-0 select-none"
                             >
-                              <div className="absolute inset-x-0 top-0 h-[35%] bg-white/10 pointer-events-none rounded-t" />
                               <span className="relative z-10">
                                 {digit}
                               </span>
@@ -764,71 +762,32 @@ export default function CargoLoadingView() {
                           ));
                         })()}
                       </div>
-                      <span className="text-[11px] sm:text-xs font-bold text-slate-200 ml-0.5 shrink-0">
+                      <span className="text-xs font-black text-[#3E3C3D] dark:text-slate-200 ml-1 shrink-0">
                         km
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Next Service Due Box */}
-                  <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-2 space-y-1 shrink-0">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start gap-1.5">
-                        <div className="w-5.5 h-5.5 rounded-full bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                          <Wrench className="w-2.5 h-2.5 text-emerald-600" />
-                        </div>
-                        <div>
-                          <p className="text-[8px] text-slate-400 font-semibold leading-tight">Next Service Due</p>
-                          <p className="text-xs font-black text-emerald-600 leading-tight mt-0.5">
-                            7,500 km
-                          </p>
-                          <p className="text-[7.5px] text-slate-400 font-medium leading-tight">remaining</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[8px] text-slate-400 font-semibold leading-tight">Target</p>
-                        <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">150,000 km</p>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-emerald-500 h-full rounded-full w-[45%]"></div>
-                    </div>
-
-                    <div className="flex justify-between items-center text-[7.5px]">
-                      <div>
-                        <span className="font-bold text-slate-700 block leading-tight">142,500 km</span>
-                        <span className="text-slate-400 font-medium leading-none">Current</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-slate-700 block leading-tight">150,000 km</span>
-                        <span className="text-slate-400 font-medium leading-none">Target</span>
-                      </div>
                     </div>
                   </div>
 
                 </div>
 
                 {/* Vertical Divider Line between Left and Right sections */}
-                <div className="w-[1px] bg-slate-200/70 my-1 shrink-0" />
+                <div className="w-[1px] bg-slate-300 dark:bg-slate-700 my-1 shrink-0" />
 
                 {/* ── RIGHT SECTION: Vehicle Service History ── */}
-                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden">
+                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden space-y-1">
                   
                   {/* Header */}
                   <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                        <Calendar className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
                       </div>
-                      <div>
-                        <h3 className="text-xs font-black text-slate-900 tracking-tight leading-tight">Vehicle Service History</h3>
-                        <p className="text-[8px] text-slate-400 font-medium leading-none mt-0.5">Recent maintenance records</p>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight leading-tight truncate">Vehicle Service History</h3>
                       </div>
                     </div>
 
-                    <span className="text-[8px] font-bold text-slate-700 bg-slate-100 border border-slate-200/70 px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[10px] font-extrabold text-[#3E3C3D] dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-lg shrink-0">
                       3 Records
                     </span>
                   </div>
@@ -836,7 +795,7 @@ export default function CargoLoadingView() {
                   {/* Service Timeline Entries */}
                   <div className="relative flex-1 min-h-0 flex flex-col justify-between py-1 my-0.5">
                     {/* Vertical Connector Line */}
-                    <div className="absolute left-[7px] top-2 bottom-2 w-[1.5px] bg-slate-200/80" />
+                    <div className="absolute left-[9px] top-2 bottom-2 w-[1.5px] bg-slate-300 dark:bg-slate-700" />
 
                     {[
                       {
@@ -844,9 +803,7 @@ export default function CargoLoadingView() {
                         date: '12 Aug 2026',
                         title: 'Engine Oil & Filter Service',
                         workshop: 'Zahid Heavy Equipment Workshop',
-                        odometer: '142,500 km',
                         icon: Droplets,
-                        iconBg: 'bg-rose-50 text-rose-500 border border-rose-100',
                         isRecent: true,
                       },
                       {
@@ -854,9 +811,7 @@ export default function CargoLoadingView() {
                         date: '25 Jun 2026',
                         title: 'Brake Pad Replacement',
                         workshop: 'Al-Refaei Truck Service Center',
-                        odometer: '135,000 km',
                         icon: Disc,
-                        iconBg: 'bg-blue-50 text-blue-500 border border-blue-100',
                         isRecent: false,
                       },
                       {
@@ -864,58 +819,36 @@ export default function CargoLoadingView() {
                         date: '14 Mar 2026',
                         title: 'Air Filter Replacement',
                         workshop: 'Saudi Heavy Maintenance Hub',
-                        odometer: '128,300 km',
                         icon: Wind,
-                        iconBg: 'bg-amber-50 text-amber-500 border border-amber-100',
                         isRecent: false,
                       },
                     ].map((item) => {
                       const IconComp = item.icon;
                       return (
-                        <div key={item.id} className="relative flex items-center justify-between gap-1.5 pl-3.5 min-w-0">
+                        <div key={item.id} className="relative flex items-center justify-between gap-2 pl-4 min-w-0">
                           {/* Timeline node dot */}
                           <div
-                            className={`absolute left-[4.5px] rounded-full z-10 ${
+                            className={`absolute left-[6px] rounded-full z-10 ${
                               item.isRecent
-                                ? 'w-2 h-2 bg-emerald-500 ring-2 ring-emerald-100'
-                                : 'w-1.5 h-1.5 bg-slate-400 ring-2 ring-slate-100'
+                                ? 'w-2.5 h-2.5 bg-[#3E3C3D] dark:bg-slate-200 ring-2 ring-slate-200 dark:ring-slate-700'
+                                : 'w-2 h-2 bg-slate-400 ring-2 ring-slate-100 dark:ring-slate-800'
                             }`}
                           />
 
                           {/* Item Icon */}
-                          <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`}>
-                            <IconComp className="w-2.5 h-2.5" />
+                          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                            <IconComp className="w-3 h-3 text-[#3E3C3D] dark:text-slate-200" />
                           </div>
 
                           {/* Main Service Details */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-[7px] font-medium text-slate-400 leading-tight">{item.date}</p>
-                            <p className="text-[10px] font-bold text-slate-900 leading-tight truncate">{item.title}</p>
-                            <p className="text-[7px] font-medium text-slate-400 leading-tight truncate">{item.workshop}</p>
-                          </div>
-
-                          {/* Right Side Odometer */}
-                          <div className="shrink-0 text-right">
-                            <div className="flex items-center gap-0.5 justify-end text-[7px] font-medium text-slate-400">
-                              <Gauge className="w-2 h-2 text-slate-400" />
-                              <span>Odometer</span>
-                            </div>
-                            <p className="text-[10px] font-bold text-slate-900 leading-tight mt-0.5">{item.odometer}</p>
+                            <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
+                            <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 leading-tight truncate">{item.title}</p>
+                            <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
                           </div>
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Bottom Status Banner */}
-                  <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl px-2 py-1 flex items-center justify-between text-[8px] shrink-0">
-                    <div className="flex items-center gap-1 text-slate-600 font-semibold">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                      <span>All maintenance records verified</span>
-                    </div>
-                    <div className="text-slate-500 font-medium">
-                      Vehicle Health: <span className="font-black text-emerald-600 tracking-wider">OPERATIONAL</span>
-                    </div>
                   </div>
 
                 </div>

@@ -170,17 +170,22 @@ export default function QuotationFormDialog({
         : quotationService.create(payload);
     },
     onSuccess: (saved) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-select'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations-all'] });
-      queryClient.invalidateQueries({ queryKey: ['quotations', 'select-all'] });
-      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations', 'select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' });
       onSaved?.(saved);
       onClose();
     },
     onError: (err: any) => {
+      console.error('❌ [RateCardFormDialog] Save failed:', {
+        status: err.response?.status,
+        errorData: err.response?.data,
+        message: err.message,
+      });
       setError(err.response?.data?.error?.message || err.message || 'Could not save quotation.');
     },
   });
@@ -188,7 +193,9 @@ export default function QuotationFormDialog({
   const handleSubmit = () => {
     setError(null);
     if (!effectiveCustomerId) return setError('Choose which customer this quotation is for.');
-    if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
+    if ((!originId && !originName.trim()) || (!destinationId && !destinationName.trim())) {
+      return setError('Pick both an origin and a destination.');
+    }
     if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a rate greater than 0.');
     saveMutation.mutate();
   };

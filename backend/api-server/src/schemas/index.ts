@@ -424,11 +424,9 @@ export const createCustomerBody = z.object({
   secondary_contact_person: z.string().trim().optional(),
   secondary_contact_phone: z.string().trim().optional(),
   payment_terms: z.string().trim().optional(),
-  tax_number: z.string().trim().optional(),
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
-  credit_limit: z.coerce.number().nonnegative().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -443,11 +441,9 @@ export const updateCustomerBody = z.object({
   secondary_contact_person: z.string().trim().optional(),
   secondary_contact_phone: z.string().trim().optional(),
   payment_terms: z.string().trim().optional(),
-  tax_number: z.string().trim().optional(),
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
-  credit_limit: z.coerce.number().nonnegative().optional(),
   isActive: z.boolean().optional(),
 });
 

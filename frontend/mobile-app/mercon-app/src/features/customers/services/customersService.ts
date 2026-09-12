@@ -113,12 +113,6 @@ export function customerDisplayStatus(customer: Pick<RawCustomer, 'isActive'>): 
   return customer.isActive ? 'Active' : 'Inactive';
 }
 
-function countDefaultLocations(raw: RawCustomer): number {
-  const hasPickup = raw.default_pickup_lat !== null && raw.default_pickup_lng !== null;
-  const hasDropoff = raw.default_dropoff_lat !== null && raw.default_dropoff_lng !== null;
-  return Number(hasPickup) + Number(hasDropoff);
-}
-
 export function toCustomerListItem(
   raw: RawCustomer,
   trips: Map<string, TripAggregate>,
@@ -134,11 +128,9 @@ export function toCustomerListItem(
     id: raw.id,
     name: raw.name,
     phone: raw.contact_phone,
-    creditLimit: raw.credit_limit ?? 0,
     isActive: raw.isActive,
     createdAt: raw.createdAt,
     status: customerDisplayStatus(raw),
-    defaultLocationCount: countDefaultLocations(raw),
     rateCard: activeCard,
     rateCardCount: cards.length,
     tripsThisMonth: tripAgg?.thisMonth ?? 0,

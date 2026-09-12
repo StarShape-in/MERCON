@@ -128,7 +128,7 @@ export default function ReportBuilderLandingPage() {
       desc: 'Billed invoices, pending collections, and outstanding customer ledger.',
       spec: {
         rootModule: 'customers',
-        rows: ['customers.name', 'customers.credit_limit'],
+        rows: ['customers.name', 'customers.contact_phone'],
         values: [
           { field: 'invoices.total_amount', agg: 'sum' },
           { field: 'invoices.outstanding', agg: 'sum' },

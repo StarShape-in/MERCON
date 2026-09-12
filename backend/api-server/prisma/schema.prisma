@@ -197,16 +197,9 @@ model Customer {
   secondary_contact_person String?
   secondary_contact_phone String?
   payment_terms           String?
-  tax_number              String?
   whatsapp_number         String?
   whatsapp_group_link     String?
   whatsapp_group_name     String?
-  credit_limit            Decimal  @default(0) @db.Decimal(12, 2)
-
-  default_pickup_lat  Float?
-  default_pickup_lng  Float?
-  default_dropoff_lat Float?
-  default_dropoff_lng Float?
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid

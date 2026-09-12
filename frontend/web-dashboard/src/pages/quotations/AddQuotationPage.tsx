@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,11 +22,13 @@ import {
   TrendingUp,
   Receipt,
   Printer,
-  Coins
+  Coins,
+  Clock
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
+import { CustomerSelectionCard } from '@/components/quotations/CustomerSelectionCard';
 import { QuotationPrintModal } from '@/components/quotations/QuotationPrintModal';
 import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, surchargeRuleService, CreateQuotationPayload } from '@/services/quotationService';
@@ -87,7 +89,7 @@ const createEmptyLine = (overrides?: Partial<QuotationLineItem>): QuotationLineI
   destinationLocationId: '',
   vehicleClass: '10 TON',
   lineType: 'SINGLE_TRIP',
-  pricingBasis: 'NULL',
+  pricingBasis: 'PER_TRIP',
   rate: '',
   driverPayout: '',
   currency: 'SAR',
@@ -109,6 +111,36 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   const [operationType, setOperationType] = useState<'MONTHLY' | 'EXTRA'>('EXTRA');
   const [validFrom, setValidFrom] = useState('');
   const [validTo, setValidTo] = useState('');
+
+  const applyValidityPreset = (months: number) => {
+    if (months === 0) {
+      setValidFrom('');
+      setValidTo('');
+      return;
+    }
+    const today = new Date();
+    const fromStr = today.toISOString().split('T')[0];
+    const targetDate = new Date(today);
+    targetDate.setMonth(targetDate.getMonth() + months);
+    const toStr = targetDate.toISOString().split('T')[0];
+
+    setValidFrom(fromStr);
+    setValidTo(toStr);
+    const labelText = months >= 12 ? `${months / 12} Year${months > 12 ? 's' : ''}` : `${months} Months`;
+    toast.success(`Set contract term: Today → +${labelText}`);
+  };
+
+  const activePresetMonths = useMemo(() => {
+    if (!validFrom || !validTo) return null;
+    const d1 = new Date(validFrom);
+    const d2 = new Date(validTo);
+    const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24));
+    if (diffDays >= 85 && diffDays <= 95) return 3;
+    if (diffDays >= 175 && diffDays <= 186) return 6;
+    if (diffDays >= 360 && diffDays <= 366) return 12;
+    if (diffDays >= 725 && diffDays <= 732) return 24;
+    return null;
+  }, [validFrom, validTo]);
 
   // Multi-Line Rate Items Array
   const [lineItems, setLineItems] = useState<QuotationLineItem[]>([]);
@@ -245,10 +277,12 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   }, [isEdit, existingQuotation]);
 
   const isReturnToTrip = searchParams.get('return_to_trip') === 'true';
+  const hasInitializedRef = useRef(false);
 
-  // Populate state from search params if passed from /trips/new
+  // Populate state from search params if passed from /trips/new or /quotations
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
     const custId = searchParams.get('customer_id');
     const origId = searchParams.get('origin_id');
@@ -461,10 +495,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   // Batch Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const parseSafeDecimal = (val?: string | number | null): number | undefined => {
-        if (val === null || val === undefined || val === '' || val === 'NULL') return undefined;
+      const parseSafeDecimal = (val?: string | number | null): number | null => {
+        if (val === null || val === undefined || val === '' || val === 'NULL') return null;
         const num = typeof val === 'number' ? val : parseFloat(String(val));
-        if (isNaN(num) || !isFinite(num) || num < 0) return undefined;
+        if (isNaN(num) || !isFinite(num) || num < 0) return null;
         return Math.min(num, 999999999.99);
       };
 
@@ -559,17 +593,15 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       return { createdQuotationsCount: createdQuotations.length, surchargesCount: surchargeRules.length };
     },
     onSuccess: (data) => {
-      // Refetch (not just invalidate) so the list page gets fresh data immediately
-      Promise.all([
-        queryClient.refetchQueries({ queryKey: ['quotations'] }),
-        queryClient.invalidateQueries({ queryKey: ['rate-cards'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-select-all'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotations-all'] }),
-        queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] }),
-        queryClient.invalidateQueries({ queryKey: ['surcharge-rules'] }),
-      ]).catch(() => {/* ignore refetch errors */});
-
+      // Invalidate and reset all quotation queries so unmounted list pages fetch fresh data on navigate
+      queryClient.invalidateQueries({ queryKey: ['quotations'], refetchType: 'all' });
+      queryClient.resetQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['surcharge-rules'], refetchType: 'all' });
       setIsPreviewOpen(false);
 
       if (isReturnToTrip) {
@@ -597,6 +629,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
       }
     },
     onError: (err: any) => {
+      console.error('❌ [AddQuotationPage] Save failed:', {
+        status: err.response?.status,
+        errorData: err.response?.data,
+        message: err.message,
+      });
       const errData = err.response?.data?.error;
       const msg = errData?.message || err.message || 'Failed to save agreement rates';
       const detail = errData?.code ? ` (${errData.code})` : '';
@@ -672,17 +709,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span>
-                {isReturnToTrip
-                  ? 'Save Quotation & Return to Trip →'
-                  : `Save Agreement (${
-                      lineItems.length > 0 && surchargeRules.length > 0
-                        ? `${lineItems.length} Lines, ${surchargeRules.length} Surcharges`
-                        : lineItems.length > 0
-                        ? `${lineItems.length} Line${lineItems.length > 1 ? 's' : ''}`
-                        : surchargeRules.length > 0
-                        ? `${surchargeRules.length} Surcharge${surchargeRules.length > 1 ? 's' : ''}`
-                        : '0 Items'
-                    })`}
+                {isReturnToTrip ? 'Save Quotation & Return to Trip →' : 'Save Agreement'}
               </span>
             </Button>
           </div>
@@ -713,46 +740,31 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           {/* LEFT PANEL (5 Columns): Master Contract Setup & Integrated Financial Summary */}
           <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
             
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C]">
-              <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800">
-                <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5 text-[#FA634E]" />
-                  Customer &amp; Contract Terms
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-4">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C] p-0 gap-0">
+              <CardContent className="p-3.5 space-y-3">
                 
-                {/* Customer Picker */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer *</Label>
-                  <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-[#2D2B2C] font-bold border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectValue placeholder="Select customer company..." />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Customer Selection Component */}
+                <CustomerSelectionCard
+                  value={customerId}
+                  onChange={setCustomerId}
+                  customers={customers}
+                  label=""
+                  required={false}
+                />
 
-                {/* Operation Type Selector */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
-                  <TaxonomySelect
-                    category="OPERATION_TYPE"
-                    value={operationType}
-                    onValueChange={(val: string) => setOperationType(val as any)}
-                    placeholder="Select Operation Type"
-                  />
-                </div>
+                {/* Contract Parameters Row: Operation Type + Valid From + Valid Until */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-900 dark:text-slate-100">Operation Type *</Label>
+                    <TaxonomySelect
+                      category="OPERATION_TYPE"
+                      value={operationType}
+                      onValueChange={(val: string) => setOperationType(val as any)}
+                      placeholder="Select Operation Type"
+                      size="sm"
+                    />
+                  </div>
 
-                {/* Contract Validity Range */}
-                <div className="grid grid-cols-2 gap-2.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
                   <div className="space-y-1">
                     <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Valid From</Label>
                     <Input
@@ -772,6 +784,51 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-medium rounded-xl border-slate-200 dark:border-slate-800 px-2.5"
                     />
                   </div>
+                </div>
+
+                {/* Term Validity Presets Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-0.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#FA634E]" /> Term Presets:
+                    </span>
+                    {[
+                      { label: '+3 Months', months: 3 },
+                      { label: '+6 Months', months: 6 },
+                      { label: '+1 Year', months: 12 },
+                      { label: '+2 Years', months: 24 },
+                    ].map((p) => {
+                      const isActive = activePresetMonths === p.months;
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => applyValidityPreset(p.months)}
+                          className={cn(
+                            'h-7 px-2.5 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1 cursor-pointer border shadow-2xs',
+                            isActive
+                              ? 'bg-[#FA634E] text-white border-[#FA634E] shadow-sm shadow-[#FA634E]/20 scale-[1.02]'
+                              : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-[#FA634E]/60 hover:text-[#FA634E] hover:bg-orange-50/50'
+                          )}
+                        >
+                          {isActive && <CheckCircle2 className="w-3 h-3 text-white shrink-0" />}
+                          <span>{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {(validFrom || validTo) && (
+                    <button
+                      type="button"
+                      onClick={() => applyValidityPreset(0)}
+                      className="h-7 px-2 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer flex items-center gap-1"
+                      title="Clear validity dates"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Clear</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Executive Summary Panel */}
@@ -828,11 +885,11 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
           {/* RIGHT PANEL (7 Columns): Commercial Rate Lines Matrix Builder */}
           <div className="lg:col-span-7 space-y-3">
             
-            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C]">
+            <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden bg-white dark:bg-[#2D2B2C] p-0 gap-0">
               <CardHeader className="bg-slate-50/70 dark:bg-slate-800/40 py-2.5 px-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Layers className="h-3.5 w-3.5 text-[#FA634E]" />
-                  Commercial Route Lines ({lineItems.length})
+                  Route Lines ({lineItems.length})
                 </CardTitle>
                 
                 <Button
@@ -845,23 +902,20 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 </Button>
               </CardHeader>
 
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-3.5 space-y-3">
 
             {/* Rate Line Cards Stack */}
             {lineItems.length === 0 ? (
-              <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-2">
-                <p className="font-bold text-slate-600 dark:text-slate-300">No Commercial Route Lines Added</p>
-                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                  Route lines are optional if you are configuring standing Commercial Surcharges only for this customer.
-                </p>
-                <div className="pt-1">
+              <div className="p-5 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-2">
+                <p className="font-bold text-slate-600 dark:text-slate-300">No Route Lines Added</p>
+                <div>
                   <Button
                     type="button"
                     size="sm"
                     onClick={handleAddLine}
                     className="h-8 px-3.5 text-xs font-bold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 rounded-xl gap-1 cursor-pointer"
                   >
-                    <Plus size={13} /> Add Commercial Route Line
+                    <Plus size={13} /> Add Route Line
                   </Button>
                 </div>
               </div>
@@ -881,7 +935,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                           #{index + 1}
                         </span>
                         <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                          Route Line #{index + 1}
+                          Route #{index + 1}
                         </span>
                       </div>
 
@@ -958,10 +1012,10 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
 
                   </div>
 
-                  {/* Vehicle Class & Line Type Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Specifications & Financials Single Row: Vehicle Class (3) + Line Type (3) + Agreed Rate (4) + Driver Payout (2) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-2.5 pt-1">
                     {/* Vehicle Class Dropdown */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 xl:col-span-3">
                       <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Vehicle Class *</Label>
                       <TaxonomySelect
                         category="VEHICLE_CLASS"
@@ -973,7 +1027,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </div>
 
                     {/* Line Type */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 xl:col-span-3">
                       <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Line Type *</Label>
                       <TaxonomySelect
                         category="LINE_TYPE"
@@ -981,6 +1035,56 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                         onValueChange={(val: string) => handleUpdateLine(index, 'lineType', val)}
                         size="sm"
                         placeholder="Select Line Type"
+                      />
+                    </div>
+
+                    {/* Agreed Rate + Pricing Basis Inline (Wider 4/12) */}
+                    <div className="space-y-1 xl:col-span-4">
+                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Banknote className="h-3.5 w-3.5 text-[#FA634E]" /> Agreed Rate *
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                      </Label>
+                      <div className="relative flex items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#2D2B2C] focus-within:ring-2 focus-within:ring-[#FA634E] overflow-hidden h-8.5 shadow-2xs">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={line.rate}
+                          onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
+                          placeholder="Enter rate..."
+                          className="h-full text-xs font-black border-0 bg-transparent focus-visible:ring-0 focus-visible:outline-none shadow-none flex-1 px-3 min-w-0"
+                        />
+                        <div className="h-full border-l border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50 flex items-center shrink-0">
+                          <Select
+                            value={line.pricingBasis || 'PER_TRIP'}
+                            onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
+                          >
+                            <SelectTrigger className="h-full text-[11px] font-bold text-slate-800 dark:text-slate-200 border-0 bg-transparent focus:ring-0 focus:outline-none shadow-none px-2 rounded-none whitespace-nowrap">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-[9999] min-w-[115px]">
+                              <SelectItem value="PER_TRIP" className="text-xs font-semibold whitespace-nowrap">Per Trip</SelectItem>
+                              <SelectItem value="PER_MONTH" className="text-xs font-semibold whitespace-nowrap">Per Month</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Driver Charge / Payout (Narrower 2/12) */}
+                    <div className="space-y-1 xl:col-span-2">
+                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                        <span>Driver Payout</span>
+                        <span className="text-[10px] font-bold text-slate-400">SAR</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={line.driverPayout}
+                        onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
+                        placeholder="Payout..."
+                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
                       />
                     </div>
                   </div>
@@ -1029,90 +1133,13 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                     </div>
                   )}
 
-                  {/* Financial Inputs Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    
-                    {/* Agreed Rate */}
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                        <Banknote className="h-3.5 w-3.5 text-[#FA634E]" /> Agreed Rate *
-                      </Label>
-                      <div className="flex gap-1.5">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={line.rate}
-                          onChange={(e) => handleUpdateLine(index, 'rate', e.target.value)}
-                          placeholder="Enter agreed rate..."
-                          className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-black rounded-xl border-slate-200 dark:border-slate-800 flex-1"
-                        />
-                        <Select
-                          value={line.currency}
-                          onValueChange={(val) => handleUpdateLine(index, 'currency', val)}
-                        >
-                          <SelectTrigger className="h-8.5 w-16 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold border-slate-200 dark:border-slate-800 rounded-xl px-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-[9999]">
-                            <SelectItem value="SAR" className="text-xs font-bold">SAR</SelectItem>
-                            <SelectItem value="AED" className="text-xs font-bold">AED</SelectItem>
-                            <SelectItem value="USD" className="text-xs font-bold">USD</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Driver Charge / Payout */}
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
-                        Driver Payout
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={line.driverPayout}
-                        onChange={(e) => handleUpdateLine(index, 'driverPayout', e.target.value)}
-                        placeholder="Enter driver payout..."
-                        className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-extrabold rounded-xl border-slate-200 dark:border-slate-800"
-                      />
-                    </div>
-
-                    {/* Pricing Basis */}
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pricing Basis</Label>
-                      <Select
-                        value={line.pricingBasis}
-                        onValueChange={(val) => handleUpdateLine(index, 'pricingBasis', val as any)}
-                      >
-                        <SelectTrigger className="h-8.5 text-xs bg-white dark:bg-[#2D2B2C] font-semibold border-slate-200 dark:border-slate-800 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="z-[9999]">
-                          <SelectItem value="PER_TRIP" className="text-xs font-semibold">Per Trip</SelectItem>
-                          <SelectItem value="PER_MONTH" className="text-xs font-semibold">Per Month</SelectItem>
-                          <SelectItem value="NULL" className="text-xs font-semibold">Not Specified</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                  </div>
-
                 </div>
               );
             })
           )}
 
-            {/* Bottom Add Line & Keyboard Shortcut Bar */}
-            <div className="pt-2 flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddLine}
-                className="h-9 px-4 text-xs font-extrabold border-dashed border-[#FA634E]/40 text-[#FA634E] hover:bg-[#FA634E]/10 rounded-xl gap-2 cursor-pointer"
-              >
-                <Plus size={14} /> Add Another Commercial Line
-              </Button>
-
+            {/* Bottom Keyboard Shortcut Bar */}
+            <div className="pt-1 flex items-center justify-end">
               <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
                 <span>Press</span>
                 <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-mono font-bold border border-slate-200 dark:border-slate-700">Ctrl + Enter</kbd>
@@ -1126,7 +1153,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-500 shrink-0" />
                   <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    Commercial Surcharges
+                    Surcharges
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0 text-slate-600 dark:text-slate-300">
                     {surchargeRules.length}
@@ -1172,9 +1199,8 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               </div>
 
               {surchargeRules.length === 0 ? (
-                <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400 space-y-1">
+                <div className="p-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-xs text-slate-400">
                   <p className="font-bold text-slate-600 dark:text-slate-300">No surcharges configured</p>
-                  <p>Click <strong className="text-[#FA634E]">+ Add Surcharge Rule</strong> or select a 1-click Quick Preset above.</p>
                 </div>
               ) : (
                 <div className="space-y-2 pt-1">
@@ -1183,7 +1209,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                       
                       <div className="sm:col-span-5 space-y-1">
                         <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                          <span>Surcharge Title #{idx + 1}</span>
+                          <span>Surcharge Title</span>
                         </Label>
                         <Input
                           value={rule.name}

@@ -21,7 +21,6 @@ const CustomerEditScreen = () => {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [creditLimit, setCreditLimit] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -29,7 +28,6 @@ const CustomerEditScreen = () => {
     if (!customer) return;
     setName(customer.name);
     setPhone(customer.contact_phone ?? '');
-    setCreditLimit(String(customer.credit_limit ?? 0));
     setIsActive(customer.isActive ?? true);
   }, [customer]);
 
@@ -39,19 +37,16 @@ const CustomerEditScreen = () => {
     if (!isValid || saving) return;
     setSaving(true);
     try {
-      const creditNum = parseFloat(creditLimit);
       if (isEditing && id) {
         await operatorService.updateCustomer(id, {
           name: name.trim(),
           contact_phone: phone.trim(),
-          credit_limit: Number.isFinite(creditNum) ? creditNum : undefined,
           isActive,
         });
       } else {
         await operatorService.createCustomer({
           name: name.trim(),
           contact_phone: phone.trim(),
-          credit_limit: Number.isFinite(creditNum) ? creditNum : undefined,
         });
       }
       invalidateOperatorCustomers();
@@ -85,8 +80,6 @@ const CustomerEditScreen = () => {
             <Input label="Customer Name" value={name} onChangeText={setName} placeholder="e.g. Almarai Fresh Distribution" />
             <View style={styles.formDivider} />
             <Input label="Contact Phone" value={phone} onChangeText={setPhone} placeholder="+9665XXXXXXXX" keyboardType="phone-pad" />
-            <View style={styles.formDivider} />
-            <Input label="Credit Limit (SAR)" value={creditLimit} onChangeText={setCreditLimit} placeholder="0" keyboardType="numeric" />
           </Card>
 
           {isEditing && (

@@ -24,7 +24,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState('');
-  const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30 Days');
@@ -36,7 +35,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       setName(customer.name || '');
       setLogoUrl(customer.logo_url || customer.avatar_url || null);
       setContactPhone(customer.contact_phone || customer.primary_contact_phone || customer.phone || '');
-      setTaxNumber(customer.tax_number || '');
       setPrimaryContactPerson(customer.primary_contact_person || '');
       setWhatsappGroupLink(customer.whatsapp_group_link || '');
       setPaymentTerms(customer.payment_terms || 'Net 30 Days');
@@ -80,7 +78,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       contact_phone: contactPhone.trim(),
       logo_url: logoUrl || undefined,
       avatar_url: logoUrl || undefined,
-      tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
       payment_terms: paymentTerms || undefined,
@@ -151,19 +148,6 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
                 placeholder="50 123 4567"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="edit_tax_number" className="text-xs font-semibold flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
-            </Label>
-            <Input
-              id="edit_tax_number"
-              placeholder="3100XXXXXXXXXXX"
-              value={taxNumber}
-              onChange={(e) => setTaxNumber(e.target.value)}
-              className="h-9 text-xs font-mono"
-            />
           </div>
 
           <div className="space-y-1.5">

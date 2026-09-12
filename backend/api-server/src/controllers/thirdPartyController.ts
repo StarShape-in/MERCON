@@ -286,13 +286,10 @@ export const deleteThirdPartyProvider = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Provider not found' } });
     }
 
-    await prisma.thirdPartyProvider.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-      },
-    });
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { thirdPartyProviderId: id }, data: { thirdPartyProviderId: null } }),
+      prisma.thirdPartyProvider.delete({ where: { id } })
+    ]);
 
     res.json({ success: true, data: { id, deleted: true } });
   } catch (error) {

@@ -10,7 +10,7 @@ import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, Messag
 import { Colors } from '../../theme/tokens';
 import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
@@ -83,7 +83,7 @@ const SideMapTileBox = () => (
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
-  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const ws = getEffectiveWorkflowState(trip);
   const isRound = isRoundTrip(trip);
   const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN');
 
@@ -100,10 +100,22 @@ const DeliveryVerificationScreen = () => {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
+  // If this delivery stop is already completed and departed, navigate forward
+  useEffect(() => {
+    if (loading || !trip || !dropoffStop) return;
+    if (dropoffStop.actual_departure) {
+      if (isReturnDelivery || !isRound) {
+        router.replace('/trip/completed');
+      } else {
+        router.replace('/trip/pickup');
+      }
+    }
+  }, [loading, trip?.id, dropoffStop?.id, dropoffStop?.actual_departure, isReturnDelivery, isRound]);
+
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;
 
-  // Load draft photos
+  // Load draft photos or prefill with already uploaded server documents
   useEffect(() => {
     if (!trip?.id) return;
     const loadDraft = async () => {
@@ -114,16 +126,39 @@ const DeliveryVerificationScreen = () => {
         const saved = await SecureStore.getItemAsync(draftKey);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setPhotos(parsed);
-        } else {
-          setPhotos([]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPhotos(parsed);
+            return;
+          }
         }
+
+        // Fallback: If photos were already uploaded to server for this delivery/leg, display them
+        if (trip.documents && trip.documents.length > 0) {
+          const expectedLeg = isReturnDelivery ? 1 : 0;
+          const serverPodDocs = trip.documents.filter((d: any) => {
+            const op = d.ai_extracted_json?.operation;
+            const leg = d.ai_extracted_json?.leg_index;
+            const isArrival = op?.includes('arrival');
+            return !isArrival && (leg === expectedLeg || leg === undefined) && (op === 'delivery' || op === 'return_delivery' || op === 'pod' || d.doc_type === 'POD');
+          });
+          if (serverPodDocs.length > 0) {
+            setPhotos(
+              serverPodDocs.slice(0, 3).map((d: any) => ({
+                uri: d.file_url,
+                mimeType: d.mime_type || 'image/jpeg',
+              }))
+            );
+            return;
+          }
+        }
+
+        setPhotos([]);
       } catch (e) {
         console.error('Error loading draft photos:', e);
       }
     };
     loadDraft();
-  }, [trip?.id, isReturnDelivery]);
+  }, [trip?.id, isReturnDelivery, trip?.documents]);
 
   const addPhoto = async (slotIndex?: number) => {
     try {

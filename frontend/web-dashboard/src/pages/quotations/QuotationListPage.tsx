@@ -368,15 +368,15 @@ export default function QuotationListPage() {
     queryKey: ['quotations', search, billingTypeFilter, lineTypeFilter, vehicleClassFilter, statusFilter],
     queryFn: () =>
       quotationService.getAll({
-        per_page: 500, // Fetch all commercial routes for customer workspace grouping
+        per_page: 'all', // Fetch all commercial routes for customer workspace grouping
         ...(search ? { search } : {}),
         ...(billingTypeFilter !== 'ALL' ? { billing_type: billingTypeFilter } : {}),
         ...(lineTypeFilter !== 'ALL' ? { line_type: lineTypeFilter } : {}),
         ...(vehicleClassFilter !== 'ALL' ? { vehicle_class: vehicleClassFilter } : {}),
         ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
       }),
-    placeholderData: keepPreviousData,
-    staleTime: 0, // Always fetch fresh data when this page mounts (e.g. after create/edit redirect)
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const rawQuotations = quotationsRes?.data || [];

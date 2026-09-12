@@ -211,6 +211,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
                 handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
                 handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
+                handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
               />
             ))}
           </div>

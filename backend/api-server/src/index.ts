@@ -104,6 +104,12 @@ app.use('/uploads', express.static('/tmp/uploads'));
 
 // Create API router and mount all API routes
 const apiRouter = express.Router();
+apiRouter.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/drivers', driverRoutes);
 apiRouter.use('/vehicles', vehicleRoutes);

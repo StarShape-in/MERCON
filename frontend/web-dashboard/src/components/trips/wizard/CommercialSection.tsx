@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
+import { normalizeRateCategory, normalizeVehicleClass } from '@/hooks/useCreateTripForm';
 import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 
 interface CommercialSectionProps {
@@ -728,8 +729,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       key={rc.id || idx}
                       type="button"
                       onClick={() => {
-                        const targetCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
-                        const targetVehicleClass = rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType;
+                        const rawCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
+                        const targetCategory = normalizeRateCategory(rawCategory);
+                        const targetVehicleClass = normalizeVehicleClass(rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType);
 
                         if (origName && handleSlotLocationChange) {
                           handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
@@ -862,8 +864,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                         key={rc.id || idx}
                         type="button"
                         onClick={() => {
-                          const targetCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
-                          const targetVehicleClass = rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType;
+                          const rawCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
+                          const targetCategory = normalizeRateCategory(rawCategory);
+                          const targetVehicleClass = normalizeVehicleClass(rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType);
 
                           if (origName && handleSlotLocationChange) {
                             handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);

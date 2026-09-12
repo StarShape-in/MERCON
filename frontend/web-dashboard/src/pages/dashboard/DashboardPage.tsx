@@ -28,9 +28,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ImportantReminders from '@/components/dashboard/ImportantReminders';
-import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
-import OperatorActionCenter from '@/components/dashboard/OperatorActionCenter';
+import OperatorCommandCenter from '@/components/dashboard/OperatorCommandCenter';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -261,7 +259,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date(Date.now() - 3600000).toISOString(),
     updatedAt: new Date(Date.now() - 900000).toISOString(),
     planned_start: new Date(Date.now() - 7200000).toISOString(),
-    customer: { id: 'c7', name: 'Almarai Logistics', contact_phone: '+966 50 777 8888', credit_limit: 90000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c7', name: 'Almarai Logistics', contact_phone: '+966 50 777 8888', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd7', first_name: 'Liaqat', last_name: 'Ali Muhammad', phone: '+966 50 789 0123', iqama_number: '2345678907', license_number: 'LIC-9994', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v7', plate_number: 'ERA-9380', ref_id: 'VEH-016', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -278,7 +276,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c1', name: 'IMILE DELIVERY SAUDI LOGISTICS', contact_phone: '+966 50 111 2222', credit_limit: 50000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c1', name: 'IMILE DELIVERY SAUDI LOGISTICS', contact_phone: '+966 50 111 2222', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd1', first_name: 'Nouman', last_name: 'Ashraf', phone: '+966 50 123 4567', iqama_number: '2345678901', license_number: 'LIC-9988', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v1', plate_number: 'USA-6010', ref_id: 'VEH-010', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -295,7 +293,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c2', name: 'Saudi Aramco Logistics', contact_phone: '+966 50 222 3333', credit_limit: 100000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c2', name: 'Saudi Aramco Logistics', contact_phone: '+966 50 222 3333', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd2', first_name: 'Mohammed', last_name: 'Faizan', phone: '+966 50 234 5678', iqama_number: '2345678902', license_number: 'LIC-9989', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v2', plate_number: 'VSA-3871', ref_id: 'VEH-011', type: 'Flatbed Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -312,7 +310,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c3', name: 'SABIC Petrochemicals', contact_phone: '+966 50 333 4444', credit_limit: 80000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c3', name: 'SABIC Petrochemicals', contact_phone: '+966 50 333 4444', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd3', first_name: 'Umar', last_name: 'Farooq', phone: '+966 50 345 6789', iqama_number: '2345678903', license_number: 'LIC-9990', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v3', plate_number: 'VRA-3356', ref_id: 'VEH-012', type: 'Curtainsider', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -329,7 +327,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c4', name: 'Almarai Dairy Fleet', contact_phone: '+966 50 444 5555', credit_limit: 120000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c4', name: 'Almarai Dairy Fleet', contact_phone: '+966 50 444 5555', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd4', first_name: 'Abdul', last_name: 'Malik', phone: '+966 50 456 7890', iqama_number: '2345678904', license_number: 'LIC-9991', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v4', plate_number: 'DRA-6484', ref_id: 'VEH-013', type: 'Reefer Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -346,7 +344,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c5', name: 'Panda Retail Operations', contact_phone: '+966 50 555 6666', credit_limit: 60000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c5', name: 'Panda Retail Operations', contact_phone: '+966 50 555 6666', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd5', first_name: 'Liaqat', last_name: 'Ali', phone: '+966 50 567 8901', iqama_number: '2345678905', license_number: 'LIC-9992', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v5', plate_number: 'ERA-9380', ref_id: 'VEH-014', type: 'Box Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -363,7 +361,7 @@ const FALLBACK_KANBAN_TRIPS: Trip[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     planned_start: new Date().toISOString(),
-    customer: { id: 'c6', name: 'Al-Othaim Commercial', contact_phone: '+966 50 666 7777', credit_limit: 75000, isActive: true, createdAt: new Date().toISOString() },
+    customer: { id: 'c6', name: 'Al-Othaim Commercial', contact_phone: '+966 50 666 7777', isActive: true, createdAt: new Date().toISOString() },
     driver: { id: 'd6', first_name: 'Faizan', last_name: 'Malik', phone: '+966 50 678 9012', iqama_number: '2345678906', license_number: 'LIC-9993', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     vehicle: { id: 'v6', plate_number: 'DRA-9873', ref_id: 'VEH-015', type: 'Flatbed', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
     stops: [
@@ -1208,19 +1206,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
-          <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
+          {/* ── TOP ROW: Unified 2-Column Command Center + Active Fleet Map ─────────── */}
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Live Delay Watch for Operator */}
-            <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
-              {isAdmin ? (
-                <MonthlyOverview />
-              ) : (
-                <OperatorActionCenter trips={rawTrips} />
-              )}
+            {/* 1. Unified 2-Column Operator Command Center (~58% width) */}
+            <div className="w-full lg:w-[58%] xl:w-[60%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
+              <OperatorCommandCenter trips={rawTrips} />
             </div>
 
-            {/* 2. Active Trips Live Map (expands when reminders collapses) */}
+            {/* 2. Active Trips Live Map (~42% width) */}
             <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
 
               {/* Map Canvas with Overlays */}
@@ -1439,15 +1433,6 @@ export default function DashboardPage() {
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* 3. Important Reminders */}
-            <div className={`shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out ${isRemindersCollapsed ? 'w-full lg:w-[76px]' : 'w-full lg:w-[330px] xl:w-[360px]'}`}>
-              <ImportantReminders
-                collapsed={isRemindersCollapsed}
-                onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}
-                trips={(rawTrips.length > 0 ? rawTrips : FALLBACK_KANBAN_TRIPS) as Trip[]}
-              />
             </div>
 
           </div>

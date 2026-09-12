@@ -507,6 +507,7 @@ export const getTripById = async (req: Request, res: Response) => {
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },
         },
+        charges: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
@@ -535,10 +536,18 @@ export const getTripById = async (req: Request, res: Response) => {
     }
 
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const baseRate = Number(trip.billing_amount ?? trip.applied_rate ?? 0);
-    const totalAmount = baseRate + chargesTotal;
+    const perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
+    const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
+
+    const baseDriverPayout = trip.is_third_party
+      ? Number(trip.third_party_cost ?? 0)
+      : Number(trip.driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
+    const extraDriverPayout = Number(trip.extra_driver_payment ?? 0);
+    const totalDriverPayout = baseDriverPayout + extraDriverPayout;
+    const balanceMargin = totalAmount - totalDriverPayout;
+    const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
 
     const tripData = {
       ...trip,
@@ -546,6 +555,10 @@ export const getTripById = async (req: Request, res: Response) => {
       balance_due: balanceDue,
       total_amount: totalAmount,
       charges_total: chargesTotal,
+      per_trip_billing: perTripBilling,
+      driver_charge: totalDriverPayout,
+      balance_margin: balanceMargin,
+      margin_percent: marginPercent,
       vehicle: trip.vehicle
         ? {
             ...trip.vehicle,
@@ -1824,22 +1837,22 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      // Deleting an in-flight trip must release its driver/vehicle back to
-      // Available — otherwise they stay stuck on "OnTrip" forever with no
-      // trip left to complete them (this was a real bug: deleted trip, driver
-      // still showed on duty).
+      // Deleting an in-flight trip must release its driver/vehicle back to Available
       const trips = await tx.trip.findMany({
-        where: { id: { in: ids }, deletedAt: null, status: { in: IN_FLIGHT_STATUSES } },
+        where: { id: { in: ids }, status: { in: IN_FLIGHT_STATUSES } },
         select: { driverId: true, vehicleId: true },
       });
 
-      await tx.trip.updateMany({
-        where: { id: { in: ids } },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-          deleted_by: userId
-        }
+      // Clear child dependencies before deleting trips
+      await tx.tripStop.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripLocation.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripCharge.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripDriver.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.tripAssignmentEvent.deleteMany({ where: { tripId: { in: ids } } });
+      await tx.invoice.deleteMany({ where: { tripId: { in: ids } } });
+
+      await tx.trip.deleteMany({
+        where: { id: { in: ids } }
       });
 
       const driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
@@ -1853,7 +1866,7 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} trips` } });
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} trips` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete trips` } });
   }
@@ -2005,7 +2018,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       let nextTripCharges = Number(trip.driver_charge);
       const inputCharges = req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges;
       if (inputCharges !== undefined) {
-        nextTripCharges = parseOptionalFloat(inputCharges) ?? Number(trip.driver_charge);
+        nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
       } else if (trip.is_third_party) {
         if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
           nextTripCharges = Number(trip.third_party_cost);
@@ -2071,7 +2084,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
         where: { id: tripId },
         data: {
           driver_charge: nextTripCharges,
-          billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? trip.billing_amount) : trip.billing_amount,
+          billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? 0) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,

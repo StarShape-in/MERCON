@@ -48,7 +48,6 @@ function formatHeaderLabel(key: string): string {
     capacity_kg: 'Capacity (KG)',
     asset_type: 'Vehicle Type',
     ai_risk_score: 'AI Safety Risk Score',
-    credit_limit: 'Credit Limit (SAR)',
     total_amount: 'Total Amount (SAR)',
     subtotal: 'Subtotal (SAR)',
     billing_amount: 'Billing Rate (SAR)',

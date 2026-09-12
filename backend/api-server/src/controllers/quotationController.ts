@@ -77,7 +77,7 @@ export const createQuotation = async (req: Request, res: Response) => {
     const rawPayout = driver_payout ?? driver_charge ?? default_trip_charge;
     const payoutVal = parseDecimalSafe(rawPayout);
 
-    const normalisedCustomerId = getValidUuid(customerId);
+    const normalisedCustomerId = getValidUuid(customerId || req.body.customer_id);
     if (!normalisedCustomerId) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this quotation is for' } });
     }
@@ -152,31 +152,31 @@ export const createQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      try {
-        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
-        const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
-
-        await tx.quotationHistory.create({
-          data: {
-            quotationId: newQuotation.id,
-            old_rate: null,
-            new_rate: price,
-            old_driver_payout: null,
-            new_driver_payout: payoutVal,
-            changed_by: userName,
-            changed_by_user_id: userId || null,
-            changed_by_name: userName,
-            reason: req.body.reason || req.body.change_reason || 'Initial Quotation creation',
-            source: req.body.source || 'QUOTATION_MODULE',
-            trip_id: req.body.trip_id || null,
-          },
-        });
-      } catch (historyErr: any) {
-        logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry — quotation created successfully');
-      }
-
       return newQuotation;
     });
+
+    try {
+      const userObj = userId ? await prisma.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+      const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
+
+      await prisma.quotationHistory.create({
+        data: {
+          quotationId: quotation.id,
+          old_rate: null,
+          new_rate: price,
+          old_driver_payout: null,
+          new_driver_payout: payoutVal,
+          changed_by: userName,
+          changed_by_user_id: userId || null,
+          changed_by_name: userName,
+          reason: req.body.reason || req.body.change_reason || 'Initial Quotation creation',
+          source: req.body.source || 'QUOTATION_MODULE',
+          trip_id: req.body.trip_id || null,
+        },
+      });
+    } catch (historyErr: any) {
+      logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry — quotation created successfully');
+    }
 
     res.status(201).json({ success: true, data: quotation });
   } catch (error: any) {
@@ -215,26 +215,36 @@ export const getQuotations = async (req: Request, res: Response) => {
 
     const targetCustomerId = (customerId || req.query.customer_id) as string;
     if (targetCustomerId) whereClause.customerId = targetCustomerId;
-    if (vehicle_type) whereClause.OR = [{ source_vehicle_label: vehicle_type as string }, { vehicle_class: vehicle_type as string }];
+
+    if (vehicle_type) {
+      whereClause.AND = whereClause.AND || [];
+      whereClause.AND.push({
+        OR: [{ source_vehicle_label: vehicle_type as string }, { vehicle_class: vehicle_type as string }],
+      });
+    }
+
     if (line_type || rate_category) whereClause.line_type = (line_type || rate_category) as string;
     if (billing_type) whereClause.billing_type = billing_type as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
-      whereClause.OR = [
-        { name: { contains: term, mode: 'insensitive' } },
-        { line_type: { contains: term, mode: 'insensitive' } },
-        { billing_type: { contains: term, mode: 'insensitive' } },
-        { source_vehicle_label: { contains: term, mode: 'insensitive' } },
-        { vehicle_class: { contains: term, mode: 'insensitive' } },
-        { customer: { name: { contains: term, mode: 'insensitive' } } },
-      ];
+      whereClause.AND = whereClause.AND || [];
+      whereClause.AND.push({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { line_type: { contains: term, mode: 'insensitive' } },
+          { billing_type: { contains: term, mode: 'insensitive' } },
+          { source_vehicle_label: { contains: term, mode: 'insensitive' } },
+          { vehicle_class: { contains: term, mode: 'insensitive' } },
+          { customer: { name: { contains: term, mode: 'insensitive' } } },
+        ],
+      });
     }
 
-    const isPaginated = page !== undefined || (per_page !== undefined && per_page !== 'all');
-    const pageNumber = Math.max(1, parseInt((page as string) || '1', 10));
-    const limit = Math.max(1, parseInt((per_page as string) || '10', 10));
-    const skip = (pageNumber - 1) * limit;
+    const isPaginated = per_page !== 'all' && (page !== undefined || per_page !== undefined);
+    const pageNumber = isPaginated ? Math.max(1, parseInt((page as string) || '1', 10)) : 1;
+    const limit = isPaginated ? Math.max(1, parseInt((per_page as string) || '10', 10)) : 0;
+    const skip = isPaginated ? (pageNumber - 1) * limit : 0;
 
     const [quotations, total] = await Promise.all([
       prisma.quotation.findMany({
@@ -253,7 +263,7 @@ export const getQuotations = async (req: Request, res: Response) => {
         page: isPaginated ? pageNumber : 1,
         per_page: isPaginated ? limit : total,
         total,
-        total_pages: isPaginated ? Math.ceil(total / limit) : 1,
+        total_pages: isPaginated ? Math.ceil(total / Math.max(1, limit)) : 1,
       },
     });
   } catch (error: any) {
@@ -315,7 +325,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
 
     const { vehicleType: sentVehicleType, rateCategory: sentRateCategory, billingType: sentBillingType, vehicleClass: sentVehicleClass, pricingBasis: sentPricingBasis, validFrom: sentValidFrom, validTo: sentValidTo, sourceType: sentSourceType, sourceReference: sentSourceReference } = parseTierFields(req.body);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const { updatedQuotation, priceChanged, payoutChanged, oldRate, newRate, oldPayout, newPayout } = await prisma.$transaction(async (tx) => {
       const existing = await tx.quotation.findFirst({ where: { id: id as string, deletedAt: null } });
       if (!existing) throw new Error('NOT_FOUND');
 
@@ -410,11 +420,23 @@ export const updateQuotation = async (req: Request, res: Response) => {
         include: quotationInclude,
       });
 
-      if (priceChanged || payoutChanged) {
-        const userObj = userId ? await tx.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
+      return {
+        updatedQuotation,
+        priceChanged,
+        payoutChanged,
+        oldRate,
+        newRate,
+        oldPayout,
+        newPayout,
+      };
+    });
+
+    if (priceChanged || payoutChanged) {
+      try {
+        const userObj = userId ? await prisma.user.findFirst({ where: { id: userId }, select: { name: true, username: true } }) : null;
         const userName = userObj ? (userObj.name || userObj.username) : ((req as any).user?.name || (req as any).user?.username || null);
 
-        await tx.quotationHistory.create({
+        await prisma.quotationHistory.create({
           data: {
             quotationId: updatedQuotation.id,
             old_rate: priceChanged ? oldRate : null,
@@ -429,12 +451,12 @@ export const updateQuotation = async (req: Request, res: Response) => {
             trip_id: req.body.trip_id || null,
           },
         });
+      } catch (historyErr: any) {
+        logger.warn({ err: historyErr }, 'Could not record QuotationHistory entry on quotation update');
       }
+    }
 
-      return updatedQuotation;
-    });
-
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: updatedQuotation });
   } catch (error: any) {
     if (error.code === 'VALIDATION_ERROR') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.message } });
@@ -452,13 +474,16 @@ export const updateQuotation = async (req: Request, res: Response) => {
 export const deleteQuotation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = getValidUuid((req as any).user?.id);
+    const targetId = id as string;
 
-    await prisma.quotation.update({
-      where: { id: id as string },
-      data: { deletedAt: new Date(), deleted_by: userId, is_active: false }
-    });
-    res.json({ success: true, message: 'Quotation deleted successfully' });
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { quotationId: targetId }, data: { quotationId: null } }),
+      prisma.surchargeRule.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotationStop.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotationHistory.deleteMany({ where: { quotationId: targetId } }),
+      prisma.quotation.delete({ where: { id: targetId } })
+    ]);
+    res.json({ success: true, message: 'Quotation permanently deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
@@ -466,22 +491,20 @@ export const deleteQuotation = async (req: Request, res: Response) => {
 
 export const bulkDeleteQuotations = async (req: Request, res: Response) => {
   try {
-    const userId = getValidUuid((req as any).user?.id);
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.quotation.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        is_active: false,
-        deleted_by: userId
-      }
-    });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} quotations` } });
+    await prisma.$transaction([
+      prisma.trip.updateMany({ where: { quotationId: { in: ids } }, data: { quotationId: null } }),
+      prisma.surchargeRule.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotationStop.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotationHistory.deleteMany({ where: { quotationId: { in: ids } } }),
+      prisma.quotation.deleteMany({ where: { id: { in: ids } } })
+    ]);
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} quotations` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete quotations` } });
   }

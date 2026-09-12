@@ -123,7 +123,7 @@ function ShellInner() {
         {/* Content area — Suspense + ErrorBoundary ensures shell stays mounted and errors are isolated */}
         <div
           ref={contentRef}
-          className={`flex-1 min-h-0 relative ${meta.hideHeader || isHeaderCollapsed ? 'pt-2 px-2 sm:px-4 sm:pt-3' : 'pt-4 sm:pt-6'} bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+          className={`flex-1 min-h-0 relative ${meta.hideHeader || isHeaderCollapsed ? 'pt-2 px-2 sm:px-4 sm:pt-3' : 'pt-2 sm:pt-3.5'} bg-[#F8FAFC] ${meta.fixedViewport ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense

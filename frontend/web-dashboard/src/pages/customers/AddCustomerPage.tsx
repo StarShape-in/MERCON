@@ -222,7 +222,6 @@ export default function AddCustomerPage() {
       company_name: formData.trade_alias.trim() || undefined,
       logo_url: formData.logo_url || undefined,
       avatar_url: formData.logo_url || undefined,
-      tax_number: formData.vat_number.trim() || formData.cr_number.trim() || undefined,
       primary_contact_person: primaryContact?.name?.trim() || undefined,
       primary_contact_phone: primaryContact?.phone?.trim() || effectivePhone,
       secondary_contact_person: secondaryContact?.name?.trim() || undefined,

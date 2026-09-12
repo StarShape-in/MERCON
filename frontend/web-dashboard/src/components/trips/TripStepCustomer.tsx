@@ -175,7 +175,6 @@ export default function TripStepCustomer({
                   customer.company_name,
                   customer.phone,
                   customer.contact_phone,
-                  customer.tax_number,
                   customer.payment_terms,
                 ]) ? 1 : 0;
               }}

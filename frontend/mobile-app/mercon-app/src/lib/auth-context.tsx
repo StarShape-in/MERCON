@@ -78,8 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(next);
   };
 
-  const signInDriver = async (phone_primary: string, license_number: string) => {
-    const { data } = await api.post('/mobile/auth/login', { phone_primary, license_number });
+  const signInDriver = async (phone_primary: string, secret: string) => {
+    const trimmedSecret = secret.trim();
+    const { data } = await api.post('/mobile/auth/login', {
+      phone_primary,
+      password: trimmedSecret,
+      license_number: trimmedSecret,
+    });
     const { token, driver } = data.data;
     await persist(token, { role: 'Driver', profile: driver });
   };

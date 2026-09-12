@@ -1,8 +1,20 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text, StyleProp, ViewStyle, Platform } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { LEAFLET_CSS, LEAFLET_JS } from '../../assets/leaflet/leafletBundle';
 import { isValidCoordinate, type LatLng } from '../../lib/geo';
+
+// Safely resolve WebView to prevent TurboModuleRegistry crashes on devices
+// whose native binary has not yet compiled react-native-webview (RNCWebViewModule).
+let WebViewComponent: any = null;
+let webViewLoadError: string | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const RNWebView = require('react-native-webview');
+  WebViewComponent = RNWebView.WebView || RNWebView.default || RNWebView;
+} catch (err: any) {
+  webViewLoadError = err?.message || 'RNCWebViewModule not found in native binary';
+  console.warn('[OsmMapView] react-native-webview native module not available:', err?.message);
+}
 
 export interface MarkerInfo {
   coordinate: LatLng;
@@ -38,14 +50,14 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
   onMapReady,
   style,
 }, ref) => {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
   const isReadyRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
 
   // Fixed initial center determined at mount time — MUST NOT change when live GPS updates arrive
   const initialMapCenter = useRef<LatLng>({
-    latitude: initialCenter?.latitude ?? destination?.coordinate.latitude ?? DEFAULT_CENTER.latitude,
-    longitude: initialCenter?.longitude ?? destination?.coordinate.longitude ?? DEFAULT_CENTER.longitude,
+    latitude: initialCenter?.latitude ?? pickup?.coordinate.latitude ?? destination?.coordinate.latitude ?? DEFAULT_CENTER.latitude,
+    longitude: initialCenter?.longitude ?? pickup?.coordinate.longitude ?? destination?.coordinate.longitude ?? DEFAULT_CENTER.longitude,
   }).current;
 
   React.useImperativeHandle(ref, () => ({
@@ -354,9 +366,32 @@ export const OsmMapView = React.forwardRef<OsmMapViewRef, OsmMapViewProps>(({
     [onMapReady, syncMapData, validDestination, validPickup, validDriverPos, validRoute]
   );
 
+  if (!WebViewComponent || webViewLoadError) {
+    return (
+      <View style={[styles.container, style, styles.fallbackContainer]}>
+        <View style={styles.fallbackCard}>
+          <Text style={styles.fallbackTitle}>Native Map Module Missing</Text>
+          <Text style={styles.fallbackSubtitle}>
+            `react-native-webview` requires rebuilding the native mobile binary.
+          </Text>
+          <Text style={styles.fallbackCode}>npx expo run:android</Text>
+          <Text style={styles.fallbackSubcode}>or: npx expo run:ios</Text>
+          {destination && (
+            <View style={styles.destBox}>
+              <Text style={styles.destLabel}>Target Destination:</Text>
+              <Text style={styles.destValue} numberOfLines={2}>
+                {destination.title || destination.address || `${destination.coordinate.latitude.toFixed(4)}, ${destination.coordinate.longitude.toFixed(4)}`}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, style]}>
-      <WebView
+      <WebViewComponent
         ref={webViewRef}
         source={{ html: htmlContent }}
         style={styles.webView}
@@ -402,6 +437,76 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 13,
     fontWeight: '500',
+  },
+  fallbackContainer: {
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  fallbackCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+    maxWidth: 340,
+    width: '100%',
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F8FAFC',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  fallbackSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 17,
+  },
+  fallbackCode: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 11,
+    color: '#FA634E',
+    backgroundColor: 'rgba(250, 99, 78, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    overflow: 'hidden',
+    fontWeight: '700',
+  },
+  fallbackSubcode: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  destBox: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    width: '100%',
+    alignItems: 'center',
+  },
+  destLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  destValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#E2E8F0',
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
 

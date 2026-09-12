@@ -56,28 +56,55 @@ const LiveNavigationScreen = () => {
   // Leg index: 0 for first leg, 1 for return leg
   const legIndex = isRound && (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
 
-  // Find target stop based on current state and leg
-  const activeStop = React.useMemo(() => {
+  // 1. Identify the trip's pickup stop
+  const pickupStop = React.useMemo(() => {
     if (!trip?.stops || trip.stops.length === 0) return null;
+    const targetSeq = legIndex === 1 ? 3 : 1;
+    return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
+           trip.stops.find((s) => s.stop_type === 'Pickup') ??
+           trip.stops[0];
+  }, [trip?.stops, legIndex]);
 
-    if (isHeadingToPickup) {
-      // Heading to Pickup: Stop 1 for leg 0, Stop 3 for leg 1
-      const targetSeq = legIndex === 1 ? 3 : 1;
-      return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
-             trip.stops.find((s) => s.stop_type === 'Pickup') ??
-             trip.stops[0];
-    } else {
-      // Heading to Delivery: Dropoff stop for outbound (leg 0) or return (leg 1)
-      if (legIndex === 1) {
-        return trip.stops.find((s) => s.stop_sequence === 4) ??
-               trip.stops.find((s) => s.stop_type === 'Dropoff' && s.stop_sequence > 2) ??
-               trip.stops[trip.stops.length - 1];
-      }
-      return trip.stops.find((s) => s.stop_type === 'Dropoff') ??
-             trip.stops.find((s) => s.stop_sequence === 2) ??
+  // 2. Identify the trip's drop-off / delivery stop
+  const dropoffStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    if (legIndex === 1) {
+      return trip.stops.find((s) => s.stop_sequence === 4) ??
+             trip.stops.find((s) => s.stop_type === 'Dropoff' && s.stop_sequence > 2) ??
              trip.stops[trip.stops.length - 1];
     }
-  }, [trip?.stops, isHeadingToPickup, legIndex]);
+    return trip.stops.find((s) => s.stop_type === 'Dropoff') ??
+           trip.stops.find((s) => s.stop_sequence === 2) ??
+           trip.stops[trip.stops.length - 1];
+  }, [trip?.stops, legIndex]);
+
+  // 3. Active stop preserves existing workflow behavior (action card, status update, photos, ETA)
+  const activeStop = React.useMemo(() => {
+    return isHeadingToPickup ? pickupStop : dropoffStop;
+  }, [isHeadingToPickup, pickupStop, dropoffStop]);
+
+  // 4. Create independent MarkerInfo objects for the map
+  const pickupMarker = React.useMemo(() => {
+    if (!pickupStop || !isValidCoordinate(pickupStop.location_lat, pickupStop.location_lng)) {
+      return null;
+    }
+    return {
+      coordinate: { latitude: pickupStop.location_lat, longitude: pickupStop.location_lng },
+      title: stopLabel(pickupStop, 'Pickup Location'),
+      address: stopAddress(pickupStop),
+    };
+  }, [pickupStop]);
+
+  const dropoffMarker = React.useMemo(() => {
+    if (!dropoffStop || !isValidCoordinate(dropoffStop.location_lat, dropoffStop.location_lng)) {
+      return null;
+    }
+    return {
+      coordinate: { latitude: dropoffStop.location_lat, longitude: dropoffStop.location_lng },
+      title: stopLabel(dropoffStop, 'Delivery Destination'),
+      address: stopAddress(dropoffStop),
+    };
+  }, [dropoffStop]);
 
   const handleAddPhoto = async () => {
     try {
@@ -312,15 +339,8 @@ const LiveNavigationScreen = () => {
       <View style={StyleSheet.absoluteFill}>
         <OsmMapView
           ref={mapRef}
-          destination={
-            activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)
-              ? {
-                  coordinate: { latitude: activeStop.location_lat, longitude: activeStop.location_lng },
-                  title: stopLabel(activeStop),
-                  address: stopAddress(activeStop),
-                }
-              : null
-          }
+          pickup={pickupMarker}
+          destination={dropoffMarker}
           driverPosition={
             position && isValidCoordinate(position.lat, position.lng)
               ? { latitude: position.lat, longitude: position.lng }
