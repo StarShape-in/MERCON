@@ -242,12 +242,12 @@ export function useTripSubmission(
           const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
           const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
 
-          const outboundChain = outboundStops.length > 0 ? ` → ${outboundStops.join(' → ')}` : '';
-          const returnChain = returnStops.length > 0 ? ` → ${returnStops.join(' → ')}` : '';
+          const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+          const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
 
-          destString = `${slot.destination.trim()}${outboundChain} [RETURN: ${returnStart}${returnChain} → ${returnEnd}]`;
+          destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
         } else if (outboundStops.length > 0) {
-          destString = `${slot.destination.trim()} → ${outboundStops.join(' → ')}`;
+          destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
         }
 
         let planned_end_val: string | undefined = undefined;

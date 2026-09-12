@@ -21,7 +21,7 @@ const GreenCameraPlusIcon = () => (
   <View style={{ width: 34, height: 30, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={30} height={28} viewBox="0 0 30 28">
       <Path
-        d="M 4 8 C 2.9 8 2 8.9 2 10 L 2 23 C 2 24.1 2.9 25 4 25 L 21 25 C 22.1 25 23 23 L 23 10 C 23 8.9 22.1 8 21 8 Z"
+        d="M 4 8 C 2.9 8 2 8.9 2 10 L 2 23 C 2 24.1 2.9 25 4 25 L 21 25 C 22.1 25 23 24.1 23 23 L 23 10 C 23 8.9 22.1 8 21 8 Z"
         fill="none"
         stroke="#16A34A"
         strokeWidth={2.2}

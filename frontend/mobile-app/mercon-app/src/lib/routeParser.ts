@@ -114,9 +114,10 @@ function buildTimeline(
     result.push(node('pickup', 'Pickup', 'پک اپ', pickup, 'House', { legIndex: 0 }));
   }
 
+  let outboundDelivery = '';
   if (outboundRest.length > 1) {
     const outboundIntermediates = outboundRest.slice(0, -1);
-    const outboundDelivery = outboundRest[outboundRest.length - 1];
+    outboundDelivery = outboundRest[outboundRest.length - 1];
     outboundIntermediates.forEach((name, idx) => {
       result.push(
         node(
@@ -130,12 +131,39 @@ function buildTimeline(
     });
     result.push(node('outbound-delivery', 'Delivery', 'ڈلیوری', outboundDelivery, 'MapPin', { legIndex: 0 }));
   } else if (outboundRest.length === 1) {
-    result.push(node('outbound-delivery', 'Delivery', 'ڈلیوری', outboundRest[0], 'MapPin', { legIndex: 0 }));
+    outboundDelivery = outboundRest[0];
+    result.push(node('outbound-delivery', 'Delivery', 'ڈلیوری', outboundDelivery, 'MapPin', { legIndex: 0 }));
   }
 
   // ── Return Leg ───────────────────────────────────────────────────────────
   if (returnNodes.length > 0) {
-    const [returnPickup, ...returnRest] = returnNodes;
+    let sanitizedReturnNodes = [...returnNodes];
+
+    // In a round trip, Return Loading MUST start at the location where outbound delivery completed.
+    if (outboundDelivery) {
+      const outDelivNorm = outboundDelivery.toLowerCase().trim();
+      const retStartNorm = sanitizedReturnNodes[0]?.toLowerCase().trim();
+
+      if (retStartNorm !== outDelivNorm) {
+        const matchIdx = sanitizedReturnNodes.findIndex((n) => n.toLowerCase().trim() === outDelivNorm);
+        const finalDest = sanitizedReturnNodes[sanitizedReturnNodes.length - 1];
+
+        if (matchIdx !== -1) {
+          // If the delivery destination was listed later in the return chain (e.g. forward-copied stops),
+          // extract the intermediate nodes and reverse them so they properly flow from delivery back to origin.
+          const rawIntermediates = sanitizedReturnNodes.filter(
+            (n, i) => i !== matchIdx && i !== sanitizedReturnNodes.length - 1
+          );
+          rawIntermediates.reverse();
+          sanitizedReturnNodes = [outboundDelivery, ...rawIntermediates, finalDest];
+        } else {
+          // If return loading point was missing or mismatched, anchor return loading to outbound delivery
+          sanitizedReturnNodes = [outboundDelivery, ...sanitizedReturnNodes];
+        }
+      }
+    }
+
+    const [returnPickup, ...returnRest] = sanitizedReturnNodes;
     result.push(node('return-pickup', 'Return Loading', 'واپسی لوڈنگ', returnPickup, 'House', { legIndex: 1 }));
 
     if (returnRest.length > 1) {
