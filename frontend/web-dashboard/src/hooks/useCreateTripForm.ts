@@ -330,7 +330,7 @@ export function useCreateTripForm() {
   const [contractCustomer, setContractCustomer] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
-  const [contractBillingType, setContractBillingType] = useState<string>('Monthly');
+  const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     const rule = getCompatibilityRuleForClass(contractVehicleType);

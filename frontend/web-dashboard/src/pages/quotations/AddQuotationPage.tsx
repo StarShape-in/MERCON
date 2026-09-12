@@ -747,7 +747,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
                 <CustomerSelectionCard
                   value={customerId}
                   onChange={setCustomerId}
-                  customers={customers}
+                  customers={customers as any}
                   label=""
                   required={false}
                 />
