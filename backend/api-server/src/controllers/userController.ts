@@ -167,7 +167,6 @@ export const deleteUser = async (req: Request, res: Response) => {
     // Hard delete user record
     await prisma.$transaction([
       prisma.document.updateMany({ where: { verified_by: id as string }, data: { verified_by: null } }),
-      prisma.trip.updateMany({ where: { payment_approved_by: id as string }, data: { payment_approved_by: null } }),
       prisma.driver.updateMany({ where: { userId: id as string }, data: { userId: null } }),
       prisma.notification.deleteMany({ where: { userId: id as string } }),
       prisma.user.delete({ where: { id: id as string } })

@@ -65,7 +65,6 @@ export const getDrivers = async (req: Request, res: Response) => {
             status: true,
             avatar_url: true,
             isActive: true,
-            ai_risk_score: true,
             createdAt: true,
             assignedVehicleId: true,
             userId: true,
@@ -139,10 +138,10 @@ export const getDrivers = async (req: Request, res: Response) => {
     const tripChargeSums = await prisma.trip.groupBy({
       by: ['driverId'],
       where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
-      _sum: { extra_driver_payment: true },
+      _sum: { driver_charge: true },
     });
     const tripChargeByDriver = new Map(
-      tripChargeSums.map((s) => [s.driverId, Number(s._sum.extra_driver_payment) || 0])
+      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_charge) || 0])
     );
 
     const formatted = drivers.map(d => ({

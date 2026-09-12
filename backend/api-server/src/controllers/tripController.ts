@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
-import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus, DriverTripRole, AssignmentEntityType } from '@prisma/client';
+import { Prisma, TripStatus, StopType, DriverStatus, AssetStatus, AssignmentEntityType } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
@@ -544,8 +544,7 @@ export const getTripById = async (req: Request, res: Response) => {
     const baseDriverPayout = trip.is_third_party
       ? Number(trip.third_party_cost ?? 0)
       : Number(trip.driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
-    const extraDriverPayout = Number(trip.extra_driver_payment ?? 0);
-    const totalDriverPayout = baseDriverPayout + extraDriverPayout;
+    const totalDriverPayout = baseDriverPayout;
     const balanceMargin = totalAmount - totalDriverPayout;
     const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
 
@@ -1362,37 +1361,6 @@ export const updateTripStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Driver Cash Payment Workflow endpoint
-export const approveDriverPayment = async (req: Request, res: Response) => {
-  try {
-    const { amount, reason } = req.body;
-    const rawId = req.params.id as string;
-    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
-    if (!tripId) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
-    }
-
-    if (!amount || !reason) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Amount and reason required' } });
-    }
-
-    const trip = await prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        extra_driver_payment: parseOptionalFloat(amount) ?? 0,
-        payment_reason: reason,
-        payment_status: PaymentStatus.Approved,
-        payment_approved_by: (req as any).user?.id,
-        payment_date: new Date(),
-        updated_by: (req as any).user?.id
-      }
-    });
-
-    res.json({ success: true, data: trip });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to approve payment' } });
-  }
-};
 
 // ==========================================
 // PHASE 1: DISPATCH & ASSIGNMENT
@@ -1519,30 +1487,6 @@ export const replaceDriver = async (req: Request, res: Response) => {
       }
 
       const now = new Date();
-
-      // 1. Mark existing PRIMARY TripDriver as removedAt
-      await tx.tripDriver.updateMany({
-        where: {
-          tripId,
-          driverId: oldDriverId,
-          role: DriverTripRole.PRIMARY,
-          removedAt: null,
-        },
-        data: {
-          removedAt: now,
-        },
-      });
-
-      // 2. Create new PRIMARY TripDriver record
-      await tx.tripDriver.create({
-        data: {
-          tripId,
-          driverId: new_driver_id,
-          role: DriverTripRole.PRIMARY,
-          assignedAt: now,
-          driver_charge: trip.driver_charge,
-        },
-      });
 
       // 3. Log TripAssignmentEvent audit record
       const changeReason = reason || 'Driver replaced by dispatcher';
@@ -1847,9 +1791,7 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       await tx.tripStop.deleteMany({ where: { tripId: { in: ids } } });
       await tx.tripLocation.deleteMany({ where: { tripId: { in: ids } } });
       await tx.tripCharge.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripDriver.deleteMany({ where: { tripId: { in: ids } } });
       await tx.tripAssignmentEvent.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.invoice.deleteMany({ where: { tripId: { in: ids } } });
 
       await tx.trip.deleteMany({
         where: { id: { in: ids } }
@@ -2089,27 +2031,8 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,
         },
-        include: { customer: true, driver: true, vehicle: true, invoices: true, charges: true },
+        include: { customer: true, driver: true, vehicle: true, charges: true },
       });
-
-      // Recalculate invoice total if an invoice exists for this trip
-      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
-      if (existingInvoice) {
-        // billing_amount/subtotal are Decimal at runtime — Number() before the
-        // `+` below, which otherwise silently string-concatenates instead of
-        // adding, corrupting the invoice total written a few lines down.
-        const baseBilling = Number(updatedTrip.billing_amount ?? existingInvoice.subtotal);
-        const newTotal = baseBilling + computeTripChargesTotal(updatedTrip.charges);
-
-        await tx.invoice.update({
-          where: { id: existingInvoice.id },
-          data: {
-            subtotal: baseBilling,
-            total_amount: newTotal,
-            updated_by: (req as any).user?.id,
-          },
-        });
-      }
 
       return updatedTrip;
     });

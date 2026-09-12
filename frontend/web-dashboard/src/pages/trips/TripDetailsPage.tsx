@@ -279,10 +279,9 @@ export default function TripDetailsPage() {
 
   // Driver charge / 3PL cost
   const is3PL = Boolean(trip.is_third_party);
-  const extraDriverPayment = Number(trip.extra_driver_payment ?? 0);
   const driverPayout = is3PL
     ? Number(trip.third_party_cost ?? 0)
-    : Number(trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0) + extraDriverPayment;
+    : Number(trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0);
 
   const balanceMargin = totalAmount - driverPayout;
   const marginPercent = totalAmount > 0 ? ((balanceMargin / totalAmount) * 100).toFixed(1) : '0.0';

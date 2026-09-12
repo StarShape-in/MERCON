@@ -35,22 +35,19 @@ export default function DriverPerformancePage() {
   const handleExport = (format: 'excel' | 'pdf') => {
     if (!rows || rows.length === 0) return;
 
-    const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'AI Safety Risk Score', 'Risk Level', 'Total Trips', 'Completed Trips'];
+    const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'Total Trips', 'Completed Trips'];
     let sumTrips = 0;
     let sumCompleted = 0;
 
     const dataRows = rows.map((d, idx) => {
       sumTrips += d.total_trips || 0;
       sumCompleted += d.completed_trips || 0;
-      const risk = riskLevel(d.ai_risk_score);
 
       return [
         idx + 1,
         d.name || '',
         d.ref_id || '',
         d.status || '',
-        d.ai_risk_score ?? 'N/A',
-        risk.label,
         d.total_trips || 0,
         d.completed_trips || 0,
       ];
@@ -225,13 +222,6 @@ export default function DriverPerformancePage() {
             {
               header: 'Completion %',
               accessor: (d: DriverPerfRow) => <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{completion(d)}%</span>
-            },
-            {
-              header: 'AI Risk Level',
-              accessor: (d: DriverPerfRow) => {
-                const risk = riskLevel(d.ai_risk_score);
-                return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${risk.cls}`}>{risk.label}</span>;
-              }
             }
           ]}
           data={topDrivers}

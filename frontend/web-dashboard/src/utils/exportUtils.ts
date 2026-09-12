@@ -47,7 +47,6 @@ function formatHeaderLabel(key: string): string {
     plate_number: 'Plate Number',
     capacity_kg: 'Capacity (KG)',
     asset_type: 'Vehicle Type',
-    ai_risk_score: 'AI Safety Risk Score',
     total_amount: 'Total Amount (SAR)',
     subtotal: 'Subtotal (SAR)',
     billing_amount: 'Billing Rate (SAR)',

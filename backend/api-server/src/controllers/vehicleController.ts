@@ -1034,7 +1034,6 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       }),
       prisma.trip.findMany({
         where: { deletedAt: null, vehicleId: { not: null }, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
-        include: invoicesOn ? { invoices: { where: { deletedAt: null }, select: { total_amount: true } } } : {},
       }),
       maintenanceOn
         ? prisma.maintenanceRecord.findMany({

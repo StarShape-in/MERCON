@@ -10,20 +10,18 @@ import { getEnabledModules } from './settingsController';
 // regardless of Settings.enabledModules.
 const ENTITY_MODULE: Record<string, string> = {
   MaintenanceRecord: 'maintenance',
-  Invoice: 'invoices',
   Expense: 'expenses',
 };
 
 export async function getTrashItems(req: Request, res: Response) {
   try {
     const enabledModules = await getEnabledModules();
-    const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards, expenses, locations] = await Promise.all([
+    const [customers, drivers, vehicles, trips, maintenance, rateCards, expenses, locations] = await Promise.all([
       prisma.customer.findMany({ where: { deletedAt: { not: null } } }),
       prisma.driver.findMany({ where: { deletedAt: { not: null } } }),
       prisma.vehicle.findMany({ where: { deletedAt: { not: null } } }),
       prisma.trip.findMany({ where: { deletedAt: { not: null } } }),
       enabledModules.has('maintenance') ? prisma.maintenanceRecord.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
-      enabledModules.has('invoices') ? prisma.invoice.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
       prisma.quotation.findMany({ where: { deletedAt: { not: null } } }),
       enabledModules.has('expenses') ? prisma.expense.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
       prisma.location.findMany({ where: { deletedAt: { not: null } } }),
@@ -35,7 +33,6 @@ export async function getTrashItems(req: Request, res: Response) {
       ...vehicles.map(v => ({ id: v.id, type: 'Vehicle', name: v.plate_number, deletedAt: v.deletedAt })),
       ...trips.map(t => ({ id: t.id, type: 'Trip', name: t.ref_id || 'Draft', deletedAt: t.deletedAt })),
       ...maintenance.map(m => ({ id: m.id, type: 'MaintenanceRecord', name: `Workshop: ${m.workshop_name} (Cost: SAR ${m.cost})`, deletedAt: m.deletedAt })),
-      ...invoices.map(i => ({ id: i.id, type: 'Invoice', name: i.ref_id || `INV-${i.id.substring(0, 8)}`, deletedAt: i.deletedAt })),
       ...rateCards.map(r => ({ id: r.id, type: 'Quotation', name: `${r.name || 'Quotation'} (${r.rate} ${r.currency})`, deletedAt: r.deletedAt })),
       ...expenses.map(e => ({ id: e.id, type: 'Expense', name: `${e.category} (${e.currency} ${e.amount})`, deletedAt: e.deletedAt })),
       ...locations.map(l => ({ id: l.id, type: 'Location', name: `${l.code} — ${l.name}`, deletedAt: l.deletedAt })),
@@ -85,9 +82,7 @@ export async function restoreTrashItem(req: Request, res: Response) {
         });
         break;
       }
-      case 'Invoice':
-        await prisma.invoice.update({ where: { id }, data: { deletedAt: null } });
-        break;
+
       case 'RateCard':
       case 'PricingRule':
       case 'Quotation':
@@ -149,11 +144,9 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         if (tripIds.length > 0) {
           await prisma.tripCharge.deleteMany({ where: { tripId: { in: tripIds } } });
           await prisma.tripStop.deleteMany({ where: { tripId: { in: tripIds } } });
-          await prisma.invoice.deleteMany({ where: { tripId: { in: tripIds } } });
           await deleteEntityDocuments('Trip', tripIds);
           await prisma.trip.deleteMany({ where: { customerId: id } });
         }
-        await prisma.invoice.deleteMany({ where: { customerId: id } });
         await prisma.location.deleteMany({ where: { customerId: id } });
         await prisma.surchargeRule.deleteMany({ where: { customerId: id } });
         await prisma.quotation.deleteMany({ where: { customerId: id } });
@@ -174,16 +167,12 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         // Cascade delete dependent records first to prevent foreign key errors
         await prisma.tripCharge.deleteMany({ where: { tripId: id } });
         await prisma.tripStop.deleteMany({ where: { tripId: id } });
-        await prisma.invoice.deleteMany({ where: { tripId: id } });
         await deleteEntityDocuments('Trip', id);
         await prisma.trip.deleteMany({ where: { id } });
         break;
       case 'MaintenanceRecord':
         await deleteEntityDocuments('MaintenanceRecord', id);
         await prisma.maintenanceRecord.deleteMany({ where: { id } });
-        break;
-      case 'Invoice':
-        await prisma.invoice.deleteMany({ where: { id } });
         break;
       case 'RateCard':
       case 'PricingRule':

@@ -107,7 +107,7 @@ export const extractAllDocumentsOcr = async (req: Request, res: Response) => {
     let totalUpdated = 0;
     const detailsResults: Array<{
       id: string;
-      doc_type: string;
+      doc_type: string | null;
       expiry_date: string | null;
       document_number: string | null;
       status: string;
@@ -553,7 +553,7 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
     const proposals: Array<{
       docId: string;
       fileName: string;
-      docType: string;
+      docType: string | null;
       fileUrl: string;
       entityType: string;
       entityId: string;

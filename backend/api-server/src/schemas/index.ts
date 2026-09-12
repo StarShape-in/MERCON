@@ -508,14 +508,6 @@ export const setDriverPasswordBody = z.object({
   password: z.string().trim().min(4, 'Password must be at least 4 characters'),
 });
 
-/* ─── Invoices ───────────────────────────────────────────────────────────── */
-export const createInvoiceBody = z.object({
-  trip_id: z.string().uuid('A valid trip is required'),
-  customer_id: z.string().uuid('A valid customer is required'),
-  subtotal: z.coerce.number().nonnegative(),
-  total_amount: z.coerce.number().nonnegative(),
-  due_date: z.coerce.date(),
-});
 
 /* ─── Smart Report Builder ────────────────────────────────────────────────── */
 export const reportQuerySpecBody = z.object({

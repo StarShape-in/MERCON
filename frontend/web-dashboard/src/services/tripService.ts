@@ -93,9 +93,6 @@ export interface Trip {
   planned_end: string | null;
   actual_end: string | null;
   planned_distance: number | null;
-  extra_driver_payment: number | null;
-  payment_reason: string | null;
-  payment_status: string | null;
   /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
   charges?: TripCharge[];
   driver_charge?: number;
@@ -133,7 +130,7 @@ export interface Trip {
   notes?: string | null;
   customer_id?: string;
   customer?: { id: string; name: string; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
-  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; ai_risk_score?: number; deletedAt?: string | null } | null;
+  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; deletedAt?: string | null } | null;
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null; resolved_location?: ResolvedLocation } | null;
   tripDrivers?: TripDriver[];
   is_contingency_dispatch?: boolean;

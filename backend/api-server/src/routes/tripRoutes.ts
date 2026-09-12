@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import {
-  getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
+  getTrips, getTripById, createTrip, updateTripStatus,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
   logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard
 } from '../controllers/tripController';
-import { markTripInvoiced, unmarkTripInvoiced } from '../controllers/invoiceController';
 import { exportTrips } from '../controllers/tripExportController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
@@ -36,7 +35,6 @@ router.post('/', validate({ body: createTripBody }), createTrip);
 router.get('/:id', getTripById);
 router.patch('/:id/status', updateTripStatus);
 router.patch('/:id/financials', updateTripFinancials);
-router.post('/:id/payment/approve', approveDriverPayment);
 
 // Phase 1: Dispatch & Assignment
 router.post('/:id/dispatch', dispatchTrip);
@@ -55,9 +53,6 @@ router.post('/:id/pickup/arrive', pickupArrive);
 router.post('/:id/pickup/verify', pickupVerify);
 router.post('/:id/delivery/verify', deliveryVerify);
 
-// Invoicing Ledger Actions — mark/unmark a completed trip as invoiced
-router.post('/:id/mark-invoiced', requireModuleEnabled('invoices'), (req, res) => markTripInvoiced(req, res));
-router.post('/:id/unmark-invoiced', requireModuleEnabled('invoices'), (req, res) => unmarkTripInvoiced(req, res));
 
 export default router;
 

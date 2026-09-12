@@ -57,7 +57,6 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'drivers.status', label: 'Status', type: 'enum', enumValues: ['Available', 'OnTrip', 'OffDuty', 'Inactive'] },
       { key: 'drivers.createdAt', label: 'Joining Date', type: 'date' },
       { key: 'drivers.license_expiry', label: 'License Expiry', type: 'date' },
-      { key: 'drivers.ai_risk_score', label: 'Risk Score', type: 'number', aggregatable: true },
       { key: 'drivers.completed_trips', label: 'Completed Trips', type: 'number', aggregatable: true },
       { key: 'drivers.dispatched_trips', label: 'Dispatched Trips', type: 'number', aggregatable: true },
       { key: 'drivers.cancelled_trips', label: 'Cancelled Trips', type: 'number', aggregatable: true },
