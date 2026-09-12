@@ -511,7 +511,6 @@ export default function TripDetailsPage() {
               baseRate={customerBilling}
               driverPayout={driverPayout}
               is3PL={is3PL}
-              extraDriverPayment={extraDriverPayment}
               additionalCharges={chargesTotal}
               additionalChargesCount={chargesList.length}
               balanceMargin={balanceMargin}
