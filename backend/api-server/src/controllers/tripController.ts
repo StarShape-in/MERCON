@@ -505,7 +505,9 @@ export const getTripById = async (req: Request, res: Response) => {
     }
 
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const perTripBilling = Number((trip as any).financials?.applied_rate ?? trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
+    const perTripBilling = (trip as any).financials?.applied_rate != null
+      ? Number((trip as any).financials.applied_rate)
+      : (trip.billing_amount != null ? Number(trip.billing_amount) : Number((trip as any).quotation?.rate ?? 0));
     const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
@@ -820,17 +822,7 @@ export const createTrip = async (req: Request, res: Response) => {
               },
               ...(appliedQuotation ? {
                 quotationId: appliedQuotation.id,
-                quotation_line_type: appliedQuotation.line_type || null,
-                quotation_billing_type: appliedQuotation.billing_type || null,
-                quotation_pricing_basis: appliedQuotation.pricing_basis || null,
-                applied_rate: appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null,
-                quotation_vehicle_class: appliedQuotation.vehicle_class || null,
-                quotation_source_vehicle_label: appliedQuotation.source_vehicle_label || null,
-              } : {
-                ...(finalRateCategory ? { quotation_line_type: finalRateCategory } : {}),
-                ...(finalBillingType ? { quotation_billing_type: finalBillingType } : {}),
-                ...(finalVehicleType ? { quotation_source_vehicle_label: finalVehicleType } : {}),
-              }),
+              } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
@@ -1186,9 +1178,17 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
-              ...(row.rate_category ? { rate_category: row.rate_category, quotation_line_type: row.rate_category } : {}),
-              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type, quotation_source_vehicle_label: row.vehicle_type } : {}),
-              ...(row.billing_type ? { billing_type: row.billing_type, quotation_billing_type: row.billing_type } : {}),
+              financials: {
+                create: {
+                  quotation_line_type: row.rate_category || null,
+                  quotation_source_vehicle_label: row.vehicle_type || null,
+                  quotation_billing_type: row.billing_type || null,
+                  applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount)) ? Number(row.billing_amount) : null,
+                }
+              },
+              ...(row.rate_category ? { rate_category: row.rate_category } : {}),
+              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
+              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
@@ -2208,12 +2208,12 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
           quotation_vehicle_class: trip.financials.quotation_vehicle_class,
           quotation_source_vehicle_label: trip.financials.quotation_source_vehicle_label,
         } : null,
-        quotation_line_type: trip.financials?.quotation_line_type ?? trip.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
-        quotation_billing_type: trip.financials?.quotation_billing_type ?? trip.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
-        quotation_pricing_basis: trip.financials?.quotation_pricing_basis ?? trip.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
-        applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.applied_rate != null ? Number(trip.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : null)),
-        quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
-        quotation_source_vehicle_label: trip.financials?.quotation_source_vehicle_label ?? trip.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
+        quotation_line_type: trip.financials?.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
+        quotation_billing_type: trip.financials?.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
+        quotation_pricing_basis: trip.financials?.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
+        applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : (trip.billing_amount != null ? Number(trip.billing_amount) : null)),
+        quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
+        quotation_source_vehicle_label: trip.financials?.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
         billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number((trip as any).driver_charge ?? (trip as any).trip_charges) || null),
         driver_charge: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
         trip_charges: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
