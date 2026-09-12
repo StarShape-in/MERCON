@@ -119,9 +119,16 @@ export default function DocumentPreviewSheet({ documentId, onClose, showOpenFold
   return (
     <Sheet open={!!documentId} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-        {isLoading || !document ? (
+        {isLoading ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 text-sm">
             <Loader2 className="w-5 h-5 animate-spin" /> Loading document...
+          </div>
+        ) : !document ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 text-sm p-6 text-center">
+            <FileText className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+            <p className="font-bold text-slate-700 dark:text-slate-200">Document Not Found</p>
+            <p className="text-xs text-slate-400 max-w-xs">The requested document file could not be loaded or is not available.</p>
+            <Button onClick={onClose} size="sm" variant="outline" className="mt-2 text-xs font-bold rounded-xl">Close</Button>
           </div>
         ) : (
           <>

@@ -26,8 +26,9 @@ export function docTypeLabel(t: string): string {
  * back to the legacy label only for documents that predate DocumentType
  * linking (should be none after the seed backfill, but stay defensive).
  */
-export function documentDisplayName(doc: { doc_type: string; documentType?: { name: string } | null }): string {
-  return doc.documentType?.name || docTypeLabel(doc.doc_type);
+export function documentDisplayName(doc?: { doc_type?: string; documentType?: { name: string } | null } | null): string {
+  if (!doc) return 'Document';
+  return doc.documentType?.name || (doc.doc_type ? docTypeLabel(doc.doc_type) : 'Document');
 }
 
 export type DocCategory = 'Drivers' | 'Vehicles' | 'Company' | 'Operations';

@@ -224,16 +224,21 @@ export default function DriverDetailsPage() {
     const tripList: any[] = driver?.trips || [];
     const totalCount = tripList.length;
 
+    const safeNum = (v: any): number => {
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    };
+
     const completed = tripList.filter((t) => {
-      const s = (t.status || '').toLowerCase();
+      const s = (t?.status || '').toLowerCase();
       return s === 'completed' || s === 'invoiced' || s === 'delivered';
     });
     const inTransit = tripList.filter((t) => {
-      const s = (t.status || '').toLowerCase();
+      const s = (t?.status || '').toLowerCase();
       return s === 'intransit' || s === 'loading' || s === 'atpickup' || s === 'atdelivery';
     });
     const dispatched = tripList.filter((t) => {
-      const s = (t.status || '').toLowerCase();
+      const s = (t?.status || '').toLowerCase();
       return s === 'dispatched' || s === 'scheduled' || s === 'draft';
     });
 
@@ -247,55 +252,68 @@ export default function DriverDetailsPage() {
 
     let onTimeCount = 0;
     completed.forEach((t) => {
-      if (!t.actual_end || !t.planned_end) {
+      if (!t?.actual_end || !t?.planned_end) {
         onTimeCount++;
       } else {
         const actual = new Date(t.actual_end).getTime();
         const planned = new Date(t.planned_end).getTime();
-        if (actual <= planned + 15 * 60 * 1000) {
+        if (!isNaN(actual) && !isNaN(planned)) {
+          if (actual <= planned + 15 * 60 * 1000) {
+            onTimeCount++;
+          }
+        } else {
           onTimeCount++;
         }
       }
     });
 
-    const onTimePct = completedCount > 0
-      ? ((onTimeCount / completedCount) * 100).toFixed(1)
-      : (totalCount > 0 ? '100.0' : '0.0');
+    const rawOnTimePct = completedCount > 0
+      ? (onTimeCount / completedCount) * 100
+      : (totalCount > 0 ? 100 : 0);
+    const onTimePct = isNaN(rawOnTimePct) ? '0.0' : rawOnTimePct.toFixed(1);
 
-    const totalRevenue = tripList.reduce((sum, t) => sum + Number(t.billing_amount || t.driver_charge || t.trip_charges || 0), 0);
-    const totalDistance = tripList.reduce((sum, t) => sum + Number(t.planned_distance || t.distance_km || t.actual_distance || 0), 0);
+    const totalRevenue = tripList.reduce((sum, t) => sum + safeNum(t?.billing_amount || t?.driver_charge || t?.trip_charges || 0), 0);
+    const totalDistance = tripList.reduce((sum, t) => sum + safeNum(t?.planned_distance || t?.distance_km || t?.actual_distance || 0), 0);
     const avgDistance = totalCount > 0 ? Math.round(totalDistance / totalCount) : 0;
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const hoursPerDay: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
 
     tripList.forEach((t) => {
-      const startStr = t.actual_start || t.planned_start;
-      const endStr = t.actual_end || t.planned_end;
+      const startStr = t?.actual_start || t?.planned_start;
+      const endStr = t?.actual_end || t?.planned_end;
       if (startStr && endStr) {
         const d = new Date(startStr);
-        const dayName = dayNames[d.getDay()];
-        const durHours = Math.max(0, (new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 60 * 60));
-        if (hoursPerDay[dayName] !== undefined) {
-          hoursPerDay[dayName] += durHours;
+        const startTime = d.getTime();
+        const endTime = new Date(endStr).getTime();
+        if (!isNaN(startTime) && !isNaN(endTime) && endTime >= startTime) {
+          const dayName = dayNames[d.getDay()];
+          const durHours = (endTime - startTime) / (1000 * 60 * 60);
+          if (hoursPerDay[dayName] !== undefined && !isNaN(durHours)) {
+            hoursPerDay[dayName] += durHours;
+          }
         }
       }
     });
 
     const workTimeStackedData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
-      const driving = Math.min(24, Math.round((hoursPerDay[day] || 0) * 10) / 10);
+      const val = hoursPerDay[day] || 0;
+      const safeVal = isNaN(val) ? 0 : val;
+      const driving = Math.min(24, Math.round(safeVal * 10) / 10);
       const remaining = Math.max(0, Math.round((24 - driving) * 10) / 10);
-      return { day, driving, remaining };
+      return { day, driving: isNaN(driving) ? 0 : driving, remaining: isNaN(remaining) ? 24 : remaining };
     });
 
-    const weeklyLoggedHours = workTimeStackedData.reduce((acc, d) => acc + d.driving, 0);
+    const weeklyLoggedHours = workTimeStackedData.reduce((acc, d) => acc + (isNaN(d.driving) ? 0 : d.driving), 0);
     const avgDailyDuty = Math.round((weeklyLoggedHours / 7) * 10) / 10;
 
     const delayedTrips = tripList.filter((t) => {
-      const s = (t.status || '').toLowerCase();
+      const s = (t?.status || '').toLowerCase();
       if (s === 'delayed') return true;
-      if (t.actual_end && t.planned_end) {
-        return new Date(t.actual_end).getTime() > new Date(t.planned_end).getTime() + 15 * 60 * 1000;
+      if (t?.actual_end && t?.planned_end) {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        return !isNaN(actual) && !isNaN(planned) && actual > planned + 15 * 60 * 1000;
       }
       return false;
     });
@@ -303,15 +321,21 @@ export default function DriverDetailsPage() {
 
     let totalDelayMins = 0;
     delayedTrips.forEach((t) => {
-      if (t.actual_end && t.planned_end) {
-        const diff = (new Date(t.actual_end).getTime() - new Date(t.planned_end).getTime()) / (1000 * 60);
-        if (diff > 0) totalDelayMins += diff;
+      if (t?.actual_end && t?.planned_end) {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        if (!isNaN(actual) && !isNaN(planned)) {
+          const diff = (actual - planned) / (1000 * 60);
+          if (diff > 0 && !isNaN(diff)) totalDelayMins += diff;
+        }
       }
     });
     const avgDelayMins = delayedCount > 0 ? Math.round(totalDelayMins / delayedCount) : 0;
 
-    const delayPct = completedCount > 0 ? (100 - parseFloat(onTimePct)).toFixed(1) : '0.0';
-    const numericOnTime = parseFloat(onTimePct);
+    const numericOnTime = parseFloat(onTimePct) || 0;
+    const rawDelayPct = completedCount > 0 ? Math.max(0, 100 - numericOnTime) : 0;
+    const delayPct = isNaN(rawDelayPct) ? '0.0' : rawDelayPct.toFixed(1);
+
     const performanceBadge = totalCount === 0 ? 'No Data' : (numericOnTime >= 90 ? 'Above Target' : (numericOnTime >= 75 ? 'Target Met' : 'Needs Review'));
 
     return {
@@ -328,11 +352,11 @@ export default function DriverDetailsPage() {
       delayPct,
       avgDelayMins,
       performanceBadge,
-      totalRevenue,
-      totalDistance,
-      avgDistance,
-      weeklyLoggedHours: Math.round(weeklyLoggedHours * 10) / 10,
-      avgDailyDuty,
+      totalRevenue: isNaN(totalRevenue) ? 0 : totalRevenue,
+      totalDistance: isNaN(totalDistance) ? 0 : totalDistance,
+      avgDistance: isNaN(avgDistance) ? 0 : avgDistance,
+      weeklyLoggedHours: isNaN(weeklyLoggedHours) ? 0 : Math.round(weeklyLoggedHours * 10) / 10,
+      avgDailyDuty: isNaN(avgDailyDuty) ? 0 : avgDailyDuty,
       workTimeStackedData,
     };
   }, [driver?.trips]);
