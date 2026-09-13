@@ -123,6 +123,17 @@ export interface Trip {
   carrier_name?: string;
   is_post_trip_settled?: boolean;
   is_third_party?: boolean;
+  subcontract?: {
+    id?: string;
+    tripId?: string;
+    providerId?: string | null;
+    provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+    driverName?: string | null;
+    driverPhone?: string | null;
+    vehiclePlate?: string | null;
+    vehicleType?: string | null;
+    cost?: number | null;
+  } | null;
   thirdPartyProviderId?: string | null;
   third_party_driver_name?: string | null;
   third_party_driver_phone?: string | null;

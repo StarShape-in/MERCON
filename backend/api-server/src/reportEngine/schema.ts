@@ -106,7 +106,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { toModule: 'drivers', via: 'Driver', relationField: 'driver', cardinality: 'toOne' },
       { toModule: 'vehicles', via: 'Vehicle', relationField: 'vehicle', cardinality: 'toOne' },
       { toModule: 'customers', via: 'Customer', relationField: 'customer', cardinality: 'toOne' },
-      { toModule: 'thirdParty', via: 'Third-Party Provider', relationField: 'thirdPartyProvider', cardinality: 'toOne' },
+      { toModule: 'thirdParty', via: 'Third-Party Provider', relationField: 'subcontract', cardinality: 'toOne' },
       { toModule: 'invoices', via: 'Trip Invoices', relationField: 'invoices', cardinality: 'toMany' },
     ],
   },
@@ -134,7 +134,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'thirdParty.contact_person', label: 'Contact Person', type: 'string' },
       { key: 'thirdParty.rating', label: 'Rating', type: 'number', aggregatable: true },
     ],
-    joins: [{ toModule: 'trips', via: 'Provider Trips', relationField: 'trips', cardinality: 'toMany' }],
+    joins: [{ toModule: 'trips', via: 'Provider Subcontracts', relationField: 'subcontracts', cardinality: 'toMany' }],
   },
   {
     key: 'maintenance',

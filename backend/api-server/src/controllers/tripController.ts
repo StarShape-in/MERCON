@@ -517,7 +517,7 @@ export const getTripById = async (req: Request, res: Response) => {
     const balanceDue = totalAmount - paidAmount;
 
     const baseDriverPayout = trip.is_third_party
-      ? Number(trip.third_party_cost ?? 0)
+      ? Number((trip as any).subcontract?.cost ?? (trip as any).third_party_cost ?? 0)
       : Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
     const totalDriverPayout = baseDriverPayout;
     const balanceMargin = totalAmount - totalDriverPayout;
@@ -1956,8 +1956,9 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       if (inputCharges !== undefined) {
         nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
       } else if (trip.is_third_party) {
-        if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
-          nextTripCharges = Number(trip.third_party_cost);
+        const subCost = (trip as any).subcontract?.cost ?? (trip as any).third_party_cost;
+        if (subCost !== null && subCost !== undefined) {
+          nextTripCharges = Number(subCost);
         }
       }
 

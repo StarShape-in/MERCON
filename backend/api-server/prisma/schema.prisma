@@ -398,14 +398,8 @@ model Trip {
   is_post_trip_settled    Boolean @default(false)
 
   // Third-Party / Rental Carrier Details
-  is_third_party            Boolean             @default(false)
-  thirdPartyProviderId      String?             @db.Uuid
-  thirdPartyProvider        ThirdPartyProvider? @relation(fields: [thirdPartyProviderId], references: [id])
-  third_party_driver_name   String?
-  third_party_driver_phone  String?
-  third_party_vehicle_plate String?
-  third_party_vehicle_type  String?
-  third_party_cost          Decimal?            @default(0.0) @db.Decimal(12, 2)
+  is_third_party Boolean          @default(false)
+  subcontract    TripSubcontract?
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -423,7 +417,7 @@ model Trip {
   locations TripLocation[]
 
   @@index([vehicleId, driverId])
-  @@index([thirdPartyProviderId])
+  @@index([is_third_party])
   @@index([status])
   @@index([customerId])
   @@index([createdAt])
@@ -485,7 +479,7 @@ model ThirdPartyProvider {
   rating         Float   @default(5.0)
   notes          String? @db.Text
 
-  trips Trip[]
+  subcontracts TripSubcontract[]
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -497,6 +491,23 @@ model ThirdPartyProvider {
   version    Int       @default(1)
 
   @@index([deletedAt])
+}
+
+model TripSubcontract {
+  id           String              @id @default(uuid()) @db.Uuid
+  tripId       String              @unique @db.Uuid
+  trip         Trip                @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  providerId   String?             @db.Uuid
+  provider     ThirdPartyProvider? @relation(fields: [providerId], references: [id])
+  driverName   String?
+  driverPhone  String?
+  vehiclePlate String?
+  vehicleType  String?
+  cost         Decimal?            @default(0.0) @db.Decimal(12, 2)
+  createdAt    DateTime            @default(now()) @db.Timestamptz
+  updatedAt    DateTime            @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([providerId])
 }
 
 model TripStop {

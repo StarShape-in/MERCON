@@ -354,6 +354,21 @@ export interface TripFinancialsDto {
 
 export interface TripCommercialSnapshot extends TripFinancialsDto {}
 
+// ─── Subcontract / Rental Carrier DTO ──────────────────────────────
+export interface TripSubcontractDto {
+  id?: string;
+  tripId?: string;
+  providerId?: string | null;
+  provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  vehiclePlate?: string | null;
+  vehicleType?: string | null;
+  cost?: number | string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ─── Quotation V1 DTOs ──────────────────────────────────────────
 export interface QuotationStop {
   id: string;
