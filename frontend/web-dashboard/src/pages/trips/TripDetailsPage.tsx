@@ -622,6 +622,8 @@ export default function TripDetailsPage() {
               paidAmount={paidAmount}
               balanceDue={balanceDue}
               tripType={tripType}
+              quotationName={trip.quotation?.name || trip.rateCard?.name || tAny.quotation_name || null}
+              quotationId={trip.quotation?.id || trip.rateCard?.id || trip.quotationId || null}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

@@ -18,6 +18,8 @@ export interface ModernFinancialsCardProps {
   paidAmount?: number;
   balanceDue?: number;
   tripType?: string;
+  quotationName?: string | null;
+  quotationId?: string | null;
   isMonthlyContract?: boolean;
   monthlyContractRate?: number;
   onAddCharge: () => void;
@@ -38,6 +40,8 @@ export default function ModernFinancialsCard({
   paidAmount = 0,
   balanceDue,
   tripType,
+  quotationName,
+  quotationId,
   onAddCharge,
   onViewBreakdown,
 }: ModernFinancialsCardProps) {
@@ -62,7 +66,7 @@ export default function ModernFinancialsCard({
     <div className="w-full h-full bg-white dark:bg-slate-900 rounded-2xl border border-[#E5E7EB] dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4.5 py-4 flex flex-col justify-between gap-3 text-[#3E3C3D] dark:text-slate-100">
       {/* Top Section */}
       <div className="flex flex-col gap-2.5">
-        {/* HEADER: $ FINANCIAL SUMMARY */}
+        {/* HEADER: $ FINANCIAL SUMMARY & QUOTATION NAME */}
         <div className="pb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <DollarSign className="w-4 h-4 text-[#FA634E] shrink-0" />
@@ -70,14 +74,14 @@ export default function ModernFinancialsCard({
               FINANCIAL SUMMARY
             </h4>
           </div>
-          {tripType && (
-            <TaxonomyBadge
-              category="LINE_TYPE"
-              value={tripType}
-              fallbackText="Single Trip"
-              size="sm"
-              className="shrink-0"
-            />
+          {quotationName && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-[150px] truncate shrink-0"
+              title={`Applied Quotation: ${quotationName}`}
+            >
+              <FileText size={10} className="shrink-0 text-slate-400" />
+              <span className="truncate">{quotationName}</span>
+            </span>
           )}
         </div>
 
@@ -149,25 +153,16 @@ export default function ModernFinancialsCard({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2 pt-2 mt-auto border-t border-slate-100 dark:border-slate-800">
+      {/* Action Buttons — ONLY Add Charge Needed */}
+      <div className="pt-2 mt-auto border-t border-slate-100 dark:border-slate-800">
         <Button
           variant="outline"
           size="sm"
           onClick={onAddCharge}
-          className="h-8 rounded-xl border-orange-200 text-[#FA634E] hover:bg-orange-50 dark:border-orange-900/60 dark:text-orange-400 dark:hover:bg-orange-950/40 text-[11px] font-bold gap-1 shadow-none cursor-pointer"
+          className="w-full h-8 rounded-xl border-orange-200 text-[#FA634E] hover:bg-orange-50 dark:border-orange-900/60 dark:text-orange-400 dark:hover:bg-orange-950/40 text-[11px] font-bold gap-1 shadow-none cursor-pointer"
         >
           <Plus size={13} />
-          {additionalChargesCount > 0 ? `Charges (${additionalChargesCount})` : 'Add Charge'}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onViewBreakdown}
-          className="h-8 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 text-[11px] font-bold gap-1 shadow-none cursor-pointer"
-        >
-          <FileText size={12} className="text-[#6B7280] dark:text-slate-400" />
-          Breakdown
+          {additionalChargesCount > 0 ? `Add Charge (${additionalChargesCount})` : 'Add Charge'}
         </Button>
       </div>
     </div>
