@@ -2173,7 +2173,6 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         rate_category: true,
         billing_type: true,
         billing_amount: true,
-        driver_charge: true,
         driver_payout: true,
         quotationId: true,
         financials: {
