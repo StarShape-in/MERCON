@@ -565,11 +565,42 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
 
     const customerCache = new Map<string, any>();
     const findCustomer = async (name: string) => {
-      const key = name.toLowerCase();
+      const key = name.toLowerCase().trim();
       if (customerCache.has(key)) return customerCache.get(key);
-      const customer = await prisma.customer.findFirst({
-        where: { deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+
+      let customer = await prisma.customer.findFirst({
+        where: { deletedAt: null, name: { equals: name.trim(), mode: 'insensitive' } },
       });
+      if (!customer) {
+        customer = await prisma.customer.findFirst({
+          where: { deletedAt: null, name: { startsWith: name.trim(), mode: 'insensitive' } },
+        });
+      }
+      if (!customer) {
+        customer = await prisma.customer.findFirst({
+          where: { deletedAt: null, name: { contains: name.trim(), mode: 'insensitive' } },
+        });
+      }
+      if (!customer) {
+        const allCustomers = await prisma.customer.findMany({ where: { deletedAt: null } });
+        const cleanInput = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        customer = allCustomers.find(c => {
+          const cleanName = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanName.includes(cleanInput) || cleanInput.includes(cleanName);
+        }) || null;
+      }
+      if (!customer) {
+        // Auto-create missing customer on the fly
+        customer = await prisma.customer.create({
+          data: {
+            name: name.trim(),
+            contact_phone: '+966000000000',
+            isActive: true,
+            created_by: userId,
+          },
+        });
+      }
+
       customerCache.set(key, customer);
       return customer;
     };
@@ -643,8 +674,6 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             operationType.toLowerCase().includes('10') ? '10_HRS' :
             operationType.toLowerCase().includes('12') ? '12_HRS' : operationType || 'SINGLE_TRIP';
 
-          const billingTypeMapped = billingType.toLowerCase().includes('monthly') ? 'MONTHLY' : (billingType.toLowerCase().includes('extra') ? 'EXTRA' : (billingType || 'EXTRA'));
-
           const pricingBasisMapped = pricingBasisRaw || (lineTypeMapped === '10_HRS' || lineTypeMapped === '12_HRS' ? 'Per Duty' : 'Per Trip');
 
           const name = String(row.quotation_name || row.name || '').trim() || `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`;
@@ -658,7 +687,6 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             is_active: true,
             line_type: lineTypeMapped,
             operation_type: operationType || lineTypeMapped,
-            billing_type: billingTypeMapped,
             pricing_basis: pricingBasisMapped,
             vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
