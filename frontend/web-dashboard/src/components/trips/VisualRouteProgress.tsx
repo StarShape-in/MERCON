@@ -72,6 +72,10 @@ export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressPr
     return Math.min(96, Math.max(2, completedRatio));
   }, [completedCount, totalStops]);
 
+  const originCity = normalizedStops[0]?.city || 'Origin';
+  const destCity = normalizedStops[normalizedStops.length - 1]?.city || 'Destination';
+  const routeTitle = `${originCity} → ${destCity} Corridor`;
+
   return (
     <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-6 sm:py-4 gap-4">
       {/* ── 1. TOP HEADER: ROUTE SUMMARY & PROGRESS STATUS ── */}
@@ -82,7 +86,7 @@ export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressPr
           </div>
           <div>
             <h3 className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 tracking-tight leading-none">
-              Highway Transit Corridor
+              {routeTitle}
             </h3>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
               {totalStops} Milestones • Direct Commercial Transit

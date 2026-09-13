@@ -591,9 +591,23 @@ export default function TripDetailsPage() {
           />
         </div>
 
-        {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
+        {/* ── 4. BOTTOM ROW: TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}
         <div className="grid grid-cols-12 gap-3 items-stretch">
-          {/* Financials Card (~25% / 3 Cols) */}
+          {/* Left Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
+          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
+            <TripPhotoEvidence
+              documents={documents}
+              stops={trip.stops}
+              trip={trip}
+              onPreview={(img) => setPreviewImage(img)}
+              onUpload={() => {
+                setUploadDocType(undefined);
+                setIsUploadModalOpen(true);
+              }}
+            />
+          </div>
+
+          {/* Right Column: Financials Card (~25% / 3 Cols) */}
           <div className="col-span-12 lg:col-span-3 flex flex-col h-full">
             <ModernFinancialsCard
               customerBilling={customerBilling}
@@ -610,20 +624,6 @@ export default function TripDetailsPage() {
               tripType={tripType}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
-            />
-          </div>
-
-          {/* Right Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
-          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
-            <TripPhotoEvidence
-              documents={documents}
-              stops={trip.stops}
-              trip={trip}
-              onPreview={(img) => setPreviewImage(img)}
-              onUpload={() => {
-                setUploadDocType(undefined);
-                setIsUploadModalOpen(true);
-              }}
             />
           </div>
         </div>
