@@ -419,6 +419,26 @@ const HomeScreen = () => {
                 </View>
 
                 <View style={styles.headerRightGroup}>
+                  {(() => {
+                    const stops = displayTrip.stops || [];
+                    const stopsCount = stops.length;
+                    if (stopsCount > 2) {
+                      const firstLoc = (stops[0]?.location_name || '').toLowerCase().trim();
+                      const lastLoc = (stops[stopsCount - 1]?.location_name || '').toLowerCase().trim();
+                      const isRound = firstLoc && lastLoc && firstLoc === lastLoc;
+                      const activeIdx = stops.findIndex((s) => !s.actual_departure);
+                      const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+                      const badgeStr = isRound ? `Leg ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`;
+                      return (
+                        <View style={[styles.inProgressBadge, { backgroundColor: '#FEF3C7' }]}>
+                          <Text style={[styles.inProgressText, { color: '#B45309', fontWeight: '800' }]} numberOfLines={1}>
+                            {badgeStr}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
                   <View style={styles.inProgressBadge}>
                     <View style={styles.coralDot} />
                     <Text style={styles.inProgressText} numberOfLines={1} ellipsizeMode="tail">

@@ -482,6 +482,7 @@ export const getTripById = async (req: Request, res: Response) => {
         driver: true,
         vehicle: true,
         customer: true,
+        quotation: { include: { customer: true, stops: { include: { location: true } } } },
         subcontract: { include: { provider: true } },
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },

@@ -1629,8 +1629,27 @@ export default function TripListPage() {
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
+        const stops = row.stops || [];
+        const stopsCount = stops.length;
+        
+        let legBadge: string | null = null;
+        if (stopsCount > 2) {
+          const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+          const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+          const isRound = firstLoc && lastLoc && firstLoc === lastLoc;
+          
+          const activeIdx = stops.findIndex((s) => !s.actual_departure);
+          const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+          const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
+          const stopName = (currentStop?.location_name || currentStop?.location?.name || '—').replace(/🔁\s*/g, '').trim();
+
+          legBadge = isRound
+            ? `Leg ${currentStopNum}/${stopsCount} (Return) · ${stopName}`
+            : `Stop ${currentStopNum}/${stopsCount} · ${stopName}`;
+        }
+
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}${legBadge ? '\n' + legBadge : ''}`}>
             {/* Pickup (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1665,6 +1684,16 @@ export default function TripListPage() {
                 })()}
               </span>
             </div>
+
+            {/* Active Leg / Multi-stop Progress Pill */}
+            {legBadge && (
+              <div className="pt-0.5">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-tight bg-amber-50 text-amber-800 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/80 truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+                  <span className="truncate">{legBadge}</span>
+                </span>
+              </div>
+            )}
           </div>
         );
       },

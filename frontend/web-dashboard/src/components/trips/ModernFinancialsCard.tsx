@@ -1,7 +1,6 @@
 import React from 'react';
 import { DollarSign, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 import { cn } from '@/lib/utils';
 
 export interface ModernFinancialsCardProps {
@@ -39,11 +38,9 @@ export default function ModernFinancialsCard({
   totalAmount,
   paidAmount = 0,
   balanceDue,
-  tripType,
   quotationName,
   quotationId,
   onAddCharge,
-  onViewBreakdown,
 }: ModernFinancialsCardProps) {
   // Resolve customer billing amount
   const billingVal = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
@@ -52,7 +49,6 @@ export default function ModernFinancialsCard({
 
   // Resolve total amount for this trip (Customer Billing + Extras)
   const resolvedTotal = totalAmount !== undefined ? totalAmount : (billingVal + addChargesVal);
-  const calculatedBalance = balanceDue !== undefined ? balanceDue : Math.max(0, resolvedTotal - paidAmount);
 
   // Margin math matching trip creation
   const resolvedMargin = balanceMargin !== undefined ? balanceMargin : (resolvedTotal - driverPayoutVal);
@@ -74,15 +70,13 @@ export default function ModernFinancialsCard({
               FINANCIAL SUMMARY
             </h4>
           </div>
-          {quotationName && (
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-[150px] truncate shrink-0"
-              title={`Applied Quotation: ${quotationName}`}
-            >
-              <FileText size={10} className="shrink-0 text-slate-400" />
-              <span className="truncate">{quotationName}</span>
-            </span>
-          )}
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 max-w-[160px] truncate shrink-0 border border-slate-200/80 dark:border-slate-700"
+            title={quotationName ? `Applied Quotation: ${quotationName}` : 'No Quotation (Ad-hoc / Manual Rate)'}
+          >
+            <FileText size={10} className="shrink-0 text-slate-500" />
+            <span className="truncate">{quotationName || 'Ad-hoc Rate'}</span>
+          </span>
         </div>
 
         {/* METRIC ROWS — MATCHING TRIP CREATION PAGE */}
