@@ -103,8 +103,6 @@ export const resolveLocation = async (
   const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
 
   if (found) {
-    const needsCoords = (found.lat == null || found.lng == null) && input.lat != null && input.lng != null;
-    const needsAddress = !found.address && !!input.address;
     const isSoftDeleted = found.deletedAt !== null || !found.is_active;
 
     let canUpdateCode = false;
@@ -123,10 +121,11 @@ export const resolveLocation = async (
 
     const updateData: Prisma.LocationUpdateInput = {
       ...(isSoftDeleted ? { deletedAt: null, is_active: true, deleted_by: null } : {}),
-      ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
-      ...(needsAddress ? { address: input.address } : {}),
-      ...(input.city && !found.city ? { city: input.city } : {}),
-      ...(input.postalCode && !found.postalCode ? { postalCode: input.postalCode } : {}),
+      ...(input.lat != null ? { lat: input.lat } : {}),
+      ...(input.lng != null ? { lng: input.lng } : {}),
+      ...(input.address ? { address: input.address } : {}),
+      ...(input.city ? { city: input.city } : {}),
+      ...(input.postalCode ? { postalCode: input.postalCode } : {}),
       ...(canUpdateCode && inputCode ? { code: inputCode } : {}),
       coordinate_precision: precision !== CoordinatePrecision.UNKNOWN ? precision : found.coordinate_precision,
       updated_by: validUserId,
