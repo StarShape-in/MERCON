@@ -49,7 +49,7 @@ export function toDriverDetail(raw: RawDriverDetail): DriverDetail {
     licenseNumber: raw.license_number,
     licenseExpiry: raw.license_expiry,
     licenseDaysLeft: daysUntil(raw.license_expiry) ?? 0,
-    aiRiskScore: typeof raw.ai_risk_score === 'number' ? raw.ai_risk_score : null,
+    aiRiskScore: typeof raw?.ai_risk_score === 'number' ? raw.ai_risk_score : null,
     isActive: raw.isActive,
     createdAt: raw.createdAt,
   };

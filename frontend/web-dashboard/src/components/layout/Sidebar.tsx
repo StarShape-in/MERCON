@@ -82,7 +82,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'FINANCE',
       items: [
         { icon: Calculator, label: 'Quotations', path: '/quotations' },
-        { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials' },
       ],

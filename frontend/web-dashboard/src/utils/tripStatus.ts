@@ -69,7 +69,6 @@ export function normalizeTripStatus(rawStatus?: string | null): OfficialTripStat
 
   switch (clean) {
     case 'draft':
-      return 'Draft';
     case 'scheduled':
     case 'dispatched': // Legacy presentation fallback
       return 'Scheduled';

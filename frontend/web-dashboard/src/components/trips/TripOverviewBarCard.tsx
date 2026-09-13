@@ -135,7 +135,8 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
     ? trip.third_party_vehicle_plate || 'Unassigned'
     : trip.vehicle?.plate_number || 'Unassigned';
 
-  const rawTon = trip.quotation_vehicle_class
+  const rawTon = trip.financials?.quotation_vehicle_class
+    || trip.quotation_vehicle_class
     || (trip.vehicle?.capacity_kg ? `${Math.round(trip.vehicle.capacity_kg / 1000)} TON` : null)
     || trip.rateCard?.vehicle_type
     || trip.vehicle_type
@@ -265,7 +266,7 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
 
       {/* ── COL 4: DELAY ALERTS — 25% ── */}
       <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
-        {/* Operations Assistant Character for Delay Alert */}
+        {/* Status Icon Container */}
         <div
           onClick={() => {
             if (hasAlerts) {
@@ -273,31 +274,29 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
               setIsDelayModalOpen(true);
             }
           }}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-2xs relative transition-colors ${
+          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs relative transition-colors ${
             hasAlerts
-              ? 'bg-amber-50 border border-amber-200/80 cursor-pointer group hover:border-amber-400'
-              : 'bg-emerald-50/70 border border-emerald-200/70'
+              ? 'bg-rose-50 border border-rose-200/80 text-rose-600 cursor-pointer group hover:border-rose-400'
+              : 'bg-emerald-50/80 border border-emerald-200/80 text-emerald-600'
           }`}
           title={hasAlerts ? 'Click to view delay alert & footage' : 'All stops on schedule'}
         >
-          <img
-            src="/assistant/was there any labor charge for this trip.png"
-            alt="Delay Alert Assistant"
-            className={`w-full h-full object-contain object-bottom transition-transform ${
-              hasAlerts ? 'group-hover:scale-110' : 'opacity-85'
-            }`}
-          />
+          {hasAlerts ? (
+            <AlertTriangle size={18} className="stroke-[2.2]" />
+          ) : (
+            <CheckCircle2 size={18} className="stroke-[2.2]" />
+          )}
           {hasAlerts && (
             <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
           )}
         </div>
 
-        <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
+        <div className="min-w-0 flex-1 space-y-0.5">
           {/* Alerts Header */}
           <div className="flex items-center justify-between pb-0.5 border-b border-[#F3F4F6]">
             <div className="flex items-center gap-1 min-w-0">
-              <span className="font-black text-[11px] text-[#111827] tracking-tight truncate">
-                Delay Alerts
+              <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider truncate">
+                DELAY ALERTS
               </span>
               {hasAlerts ? (
                 <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center leading-none shrink-0">
@@ -325,17 +324,17 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
             )}
           </div>
 
-          {/* Alerts List */}
-          <div className="space-y-0.5 pt-0.5">
+          {/* Alerts Content */}
+          <div className="pt-0.5">
             {hasAlerts ? (
-              alerts.slice(0, 2).map((alert) => (
+              alerts.slice(0, 1).map((alert) => (
                 <div
                   key={alert.id}
                   onClick={() => {
                     setSelectedAlert(alert);
                     setIsDelayModalOpen(true);
                   }}
-                  className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.2 transition-colors group"
+                  className="flex items-center justify-between text-[10px] leading-tight cursor-pointer hover:bg-slate-50 rounded px-0.5 py-0.5 transition-colors group"
                   title="Click to view alert details"
                 >
                   <div className="flex items-center gap-1 min-w-0">
@@ -344,14 +343,9 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
                         alert.severe ? 'bg-rose-500' : 'bg-amber-500'
                       }`}
                     />
-                    <span className="font-bold text-[#374151] truncate max-w-[95px] group-hover:text-blue-600">
+                    <span className="font-bold text-[#111827] truncate group-hover:text-blue-600">
                       {alert.label}
                     </span>
-                    {alert.videoUrl && (
-                      <span className="px-1 py-0.2 rounded text-[7.5px] font-black bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
-                        VIDEO
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0 font-mono text-[9.5px]">
@@ -362,14 +356,12 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
                     >
                       {alert.delay}
                     </span>
-                    {alert.time && <span className="text-[#9CA3AF] text-[9px] font-bold">{alert.time}</span>}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="flex items-center gap-1.5 py-1 text-emerald-600 text-[11px] font-bold">
-                <CheckCircle2 size={12} className="stroke-[2.5] text-emerald-500 shrink-0" />
-                <span className="truncate">All stops on schedule</span>
+              <div className="flex items-center gap-1.5 py-0.5 text-emerald-700 text-[12px] font-extrabold truncate">
+                <span>All stops on schedule</span>
               </div>
             )}
           </div>

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
-import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus, DriverTripRole, AssignmentEntityType } from '@prisma/client';
+import { Prisma, TripStatus, StopType, DriverStatus, AssetStatus, AssignmentEntityType } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane, findPricingRuleForLane, findQuotationForLane } from '../services/rateLookup';
@@ -24,9 +24,9 @@ const TRIP_SEARCH_FIELDS = [
   'driver.ref_id',
   'vehicle.plate_number',
   'vehicle.ref_id',
-  'thirdPartyProvider.name',
-  'third_party_driver_name',
-  'third_party_vehicle_plate',
+  'subcontract.provider.name',
+  'subcontract.driverName',
+  'subcontract.vehiclePlate',
   'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
@@ -360,25 +360,21 @@ export const getTrips = async (req: Request, res: Response) => {
               rate: true,
             }
           },
-          thirdPartyProvider: {
+          subcontract: {
             select: {
               id: true,
-              name: true,
-            }
-          },
-          tripDrivers: {
-            where: { removedAt: null },
-            include: {
-              driver: {
+              driverName: true,
+              driverPhone: true,
+              vehiclePlate: true,
+              vehicleType: true,
+              cost: true,
+              provider: {
                 select: {
                   id: true,
-                  ref_id: true,
-                  first_name: true,
-                  last_name: true,
-                  phone_primary: true,
-                },
-              },
-            },
+                  name: true,
+                }
+              }
+            }
           },
           stops: {
             orderBy: { stop_sequence: 'asc' },
@@ -482,28 +478,12 @@ export const getTripById = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({
       where: whereClause,
       include: {
+        financials: true,
         driver: true,
         vehicle: true,
         customer: true,
-        invoices: true,
-        quotation: {
-          include: {
-            customer: { select: { id: true, name: true } },
-            stops: {
-              include: {
-                location: { select: { id: true, name: true, lat: true, lng: true } },
-              },
-              orderBy: { sequence: 'asc' },
-            },
-          }
-        },
-        thirdPartyProvider: true,
-        tripDrivers: {
-          include: {
-            driver: true,
-          },
-          orderBy: { assignedAt: 'asc' },
-        },
+        quotation: { include: { customer: true, stops: { include: { location: true } } } },
+        subcontract: { include: { provider: true } },
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },
         },
@@ -532,20 +512,25 @@ export const getTripById = async (req: Request, res: Response) => {
 
     let resolvedLocation = null;
     if (trip.vehicle) {
-      resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
+      try {
+        resolvedLocation = await resolveVehicleLocation(trip.vehicle, prisma);
+      } catch (e) {
+        logger.warn({ err: e }, 'Failed to resolve vehicle location in getTripById');
+      }
     }
 
     const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const perTripBilling = Number(trip.billing_amount ?? trip.applied_rate ?? (trip as any).quotation?.rate ?? 0);
+    const perTripBilling = (trip as any).financials?.applied_rate != null
+      ? Number((trip as any).financials.applied_rate)
+      : (trip.billing_amount != null ? Number(trip.billing_amount) : Number((trip as any).quotation?.rate ?? 0));
     const totalAmount = perTripBilling + chargesTotal;
     const paidAmount = Number((trip as any).paid_amount || 0);
     const balanceDue = totalAmount - paidAmount;
 
     const baseDriverPayout = trip.is_third_party
-      ? Number(trip.third_party_cost ?? 0)
-      : Number(trip.driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
-    const extraDriverPayout = Number(trip.extra_driver_payment ?? 0);
-    const totalDriverPayout = baseDriverPayout + extraDriverPayout;
+      ? Number((trip as any).subcontract?.cost ?? (trip as any).third_party_cost ?? 0)
+      : Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
+    const totalDriverPayout = baseDriverPayout;
     const balanceMargin = totalAmount - totalDriverPayout;
     const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
 
@@ -556,6 +541,7 @@ export const getTripById = async (req: Request, res: Response) => {
       total_amount: totalAmount,
       charges_total: chargesTotal,
       per_trip_billing: perTripBilling,
+      driver_payout: totalDriverPayout,
       driver_charge: totalDriverPayout,
       balance_margin: balanceMargin,
       margin_percent: marginPercent,
@@ -569,9 +555,18 @@ export const getTripById = async (req: Request, res: Response) => {
     };
 
     res.json({ success: true, data: tripData });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Failed to fetch trip by id:', error);
     logger.error({ err: error }, 'Failed to fetch trip by id');
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trip' } });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error?.message || 'Failed to fetch trip',
+        stack: error?.stack,
+        details: String(error)
+      }
+    });
   }
 };
 
@@ -839,32 +834,37 @@ export const createTrip = async (req: Request, res: Response) => {
               status: targetStatus,
               carrier_name: carrierName,
               ...(createdBy ? { created_by: createdBy } : {}),
+              financials: {
+                create: {
+                  quotationId: appliedQuotation ? appliedQuotation.id : null,
+                  quotation_line_type: appliedQuotation ? (appliedQuotation.line_type || null) : (finalRateCategory || null),
+                  quotation_billing_type: appliedQuotation ? (appliedQuotation.billing_type || null) : (finalBillingType || null),
+                  quotation_pricing_basis: appliedQuotation ? (appliedQuotation.pricing_basis || null) : null,
+                  applied_rate: appliedQuotation ? (appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null) : (defaultBilling != null ? defaultBilling : null),
+                  quotation_vehicle_class: appliedQuotation ? (appliedQuotation.vehicle_class || null) : null,
+                  quotation_source_vehicle_label: appliedQuotation ? (appliedQuotation.source_vehicle_label || null) : (finalVehicleType || null),
+                },
+              },
               ...(appliedQuotation ? {
                 quotationId: appliedQuotation.id,
-                quotation_line_type: appliedQuotation.line_type || null,
-                quotation_billing_type: appliedQuotation.billing_type || null,
-                quotation_pricing_basis: appliedQuotation.pricing_basis || null,
-                applied_rate: appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null,
-                quotation_vehicle_class: appliedQuotation.vehicle_class || null,
-                quotation_source_vehicle_label: appliedQuotation.source_vehicle_label || null,
-              } : {
-                ...(finalRateCategory ? { quotation_line_type: finalRateCategory } : {}),
-                ...(finalBillingType ? { quotation_billing_type: finalBillingType } : {}),
-                ...(finalVehicleType ? { quotation_source_vehicle_label: finalVehicleType } : {}),
-              }),
+              } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
-              driver_charge: finalTripCharges,
+              driver_payout: finalTripCharges,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
-                thirdPartyProviderId: third_party_provider_id || null,
-                third_party_driver_name: third_party_driver_name || null,
-                third_party_driver_phone: third_party_driver_phone || null,
-                third_party_vehicle_plate: third_party_vehicle_plate || null,
-                third_party_vehicle_type: third_party_vehicle_type || null,
-                third_party_cost: third_party_cost ? Number(third_party_cost) : 0,
+                subcontract: {
+                  create: {
+                    providerId: third_party_provider_id || null,
+                    driverName: third_party_driver_name || null,
+                    driverPhone: third_party_driver_phone || null,
+                    vehiclePlate: third_party_vehicle_plate || null,
+                    vehicleType: third_party_vehicle_type || null,
+                    cost: third_party_cost ? Number(third_party_cost) : 0,
+                  }
+                }
               } : {}),
               stops: {
                 create: resolvedStops.map((stop: any, index: number) => {
@@ -898,7 +898,7 @@ export const createTrip = async (req: Request, res: Response) => {
             },
             include: {
               stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
-              thirdPartyProvider: true,
+              subcontract: { include: { provider: true } },
               customer: true,
               driver: true,
               vehicle: true,
@@ -1197,25 +1197,37 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(vehicleId ? { vehicleId } : {}),
               is_third_party: Boolean(row.is_third_party),
               ...(row.is_third_party ? {
-                thirdPartyProviderId: thirdPartyProviderId || null,
-                third_party_driver_name: row.third_party_driver_name?.trim() || null,
-                third_party_driver_phone: row.third_party_driver_phone?.trim() || null,
-                third_party_vehicle_plate: row.third_party_vehicle_plate?.trim() || null,
-                third_party_vehicle_type: row.third_party_vehicle_type || row.vehicle_type || null,
-                third_party_cost: thirdPartyCostVal || 0,
+                subcontract: {
+                  create: {
+                    providerId: thirdPartyProviderId || null,
+                    driverName: row.third_party_driver_name?.trim() || null,
+                    driverPhone: row.third_party_driver_phone?.trim() || null,
+                    vehiclePlate: row.third_party_vehicle_plate?.trim() || null,
+                    vehicleType: row.third_party_vehicle_type || row.vehicle_type || null,
+                    cost: thirdPartyCostVal || 0,
+                  }
+                }
               } : {}),
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
-              ...(row.rate_category ? { rate_category: row.rate_category, quotation_line_type: row.rate_category } : {}),
-              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type, quotation_source_vehicle_label: row.vehicle_type } : {}),
-              ...(row.billing_type ? { billing_type: row.billing_type, quotation_billing_type: row.billing_type } : {}),
+              financials: {
+                create: {
+                  quotation_line_type: row.rate_category || null,
+                  quotation_source_vehicle_label: row.vehicle_type || null,
+                  quotation_billing_type: row.billing_type || null,
+                  applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount)) ? Number(row.billing_amount) : null,
+                }
+              },
+              ...(row.rate_category ? { rate_category: row.rate_category } : {}),
+              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
+              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
-              ...(((row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_charge ?? (row as any).trip_charges))
-                ? { driver_charge: Number((row as any).driver_charge ?? (row as any).trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { driver_charge: thirdPartyCostVal } : {})),
+              ...(((row as any).driver_payout !== undefined || (row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges))
+                ? { driver_payout: Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges) }
+                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : {})),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {
@@ -1362,37 +1374,6 @@ export const updateTripStatus = async (req: Request, res: Response) => {
   }
 };
 
-// Driver Cash Payment Workflow endpoint
-export const approveDriverPayment = async (req: Request, res: Response) => {
-  try {
-    const { amount, reason } = req.body;
-    const rawId = req.params.id as string;
-    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
-    if (!tripId) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
-    }
-
-    if (!amount || !reason) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Amount and reason required' } });
-    }
-
-    const trip = await prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        extra_driver_payment: parseOptionalFloat(amount) ?? 0,
-        payment_reason: reason,
-        payment_status: PaymentStatus.Approved,
-        payment_approved_by: (req as any).user?.id,
-        payment_date: new Date(),
-        updated_by: (req as any).user?.id
-      }
-    });
-
-    res.json({ success: true, data: trip });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to approve payment' } });
-  }
-};
 
 // ==========================================
 // PHASE 1: DISPATCH & ASSIGNMENT
@@ -1519,30 +1500,6 @@ export const replaceDriver = async (req: Request, res: Response) => {
       }
 
       const now = new Date();
-
-      // 1. Mark existing PRIMARY TripDriver as removedAt
-      await tx.tripDriver.updateMany({
-        where: {
-          tripId,
-          driverId: oldDriverId,
-          role: DriverTripRole.PRIMARY,
-          removedAt: null,
-        },
-        data: {
-          removedAt: now,
-        },
-      });
-
-      // 2. Create new PRIMARY TripDriver record
-      await tx.tripDriver.create({
-        data: {
-          tripId,
-          driverId: new_driver_id,
-          role: DriverTripRole.PRIMARY,
-          assignedAt: now,
-          driver_charge: trip.driver_charge,
-        },
-      });
 
       // 3. Log TripAssignmentEvent audit record
       const changeReason = reason || 'Driver replaced by dispatcher';
@@ -1827,36 +1784,84 @@ const IN_FLIGHT_STATUSES: TripStatus[] = [
   TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed,
 ];
 
+export function isFinanciallyProtectedTrip(trip: {
+  status: string;
+  is_post_trip_settled?: boolean | null;
+  paid_amount?: any;
+}): boolean {
+  const statusUpper = (trip.status || '').trim().toUpperCase();
+  if (statusUpper === 'INVOICED' || statusUpper === 'PAID') {
+    return true;
+  }
+  if (trip.is_post_trip_settled === true) {
+    return true;
+  }
+  if (trip.paid_amount !== null && trip.paid_amount !== undefined && Number(trip.paid_amount) > 0) {
+    return true;
+  }
+  return false;
+}
+
 export const bulkDeleteTrips = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
+    const userId = (req as any).user?.id;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
+    const allTrips = await prisma.trip.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: {
+        id: true,
+        ref_id: true,
+        status: true,
+        is_post_trip_settled: true,
+        paid_amount: true,
+        driverId: true,
+        vehicleId: true,
+      },
+    });
+
+    const eligibleTrips = allTrips.filter((t) => !isFinanciallyProtectedTrip(t));
+    const blockedTrips = allTrips.filter((t) => isFinanciallyProtectedTrip(t));
+
+    if (eligibleTrips.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'PROTECTED_TRIP',
+          message: 'Selected trip(s) cannot be deleted because they are invoiced or financially settled.',
+        },
+        data: {
+          deletedCount: 0,
+          skippedCount: blockedTrips.length,
+          skippedTrips: blockedTrips.map((t) => ({
+            id: t.id,
+            ref_id: t.ref_id,
+            reason: 'Trip is invoiced or financially settled',
+          })),
+        },
+      });
+    }
+
+    const eligibleIds = eligibleTrips.map((t) => t.id);
+
     await prisma.$transaction(async (tx) => {
-      // Deleting an in-flight trip must release its driver/vehicle back to Available
-      const trips = await tx.trip.findMany({
-        where: { id: { in: ids }, status: { in: IN_FLIGHT_STATUSES } },
-        select: { driverId: true, vehicleId: true },
+      // Perform soft delete ONLY — do NOT delete child tables (TripStop, TripCharge, TripLocation, etc.)
+      await tx.trip.updateMany({
+        where: { id: { in: eligibleIds } },
+        data: {
+          deletedAt: new Date(),
+          deleted_by: getValidUuid(userId),
+        },
       });
 
-      // Clear child dependencies before deleting trips
-      await tx.tripStop.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripLocation.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripCharge.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripDriver.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripAssignmentEvent.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.invoice.deleteMany({ where: { tripId: { in: ids } } });
-
-      await tx.trip.deleteMany({
-        where: { id: { in: ids } }
-      });
-
-      const driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
-      const vehicleIds = [...new Set(trips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+      // Release driver / vehicle if soft-deleting in-flight trips
+      const inFlightTrips = eligibleTrips.filter((t) => IN_FLIGHT_STATUSES.includes(t.status as TripStatus));
+      const driverIds = [...new Set(inFlightTrips.map((t) => t.driverId).filter((id): id is string => !!id))];
+      const vehicleIds = [...new Set(inFlightTrips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
 
       if (driverIds.length) {
         await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
@@ -1866,9 +1871,27 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} trips` } });
+    const skippedReasons = blockedTrips.map((t) => ({
+      id: t.id,
+      ref_id: t.ref_id,
+      reason: 'Trip is invoiced or financially settled',
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        deletedCount: eligibleTrips.length,
+        skippedCount: blockedTrips.length,
+        skippedTrips: skippedReasons,
+        message:
+          blockedTrips.length > 0
+            ? `Soft-deleted ${eligibleTrips.length} trip(s). ${blockedTrips.length} trip(s) were protected from deletion (invoiced/settled).`
+            : `Successfully soft-deleted ${eligibleTrips.length} trip(s)`,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete trips` } });
+    logger.error({ err: error }, 'Failed to soft delete trips');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to bulk delete trips' } });
   }
 };
 
@@ -2015,13 +2038,14 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Decimal at runtime — normalised to number here so this stays a plain
       // number through every branch below (Prisma accepts a number for a
       // Decimal field write, so nothing is lost storing it back as one).
-      let nextTripCharges = Number(trip.driver_charge);
-      const inputCharges = req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges;
+      let nextTripCharges = Number(trip.driver_payout ?? (trip as any).driver_charge);
+      const inputCharges = req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges);
       if (inputCharges !== undefined) {
         nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
       } else if (trip.is_third_party) {
-        if (trip.third_party_cost !== null && trip.third_party_cost !== undefined) {
-          nextTripCharges = Number(trip.third_party_cost);
+        const subCost = (trip as any).subcontract?.cost ?? (trip as any).third_party_cost;
+        if (subCost !== null && subCost !== undefined) {
+          nextTripCharges = Number(subCost);
         }
       }
 
@@ -2083,33 +2107,14 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
-          driver_charge: nextTripCharges,
+          driver_payout: nextTripCharges,
           billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? 0) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,
         },
-        include: { customer: true, driver: true, vehicle: true, invoices: true, charges: true },
+        include: { customer: true, driver: true, vehicle: true, charges: true },
       });
-
-      // Recalculate invoice total if an invoice exists for this trip
-      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
-      if (existingInvoice) {
-        // billing_amount/subtotal are Decimal at runtime — Number() before the
-        // `+` below, which otherwise silently string-concatenates instead of
-        // adding, corrupting the invoice total written a few lines down.
-        const baseBilling = Number(updatedTrip.billing_amount ?? existingInvoice.subtotal);
-        const newTotal = baseBilling + computeTripChargesTotal(updatedTrip.charges);
-
-        await tx.invoice.update({
-          where: { id: existingInvoice.id },
-          data: {
-            subtotal: baseBilling,
-            total_amount: newTotal,
-            updated_by: (req as any).user?.id,
-          },
-        });
-      }
 
       return updatedTrip;
     });
@@ -2241,10 +2246,38 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
       where: whereClause,
       take: MONTHLY_BOARD_TRIP_CAP,
       orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
-      include: {
+      select: {
+        id: true,
+        ref_id: true,
+        status: true,
+        planned_start: true,
+        planned_end: true,
+        actual_start: true,
+        actual_end: true,
+        createdAt: true,
+        customerId: true,
+        vehicle_type: true,
+        rate_category: true,
+        billing_type: true,
+        billing_amount: true,
+        driver_payout: true,
+        quotationId: true,
+        financials: {
+          select: {
+            id: true,
+            tripId: true,
+            quotationId: true,
+            applied_rate: true,
+            quotation_line_type: true,
+            quotation_billing_type: true,
+            quotation_pricing_basis: true,
+            quotation_vehicle_class: true,
+            quotation_source_vehicle_label: true,
+          },
+        },
         customer: { select: { id: true, name: true, contact_phone: true, logo_url: true } },
-        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true, deletedAt: true } },
-        vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true, deletedAt: true } },
+        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true } },
+        vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true } },
         quotation: {
           select: {
             id: true, name: true, rate: true, currency: true,
@@ -2256,7 +2289,6 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
           orderBy: { stop_sequence: 'asc' },
           select: {
             stop_sequence: true, stop_type: true, location_name: true,
-            planned_arrival: true, actual_arrival: true,
             location: { select: { id: true, name: true, code: true } },
           },
         },
@@ -2293,15 +2325,27 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         vehicle_type: trip.vehicle_type ?? trip.quotation?.source_vehicle_label ?? trip.quotation?.vehicle_class ?? null,
         rate_category: trip.rate_category ?? trip.quotation?.line_type ?? null,
         billing_type: trip.billing_type ?? trip.quotation?.billing_type ?? null,
-        quotation_line_type: trip.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
-        quotation_billing_type: trip.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
-        quotation_pricing_basis: trip.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
-        applied_rate: trip.applied_rate != null ? Number(trip.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : null),
-        quotation_vehicle_class: trip.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
-        quotation_source_vehicle_label: trip.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
-        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number((trip as any).driver_charge ?? (trip as any).trip_charges) || null),
-        driver_charge: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
-        trip_charges: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
+        financials: trip.financials ? {
+          id: trip.financials.id,
+          tripId: trip.financials.tripId,
+          quotationId: trip.financials.quotationId,
+          applied_rate: trip.financials.applied_rate != null ? Number(trip.financials.applied_rate) : null,
+          quotation_line_type: trip.financials.quotation_line_type,
+          quotation_billing_type: trip.financials.quotation_billing_type,
+          quotation_pricing_basis: trip.financials.quotation_pricing_basis,
+          quotation_vehicle_class: trip.financials.quotation_vehicle_class,
+          quotation_source_vehicle_label: trip.financials.quotation_source_vehicle_label,
+        } : null,
+        quotation_line_type: trip.financials?.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
+        quotation_billing_type: trip.financials?.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
+        quotation_pricing_basis: trip.financials?.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
+        applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : (trip.billing_amount != null ? Number(trip.billing_amount) : null)),
+        quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
+        quotation_source_vehicle_label: trip.financials?.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
+        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).trip_charges) || null),
+        driver_payout: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
+        driver_charge: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
+        trip_charges: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation

@@ -93,14 +93,25 @@ export interface Trip {
   planned_end: string | null;
   actual_end: string | null;
   planned_distance: number | null;
-  extra_driver_payment: number | null;
-  payment_reason: string | null;
-  payment_status: string | null;
   /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
   charges?: TripCharge[];
+  driver_payout?: number;
   driver_charge?: number;
   trip_charges?: number;
   billing_amount?: number;
+  financials?: {
+    id?: string;
+    tripId?: string;
+    quotationId?: string | null;
+    applied_rate?: number | null;
+    quotation_line_type?: string | null;
+    quotation_billing_type?: string | null;
+    quotation_pricing_basis?: string | null;
+    quotation_vehicle_class?: string | null;
+    quotation_source_vehicle_label?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  } | null;
   quotationId?: string | null;
   quotation_id?: string | null;
   quotation_line_type?: string | null;
@@ -112,6 +123,17 @@ export interface Trip {
   carrier_name?: string;
   is_post_trip_settled?: boolean;
   is_third_party?: boolean;
+  subcontract?: {
+    id?: string;
+    tripId?: string;
+    providerId?: string | null;
+    provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+    driverName?: string | null;
+    driverPhone?: string | null;
+    vehiclePlate?: string | null;
+    vehicleType?: string | null;
+    cost?: number | null;
+  } | null;
   thirdPartyProviderId?: string | null;
   third_party_driver_name?: string | null;
   third_party_driver_phone?: string | null;
@@ -133,7 +155,7 @@ export interface Trip {
   notes?: string | null;
   customer_id?: string;
   customer?: { id: string; name: string; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
-  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; ai_risk_score?: number; deletedAt?: string | null } | null;
+  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; deletedAt?: string | null } | null;
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null; resolved_location?: ResolvedLocation } | null;
   tripDrivers?: TripDriver[];
   is_contingency_dispatch?: boolean;
@@ -496,8 +518,9 @@ export const tripService = {
     return res.data.data;
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/trips/bulk-delete', { ids });
+  async bulkDelete(ids: string[]): Promise<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }> {
+    const res = await api.post<ApiResponse<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }>>('/trips/bulk-delete', { ids });
+    return res.data.data;
   },
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {

@@ -122,6 +122,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             value={contractRateCategory}
             onValueChange={(val) => {
               if (setContractRateCategory) setContractRateCategory(val);
+              handleUpdateTripSlot(slot.id, { rateCategory: val, matchedRateCard: null });
               if (triggerRateLookupForSlots) triggerRateLookupForSlots(undefined, val);
             }}
           >

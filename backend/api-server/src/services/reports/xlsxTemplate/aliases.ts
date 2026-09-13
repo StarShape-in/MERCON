@@ -32,7 +32,7 @@ export const TRIP_FIELD_ALIASES: Record<TripReportFieldKey, string[]> = {
   total_charges: ['total charges', 'extra charges', 'surcharges', 'additional charges', 'waiting labor charges', 'additional stops', 'vat', 'tax'],
   billing_amount: ['billing amount', 'amount', 'price', 'rate', 'charges', 'charge', 'rental charges'],
   total_amount: ['total amount', 'total', 'inc vat', 'total inc vat', 'inc tax', 'total inc tax'],
-  trip_charges: ['trip charges', 'trip charge'],
+  driver_payout: ['trip charges', 'trip charge', 'driver payout', 'driver charges'],
   balance_amount: ['balance amount', 'balance', 'net'],
   status: ['status', 'trip status'],
   rate_category: ['rate category', 'category', 'rate type', 'trip type', 'trip category', 'rental method', 'rental', 'method'],

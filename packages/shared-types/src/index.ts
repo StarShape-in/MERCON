@@ -190,7 +190,7 @@ export const TRIP_REPORT_FIELDS = [
   { key: 'total_charges', label: 'Extra charges (waiting, stops, etc.)', type: 'money' },
   { key: 'billing_amount', label: 'Billing amount', type: 'money' },
   { key: 'total_amount', label: 'Total amount', type: 'money' },
-  { key: 'trip_charges', label: 'Trip charges', type: 'money' },
+  { key: 'driver_payout', label: 'Driver payout', type: 'money' },
   { key: 'balance_amount', label: 'Balance amount', type: 'money' },
   { key: 'status', label: 'Trip status', type: 'string' },
   { key: 'rate_category', label: 'Rate category', type: 'string' },
@@ -338,14 +338,35 @@ export interface ApiResponse<T> {
 }
 
 // ─── Commercial Pricing Snapshot DTO ────────────────────────────────
-export interface TripCommercialSnapshot {
+export interface TripFinancialsDto {
+  id?: string;
+  tripId?: string;
   quotationId?: string | null;
+  applied_rate?: number | string | null;
   quotation_line_type?: LineType | string | null;
   quotation_billing_type?: BillingType | string | null;
   quotation_pricing_basis?: PricingBasisType | string | null;
-  applied_rate?: number | string | null;
   quotation_vehicle_class?: string | null;
   quotation_source_vehicle_label?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TripCommercialSnapshot extends TripFinancialsDto {}
+
+// ─── Subcontract / Rental Carrier DTO ──────────────────────────────
+export interface TripSubcontractDto {
+  id?: string;
+  tripId?: string;
+  providerId?: string | null;
+  provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  vehiclePlate?: string | null;
+  vehicleType?: string | null;
+  cost?: number | string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ─── Quotation V1 DTOs ──────────────────────────────────────────

@@ -42,7 +42,6 @@ export interface DriverPerfRow {
   status: string;
   total_trips: number;
   completed_trips: number;
-  ai_risk_score: number | null;
 }
 
 export interface PerformanceFilters {

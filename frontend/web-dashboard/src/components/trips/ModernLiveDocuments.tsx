@@ -34,7 +34,7 @@ const DOCUMENT_CARDS = [
     statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     subText: 'Received',
     timeText: 'Sep 02, 2026, 02:14 PM',
-    sampleImg: '/documents/pod_sample.png',
+    sampleImg: '/document-assets/pod_sample.png',
     isMap: false,
   },
   {
@@ -46,7 +46,7 @@ const DOCUMENT_CARDS = [
     statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     subText: '3 photos',
     timeText: 'Last photo: 02:16 PM',
-    sampleImg: '/documents/cargo_photos_sample.png',
+    sampleImg: '/document-assets/cargo_photos_sample.png',
     isMap: false,
   },
   {
@@ -58,7 +58,7 @@ const DOCUMENT_CARDS = [
     statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     subText: 'Last Updated',
     timeText: '2 min ago',
-    sampleImg: '/documents/live_location_sample.png',
+    sampleImg: '/document-assets/live_location_sample.png',
     isMap: true,
   },
   {
@@ -70,7 +70,7 @@ const DOCUMENT_CARDS = [
     statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     subText: 'Signed by',
     timeText: 'Customer Representative',
-    sampleImg: '/documents/signature_sample.png',
+    sampleImg: '/document-assets/signature_sample.png',
     isMap: false,
   },
   {
@@ -82,7 +82,7 @@ const DOCUMENT_CARDS = [
     statusColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     subText: 'Captured',
     timeText: 'Sep 02, 2026, 01:58 PM',
-    sampleImg: '/documents/weight_slip_sample.png',
+    sampleImg: '/document-assets/weight_slip_sample.png',
     isMap: false,
   },
 ];

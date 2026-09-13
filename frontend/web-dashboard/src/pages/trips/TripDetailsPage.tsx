@@ -125,7 +125,7 @@ export default function TripDetailsPage() {
   const { data: docsRes } = useQuery({
     queryKey: ['documents', 'Trip', tripEntityId],
     queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: tripEntityId, per_page: 50 }),
-    enabled: !!tripEntityId,
+    enabled: !!tripEntityId && !!trip,
     refetchInterval: 5000,
   });
   const documents = docsRes?.data || [];
@@ -191,13 +191,19 @@ export default function TripDetailsPage() {
     const etaText = trip.planned_end
       ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
       : 'On Schedule';
+    const createdText = trip.createdAt
+      ? formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a')
+      : 'N/A';
+    const scheduledText = `${fullScheduledDateText} | ${scheduledTimeStr}`;
 
     const text = [
       `*MERCON Logistics - Trip Status Update*`,
       ``,
       `*Trip ID:* ${trip.ref_id || trip.id}`,
       `*Customer:* ${trip.customer?.name || 'Customer'}`,
-      `*Status:* ${trip.status.toUpperCase()}`,
+      `*Status:* ${(trip.status === 'Draft' || trip.status === 'Scheduled') ? 'SCHEDULED' : trip.status.toUpperCase()}`,
+      `*Scheduled:* ${scheduledText}`,
+      `*Created:* ${createdText}`,
       ``,
       `*Pickup:* ${pickupLoc}`,
       `*Drop-off:* ${dropoffLoc}`,
@@ -239,13 +245,20 @@ export default function TripDetailsPage() {
       <DashboardLayout active="Trips" title="Trip Details">
         <div className="h-full flex flex-col items-center justify-center text-center gap-3 p-4">
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
-          <h2 className="text-lg font-bold text-[#1F2937]">Failed to Load Trip</h2>
+          <h2 className="text-lg font-bold text-[#1F2937]">Trip Not Found</h2>
           <p className="text-xs text-slate-500 max-w-sm">
-            The requested trip could not be loaded. Please try again.
+            The requested trip could not be loaded or does not exist.
           </p>
-          <Button onClick={() => refetch()} size="sm" className="bg-[#FA634E] hover:bg-[#e0523d] text-white">
-            Retry
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/trips">
+              <Button size="sm" className="bg-[#FA634E] hover:bg-[#e0523d] text-white">
+                Back to Trips
+              </Button>
+            </Link>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              Retry
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -279,10 +292,10 @@ export default function TripDetailsPage() {
 
   // Driver charge / 3PL cost
   const is3PL = Boolean(trip.is_third_party);
-  const extraDriverPayment = Number(trip.extra_driver_payment ?? 0);
   const driverPayout = is3PL
     ? Number(trip.third_party_cost ?? 0)
-    : Number(trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0) + extraDriverPayment;
+    : Number((trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0);
+  const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
 
   const balanceMargin = totalAmount - driverPayout;
   const marginPercent = totalAmount > 0 ? ((balanceMargin / totalAmount) * 100).toFixed(1) : '0.0';
@@ -297,13 +310,89 @@ export default function TripDetailsPage() {
   const dropoffCityName = dropoff ? resolveStopName(dropoff, 'Al Abha') : 'Al Abha';
   const routeLabel = `${pickupCityName} → ${dropoffCityName}`;
 
-  // Date metadata
-  const createdDateStr = trip.createdAt
-    ? formatInDeploymentTz(trip.createdAt, tz, 'MMM dd, yyyy')
-    : 'Sep 02, 2026';
-  const createdTimeStr = trip.createdAt
-    ? formatInDeploymentTz(trip.createdAt, tz, 'hh:mm a')
-    : '04:40 PM';
+  // Status Badge Helper
+  const getStatusBadgeProps = (statusRaw: string) => {
+    const s = (statusRaw || '').trim().toLowerCase();
+    if (s === 'draft' || s === 'scheduled') {
+      return {
+        label: 'SCHEDULED',
+        badgeClass: 'bg-indigo-50 text-indigo-700 border border-indigo-200/80',
+        dotClass: 'bg-indigo-600',
+      };
+    }
+    if (s === 'loading' || s === 'atpickup') {
+      return {
+        label: 'LOADING',
+        badgeClass: 'bg-sky-50 text-sky-700 border border-sky-200/80',
+        dotClass: 'bg-sky-600',
+      };
+    }
+    if (s === 'intransit' || s === 'dispatched') {
+      return {
+        label: 'IN TRANSIT',
+        badgeClass: 'bg-amber-50 text-amber-800 border border-amber-200/80',
+        dotClass: 'bg-amber-600',
+      };
+    }
+    if (s === 'delayed') {
+      return {
+        label: 'DELAYED',
+        badgeClass: 'bg-rose-50 text-rose-700 border border-rose-200/80',
+        dotClass: 'bg-rose-600',
+      };
+    }
+    if (s === 'completed' || s === 'atdelivery') {
+      return {
+        label: 'COMPLETED',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
+        dotClass: 'bg-emerald-600',
+      };
+    }
+    if (s === 'invoiced' || s === 'paid') {
+      return {
+        label: 'INVOICED',
+        badgeClass: 'bg-purple-50 text-purple-700 border border-purple-200/80',
+        dotClass: 'bg-purple-600',
+      };
+    }
+    if (s === 'cancelled') {
+      return {
+        label: 'CANCELLED',
+        badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200/80',
+        dotClass: 'bg-slate-500',
+      };
+    }
+    return {
+      label: statusRaw.toUpperCase(),
+      badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200/80',
+      dotClass: 'bg-slate-500',
+    };
+  };
+
+  const statusProps = getStatusBadgeProps(trip.status);
+
+  // Date metadata: Scheduled vs Created
+  const scheduledDateRaw = trip.planned_start || (trip.stops && trip.stops.length > 0 ? trip.stops[0].planned_arrival : null) || trip.createdAt;
+
+  const scheduledDayName = scheduledDateRaw
+    ? formatInDeploymentTz(scheduledDateRaw, tz, 'EEE')
+    : '';
+  const scheduledDateStr = scheduledDateRaw
+    ? formatInDeploymentTz(scheduledDateRaw, tz, 'MMM dd, yyyy')
+    : 'Sep 12, 2026';
+  const scheduledTimeStr = scheduledDateRaw
+    ? formatInDeploymentTz(scheduledDateRaw, tz, 'hh:mm a')
+    : '04:05 PM';
+
+  const fullScheduledDateText = scheduledDayName
+    ? `${scheduledDayName}, ${scheduledDateStr}`
+    : scheduledDateStr;
+
+  const createdDateRaw = trip.createdAt || trip.created_at;
+  const createdDayName = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'EEE') : '';
+  const createdDateStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'MMM dd, yyyy') : '';
+  const createdTimeStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'hh:mm a') : '';
+  const fullCreatedDateText = createdDayName ? `${createdDayName}, ${createdDateStr}` : createdDateStr;
 
   // Dynamically build real activity steps from trip metadata and actual stops
   const activitySteps: { label: string; time: string | null; done: boolean }[] = [
@@ -388,30 +477,30 @@ export default function TripDetailsPage() {
                 {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               </button>
 
-              {/* Status Pill Badge (Dynamic: Amber for Draft, Emerald for InTransit/Completed) */}
+              {/* Status Pill Badge (Dynamic: Indigo for Scheduled, Amber for InTransit, Emerald for Completed) */}
               <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
-                  trip.status === 'Draft'
-                    ? 'bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]'
-                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                }`}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${statusProps.badgeClass}`}
               >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    trip.status === 'Draft' ? 'bg-[#D97706]' : 'bg-emerald-600'
-                  }`}
-                />
-                <span>{trip.status === 'InTransit' ? 'IN TRANSIT' : trip.status.toUpperCase()}</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${statusProps.dotClass}`} />
+                <span>{statusProps.label}</span>
               </div>
             </div>
 
-            {/* Subtitle: Route & Metadata */}
-            <div className="flex items-center gap-2 pt-0.5 text-xs text-[#6B7280]">
+            {/* Subtitle: Route, Scheduled Date & Created Date */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-[#6B7280]">
               <span className="font-bold text-[#1F2937] text-[13px]">{routeLabel}</span>
               <span className="text-[#D1D5DB]">•</span>
-              <span>{createdDateStr}</span>
-              <span className="text-[#D1D5DB]">|</span>
-              <span>{createdTimeStr}</span>
+              <span className="font-medium text-[#374151]">
+                Scheduled for <span className="font-bold text-[#1F2937]">{fullScheduledDateText}</span> <span className="text-[#D1D5DB]">|</span> {scheduledTimeStr}
+              </span>
+              {createdDateRaw && (
+                <>
+                  <span className="text-[#D1D5DB]">•</span>
+                  <span className="font-medium text-[#6B7280]">
+                    Created on <span className="font-semibold text-[#374151]">{fullCreatedDateText}</span> <span className="text-[#D1D5DB]">|</span> {createdTimeStr}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -502,16 +591,29 @@ export default function TripDetailsPage() {
           />
         </div>
 
-        {/* ── 4. BOTTOM ROW: FINANCIALS + TRIP PHOTO EVIDENCE ── */}
+        {/* ── 4. BOTTOM ROW: TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}
         <div className="grid grid-cols-12 gap-3 items-stretch">
-          {/* Financials Card (~25% / 3 Cols) */}
+          {/* Left Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
+          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
+            <TripPhotoEvidence
+              documents={documents}
+              stops={trip.stops}
+              trip={trip}
+              onPreview={(img) => setPreviewImage(img)}
+              onUpload={() => {
+                setUploadDocType(undefined);
+                setIsUploadModalOpen(true);
+              }}
+            />
+          </div>
+
+          {/* Right Column: Financials Card (~25% / 3 Cols) */}
           <div className="col-span-12 lg:col-span-3 flex flex-col h-full">
             <ModernFinancialsCard
               customerBilling={customerBilling}
               baseRate={customerBilling}
               driverPayout={driverPayout}
               is3PL={is3PL}
-              extraDriverPayment={extraDriverPayment}
               additionalCharges={chargesTotal}
               additionalChargesCount={chargesList.length}
               balanceMargin={balanceMargin}
@@ -520,18 +622,10 @@ export default function TripDetailsPage() {
               paidAmount={paidAmount}
               balanceDue={balanceDue}
               tripType={tripType}
+              quotationName={trip.quotation?.name || trip.rateCard?.name || tAny.quotation_name || null}
+              quotationId={trip.quotation?.id || trip.rateCard?.id || trip.quotationId || null}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
-            />
-          </div>
-
-          {/* Right Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
-          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
-            <TripPhotoEvidence
-              documents={documents}
-              stops={trip.stops}
-              trip={trip}
-              onPreview={(img) => setPreviewImage(img)}
             />
           </div>
         </div>

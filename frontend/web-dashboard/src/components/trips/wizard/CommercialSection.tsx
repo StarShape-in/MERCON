@@ -3,7 +3,7 @@ import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronR
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
-import { getAllTaxonomyOptions } from '@/utils/taxonomyRegistry';
+import { getAllTaxonomyOptions, normalizeCode } from '@/utils/taxonomyRegistry';
 import { normalizeRateCategory, normalizeVehicleClass } from '@/hooks/useCreateTripForm';
 import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 
@@ -59,7 +59,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     primarySlot.pricingBasis || 'Per Trip'
   );
 
-  // Use full customerRateCards so selecting a card does NOT hide other quotations
   const effectiveRateCards = React.useMemo(() => {
     if (customerRateCards && customerRateCards.length > 0) {
       return customerRateCards;
@@ -70,10 +69,37 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     return getAvailableRateCardsForLane({}) || [];
   }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
 
-  const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
+  // Filter rate cards matching current line type & billing type specifications
+  const matchingCardsForSpec = React.useMemo(() => {
+    if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
+    const normLt = (s?: string | null) => {
+      if (!s) return '';
+      const str = String(s).toUpperCase().replace(/_/g, ' ');
+      if (str.includes('10')) return '10_HRS';
+      if (str.includes('12')) return '12_HRS';
+      if (str.includes('ROUND')) return 'ROUND_TRIP';
+      if (str.includes('SINGLE')) return 'SINGLE_TRIP';
+      return str.replace(/[\s,_()[\]\/{}\-.]/g, '');
+    };
 
-  const matchedRateCard = primarySlot.matchedRateCard || (primarySlot.origin ? availableRateCards[0] : null);
-  const activeSelectedId = primarySlot.matchedRateCard?.id || matchedRateCard?.id;
+    const targetLt = normLt(contractRateCategory);
+    const targetBt = (contractBillingType || '').toLowerCase().trim();
+
+    return effectiveRateCards.filter((rc) => {
+      const rcLt = normLt(rc.line_type || rc.rate_category);
+      const rcBt = String(rc.billing_type || rc.billingType || (rc as any).pricing_basis || '').toLowerCase().trim();
+
+      const ltMatch = !targetLt || !rcLt || rcLt === targetLt;
+      const btMatch = !targetBt || !rcBt || rcBt.includes(targetBt) || targetBt.includes(rcBt);
+
+      return ltMatch && btMatch;
+    });
+  }, [effectiveRateCards, contractRateCategory, contractBillingType]);
+
+  const showInlineForm = isInlineMode || (matchingCardsForSpec.length === 0 && !quotationSearchQuery);
+
+  const matchedRateCard = primarySlot.matchedRateCard || null;
+  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -135,19 +161,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       .slice(0, 50);
   }, [effectiveRateCards, activeSelectedId]);
 
-  // Filter quotations based on contractBillingType (All, Monthly, Extra) + search query
+  // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
-    let cards = sortedRateCards;
-
-    // Filter by billing type if not 'All'
-    if (contractBillingType && contractBillingType.toLowerCase() !== 'all') {
-      const bTarget = contractBillingType.toLowerCase().trim();
-      cards = cards.filter((rc) => {
-        const rcB = String(rc.billing_type || rc.billingType || rc.billing_mode || '').toLowerCase().trim();
-        if (!rcB) return true;
-        return rcB.includes(bTarget) || bTarget.includes(rcB);
-      });
-    }
+    let cards = quotationSearchQuery.trim() ? sortedRateCards : matchingCardsForSpec;
 
     if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
@@ -196,7 +212,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         rateStr.includes(q)
       );
     });
-  }, [sortedRateCards, contractBillingType, quotationSearchQuery]);
+  }, [sortedRateCards, matchingCardsForSpec, quotationSearchQuery]);
 
   const selectedCust = customers.find((c) => c.id === contractCustomer);
 
@@ -515,7 +531,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   </label>
                   <select
                     value={contractBillingType?.toLowerCase() === 'extra' ? 'Extra' : 'Monthly'}
-                    onChange={(e) => setContractBillingType?.(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContractBillingType?.(val);
+                      handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null });
+                    }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
                     <option value="Monthly">Monthly (Contract Duty)</option>
@@ -533,7 +553,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     onChange={(e) => {
                       const val = e.target.value;
                       setContractVehicleType?.(val);
-                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val });
+                      handleUpdateTripSlot(primarySlot.id, { vehicleType: val, matchedRateCard: null });
                     }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
@@ -551,11 +571,17 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     Line Type
                   </label>
                   <select
-                    value={contractRateCategory || 'Single Trip'}
+                    value={
+                      lineTypeOptions.find(
+                        (opt) => opt.code === contractRateCategory || opt.label === contractRateCategory || normalizeCode(opt.code) === normalizeCode(contractRateCategory)
+                      )?.code || contractRateCategory || 'SINGLE_TRIP'
+                    }
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setContractRateCategory?.(val);
-                      handleUpdateTripSlot(primarySlot.id, { rateCategory: val });
+                      const rawVal = e.target.value;
+                      const optObj = lineTypeOptions.find((opt) => opt.code === rawVal || opt.label === rawVal);
+                      const normVal = optObj?.label || normalizeRateCategory(rawVal);
+                      setContractRateCategory?.(normVal);
+                      handleUpdateTripSlot(primarySlot.id, { rateCategory: normVal, matchedRateCard: null });
                     }}
                     className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
                   >
@@ -686,7 +712,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                 {displayedRateCards.map((rc, idx) => {
-                  const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
+                  const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
                   const rateVal = rc.rate ?? rc.base_price ?? 0;
                   const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                   const rCat = rc.rate_category || rc.line_type || contractRateCategory;
@@ -823,7 +849,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {displayedRateCards.map((rc, idx) => {
-                    const isSelected = matchedRateCard?.id === rc.id || primarySlot.matchedRateCard?.id === rc.id;
+                    const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
                     const rateVal = rc.rate ?? rc.base_price ?? 0;
                     const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
                     const rCat = rc.rate_category || rc.line_type || contractRateCategory;

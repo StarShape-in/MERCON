@@ -62,13 +62,7 @@ enum CoordinatePrecision {
   UNKNOWN
 }
 
-enum InvoiceStatus {
-  Draft
-  Pending
-  Paid
-  Overdue
-  Cancelled
-}
+
 
 enum DocType {
   DriverLicense
@@ -110,13 +104,6 @@ enum DocRequirement {
   MANDATORY
   OPTIONAL
   DISABLED
-}
-
-enum PaymentStatus {
-  Pending
-  Approved
-  Paid
-  Rejected
 }
 
 /// Why a stop was reached late. Logged by an operator, never by the driver:
@@ -179,10 +166,12 @@ model User {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  verifiedDocs     Document[]     @relation("VerifiedBy")
-  approvedPayments Trip[]         @relation("PaymentApprovedBy")
-  driver           Driver?
-  notifications    Notification[]
+  verifiedDocs         Document[]            @relation("VerifiedBy")
+  driver               Driver?
+  notifications        Notification[]
+  tripStopDelayLogs    TripStop[]            @relation("TripStopDelayLogger")
+  tripAssignmentEvents TripAssignmentEvent[]
+  quotationHistories   QuotationHistory[]
 }
 
 model Customer {
@@ -209,7 +198,6 @@ model Customer {
   version    Int       @default(1)
 
   trips           Trip[]
-  invoices        Invoice[]
   quotations      Quotation[]
   surchargeRules  SurchargeRule[]
   reportTemplates ReportTemplate[]
@@ -234,7 +222,6 @@ model Driver {
   license_number String
   license_expiry DateTime     @db.Timestamptz
   avatar_url     String?
-  ai_risk_score  Float        @default(0.0)
 
   // The vehicle this driver normally drives, set from the Drivers module.
   // Trip creation pre-fills this as the trip's vehicle so dispatchers don't
@@ -252,10 +239,12 @@ model Driver {
   version    Int       @default(1)
 
   trips              Trip[]                  @relation("TripPrimaryDriver")
-  tripAssignments    TripDriver[]
+  originalTrips      Trip[]                  @relation("TripOriginalDriver")
   vehicleAssignments DriverVehicleAssignment[]
   notifications      Notification[]
   expenses           Expense[]
+  executedTripStops  TripStop[]              @relation("TripStopExecutorDriver")
+  executedDocuments  Document[]              @relation("DocumentExecutorDriver")
 
   @@index([status, deletedAt])
   @@index([deletedAt])
@@ -337,6 +326,7 @@ model Vehicle {
   version    Int       @default(1)
 
   trips              Trip[]
+  originalTrips      Trip[]                    @relation("TripOriginalVehicle")
   maintenanceRecords MaintenanceRecord[]
   expenses           Expense[]
   assignedDriver     Driver?                   @relation("DriverAssignedVehicle")
@@ -360,14 +350,13 @@ model Trip {
   vehicleId  String?  @db.Uuid
   vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
 
-  // Multi-Driver Relation
-  tripDrivers TripDriver[]
-
   // Contingency & Replacement Audit Summary
-  is_contingency_dispatch Boolean @default(false)
-  original_vehicle_id     String? @db.Uuid
-  original_driver_id      String? @db.Uuid
-  contingency_reason      String? @db.Text
+  is_contingency_dispatch Boolean  @default(false)
+  original_vehicle_id     String?  @db.Uuid
+  originalVehicle         Vehicle? @relation("TripOriginalVehicle", fields: [original_vehicle_id], references: [id])
+  original_driver_id      String?  @db.Uuid
+  originalDriver          Driver?  @relation("TripOriginalDriver", fields: [original_driver_id], references: [id])
+  contingency_reason      String?  @db.Text
 
   // Replacement Audit Log Events
   assignmentEvents TripAssignmentEvent[]
@@ -376,13 +365,8 @@ model Trip {
   quotationId String?    @db.Uuid
   quotation   Quotation? @relation(fields: [quotationId], references: [id])
 
-  // Commercial Pricing Snapshot fields (copied at creation from linked Quotation)
-  quotation_line_type            String?
-  quotation_billing_type         String?
-  quotation_pricing_basis        String?
-  applied_rate                   Decimal? @db.Decimal(12, 2)
-  quotation_vehicle_class        String?
-  quotation_source_vehicle_label String?
+  // Dedicated 1-to-1 Commercial Financials Snapshot
+  financials TripFinancials?
 
   vehicle_type  String?
   rate_category String?
@@ -397,28 +381,13 @@ model Trip {
   planned_end   DateTime? @db.Timestamptz
   actual_end    DateTime? @db.Timestamptz
 
-  // Extra Driver Payment Workflow
-  extra_driver_payment Decimal?       @db.Decimal(12, 2)
-  payment_reason       String?
-  payment_approved_by  String?        @db.Uuid
-  payment_approver     User?          @relation("PaymentApprovedBy", fields: [payment_approved_by], references: [id])
-  payment_status       PaymentStatus?
-  payment_date         DateTime?      @db.Timestamptz
-
 
   // Post-Trip Financial & Ledger Fields
   //
-  // waiting_labor_charges / additional_stop_charges are SUPERSEDED by the
-  // `charges` relation below (TripCharge) and will be dropped once the
-  // backfill script has copied every existing value across — see
-  // scripts/backfill-trip-charges.ts. Do not add new reads or writes of
-  // these two; they are kept only so the migration has something to read.
-  waiting_labor_charges   Decimal @default(0.0) @db.Decimal(12, 2)
-  additional_stop_charges Decimal @default(0.0) @db.Decimal(12, 2)
   // What MERCON pays out for this trip (own driver, or the subcontractor when
   // is_third_party). A cost, not revenue — deliberately excluded from the
   // customer invoice total.
-  driver_charge           Decimal @default(0.0) @map("trip_charges") @db.Decimal(12, 2)
+  driver_payout           Decimal  @default(0.0) @map("driver_payout") @db.Decimal(12, 2)
   billing_amount          Decimal? @db.Decimal(12, 2)
   paid_amount             Decimal  @default(0.0) @db.Decimal(12, 2)
   balance_due             Decimal? @db.Decimal(12, 2)
@@ -429,14 +398,8 @@ model Trip {
   is_post_trip_settled    Boolean @default(false)
 
   // Third-Party / Rental Carrier Details
-  is_third_party            Boolean             @default(false)
-  thirdPartyProviderId      String?             @db.Uuid
-  thirdPartyProvider        ThirdPartyProvider? @relation(fields: [thirdPartyProviderId], references: [id])
-  third_party_driver_name   String?
-  third_party_driver_phone  String?
-  third_party_vehicle_plate String?
-  third_party_vehicle_type  String?
-  third_party_cost          Decimal?            @default(0.0) @db.Decimal(12, 2)
+  is_third_party Boolean          @default(false)
+  subcontract    TripSubcontract?
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -448,14 +411,13 @@ model Trip {
   version    Int       @default(1)
 
   stops    TripStop[]
-  invoices Invoice[]
   // Itemised customer-billable extras for this trip. The trip's total bill is
   // billing_amount plus the sum of these.
   charges  TripCharge[]
   locations TripLocation[]
 
   @@index([vehicleId, driverId])
-  @@index([thirdPartyProviderId])
+  @@index([is_third_party])
   @@index([status])
   @@index([customerId])
   @@index([createdAt])
@@ -463,27 +425,8 @@ model Trip {
   @@index([deletedAt])
   @@index([status, deletedAt])
   @@index([customerId, status, deletedAt])
-}
-
-model TripDriver {
-  id                   String         @id @default(uuid()) @db.Uuid
-  tripId               String         @db.Uuid
-  trip                 Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  driverId             String         @db.Uuid
-  driver               Driver         @relation(fields: [driverId], references: [id])
-
-  role                 DriverTripRole @default(PRIMARY)
-
-  driver_charge        Decimal?       @db.Decimal(12, 2)
-  extra_driver_payment Decimal?       @db.Decimal(12, 2)
-  payment_reason       String?
-  payment_status       PaymentStatus?
-
-  assignedAt           DateTime       @default(now()) @db.Timestamptz
-  removedAt            DateTime?      @db.Timestamptz
-
-  @@index([tripId, driverId])
-  @@index([tripId, role])
+  @@index([driverId, deletedAt])
+  @@index([vehicleId, deletedAt])
 }
 
 model TripAssignmentEvent {
@@ -495,9 +438,30 @@ model TripAssignmentEvent {
   toId       String?              @db.Uuid
   reason     String               @db.Text
   changedBy  String?              @db.Uuid
+  changedByUser User?             @relation(fields: [changedBy], references: [id])
   changedAt  DateTime             @default(now()) @db.Timestamptz
 
   @@index([tripId])
+}
+
+// Dedicated 1-to-1 Commercial Financials Snapshot Entity
+model TripFinancials {
+  id                             String     @id @default(uuid()) @db.Uuid
+  tripId                         String     @unique @db.Uuid
+  trip                           Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  quotationId                    String?    @db.Uuid
+  quotation                      Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  applied_rate                   Decimal?   @db.Decimal(12, 2)
+  quotation_line_type            String?
+  quotation_billing_type         String?
+  quotation_pricing_basis        String?
+  quotation_vehicle_class        String?
+  quotation_source_vehicle_label String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([quotationId])
 }
 
 
@@ -515,7 +479,7 @@ model ThirdPartyProvider {
   rating         Float   @default(5.0)
   notes          String? @db.Text
 
-  trips Trip[]
+  subcontracts TripSubcontract[]
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -527,6 +491,23 @@ model ThirdPartyProvider {
   version    Int       @default(1)
 
   @@index([deletedAt])
+}
+
+model TripSubcontract {
+  id           String              @id @default(uuid()) @db.Uuid
+  tripId       String              @unique @db.Uuid
+  trip         Trip                @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  providerId   String?             @db.Uuid
+  provider     ThirdPartyProvider? @relation(fields: [providerId], references: [id])
+  driverName   String?
+  driverPhone  String?
+  vehiclePlate String?
+  vehicleType  String?
+  cost         Decimal?            @default(0.0) @db.Decimal(12, 2)
+  createdAt    DateTime            @default(now()) @db.Timestamptz
+  updatedAt    DateTime            @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([providerId])
 }
 
 model TripStop {
@@ -567,11 +548,13 @@ model TripStop {
   // a late stop means nobody has explained it yet — that is what the report's
   // "needs a reason" flag and the operator alert are driven from, so it must
   // stay distinguishable from Other.
-  delay_reason     DelayReason?
-  delay_note       String?      @db.Text
-  delay_logged_by  String?      @db.Uuid
-  delay_logged_at  DateTime?    @db.Timestamptz
-  executorDriverId String?      @db.Uuid
+  delay_reason        DelayReason?
+  delay_note          String?      @db.Text
+  delay_logged_by     String?      @db.Uuid
+  delay_logged_by_user User?       @relation("TripStopDelayLogger", fields: [delay_logged_by], references: [id])
+  delay_logged_at     DateTime?    @db.Timestamptz
+  executorDriverId    String?      @db.Uuid
+  executorDriver      Driver?      @relation("TripStopExecutorDriver", fields: [executorDriverId], references: [id])
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -658,7 +641,7 @@ model Document {
   id          String    @id @default(uuid()) @db.Uuid
   entity_type String // "Driver", "Vehicle", "Trip", "MaintenanceRecord", "Customer", "Company"
   entity_id   String    @db.Uuid
-  doc_type    DocType
+  doc_type    DocType?
   status      DocStatus @default(PendingReview)
 
   // The document's configured type — supersedes doc_type as the source of
@@ -686,6 +669,7 @@ model Document {
   verified_by      String? @db.Uuid
   verifier         User?   @relation("VerifiedBy", fields: [verified_by], references: [id])
   executorDriverId String? @db.Uuid
+  executorDriver   Driver? @relation("DocumentExecutorDriver", fields: [executorDriverId], references: [id])
 
   files DocumentFile[]
 
@@ -826,6 +810,8 @@ model MaintenanceRecord {
 
   workshop_name    String
   workshop_contact String?
+  workshopId       String?        @db.Uuid
+  workshop         SavedWorkshop? @relation(fields: [workshopId], references: [id])
   maintenance_type String
 
   start_date       DateTime  @default(now()) @db.Timestamptz
@@ -861,6 +847,8 @@ model SavedWorkshop {
   address       String? @db.Text
   notes         String? @db.Text
 
+  maintenanceRecords MaintenanceRecord[]
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deletedAt  DateTime? @db.Timestamptz
@@ -883,45 +871,8 @@ model SavedWorkDone {
 }
 
 // -----------------------------------------
-// 6. FINANCIALS (Simplified Tax-Free)
+// 6. FINANCIALS (Expenses & Payouts)
 // -----------------------------------------
-model Invoice {
-  id         String        @id @default(uuid()) @db.Uuid
-  ref_id     String?       @unique
-  tripId     String        @db.Uuid
-  trip       Trip          @relation(fields: [tripId], references: [id])
-  customerId String        @db.Uuid
-  customer   Customer      @relation(fields: [customerId], references: [id])
-  status     InvoiceStatus @default(Draft)
-
-  currency     String @default("SAR")
-  subtotal     Decimal  @db.Decimal(12, 2)
-  total_amount Decimal  @db.Decimal(12, 2)
-
-  due_date DateTime @db.Timestamptz
-
-  // External / ZATCA invoice reference — the reference number of the real-world
-  // invoice the operator issued to the customer through their external accounting
-  // or ZATCA system. MERCON does not generate ZATCA invoices; this field simply
-  // stores the reference for tracking purposes.
-  zatca_ref String? @db.Text
-
-  // Optional notes logged by the operator when marking a trip as invoiced.
-  invoicing_note String? @db.Text
-
-  created_by String?   @db.Uuid
-  updated_by String?   @db.Uuid
-  deleted_by String?   @db.Uuid
-  createdAt  DateTime  @default(now()) @db.Timestamptz
-  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
-  deletedAt  DateTime? @db.Timestamptz
-  isActive   Boolean   @default(true)
-  version    Int       @default(1)
-
-  @@index([deletedAt, status])
-  @@index([customerId])
-  @@index([tripId])
-}
 
 // General operating expenses — salaries, fuel, rent, and any other outgoing
 // cost that isn't a vehicle service order (MaintenanceRecord already covers
@@ -1001,6 +952,7 @@ model Quotation {
   customer             Customer @relation(fields: [customerId], references: [id])
 
   trips                Trip[]
+  tripFinancials       TripFinancials[]
   surchargeRules       SurchargeRule[]
   priceHistory         QuotationHistory[]
 
@@ -1049,6 +1001,7 @@ model QuotationHistory {
 
   changed_by         String?
   changed_by_user_id String?   @db.Uuid
+  changed_by_user    User?     @relation(fields: [changed_by_user_id], references: [id])
   changed_by_name    String?
 
   reason             String?

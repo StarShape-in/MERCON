@@ -174,18 +174,14 @@ export const updateCustomer = async (req: Request, res: Response) => {
 export const deleteCustomer = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    // Check linked active trips or invoices
-    const [tripCount, invoiceCount] = await Promise.all([
-      prisma.trip.count({ where: { customerId: id } }),
-      prisma.invoice.count({ where: { customerId: id } })
-    ]);
+    const tripCount = await prisma.trip.count({ where: { customerId: id } });
 
-    if (tripCount > 0 || invoiceCount > 0) {
+    if (tripCount > 0) {
       return res.status(409).json({
         success: false,
         error: {
           code: 'CUSTOMER_IN_USE',
-          message: `Cannot delete customer because they have ${tripCount} trip(s) and ${invoiceCount} invoice(s) linked.`
+          message: `Cannot delete customer because they have ${tripCount} trip(s) linked.`
         }
       });
     }

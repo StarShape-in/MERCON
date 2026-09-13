@@ -33,56 +33,49 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
         take: limit,
         orderBy: { name: 'asc' },
         include: {
-          // Excludes soft-deleted trips, so this agrees with total_cost /
-          // total_revenue below — which have always filtered them out.
           _count: {
-            select: { trips: { where: { deletedAt: null } } },
+            select: { subcontracts: { where: { trip: { deletedAt: null } } } },
           },
         },
       }),
       prisma.thirdPartyProvider.count({ where: whereClause }),
     ]);
 
-    // Per-provider stats in two grouped queries rather than two queries per
-    // provider. The previous version issued a count + an aggregate inside a
-    // `.map()`, so listing the providers page (which asks for per_page=1000)
-    // fired ~2000 round-trips to Postgres for one screen.
     const providerIds = providers.map((p: any) => p.id);
     const [activeByProvider, totalsByProvider] = providerIds.length === 0
       ? [[], []]
       : await Promise.all([
-          prisma.trip.groupBy({
-            by: ['thirdPartyProviderId'],
+          prisma.tripSubcontract.groupBy({
+            by: ['providerId'],
             where: {
-              thirdPartyProviderId: { in: providerIds },
-              status: { in: ACTIVE_TRIP_STATUSES as TripStatus[] },
-              deletedAt: null,
+              providerId: { in: providerIds },
+              trip: { status: { in: ACTIVE_TRIP_STATUSES as TripStatus[] }, deletedAt: null },
             },
             _count: { _all: true },
           }),
-          prisma.trip.groupBy({
-            by: ['thirdPartyProviderId'],
-            where: { thirdPartyProviderId: { in: providerIds }, deletedAt: null },
-            _sum: { third_party_cost: true, billing_amount: true },
+          prisma.tripSubcontract.groupBy({
+            by: ['providerId'],
+            where: { providerId: { in: providerIds }, trip: { deletedAt: null } },
+            _sum: { cost: true },
           }),
         ]);
 
     const activeCountById = new Map<string, number>(
-      activeByProvider.map((row: any) => [row.thirdPartyProviderId as string, row._count._all])
+      activeByProvider.map((row: any) => [row.providerId as string, row._count._all])
     );
-    const totalsById = new Map<string, { cost: number; revenue: number }>(
+    const totalsById = new Map<string, { cost: number }>(
       totalsByProvider.map((row: any) => [
-        row.thirdPartyProviderId as string,
-        { cost: Number(row._sum.third_party_cost ?? 0), revenue: Number(row._sum.billing_amount ?? 0) },
+        row.providerId as string,
+        { cost: Number(row._sum.cost ?? 0) },
       ])
     );
 
     const formattedProviders = providers.map((provider: any) => ({
       ...provider,
-      total_trips: provider._count?.trips || 0,
+      total_trips: provider._count?.subcontracts || 0,
       active_trips: activeCountById.get(provider.id) || 0,
       total_cost: totalsById.get(provider.id)?.cost || 0,
-      total_revenue: totalsById.get(provider.id)?.revenue || 0,
+      total_revenue: 0,
     }));
 
     res.json({
@@ -101,26 +94,20 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Totals for the 3PL KPI strip. The page used to derive these in the browser
- * from a `per_page=1000` provider fetch on every mount — which, before the
- * grouped rewrite above, meant ~2000 extra queries just to render four cards.
- */
 export const getThirdPartyStats = async (_req: Request, res: Response) => {
   try {
     const where = { deletedAt: null };
     const [total, active, tripTotals] = await Promise.all([
       prisma.thirdPartyProvider.count({ where }),
       prisma.thirdPartyProvider.count({ where: { ...where, isActive: true } }),
-      prisma.trip.aggregate({
-        where: { thirdPartyProviderId: { not: null }, deletedAt: null },
+      prisma.tripSubcontract.aggregate({
+        where: { providerId: { not: null }, trip: { deletedAt: null } },
         _count: { _all: true },
-        _sum: { third_party_cost: true, billing_amount: true },
+        _sum: { cost: true },
       }),
     ]);
 
-    const totalCost = Number(tripTotals._sum.third_party_cost ?? 0);
-    const totalRevenue = Number(tripTotals._sum.billing_amount ?? 0);
+    const totalCost = Number(tripTotals._sum.cost ?? 0);
 
     res.json({
       success: true,
@@ -130,8 +117,8 @@ export const getThirdPartyStats = async (_req: Request, res: Response) => {
         inactive: total - active,
         total_trips: tripTotals._count._all,
         total_cost: totalCost,
-        total_revenue: totalRevenue,
-        net_profit: totalRevenue - totalCost,
+        total_revenue: 0,
+        net_profit: 0 - totalCost,
       },
     });
   } catch (error) {
@@ -146,12 +133,12 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
     const provider: any = await prisma.thirdPartyProvider.findFirst({
       where: { id, deletedAt: null },
       include: {
-        trips: {
+        subcontracts: {
           take: 20,
           orderBy: { createdAt: 'desc' },
-          include: { customer: true },
+          include: { trip: { include: { customer: true } } },
         },
-        _count: { select: { trips: true } },
+        _count: { select: { subcontracts: true } },
       },
     });
 
@@ -159,22 +146,23 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Third-party provider not found' } });
     }
 
-    const activeTripsCount = await prisma.trip.count({
+    const activeTripsCount = await prisma.tripSubcontract.count({
       where: {
-        thirdPartyProviderId: provider.id,
-        status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
-        deletedAt: null,
+        providerId: provider.id,
+        trip: {
+          status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
+          deletedAt: null,
+        },
       },
     });
 
-    const totalCostAggregate = await prisma.trip.aggregate({
+    const totalCostAggregate = await prisma.tripSubcontract.aggregate({
       where: {
-        thirdPartyProviderId: provider.id,
-        deletedAt: null,
+        providerId: provider.id,
+        trip: { deletedAt: null },
       },
       _sum: {
-        third_party_cost: true,
-        billing_amount: true,
+        cost: true,
       },
     });
 
@@ -182,10 +170,11 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
       success: true,
       data: {
         ...provider,
-        total_trips: provider._count?.trips || 0,
+        trips: (provider.subcontracts || []).map((sc: any) => sc.trip),
+        total_trips: provider._count?.subcontracts || 0,
         active_trips: activeTripsCount,
-        total_cost: totalCostAggregate._sum.third_party_cost || 0,
-        total_revenue: totalCostAggregate._sum.billing_amount || 0,
+        total_cost: totalCostAggregate._sum.cost || 0,
+        total_revenue: 0,
       },
     });
   } catch (error) {
@@ -287,7 +276,7 @@ export const deleteThirdPartyProvider = async (req: Request, res: Response) => {
     }
 
     await prisma.$transaction([
-      prisma.trip.updateMany({ where: { thirdPartyProviderId: id }, data: { thirdPartyProviderId: null } }),
+      prisma.tripSubcontract.updateMany({ where: { providerId: id }, data: { providerId: null } }),
       prisma.thirdPartyProvider.delete({ where: { id } })
     ]);
 

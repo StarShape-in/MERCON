@@ -74,14 +74,10 @@ export async function getRecommendedDriversForTrip(params: {
         where: { isActive: true },
         include: { vehicle: true },
       },
-      tripDrivers: {
-        where: { removedAt: null },
+      trips: {
+        where: { deletedAt: null },
         include: {
-          trip: {
-            include: {
-              stops: { include: { location: true }, orderBy: { sequence: 'asc' } },
-            },
-          },
+          stops: { include: { location: true }, orderBy: { stop_sequence: 'asc' } },
         },
       },
     },
@@ -102,11 +98,11 @@ export async function getRecommendedDriversForTrip(params: {
       unavailabilityReason = 'License Expired';
     }
 
-    const driverTripDrivers: any[] = (driver as any).tripDrivers || [];
+    const driverTrips: any[] = (driver as any).trips || [];
 
     if (isAvailable) {
-      const hasActiveConflict = driverTripDrivers.some((td: any) => {
-        const tStatus = td.trip?.status;
+      const hasActiveConflict = driverTrips.some((t: any) => {
+        const tStatus = t?.status;
         return tStatus && ['Scheduled', 'Loading', 'InTransit', 'Delayed'].includes(tStatus);
       });
       if (hasActiveConflict) {
@@ -117,8 +113,8 @@ export async function getRecommendedDriversForTrip(params: {
 
     let routeTripCount = 0;
     if (origStr && destStr) {
-      for (const td of driverTripDrivers) {
-        const stops = td.trip?.stops || [];
+      for (const t of driverTrips) {
+        const stops = t?.stops || [];
         if (stops.length > 0) {
           const firstStop = stops[0];
           const lastStop = stops.length > 1 ? stops[stops.length - 1] : firstStop;
@@ -188,11 +184,8 @@ export async function getRecommendedDriversForTrip(params: {
       if (assignedVeh) {
         score += 50; // Bonus for having a pre-assigned matching vehicle
       }
-      const totalCompletedTrips = driverTripDrivers.filter((td: any) => td.trip?.status === 'Completed').length;
+      const totalCompletedTrips = driverTrips.filter((t: any) => t?.status === 'Completed').length;
       score += Math.min(totalCompletedTrips * 2, 30);
-
-      const risk = Number(driver.ai_risk_score || 0);
-      score += Math.max(0, Math.round((2.0 - risk) * 5));
 
       // Deterministic tie-breaker per driver ID so identical scores rotate dynamically
       const idHash = driver.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 20;
@@ -278,23 +271,17 @@ export async function getRecommendedDriversForVehicle(
       unavailabilityReason = 'Driver license expired';
     } else {
       // Check if driver is currently on an active trip
-      const activeTrip = await prisma.tripDriver.findFirst({
+      const activeTrip = await prisma.trip.findFirst({
         where: {
           driverId: driver.id,
-          removedAt: null,
-          trip: {
-            deletedAt: null,
-            status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
-          },
-        },
-        include: {
-          trip: { select: { ref_id: true, id: true } },
+          deletedAt: null,
+          status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
         },
       });
 
-      if (activeTrip && activeTrip.trip) {
+      if (activeTrip) {
         isAvailable = false;
-        const ref = activeTrip.trip.ref_id || activeTrip.trip.id.substring(0, 8);
+        const ref = activeTrip.ref_id || activeTrip.id.substring(0, 8);
         unavailabilityReason = `Assigned to active Trip #${ref}`;
       }
     }

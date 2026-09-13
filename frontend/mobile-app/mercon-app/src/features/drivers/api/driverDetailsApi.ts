@@ -27,7 +27,7 @@ export interface RawDriverDetail {
   status: DriverStatus;
   license_number: string;
   license_expiry: string;
-  ai_risk_score: number | null;
+  ai_risk_score?: number | null;
   isActive: boolean;
   createdAt: string;
   documents?: RawDocument[];

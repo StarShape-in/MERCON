@@ -65,7 +65,6 @@ export const getDrivers = async (req: Request, res: Response) => {
             status: true,
             avatar_url: true,
             isActive: true,
-            ai_risk_score: true,
             createdAt: true,
             assignedVehicleId: true,
             userId: true,
@@ -139,15 +138,16 @@ export const getDrivers = async (req: Request, res: Response) => {
     const tripChargeSums = await prisma.trip.groupBy({
       by: ['driverId'],
       where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
-      _sum: { extra_driver_payment: true },
+      _sum: { driver_payout: true },
     });
     const tripChargeByDriver = new Map(
-      tripChargeSums.map((s) => [s.driverId, Number(s._sum.extra_driver_payment) || 0])
+      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_payout) || 0])
     );
 
     const formatted = drivers.map(d => ({
       ...d,
       hasAccountPassword: Boolean(d.user?.password_hash),
+      total_driver_payout: tripChargeByDriver.get(d.id) || 0,
       total_trip_charges: tripChargeByDriver.get(d.id) || 0,
       total_driver_charges: tripChargeByDriver.get(d.id) || 0,
     }));
@@ -198,7 +198,8 @@ export const getDriverById = async (req: Request, res: Response) => {
           include: {
             trips: {
               where: { deletedAt: null, status: { notIn: ['Cancelled'] } },
-              orderBy: { planned_start: 'asc' },
+              take: 100,
+              orderBy: { planned_start: 'desc' },
               include: { vehicle: true, customer: true, stops: true }
             },
             assignedVehicle: true

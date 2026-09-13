@@ -30,12 +30,17 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
     const errCode = error.response?.data?.error?.code;
-    if (
+    const errMsg = (error.response?.data?.error?.message || '').toLowerCase();
+    const isTokenErr =
       error.response?.status === 401 ||
       errCode === 'INVALID_TOKEN' ||
       errCode === 'UNAUTHORIZED' ||
-      errCode === 'TOKEN_EXPIRED'
-    ) {
+      errCode === 'TOKEN_EXPIRED' ||
+      errMsg.includes('expired token') ||
+      errMsg.includes('invalid token') ||
+      errMsg.includes('token missing');
+
+    if (isTokenErr) {
       authStore.clearSession();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';

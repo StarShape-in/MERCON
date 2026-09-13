@@ -32,6 +32,7 @@ export interface ChargeLike {
 /** What a trip carries that these sums read. */
 export interface TripFinancialsLike {
   billing_amount: Money | null;
+  driver_payout?: Money;
   driver_charge?: Money;
   trip_charges?: Money;
 }
@@ -46,7 +47,7 @@ export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined
  * The base price the customer is billed, before extras.
  */
 export function computeTripBaseBilling(trip: TripFinancialsLike): number {
-  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.driver_charge ?? trip.trip_charges);
+  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges);
 }
 
 /** Full amount owed by the customer: base price plus every itemised extra. */
@@ -57,13 +58,13 @@ export function computeTripTotalAmount(
   return computeTripBaseBilling(trip) + computeTripChargesTotal(charges);
 }
 
-/** What MERCON keeps: customer total minus (additional charges + driver charge). */
+/** What MERCON keeps: customer total minus (additional charges + driver charge/payout). */
 export function computeTripBalance(
   trip: TripFinancialsLike,
   charges: ChargeLike[] | null | undefined
 ): number {
   const totalAmt = computeTripTotalAmount(trip, charges);
   const extraCharges = computeTripChargesTotal(charges);
-  const driverCharge = asNumber(trip.driver_charge ?? trip.trip_charges);
-  return totalAmt - (extraCharges + driverCharge);
+  const driverPayout = asNumber(trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges);
+  return totalAmt - (extraCharges + driverPayout);
 }

@@ -35,7 +35,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
+import { TruckMotion, CheckBadge, RouteLine, ClockIcon, RiskAlert } from '@/components/ui/kpi-icons';
 
 import { format, subDays, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -948,26 +948,25 @@ export default function TripListPage() {
       ? format(customDateRange.to, 'yyyy-MM-dd')
       : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined));
 
-  // Fetch trips using React Query.
-  // NOTE: Search is intentionally NOT sent to the backend — the backend search was unreliable
-  // and could return 0 results, defeating the client-side computeTripSearchRelevance filter below.
-  // We fetch all trips up to per_page=1000 and let the trips memo handle filtering client-side.
+  // Fetch trips using React Query with server-side pagination (10 trips default, 30s polling).
   const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr],
+    queryKey: ['trips', selectedStatus, selectedCustomerId, dateFilter, startDateStr, endDateStr, currentPage, pageSize, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
+      customer_id: selectedCustomerId !== 'All' ? selectedCustomerId : undefined,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
-      per_page: 1000,
+      search: debouncedSearch || undefined,
+      page: currentPage,
+      per_page: pageSize,
     }),
     // Keep the previous rows on screen while a new search/page loads.
     placeholderData: keepPreviousData,
-    // Always fetch fresh data when this page mounts (e.g. after creating a trip and navigating back).
-    // placeholderData above ensures the cached list shows instantly while the refetch runs in background.
+    // Always fetch fresh data when this page mounts.
     refetchOnMount: true,
-    // Auto-poll every 10s so driver app updates move Kanban cards live without manual page reload
-    refetchInterval: 10000,
+    // Auto-poll every 30s for smooth background status updates
+    refetchInterval: 30000,
   });
 
   // The unfiltered trip ledger, for the export sheet. Despite the old name this
@@ -1630,8 +1629,27 @@ export default function TripListPage() {
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
+        const stops = row.stops || [];
+        const stopsCount = stops.length;
+        
+        let legBadge: string | null = null;
+        if (stopsCount > 2) {
+          const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+          const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+          const isRound = firstLoc && lastLoc && firstLoc === lastLoc;
+          
+          const activeIdx = stops.findIndex((s) => !s.actual_departure);
+          const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+          const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
+          const stopName = (currentStop?.location_name || currentStop?.location?.name || '—').replace(/🔁\s*/g, '').trim();
+
+          legBadge = isRound
+            ? `Leg ${currentStopNum}/${stopsCount} (Return) · ${stopName}`
+            : `Stop ${currentStopNum}/${stopsCount} · ${stopName}`;
+        }
+
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}${legBadge ? '\n' + legBadge : ''}`}>
             {/* Pickup (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1666,6 +1684,16 @@ export default function TripListPage() {
                 })()}
               </span>
             </div>
+
+            {/* Active Leg / Multi-stop Progress Pill */}
+            {legBadge && (
+              <div className="pt-0.5">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-tight bg-amber-50 text-amber-800 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/80 truncate max-w-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+                  <span className="truncate">{legBadge}</span>
+                </span>
+              </div>
+            )}
           </div>
         );
       },
@@ -1921,17 +1949,17 @@ export default function TripListPage() {
                 onClick={() => {
                   setConfirmModal({
                     isOpen: true,
-                    title: 'Delete Trip Draft',
-                    message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
+                    title: 'Delete Trip',
+                    message: `Are you sure you want to move trip ${row.ref_id || 'Draft'} to Trash?`,
                     onConfirm: async () => {
                       try {
                         await tripService.bulkDelete([row.id]);
                         queryClient.invalidateQueries({ queryKey: ['trips'] });
                         queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
                         setSelectionResetKey(k => k + 1);
-                        toast.success('Trip deleted successfully');
-                      } catch (e) {
-                        toast.error('Failed to delete trip');
+                        toast.success('Trip moved to Trash');
+                      } catch (e: any) {
+                        toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
                       }
                     }
                   });
@@ -2003,17 +2031,25 @@ export default function TripListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Trips',
-          message: `Are you sure you want to delete ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.`,
+          message: `Are you sure you want to move ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''} to Trash?`,
           onConfirm: async () => {
             try {
-              await tripService.bulkDelete(selectedRows.map(r => r.id));
+              const res = await tripService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['trips'] });
               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
               clearSelection?.();
               setSelectionResetKey(k => k + 1);
-              toast.success(`Successfully deleted ${selectedRows.length} trip${selectedRows.length > 1 ? 's' : ''}`);
-            } catch (e) {
-              toast.error('Failed to delete trips');
+              if (res?.skippedCount > 0) {
+                if (res.deletedCount > 0) {
+                  toast.warning(`Moved ${res.deletedCount} trip(s) to Trash. ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+                } else {
+                  toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or financially settled.`);
+                }
+              } else {
+                toast.success(`Successfully moved ${res?.deletedCount || selectedRows.length} trip(s) to Trash`);
+              }
+            } catch (e: any) {
+              toast.error(e.response?.data?.error?.message || 'Failed to delete trips');
             }
           }
         });
@@ -2055,7 +2091,7 @@ export default function TripListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
             <KpiCard
               title={kpiTitle}
               className="kpi-tint-trips"
@@ -2111,25 +2147,6 @@ export default function TripListPage() {
               isActive={selectedStatus === 'All'}
               onClick={() => {
                 setSelectedStatus('All');
-                setCurrentPage(1);
-              }}
-            />
-
-            <KpiCard
-              title="LOADING GOODS"
-              className="kpi-tint-trips"
-              value={
-                <span>
-                  {atPickupCount}
-                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-                </span>
-              }
-              variant="slate"
-              description="Driver reached pickup point"
-              icon={LoadingBox}
-              isActive={selectedStatus === 'AtPickup'}
-              onClick={() => {
-                setSelectedStatus('AtPickup');
                 setCurrentPage(1);
               }}
             />
@@ -2498,15 +2515,15 @@ export default function TripListPage() {
                         setConfirmModal({
                           isOpen: true,
                           title: 'Delete Trip',
-                          message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
+                          message: `Are you sure you want to move trip ${trip.ref_id} to Trash?`,
                           onConfirm: async () => {
                             try {
                               await tripService.bulkDelete([trip.id]);
                               queryClient.invalidateQueries({ queryKey: ['trips'] });
                               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-                              toast.success(`Deleted trip ${trip.ref_id}`);
-                            } catch (e) {
-                              toast.error('Failed to delete trip');
+                              toast.success(`Moved trip ${trip.ref_id} to Trash`);
+                            } catch (e: any) {
+                              toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
                             }
                           }
                         });
@@ -2570,8 +2587,15 @@ export default function TripListPage() {
                       errorMessage={(error as Error)?.message || 'Failed to load trips.'}
                       actionsElement={actionControls}
                       bulkActions={bulkActions}
+                      currentPage={currentPage}
+                      onPageChange={(page) => setCurrentPage(page)}
                       pageSize={pageSize}
-                      onPageSizeChange={(size) => setPageSize(size)}
+                      onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                      }}
+                      totalRecords={tripsRes?.meta?.total ?? trips.length}
+                      totalPages={tripsRes?.meta?.total_pages ?? Math.ceil((tripsRes?.meta?.total ?? trips.length) / pageSize)}
                       onRowClick={(row) => navigate(`/trips/${row.id}`)}
                     />
                   </div>

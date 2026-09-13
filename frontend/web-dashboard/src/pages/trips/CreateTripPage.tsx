@@ -409,6 +409,7 @@ export default function CreateTripPage() {
         contractSlots={form.contractSlots}
         contractBillingType={form.contractBillingType}
         contractVehicleType={form.contractVehicleType}
+        contractRateCategory={form.contractRateCategory}
         selectedMonth={form.selectedMonth}
         selectedDates={form.selectedDates}
         assignmentType={form.assignmentType}

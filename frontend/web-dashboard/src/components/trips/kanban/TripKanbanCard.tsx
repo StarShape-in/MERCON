@@ -78,8 +78,45 @@ const stopFullLabel = (stop: TripStop | undefined) => {
 const getTripTypeLabel = (trip: Trip): string => {
   if (trip.is_third_party) return '3PL Trip';
   const stopsCount = trip.stops?.length ?? 0;
-  if (stopsCount > 2) return 'Multi-Stop';
+  const stops = trip.stops || [];
+  if (stopsCount >= 3) {
+    const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+    const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+    if (firstLoc && lastLoc && firstLoc === lastLoc) return 'Round Trip';
+    return 'Multi-Stop';
+  }
   return 'Single Trip';
+};
+
+const getActiveLegInfo = (trip: Trip) => {
+  const stops = trip.stops || [];
+  const stopsCount = stops.length;
+  if (stopsCount === 0) return null;
+
+  const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+  const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+  const isRound = stopsCount >= 3 && firstLoc && lastLoc && firstLoc === lastLoc;
+
+  // Find active stop: first stop without actual_departure
+  const activeIdx = stops.findIndex((s) => !s.actual_departure);
+  const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+  const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
+  
+  const rawName = currentStop?.location_name || currentStop?.location?.name || '—';
+  const cleanName = rawName.replace(/🔁\s*/g, '').trim();
+
+  return {
+    stopsCount,
+    currentStopNum,
+    currentStop,
+    cleanName,
+    isRound,
+    badgeText: isRound
+      ? `Leg ${currentStopNum}/${stopsCount} (Return)`
+      : stopsCount > 2
+        ? `Stop ${currentStopNum}/${stopsCount}`
+        : null
+  };
 };
 
 export default function TripKanbanCard({
@@ -105,6 +142,7 @@ export default function TripKanbanCard({
   const dropoffName = getDropoffName(trip);
   const capacity = getTripPayloadCapacity(trip);
   const tripType = getTripTypeLabel(trip);
+  const legInfo = getActiveLegInfo(trip);
   const routeText = `${pickupName}  →  ${dropoffName}`;
   const routeTitle = `${stopFullLabel(pickup)} → ${stopFullLabel(dropoff)}`;
 
@@ -190,6 +228,11 @@ export default function TripKanbanCard({
           )}>
             {tripType}
           </span>
+          {legInfo?.badgeText && (
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded border tracking-tight uppercase bg-amber-50 text-amber-700 border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+              {legInfo.badgeText}
+            </span>
+          )}
         </div>
 
         {/* Right cluster: ref_id + actions menu */}

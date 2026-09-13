@@ -185,7 +185,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
                   {driver.first_name} {driver.last_name} — Profile Photo
                 </h3>
                 <img
-                  src={isAbdulMalik ? '/drivers/abdul_malik.jpg' : driver.avatar_url!}
+                  src={isAbdulMalik ? '/driver-assets/abdul_malik.jpg' : driver.avatar_url!}
                   alt={`${driver.first_name} ${driver.last_name}`}
                   className="max-h-[60vh] max-w-full object-contain mx-auto rounded-xl shadow-lg border border-slate-800"
                   style={{ transform: `rotate(${rotation}deg)` }}

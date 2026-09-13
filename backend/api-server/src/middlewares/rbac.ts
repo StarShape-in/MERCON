@@ -9,8 +9,11 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
       return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'User not authenticated or role missing' } });
     }
 
-    const isSuperAdminUser = req.user.role === 'SuperAdmin' || (req.user as any).isSuperAdmin === true;
-    const isAllowed = allowedRoles.includes(req.user.role) || (isSuperAdminUser && (allowedRoles.includes('Admin') || allowedRoles.includes('SuperAdmin')));
+    const roleLower = String(req.user.role || '').toLowerCase();
+    const isSuperAdminUser = roleLower === 'superadmin' || roleLower === 'super_admin' || (req.user as any).isSuperAdmin === true;
+    const allowedLower = allowedRoles.map((r) => r.toLowerCase());
+
+    const isAllowed = allowedLower.includes(roleLower) || (isSuperAdminUser && (allowedLower.includes('admin') || allowedLower.includes('superadmin')));
 
     if (!isAllowed) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied: insufficient permissions' } });

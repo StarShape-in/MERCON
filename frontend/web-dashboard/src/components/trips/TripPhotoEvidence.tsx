@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Clock, Eye, Camera, ChevronDown,
   ArrowUpRight, PackageCheck, Flag, FileText,
-  Play, Video, AlertTriangle
+  Play, Video, AlertTriangle, UploadCloud
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ interface TripPhotoEvidenceProps {
   stops?: any[];
   trip?: any;
   onPreview: (img: PhotoPreviewItem) => void;
+  onUpload?: () => void;
 }
 
 function resolveDocUrl(url?: string | null): string {
@@ -184,8 +185,47 @@ export default function TripPhotoEvidence({
   stops = [],
   trip,
   onPreview,
+  onUpload,
 }: TripPhotoEvidenceProps) {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+
+  const photoDocs = useMemo(() => {
+    return (documents || []).filter((d: any) => {
+      if (checkIsDelay(d) || checkIsVideo(d) || d.doc_type === 'DelayEvidence' || d.doc_type === 'Emergency') {
+        return false;
+      }
+      const isImg = d.mime_type?.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(d.file_url || '');
+      const isTripDoc = d.doc_type === 'POD' || d.doc_type === 'Waybill' || d.doc_type === 'Other' || d.doc_type === 'Delivery';
+      return (isImg || isTripDoc) && !!d.file_url;
+    });
+  }, [documents]);
+
+  if (photoDocs.length === 0) {
+    return (
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center text-center h-full min-h-[320px]">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+          <Camera size={24} className="text-slate-400" />
+        </div>
+        <h3 className="text-sm font-bold text-[#1F2937] mb-1">No Cargo or POD Photos Uploaded</h3>
+        <p className="text-xs text-[#6B7280] max-w-sm mb-4">
+          {trip?.status === 'Draft' || trip?.status === 'Scheduled'
+            ? 'This trip is currently scheduled. Photos recorded during pickup or delivery will appear here automatically.'
+            : 'No cargo, arrival, or proof-of-delivery photos have been attached to this trip yet.'}
+        </p>
+        {onUpload && (
+          <Button
+            onClick={onUpload}
+            variant="outline"
+            size="sm"
+            className="h-8.5 px-4 rounded-xl border-[#E5E7EB] text-[#374151] hover:bg-slate-50 text-xs font-semibold gap-2 shadow-none cursor-pointer bg-white"
+          >
+            <UploadCloud size={14} className="text-[#6B7280]" />
+            <span>Upload Document / Photo</span>
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   const effectiveEvidence: LegSection[] = useMemo(() => {
     // If no stops provided, fallback to trip origin/destination
@@ -406,40 +446,39 @@ export default function TripPhotoEvidence({
           arrivalDoc = candidatePickupDocs[0];
         }
 
-        photos.push({
-          id: `${seqStr}_arrival`,
-          title: resolveCardTitle(isReturn ? 'Return Loading Arrival' : 'Pickup Arrival Photo', arrivalDoc),
-          type: 'arrival',
-          status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
-          sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
-          isRealDoc: !!arrivalDoc,
-          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
-          isVideo: checkIsVideo(arrivalDoc),
-          isDelayEvidence: checkIsDelay(arrivalDoc),
-        });
+        if (arrivalDoc) {
+          photos.push({
+            id: `${seqStr}_arrival`,
+            title: resolveCardTitle(isReturn ? 'Return Loading Arrival' : 'Pickup Arrival Photo', arrivalDoc),
+            type: 'arrival',
+            status: 'Received',
+            location: city,
+            time: arrivalDoc.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(arrivalDoc.file_url),
+            isRealDoc: true,
+            geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+            isVideo: checkIsVideo(arrivalDoc),
+            isDelayEvidence: checkIsDelay(arrivalDoc),
+          });
+        }
 
         // Loading photos: remaining candidate docs (excluding arrivalDoc)
         const loadingDocs = candidatePickupDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
-        const loadingCount = Math.max(3, loadingDocs.length);
-
-        for (let i = 0; i < loadingCount; i++) {
-          const doc = loadingDocs[i];
+        loadingDocs.forEach((doc: any, i: number) => {
           photos.push({
             id: `${seqStr}_load_${i + 1}`,
             title: resolveCardTitle(isReturn ? `Return Loading ${i + 1}` : `Loading Photo ${i + 1}`, doc),
             type: 'proof',
-            status: doc ? 'Received' : (st.actual_departure ? 'Received' : 'Pending'),
+            status: 'Received',
             location: city,
-            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
-            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
-            isRealDoc: !!doc,
+            time: doc.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(doc.file_url),
+            isRealDoc: true,
             geotag: extractPhotoGeotag(doc, st, trip, city),
             isVideo: checkIsVideo(doc),
             isDelayEvidence: checkIsDelay(doc),
           });
-        }
+        });
       } else if (role === 'stop' || role === 'return_stop') {
         // Slot 1: Stop Arrival Photo
         let arrivalDoc = photoDocs.find((d: any) =>
@@ -468,39 +507,38 @@ export default function TripPhotoEvidence({
           }
         }
 
-        photos.push({
-          id: `${seqStr}_arrival`,
-          title: resolveCardTitle(isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo', arrivalDoc),
-          type: 'arrival',
-          status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
-          sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
-          isRealDoc: !!arrivalDoc,
-          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
-          isVideo: checkIsVideo(arrivalDoc),
-          isDelayEvidence: checkIsDelay(arrivalDoc),
-        });
+        if (arrivalDoc) {
+          photos.push({
+            id: `${seqStr}_arrival`,
+            title: resolveCardTitle(isReturn ? 'Return Stop Arrival' : 'Stop Arrival Photo', arrivalDoc),
+            type: 'arrival',
+            status: 'Received',
+            location: city,
+            time: arrivalDoc.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(arrivalDoc.file_url),
+            isRealDoc: true,
+            geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+            isVideo: checkIsVideo(arrivalDoc),
+            isDelayEvidence: checkIsDelay(arrivalDoc),
+          });
+        }
 
         const stopPhotoList = candidateStopDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
-        const stopCount = Math.max(3, stopPhotoList.length);
-
-        for (let i = 0; i < stopCount; i++) {
-          const doc = stopPhotoList[i];
+        stopPhotoList.forEach((doc: any, i: number) => {
           photos.push({
             id: `${seqStr}_stop_${i + 1}`,
             title: resolveCardTitle(isReturn ? `Return Stop ${i + 1}` : `Stop Photo ${i + 1}`, doc),
             type: 'stop',
-            status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+            status: 'Received',
             location: city,
-            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
-            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
-            isRealDoc: !!doc,
+            time: doc.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(doc.file_url),
+            isRealDoc: true,
             geotag: extractPhotoGeotag(doc, st, trip, city),
             isVideo: checkIsVideo(doc),
             isDelayEvidence: checkIsDelay(doc),
           });
-        }
+        });
       } else {
         // Delivery or Return Delivery
         // Slot 1: Arrival Photo
@@ -544,40 +582,39 @@ export default function TripPhotoEvidence({
           }
         }
 
-        photos.push({
-          id: `${seqStr}_arrival`,
-          title: resolveCardTitle(isReturn ? 'Return Delivery Arrival' : 'Delivery Arrival Photo', arrivalDoc),
-          type: 'arrival',
-          status: arrivalDoc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
-          location: city,
-          time: arrivalDoc?.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
-          sampleImg: arrivalDoc ? resolveDocUrl(arrivalDoc.file_url) : '',
-          isRealDoc: !!arrivalDoc,
-          geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
-          isVideo: checkIsVideo(arrivalDoc),
-          isDelayEvidence: checkIsDelay(arrivalDoc),
-        });
+        if (arrivalDoc) {
+          photos.push({
+            id: `${seqStr}_arrival`,
+            title: resolveCardTitle(isReturn ? 'Return Delivery Arrival' : 'Delivery Arrival Photo', arrivalDoc),
+            type: 'arrival',
+            status: 'Received',
+            location: city,
+            time: arrivalDoc.createdAt ? formatDocTime(arrivalDoc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(arrivalDoc.file_url),
+            isRealDoc: true,
+            geotag: extractPhotoGeotag(arrivalDoc, st, trip, city),
+            isVideo: checkIsVideo(arrivalDoc),
+            isDelayEvidence: checkIsDelay(arrivalDoc),
+          });
+        }
 
         // Slots 2, 3, 4: Delivery Photos
         const deliveryDocs = candidateDeliveryDocs.filter((d: any) => d !== arrivalDoc && !d.ai_extracted_json?.operation?.includes('arrival'));
-        const delCount = Math.max(3, deliveryDocs.length);
-
-        for (let i = 0; i < delCount; i++) {
-          const doc = deliveryDocs[i];
+        deliveryDocs.forEach((doc: any, i: number) => {
           photos.push({
             id: `${seqStr}_del_${i + 1}`,
             title: resolveCardTitle(isReturn ? `Return Delivery ${i + 1}` : `Delivery Photo ${i + 1}`, doc),
             type: 'document',
-            status: doc ? 'Received' : (st.actual_arrival ? 'Received' : 'Pending'),
+            status: 'Received',
             location: city,
-            time: doc?.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
-            sampleImg: doc ? resolveDocUrl(doc.file_url) : '',
-            isRealDoc: !!doc,
+            time: doc.createdAt ? formatDocTime(doc.createdAt) : stopArrivalTime,
+            sampleImg: resolveDocUrl(doc.file_url),
+            isRealDoc: true,
             geotag: extractPhotoGeotag(doc, st, trip, city),
             isVideo: checkIsVideo(doc),
             isDelayEvidence: checkIsDelay(doc),
           });
-        }
+        });
       }
 
       return {

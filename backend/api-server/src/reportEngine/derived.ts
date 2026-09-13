@@ -10,6 +10,7 @@ type Money = number | { toNumber(): number } | null | undefined;
 
 export interface TripIncomeInput {
   billing_amount: Money;
+  driver_payout?: Money;
   driver_charge?: Money;
   trip_charges?: Money;
   invoices?: { total_amount: Money }[];
@@ -25,7 +26,7 @@ export const tripIncome = (t: TripIncomeInput): number => {
   if (billing > 0) return billing;
   const invoiceTotal = asNumber(t.invoices?.[0]?.total_amount);
   if (invoiceTotal > 0) return invoiceTotal;
-  return asNumber(t.driver_charge ?? t.trip_charges);
+  return asNumber(t.driver_payout ?? t.driver_charge ?? t.trip_charges);
 };
 
 /** Only completed/invoiced trips count as earned revenue. */

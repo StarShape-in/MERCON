@@ -234,12 +234,24 @@ export default function MonthlyTripsPage() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: string[]) => tripService.bulkDelete(ids),
-    onSuccess: () => {
+    onSuccess: (res) => {
       refetch();
       setSelectedTripIds([]);
       setIsDeleteConfirmOpen(false);
       setIsSingleDeleteConfirmOpen(false);
       setTripToDelete(null);
+      if (res?.skippedCount > 0) {
+        if (res.deletedCount > 0) {
+          toast.warning(`Moved ${res.deletedCount} trip(s) to Trash. ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+        } else {
+          toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or financially settled.`);
+        }
+      } else {
+        toast.success(`Successfully moved ${res?.deletedCount || 'selected'} trip(s) to Trash`);
+      }
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.error?.message || 'Failed to delete trip(s)');
     },
   });
 

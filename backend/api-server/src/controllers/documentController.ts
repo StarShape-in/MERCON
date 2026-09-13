@@ -154,7 +154,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       data: {
         entity_type,
         entity_id,
-        doc_type: doc_type as DocType,
+        doc_type: doc_type ? (doc_type as DocType) : null,
         documentTypeId: documentType?.id ?? null,
         status: DocStatus.PendingReview,
         file_url,

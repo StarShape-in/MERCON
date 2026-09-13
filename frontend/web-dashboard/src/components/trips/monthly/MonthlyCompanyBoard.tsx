@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Truck,
@@ -118,24 +118,24 @@ function CompanyProfileLogo({ customer }: { customer: { name: string; logo_url?:
 
 const TEMPLATE_PALETTES = [
   {
+    border: 'border-[#FA634E]/40 dark:border-[#FA634E]/30',
+    badge: 'bg-[#FA634E]/10 text-[#FA634E] dark:bg-[#FA634E]/20 dark:text-[#FA634E] border-[#FA634E]/30',
+  },
+  {
+    border: 'border-blue-300 dark:border-blue-800',
+    badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  },
+  {
     border: 'border-purple-300 dark:border-purple-800',
     badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-  },
-  {
-    border: 'border-emerald-300 dark:border-emerald-800',
-    badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-  },
-  {
-    border: 'border-sky-300 dark:border-sky-800',
-    badge: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-800',
   },
   {
     border: 'border-amber-300 dark:border-amber-800',
     badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   },
   {
-    border: 'border-rose-300 dark:border-rose-800',
-    badge: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    border: 'border-emerald-300 dark:border-emerald-800',
+    badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
   },
   {
     border: 'border-indigo-300 dark:border-indigo-800',
@@ -151,7 +151,7 @@ function getTemplatePalette(index: number) {
   return TEMPLATE_PALETTES[index % TEMPLATE_PALETTES.length];
 }
 
-function CompanyColumn({
+const CompanyColumn = memo(function CompanyColumn({
   company,
   selectedTripIds = [],
   search = '',
@@ -296,7 +296,7 @@ function CompanyColumn({
       </div>
     </div>
   );
-}
+});
 
 /** Big Card for a specific Template (Line Type + Vehicle Class + Route + Rate) */
 function TemplateBigCard({
@@ -417,7 +417,7 @@ function TemplateBigCard({
   );
 }
 
-function TripPreviewRow({
+const TripPreviewRow = memo(function TripPreviewRow({
   trip,
   isSelected = false,
   onToggle,
@@ -531,4 +531,4 @@ function TripPreviewRow({
       </div>
     </div>
   );
-}
+});

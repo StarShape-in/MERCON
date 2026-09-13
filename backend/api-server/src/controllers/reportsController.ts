@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { prisma } from '../db';
-import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { TripStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { getEnabledModules } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
 
@@ -36,15 +36,15 @@ export const getSummary = async (req: Request, res: Response) => {
       prisma.vehicle.count({ where: { deletedAt: null, isActive: true, status: AssetStatus.Available } }),
       // On-trip vehicles
       prisma.vehicle.count({ where: { deletedAt: null, isActive: true, status: AssetStatus.OnTrip } }),
-      // Revenue this month (paid invoices)
-      prisma.invoice.aggregate({
-        where: { deletedAt: null, status: InvoiceStatus.Paid, createdAt: { gte: startOfMonth } },
-        _sum: { total_amount: true }
+      // Revenue this month (completed trips)
+      prisma.trip.aggregate({
+        where: { deletedAt: null, status: TripStatus.Completed, createdAt: { gte: startOfMonth } },
+        _sum: { billing_amount: true }
       }),
       // Revenue last month
-      prisma.invoice.aggregate({
-        where: { deletedAt: null, status: InvoiceStatus.Paid, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
-        _sum: { total_amount: true }
+      prisma.trip.aggregate({
+        where: { deletedAt: null, status: TripStatus.Completed, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
+        _sum: { billing_amount: true }
       }),
       // Trip distribution by status
       prisma.trip.groupBy({
@@ -79,8 +79,8 @@ export const getSummary = async (req: Request, res: Response) => {
     const invoicesOn = enabledModules.has('invoices');
     const documentsOn = enabledModules.has('documents');
 
-    const revenueNow = Number(revenueThisMonth._sum.total_amount ?? 0);
-    const revenuePrev = Number(revenueLastMonth._sum.total_amount ?? 0);
+    const revenueNow = Number(revenueThisMonth._sum.billing_amount ?? 0);
+    const revenuePrev = Number(revenueLastMonth._sum.billing_amount ?? 0);
     const tripsDelta = totalTripsLastMonth > 0
       ? Math.round(((totalTripsThisMonth - totalTripsLastMonth) / totalTripsLastMonth) * 100)
       : 0;
@@ -223,8 +223,7 @@ export const getDriverPerformance = async (req: Request, res: Response) => {
         name: `${d.first_name} ${d.last_name}`,
         status: d.status,
         total_trips: d.trips.length,
-        completed_trips: completed.length,
-        ai_risk_score: d.ai_risk_score
+        completed_trips: completed.length
       };
     });
 
@@ -262,46 +261,45 @@ export const getRevenueReport = async (req: Request, res: Response) => {
       ORDER BY DATE_TRUNC('month', "createdAt") ASC
     `;
 
-    const totalRevenue = await prisma.invoice.aggregate({
-      where: { deletedAt: null, status: InvoiceStatus.Paid },
-      _sum: { total_amount: true },
+    const totalRevenue = await prisma.trip.aggregate({
+      where: { deletedAt: null, status: TripStatus.Completed },
+      _sum: { billing_amount: true },
       _count: true
     });
 
-    // Outstanding = issued but not yet settled (Pending + Overdue)
-    const outstanding = await prisma.invoice.aggregate({
-      where: { deletedAt: null, status: { in: [InvoiceStatus.Pending, InvoiceStatus.Overdue] } },
-      _sum: { total_amount: true }
+    const outstanding = await prisma.trip.aggregate({
+      where: { deletedAt: null, is_post_trip_settled: false },
+      _sum: { billing_amount: true }
     });
 
-    // Top customers by paid revenue
-    const grouped = await prisma.invoice.groupBy({
+    // Top customers by revenue
+    const grouped = await prisma.trip.groupBy({
       by: ['customerId'],
-      where: { deletedAt: null, status: InvoiceStatus.Paid },
-      _sum: { total_amount: true },
-      orderBy: { _sum: { total_amount: 'desc' } },
+      where: { deletedAt: null, status: TripStatus.Completed },
+      _sum: { billing_amount: true },
+      orderBy: { _sum: { billing_amount: 'desc' } },
       take: 5
     });
     const customers = await prisma.customer.findMany({
-      where: { id: { in: grouped.map((g) => g.customerId) } },
+      where: { id: { in: grouped.map((g: { customerId: string }) => g.customerId) } },
       select: { id: true, name: true }
     });
     const nameById = new Map(customers.map((c) => [c.id, c.name]));
-    const top_customers = grouped.map((g) => ({
+    const top_customers = grouped.map((g: { customerId: string; _sum: { billing_amount: any } }) => ({
       id: g.customerId,
       name: nameById.get(g.customerId) ?? 'Unknown',
-      value: g._sum.total_amount ?? 0
+      value: Number(g._sum.billing_amount ?? 0)
     }));
 
     const paidCount = totalRevenue._count;
-    const paidTotal = Number(totalRevenue._sum.total_amount ?? 0);
+    const paidTotal = Number(totalRevenue._sum.billing_amount ?? 0);
 
     res.json({
       success: true,
       data: {
         monthly_breakdown: rows,
         total_all_time: paidTotal,
-        outstanding_total: outstanding._sum.total_amount ?? 0,
+        outstanding_total: outstanding._sum.billing_amount ?? 0,
         paid_invoice_count: paidCount,
         avg_per_invoice: paidCount > 0 ? paidTotal / paidCount : 0,
         top_customers
@@ -347,7 +345,6 @@ export const getCustomReport = async (req: Request, res: Response) => {
       vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
       stops: { orderBy: { stop_sequence: 'asc' as const } },
       charges: true,
-      ...(invoicesOn ? { invoices: true } : {}),
     };
 
     // No row cap — page internally so a full month's ledger exports
@@ -370,24 +367,12 @@ export const getCustomReport = async (req: Request, res: Response) => {
     const statusMap: Record<string, number> = {};
     for (const t of allTrips) statusMap[t.status] = (statusMap[t.status] ?? 0) + 1;
 
-    // For revenue, we filter invoices based on the same criteria
     let totalRevenue: number | null = null;
-    if (invoicesOn) {
-      const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
-      if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
-      if (endDate) {
-        const end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999);
-        invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
-      }
-      if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
-
-      const revenueAgg = await prisma.invoice.aggregate({
-        where: invoiceWhere,
-        _sum: { total_amount: true }
-      });
-      totalRevenue = Number(revenueAgg._sum.total_amount ?? 0);
-    }
+    const revenueAgg = await prisma.trip.aggregate({
+      where: { ...whereClause, status: TripStatus.Completed },
+      _sum: { billing_amount: true }
+    });
+    totalRevenue = Number(revenueAgg._sum.billing_amount ?? 0);
 
     res.json({
       success: true,
@@ -399,15 +384,10 @@ export const getCustomReport = async (req: Request, res: Response) => {
         trip_status_distribution: statusMap,
         trips: allTrips.map(t => {
           const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
-          const invoice = invoicesOn ? t.invoices?.[0] : undefined;
-          // t.billing_amount / invoice.subtotal / invoice.total_amount / t.trip_charges
-          // are all Decimal at runtime (Prisma money columns) — `+`/`-` on a raw
-          // Decimal silently does string concatenation, not arithmetic, so every
-          // value is converted with Number() before it's used in an operator.
-          const billing = Number(t.billing_amount ?? invoice?.subtotal ?? 0);
+          const billing = Number(t.billing_amount ?? 0);
           const chargesTotal = computeTripChargesTotal(t.charges);
-          const totalAmt = invoice?.total_amount != null ? Number(invoice.total_amount) : billing + chargesTotal;
-          const driverCharge = Number(t.driver_charge ?? 0);
+          const totalAmt = billing + chargesTotal;
+          const driverCharge = Number((t as any).driver_payout ?? t.driver_charge ?? 0);
           const balance = totalAmt - (chargesTotal + driverCharge);
           const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
 
@@ -426,6 +406,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
             charges: t.charges,
             billing_amount: billing,
             total_amount: totalAmt,
+            driver_payout: driverCharge,
             trip_charges: driverCharge,
             driver_charge: driverCharge,
             balance_amount: balance,

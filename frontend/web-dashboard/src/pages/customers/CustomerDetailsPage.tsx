@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
-  DollarSign, Plus, RotateCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
+  Plus, RotateCw, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
   Trash2, UploadCloud, User, Download, ChevronDown, Car, UserCheck, Copy, PhoneCall,
   MoreVertical, Award, FolderOpen, Banknote, Gauge
@@ -14,7 +14,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { customerService } from '@/services/customerService';
-import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { locationService, Location } from '@/services/locationService';
@@ -85,7 +84,7 @@ export default function CustomerDetailsPage() {
   const RATES_PER_PAGE = 5;
 
   // Segmented Tab for Commercial & Operational Profile
-  const [activeTab, setActiveTab] = useState<'quotations' | 'dispatches' | 'invoices' | 'saved_places'>('quotations');
+  const [activeTab, setActiveTab] = useState<'quotations' | 'dispatches' | 'saved_places'>('quotations');
 
   // Fetch Customer details
   const { data: customer, isLoading, error } = useQuery({
@@ -101,12 +100,7 @@ export default function CustomerDetailsPage() {
     }
   }, [customer?.id, id, navigate]);
 
-  // Fetch Invoices for this customer
-  const { data: invoicesResponse } = useQuery({
-    queryKey: ['invoices', { customer_id: id }],
-    queryFn: () => invoiceService.getAll({ customer_id: id }),
-    enabled: !!id,
-  });
+
 
   // This customer's negotiated price list.
   const { data: rateCardsResponse } = useQuery({
@@ -131,7 +125,6 @@ export default function CustomerDetailsPage() {
   const refreshCustomer = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['customer', id] });
-    await queryClient.invalidateQueries({ queryKey: ['invoices', { customer_id: id }] });
     await queryClient.invalidateQueries({ queryKey: ['rate-cards', 'customer', id] });
     await queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] });
     setTimeout(() => setIsRefreshing(false), 500);
@@ -180,21 +173,9 @@ export default function CustomerDetailsPage() {
     );
   }
 
-  // Filter invoices for this customer
-  const allInvoices = Array.isArray(invoicesResponse) 
-    ? invoicesResponse 
-    : (invoicesResponse as any)?.data || [];
-  const customerInvoices = allInvoices.filter((inv: any) => inv.customer?.id === id || inv.customer_id === id);
-
   const customerRateCards = rateCardsResponse?.data || [];
   const totalRatesPages = Math.ceil(customerRateCards.length / RATES_PER_PAGE) || 1;
   const paginatedRateCards = customerRateCards.slice((ratesPage - 1) * RATES_PER_PAGE, ratesPage * RATES_PER_PAGE);
-
-  // Calculations for Financial Exposure
-  const totalBilledInvoices = customerInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
-  const pendingInvoicesAmount = customerInvoices
-    .filter((inv: any) => inv.status === 'Pending' || inv.status === 'Overdue')
-    .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
 
 
 
@@ -216,6 +197,12 @@ export default function CustomerDetailsPage() {
   // On-time trips calculation
   const onTimeTripsCount = customerTrips.filter((t: any) => !t.is_delayed && t.status !== 'Delayed').length;
   const onTimeRatio = totalTripsCount > 0 ? Math.round((onTimeTripsCount / totalTripsCount) * 100) : 95;
+
+  // Commercial Revenue from Trips
+  const totalTripRevenue = customerTrips.reduce((acc: number, t: any) => {
+    const rate = Number(t.financials?.agreed_rate ?? t.agreed_rate ?? t.billing_rate ?? 0);
+    return acc + (isNaN(rate) ? 0 : rate);
+  }, 0);
 
   // Operational Contact Reps
   const primaryRep = {
@@ -682,7 +669,7 @@ export default function CustomerDetailsPage() {
                   </div>
                 </div>
 
-                {/* 3. Total Billed Revenue (Coral Red Theme) */}
+                {/* 3. Total Commercial Revenue (Coral Red Theme) */}
                 <div className="p-3.5 rounded-[18px] bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 flex flex-col justify-between shadow-2xs">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[9px] font-bold text-rose-900/70 dark:text-rose-300 uppercase tracking-wider">Revenue</span>
@@ -692,11 +679,11 @@ export default function CustomerDetailsPage() {
                   </div>
                   <div>
                     <div className="text-xs 2xl:text-sm font-black text-[#FA634E] dark:text-rose-400 leading-none truncate">
-                      SAR {totalBilledInvoices.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                      SAR {totalTripRevenue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                     </div>
                     <div className="mt-2.5 pt-1.5 border-t border-rose-200/50 dark:border-rose-900/40 flex items-center">
                       <span className="text-[9px] font-bold text-[#FA634E] dark:text-rose-300 bg-rose-100/80 dark:bg-rose-900/50 px-2 py-0.5 rounded-full border border-rose-200/60 truncate">
-                        {customerInvoices.length} Invoices
+                        {completedTripsCount} Completed Trips
                       </span>
                     </div>
                   </div>
@@ -1064,22 +1051,6 @@ export default function CustomerDetailsPage() {
                 </Badge>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('invoices')}
-                className={cn(
-                  "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                  activeTab === 'invoices'
-                    ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                )}
-              >
-                <Receipt className="w-3.5 h-3.5 text-[#FA634E]" />
-                <span>Invoices</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-rose-50 text-[#FA634E] dark:bg-rose-950/60">
-                  {customerInvoices.length}
-                </Badge>
-              </button>
 
               <button
                 type="button"
@@ -1162,90 +1133,6 @@ export default function CustomerDetailsPage() {
             />
           )}
 
-          {/* Tab 3: Invoices Table */}
-          {activeTab === 'invoices' && (
-            <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#FA634E]" />
-                  <span>Commercial Invoices & Billing Status</span>
-                </span>
-              }
-              actionsElement={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/invoices/new')}
-                  className="h-8 text-xs font-bold border-slate-200 text-[#FA634E] rounded-xl"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> New Invoice
-                </Button>
-              }
-              columns={[
-                {
-                  header: 'Invoice #',
-                  accessor: (inv: any) => (
-                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
-                  ),
-                },
-                {
-                  header: 'Date',
-                  accessor: (inv: any) => (
-                    <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                      {formatInDeploymentTz(inv.createdAt, tz, 'MM/dd/yyyy')}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Total Amount',
-                  accessor: (inv: any) => (
-                    <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-                      SAR {Number(inv.total_amount || 0).toLocaleString()}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Payment Status',
-                  accessor: (inv: any) => (
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[9px] font-bold rounded-lg ${
-                        inv.status === 'Paid' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : inv.status === 'Overdue' 
-                          ? 'bg-rose-50 text-rose-700 border-rose-200' 
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}
-                    >
-                      {inv.status || 'Pending'}
-                    </Badge>
-                  ),
-                },
-                {
-                  header: 'Action',
-                  headerClassName: 'text-right',
-                  className: 'text-right',
-                  accessor: (inv: any) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/invoices/${inv.id}`)}
-                      className="h-7 w-7 p-0 text-slate-500 hover:text-[#FA634E]"
-                      title="View Invoice"
-                    >
-                      <Eye size={13} />
-                    </Button>
-                  ),
-                },
-              ]}
-              data={customerInvoices}
-              compact={true}
-              enableSelection={false}
-              emptyTitle="No Invoices Found"
-              emptyMessage="No billing invoices issued for this customer account yet."
-              onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
-            />
-          )}
 
           {/* Tab 4: Locations Card */}
           {activeTab === 'saved_places' && (

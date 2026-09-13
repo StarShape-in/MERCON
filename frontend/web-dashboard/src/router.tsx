@@ -80,11 +80,7 @@ const EditQuotationPage        = lazyWithRetry(() => import('@/pages/quotations/
 const QuotationDocsPage        = lazyWithRetry(() => import('@/pages/quotations/QuotationDocsPage'));
 const QuotationAiImportPage    = lazyWithRetry(() => import('@/pages/quotations/QuotationAiImportPage'));
 
-// Invoices
-const InvoiceListPage         = lazyWithRetry(() => import('@/pages/invoices/InvoiceListPage'));
-const InvoiceDetailsPage      = lazyWithRetry(() => import('@/pages/invoices/InvoiceDetailsPage'));
-const InvoicePrintTemplate    = lazyWithRetry(() => import('@/pages/invoices/InvoicePrintTemplate'));
-const PaymentStatusPage       = lazyWithRetry(() => import('@/pages/invoices/PaymentStatusPage'));
+
 
 // Expenses
 const ExpenseListPage         = lazyWithRetry(() => import('@/pages/expenses/ExpenseListPage'));
@@ -251,13 +247,6 @@ export default function AppRouter() {
             <Route path="/rate-cards/:id"           element={<QuotationIdRedirect />} />
             <Route path="/rate-cards/:id/edit"      element={<EditQuotationPage />} />
             <Route path="/rate-cards/:id/documents" element={<QuotationDocsPage />} />
-
-            {/* Invoices */}
-            <Route path="/invoices"                 element={<RequireModule moduleKey="invoices"><InvoiceListPage /></RequireModule>} />
-            <Route path="/invoices/new"             element={<Navigate to="/invoices?action=mark" replace />} />
-            <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
-            <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
-            <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />
 
             {/* Expenses */}
             <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
