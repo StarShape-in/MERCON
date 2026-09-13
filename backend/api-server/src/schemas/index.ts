@@ -266,9 +266,13 @@ export const updateTripStopBody = z.object({
 export const bulkImportLocationsBody = z.object({
   rows: z.array(z.object({
     name: nonEmpty('Location name'),
+    code: safeImportString(z.string().trim().max(100).optional()),
+    city: safeImportString(z.string().trim().max(100).optional()),
     address: safeImportString(z.string().trim().max(300).optional()),
+    postal_code: safeImportString(z.string().trim().max(50).optional()),
     lat: coercedNumber(z.number().min(-90).max(90).optional()),
     lng: coercedNumber(z.number().min(-180).max(180).optional()),
+    coordinate_precision: safeImportString(z.string().trim().max(50).optional()),
     codes: safeImportString(z.string().trim().max(500).optional()),
     customer_name: safeImportString(z.string().trim().max(200).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
