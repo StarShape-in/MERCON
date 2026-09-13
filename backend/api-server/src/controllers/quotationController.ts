@@ -138,7 +138,6 @@ export const createQuotation = async (req: Request, res: Response) => {
           is_active: is_active ?? true,
           line_type: rateCategory,
           operation_type: billingType || req.body.operation_type || null,
-          billing_type: billingType || req.body.operation_type || null,
           pricing_basis: pricingBasis,
           vehicle_class: vehicleClass,
           source_vehicle_label: vehicleType,
