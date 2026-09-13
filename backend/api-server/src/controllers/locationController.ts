@@ -601,6 +601,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
 export const deleteLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const force = req.query.force === 'true' || req.body?.force === true;
 
     const location = await prisma.location.findFirst({
       where: { id: id as string, deletedAt: null },
@@ -625,21 +626,30 @@ export const deleteLocation = async (req: Request, res: Response) => {
       }),
     ]);
 
-    if (tripStopCount > 0 || quotationStopCount > 0) {
+    if ((tripStopCount > 0 || quotationStopCount > 0) && !force) {
       const usageParts: string[] = [];
-      if (tripStopCount > 0) usageParts.push(`${tripStopCount} active trip(s)`);
-      if (quotationStopCount > 0) usageParts.push(`${quotationStopCount} quotation(s)`);
+      if (tripStopCount > 0) usageParts.push(`${tripStopCount} active trip stop(s)`);
+      if (quotationStopCount > 0) usageParts.push(`${quotationStopCount} quotation stop(s)`);
 
       return res.status(409).json({
         success: false,
         error: {
           code: 'REFERENTIAL_INTEGRITY_VIOLATION',
-          message: `Cannot delete location "${location.name}" because it is referenced by ${usageParts.join(' and ')}. Deactivate the location instead.`,
+          message: `Cannot delete location "${location.name}" because it is referenced by ${usageParts.join(' and ')}. You can deactivate it, or confirm force delete to unlink it.`,
+          details: {
+            tripStopCount,
+            quotationStopCount,
+            canForce: true,
+          },
         },
       });
     }
 
-    await prisma.location.delete({ where: { id: id as string } });
+    await prisma.$transaction([
+      prisma.tripStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.quotationStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.location.delete({ where: { id: id as string } }),
+    ]);
 
     res.json({ success: true, message: 'Location deleted successfully' });
   } catch (error: any) {

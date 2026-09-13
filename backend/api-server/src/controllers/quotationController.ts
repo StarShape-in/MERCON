@@ -477,6 +477,7 @@ export const deleteQuotation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const targetId = id as string;
+    const force = req.query.force === 'true' || req.body?.force === true;
 
     const quotation = await prisma.quotation.findFirst({
       where: { id: targetId, deletedAt: null },
@@ -491,18 +492,23 @@ export const deleteQuotation = async (req: Request, res: Response) => {
       where: { quotationId: targetId, deletedAt: null }
     });
 
-    if (linkedTripsCount > 0) {
+    if (linkedTripsCount > 0 && !force) {
       const label = quotation.name || quotation.quotationNumber || targetId;
       return res.status(409).json({
         success: false,
         error: {
           code: 'REFERENTIAL_INTEGRITY_VIOLATION',
-          message: `Cannot delete quotation "${label}" because it is linked to ${linkedTripsCount} active trip(s). Deactivate or archive the quotation instead.`
+          message: `Cannot delete quotation "${label}" because it is linked to ${linkedTripsCount} active trip(s). You can archive it, or confirm force delete to detach it.`,
+          details: {
+            linkedTripsCount,
+            canForce: true,
+          },
         }
       });
     }
 
     await prisma.$transaction([
+      prisma.trip.updateMany({ where: { quotationId: targetId }, data: { quotationId: null } }),
       prisma.surchargeRule.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotationStop.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotationHistory.deleteMany({ where: { quotationId: targetId } }),
