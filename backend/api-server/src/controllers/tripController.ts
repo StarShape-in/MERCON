@@ -1066,11 +1066,12 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         if (row.customer_id) {
           customer = await prisma.customer.findFirst({ where: { id: row.customer_id, deletedAt: null } });
         } else if (row.customer_name) {
+          const cName = String(row.customer_name).trim();
           customer = await prisma.customer.findFirst({
             where: {
               OR: [
-                { name: { equals: row.customer_name, mode: 'insensitive' } },
-                { company_name: { equals: row.customer_name, mode: 'insensitive' } },
+                { name: { equals: cName, mode: 'insensitive' } },
+                { name: { contains: cName, mode: 'insensitive' } },
               ],
               deletedAt: null,
             },
