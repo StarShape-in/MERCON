@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
-import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, type DelayDetection } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, resolveAuthoritativeActiveStop, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 import { compressUploadedImage } from '../services/imageCompressor';
@@ -30,8 +30,9 @@ const tripInclude = {
 
 const attachTripDocuments = async (trip: any) => {
   if (!trip) return trip;
+  let docs: any[] = [];
   try {
-    const docs = await prisma.document.findMany({
+    docs = await prisma.document.findMany({
       where: { entity_type: 'Trip', entity_id: trip.id, deletedAt: null },
       select: {
         id: true,
@@ -43,11 +44,15 @@ const attachTripDocuments = async (trip: any) => {
       },
       orderBy: { createdAt: 'asc' },
     });
-    return { ...trip, documents: docs };
   } catch (e) {
     logger.warn({ err: e }, 'Failed to attach trip documents:');
-    return { ...trip, documents: [] };
   }
+  const authoritative_active_stop = resolveAuthoritativeActiveStop(
+    trip.stops,
+    trip.driver_workflow_state,
+    trip.status,
+  );
+  return { ...trip, documents: docs, authoritative_active_stop };
 };
 
 export const getCurrentTrip = async (req: Request, res: Response) => {
@@ -277,7 +282,7 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({ where: { id, driverId, deletedAt: null } });
     if (!trip) return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
 
-    const { location_lat, location_lng, captured_at, leg_index, operation } = req.body || {};
+    const { location_lat, location_lng, captured_at, leg_index, operation, stop_id } = req.body || {};
     const notes = (location_lat && location_lng)
       ? `📍 [GPS: ${location_lat}, ${location_lng}] Captured: ${captured_at || new Date().toISOString()}`
       : undefined;
@@ -308,6 +313,7 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
           gps: (location_lat && location_lng) ? { latitude: location_lat, longitude: location_lng, captured_at } : undefined,
           leg_index: leg_index !== undefined ? Number(leg_index) : undefined,
           operation: operation || undefined,
+          stop_id: stop_id || undefined,
         },
         created_by: isValidUuid ? userId : undefined,
       },

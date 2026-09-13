@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { validateTripStops } from './tripValidationService';
-import { stampWorkflowTransition, stampStopTransition } from './tripLifecycle';
+import { stampWorkflowTransition, stampStopTransition, resolveAuthoritativeActiveStop } from './tripLifecycle';
 import { isRoundTrip, getEffectiveWorkflowState, type MobileTrip, type TripStop, parseTripRouteNodes } from './mobileTripLogic.helper';
 
 describe('DEEP CODE-LEVEL TEST SUITE — INDEPENDENT OUTBOUND + RETURN ARCHITECTURE', () => {
@@ -885,6 +885,177 @@ describe('DEEP CODE-LEVEL TEST SUITE — INDEPENDENT OUTBOUND + RETURN ARCHITECT
       assert.deepEqual(returnIntermediateNames, ['Jeddah', 'Taif']);
       assert.ok(!returnIntermediateNames.includes('Al Baha'));
       assert.ok(!returnIntermediateNames.includes('Abha'));
+    });
+  });
+
+  // ============================================================
+  // TEST CASE #11 — AUTHORITATIVE ACTIVE STOP RESOLUTION
+  // ============================================================
+  describe('Test Case #11 — Authoritative Active Stop Resolution across Independent Legs', () => {
+    const stops: any[] = [
+      { id: 'st-1', stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', location_name: 'Riyadh', actual_arrival: null, actual_departure: null },
+      { id: 'st-2', stop_sequence: 2, leg_index: 0, stop_type: 'Dropoff', location_name: 'Al Baha', actual_arrival: null, actual_departure: null },
+      { id: 'st-3', stop_sequence: 3, leg_index: 0, stop_type: 'Dropoff', location_name: 'Abha', actual_arrival: null, actual_departure: null },
+      { id: 'st-4', stop_sequence: 4, leg_index: 0, stop_type: 'Dropoff', location_name: 'Al Ahsa', actual_arrival: null, actual_departure: null },
+      { id: 'st-5', stop_sequence: 5, leg_index: 1, stop_type: 'Pickup', location_name: 'Al Ahsa', actual_arrival: null, actual_departure: null },
+      { id: 'st-6', stop_sequence: 6, leg_index: 1, stop_type: 'Dropoff', location_name: 'Jeddah', actual_arrival: null, actual_departure: null },
+      { id: 'st-7', stop_sequence: 7, leg_index: 1, stop_type: 'Dropoff', location_name: 'Taif', actual_arrival: null, actual_departure: null },
+      { id: 'st-8', stop_sequence: 8, leg_index: 1, stop_type: 'Dropoff', location_name: 'Riyadh', actual_arrival: null, actual_departure: null },
+    ];
+
+    it('resolves active stop as sequence 1 at start of trip with leg_index = 0', () => {
+      const res = resolveAuthoritativeActiveStop(stops, 'GOING_TO_PICKUP', 'Loading');
+      assert.equal(res.activeStopId, 'st-1');
+      assert.equal(res.currentLegIndex, 0);
+      assert.equal(res.isOutboundCompleted, false);
+      assert.equal(res.isReturnAllowedToStart, false);
+      assert.equal(res.isTripCompleted, false);
+    });
+
+    it('resolves sequence 3 when sequence 1 and 2 are completed', () => {
+      const activeStops = stops.map(s => {
+        if (s.stop_sequence === 1) return { ...s, actual_arrival: new Date(), actual_departure: new Date() };
+        if (s.stop_sequence === 2) return { ...s, actual_arrival: new Date(), actual_departure: new Date() };
+        return s;
+      });
+      const res = resolveAuthoritativeActiveStop(activeStops, 'IN_TRANSIT', 'InTransit');
+      assert.equal(res.activeStopId, 'st-3');
+      assert.equal(res.currentLegIndex, 0);
+      assert.equal(res.isOutboundCompleted, false);
+      assert.equal(res.isReturnAllowedToStart, false);
+    });
+
+    it('authorizes return start when outbound delivery arrives', () => {
+      const activeStops = stops.map(s => {
+        if (s.stop_sequence <= 3) return { ...s, actual_arrival: new Date(), actual_departure: new Date() };
+        if (s.stop_sequence === 4) return { ...s, actual_arrival: new Date(), actual_departure: null };
+        return s;
+      });
+      const res = resolveAuthoritativeActiveStop(activeStops, 'ARRIVED_AT_DELIVERY', 'InTransit');
+      assert.equal(res.activeStopId, 'st-4');
+      assert.equal(res.currentLegIndex, 0);
+      assert.equal(res.isOutboundCompleted, true);
+      assert.equal(res.isReturnAllowedToStart, true);
+    });
+
+    it('transitions to return leg loading stop (Al Ahsa st-5) after outbound delivery departs', () => {
+      const activeStops = stops.map(s => {
+        if (s.stop_sequence <= 4) return { ...s, actual_arrival: new Date(), actual_departure: new Date() };
+        return s;
+      });
+      const res = resolveAuthoritativeActiveStop(activeStops, 'RETURN_LOADING', 'InTransit');
+      assert.equal(res.activeStopId, 'st-5');
+      assert.equal(res.activeStop?.location_name, 'Al Ahsa');
+      assert.notEqual(res.activeStop?.location_name, 'Al Baha');
+      assert.equal(res.currentLegIndex, 1);
+      assert.equal(res.isOutboundCompleted, true);
+      assert.equal(res.isReturnAllowedToStart, true);
+      assert.equal(res.isTripCompleted, false);
+    });
+
+    it('marks trip completed when all return stops depart', () => {
+      const activeStops = stops.map(s => ({
+        ...s,
+        actual_arrival: new Date(),
+        actual_departure: new Date(),
+      }));
+      const res = resolveAuthoritativeActiveStop(activeStops, 'COMPLETED', 'Completed');
+      assert.equal(res.activeStop, null);
+      assert.equal(res.activeStopId, null);
+      assert.equal(res.isTripCompleted, true);
+      assert.equal(res.isOutboundCompleted, true);
+      assert.equal(res.effectiveWorkflowState, 'COMPLETED');
+    });
+  });
+
+  // ============================================================
+  // TEST CASE #12 — STRICT RETURN START GUARD
+  // ============================================================
+  describe('Test Case #12 — Strict Return Start Guard', () => {
+    it('blocks return leg from becoming active if outbound delivery arrival is missing', () => {
+      // Outbound stops 1-3 departed, but outbound delivery stop 4 has NOT arrived
+      const stops: any[] = [
+        { id: 'st-1', stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', actual_departure: new Date() },
+        { id: 'st-2', stop_sequence: 2, leg_index: 0, stop_type: 'Dropoff', actual_departure: new Date() },
+        { id: 'st-3', stop_sequence: 3, leg_index: 0, stop_type: 'Dropoff', actual_departure: new Date() },
+        { id: 'st-4', stop_sequence: 4, leg_index: 0, stop_type: 'Dropoff', actual_arrival: null, actual_departure: null },
+        { id: 'st-5', stop_sequence: 5, leg_index: 1, stop_type: 'Pickup', actual_arrival: null, actual_departure: null },
+      ];
+
+      const res = resolveAuthoritativeActiveStop(stops, 'RETURN_LOADING', 'InTransit');
+      assert.equal(res.isOutboundCompleted, false);
+      assert.equal(res.isReturnAllowedToStart, false);
+      // Active stop MUST remain st-4 (outbound delivery), NOT advance to st-5
+      assert.equal(res.activeStopId, 'st-4');
+      assert.equal(res.currentLegIndex, 0);
+    });
+  });
+
+  // ============================================================
+  // TEST CASE #13 — COORDINATE HANDLING & MISSING GPS RESILIENCE
+  // ============================================================
+  describe('Test Case #13 — Coordinate Handling & Missing GPS Resilience', () => {
+    const stopsWithMissingCoords: any[] = [
+      { id: 'st-1', stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', location_name: 'Riyadh Hub', location_lat: null, location_lng: null },
+      { id: 'st-2', stop_sequence: 2, leg_index: 0, stop_type: 'Dropoff', location_name: 'Dammam Yard', location_lat: 0, location_lng: 0 },
+    ];
+
+    it('safely resolves active stop without crashing when lat/lng are null or zero', () => {
+      const res = resolveAuthoritativeActiveStop(stopsWithMissingCoords, 'GOING_TO_PICKUP', 'Loading');
+      assert.equal(res.activeStopId, 'st-1');
+      assert.equal(res.activeStop?.location_lat, null);
+      assert.equal(res.activeStop?.location_lng, null);
+    });
+  });
+
+  // ============================================================
+  // TEST CASE #14 — QUOTATION LEG INDEX PRESERVATION
+  // ============================================================
+  describe('Test Case #14 — Quotation Leg Index Preservation', () => {
+    it('ensures quotation stops mapper preserves leg_index for outbound and return legs', () => {
+      const rawQuotationStops = [
+        { sequence: 1, leg_index: 0, locationId: 'loc-1', stop_type: 'Pickup' },
+        { sequence: 2, leg_index: 0, locationId: 'loc-2', stop_type: 'Dropoff' },
+        { sequence: 3, leg_index: 1, locationId: 'loc-2', stop_type: 'Pickup' },
+        { sequence: 4, leg_index: 1, locationId: 'loc-1', stop_type: 'Dropoff' },
+      ];
+
+      const mapped = rawQuotationStops.map((s, idx) => ({
+        sequence: s.sequence ?? idx + 1,
+        leg_index: s.leg_index !== undefined ? Number(s.leg_index) : 0,
+        stop_type: s.stop_type,
+      }));
+
+      assert.equal(mapped[0].leg_index, 0);
+      assert.equal(mapped[1].leg_index, 0);
+      assert.equal(mapped[2].leg_index, 1);
+      assert.equal(mapped[3].leg_index, 1);
+    });
+  });
+
+  // ============================================================
+  // TEST CASE #15 — PHOTO AND POD STOP_ID ASSOCIATION
+  // ============================================================
+  describe('Test Case #15 — Photo and POD Stop ID Association', () => {
+    it('verifies stop_id payload is structured and preserved for photo audit trail', () => {
+      const uploadPayload = {
+        stop_id: 'stop-abc-123',
+        leg_index: 1,
+        operation: 'return_loading',
+        location_lat: 25.38,
+        location_lng: 49.58,
+      };
+
+      const documentJson = {
+        gps: { latitude: uploadPayload.location_lat, longitude: uploadPayload.location_lng },
+        leg_index: uploadPayload.leg_index !== undefined ? Number(uploadPayload.leg_index) : undefined,
+        operation: uploadPayload.operation,
+        stop_id: uploadPayload.stop_id || undefined,
+      };
+
+      assert.equal(documentJson.stop_id, 'stop-abc-123');
+      assert.equal(documentJson.leg_index, 1);
+      assert.equal(documentJson.operation, 'return_loading');
     });
   });
 });

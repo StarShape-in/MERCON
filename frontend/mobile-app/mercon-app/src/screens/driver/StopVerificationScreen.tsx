@@ -163,8 +163,9 @@ export default function StopVerificationScreen() {
                 }
               : null,
           },
-          parsedIndex,
-          isReturnLeg ? 'return_intermediate_stop' : 'intermediate_stop'
+          isReturnLeg ? 1 : 0,
+          isReturnLeg ? 'return_intermediate_stop' : 'intermediate_stop',
+          activeStop?.id
         );
       }
 

@@ -107,6 +107,7 @@ export const createQuotation = async (req: Request, res: Response) => {
           }
           return {
             sequence: s.sequence ?? idx + 1,
+            leg_index: s.leg_index !== undefined ? Number(s.leg_index) : 0,
             locationId: validLocId,
             stop_type: (s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest')) as any,
             source_label: locName || rawName || null,
@@ -358,6 +359,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
           }
           return {
             sequence: s.sequence ?? idx + 1,
+            leg_index: s.leg_index !== undefined ? Number(s.leg_index) : 0,
             locationId: validLocId,
             stop_type: (s.stop_type || (idx === 0 ? 'Pickup' : idx === req.body.stops.length - 1 ? 'Dropoff' : 'Rest')) as any,
             source_label: locName || rawName || null,

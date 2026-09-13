@@ -138,8 +138,13 @@ const PickupVerificationScreen = () => {
           const serverCargoDocs = trip.documents.filter((d: any) => {
             const op = d.ai_extracted_json?.operation;
             const leg = d.ai_extracted_json?.leg_index;
+            const docStopId = d.ai_extracted_json?.stop_id;
             const isArrival = op?.includes('arrival');
-            return !isArrival && (leg === expectedLeg || leg === undefined);
+            if (isArrival) return false;
+            if (pickupStop?.id && docStopId) {
+              return docStopId === pickupStop.id;
+            }
+            return (leg === expectedLeg || leg === undefined);
           });
           if (serverCargoDocs.length > 0) {
             setPhotos(
@@ -253,7 +258,8 @@ const PickupVerificationScreen = () => {
                 } : null,
               },
               isReturnLoading ? 1 : 0,
-              isReturnLoading ? 'return_loading' : 'pickup'
+              isReturnLoading ? 'return_loading' : 'pickup',
+              pickupStop?.id
             );
           } catch (photoErr) {
             console.warn('Cargo photo upload warning:', photoErr);

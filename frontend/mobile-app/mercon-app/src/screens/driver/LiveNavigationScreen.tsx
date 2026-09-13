@@ -12,7 +12,7 @@ import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigat
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel, isRoundTrip } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip, resolveAuthoritativeActiveStop } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -50,11 +50,15 @@ const LiveNavigationScreen = () => {
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
   const isRound = isRoundTrip(trip);
 
+  const authActive = React.useMemo(() => {
+    return resolveAuthoritativeActiveStop(trip);
+  }, [trip]);
+
   // Determine if heading to pickup or delivery directly from workflow state
   const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || (isRound && ws === 'RETURN_LOADING');
 
-  // Leg index: 0 for first leg, 1 for return leg
-  const legIndex = isRound && (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
+  // Authoritative leg index: 0 for first leg, 1 for return leg
+  const legIndex = authActive.currentLegIndex;
 
   // 1. Identify the trip's pickup stop for the active leg
   const pickupStop = React.useMemo(() => {
@@ -63,12 +67,6 @@ const LiveNavigationScreen = () => {
     const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
     if (legStops.length > 0) {
       return legStops.find((s) => s.stop_type === 'Pickup') || legStops[0];
-    }
-    // Legacy fallback for trips created before leg_index was recorded
-    if (legIndex === 1) {
-      return stops.find((s) => s.stop_type === 'Pickup' && s.stop_sequence > 1) ??
-             stops.find((s) => s.stop_sequence === 3) ??
-             stops[0];
     }
     return stops.find((s) => s.stop_type === 'Pickup') ?? stops[0];
   }, [trip?.stops, legIndex]);
@@ -81,27 +79,14 @@ const LiveNavigationScreen = () => {
     if (legStops.length > 0) {
       return legStops.filter((s) => s.stop_type === 'Dropoff').pop() || legStops[legStops.length - 1];
     }
-    // Legacy fallback for trips created before leg_index was recorded
-    if (legIndex === 1) {
-      return stops.filter((s) => s.stop_type === 'Dropoff').pop() ??
-             stops.find((s) => s.stop_sequence === 4) ??
-             stops[stops.length - 1];
-    }
-    return stops.find((s) => s.stop_type === 'Dropoff') ??
-           stops[stops.length - 1];
+    return stops.find((s) => s.stop_type === 'Dropoff') ?? stops[stops.length - 1];
   }, [trip?.stops, legIndex]);
 
-  // 3. Active stop dynamically resolves intermediate stops or heading pickup/dropoff
+  // 3. Active stop dynamically resolves from authoritative resolver or heading stop
   const activeStop = React.useMemo(() => {
-    if (!trip?.stops || trip.stops.length === 0) return null;
-    const stops = trip.stops;
-    if (ws.includes('STOP') && !ws.includes('PICKUP') && !ws.includes('DELIVERY')) {
-      const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
-      const activeIntermediate = legStops.find((s) => !s.actual_departure && s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
-      if (activeIntermediate) return activeIntermediate;
-    }
+    if (authActive.activeStop) return authActive.activeStop;
     return isHeadingToPickup ? pickupStop : dropoffStop;
-  }, [trip?.stops, isHeadingToPickup, pickupStop, dropoffStop, ws, legIndex]);
+  }, [authActive.activeStop, isHeadingToPickup, pickupStop, dropoffStop]);
 
   // 4. Create independent MarkerInfo objects for the map
   const pickupMarker = React.useMemo(() => {
@@ -175,7 +160,8 @@ const LiveNavigationScreen = () => {
               } : null,
             },
             legIndex,
-            arrivalOp
+            arrivalOp,
+            activeStop?.id
           );
         } catch (photoErr) {
           console.warn('Arrival photo upload warning:', photoErr);
@@ -332,7 +318,9 @@ const LiveNavigationScreen = () => {
     );
   }
 
-  const center = position ?? (activeStop ? { lat: activeStop.location_lat, lng: activeStop.location_lng } : { lat: 24.7136, lng: 46.6753 });
+  const hasValidActiveCoords = Boolean(
+    activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)
+  );
 
   let displayEta = '';
   let displayDistance = '';
@@ -491,6 +479,14 @@ const LiveNavigationScreen = () => {
                 </TouchableOpacity>
               )}
             </View>
+
+            {!hasValidActiveCoords && (
+              <View style={styles.missingCoordsBanner}>
+                <Text style={styles.missingCoordsBannerText}>
+                  ⚠️ Stop GPS coordinates unavailable — Tap Open Navigation to search by address
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
@@ -886,6 +882,21 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: 2,
     lineHeight: 18,
+  },
+  missingCoordsBanner: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  missingCoordsBannerText: {
+    fontSize: Typography.xs,
+    color: '#92400E',
+    lineHeight: 16,
+    fontWeight: '600',
   },
   addArrivalPhotoBtn: {
     width: 76,

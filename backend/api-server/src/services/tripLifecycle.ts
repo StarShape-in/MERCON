@@ -331,4 +331,128 @@ export async function stampWorkflowTransition(
   }
 }
 
+export interface AuthoritativeActiveStop {
+  activeStop: any | null;
+  activeStopId: string | null;
+  activeStopSequence: number | null;
+  currentLegIndex: number;
+  nextStop: any | null;
+  nextStopId: string | null;
+  isOutboundCompleted: boolean;
+  isReturnAllowedToStart: boolean;
+  isTripCompleted: boolean;
+  effectiveWorkflowState: string;
+}
+
+/**
+ * Single authoritative active stop resolver across MERCON.
+ * Resolves current active stop, next stop, active leg, and return readiness
+ * dynamically from stop records without hardcoding stop sequences or array positions.
+ */
+export function resolveAuthoritativeActiveStop(
+  stops: any[],
+  workflowState?: string | null,
+  tripStatus?: string | null,
+): AuthoritativeActiveStop {
+  const sortedStops = [...(stops || [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const statusUpper = (tripStatus || '').toUpperCase();
+  const ws = workflowState || null;
+
+  if (statusUpper === 'COMPLETED' || statusUpper === 'INVOICED' || ws === 'COMPLETED') {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: sortedStops.some(s => (s.leg_index ?? 0) === 1) ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  if (sortedStops.length === 0) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: false,
+      isReturnAllowedToStart: false,
+      isTripCompleted: false,
+      effectiveWorkflowState: ws || (['IN_TRANSIT', 'DISPATCHED', 'ACTIVE'].includes(statusUpper) ? 'AT_PICKUP' : 'SCHEDULED'),
+    };
+  }
+
+  const outboundStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 0);
+  const returnStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 1);
+  const hasExplicitReturnLeg = returnStops.length > 0;
+
+  let isRound = hasExplicitReturnLeg;
+  if (!isRound && sortedStops.length >= 3) {
+    const firstLoc = (sortedStops[0].location_name || '').toLowerCase().trim();
+    const lastLoc = (sortedStops[sortedStops.length - 1].location_name || '').toLowerCase().trim();
+    if (firstLoc && lastLoc && firstLoc === lastLoc) {
+      isRound = true;
+    }
+  }
+
+  const outboundDelivery = outboundStops.filter((s) => s.stop_type === StopType.Dropoff).pop() ||
+    (outboundStops.length > 0 ? outboundStops[outboundStops.length - 1] : null);
+
+  const isOutboundCompleted = Boolean(
+    outboundDelivery && (outboundDelivery.actual_departure != null || outboundDelivery.actual_arrival != null)
+  );
+
+  const isReturnAllowedToStart = isRound ? isOutboundCompleted : false;
+
+  // Find active stop: first stop that has not departed yet (actual_departure === null)
+  let activeIdx = sortedStops.findIndex((s) => !s.actual_departure);
+
+  if (activeIdx === -1) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: returnStops.length > 0 ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  let activeStop = sortedStops[activeIdx];
+  const activeLeg = activeStop.leg_index ?? 0;
+
+  // STRICT RETURN START GUARD:
+  // If active stop is on return leg (leg 1), but outbound delivery has NOT arrived,
+  // return leg CANNOT be active. The active stop must remain the outbound delivery stop.
+  if (activeLeg === 1 && !isOutboundCompleted && outboundDelivery) {
+    activeStop = outboundDelivery;
+    activeIdx = sortedStops.findIndex((s) => s.id === outboundDelivery.id);
+  }
+
+  const nextStop = activeIdx + 1 < sortedStops.length ? sortedStops[activeIdx + 1] : null;
+
+  return {
+    activeStop,
+    activeStopId: activeStop?.id || null,
+    activeStopSequence: activeStop?.stop_sequence || null,
+    currentLegIndex: activeStop?.leg_index ?? 0,
+    nextStop,
+    nextStopId: nextStop?.id || null,
+    isOutboundCompleted,
+    isReturnAllowedToStart,
+    isTripCompleted: false,
+    effectiveWorkflowState: ws || (activeLeg === 1 ? 'IN_TRANSIT_RETURN' : 'IN_TRANSIT'),
+  };
+}
+
 

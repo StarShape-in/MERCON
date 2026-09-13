@@ -142,8 +142,15 @@ const DeliveryVerificationScreen = () => {
           const serverPodDocs = trip.documents.filter((d: any) => {
             const op = d.ai_extracted_json?.operation;
             const leg = d.ai_extracted_json?.leg_index;
+            const docStopId = d.ai_extracted_json?.stop_id;
             const isArrival = op?.includes('arrival');
-            return !isArrival && (leg === expectedLeg || leg === undefined) && (op === 'delivery' || op === 'return_delivery' || op === 'pod' || d.doc_type === 'POD');
+            if (isArrival) return false;
+            const isPodType = op === 'delivery' || op === 'return_delivery' || op === 'pod' || d.doc_type === 'POD';
+            if (!isPodType) return false;
+            if (dropoffStop?.id && docStopId) {
+              return docStopId === dropoffStop.id;
+            }
+            return (leg === expectedLeg || leg === undefined);
           });
           if (serverPodDocs.length > 0) {
             setPhotos(
@@ -256,7 +263,8 @@ const DeliveryVerificationScreen = () => {
                 } : null,
               },
               targetLegIndex,
-              targetOp
+              targetOp,
+              dropoffStop?.id
             );
           } catch (photoErr) {
             console.warn('POD photo upload warning:', photoErr);
