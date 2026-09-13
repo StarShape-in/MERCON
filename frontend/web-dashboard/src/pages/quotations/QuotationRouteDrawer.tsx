@@ -346,7 +346,7 @@ export function QuotationRouteDrawer({
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
                 <div>
-                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.billing_type} fallbackText="Extra" />
+                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.operation_type || quotation.billing_type} fallbackText="Extra" />
                 </div>
               </div>
 

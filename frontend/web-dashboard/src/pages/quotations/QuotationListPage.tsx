@@ -76,7 +76,7 @@ const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
   { id: 'vehicle_class', label: 'Vehicle Class', accessor: (q) => q.vehicle_class || '—' },
   { id: 'source_vehicle_label', label: 'Source Vehicle Label', accessor: (q) => q.source_vehicle_label || q.vehicle_type || '—' },
   { id: 'line_type', label: 'Line Type', accessor: (q) => q.line_type || q.rate_category || 'Single Trip' },
-  { id: 'billing_type', label: 'Operation Type', accessor: (q) => q.billing_type || 'EXTRA' },
+  { id: 'operation_type', label: 'Operation Type', accessor: (q) => q.operation_type || q.billing_type || 'EXTRA' },
   { id: 'rate', label: 'Billing Rate (SAR)', accessor: (q) => `SAR ${Number(q.rate || q.base_price || 0).toLocaleString()}` },
   { id: 'driver_payout', label: 'Driver Charge (SAR)', accessor: (q) => q.driver_payout != null ? `SAR ${Number(q.driver_payout).toLocaleString()}` : '—' },
   { id: 'status', label: 'Status', accessor: (q) => (q.is_active ? 'Active' : 'Inactive') },
@@ -407,7 +407,8 @@ export default function QuotationListPage() {
       }
       const entry = map.get(custId)!;
       entry.quotations.push(q);
-      if ((q.billing_type || '').toUpperCase() === 'MONTHLY') {
+      const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+      if (opType === 'MONTHLY') {
         entry.monthlyCount++;
       } else {
         entry.extraCount++;
@@ -462,7 +463,8 @@ export default function QuotationListPage() {
 
       // Operation Type Filter
       if (billingTypeFilter !== 'ALL') {
-        if ((q.billing_type || '').toUpperCase() !== billingTypeFilter) return false;
+        const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+        if (opType !== billingTypeFilter) return false;
       }
 
       // Vehicle Class Filter
@@ -900,7 +902,7 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5">
-                                  {getOperationTypeBadge(row.billing_type)}
+                                  {getOperationTypeBadge(row.operation_type || row.billing_type)}
                                 </td>
 
                                 <td className="py-3 px-3.5">
@@ -914,7 +916,7 @@ export default function QuotationListPage() {
                                       ? false
                                       : row.pricing_basis === 'PER_MONTH'
                                       ? true
-                                      : (row.billing_type || '').toLowerCase().includes('monthly');
+                                      : (row.operation_type || row.billing_type || '').toLowerCase().includes('monthly');
 
                                     if (isMonthly && rawRate > 0) {
                                       const dailyEq = rawRate / 30;

@@ -401,7 +401,7 @@ export default function CustomerQuotationsTab({
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
                           <TaxonomyBadge category="LINE_TYPE" value={q.line_type || q.rate_category} size="sm" />
-                          <TaxonomyBadge category="OPERATION_TYPE" value={q.billing_type} size="sm" />
+                          <TaxonomyBadge category="OPERATION_TYPE" value={q.operation_type || q.billing_type} size="sm" />
                         </div>
                         <span className="text-[10px] text-slate-500 font-medium">Basis: {pb}</span>
                       </div>

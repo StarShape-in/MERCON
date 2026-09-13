@@ -210,7 +210,7 @@ export default function QuotationSelectionCard({
           </div>
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <TaxonomyBadge category="OPERATION_TYPE" value={selectedQuotation.billing_type} size="sm" />
+            <TaxonomyBadge category="OPERATION_TYPE" value={selectedQuotation.operation_type || selectedQuotation.billing_type} size="sm" />
             <TaxonomyBadge category="LINE_TYPE" value={selectedQuotation.line_type} size="sm" />
             <TaxonomyBadge category="VEHICLE_CLASS" value={selectedQuotation.vehicle_class} size="sm" />
           </div>
