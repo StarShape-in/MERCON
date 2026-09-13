@@ -70,17 +70,17 @@ export const CUSTOMER_COLUMNS: ColumnMap = {
 
 export const RATE_CARD_COLUMNS: ColumnMap = {
   customer_name: ['customer', 'customer name', 'company', 'company name', 'carrier'],
-  rate_category: ['rate category', 'category', 'rate type', 'quote type'],
-  billing_type: ['billing type', 'billing', 'billing frequency', 'commitment'],
+  rate_category: ['line type', 'rate category', 'category', 'rate type', 'quote type'],
+  billing_type: ['pricing basis', 'billing type', 'billing', 'billing frequency', 'commitment'],
   origin: ['origin', 'from', 'starting city', 'pickup', 'pickup city'],
   origin_label: ['origin label', 'origin facility', 'pickup facility', 'pickup label'],
   via: ['via', 'connecting city', 'connecting stop', 'stop'],
   destination: ['destination', 'to', 'destination city', 'drop off', 'dropoff', 'drop off city'],
   destination_label: ['destination label', 'destination facility', 'dropoff facility', 'dropoff label'],
-  vehicle_type: ['vehicle type', 'vehicle', 'truck type', 'body type'],
-  price: ['billing rate', 'price', 'rate', 'base price', 'amount'],
+  vehicle_type: ['vehicle class', 'vehicle type', 'vehicle', 'truck type', 'body type'],
+  price: ['billing rate', 'billing rate sar', 'price', 'rate', 'base price', 'amount'],
   currency: ['currency', 'ccy'],
-  driver_payout: ['driver charge', 'driver payout', 'default trip charge', 'trip charge', 'payout rate', 'driver cost'],
+  driver_payout: ['driver payout', 'driver payout sar', 'driver charge', 'default trip charge', 'trip charge', 'payout rate', 'driver cost'],
 };
 
 export const LOCATION_COLUMNS: ColumnMap = {

@@ -602,11 +602,15 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
           continue;
         }
 
-        const price = Number(row.rate ?? row.price ?? row.base_price);
+        const rawPrice = row.rate ?? row.price ?? row.base_price ?? row.billing_rate;
+        const price = Number(rawPrice);
         if (isNaN(price) || price <= 0) {
           results.push({ row: rowNumber, success: false, label, error: 'Rate is missing or not a number greater than 0' });
           continue;
         }
+
+        const rawPayout = row.driver_payout ?? row.driver_charge ?? row.payout_rate;
+        const driverPayout = rawPayout != null && rawPayout !== '' && !isNaN(Number(rawPayout)) ? Number(rawPayout) : null;
 
         const customer = await findCustomer(customerName);
         if (!customer) {
@@ -639,14 +643,18 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
 
           const billingTypeMapped = billingType.toLowerCase().includes('monthly') ? 'MONTHLY' : 'EXTRA';
 
+          const name = String(row.quotation_name || row.name || '').trim() || `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`;
+
           const data = {
-            name: `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`,
+            name,
             rate: price,
+            driver_payout: driverPayout,
             currency,
             customerId: customer.id,
             is_active: true,
             line_type: lineTypeMapped,
             billing_type: billingTypeMapped,
+            vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
             source_type: 'IMPORT',
           };
@@ -655,9 +663,7 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               customerId: customer.id,
-              line_type: lineTypeMapped,
-              billing_type: billingTypeMapped,
-              source_vehicle_label: vehicleType || null,
+              name,
             },
           });
 

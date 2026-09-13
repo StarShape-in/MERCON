@@ -596,6 +596,17 @@ export default function QuotationListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Excel Direct Import Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-lg px-3.5 cursor-pointer transition-all"
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Import Excel</span>
+            </Button>
+
             {/* AI Import Action */}
             <Button
               size="sm"
@@ -604,7 +615,7 @@ export default function QuotationListPage() {
               onClick={() => navigate('/quotations/import')}
             >
               <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>AI Import</span>
+              <span>AI Studio</span>
             </Button>
 
             {/* + New Commercial Route Action (Primary Coral Red #FA634E) */}
