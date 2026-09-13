@@ -363,7 +363,7 @@ model Trip {
 
   // Which quotation the billing amount came from, recorded at dispatch.
   quotationId String?    @db.Uuid
-  quotation   Quotation? @relation(fields: [quotationId], references: [id])
+  quotation   Quotation? @relation(fields: [quotationId], references: [id], onDelete: Restrict)
 
   // Dedicated 1-to-1 Commercial Financials Snapshot
   financials TripFinancials?
@@ -536,7 +536,7 @@ model TripStop {
   // yard within it that location_name/lat/lng describe. This is what makes a
   // trip's lane recoverable after the fact, and what the rate lookup keys on.
   locationId       String?   @db.Uuid
-  location         Location? @relation(fields: [locationId], references: [id])
+  location         Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
   planned_arrival  DateTime? @db.Timestamptz
   actual_arrival   DateTime? @db.Timestamptz
   // When the driver left this stop. Paired with actual_arrival this is how
@@ -981,7 +981,7 @@ model QuotationStop {
   sequence     Int
   leg_index    Int       @default(0)
   locationId   String?   @db.Uuid
-  location     Location? @relation(fields: [locationId], references: [id])
+  location     Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   stop_type    StopType
   source_label String?
