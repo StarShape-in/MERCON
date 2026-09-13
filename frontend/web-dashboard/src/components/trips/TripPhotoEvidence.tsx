@@ -276,33 +276,6 @@ export default function TripPhotoEvidence({
     });
   }, [documents]);
 
-  if (photoDocs.length === 0) {
-    return (
-      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center text-center h-full min-h-[320px]">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-          <Camera size={24} className="text-slate-400" />
-        </div>
-        <h3 className="text-sm font-bold text-[#1F2937] mb-1">No Cargo or POD Photos Uploaded</h3>
-        <p className="text-xs text-[#6B7280] max-w-sm mb-4">
-          {trip?.status === 'Draft' || trip?.status === 'Scheduled'
-            ? 'This trip is currently scheduled. Photos recorded during pickup or delivery will appear here automatically.'
-            : 'No cargo, arrival, or proof-of-delivery photos have been attached to this trip yet.'}
-        </p>
-        {onUpload && (
-          <Button
-            onClick={onUpload}
-            variant="outline"
-            size="sm"
-            className="h-8.5 px-4 rounded-xl border-[#E5E7EB] text-[#374151] hover:bg-slate-50 text-xs font-semibold gap-2 shadow-none cursor-pointer bg-white"
-          >
-            <UploadCloud size={14} className="text-[#6B7280]" />
-            <span>Upload Document / Photo</span>
-          </Button>
-        )}
-      </div>
-    );
-  }
-
   const effectiveEvidence: LegSection[] = useMemo(() => {
     // If no stops provided, fallback to trip origin/destination
     if (!stops || stops.length === 0) {
@@ -769,6 +742,33 @@ export default function TripPhotoEvidence({
       0
     );
   }, [effectiveEvidence]);
+
+  if (photoDocs.length === 0) {
+    return (
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center text-center h-full min-h-[320px]">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+          <Camera size={24} className="text-slate-400" />
+        </div>
+        <h3 className="text-sm font-bold text-[#1F2937] mb-1">No Cargo or POD Photos Uploaded</h3>
+        <p className="text-xs text-[#6B7280] max-w-sm mb-4">
+          {trip?.status === 'Draft' || trip?.status === 'Scheduled'
+            ? 'This trip is currently scheduled. Photos recorded during pickup or delivery will appear here automatically.'
+            : 'No cargo, arrival, or proof-of-delivery photos have been attached to this trip yet.'}
+        </p>
+        {onUpload && (
+          <Button
+            onClick={onUpload}
+            variant="outline"
+            size="sm"
+            className="h-8.5 px-4 rounded-xl border-[#E5E7EB] text-[#374151] hover:bg-slate-50 text-xs font-semibold gap-2 shadow-none cursor-pointer bg-white"
+          >
+            <UploadCloud size={14} className="text-[#6B7280]" />
+            <span>Upload Document / Photo</span>
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col justify-between gap-2">

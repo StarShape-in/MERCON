@@ -35,7 +35,7 @@ import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { tripService, Trip } from '@/services/tripService';
 import { notificationService } from '@/services/notificationService';
-import { documentDisplayName, daysUntil } from '@/lib/documents';
+import { documentDisplayName, daysUntil, resolveFileUrl } from '@/lib/documents';
 
 export type ActionItemCategory = 'delay' | 'doc' | 'pod' | 'unassigned' | 'location';
 export type PriorityLevel = 'critical' | 'attention' | 'other';
@@ -75,6 +75,55 @@ function getInitials(name: string): string {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return name.slice(0, 2).toUpperCase();
+}
+
+function getTripVideoInfo(t: Trip, docs: any[] = []): { hasVideo: boolean; videoUrl?: string } {
+  if (!t) return { hasVideo: false };
+
+  const directUrl = (t as any)?.delay_video_url || (t as any)?.video_url || (t as any)?.videoUrl;
+  if (directUrl) {
+    return { hasVideo: true, videoUrl: resolveFileUrl(directUrl) };
+  }
+
+  if (Array.isArray(t.stops)) {
+    for (const stop of t.stops) {
+      const stopVideo = (stop as any)?.delay_video_url || (stop as any)?.video_url;
+      if (stopVideo) {
+        return { hasVideo: true, videoUrl: resolveFileUrl(stopVideo) };
+      }
+    }
+  }
+
+  const stopIds = new Set(Array.isArray(t.stops) ? t.stops.map((s: any) => s.id).filter(Boolean) : []);
+  const localDocs = Array.isArray((t as any)?.documents) ? (t as any).documents : [];
+
+  const relatedDocs = [
+    ...localDocs,
+    ...docs.filter((d: any) =>
+      d.entity_id === t.id ||
+      d.entity_id === t.ref_id ||
+      (d.entity_id && stopIds.has(d.entity_id))
+    ),
+  ];
+
+  for (const d of relatedDocs) {
+    const fileUrl = String(d?.file_url || d?.file_path || d?.url || '').toLowerCase();
+    const mime = String(d?.mime_type || d?.file_type || '').toLowerCase();
+    const docType = String(d?.doc_type || d?.category || '').toLowerCase();
+
+    const isVideo = mime.startsWith('video/') ||
+      /\.(mp4|mov|webm|avi|mkv|3gp|ogv)$/i.test(fileUrl) ||
+      docType === 'delayevidence';
+
+    if (isVideo) {
+      const rawUrl = d.file_url || d.file_path || d.url;
+      if (rawUrl) {
+        return { hasVideo: true, videoUrl: resolveFileUrl(rawUrl) };
+      }
+    }
+  }
+
+  return { hasVideo: false };
 }
 
 export default function OperatorCommandCenter({ trips: propTrips }: OperatorCommandCenterProps) {
@@ -170,10 +219,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           cleanReason = 'Driver reported operational traffic / transit delay';
         }
 
-        const delayDoc = docs.find((d: any) =>
-          (d.entity_id === t.id || d.entity_id === t.ref_id) &&
-          (d.doc_type === 'DelayEvidence' || d.file_type?.includes('video') || d.mime_type?.includes('video') || d.category === 'delay')
-        );
+        const { hasVideo, videoUrl } = getTripVideoInfo(t, docs);
 
         let timeAgo = 'Just now';
         const timeRef = delayedStop?.delay_logged_at || t.updatedAt || t.createdAt;
@@ -202,8 +248,8 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           trip: t,
           delayReason: cleanReason,
           delayTimeAgo: timeAgo,
-          hasVideo: Boolean(delayDoc?.file_url || (delayDoc as any)?.file_path),
-          videoUrl: delayDoc?.file_url || (delayDoc as any)?.file_path || undefined,
+          hasVideo,
+          videoUrl,
         });
       }
 
@@ -675,74 +721,79 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                 </div>
               </div>
 
-              {/* Main Content: Video Player if hasVideo, else Clean Structured Telemetry Card */}
-              {selectedItem.hasVideo ? (
-                <div className="flex-1 min-h-0 bg-slate-950 rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-xs">
-                  <video
-                    src={selectedItem.videoUrl || '/sample_delay_video.mp4'}
-                    controls
-                    muted
-                    loop
-                    className="w-full h-full object-cover max-h-[140px]"
-                    poster="/truck_3d_orange_transparent.png"
-                  >
-                    Video evidence player
-                  </video>
-                </div>
-              ) : (
-                /* Structured Operational Telemetry & Driver Audit Card (NO Pitch-black Box!) */
-                <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-1.5">
-                  
-                  {/* Top Driver & Vehicle Metadata Row */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Driver</span>
-                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
-                          {selectedItem.trip?.driver
-                            ? `${selectedItem.trip.driver.first_name || ''} ${selectedItem.trip.driver.last_name || ''}`.trim()
-                            : (selectedItem.trip as any)?.driver_name || 'Liaqat Ali'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
-                      <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Vehicle</span>
-                        <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
-                          {selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Delay Reason Log Box */}
-                  <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border-l-3 border-l-amber-500 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-[#3E3C3D] dark:text-slate-200">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="font-extrabold text-[9.5px] uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3 text-amber-600" /> Operational Delay Logged
+              {/* Integrated Operational Telemetry & Video Evidence Card */}
+              <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2 overflow-y-auto">
+                
+                {/* Top Driver & Vehicle Metadata Row */}
+                <div className="grid grid-cols-2 gap-2 text-xs shrink-0">
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Driver</span>
+                      <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
+                        {selectedItem.trip?.driver
+                          ? `${selectedItem.trip.driver.first_name || ''} ${selectedItem.trip.driver.last_name || ''}`.trim()
+                          : (selectedItem.trip as any)?.driver_name || 'Liaqat Ali'}
                       </span>
-                      <span className="text-[9.5px] font-semibold text-slate-400">Written Report</span>
                     </div>
-                    <p className="font-semibold text-slate-700 dark:text-slate-300 leading-snug line-clamp-2">
-                      {selectedItem.delayReason}
-                    </p>
                   </div>
 
-                  {/* Operational Status bar */}
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
-                    <span className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
-                      <MapPin className="w-3 h-3 text-[#FA634E] shrink-0" /> {selectedItem.subtitle.split(' • ')[1] || 'En route'}
+                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                    <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Vehicle</span>
+                      <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
+                        {selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delay Reason Log Box */}
+                <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border-l-3 border-l-amber-500 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-[#3E3C3D] dark:text-slate-200 shrink-0">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="font-extrabold text-[9.5px] uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-amber-600" /> Operational Delay Logged
                     </span>
+                    <span className="text-[9.5px] font-semibold text-slate-400">Written Report</span>
+                  </div>
+                  <p className="font-semibold text-slate-700 dark:text-slate-300 leading-snug line-clamp-2">
+                    {selectedItem.delayReason}
+                  </p>
+                </div>
+
+                {/* Attached Video Player Container */}
+                {selectedItem.hasVideo && selectedItem.videoUrl ? (
+                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-slate-950 relative flex items-center justify-center shrink-0 max-h-[140px]">
+                    <video
+                      src={selectedItem.videoUrl}
+                      controls
+                      playsInline
+                      className="w-full max-h-[140px] object-cover"
+                      poster="/truck_3d_orange_transparent.png"
+                    >
+                      Video evidence player
+                    </video>
+                  </div>
+                ) : null}
+
+                {/* Operational Status bar */}
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 shrink-0">
+                  <span className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[180px]">
+                    <MapPin className="w-3 h-3 text-[#FA634E] shrink-0" /> {selectedItem.subtitle.split(' • ')[1] || 'En route'}
+                  </span>
+                  {selectedItem.hasVideo ? (
+                    <span className="font-extrabold text-[9px] text-purple-600 dark:text-purple-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                      <Video className="w-3 h-3 text-purple-500" /> Video Attached
+                    </span>
+                  ) : (
                     <span className="font-extrabold text-[9px] text-slate-400 uppercase tracking-wider shrink-0">
                       No Video Attached
                     </span>
-                  </div>
-
+                  )}
                 </div>
-              )}
+
+              </div>
 
               {/* Clean Action Bar */}
               <div className="flex items-center gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
