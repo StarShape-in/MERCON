@@ -864,7 +864,7 @@ export const createTrip = async (req: Request, res: Response) => {
               } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
-              ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
+              ...(finalBillingType !== null ? { operation_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               driver_payout: finalTripCharges,
               is_third_party: is_third_party === true,
@@ -1218,7 +1218,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               },
               ...(row.rate_category ? { rate_category: row.rate_category } : {}),
               ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
-              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
+              ...((row.billing_type || (row as any).operation_type) ? { operation_type: row.billing_type || (row as any).operation_type } : {}),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
