@@ -518,7 +518,7 @@ export const getTripById = async (req: Request, res: Response) => {
 
     const baseDriverPayout = trip.is_third_party
       ? Number(trip.third_party_cost ?? 0)
-      : Number(trip.driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
+      : Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
     const totalDriverPayout = baseDriverPayout;
     const balanceMargin = totalAmount - totalDriverPayout;
     const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
@@ -530,6 +530,7 @@ export const getTripById = async (req: Request, res: Response) => {
       total_amount: totalAmount,
       charges_total: chargesTotal,
       per_trip_billing: perTripBilling,
+      driver_payout: totalDriverPayout,
       driver_charge: totalDriverPayout,
       balance_margin: balanceMargin,
       margin_percent: marginPercent,
@@ -840,7 +841,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
-              driver_charge: finalTripCharges,
+              driver_payout: finalTripCharges,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
                 thirdPartyProviderId: third_party_provider_id || null,
@@ -1205,9 +1206,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
-              ...(((row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_charge ?? (row as any).trip_charges))
-                ? { driver_charge: Number((row as any).driver_charge ?? (row as any).trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { driver_charge: thirdPartyCostVal } : {})),
+              ...(((row as any).driver_payout !== undefined || (row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges))
+                ? { driver_payout: Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges) }
+                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : {})),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {
@@ -1950,8 +1951,8 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       // Decimal at runtime — normalised to number here so this stays a plain
       // number through every branch below (Prisma accepts a number for a
       // Decimal field write, so nothing is lost storing it back as one).
-      let nextTripCharges = Number(trip.driver_charge);
-      const inputCharges = req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges;
+      let nextTripCharges = Number(trip.driver_payout ?? (trip as any).driver_charge);
+      const inputCharges = req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges);
       if (inputCharges !== undefined) {
         nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
       } else if (trip.is_third_party) {
@@ -2018,7 +2019,7 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
-          driver_charge: nextTripCharges,
+          driver_payout: nextTripCharges,
           billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? 0) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
@@ -2227,9 +2228,10 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : (trip.billing_amount != null ? Number(trip.billing_amount) : null)),
         quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
         quotation_source_vehicle_label: trip.financials?.quotation_source_vehicle_label ?? trip.quotation?.source_vehicle_label ?? trip.vehicle_type ?? null,
-        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number((trip as any).driver_charge ?? (trip as any).trip_charges) || null),
-        driver_charge: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
-        trip_charges: trip.driver_charge != null ? Number(trip.driver_charge) : 0,
+        billing_amount: trip.billing_amount != null ? Number(trip.billing_amount) : (Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).trip_charges) || null),
+        driver_payout: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
+        driver_charge: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
+        trip_charges: trip.driver_payout != null ? Number(trip.driver_payout) : (Number((trip as any).driver_charge) || 0),
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation

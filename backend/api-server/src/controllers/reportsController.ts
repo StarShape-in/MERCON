@@ -387,7 +387,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
           const billing = Number(t.billing_amount ?? 0);
           const chargesTotal = computeTripChargesTotal(t.charges);
           const totalAmt = billing + chargesTotal;
-          const driverCharge = Number(t.driver_charge ?? 0);
+          const driverCharge = Number((t as any).driver_payout ?? t.driver_charge ?? 0);
           const balance = totalAmt - (chargesTotal + driverCharge);
           const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
 
@@ -406,6 +406,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
             charges: t.charges,
             billing_amount: billing,
             total_amount: totalAmt,
+            driver_payout: driverCharge,
             trip_charges: driverCharge,
             driver_charge: driverCharge,
             balance_amount: balance,

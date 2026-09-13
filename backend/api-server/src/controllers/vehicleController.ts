@@ -904,7 +904,7 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     let totalDistanceKm = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
-      const tripCharges = Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0);
+      const tripCharges = Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0);
       if (isEarned(t.status)) {
         totalIncome += income;
         driverCharges += tripCharges;
@@ -1153,7 +1153,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
     const monthlyExpenses = [
       ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: Number(m.cost) })),
       ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: Number(e.amount) })),
-      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0) })),
+      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0) })),
     ];
 
     const monthly = buildMonthlySeries(

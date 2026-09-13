@@ -138,15 +138,16 @@ export const getDrivers = async (req: Request, res: Response) => {
     const tripChargeSums = await prisma.trip.groupBy({
       by: ['driverId'],
       where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
-      _sum: { driver_charge: true },
+      _sum: { driver_payout: true },
     });
     const tripChargeByDriver = new Map(
-      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_charge) || 0])
+      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_payout) || 0])
     );
 
     const formatted = drivers.map(d => ({
       ...d,
       hasAccountPassword: Boolean(d.user?.password_hash),
+      total_driver_payout: tripChargeByDriver.get(d.id) || 0,
       total_trip_charges: tripChargeByDriver.get(d.id) || 0,
       total_driver_charges: tripChargeByDriver.get(d.id) || 0,
     }));

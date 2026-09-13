@@ -83,7 +83,7 @@ export async function fetchTripRows(
       const billing = Number(t.billing_amount ?? 0);
       const chargesTotal = computeTripChargesTotal(t.charges);
       const totalAmt = billing + chargesTotal;
-      const driverCharge = Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0);
+      const driverCharge = Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0);
       const balance = totalAmt - (chargesTotal + driverCharge);
       const vehicleTypeLabel = t.vehicle
         ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})`
@@ -105,7 +105,7 @@ export async function fetchTripRows(
         total_charges: chargesTotal,
         billing_amount: billing,
         total_amount: totalAmt,
-        trip_charges: driverCharge,
+        driver_payout: driverCharge,
         balance_amount: balance,
         status: t.status,
         rate_category: t.rate_category || 'N/A',

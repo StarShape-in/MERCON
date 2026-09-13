@@ -283,8 +283,8 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
           }
         }
       } else {
-        waitingCharge = Number(t.waiting_labor_charges ?? 0);
-        additionalCharge = Number(t.additional_stop_charges ?? 0);
+        waitingCharge = 0;
+        additionalCharge = 0;
       }
 
       return [
@@ -360,7 +360,7 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         formatDate(t.actual_start, tz),
         formatDate(t.planned_end, tz),
         formatDate(t.actual_end, tz),
-        Number(t.driver_charge ?? t.trip_charges ?? 0),
+        Number((t as any).driver_payout ?? t.driver_charge ?? (t as any).trip_charges ?? 0),
         Number(t.billing_amount ?? t.quotation?.rate ?? 0),
         getCarrierLabel(t),
       ];

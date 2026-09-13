@@ -190,7 +190,7 @@ export const TRIP_REPORT_FIELDS = [
   { key: 'total_charges', label: 'Extra charges (waiting, stops, etc.)', type: 'money' },
   { key: 'billing_amount', label: 'Billing amount', type: 'money' },
   { key: 'total_amount', label: 'Total amount', type: 'money' },
-  { key: 'trip_charges', label: 'Trip charges', type: 'money' },
+  { key: 'driver_payout', label: 'Driver payout', type: 'money' },
   { key: 'balance_amount', label: 'Balance amount', type: 'money' },
   { key: 'status', label: 'Trip status', type: 'string' },
   { key: 'rate_category', label: 'Rate category', type: 'string' },

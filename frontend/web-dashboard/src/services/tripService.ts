@@ -95,6 +95,7 @@ export interface Trip {
   planned_distance: number | null;
   /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
   charges?: TripCharge[];
+  driver_payout?: number;
   driver_charge?: number;
   trip_charges?: number;
   billing_amount?: number;
