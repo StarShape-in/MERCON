@@ -157,6 +157,7 @@ export default function LocationListPage() {
     message: string;
     onConfirm: () => void | Promise<void>;
     isDestructive?: boolean;
+    confirmLabel?: string;
   }>({
     isOpen: false,
     title: '',
@@ -804,7 +805,7 @@ export default function LocationListPage() {
         title={confirmModal.title}
         message={confirmModal.message}
         isDestructive={confirmModal.isDestructive}
-        confirmLabel="Delete Location"
+        confirmLabel={confirmModal.confirmLabel || 'Delete Location'}
       />
 
       {isExportOpen && (
