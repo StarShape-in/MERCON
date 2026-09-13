@@ -610,14 +610,39 @@ export const deleteLocation = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
 
-    await prisma.$transaction([
-      prisma.tripStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
-      prisma.quotationStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
-      prisma.location.delete({ where: { id: id as string } })
+    const [tripStopCount, quotationStopCount] = await Promise.all([
+      prisma.tripStop.count({
+        where: {
+          locationId: id as string,
+          trip: { deletedAt: null },
+        },
+      }),
+      prisma.quotationStop.count({
+        where: {
+          locationId: id as string,
+          quotation: { deletedAt: null },
+        },
+      }),
     ]);
 
-    res.json({ success: true, message: 'Location permanently deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete location' } });
+    if (tripStopCount > 0 || quotationStopCount > 0) {
+      const usageParts: string[] = [];
+      if (tripStopCount > 0) usageParts.push(`${tripStopCount} active trip(s)`);
+      if (quotationStopCount > 0) usageParts.push(`${quotationStopCount} quotation(s)`);
+
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete location "${location.name}" because it is referenced by ${usageParts.join(' and ')}. Deactivate the location instead.`,
+        },
+      });
+    }
+
+    await prisma.location.delete({ where: { id: id as string } });
+
+    res.json({ success: true, message: 'Location deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to delete location' } });
   }
 };

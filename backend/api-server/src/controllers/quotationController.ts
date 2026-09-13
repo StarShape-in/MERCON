@@ -478,16 +478,39 @@ export const deleteQuotation = async (req: Request, res: Response) => {
     const { id } = req.params;
     const targetId = id as string;
 
+    const quotation = await prisma.quotation.findFirst({
+      where: { id: targetId, deletedAt: null },
+      select: { id: true, quotationNumber: true, name: true }
+    });
+
+    if (!quotation) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Quotation not found' } });
+    }
+
+    const linkedTripsCount = await prisma.trip.count({
+      where: { quotationId: targetId, deletedAt: null }
+    });
+
+    if (linkedTripsCount > 0) {
+      const label = quotation.name || quotation.quotationNumber || targetId;
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete quotation "${label}" because it is linked to ${linkedTripsCount} active trip(s). Deactivate or archive the quotation instead.`
+        }
+      });
+    }
+
     await prisma.$transaction([
-      prisma.trip.updateMany({ where: { quotationId: targetId }, data: { quotationId: null } }),
       prisma.surchargeRule.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotationStop.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotationHistory.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotation.delete({ where: { id: targetId } })
     ]);
-    res.json({ success: true, message: 'Quotation permanently deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+    res.json({ success: true, message: 'Quotation deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to delete quotation' } });
   }
 };
 
@@ -499,16 +522,31 @@ export const bulkDeleteQuotations = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
+    const linkedTrips = await prisma.trip.findMany({
+      where: { quotationId: { in: ids }, deletedAt: null },
+      select: { quotationId: true }
+    });
+
+    if (linkedTrips.length > 0) {
+      const blockedQuotationIds = new Set(linkedTrips.map(t => t.quotationId).filter(Boolean));
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete selected quotation(s) because ${blockedQuotationIds.size} of them are linked to active operational trips. Please archive them instead.`
+        }
+      });
+    }
+
     await prisma.$transaction([
-      prisma.trip.updateMany({ where: { quotationId: { in: ids } }, data: { quotationId: null } }),
       prisma.surchargeRule.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotationStop.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotationHistory.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotation.deleteMany({ where: { id: { in: ids } } })
     ]);
-    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} quotations` } });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete quotations` } });
+    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} quotation(s)` } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to bulk delete quotations' } });
   }
 };
 
