@@ -49,27 +49,36 @@ const resolveStopCoords = async (
   placeText: string,
   customerId: string
 ): Promise<{ lat: number | null; lng: number | null; address: string | null; name: string; locationId: string | null } | null> => {
-  const needle = placeText.trim().toLowerCase();
-  if (!needle) return null;
+  const rawText = placeText.trim();
+  if (!rawText) return null;
+
+  const strippedText = rawText.replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
 
   const locationMatch = await prisma.location.findFirst({
     where: {
-      customerId,
       deletedAt: null,
       OR: [
-        { name: { equals: placeText.trim(), mode: 'insensitive' } },
-        { code: { equals: placeText.trim(), mode: 'insensitive' } },
-        { slug: { equals: placeText.trim().toLowerCase(), mode: 'insensitive' } },
+        { code: { equals: rawText, mode: 'insensitive' } },
+        { name: { equals: rawText, mode: 'insensitive' } },
+        { slug: { equals: rawText.toLowerCase(), mode: 'insensitive' } },
+        { code: { equals: strippedText, mode: 'insensitive' } },
+        { name: { equals: strippedText, mode: 'insensitive' } },
+        { slug: { equals: strippedText.toLowerCase(), mode: 'insensitive' } },
+        { name: { contains: strippedText, mode: 'insensitive' } },
       ],
     },
+    orderBy: customerId ? [
+      { customerId: customerId ? 'asc' : 'desc' },
+      { createdAt: 'asc' }
+    ] : undefined
   });
 
   if (locationMatch) {
     return {
       lat: locationMatch.lat,
       lng: locationMatch.lng,
-      address: locationMatch.address || `${placeText.trim()}, Saudi Arabia`,
-      name: placeText.trim(),
+      address: locationMatch.address || `${locationMatch.name}, ${locationMatch.city || 'Saudi Arabia'}`,
+      name: locationMatch.name || rawText,
       locationId: locationMatch.id,
     };
   }
@@ -77,8 +86,8 @@ const resolveStopCoords = async (
   return {
     lat: null,
     lng: null,
-    address: `${placeText.trim()}, Saudi Arabia`,
-    name: placeText.trim(),
+    address: `${rawText}, Saudi Arabia`,
+    name: rawText,
     locationId: null,
   };
 };
