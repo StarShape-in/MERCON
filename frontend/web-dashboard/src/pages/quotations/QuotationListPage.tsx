@@ -121,20 +121,36 @@ function getOperationTypeBadge(billingType?: string | null) {
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
   const stops = (quotation.stops || (quotation as any).via_stops || (quotation as any).viaStops || []) as any[];
 
-  // Determine stop names in exact sequence
-  const stopNames = useMemo(() => {
+  // Determine stop details in exact sequence
+  const stopDetails = useMemo(() => {
     if (stops.length > 0) {
-      return stops.map((s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location');
+      return stops.map((s: any) => {
+        const shortName = s.source_label || s.location?.code || s.name || s.label || 'Location';
+        const canonicalName =
+          s.location?.name && s.location.name.trim().toLowerCase() !== shortName.trim().toLowerCase()
+            ? s.location.name
+            : null;
+        return {
+          shortName,
+          canonicalName,
+          city: s.location?.city || null,
+        };
+      });
     }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
-    return [origin, dest];
+    return [
+      { shortName: origin, canonicalName: null, city: null },
+      { shortName: dest, canonicalName: null, city: null },
+    ];
   }, [stops, quotation]);
 
-  const firstStop = stopNames[0] || 'Origin';
-  const lastStop = stopNames[stopNames.length - 1] || 'Destination';
+  const stopNames = useMemo(() => stopDetails.map((s) => s.shortName), [stopDetails]);
+
+  const firstStop = stopDetails[0]?.shortName || 'Origin';
+  const lastStop = stopDetails[stopDetails.length - 1]?.shortName || 'Destination';
   const intermediateStops = stopNames.slice(1, -1);
-  const totalStops = Math.max(stopNames.length, 2);
+  const totalStops = Math.max(stopDetails.length, 2);
 
   // Line 2 subtitle generation
   let viaText = 'Direct';
@@ -182,7 +198,7 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
       </HoverCardTrigger>
 
-      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-72 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
+      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-80 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Route Preview</span>
           <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -197,10 +213,19 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
 
         <div className="space-y-1.5 pt-1 max-h-40 overflow-y-auto">
-          {stopNames.map((name, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 py-0.5 px-1.5 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
-              <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
-              <span className="font-semibold truncate">{name}</span>
+          {stopDetails.map((stop, idx) => (
+            <div key={idx} className="flex flex-col text-[11px] text-slate-700 dark:text-slate-300 py-1 px-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
+                <span className="font-bold text-[#3E3C3D] dark:text-slate-100 truncate">{stop.shortName}</span>
+              </div>
+              {(stop.canonicalName || stop.city) && (
+                <div className="pl-6 text-[10px] font-medium text-slate-500 truncate flex items-center gap-1">
+                  {stop.canonicalName && <span>{stop.canonicalName}</span>}
+                  {stop.canonicalName && stop.city && <span>·</span>}
+                  {stop.city && <span className="font-mono text-[9px] text-slate-400">{stop.city}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>
