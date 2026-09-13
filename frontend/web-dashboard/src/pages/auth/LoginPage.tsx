@@ -49,11 +49,11 @@ export default function LoginPage() {
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand/10 rounded-full blur-3xl pointer-events-none animate-pulse duration-1000" />
       <div className="absolute bottom-10 right-1/3 w-[350px] h-[350px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Top Bar Floating Brand Logo */}
-      <div className="absolute top-5 right-5 sm:top-8 sm:right-10 z-20 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-md shadow-slate-900/5 transition-transform hover:scale-[1.02]">
+      {/* Top Bar Floating Brand Logo (Pure Logo, No Box Container) */}
+      <div className="absolute top-5 right-5 sm:top-8 sm:right-10 z-20">
         <BrandLogo
           variant="login"
-          className="h-9 sm:h-11 w-auto object-contain"
+          className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm"
         />
       </div>
 
@@ -65,16 +65,9 @@ export default function LoginPage() {
         <div className="relative w-full rounded-[28px] border border-slate-200/90 bg-white/95 backdrop-blur-xl p-7 sm:p-9 shadow-[0_32px_70px_-15px_rgba(15,23,42,0.16)] transition-all">
           {/* Header section */}
           <div className="text-left mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 border border-brand/20 text-brand text-[12px] font-bold uppercase tracking-wider mb-3 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-              <span>Welcome Back</span>
-            </div>
             <h1 className="text-3xl sm:text-[34px] font-extrabold text-slate-900 tracking-[-0.03em] leading-[1.15]">
               Sign in to your workspace
             </h1>
-            <p className="mt-2 text-[14px] font-medium text-slate-500 leading-relaxed">
-              Enter your credentials to access the operator control panel
-            </p>
           </div>
 
           {/* Error Banner */}
@@ -176,12 +169,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Card Footer Security Note */}
-          <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>256-Bit Encrypted Portal · © {new Date().getFullYear()} {branding?.appName || 'MERCON Operator Platform'}</span>
-          </div>
         </div>
       </div>
     </div>
