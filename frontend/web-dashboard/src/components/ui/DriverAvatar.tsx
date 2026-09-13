@@ -56,7 +56,7 @@ export default function DriverAvatar({
   };
 
   const isAbdulMalik = `${firstName} ${lastName}`.toUpperCase().includes('ABDUL MALIK');
-  const avatarSrc = isAbdulMalik ? '/drivers/abdul_malik.jpg' : src;
+  const avatarSrc = isAbdulMalik ? '/driver-assets/abdul_malik.jpg' : src;
 
   return (
     <div

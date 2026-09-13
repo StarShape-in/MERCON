@@ -422,7 +422,7 @@ export default function DriverDetailsPage() {
               <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0">
                 {`${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK') ? (
                   <img
-                    src="/drivers/abdul_malik_transparent.png"
+                    src="/driver-assets/abdul_malik_transparent.png"
                     alt="Abdul Malik"
                     className="w-[105%] max-w-[105%] h-auto absolute top-10 -left-[2.5%] drop-shadow-lg"
                   />
