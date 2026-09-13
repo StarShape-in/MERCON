@@ -24,9 +24,9 @@ const TRIP_SEARCH_FIELDS = [
   'driver.ref_id',
   'vehicle.plate_number',
   'vehicle.ref_id',
-  'thirdPartyProvider.name',
-  'third_party_driver_name',
-  'third_party_vehicle_plate',
+  'subcontract.provider.name',
+  'subcontract.driverName',
+  'subcontract.vehiclePlate',
   'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
@@ -360,10 +360,20 @@ export const getTrips = async (req: Request, res: Response) => {
               rate: true,
             }
           },
-          thirdPartyProvider: {
+          subcontract: {
             select: {
               id: true,
-              name: true,
+              driverName: true,
+              driverPhone: true,
+              vehiclePlate: true,
+              vehicleType: true,
+              cost: true,
+              provider: {
+                select: {
+                  id: true,
+                  name: true,
+                }
+              }
             }
           },
           stops: {
@@ -472,7 +482,7 @@ export const getTripById = async (req: Request, res: Response) => {
         driver: true,
         vehicle: true,
         customer: true,
-        thirdPartyProvider: true,
+        subcontract: { include: { provider: true } },
         assignmentEvents: {
           orderBy: { changedAt: 'desc' },
         },
@@ -844,12 +854,16 @@ export const createTrip = async (req: Request, res: Response) => {
               driver_payout: finalTripCharges,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
-                thirdPartyProviderId: third_party_provider_id || null,
-                third_party_driver_name: third_party_driver_name || null,
-                third_party_driver_phone: third_party_driver_phone || null,
-                third_party_vehicle_plate: third_party_vehicle_plate || null,
-                third_party_vehicle_type: third_party_vehicle_type || null,
-                third_party_cost: third_party_cost ? Number(third_party_cost) : 0,
+                subcontract: {
+                  create: {
+                    providerId: third_party_provider_id || null,
+                    driverName: third_party_driver_name || null,
+                    driverPhone: third_party_driver_phone || null,
+                    vehiclePlate: third_party_vehicle_plate || null,
+                    vehicleType: third_party_vehicle_type || null,
+                    cost: third_party_cost ? Number(third_party_cost) : 0,
+                  }
+                }
               } : {}),
               stops: {
                 create: resolvedStops.map((stop: any, index: number) => {
@@ -883,7 +897,7 @@ export const createTrip = async (req: Request, res: Response) => {
             },
             include: {
               stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
-              thirdPartyProvider: true,
+              subcontract: { include: { provider: true } },
               customer: true,
               driver: true,
               vehicle: true,
@@ -1182,12 +1196,16 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(vehicleId ? { vehicleId } : {}),
               is_third_party: Boolean(row.is_third_party),
               ...(row.is_third_party ? {
-                thirdPartyProviderId: thirdPartyProviderId || null,
-                third_party_driver_name: row.third_party_driver_name?.trim() || null,
-                third_party_driver_phone: row.third_party_driver_phone?.trim() || null,
-                third_party_vehicle_plate: row.third_party_vehicle_plate?.trim() || null,
-                third_party_vehicle_type: row.third_party_vehicle_type || row.vehicle_type || null,
-                third_party_cost: thirdPartyCostVal || 0,
+                subcontract: {
+                  create: {
+                    providerId: thirdPartyProviderId || null,
+                    driverName: row.third_party_driver_name?.trim() || null,
+                    driverPhone: row.third_party_driver_phone?.trim() || null,
+                    vehiclePlate: row.third_party_vehicle_plate?.trim() || null,
+                    vehicleType: row.third_party_vehicle_type || row.vehicle_type || null,
+                    cost: thirdPartyCostVal || 0,
+                  }
+                }
               } : {}),
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
