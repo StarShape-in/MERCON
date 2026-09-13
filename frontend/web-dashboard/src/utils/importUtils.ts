@@ -84,16 +84,16 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
 };
 
 export const LOCATION_COLUMNS: ColumnMap = {
-  name: ['location name', 'location name *', 'label', 'location', 'name', 'city', 'place', 'place name', 'saved place'],
+  name: ['location name', 'location name *', 'full resolved facility name', 'facility name', 'label', 'location', 'name', 'place name', 'saved place'],
   customer_name: ['customer', 'customer name', 'company', 'company name', 'customer *', 'company name *', 'client'],
-  code: ['location code', 'location code *', 'code', 'code *', 'short code'],
-  address: ['address', 'street / facility address', 'facility address', 'full address', 'area'],
+  code: ['location code', 'location code *', 'august location label', 'august sheet label', 'short code', 'code', 'code *'],
+  address: ['address', 'exact postal address', 'street / facility address', 'facility address', 'full address', 'area'],
   city: ['city', 'town'],
   postal_code: ['postal code', 'postal code *', 'zip code', 'zip'],
   lat: ['latitude', 'latitude *', 'lat'],
   lng: ['longitude', 'longitude *', 'lng', 'long'],
-  coordinate_precision: ['coordinate precision', 'precision status', 'precision', 'confidence'],
-  codes: ['codes', 'short codes', 'monthly sheet codes', 'aliases'],
+  coordinate_precision: ['coordinate precision', 'confidence level', 'precision status', 'precision', 'confidence', 'geocode source'],
+  codes: ['codes', 'short codes', 'august sheet label', 'sheet label', 'monthly sheet codes', 'aliases'],
 };
 
 export const SURCHARGE_COLUMNS: ColumnMap = {

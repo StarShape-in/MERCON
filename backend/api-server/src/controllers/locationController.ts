@@ -10,20 +10,7 @@ export const toSlug = (name: string) =>
   String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 export const generateLocationCode = (name: string): string => {
-  const cleaned = String(name || '').trim().toUpperCase()
-    .replace(/\(.*?\)/g, '')
-    .replace(/[^A-Z0-9\s]/g, '')
-    .trim();
-
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  if (words.length >= 3) {
-    return (words[0][0] + words[1][0] + words[2][0]);
-  } else if (words.length === 2) {
-    return (words[0].substring(0, 2) + words[1][0]);
-  } else if (words.length === 1 && words[0].length >= 3) {
-    return words[0].substring(0, 3);
-  }
-  return (cleaned + 'LOC').substring(0, 3);
+  return String(name || '').trim().toUpperCase();
 };
 
 export const resolvePrecision = (
@@ -514,9 +501,9 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       const rowNumber = i + 1;
 
       const custName = row.customer_name || row.customer || row['Customer'] || row['Customer *'];
-      const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Label *'] || row['label'];
-      const code = row.code || row['Code'] || row['Location Code'] || row['Location Code *'];
-      const address = row.address || row['Address'];
+      const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Full Resolved Facility Name'] || row['Label *'] || row['label'];
+      const code = row.code || row.location_code || row.short_code || row['Code'] || row['Location Code'] || row['Location Code *'] || row['Short Code'] || row['August Location Label'] || row['August Sheet Label'];
+      const address = row.address || row['Address'] || row['Exact Postal Address (Drivers/GPS)'];
       const city = row.city || row['City'];
       const postalCode = row.postal_code || row.postalCode || row['Postal Code'];
 
