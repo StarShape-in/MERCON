@@ -1212,7 +1212,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                 create: {
                   quotation_line_type: row.rate_category || null,
                   quotation_source_vehicle_label: row.vehicle_type || null,
-                  quotation_billing_type: row.billing_type || null,
+                  quotation_operation_type: row.billing_type || (row as any).operation_type || null,
                   applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount)) ? Number(row.billing_amount) : null,
                 }
               },
