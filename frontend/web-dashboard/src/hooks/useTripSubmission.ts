@@ -278,7 +278,7 @@ export function useTripSubmission(
             destination: destString || undefined,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
             rate_card_id: slot.rateCardId || undefined,
-            status: 'Draft',
+            status: 'Scheduled',
           });
         } else {
           const driverId = (assignment.driverId && assignment.driverId !== 'unassigned')
@@ -309,7 +309,7 @@ export function useTripSubmission(
             driver_payout: slotDriverPayout,
             update_quotation_driver_payout: shouldUpdateQuotation,
             rate_card_id: slot.rateCardId || slot.matchedRateCard?.id || undefined,
-            status: 'Draft',
+            status: 'Scheduled',
           });
         }
       });
@@ -332,7 +332,7 @@ export function useTripSubmission(
       origin: r.origin.trim() || undefined,
       destination: r.destination.trim() || undefined,
       billing_amount: r.amount ? Number(r.amount) : undefined,
-      status: 'Draft',
+      status: 'Scheduled',
     }));
 
     executeBulkSubmit(rows);

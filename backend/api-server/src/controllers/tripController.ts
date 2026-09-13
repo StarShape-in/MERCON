@@ -1783,34 +1783,84 @@ const IN_FLIGHT_STATUSES: TripStatus[] = [
   TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed,
 ];
 
+export function isFinanciallyProtectedTrip(trip: {
+  status: string;
+  is_post_trip_settled?: boolean | null;
+  paid_amount?: any;
+}): boolean {
+  const statusUpper = (trip.status || '').trim().toUpperCase();
+  if (statusUpper === 'INVOICED' || statusUpper === 'PAID') {
+    return true;
+  }
+  if (trip.is_post_trip_settled === true) {
+    return true;
+  }
+  if (trip.paid_amount !== null && trip.paid_amount !== undefined && Number(trip.paid_amount) > 0) {
+    return true;
+  }
+  return false;
+}
+
 export const bulkDeleteTrips = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
+    const userId = (req as any).user?.id;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
+    const allTrips = await prisma.trip.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: {
+        id: true,
+        ref_id: true,
+        status: true,
+        is_post_trip_settled: true,
+        paid_amount: true,
+        driverId: true,
+        vehicleId: true,
+      },
+    });
+
+    const eligibleTrips = allTrips.filter((t) => !isFinanciallyProtectedTrip(t));
+    const blockedTrips = allTrips.filter((t) => isFinanciallyProtectedTrip(t));
+
+    if (eligibleTrips.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'PROTECTED_TRIP',
+          message: 'Selected trip(s) cannot be deleted because they are invoiced or financially settled.',
+        },
+        data: {
+          deletedCount: 0,
+          skippedCount: blockedTrips.length,
+          skippedTrips: blockedTrips.map((t) => ({
+            id: t.id,
+            ref_id: t.ref_id,
+            reason: 'Trip is invoiced or financially settled',
+          })),
+        },
+      });
+    }
+
+    const eligibleIds = eligibleTrips.map((t) => t.id);
+
     await prisma.$transaction(async (tx) => {
-      // Deleting an in-flight trip must release its driver/vehicle back to Available
-      const trips = await tx.trip.findMany({
-        where: { id: { in: ids }, status: { in: IN_FLIGHT_STATUSES } },
-        select: { driverId: true, vehicleId: true },
+      // Perform soft delete ONLY — do NOT delete child tables (TripStop, TripCharge, TripLocation, etc.)
+      await tx.trip.updateMany({
+        where: { id: { in: eligibleIds } },
+        data: {
+          deletedAt: new Date(),
+          deleted_by: getValidUuid(userId),
+        },
       });
 
-      // Clear child dependencies before deleting trips
-      await tx.tripStop.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripLocation.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripCharge.deleteMany({ where: { tripId: { in: ids } } });
-      await tx.tripAssignmentEvent.deleteMany({ where: { tripId: { in: ids } } });
-
-      await tx.trip.deleteMany({
-        where: { id: { in: ids } }
-      });
-
-      const driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
-      const vehicleIds = [...new Set(trips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+      // Release driver / vehicle if soft-deleting in-flight trips
+      const inFlightTrips = eligibleTrips.filter((t) => IN_FLIGHT_STATUSES.includes(t.status as TripStatus));
+      const driverIds = [...new Set(inFlightTrips.map((t) => t.driverId).filter((id): id is string => !!id))];
+      const vehicleIds = [...new Set(inFlightTrips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
 
       if (driverIds.length) {
         await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
@@ -1820,9 +1870,27 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} trips` } });
+    const skippedReasons = blockedTrips.map((t) => ({
+      id: t.id,
+      ref_id: t.ref_id,
+      reason: 'Trip is invoiced or financially settled',
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        deletedCount: eligibleTrips.length,
+        skippedCount: blockedTrips.length,
+        skippedTrips: skippedReasons,
+        message:
+          blockedTrips.length > 0
+            ? `Soft-deleted ${eligibleTrips.length} trip(s). ${blockedTrips.length} trip(s) were protected from deletion (invoiced/settled).`
+            : `Successfully soft-deleted ${eligibleTrips.length} trip(s)`,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete trips` } });
+    logger.error({ err: error }, 'Failed to soft delete trips');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to bulk delete trips' } });
   }
 };
 

@@ -1920,17 +1920,17 @@ export default function TripListPage() {
                 onClick={() => {
                   setConfirmModal({
                     isOpen: true,
-                    title: 'Delete Trip Draft',
-                    message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
+                    title: 'Delete Trip',
+                    message: `Are you sure you want to move trip ${row.ref_id || 'Draft'} to Trash?`,
                     onConfirm: async () => {
                       try {
                         await tripService.bulkDelete([row.id]);
                         queryClient.invalidateQueries({ queryKey: ['trips'] });
                         queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
                         setSelectionResetKey(k => k + 1);
-                        toast.success('Trip deleted successfully');
-                      } catch (e) {
-                        toast.error('Failed to delete trip');
+                        toast.success('Trip moved to Trash');
+                      } catch (e: any) {
+                        toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
                       }
                     }
                   });
@@ -2002,17 +2002,25 @@ export default function TripListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Trips',
-          message: `Are you sure you want to delete ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.`,
+          message: `Are you sure you want to move ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''} to Trash?`,
           onConfirm: async () => {
             try {
-              await tripService.bulkDelete(selectedRows.map(r => r.id));
+              const res = await tripService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['trips'] });
               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
               clearSelection?.();
               setSelectionResetKey(k => k + 1);
-              toast.success(`Successfully deleted ${selectedRows.length} trip${selectedRows.length > 1 ? 's' : ''}`);
-            } catch (e) {
-              toast.error('Failed to delete trips');
+              if (res?.skippedCount > 0) {
+                if (res.deletedCount > 0) {
+                  toast.warning(`Moved ${res.deletedCount} trip(s) to Trash. ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+                } else {
+                  toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or financially settled.`);
+                }
+              } else {
+                toast.success(`Successfully moved ${res?.deletedCount || selectedRows.length} trip(s) to Trash`);
+              }
+            } catch (e: any) {
+              toast.error(e.response?.data?.error?.message || 'Failed to delete trips');
             }
           }
         });
@@ -2478,15 +2486,15 @@ export default function TripListPage() {
                         setConfirmModal({
                           isOpen: true,
                           title: 'Delete Trip',
-                          message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
+                          message: `Are you sure you want to move trip ${trip.ref_id} to Trash?`,
                           onConfirm: async () => {
                             try {
                               await tripService.bulkDelete([trip.id]);
                               queryClient.invalidateQueries({ queryKey: ['trips'] });
                               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-                              toast.success(`Deleted trip ${trip.ref_id}`);
-                            } catch (e) {
-                              toast.error('Failed to delete trip');
+                              toast.success(`Moved trip ${trip.ref_id} to Trash`);
+                            } catch (e: any) {
+                              toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
                             }
                           }
                         });

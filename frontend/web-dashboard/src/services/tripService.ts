@@ -518,8 +518,9 @@ export const tripService = {
     return res.data.data;
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/trips/bulk-delete', { ids });
+  async bulkDelete(ids: string[]): Promise<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }> {
+    const res = await api.post<ApiResponse<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }>>('/trips/bulk-delete', { ids });
+    return res.data.data;
   },
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {

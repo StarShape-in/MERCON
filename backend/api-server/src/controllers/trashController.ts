@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { nextMaintenanceRefId } from './maintenanceController';
 import { nextExpenseRefId } from './expenseController';
 import { getEnabledModules } from './settingsController';
+import { isFinanciallyProtectedTrip } from './tripController';
 
 // Which toggleable module a trash entity type belongs to. Customer/Driver/
 // Vehicle/Trip/RateCard aren't here — they're core, always available in trash
@@ -139,7 +140,20 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
     }
     switch (type) {
       case 'Customer': {
-        const customerTrips = await prisma.trip.findMany({ where: { customerId: id }, select: { id: true } });
+        const customerTrips = await prisma.trip.findMany({
+          where: { customerId: id },
+          select: { id: true, ref_id: true, status: true, is_post_trip_settled: true, paid_amount: true },
+        });
+        const protectedTrips = customerTrips.filter(t => isFinanciallyProtectedTrip(t));
+        if (protectedTrips.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'PROTECTED_TRIP',
+              message: `Customer cannot be permanently deleted because it has ${protectedTrips.length} invoiced or financially settled trip(s).`,
+            },
+          });
+        }
         const tripIds = customerTrips.map(t => t.id);
         if (tripIds.length > 0) {
           await prisma.tripCharge.deleteMany({ where: { tripId: { in: tripIds } } });
@@ -163,13 +177,27 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         await deleteEntityDocuments('Vehicle', id);
         await prisma.vehicle.deleteMany({ where: { id } });
         break;
-      case 'Trip':
+      case 'Trip': {
+        const trip = await prisma.trip.findUnique({
+          where: { id },
+          select: { id: true, ref_id: true, status: true, is_post_trip_settled: true, paid_amount: true },
+        });
+        if (trip && isFinanciallyProtectedTrip(trip)) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'PROTECTED_TRIP',
+              message: `Trip ${trip.ref_id || id} cannot be permanently deleted because it is invoiced or financially settled.`,
+            },
+          });
+        }
         // Cascade delete dependent records first to prevent foreign key errors
         await prisma.tripCharge.deleteMany({ where: { tripId: id } });
         await prisma.tripStop.deleteMany({ where: { tripId: id } });
         await deleteEntityDocuments('Trip', id);
         await prisma.trip.deleteMany({ where: { id } });
         break;
+      }
       case 'MaintenanceRecord':
         await deleteEntityDocuments('MaintenanceRecord', id);
         await prisma.maintenanceRecord.deleteMany({ where: { id } });
