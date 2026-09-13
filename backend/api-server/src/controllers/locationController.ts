@@ -81,6 +81,7 @@ export const resolveLocation = async (
       OR: [
         { slug },
         { name: { equals: name, mode: 'insensitive' as const } },
+        { code: { equals: name, mode: 'insensitive' as const } },
         ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
       ],
       deletedAt: null,
@@ -93,11 +94,123 @@ export const resolveLocation = async (
         OR: [
           { slug },
           { name: { equals: name, mode: 'insensitive' as const } },
+          { code: { equals: name, mode: 'insensitive' as const } },
           ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
         ],
         deletedAt: null,
       },
     });
+  }
+
+  // 2. Advanced Fuzzy / Token / City Alias Search if direct exact match failed
+  if (!found) {
+    const candidates = await tx.location.findMany({
+      where: { deletedAt: null },
+      include: { customer: { select: { id: true, name: true } } },
+    });
+
+    let customerName = '';
+    if (customerIdToUse) {
+      const cust = await tx.customer.findFirst({ where: { id: customerIdToUse }, select: { name: true } });
+      if (cust) customerName = cust.name;
+    }
+
+    const rawUpper = name.toUpperCase().trim();
+    const stripWords = [
+      customerName.toUpperCase(),
+      'IMILE', 'JDL', 'SHIPA', 'AKS', 'GFS', 'RTL', 'HORIZON', 'ARKAN', 'BARWAN',
+      'STATION', 'DC', 'HUB', 'AIRPORT', 'LOGISTICS', 'SAUDI', 'DELIVERY', 'LIMITED', 'LLC', 'COMPANY'
+    ].filter(Boolean);
+
+    let stripped = rawUpper;
+    for (const w of stripWords) {
+      if (w.length >= 2) {
+        stripped = stripped.replace(new RegExp(`\\b${w.replace(/[-[\]{}()*+?.:\\^$|#\s]/g, '\\$&')}\\b`, 'gi'), '').trim();
+      }
+    }
+    stripped = stripped.replace(/\s+/g, ' ').trim();
+
+    const tokens = rawUpper.split(/[\s\-_,]+/).filter(t => t.length >= 2);
+    const strippedTokens = (stripped || rawUpper).split(/[\s\-_,]+/).filter(t => t.length >= 2);
+
+    const cityMap: Record<string, string[]> = {
+      'RUH': ['RIYADH', 'RDC', 'CDC', 'RUH', 'RYD'],
+      'JED': ['JEDDAH', 'JED', 'JDS', 'JNS', 'JKS', 'JES'],
+      'DMM': ['DAMMAM', 'DMM', 'DDC', 'DAHRAN'],
+      'KHA': ['KHAMIS', 'KHAMIS MUSHAIT', 'KHA'],
+      'ABH': ['ABHA', 'ABH'],
+      'HAIL': ['HAIL', 'HAD'],
+      'BUR': ['BURAIDAH', 'BURAYDAH', 'BUR', 'BUS'],
+      'UNZ': ['UNAYZAH', 'ONAIZAH', 'UNZ'],
+      'TAIF': ['TAIF', 'TIF', 'TAI'],
+      'HOF': ['HOFUF', 'AL HASA', 'AL-HOFUF', 'HOF', 'AHS', 'ALH', 'ALL'],
+      'QUR': ['QURAYYAT', 'GURAYYAT', 'QUR'],
+      'BAH': ['AL BAHA', 'BAHA', 'BAH'],
+      'MED': ['MADINAH', 'MEDINA', 'MED', 'MDC', 'MAA'],
+      'YNB': ['YANBU', 'YNB'],
+      'TUU': ['TABUK', 'TUU'],
+      'JUB': ['JUBAIL', 'JUB'],
+      'NAJ': ['NAJRAN', 'NAJ'],
+      'JIZ': ['JIZAN', 'JAZAN', 'JIZ'],
+      'MUH': ['MUHAYIL', 'MUHAYIL AL ANM', 'MUH', 'MUL'],
+      'DWD': ['DUWADIMI', 'DWD', 'DUS'],
+      'HAB': ['HAFAR', 'HAFAR AL BATIN', 'HAB'],
+      'WAD': ['WADI', 'WADI AD DAWASIR', 'WAD'],
+    };
+
+    const scoreCandidate = (loc: typeof candidates[0]) => {
+      const locCodeUpper = (loc.code || '').toUpperCase().trim();
+      const locNameUpper = (loc.name || '').toUpperCase().trim();
+      const locCityUpper = (loc.city || '').toUpperCase().trim();
+      const sameCustomer = customerIdToUse && loc.customerId === customerIdToUse;
+
+      // 1. Code match
+      if (locCodeUpper && (rawUpper === locCodeUpper || (stripped && stripped === locCodeUpper))) {
+        return sameCustomer ? 100 : 90;
+      }
+      if (locCodeUpper && tokens.includes(locCodeUpper)) {
+        return sameCustomer ? 95 : 85;
+      }
+      if (locCodeUpper && strippedTokens.includes(locCodeUpper)) {
+        return sameCustomer ? 95 : 85;
+      }
+
+      // 2. City dictionary match
+      for (const [key, aliases] of Object.entries(cityMap)) {
+        const inputMatchesCity = tokens.some(t => aliases.includes(t)) || aliases.some(a => rawUpper.includes(a) || (stripped && stripped.includes(a)));
+        const locMatchesCity = aliases.includes(locCodeUpper) || aliases.some(a => locNameUpper.includes(a) || locCityUpper.includes(a));
+        if (inputMatchesCity && locMatchesCity) {
+          return sameCustomer ? 80 : 70;
+        }
+      }
+
+      // 3. Substring match
+      if (stripped.length >= 3) {
+        if (locNameUpper.includes(stripped) || locCityUpper.includes(stripped)) {
+          return sameCustomer ? 75 : 65;
+        }
+        if (locCodeUpper.length >= 3 && stripped.includes(locCodeUpper)) {
+          return sameCustomer ? 70 : 60;
+        }
+      }
+
+      return 0;
+    };
+
+    let bestScore = 0;
+    let bestLoc: typeof candidates[0] | null = null;
+
+    for (const loc of candidates) {
+      const score = scoreCandidate(loc);
+      if (score > bestScore) {
+        bestScore = score;
+        bestLoc = loc;
+      }
+    }
+
+    if (bestLoc && bestScore >= 60) {
+      found = bestLoc;
+    }
   }
 
   const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
