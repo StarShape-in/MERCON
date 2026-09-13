@@ -70,8 +70,9 @@ export const CUSTOMER_COLUMNS: ColumnMap = {
 
 export const RATE_CARD_COLUMNS: ColumnMap = {
   customer_name: ['customer', 'customer name', 'company', 'company name', 'carrier'],
-  rate_category: ['line type', 'rate category', 'category', 'rate type', 'quote type'],
-  billing_type: ['pricing basis', 'billing type', 'billing', 'billing frequency', 'commitment'],
+  rate_category: ['operation type', 'operation', 'line type', 'rate category', 'category', 'rate type', 'quote type'],
+  billing_type: ['billing type', 'billing', 'billing frequency', 'commitment'],
+  pricing_basis: ['pricing basis', 'pricing model', 'pricing', 'basis'],
   origin: ['origin', 'from', 'starting city', 'pickup', 'pickup city'],
   origin_label: ['origin label', 'origin facility', 'pickup facility', 'pickup label'],
   via: ['via', 'connecting city', 'connecting stop', 'stop'],

@@ -574,10 +574,10 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
     };
 
     const locationCache = new Map<string, any>();
-    const findOrCreateLocation = async (tx: any, name: string) => {
-      const key = name.trim().toLowerCase();
+    const findOrCreateLocation = async (tx: any, name: string, customerId?: string) => {
+      const key = `${(customerId || 'global').toLowerCase()}:${name.trim().toLowerCase()}`;
       if (locationCache.has(key)) return locationCache.get(key);
-      const location = await resolveLocation(tx, { name }, userId);
+      const location = await resolveLocation(tx, { name, customerId }, userId);
       locationCache.set(key, location);
       return location;
     };
@@ -591,10 +591,11 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
       const destinationText = String(row.destination || '').trim();
       const viaText = String(row.via || '').trim();
       const vehicleType = String(row.vehicle_type || '').trim();
-      const rateCategory = String(row.rate_category || row.line_type || '').trim();
+      const operationType = String(row.operation_type || row.rate_category || row.line_type || '').trim();
       const billingType = String(row.billing_type || '').trim();
+      const pricingBasisRaw = String(row.pricing_basis || '').trim();
       const currency = String(row.currency || '').trim() || 'SAR';
-      const label = [customerName, rateCategory || null, originText, destinationText].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
+      const label = [customerName, operationType || null, originText, destinationText].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
 
       try {
         if (!customerName) {
@@ -627,21 +628,23 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
           let originId: string | null = null;
           let destinationId: string | null = null;
           if (originText) {
-            const originLoc = await findOrCreateLocation(tx, originText);
+            const originLoc = await findOrCreateLocation(tx, originText, customer.id);
             originId = originLoc?.id || null;
           }
           if (destinationText) {
-            const destLoc = await findOrCreateLocation(tx, destinationText);
+            const destLoc = await findOrCreateLocation(tx, destinationText, customer.id);
             destinationId = destLoc?.id || null;
           }
 
           const lineTypeMapped =
-            rateCategory.toLowerCase().includes('single') ? 'SINGLE_TRIP' :
-            rateCategory.toLowerCase().includes('round') ? 'ROUND_TRIP' :
-            rateCategory.toLowerCase().includes('10') ? '10_HRS' :
-            rateCategory.toLowerCase().includes('12') ? '12_HRS' : rateCategory || 'SINGLE_TRIP';
+            operationType.toLowerCase().includes('single') ? 'SINGLE_TRIP' :
+            operationType.toLowerCase().includes('round') ? 'ROUND_TRIP' :
+            operationType.toLowerCase().includes('10') ? '10_HRS' :
+            operationType.toLowerCase().includes('12') ? '12_HRS' : operationType || 'SINGLE_TRIP';
 
-          const billingTypeMapped = billingType.toLowerCase().includes('monthly') ? 'MONTHLY' : 'EXTRA';
+          const billingTypeMapped = billingType.toLowerCase().includes('monthly') ? 'MONTHLY' : (billingType.toLowerCase().includes('extra') ? 'EXTRA' : (billingType || 'EXTRA'));
+
+          const pricingBasisMapped = pricingBasisRaw || (lineTypeMapped === '10_HRS' || lineTypeMapped === '12_HRS' ? 'Per Duty' : 'Per Trip');
 
           const name = String(row.quotation_name || row.name || '').trim() || `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`;
 
@@ -654,6 +657,7 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             is_active: true,
             line_type: lineTypeMapped,
             billing_type: billingTypeMapped,
+            pricing_basis: pricingBasisMapped,
             vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
             source_type: 'IMPORT',
