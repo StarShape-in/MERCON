@@ -429,6 +429,8 @@ model Trip {
   @@index([deletedAt])
   @@index([status, deletedAt])
   @@index([customerId, status, deletedAt])
+  @@index([driverId, deletedAt])
+  @@index([vehicleId, deletedAt])
 }
 
 model TripAssignmentEvent {
