@@ -235,3 +235,62 @@ export function openMultipleWhatsappMessages(trips: Trip[], mode: 'combined' | '
   }
 }
 
+/**
+ * Formats a WhatsApp message specifically for photo evidence updates.
+ */
+export function formatPhotoEvidenceWhatsappMessage(params: {
+  tripRef?: string;
+  customerName?: string;
+  stopName?: string;
+  photoCount?: number;
+  evidenceCategory?: string;
+  uploadTime?: string;
+  geotagCoords?: string;
+  publicGalleryUrl?: string;
+}): string {
+  const tripRef = params.tripRef || 'TRIP';
+  const customer = params.customerName ? `@${params.customerName}\n` : '';
+  const stop = params.stopName ? `📍 *Stop*: ${params.stopName}\n` : '';
+  const category = params.evidenceCategory ? `🏷️ *Category*: ${params.evidenceCategory}\n` : '';
+  const count = params.photoCount ? `📷 *Photos Attached*: ${params.photoCount}\n` : '';
+  const time = params.uploadTime ? `🕒 *Uploaded*: ${params.uploadTime}\n` : '';
+  const gps = params.geotagCoords ? `🗺️ *GPS Location*: https://maps.google.com/?q=${encodeURIComponent(params.geotagCoords)}\n` : '';
+  const gallery = params.publicGalleryUrl ? `\n🔗 *View Mobile Evidence Gallery*:\n${params.publicGalleryUrl}` : '';
+
+  return `${customer}📸 *TRIP PHOTO EVIDENCE UPDATE* — [${tripRef}]\n\n` +
+         `${stop}${category}${count}${time}${gps}` +
+         `\n✅ Verified operational POD & geotag evidence.${gallery}`;
+}
+
+/**
+ * Opens WhatsApp window to share photo evidence update for a trip/stop.
+ */
+export function openPhotoEvidenceWhatsapp(params: {
+  tripRef?: string;
+  customerName?: string;
+  customerPhone?: string;
+  stopName?: string;
+  photoCount?: number;
+  evidenceCategory?: string;
+  uploadTime?: string;
+  geotagCoords?: string;
+  publicGalleryUrl?: string;
+}) {
+  const text = formatPhotoEvidenceWhatsappMessage(params);
+  const cleanPhone = (params.customerPhone || '').trim().replace(/\+/g, '').replace(/\D/g, '');
+
+  const baseUrl = cleanPhone
+    ? `https://api.whatsapp.com/send?phone=${cleanPhone}`
+    : `https://api.whatsapp.com/send`;
+
+  const shareUrl = `${baseUrl}?text=${encodeURIComponent(text)}`;
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  toast.success('WhatsApp Photo Evidence update ready! Message copied to clipboard.');
+}
+
+

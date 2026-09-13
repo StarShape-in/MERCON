@@ -39,6 +39,7 @@ const CreateTripPage          = lazyWithRetry(() => import('@/pages/trips/Create
 const EditTripPage            = lazyWithRetry(() => import('@/pages/trips/EditTripPage'));
 const TripTrackingPage        = lazyWithRetry(() => import('@/pages/trips/TripTrackingPage'));
 const TripCompletionPage      = lazyWithRetry(() => import('@/pages/trips/TripCompletionPage'));
+const TripEvidencePublicGalleryPage = lazyWithRetry(() => import('@/pages/public/TripEvidencePublicGalleryPage'));
 const ThirdPartyListPage      = lazyWithRetry(() => import('@/pages/third-party/ThirdPartyListPage'));
 const ThirdPartyDetailsPage   = lazyWithRetry(() => import('@/pages/third-party/ThirdPartyDetailsPage'));
 
@@ -156,6 +157,14 @@ export default function AppRouter() {
             element={
               <Suspense fallback={<FullPageSpinner />}>
                 <ForgotPasswordPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/trips/evidence-gallery"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <TripEvidencePublicGalleryPage />
               </Suspense>
             }
           />

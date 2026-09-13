@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import {
   Clock, Eye, Camera, ChevronDown,
   ArrowUpRight, PackageCheck, Flag, FileText,
-  Play, Video, AlertTriangle, UploadCloud
+  Play, Video, AlertTriangle, UploadCloud,
+  MessageCircle, Layers, Grid, ListFilter, Share2, Sparkles, Filter, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -12,6 +14,8 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { GeotagEvidenceData } from './GeotagEvidenceCard';
+import { EvidenceLightboxModal, LightboxPhotoItem } from './EvidenceLightboxModal';
+import { openPhotoEvidenceWhatsapp } from '@/utils/whatsappFormatter';
 
 export interface PhotoPreviewItem {
   url: string;
@@ -188,6 +192,78 @@ export default function TripPhotoEvidence({
   onUpload,
 }: TripPhotoEvidenceProps) {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'stacks' | 'grid' | 'timeline'>('stacks');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'pod' | 'loading' | 'delay'>('all');
+  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
+  const [lightboxPhotos, setLightboxPhotos] = useState<LightboxPhotoItem[]>([]);
+
+  const handleOpenLightbox = (photosToView: PhotoCardItem[], startIndex = 0) => {
+    const validItems: LightboxPhotoItem[] = photosToView
+      .filter((p) => !!p.sampleImg)
+      .map((p) => ({
+        id: p.id,
+        url: p.sampleImg,
+        title: p.title,
+        time: p.time,
+        location: p.location,
+        status: p.status,
+        isVideo: p.isVideo,
+        isDelayEvidence: p.isDelayEvidence,
+        geotag: p.geotag ? {
+          latitude: p.geotag.latitude,
+          longitude: p.geotag.longitude,
+          address: p.geotag.fullAddress,
+          city: p.geotag.locationName,
+          timestamp: p.geotag.timestamp,
+        } : undefined,
+      }));
+
+    if (validItems.length > 0) {
+      setLightboxPhotos(validItems);
+      setLightboxIndex(Math.min(startIndex, validItems.length - 1));
+      setLightboxOpen(true);
+    }
+  };
+
+  const handleShareAllWhatsapp = () => {
+    const geotagCoords = trip?.stops?.[0]?.location_lat && trip?.stops?.[0]?.location_lng
+      ? `${trip.stops[0].location_lat}, ${trip.stops[0].location_lng}`
+      : undefined;
+
+    openPhotoEvidenceWhatsapp({
+      tripRef: trip?.ref_id || 'TRIP',
+      customerName: trip?.customer?.name,
+      customerPhone: trip?.customer?.contact_phone || trip?.customer?.whatsapp_number,
+      stopName: `${stops.length} Locations / Stops`,
+      photoCount: documents.length || 40,
+      evidenceCategory: 'Full Trip Photo Gallery',
+      uploadTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      geotagCoords,
+      publicGalleryUrl: `${window.location.origin}/trips/evidence-gallery?ref=${encodeURIComponent(trip?.ref_id || 'TRIP')}`,
+    });
+  };
+
+  const handleShareStopWhatsapp = (loc: LocationGroup) => {
+    const validPhotos = loc.photos.filter((p) => !!p.sampleImg);
+    const firstGeotag = validPhotos.find((p) => p.geotag?.latitude)?.geotag;
+    const geotagCoords = firstGeotag?.latitude && firstGeotag?.longitude
+      ? `${firstGeotag.latitude}, ${firstGeotag.longitude}`
+      : undefined;
+
+    openPhotoEvidenceWhatsapp({
+      tripRef: trip?.ref_id || 'TRIP',
+      customerName: trip?.customer?.name,
+      customerPhone: trip?.customer?.contact_phone || trip?.customer?.whatsapp_number,
+      stopName: `${loc.seq} ${loc.city} (${loc.badgeText})`,
+      photoCount: validPhotos.length,
+      evidenceCategory: `${loc.badgeText} Evidence`,
+      uploadTime: validPhotos[0]?.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      geotagCoords,
+      publicGalleryUrl: `${window.location.origin}/trips/evidence-gallery?ref=${encodeURIComponent(trip?.ref_id || 'TRIP')}`,
+    });
+  };
+
 
   const photoDocs = useMemo(() => {
     return (documents || []).filter((d: any) => {
@@ -698,13 +774,71 @@ export default function TripPhotoEvidence({
     <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3 flex flex-col justify-between gap-2">
       
       {/* ── HEADER ROW ── */}
-      <div className="flex items-center justify-between pb-1.5 border-b border-[#F3F4F6] shrink-0">
-        <h3 className="font-extrabold text-[13.5px] sm:text-[14px] text-[#111827] leading-tight">
-          Trip Photo Evidence
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#F3F4F6] shrink-0">
+        
+        {/* Title & View Mode Selector */}
+        <div className="flex items-center gap-3">
+          <h3 className="font-extrabold text-[13.5px] sm:text-[14px] text-[#111827] leading-tight">
+            Trip Photo Evidence
+          </h3>
 
+          {/* View Mode Toggle Segmented Pills */}
+          <div className="bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60 flex items-center gap-0.5">
+            <button
+              onClick={() => setViewMode('stacks')}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                viewMode === 'stacks'
+                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Compact Grouped Photo Stacks"
+            >
+              <Layers size={11} className={viewMode === 'stacks' ? 'text-[#FA634E]' : ''} />
+              <span>Compact Stacks</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Expanded Grid View"
+            >
+              <Grid size={11} className={viewMode === 'grid' ? 'text-[#FA634E]' : ''} />
+              <span>Grid Matrix</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                viewMode === 'timeline'
+                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Chronological Timeline View"
+            >
+              <Clock size={11} className={viewMode === 'timeline' ? 'text-[#FA634E]' : ''} />
+              <span>Timeline</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Header Controls: WhatsApp Share, Filters, Count Badge */}
         <div className="flex items-center gap-2">
-          {/* Dynamic Filter Dropdown */}
+          
+          {/* Quick WhatsApp Dispatch Button */}
+          <Button
+            size="sm"
+            onClick={handleShareAllWhatsapp}
+            className="h-7 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] gap-1 shadow-none cursor-pointer border border-emerald-500/20"
+          >
+            <MessageCircle size={12} />
+            <span className="hidden sm:inline">Send to WhatsApp</span>
+          </Button>
+
+          {/* Dynamic Location Filter Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -713,9 +847,7 @@ export default function TripPhotoEvidence({
                 className="h-7 px-2.5 rounded-lg border-[#E5E7EB] text-[#374151] hover:bg-slate-50 text-[11px] font-semibold gap-1 shadow-none cursor-pointer bg-white"
               >
                 <span>
-                  {selectedLocation === 'all'
-                    ? 'All Locations'
-                    : selectedLocation}
+                  {selectedLocation === 'all' ? 'All Locations' : selectedLocation}
                 </span>
                 <ChevronDown size={12} className="text-[#9CA3AF]" />
               </Button>
@@ -743,8 +875,8 @@ export default function TripPhotoEvidence({
         </div>
       </div>
 
-      {/* ── HORIZONTAL LEGS CONTENT CONTAINER ── */}
-      <div className="flex flex-col gap-2 pt-0.5 flex-1 justify-between">
+      {/* ── LEGS & LOCATIONS CONTAINER ── */}
+      <div className="flex flex-col gap-3 pt-1 flex-1 justify-between">
         {effectiveEvidence.map((leg) => {
           const filteredLocations =
             selectedLocation === 'all'
@@ -756,7 +888,7 @@ export default function TripPhotoEvidence({
           if (filteredLocations.length === 0) return null;
 
           return (
-            <div key={leg.id} className="flex-1 min-h-0 flex flex-col justify-between">
+            <div key={leg.id} className="flex-1 min-h-0 flex flex-col justify-between gap-1.5">
               
               {/* Leg Title Badge Row */}
               <div className="flex items-center gap-2 pb-0.5 shrink-0">
@@ -769,233 +901,330 @@ export default function TripPhotoEvidence({
                 <div className="h-px bg-slate-100 flex-1" />
               </div>
 
-              {/* Proportional Locations Grid: Each location expands to fill leg width evenly */}
-              <div className="flex flex-wrap sm:flex-nowrap gap-2 items-stretch w-full">
-                {filteredLocations.map((loc) => {
-                  return (
-                    <div
-                      key={loc.seq}
-                      className="flex-1 min-w-[240px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-1.5 flex flex-col justify-between"
-                    >
-                      {/* Location Header */}
-                      <div className="flex items-center justify-between gap-1 pb-1 shrink-0 border-b border-slate-200/60">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className={`w-4 h-4 rounded-full flex items-center justify-center font-black text-[8.5px] shrink-0 ${loc.seqBgColor}`}
-                          >
-                            {loc.seq}
-                          </span>
-                          <span className="font-extrabold text-[11px] text-[#111827] truncate">
-                            {loc.city}
-                          </span>
-                        </div>
-                        <span
-                          className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider border shrink-0 ${loc.badgeColor}`}
-                        >
-                          {loc.badgeText}
-                        </span>
-                      </div>
+              {/* ── MODE 1: COMPACT STACKED PREVIEW (DEFAULT) ── */}
+              {viewMode === 'stacks' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-stretch w-full">
+                  {filteredLocations.map((loc) => {
+                    const validPhotos = loc.photos.filter((p) => !!p.sampleImg);
+                    const hasPhotos = validPhotos.length > 0;
+                    const mainPhoto = validPhotos[0];
+                    const extraCount = Math.max(0, validPhotos.length - 1);
 
-                      {/* Photo Cards Container (up to 4 across) */}
+                    return (
                       <div
-                        className={`grid ${
-                          loc.photos.length === 1
-                            ? 'grid-cols-1'
-                            : loc.photos.length === 2
-                            ? 'grid-cols-2'
-                            : loc.photos.length === 4
-                            ? 'grid-cols-2 sm:grid-cols-4'
-                            : 'grid-cols-3'
-                        } gap-1 pt-1 items-stretch`}
+                        key={loc.seq}
+                        className="bg-slate-50/80 hover:bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 flex flex-col justify-between transition-all hover:border-slate-300 hover:shadow-xs group"
                       >
-                        {loc.photos.map((photo) => {
-                          const isArrival = photo.type === 'arrival';
-                          const isStop = photo.type === 'stop';
-                          const isDoc = photo.type === 'document';
-
-                          return (
-                            <div
-                              key={photo.id}
-                              className="bg-white border border-[#E5E7EB] hover:border-blue-300 rounded-lg p-1.5 flex flex-col gap-1 transition-all hover:shadow-2xs group min-w-0"
+                        {/* Location Header with Quick WhatsApp Trigger */}
+                        <div className="flex items-center justify-between gap-1 pb-2 shrink-0 border-b border-slate-200/60">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className={`w-4 h-4 rounded-full flex items-center justify-center font-black text-[8.5px] shrink-0 ${loc.seqBgColor}`}
                             >
-                              {/* Photo Header: Icon + Title + Received Badge */}
-                              <div className="flex items-center justify-between gap-1 pb-0.5 shrink-0">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  {photo.isDelayEvidence ? (
-                                    <AlertTriangle
-                                      size={10}
-                                      className="text-amber-600 shrink-0 stroke-[2.5]"
-                                    />
-                                  ) : photo.isVideo ? (
-                                    <Video
-                                      size={10}
-                                      className="text-purple-600 shrink-0 stroke-[2.5]"
-                                    />
-                                  ) : isArrival ? (
-                                    <ArrowUpRight
-                                      size={10}
-                                      className="text-purple-600 shrink-0 stroke-[2.5]"
-                                    />
-                                  ) : isDoc ? (
-                                    <FileText
-                                      size={10}
-                                      className="text-emerald-600 shrink-0 stroke-[2.5]"
-                                    />
-                                  ) : isStop ? (
-                                    <Flag
-                                      size={10}
-                                      className="text-blue-600 shrink-0 stroke-[2.5]"
-                                    />
-                                  ) : (
-                                    <PackageCheck
-                                      size={10}
-                                      className="text-amber-600 shrink-0 stroke-[2.5]"
-                                    />
+                              {loc.seq}
+                            </span>
+                            <span className="font-extrabold text-[11px] text-[#111827] truncate">
+                              {loc.city}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider border shrink-0 ${loc.badgeColor}`}
+                            >
+                              {loc.badgeText}
+                            </span>
+                            <button
+                              onClick={() => handleShareStopWhatsapp(loc)}
+                              title="Share stop photos via WhatsApp"
+                              className="p-1 rounded text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            >
+                              <MessageCircle size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Stacked Thumbnail Preview Box */}
+                        <div className="pt-2 flex-1 flex flex-col items-center justify-center">
+                          {hasPhotos ? (
+                            <div
+                              onClick={() => handleOpenLightbox(loc.photos, 0)}
+                              className="relative w-full aspect-16/10 rounded-lg overflow-hidden bg-slate-900 border border-slate-300 shadow-xs cursor-pointer group/stack flex items-center justify-center"
+                            >
+                              {/* Primary Main Photo Thumbnail */}
+                              {mainPhoto.isVideo ? (
+                                <video
+                                  src={mainPhoto.sampleImg.includes('#t=') ? mainPhoto.sampleImg : `${mainPhoto.sampleImg}#t=0.001`}
+                                  preload="metadata"
+                                  muted
+                                  className="w-full h-full object-cover group-hover/stack:scale-105 transition-transform duration-300"
+                                />
+                              ) : (
+                                <img
+                                  src={mainPhoto.sampleImg}
+                                  alt={mainPhoto.title}
+                                  className="w-full h-full object-cover group-hover/stack:scale-105 transition-transform duration-300"
+                                />
+                              )}
+
+                              {/* Stack Overlay Layer */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent flex flex-col justify-between p-2 text-white">
+                                <div className="flex items-center justify-between gap-1">
+                                  <Badge className="bg-black/60 backdrop-blur-xs text-white border-white/20 text-[9px] font-bold px-1.5 py-0.5">
+                                    {mainPhoto.title}
+                                  </Badge>
+                                  {extraCount > 0 && (
+                                    <div className="bg-[#FA634E] text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-md">
+                                      +{extraCount} more
+                                    </div>
                                   )}
-                                  <span
-                                    className="font-bold text-[8px] sm:text-[8.5px] text-[#1F2937] truncate"
-                                    title={photo.title}
-                                  >
-                                    {photo.title}
+                                </div>
+
+                                <div className="flex items-center justify-between text-[10px] font-medium text-slate-200">
+                                  <span className="flex items-center gap-1 font-mono text-[9px]">
+                                    <Clock size={10} className="text-amber-400" />
+                                    {mainPhoto.time}
+                                  </span>
+                                  <span className="font-bold text-white flex items-center gap-1 group-hover/stack:underline">
+                                    <Eye size={12} />
+                                    Inspect ({validPhotos.length})
                                   </span>
                                 </div>
-                                <span
-                                  className={`px-1 py-0.2 rounded text-[7px] sm:text-[7.5px] font-bold border shrink-0 leading-none ${
-                                    photo.isRealDoc
-                                      ? photo.isDelayEvidence
-                                        ? 'bg-amber-50 text-amber-700 border-amber-300 font-black'
-                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : 'bg-amber-50 text-amber-700 border-amber-200'
-                                  }`}
-                                >
-                                  {photo.status}
-                                </span>
                               </div>
+                            </div>
+                          ) : (
+                            <div className="w-full aspect-16/10 rounded-lg bg-slate-100/70 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 p-3 text-center">
+                              <Camera size={18} className="text-slate-300" />
+                              <span className="text-[10px] font-semibold text-slate-500">No photos uploaded yet</span>
+                              <span className="text-[9px] text-slate-400">Awaiting driver arrival</span>
+                            </div>
+                          )}
+                        </div>
 
-                              {/* Thumbnail Image, Video, or Dedicated Camera Placeholder */}
-                              {photo.sampleImg ? (
-                                photo.isVideo ? (
-                                  <div
-                                    onClick={() =>
-                                      onPreview({
-                                        url: photo.sampleImg,
-                                        title: photo.title,
-                                        location: photo.location,
-                                        date: photo.time,
-                                        geotag: photo.geotag,
-                                        isVideo: true,
-                                      })
-                                    }
-                                    className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-950 border border-slate-700/80 cursor-pointer group shrink-0 flex items-center justify-center"
-                                  >
-                                    <video
-                                      src={photo.sampleImg.includes('#t=') ? photo.sampleImg : `${photo.sampleImg}#t=0.001`}
-                                      preload="metadata"
-                                      muted
-                                      playsInline
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                      onError={(e) => {
-                                        (e.target as HTMLElement).style.opacity = '0';
-                                      }}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 group-hover:via-black/20 transition-colors flex flex-col items-center justify-center gap-1">
-                                      <div className="w-8 h-8 rounded-full bg-[#FA634E] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                        <Play size={14} className="fill-white ml-0.5 text-white" />
-                                      </div>
-                                    </div>
-                                    <div className="absolute bottom-1 left-1 bg-black/80 backdrop-blur-xs text-white text-[7px] sm:text-[7.5px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm border border-white/10">
-                                      <Video size={8} />
-                                      <span>{photo.isDelayEvidence ? 'Delay Video' : 'Video'}</span>
-                                    </div>
+                        {/* Location Summary Footer */}
+                        <div className="pt-2 flex items-center justify-between text-[9px] font-bold text-slate-500 border-t border-slate-200/50 mt-2">
+                          <span className="text-slate-600 font-semibold">
+                            {validPhotos.length} {validPhotos.length === 1 ? 'Evidence Photo' : 'Photos Recorded'}
+                          </span>
+                          {hasPhotos && (
+                            <button
+                              onClick={() => handleOpenLightbox(loc.photos, 0)}
+                              className="text-[#FA634E] hover:underline font-extrabold flex items-center gap-0.5 cursor-pointer"
+                            >
+                              <span>View Gallery</span>
+                              <ArrowUpRight size={10} />
+                            </button>
+                          )}
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── MODE 2: EXPANDED GRID MATRIX ── */}
+              {viewMode === 'grid' && (
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 items-stretch w-full">
+                  {filteredLocations.map((loc) => {
+                    return (
+                      <div
+                        key={loc.seq}
+                        className="flex-1 min-w-[240px] bg-slate-50/70 border border-slate-200/80 rounded-xl p-1.5 flex flex-col justify-between"
+                      >
+                        {/* Location Header */}
+                        <div className="flex items-center justify-between gap-1 pb-1 shrink-0 border-b border-slate-200/60">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className={`w-4 h-4 rounded-full flex items-center justify-center font-black text-[8.5px] shrink-0 ${loc.seqBgColor}`}
+                            >
+                              {loc.seq}
+                            </span>
+                            <span className="font-extrabold text-[11px] text-[#111827] truncate">
+                              {loc.city}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider border shrink-0 ${loc.badgeColor}`}
+                            >
+                              {loc.badgeText}
+                            </span>
+                            <button
+                              onClick={() => handleShareStopWhatsapp(loc)}
+                              className="p-0.5 rounded text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            >
+                              <MessageCircle size={12} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expanded Photo Cards Matrix */}
+                        <div
+                          className={`grid ${
+                            loc.photos.length === 1
+                              ? 'grid-cols-1'
+                              : loc.photos.length === 2
+                              ? 'grid-cols-2'
+                              : loc.photos.length === 4
+                              ? 'grid-cols-2 sm:grid-cols-4'
+                              : 'grid-cols-3'
+                          } gap-1 pt-1 items-stretch`}
+                        >
+                          {loc.photos.map((photo, pIdx) => {
+                            const isArrival = photo.type === 'arrival';
+                            const isStop = photo.type === 'stop';
+                            const isDoc = photo.type === 'document';
+
+                            return (
+                              <div
+                                key={photo.id}
+                                className="bg-white border border-[#E5E7EB] hover:border-blue-300 rounded-lg p-1.5 flex flex-col gap-1 transition-all hover:shadow-2xs group min-w-0"
+                              >
+                                <div className="flex items-center justify-between gap-1 pb-0.5 shrink-0">
+                                  <div className="flex items-center gap-1 min-w-0">
+                                    {photo.isDelayEvidence ? (
+                                      <AlertTriangle size={10} className="text-amber-600 shrink-0 stroke-[2.5]" />
+                                    ) : photo.isVideo ? (
+                                      <Video size={10} className="text-purple-600 shrink-0 stroke-[2.5]" />
+                                    ) : isArrival ? (
+                                      <ArrowUpRight size={10} className="text-purple-600 shrink-0 stroke-[2.5]" />
+                                    ) : isDoc ? (
+                                      <FileText size={10} className="text-emerald-600 shrink-0 stroke-[2.5]" />
+                                    ) : (
+                                      <PackageCheck size={10} className="text-amber-600 shrink-0 stroke-[2.5]" />
+                                    )}
+                                    <span className="font-bold text-[8.5px] text-[#1F2937] truncate" title={photo.title}>
+                                      {photo.title}
+                                    </span>
                                   </div>
-                                ) : (
+                                  <span className="px-1 py-0.2 rounded text-[7.5px] font-bold border shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    {photo.status}
+                                  </span>
+                                </div>
+
+                                {photo.sampleImg ? (
                                   <div
-                                    onClick={() =>
-                                      onPreview({
-                                        url: photo.sampleImg,
-                                        title: photo.title,
-                                        location: photo.location,
-                                        date: photo.time,
-                                        geotag: photo.geotag,
-                                        isVideo: false,
-                                      })
-                                    }
+                                    onClick={() => handleOpenLightbox(loc.photos, pIdx)}
                                     className="relative w-full aspect-square rounded-md overflow-hidden bg-slate-100 border border-slate-200/80 cursor-pointer group shrink-0"
                                   >
                                     <img
                                       src={photo.sampleImg}
                                       alt={photo.title}
                                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                      onError={(e) => {
-                                        (e.target as HTMLElement).style.display = 'none';
-                                      }}
                                     />
                                     <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                       <Eye size={14} />
                                     </div>
                                   </div>
-                                )
-                              ) : (
-                                <div className="relative w-full aspect-square rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
-                                  <Camera size={15} className="text-slate-300" />
-                                  <span className="text-[7.5px] font-medium text-slate-400">No photo uploaded</span>
-                                </div>
-                              )}
-
-                              {/* Photo Metadata Footer */}
-                              <div className="pt-0.5 flex items-center justify-between text-[7.5px] sm:text-[8px] text-slate-500 shrink-0">
-                                <div className="flex items-center gap-1 font-mono text-[#6B7280] truncate">
-                                  <Clock size={8} className="text-[#9CA3AF] shrink-0" />
-                                  <span className="truncate">{photo.time}</span>
-                                </div>
-
-                                {photo.sampleImg ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onPreview({
-                                        url: photo.sampleImg,
-                                        title: photo.title,
-                                        location: photo.location,
-                                        date: photo.time,
-                                        geotag: photo.geotag,
-                                        isVideo: photo.isVideo,
-                                      })
-                                    }
-                                    className="flex items-center gap-0.5 font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
-                                  >
-                                    {photo.isVideo ? (
-                                      <>
-                                        <Play size={9} className="fill-current text-[#FA634E]" />
-                                        <span className="text-[#FA634E]">Play</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Eye size={9} />
-                                        <span>View</span>
-                                      </>
-                                    )}
-                                  </button>
                                 ) : (
-                                  <span className="text-slate-400">Awaiting Driver</span>
+                                  <div className="relative w-full aspect-square rounded-md bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 shrink-0">
+                                    <Camera size={14} className="text-slate-300" />
+                                    <span className="text-[7.5px] font-medium text-slate-400">No photo uploaded</span>
+                                  </div>
                                 )}
-                              </div>
 
-                            </div>
-                          );
-                        })}
+                                <div className="pt-0.5 flex items-center justify-between text-[8px] text-slate-500 shrink-0">
+                                  <span className="font-mono text-[#6B7280]">{photo.time}</span>
+                                  {photo.sampleImg && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenLightbox(loc.photos, pIdx)}
+                                      className="font-bold text-blue-600 hover:text-blue-700 cursor-pointer flex items-center gap-0.5"
+                                    >
+                                      <Eye size={9} />
+                                      <span>View</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── MODE 3: CHRONOLOGICAL TIMELINE STREAM ── */}
+              {viewMode === 'timeline' && (
+                <div className="flex flex-col gap-2 pt-1">
+                  {filteredLocations.flatMap((loc) => loc.photos).filter((p) => !!p.sampleImg).map((photo, idx) => (
+                    <div
+                      key={photo.id || idx}
+                      className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-4 hover:bg-slate-100/80 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          onClick={() => handleOpenLightbox(allLocationsList.flatMap(l => l.photos), idx)}
+                          className="w-14 h-14 rounded-lg overflow-hidden bg-slate-900 border border-slate-300 cursor-pointer shrink-0"
+                        >
+                          <img src={photo.sampleImg} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-extrabold text-xs text-slate-900 truncate">
+                            {photo.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 truncate">
+                            📍 {photo.location} • <span className="font-mono text-slate-500">{photo.time}</span>
+                          </p>
+                          {photo.geotag?.latitude != null && photo.geotag?.longitude != null && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-mono">
+                              <CheckCircle2 size={10} />
+                              Geotag: {photo.geotag.latitude.toFixed(4)}, {photo.geotag.longitude.toFixed(4)}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenLightbox(allLocationsList.flatMap(l => l.photos), idx)}
+                          className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer bg-white"
+                        >
+                          <Eye size={12} />
+                          <span>Inspect</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => openPhotoEvidenceWhatsapp({
+                            tripRef: trip?.ref_id || 'TRIP',
+                            stopName: photo.location,
+                            evidenceCategory: photo.title,
+                            uploadTime: photo.time,
+                          })}
+                          className="h-8 px-2.5 text-xs font-bold gap-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <MessageCircle size={12} />
+                          <span>WhatsApp</span>
+                        </Button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
 
             </div>
           );
         })}
       </div>
 
+      {/* ── LIGHTBOX MODAL ── */}
+      <EvidenceLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        photos={lightboxPhotos}
+        initialIndex={lightboxIndex}
+        tripRef={trip?.ref_id || 'TRIP'}
+        customerName={trip?.customer?.name}
+        customerPhone={trip?.customer?.contact_phone || trip?.customer?.whatsapp_number}
+      />
+
     </div>
   );
 }
+
