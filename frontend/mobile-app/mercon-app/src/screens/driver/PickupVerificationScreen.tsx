@@ -12,10 +12,12 @@ import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBo
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
-import { getApiErrorMessage } from '../../lib/api';
+import { API_URL, getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
 import { getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops } from '../../lib/routeParser';
+
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
 // Blue Camera Icon with Plus Badge for Loading Photo Upload Slots
 const BlueCameraPlusIcon = () => (
@@ -120,10 +122,16 @@ const PickupVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const draftKey = isReturnLoading
+        const stopSpecificKey = pickupStop?.id ? `pickup_draft_${trip.id}_${pickupStop.id}` : null;
+        const legacyKey = isReturnLoading
           ? `return_pickup_draft_photos_${trip.id}`
           : `pickup_draft_photos_${trip.id}`;
-        const saved = await SecureStore.getItemAsync(draftKey);
+
+        let saved = stopSpecificKey ? await SecureStore.getItemAsync(stopSpecificKey) : null;
+        if (!saved) {
+          saved = await SecureStore.getItemAsync(legacyKey);
+        }
+
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -132,26 +140,46 @@ const PickupVerificationScreen = () => {
           }
         }
 
-        // Fallback: If photos were already uploaded to server for this stop/leg, display them
-        if (trip.documents && trip.documents.length > 0) {
-          const expectedLeg = isReturnLoading ? 1 : 0;
+        // Fallback: If photos were already uploaded to server for THIS specific stop/leg, display them
+        if (trip.documents && trip.documents.length > 0 && pickupStop?.id) {
           const serverCargoDocs = trip.documents.filter((d: any) => {
             const op = d.ai_extracted_json?.operation;
             const leg = d.ai_extracted_json?.leg_index;
             const docStopId = d.ai_extracted_json?.stop_id;
-            const isArrival = op?.includes('arrival');
+
+            // 1. Must be a cargo/waybill document type, never arrival photos or POD
+            const isCargoDoc = d.doc_type === 'Waybill' || d.doc_type === 'Cargo' || op === 'pickup' || op === 'return_loading';
+            if (!isCargoDoc) return false;
+
+            const isArrival = op?.includes('arrival') || d.doc_type === 'Arrival';
             if (isArrival) return false;
-            if (pickupStop?.id && docStopId) {
+
+            // 2. Primary strict stop matching: If stop_id is stored, it MUST match this pickup stop
+            if (docStopId) {
               return docStopId === pickupStop.id;
             }
-            return (leg === expectedLeg || leg === undefined);
+
+            // 3. Fallback for legacy records without stop_id:
+            // MUST strictly match the exact leg index and operation type!
+            // CRITICAL: NEVER match leg === undefined or op === 'pickup' when isReturnLoading is true!
+            if (isReturnLoading) {
+              return leg === 1 && op === 'return_loading';
+            } else {
+              return (leg === 0 || (leg === undefined && op === 'pickup')) && op !== 'return_loading';
+            }
           });
+
           if (serverCargoDocs.length > 0) {
             setPhotos(
-              serverCargoDocs.slice(0, 3).map((d: any) => ({
-                uri: d.file_url,
-                mimeType: d.mime_type || 'image/jpeg',
-              }))
+              serverCargoDocs.slice(0, 3).map((d: any) => {
+                const fullUri = d.file_url?.startsWith('http') || d.file_url?.startsWith('file://')
+                  ? d.file_url
+                  : `${FILE_BASE}${d.file_url?.startsWith('/') ? '' : '/'}${d.file_url}`;
+                return {
+                  uri: fullUri,
+                  mimeType: d.mime_type || 'image/jpeg',
+                };
+              })
             );
             return;
           }
@@ -160,10 +188,11 @@ const PickupVerificationScreen = () => {
         setPhotos([]);
       } catch (e) {
         console.error('Error loading draft photos:', e);
+        setPhotos([]);
       }
     };
     loadDraft();
-  }, [trip?.id, isReturnLoading, trip?.documents]);
+  }, [trip?.id, isReturnLoading, pickupStop?.id, trip?.documents]);
 
   const addPhoto = async (slotIndex?: number) => {
     try {
@@ -178,8 +207,10 @@ const PickupVerificationScreen = () => {
           }
           const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
+            const stopKey = pickupStop?.id ? `pickup_draft_${trip.id}_${pickupStop.id}` : null;
             const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
             const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
+            if (stopKey) SecureStore.setItemAsync(stopKey, JSON.stringify(valid));
             SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
             SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
@@ -195,8 +226,10 @@ const PickupVerificationScreen = () => {
     setPhotos((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
       if (trip?.id) {
+        const stopKey = pickupStop?.id ? `pickup_draft_${trip.id}_${pickupStop.id}` : null;
         const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
         const completedKey = isReturnLoading ? `return_pickup_completed_photos_${trip.id}` : `pickup_completed_photos_${trip.id}`;
+        if (stopKey) SecureStore.setItemAsync(stopKey, JSON.stringify(next));
         SecureStore.setItemAsync(draftKey, JSON.stringify(next));
         SecureStore.setItemAsync(completedKey, JSON.stringify(next));
       }
@@ -241,6 +274,10 @@ const PickupVerificationScreen = () => {
         } else {
           await SecureStore.setItemAsync('last_pickup_photos', JSON.stringify(photos));
         }
+        const stopKey = pickupStop?.id ? `pickup_draft_${trip.id}_${pickupStop.id}` : null;
+        if (stopKey) await SecureStore.deleteItemAsync(stopKey).catch(() => {});
+        const draftKey = isReturnLoading ? `return_pickup_draft_photos_${trip.id}` : `pickup_draft_photos_${trip.id}`;
+        await SecureStore.deleteItemAsync(draftKey).catch(() => {});
       }
       // Upload photos via tripService.uploadPhoto
       for (const p of photos) {

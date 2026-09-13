@@ -12,9 +12,11 @@ import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBo
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
-import { getApiErrorMessage } from '../../lib/api';
+import { API_URL, getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
+
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
 // Green Camera Icon with Plus Badge for Delivery Photo Upload Slots
 const GreenCameraPlusIcon = () => (
@@ -124,10 +126,16 @@ const DeliveryVerificationScreen = () => {
     if (!trip?.id) return;
     const loadDraft = async () => {
       try {
-        const draftKey = isReturnDelivery
+        const stopSpecificKey = dropoffStop?.id ? `delivery_draft_${trip.id}_${dropoffStop.id}` : null;
+        const legacyKey = isReturnDelivery
           ? `return_delivery_draft_photos_${trip.id}`
           : `delivery_draft_photos_${trip.id}`;
-        const saved = await SecureStore.getItemAsync(draftKey);
+
+        let saved = stopSpecificKey ? await SecureStore.getItemAsync(stopSpecificKey) : null;
+        if (!saved) {
+          saved = await SecureStore.getItemAsync(legacyKey);
+        }
+
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -136,28 +144,46 @@ const DeliveryVerificationScreen = () => {
           }
         }
 
-        // Fallback: If photos were already uploaded to server for this delivery/leg, display them
-        if (trip.documents && trip.documents.length > 0) {
-          const expectedLeg = isReturnDelivery ? 1 : 0;
+        // Fallback: If photos were already uploaded to server for THIS specific delivery stop/leg, display them
+        if (trip.documents && trip.documents.length > 0 && dropoffStop?.id) {
           const serverPodDocs = trip.documents.filter((d: any) => {
             const op = d.ai_extracted_json?.operation;
             const leg = d.ai_extracted_json?.leg_index;
             const docStopId = d.ai_extracted_json?.stop_id;
-            const isArrival = op?.includes('arrival');
+
+            // 1. Must be a POD document type
+            const isPodDoc = d.doc_type === 'POD' || op === 'delivery' || op === 'return_delivery' || op === 'pod';
+            if (!isPodDoc) return false;
+
+            // 2. Never match arrival photos
+            const isArrival = op?.includes('arrival') || d.doc_type === 'Arrival';
             if (isArrival) return false;
-            const isPodType = op === 'delivery' || op === 'return_delivery' || op === 'pod' || d.doc_type === 'POD';
-            if (!isPodType) return false;
-            if (dropoffStop?.id && docStopId) {
+
+            // 3. Primary strict check: Match exact stop ID
+            if (docStopId) {
               return docStopId === dropoffStop.id;
             }
-            return (leg === expectedLeg || leg === undefined);
+
+            // 4. Secondary fallback for legacy documents without stop_id:
+            // MUST strictly match the exact leg index and operation type!
+            if (isReturnDelivery) {
+              return leg === 1 && (op === 'return_delivery' || op === 'pod');
+            } else {
+              return (leg === 0 || (leg === undefined && op === 'delivery')) && op !== 'return_delivery';
+            }
           });
+
           if (serverPodDocs.length > 0) {
             setPhotos(
-              serverPodDocs.slice(0, 3).map((d: any) => ({
-                uri: d.file_url,
-                mimeType: d.mime_type || 'image/jpeg',
-              }))
+              serverPodDocs.slice(0, 3).map((d: any) => {
+                const fullUri = d.file_url?.startsWith('http') || d.file_url?.startsWith('file://')
+                  ? d.file_url
+                  : `${FILE_BASE}${d.file_url?.startsWith('/') ? '' : '/'}${d.file_url}`;
+                return {
+                  uri: fullUri,
+                  mimeType: d.mime_type || 'image/jpeg',
+                };
+              })
             );
             return;
           }
@@ -166,10 +192,11 @@ const DeliveryVerificationScreen = () => {
         setPhotos([]);
       } catch (e) {
         console.error('Error loading draft photos:', e);
+        setPhotos([]);
       }
     };
     loadDraft();
-  }, [trip?.id, isReturnDelivery, trip?.documents]);
+  }, [trip?.id, isReturnDelivery, dropoffStop?.id, trip?.documents]);
 
   const addPhoto = async (slotIndex?: number) => {
     try {
@@ -184,8 +211,10 @@ const DeliveryVerificationScreen = () => {
           }
           const valid = next.filter(Boolean).slice(0, 3);
           if (trip?.id) {
+            const stopKey = dropoffStop?.id ? `delivery_draft_${trip.id}_${dropoffStop.id}` : null;
             const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
             const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
+            if (stopKey) SecureStore.setItemAsync(stopKey, JSON.stringify(valid));
             SecureStore.setItemAsync(draftKey, JSON.stringify(valid));
             SecureStore.setItemAsync(completedKey, JSON.stringify(valid));
           }
@@ -201,8 +230,10 @@ const DeliveryVerificationScreen = () => {
     setPhotos((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
       if (trip?.id) {
+        const stopKey = dropoffStop?.id ? `delivery_draft_${trip.id}_${dropoffStop.id}` : null;
         const draftKey = isReturnDelivery ? `return_delivery_draft_photos_${trip.id}` : `delivery_draft_photos_${trip.id}`;
         const completedKey = isReturnDelivery ? `return_delivery_completed_photos_${trip.id}` : `delivery_completed_photos_${trip.id}`;
+        if (stopKey) SecureStore.setItemAsync(stopKey, JSON.stringify(next));
         SecureStore.setItemAsync(draftKey, JSON.stringify(next));
         SecureStore.setItemAsync(completedKey, JSON.stringify(next));
       }
@@ -283,6 +314,9 @@ const DeliveryVerificationScreen = () => {
           console.warn('Status update warning:', statusErr);
         }
         await SecureStore.deleteItemAsync(`pickup_draft_photos_${trip.id}`).catch(() => {});
+        if (dropoffStop?.id) {
+          await SecureStore.deleteItemAsync(`delivery_draft_${trip.id}_${dropoffStop.id}`).catch(() => {});
+        }
         Alert.alert(
           'Delivery Completed!',
           'Outbound delivery confirmed. Proceed to Return Cargo Loading at ' + (stopLabel(dropoffStop) || 'destination'),
@@ -295,6 +329,10 @@ const DeliveryVerificationScreen = () => {
         );
       } else {
         // Final leg delivery completed! Transition to COMPLETED
+        if (dropoffStop?.id) {
+          await SecureStore.deleteItemAsync(`delivery_draft_${trip.id}_${dropoffStop.id}`).catch(() => {});
+        }
+        await SecureStore.deleteItemAsync(`return_delivery_draft_photos_${trip.id}`).catch(() => {});
         try {
           const updated = await tripService.updateStatus(trip.id, 'Completed', 'COMPLETED');
           setTrip(updated);

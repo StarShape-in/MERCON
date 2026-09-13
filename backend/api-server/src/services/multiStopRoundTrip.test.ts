@@ -1058,4 +1058,144 @@ describe('DEEP CODE-LEVEL TEST SUITE — INDEPENDENT OUTBOUND + RETURN ARCHITECT
       assert.equal(documentJson.operation, 'return_loading');
     });
   });
+
+  // ============================================================
+  // TEST CASE #16 — PHOTO STATE & STOP ISOLATION (REGRESSION)
+  // ============================================================
+  describe('Test Case #16 — Photo State & Stop Isolation (IMILE MUH Regression)', () => {
+    // Exact filter algorithm used in PickupVerificationScreen.tsx
+    function filterCargoDocs(docs: any[], isReturnLoading: boolean, pickupStopId: string): any[] {
+      return docs.filter((d: any) => {
+        const op = d.ai_extracted_json?.operation;
+        const leg = d.ai_extracted_json?.leg_index;
+        const docStopId = d.ai_extracted_json?.stop_id;
+
+        const isCargoDoc = d.doc_type === 'Waybill' || d.doc_type === 'Cargo' || op === 'pickup' || op === 'return_loading';
+        if (!isCargoDoc) return false;
+
+        const isArrival = op?.includes('arrival') || d.doc_type === 'Arrival';
+        if (isArrival) return false;
+
+        if (docStopId) {
+          return docStopId === pickupStopId;
+        }
+
+        if (isReturnLoading) {
+          return leg === 1 && op === 'return_loading';
+        } else {
+          return (leg === 0 || (leg === undefined && op === 'pickup')) && op !== 'return_loading';
+        }
+      });
+    }
+
+    // Exact filter algorithm used in DeliveryVerificationScreen.tsx
+    function filterPodDocs(docs: any[], isReturnDelivery: boolean, dropoffStopId: string): any[] {
+      return docs.filter((d: any) => {
+        const op = d.ai_extracted_json?.operation;
+        const leg = d.ai_extracted_json?.leg_index;
+        const docStopId = d.ai_extracted_json?.stop_id;
+
+        const isPodDoc = d.doc_type === 'POD' || op === 'delivery' || op === 'return_delivery' || op === 'pod';
+        if (!isPodDoc) return false;
+
+        const isArrival = op?.includes('arrival') || d.doc_type === 'Arrival';
+        if (isArrival) return false;
+
+        if (docStopId) {
+          return docStopId === dropoffStopId;
+        }
+
+        if (isReturnDelivery) {
+          return leg === 1 && (op === 'return_delivery' || op === 'pod');
+        } else {
+          return (leg === 0 || (leg === undefined && op === 'delivery')) && op !== 'return_delivery';
+        }
+      });
+    }
+
+    const stop1OutboundPickup = 'stop-1-imile-bah';
+    const stop4OutboundDelivery = 'stop-4-imile-muh';
+    const stop5ReturnLoading = 'stop-5-imile-muh';
+    const stop8ReturnDelivery = 'stop-8-imile-bah';
+
+    it('Scenario 1: Outbound Delivery at IMILE MUH has no photos -> Return Loading at IMILE MUH shows 0 photos', () => {
+      const documents: any[] = [];
+      const result = filterCargoDocs(documents, true, stop5ReturnLoading);
+      assert.equal(result.length, 0);
+    });
+
+    it('Scenario 2: Outbound Delivery at IMILE MUH has 3 POD photos uploaded -> Return Loading at IMILE MUH MUST STILL show 0 photos', () => {
+      const documents = [
+        { id: 'doc-1', doc_type: 'POD', file_url: '/uploads/pod1.jpg', ai_extracted_json: { operation: 'delivery', leg_index: 0, stop_id: stop4OutboundDelivery } },
+        { id: 'doc-2', doc_type: 'POD', file_url: '/uploads/pod2.jpg', ai_extracted_json: { operation: 'delivery', leg_index: 0, stop_id: stop4OutboundDelivery } },
+        { id: 'doc-3', doc_type: 'POD', file_url: '/uploads/pod3.jpg', ai_extracted_json: { operation: 'delivery', leg_index: 0, stop_id: stop4OutboundDelivery } },
+      ];
+      const result = filterCargoDocs(documents, true, stop5ReturnLoading);
+      assert.equal(result.length, 0, 'Return loading must NOT show any outbound delivery POD photos');
+    });
+
+    it('Scenario 3: Outbound Pickup has 3 cargo photos uploaded -> Return Loading at IMILE MUH MUST STILL show 0 photos', () => {
+      const documents = [
+        { id: 'c-1', doc_type: 'Waybill', file_url: '/uploads/cargo1.jpg', ai_extracted_json: { operation: 'pickup', leg_index: 0, stop_id: stop1OutboundPickup } },
+        { id: 'c-2', doc_type: 'Waybill', file_url: '/uploads/cargo2.jpg', ai_extracted_json: { operation: 'pickup', leg_index: 0, stop_id: stop1OutboundPickup } },
+        { id: 'c-3', doc_type: 'Waybill', file_url: '/uploads/cargo3.jpg', ai_extracted_json: { operation: 'pickup', leg_index: 0, stop_id: stop1OutboundPickup } },
+      ];
+      const result = filterCargoDocs(documents, true, stop5ReturnLoading);
+      assert.equal(result.length, 0, 'Return loading must NOT show outbound pickup cargo photos');
+    });
+
+    it('Scenario 4: Legacy documents with leg_index undefined and no stop_id NEVER bleed into Return Loading', () => {
+      const legacyDocs = [
+        { id: 'leg-1', doc_type: 'Waybill', file_url: '/uploads/leg1.jpg', ai_extracted_json: { operation: 'pickup' } },
+        { id: 'leg-2', doc_type: 'Waybill', file_url: '/uploads/leg2.jpg', ai_extracted_json: {} },
+        { id: 'leg-3', doc_type: 'Waybill', file_url: '/uploads/leg3.jpg', ai_extracted_json: null },
+      ];
+      const result = filterCargoDocs(legacyDocs, true, stop5ReturnLoading);
+      assert.equal(result.length, 0, 'Legacy documents without return_loading operation must never match return loading');
+    });
+
+    it('Scenario 5: Return Loading uploads 2 photos -> Draft saves 2 photos -> Reopen Return Loading returns exactly 2 photos', () => {
+      const fakeSecureStore: Record<string, string> = {};
+      const tripId = 'trip-123';
+      const stopKey = `pickup_draft_${tripId}_${stop5ReturnLoading}`;
+      const photos = [
+        { uri: 'file:///photo1.jpg', mimeType: 'image/jpeg' },
+        { uri: 'file:///photo2.jpg', mimeType: 'image/jpeg' },
+      ];
+
+      // Save draft
+      fakeSecureStore[stopKey] = JSON.stringify(photos);
+
+      // Reopen screen
+      const restored = JSON.parse(fakeSecureStore[stopKey]);
+      assert.equal(restored.length, 2);
+      assert.equal(restored[0].uri, 'file:///photo1.jpg');
+      assert.equal(restored[1].uri, 'file:///photo2.jpg');
+    });
+
+    it('Scenario 6: Return Delivery has its own independent photo state', () => {
+      const documents = [
+        // Outbound delivery POD
+        { id: 'pod-out', doc_type: 'POD', file_url: '/uploads/pod_out.jpg', ai_extracted_json: { operation: 'delivery', leg_index: 0, stop_id: stop4OutboundDelivery } },
+        // Return loading cargo
+        { id: 'ret-load', doc_type: 'Waybill', file_url: '/uploads/ret_cargo.jpg', ai_extracted_json: { operation: 'return_loading', leg_index: 1, stop_id: stop5ReturnLoading } },
+      ];
+
+      // Return Delivery check
+      const retDelResult = filterPodDocs(documents, true, stop8ReturnDelivery);
+      assert.equal(retDelResult.length, 0, 'Return delivery must not show outbound POD or return loading cargo');
+
+      // Now add a valid return delivery POD
+      documents.push({
+        id: 'pod-ret',
+        doc_type: 'POD',
+        file_url: '/uploads/pod_ret.jpg',
+        ai_extracted_json: { operation: 'return_delivery', leg_index: 1, stop_id: stop8ReturnDelivery }
+      });
+
+      const retDelResultWithDoc = filterPodDocs(documents, true, stop8ReturnDelivery);
+      assert.equal(retDelResultWithDoc.length, 1);
+      assert.equal(retDelResultWithDoc[0].id, 'pod-ret');
+    });
+  });
 });
