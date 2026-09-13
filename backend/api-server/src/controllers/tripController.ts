@@ -988,7 +988,27 @@ function parseFullTripStops(originStr: string, destinationStr: string) {
     returnStr = parts[1].replace(']', '').trim();
   }
 
-  const splitChain = (str: string) => str.split(/\s*(?:→|->|-->)\s*/).map(s => s.trim()).filter(Boolean);
+  const splitChain = (str: string) => {
+    if (!str) return [];
+    let s = str.trim().replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
+    let norm = s.replace(/→|->|-->/g, ' + ').replace(/\//g, ' + ').replace(/&/g, ' + ');
+    const chunks = norm.split('+').map(c => c.trim()).filter(Boolean);
+    const items: string[] = [];
+    const KNOWN_CODES = ['RUH','JED','DMM','BUR','UNZ','HAI','HAIL','KHA','ABH','TAI','TAIF','MAK','MAD','HOF','QUR','TAB','TABUK','ALB','JIZ','NAJ','WAD','TUB','SUD','DAM','AHSAR','AHSAN'];
+    for (const chunk of chunks) {
+      if (/\s+-\s+/.test(chunk) || /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+/i.test(chunk)) {
+        items.push(...chunk.split('-').map(sp => sp.trim()).filter(Boolean));
+      } else {
+        const words = chunk.split(/\s+/).map(w => w.trim()).filter(Boolean);
+        if (words.length >= 2 && words.every(w => KNOWN_CODES.includes(w.toUpperCase()) || w.length <= 6)) {
+          items.push(...words);
+        } else {
+          items.push(chunk);
+        }
+      }
+    }
+    return items;
+  };
 
   const outboundItems = splitChain(outboundStr);
   outboundItems.forEach((item) => {
