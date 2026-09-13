@@ -35,7 +35,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
+import { TruckMotion, CheckBadge, RouteLine, ClockIcon, RiskAlert } from '@/components/ui/kpi-icons';
 
 import { format, subDays, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -2054,7 +2054,7 @@ export default function TripListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
             <KpiCard
               title={kpiTitle}
               className="kpi-tint-trips"
@@ -2110,25 +2110,6 @@ export default function TripListPage() {
               isActive={selectedStatus === 'All'}
               onClick={() => {
                 setSelectedStatus('All');
-                setCurrentPage(1);
-              }}
-            />
-
-            <KpiCard
-              title="LOADING GOODS"
-              className="kpi-tint-trips"
-              value={
-                <span>
-                  {atPickupCount}
-                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-                </span>
-              }
-              variant="slate"
-              description="Driver reached pickup point"
-              icon={LoadingBox}
-              isActive={selectedStatus === 'AtPickup'}
-              onClick={() => {
-                setSelectedStatus('AtPickup');
                 setCurrentPage(1);
               }}
             />
