@@ -236,18 +236,96 @@ export function useTripSubmission(
         const baseAmount = Number(slot.billingAmount) || 0;
         const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
 
+        const isRound = isRoundTripCategory(contractRateCategory);
         let destString = slot.destination.trim();
 
-        if (isRoundTripCategory(contractRateCategory)) {
-          const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
-          const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+        const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+        const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
 
+        if (isRound) {
           const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
           const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
 
           destString = `${outboundChain}${slot.destination.trim()} [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
         } else if (outboundStops.length > 0) {
           destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+        }
+
+        // Build structured multi-leg stops with explicit leg_index
+        const structuredStops: Array<{
+          stop_sequence: number;
+          leg_index: number;
+          stop_type: string;
+          location_name: string;
+          location_id?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+        }> = [];
+        let seq = 1;
+
+        // 1. Outbound Origin (leg 0)
+        structuredStops.push({
+          stop_sequence: seq++,
+          leg_index: 0,
+          stop_type: 'Pickup',
+          location_name: slot.origin.trim(),
+          location_id: slot.originLocationId || null,
+          lat: slot.originLat ?? null,
+          lng: slot.originLng ?? null,
+        });
+
+        // 2. Outbound Intermediate Stops (leg 0)
+        outboundStops.forEach((stopName: string, idx: number) => {
+          structuredStops.push({
+            stop_sequence: seq++,
+            leg_index: 0,
+            stop_type: 'Dropoff',
+            location_name: stopName,
+            location_id: slot.intermediateLocationIds?.[idx] || null,
+          });
+        });
+
+        // 3. Outbound Delivery (leg 0)
+        structuredStops.push({
+          stop_sequence: seq++,
+          leg_index: 0,
+          stop_type: 'Dropoff',
+          location_name: slot.destination.trim(),
+          location_id: slot.destinationLocationId || null,
+          lat: slot.destinationLat ?? null,
+          lng: slot.destinationLng ?? null,
+        });
+
+        // 4. Return Leg (leg 1) if round trip
+        if (isRound) {
+          // Return Loading (leg 1)
+          structuredStops.push({
+            stop_sequence: seq++,
+            leg_index: 1,
+            stop_type: 'Pickup',
+            location_name: returnStart,
+            location_id: slot.returnOriginLocationId || (returnStart === slot.destination.trim() ? slot.destinationLocationId : null),
+          });
+
+          // Return Intermediate Stops (leg 1)
+          returnStops.forEach((stopName: string, idx: number) => {
+            structuredStops.push({
+              stop_sequence: seq++,
+              leg_index: 1,
+              stop_type: 'Dropoff',
+              location_name: stopName,
+              location_id: slot.returnIntermediateLocationIds?.[idx] || null,
+            });
+          });
+
+          // Return Final Delivery (leg 1)
+          structuredStops.push({
+            stop_sequence: seq++,
+            leg_index: 1,
+            stop_type: 'Dropoff',
+            location_name: returnEnd,
+            location_id: slot.returnDestinationLocationId || (returnEnd === slot.origin.trim() ? slot.originLocationId : null),
+          });
         }
 
         let planned_end_val: string | undefined = undefined;
@@ -276,6 +354,7 @@ export function useTripSubmission(
             vehicle_type: contractVehicleType || undefined,
             origin: slot.origin.trim() || undefined,
             destination: destString || undefined,
+            stops: structuredStops,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
             rate_card_id: slot.rateCardId || undefined,
             status: 'Scheduled',
@@ -303,6 +382,7 @@ export function useTripSubmission(
             vehicle_type: contractVehicleType || undefined,
             origin: slot.origin.trim() || undefined,
             destination: destString || undefined,
+            stops: structuredStops,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
             trip_charges: slotDriverPayout,
             driver_charge: slotDriverPayout,

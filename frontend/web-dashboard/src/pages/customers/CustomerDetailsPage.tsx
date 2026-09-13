@@ -1093,15 +1093,7 @@ export default function CustomerDetailsPage() {
                 </Button>
               )}
 
-              {activeTab === 'invoices' && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/invoices/new')}
-                  className="h-8 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-xl shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" /> New Invoice
-                </Button>
-              )}
+
 
               {activeTab === 'saved_places' && (
                 <Button

@@ -88,13 +88,17 @@ const PickupVerificationScreen = () => {
   const isReturnLoading = isRound && (ws === 'RETURN_LOADING' || ws === 'FIRST_DELIVERY_COMPLETED');
   const isStarted = ws === 'LOADING' || ws === 'ARRIVED_AT_PICKUP' || isReturnLoading;
 
-  const targetSeq = isReturnLoading ? 3 : 1;
+  const legIndex = isReturnLoading ? 1 : 0;
+  const legStops = (trip?.stops ?? []).filter((s) => (s.leg_index ?? 0) === legIndex);
   const pickupStop =
-    trip?.stops?.find((s) => s.stop_sequence === targetSeq) ??
-    (isReturnLoading
-      ? (trip?.stops?.find((s) => s.stop_sequence === 2 || s.stop_sequence === 3) ?? trip?.stops?.[1])
-      : trip?.stops?.find((s) => s.stop_type === 'Pickup')) ??
-    trip?.stops?.[0] ?? null;
+    legStops.length > 0
+      ? (legStops.find((s) => s.stop_type === 'Pickup') ?? legStops[0])
+      : (isReturnLoading
+          ? (trip?.stops?.find((s) => s.stop_type === 'Pickup' && s.stop_sequence > 1) ??
+             trip?.stops?.find((s) => s.stop_sequence === 3) ??
+             trip?.stops?.[1])
+          : trip?.stops?.find((s) => s.stop_type === 'Pickup')) ??
+        trip?.stops?.[0] ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);

@@ -87,13 +87,17 @@ const DeliveryVerificationScreen = () => {
   const isRound = isRoundTrip(trip);
   const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN');
 
-  const targetSeq = isReturnDelivery ? 4 : 2;
+  const legIndex = isReturnDelivery ? 1 : 0;
+  const legStops = (trip?.stops ?? []).filter((s) => (s.leg_index ?? 0) === legIndex);
   const dropoffStop =
-    trip?.stops?.find((s) => s.stop_sequence === targetSeq) ??
-    (isReturnDelivery
-      ? (trip?.stops?.find((s) => s.stop_sequence === 4) ?? trip?.stops?.[trip.stops.length - 1])
-      : (trip?.stops?.find((s) => s.stop_sequence === 2) ?? trip?.stops?.find((s) => s.stop_type === 'Dropoff'))) ??
-    trip?.stops?.[trip.stops?.length - 1] ?? null;
+    legStops.length > 0
+      ? (legStops.filter((s) => s.stop_type === 'Dropoff').pop() ?? legStops[legStops.length - 1])
+      : (isReturnDelivery
+          ? (trip?.stops?.filter((s) => s.stop_type === 'Dropoff').pop() ??
+             trip?.stops?.find((s) => s.stop_sequence === 4) ??
+             trip?.stops?.[(trip?.stops?.length ?? 1) - 1])
+          : (trip?.stops?.find((s) => s.stop_sequence === 2) ?? trip?.stops?.find((s) => s.stop_type === 'Dropoff'))) ??
+        trip?.stops?.[(trip?.stops?.length ?? 1) - 1] ?? null;
 
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);

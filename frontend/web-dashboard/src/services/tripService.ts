@@ -118,6 +118,8 @@ export interface Trip {
   quotation_billing_type?: string | null;
   quotation_pricing_basis?: string | null;
   applied_rate?: number | null;
+  line_type_id?: string | null;
+  line_type?: { id?: string; name?: string } | null;
   quotation_vehicle_class?: string | null;
   quotation_source_vehicle_label?: string | null;
   carrier_name?: string;
@@ -591,6 +593,16 @@ export interface BulkImportTripRow {
   pickup_time?: string;
   pickupTime?: string;
   time?: string;
+  stops?: Array<{
+    stop_sequence?: number;
+    leg_index?: number;
+    stop_type?: string;
+    location_name?: string;
+    location_address?: string | null;
+    location_id?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  }>;
 }
 
 export interface BulkImportResult {

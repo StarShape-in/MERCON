@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { validateTripSchedule } from './tripValidationService';
+import { validateTripSchedule, validateTripStops } from './tripValidationService';
 
 describe('validateTripSchedule', () => {
   describe('Valid Trip Schedules', () => {
@@ -149,3 +149,107 @@ describe('validateTripSchedule', () => {
     });
   });
 });
+
+describe('Multi-Stop Round Trip Architecture Tests', () => {
+  describe('validateTripStops', () => {
+    it('accepts valid single-leg stops (all leg_index = 0)', () => {
+      const stops = [
+        { stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', location_name: 'Riyadh DC' },
+        { stop_sequence: 2, leg_index: 0, stop_type: 'Dropoff', location_name: 'Al Kharj Depot' },
+        { stop_sequence: 3, leg_index: 0, stop_type: 'Dropoff', location_name: 'Dammam Port' },
+      ];
+      const res = validateTripStops(stops);
+      assert.equal(res.isValid, true);
+      assert.equal(res.error, undefined);
+    });
+
+    it('accepts asymmetric round-trip stops with independent Outbound (leg 0) and Return (leg 1)', () => {
+      const stops = [
+        // Outbound: Riyadh -> Al Baha -> Abha -> Al Ahsa
+        { stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', location_name: 'Riyadh' },
+        { stop_sequence: 2, leg_index: 0, stop_type: 'Dropoff', location_name: 'Al Baha' },
+        { stop_sequence: 3, leg_index: 0, stop_type: 'Dropoff', location_name: 'Abha' },
+        { stop_sequence: 4, leg_index: 0, stop_type: 'Dropoff', location_name: 'Al Ahsa' },
+        // Return: Al Ahsa -> Jeddah -> Taif -> Riyadh
+        { stop_sequence: 5, leg_index: 1, stop_type: 'Pickup', location_name: 'Al Ahsa' },
+        { stop_sequence: 6, leg_index: 1, stop_type: 'Dropoff', location_name: 'Jeddah' },
+        { stop_sequence: 7, leg_index: 1, stop_type: 'Dropoff', location_name: 'Taif' },
+        { stop_sequence: 8, leg_index: 1, stop_type: 'Dropoff', location_name: 'Riyadh' },
+      ];
+      const res = validateTripStops(stops);
+      assert.equal(res.isValid, true);
+      assert.equal(res.error, undefined);
+    });
+
+    it('rejects stops if leg_index reverts from leg 1 back to leg 0', () => {
+      const stops = [
+        { stop_sequence: 1, leg_index: 0, stop_type: 'Pickup', location_name: 'Riyadh' },
+        { stop_sequence: 2, leg_index: 1, stop_type: 'Pickup', location_name: 'Dammam' },
+        { stop_sequence: 3, leg_index: 0, stop_type: 'Dropoff', location_name: 'Jeddah' },
+      ];
+      const res = validateTripStops(stops);
+      assert.equal(res.isValid, false);
+      assert.match(res.error || '', /cannot revert to leg 0 after leg 1/i);
+    });
+
+    it('rejects negative leg_index', () => {
+      const stops = [
+        { stop_sequence: 1, leg_index: -1, stop_type: 'Pickup', location_name: 'Riyadh' },
+      ];
+      const res = validateTripStops(stops);
+      assert.equal(res.isValid, false);
+      assert.match(res.error || '', /invalid negative leg_index/i);
+    });
+
+    it('rejects empty stops array', () => {
+      const res = validateTripStops([]);
+      assert.equal(res.isValid, false);
+      assert.match(res.error || '', /at least one stop/i);
+    });
+  });
+
+  describe('Legacy [RETURN: ...] parsing and leg_index assignment', () => {
+    it('assigns leg_index 0 to outbound stops and leg_index 1 to return stops without reversing', () => {
+      const originStr = 'Riyadh';
+      const destinationStr = 'Al Baha → Abha → Al Ahsa [RETURN: Al Ahsa → Jeddah → Taif → Riyadh]';
+
+      const stopsList: Array<{ stop_sequence: number; leg_index: number; stop_type: string; location_name: string }> = [];
+      let seq = 1;
+      stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Pickup', location_name: originStr });
+
+      const parts = destinationStr.split(/\[RETURN:\s*/i);
+      const outboundStr = parts[0].trim();
+      const returnStr = parts[1].replace(']', '').trim();
+
+      const splitChain = (str: string) => str.split(/\s*(?:→|->|-->)\s*/).map(s => s.trim()).filter(Boolean);
+
+      splitChain(outboundStr).forEach((item) => {
+        stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Dropoff', location_name: item });
+      });
+
+      const returnItems = splitChain(returnStr);
+      stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Pickup', location_name: returnItems[0] });
+      returnItems.slice(1).forEach((item) => {
+        stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Dropoff', location_name: item });
+      });
+
+      assert.equal(stopsList.length, 8);
+      // Outbound stops
+      assert.deepEqual(
+        stopsList.filter(s => s.leg_index === 0).map(s => s.location_name),
+        ['Riyadh', 'Al Baha', 'Abha', 'Al Ahsa']
+      );
+      // Return stops
+      assert.deepEqual(
+        stopsList.filter(s => s.leg_index === 1).map(s => s.location_name),
+        ['Al Ahsa', 'Jeddah', 'Taif', 'Riyadh']
+      );
+      // Sequence numbers strictly continuous 1..8
+      assert.deepEqual(
+        stopsList.map(s => s.stop_sequence),
+        [1, 2, 3, 4, 5, 6, 7, 8]
+      );
+    });
+  });
+});
+

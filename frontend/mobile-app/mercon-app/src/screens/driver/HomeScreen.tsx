@@ -423,12 +423,29 @@ const HomeScreen = () => {
                     const stops = displayTrip.stops || [];
                     const stopsCount = stops.length;
                     if (stopsCount > 2) {
-                      const firstLoc = (stops[0]?.location_name || '').toLowerCase().trim();
-                      const lastLoc = (stops[stopsCount - 1]?.location_name || '').toLowerCase().trim();
-                      const isRound = firstLoc && lastLoc && firstLoc === lastLoc;
-                      const activeIdx = stops.findIndex((s) => !s.actual_departure);
-                      const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
-                      const badgeStr = isRound ? `Leg ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`;
+                      const isRound = isRoundTrip(displayTrip);
+                      const returnStops = stops.filter((s) => (s.leg_index ?? 0) === 1);
+                      const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+
+                      let badgeStr = '';
+                      const activeStop = stops.find((s) => !s.actual_departure);
+
+                      if (isRound && returnStops.length > 0) {
+                        if (!activeStop || (activeStop.leg_index ?? 0) === 0) {
+                          const activeOutIdx = outboundStops.findIndex((s) => !s.actual_departure);
+                          const num = activeOutIdx >= 0 ? activeOutIdx + 1 : outboundStops.length;
+                          badgeStr = `Outbound: ${num}/${outboundStops.length}`;
+                        } else {
+                          const activeRetIdx = returnStops.findIndex((s) => !s.actual_departure);
+                          const num = activeRetIdx >= 0 ? activeRetIdx + 1 : returnStops.length;
+                          badgeStr = `Return: ${num}/${returnStops.length}`;
+                        }
+                      } else {
+                        const activeIdx = stops.findIndex((s) => !s.actual_departure);
+                        const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+                        badgeStr = isRound ? `Leg ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`;
+                      }
+
                       return (
                         <View style={[styles.inProgressBadge, { backgroundColor: '#FEF3C7' }]}>
                           <Text style={[styles.inProgressText, { color: '#B45309', fontWeight: '800' }]} numberOfLines={1}>

@@ -388,7 +388,7 @@ export default function TripDetailsPage() {
     ? `${scheduledDayName}, ${scheduledDateStr}`
     : scheduledDateStr;
 
-  const createdDateRaw = trip.createdAt || trip.created_at;
+  const createdDateRaw = trip.createdAt || (trip as any).created_at;
   const createdDayName = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'EEE') : '';
   const createdDateStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'MMM dd, yyyy') : '';
   const createdTimeStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'hh:mm a') : '';
@@ -622,8 +622,8 @@ export default function TripDetailsPage() {
               paidAmount={paidAmount}
               balanceDue={balanceDue}
               tripType={tripType}
-              quotationName={trip.quotation?.name || trip.rateCard?.name || tAny.quotation_name || null}
-              quotationId={trip.quotation?.id || trip.rateCard?.id || trip.quotationId || null}
+              quotationName={(trip as any).quotation?.name || (trip as any).rateCard?.name || tAny.quotation_name || null}
+              quotationId={(trip as any).quotation?.id || (trip as any).rateCard?.id || trip.quotationId || null}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

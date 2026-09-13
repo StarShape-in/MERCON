@@ -374,11 +374,34 @@ export interface QuotationStop {
   id: string;
   quotationId: string;
   sequence: number;
+  leg_index?: number;
   locationId?: string | null;
   stop_type: string;
   source_label?: string | null;
   location?: Location | null;
   location_name?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TripStopDTO {
+  id: string;
+  tripId: string;
+  stop_sequence: number;
+  leg_index: number;
+  stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
+  location_name?: string | null;
+  location_address?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_coordinate_precision?: string | null;
+  locationId?: string | null;
+  location?: Location | null;
+  planned_arrival?: string | null;
+  actual_arrival?: string | null;
+  actual_departure?: string | null;
+  delay_reason?: string | null;
+  delay_note?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

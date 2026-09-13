@@ -515,6 +515,7 @@ model TripStop {
   tripId           String    @db.Uuid
   trip             Trip      @relation(fields: [tripId], references: [id])
   stop_sequence    Int
+  leg_index        Int       @default(0)
   stop_type                      StopType
   location_lat                   Float?
   location_lng                   Float?
@@ -567,6 +568,8 @@ model TripStop {
   // declare them, so loading a trip's stops scanned the whole table — on
   // every trip of every trip list.
   @@index([tripId])
+  @@index([tripId, leg_index])
+  @@index([tripId, stop_sequence])
 }
 
 model TripLocation {
@@ -976,6 +979,7 @@ model QuotationStop {
   quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
   sequence     Int
+  leg_index    Int       @default(0)
   locationId   String?   @db.Uuid
   location     Location? @relation(fields: [locationId], references: [id])
 
@@ -986,6 +990,7 @@ model QuotationStop {
   updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz
 
   @@index([quotationId])
+  @@index([quotationId, leg_index])
   @@index([locationId])
 }
 

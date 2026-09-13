@@ -12,7 +12,7 @@ import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
-import { validateTripDrivers, TripDriverInput, validateTripSchedule } from '../services/tripValidationService';
+import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 
 /** Fields the trip ledger search bar looks at. */
@@ -616,6 +616,19 @@ export const createTrip = async (req: Request, res: Response) => {
       });
     }
 
+    if (stops && Array.isArray(stops) && stops.length > 0) {
+      const stopValidation = validateTripStops(stops);
+      if (!stopValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: stopValidation.error || 'Invalid trip stops configuration.',
+          },
+        });
+      }
+    }
+
     // Determine target status:
     // If explicitly requested as 'Dispatched' or dispatch_now is true (and both driver+vehicle present):
     //   Sets status = TripStatus.Dispatched, claims driver & vehicle to OnTrip.
@@ -884,6 +897,7 @@ export const createTrip = async (req: Request, res: Response) => {
                   }
                   return {
                     stop_sequence: index + 1,
+                    leg_index: stop.leg_index !== undefined ? Number(stop.leg_index) : 0,
                     stop_type: stop.stop_type as StopType,
                     location_lat: latVal,
                     location_lng: lngVal,
@@ -947,12 +961,12 @@ export const createTrip = async (req: Request, res: Response) => {
  *  name/plate (the sheet can't know internal ids). Rows are independent —
  *  a bad row is reported and skipped rather than failing the whole import. */
 function parseFullTripStops(originStr: string, destinationStr: string) {
-  const stopsList: Array<{ stop_sequence: number; stop_type: 'Pickup' | 'Dropoff'; location_name: string }> = [];
+  const stopsList: Array<{ stop_sequence: number; leg_index: number; stop_type: 'Pickup' | 'Dropoff'; location_name: string }> = [];
   let seq = 1;
 
   const originClean = originStr.trim();
   if (originClean) {
-    stopsList.push({ stop_sequence: seq++, stop_type: 'Pickup', location_name: originClean });
+    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Pickup', location_name: originClean });
   }
 
   let outboundStr = destinationStr.trim();
@@ -968,15 +982,15 @@ function parseFullTripStops(originStr: string, destinationStr: string) {
 
   const outboundItems = splitChain(outboundStr);
   outboundItems.forEach((item) => {
-    stopsList.push({ stop_sequence: seq++, stop_type: 'Dropoff', location_name: item });
+    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Dropoff', location_name: item });
   });
 
   if (returnStr) {
     const returnItems = splitChain(returnStr);
     if (returnItems.length > 0) {
-      stopsList.push({ stop_sequence: seq++, stop_type: 'Pickup', location_name: returnItems[0] });
+      stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Pickup', location_name: returnItems[0] });
       returnItems.slice(1).forEach((item) => {
-        stopsList.push({ stop_sequence: seq++, stop_type: 'Dropoff', location_name: item });
+        stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Dropoff', location_name: item });
       });
     }
   }
@@ -1013,6 +1027,16 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         trip_charges?: number;
         origin?: string;
         destination?: string;
+        stops?: Array<{
+          stop_sequence?: number;
+          leg_index?: number;
+          stop_type?: string;
+          location_name?: string;
+          location_address?: string;
+          location_id?: string;
+          lat?: number | null;
+          lng?: number | null;
+        }>;
         status?: TripStatus;
         is_third_party?: boolean;
         third_party_provider_id?: string;
@@ -1039,82 +1063,52 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
       try {
         let customer: any = null;
         if (row.customer_id) {
+          customer = await prisma.customer.findFirst({ where: { id: row.customer_id, deletedAt: null } });
+        } else if (row.customer_name) {
           customer = await prisma.customer.findFirst({
-            where: { id: row.customer_id, deletedAt: null },
-          });
-        } else if (row.customer_name && row.customer_name.trim()) {
-          customer = await prisma.customer.findFirst({
-            where: { name: { equals: row.customer_name.trim(), mode: 'insensitive' }, deletedAt: null },
+            where: {
+              OR: [
+                { name: { equals: row.customer_name, mode: 'insensitive' } },
+                { company_name: { equals: row.customer_name, mode: 'insensitive' } },
+              ],
+              deletedAt: null,
+            },
           });
         }
-        if (!customer) throw new Error(`Customer "${row.customer_name || row.customer_id}" not found`);
+        if (!customer) throw new Error('Customer not found');
 
-        let driverId: string | undefined;
-        let vehicleId: string | undefined;
-        let thirdPartyProviderId: string | undefined;
+        let driverId: string | null = null;
+        if (row.driver_id) {
+          const driver = await prisma.driver.findFirst({ where: { id: row.driver_id, deletedAt: null } });
+          if (driver) driverId = driver.id;
+        } else if (row.driver_name) {
+          const matched = await findDriverByFullName(row.driver_name);
+          if (matched) driverId = matched.id;
+        }
 
+        let vehicleId: string | null = null;
+        if (row.vehicle_id) {
+          const vehicle = await prisma.vehicle.findFirst({ where: { id: row.vehicle_id, deletedAt: null } });
+          if (vehicle) vehicleId = vehicle.id;
+        } else if (row.vehicle_plate) {
+          const vehicle = await prisma.vehicle.findFirst({
+            where: { plate_number: { equals: row.vehicle_plate, mode: 'insensitive' }, deletedAt: null },
+          });
+          if (vehicle) vehicleId = vehicle.id;
+        }
+
+        let thirdPartyProviderId: string | null = null;
         if (row.is_third_party) {
           if (row.third_party_provider_id) {
             const provider = await prisma.thirdPartyProvider.findFirst({
-              where: { id: row.third_party_provider_id, deletedAt: null },
+              where: { id: row.third_party_provider_id, deletedAt: null }
             });
             if (provider) thirdPartyProviderId = provider.id;
-          } else if (row.third_party_provider_name && row.third_party_provider_name.trim()) {
+          } else if (row.third_party_provider_name) {
             const provider = await prisma.thirdPartyProvider.findFirst({
-              where: { name: { equals: row.third_party_provider_name.trim(), mode: 'insensitive' }, deletedAt: null },
+              where: { name: { equals: row.third_party_provider_name.trim(), mode: 'insensitive' }, deletedAt: null }
             });
             if (provider) thirdPartyProviderId = provider.id;
-          }
-        } else {
-          if (row.driver_id) {
-            const driver = await prisma.driver.findFirst({
-              where: { id: row.driver_id, deletedAt: null },
-            });
-            if (!driver) throw new Error('Driver not found');
-            driverId = driver.id;
-          } else if (row.driver_name && row.driver_name.trim()) {
-            const driver = await findDriverByFullName(row.driver_name);
-            if (driver) {
-              driverId = driver.id;
-            }
-          }
-
-          if (row.vehicle_id) {
-            const vehicle = await prisma.vehicle.findFirst({
-              where: { id: row.vehicle_id, deletedAt: null },
-            });
-            if (!vehicle) throw new Error('Vehicle not found');
-            vehicleId = vehicle.id;
-          } else if (row.vehicle_plate && row.vehicle_plate.trim()) {
-            const rawPlate = row.vehicle_plate.trim();
-            const cleanPlate = rawPlate.replace(/[\s-]/g, '').toLowerCase();
-
-            const vehicles = await prisma.vehicle.findMany({
-              where: { deletedAt: null },
-              select: { id: true, plate_number: true },
-            });
-
-            const matchedVehicle = vehicles.find((v) => {
-              const vClean = (v.plate_number || '').replace(/[\s-]/g, '').toLowerCase();
-              return vClean === cleanPlate || (v.plate_number || '').toLowerCase() === rawPlate.toLowerCase();
-            });
-
-            if (!matchedVehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
-            vehicleId = matchedVehicle.id;
-
-            // CROSS-VERIFY WITH VEHICLE PLATE IF DRIVER IS UNRESOLVED OR UNMATCHED BY NAME
-            if (!driverId) {
-              const assignedDriver = await prisma.driver.findFirst({
-                where: { assignedVehicleId: matchedVehicle.id, deletedAt: null },
-              });
-              if (assignedDriver) {
-                driverId = assignedDriver.id;
-              }
-            }
-          }
-
-          if (!driverId && row.driver_name && row.driver_name.trim()) {
-            // Log notice if driver remains unassigned after name & plate lookup
           }
         }
 
@@ -1126,15 +1120,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? new Date(row.planned_end)
           : null;
 
-        const scheduleCheck = validateTripSchedule(parsedPlannedStart, parsedPlannedEnd);
-        if (!scheduleCheck.isValid) {
-          throw new Error(scheduleCheck.error || 'Drop-off date and time must be strictly later than start date and time');
-        }
-
-        const isDispatched = row.is_third_party
-          ? Boolean(thirdPartyProviderId || row.third_party_vehicle_plate)
-          : Boolean(driverId && vehicleId);
-        let targetStatus = row.status || TripStatus.Scheduled;
+        let targetStatus: TripStatus = row.status && Object.values(TripStatus).includes(row.status)
+          ? row.status
+          : TripStatus.Scheduled;
 
         // Past-time trips can NEVER be Scheduled:
         // If planned_start is past current time, initial status must be Delayed
@@ -1142,7 +1130,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           const now = new Date();
           const diffMs = now.getTime() - parsedPlannedStart.getTime();
           if (diffMs >= 0) {
-            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft || (row.status as string) === 'Scheduled') {
+            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft) {
               targetStatus = TripStatus.Delayed;
             }
           }
@@ -1161,9 +1149,16 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(row.third_party_cost)
           : undefined;
 
-        const parsedStops = (row.origin || row.destination)
-          ? parseFullTripStops(row.origin || '', row.destination || '')
-          : [];
+        const parsedStops = Array.isArray(row.stops) && row.stops.length > 0
+          ? row.stops.map((st, idx) => ({
+              stop_sequence: st.stop_sequence ?? (idx + 1),
+              leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
+              stop_type: (st.stop_type || (idx === 0 ? 'Pickup' : 'Dropoff')) as 'Pickup' | 'Dropoff',
+              location_name: String(st.location_name ?? '').trim(),
+            }))
+          : ((row.origin || row.destination)
+              ? parseFullTripStops(row.origin || '', row.destination || '')
+              : []);
 
         const resolvedImportStops = await Promise.all(
           parsedStops.map(async (st, idx, arr) => {
@@ -1177,6 +1172,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             }
             return {
               stop_sequence: st.stop_sequence,
+              leg_index: st.leg_index ?? 0,
               stop_type: st.stop_type as any,
               location_name: st.location_name,
               location_address: coords?.address ?? null,
@@ -1764,6 +1760,7 @@ export const updateTripStop = async (req: Request, res: Response) => {
         ...(location_name !== undefined ? { location_name: String(location_name).trim() || null } : {}),
         ...(location_address !== undefined ? { location_address: String(location_address).trim() || null } : {}),
         ...(location_id !== undefined ? { locationId: location_id || null } : {}),
+        ...(req.body.leg_index !== undefined ? { leg_index: Number(req.body.leg_index) } : {}),
         ...(latVal !== undefined ? { location_lat: latVal } : {}),
         ...(lngVal !== undefined ? { location_lng: lngVal } : {}),
         updated_by: (req as any).user?.id ?? null,

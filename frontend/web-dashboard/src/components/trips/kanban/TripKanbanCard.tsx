@@ -79,6 +79,9 @@ const getTripTypeLabel = (trip: Trip): string => {
   if (trip.is_third_party) return '3PL Trip';
   const stopsCount = trip.stops?.length ?? 0;
   const stops = trip.stops || [];
+  if (stops.some((s: any) => s.leg_index === 1) || (trip.line_type?.name && /round/i.test(trip.line_type.name))) {
+    return 'Round Trip';
+  }
   if (stopsCount >= 3) {
     const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
     const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
@@ -95,7 +98,9 @@ const getActiveLegInfo = (trip: Trip) => {
 
   const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
   const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
-  const isRound = stopsCount >= 3 && firstLoc && lastLoc && firstLoc === lastLoc;
+  const isRound = stops.some((s: any) => s.leg_index === 1) ||
+    Boolean(trip.line_type?.name && /round/i.test(trip.line_type.name)) ||
+    Boolean(stopsCount >= 3 && firstLoc && lastLoc && firstLoc === lastLoc);
 
   // Find active stop: first stop without actual_departure
   const activeIdx = stops.findIndex((s) => !s.actual_departure);

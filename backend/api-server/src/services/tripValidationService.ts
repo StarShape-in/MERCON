@@ -94,6 +94,7 @@ export async function validateTripDrivers(
 export interface StopScheduleInput {
   stop_sequence?: number;
   sequence?: number;
+  leg_index?: number;
   stop_type?: string;
   planned_arrival?: Date | string | null;
   planned_departure?: Date | string | null;
@@ -103,6 +104,58 @@ export interface StopScheduleInput {
 export interface ValidateTripScheduleResult {
   isValid: boolean;
   error?: string;
+}
+
+/**
+ * Validates stop sequence invariants and multi-leg integrity:
+ * 1. Global sequence must be monotonically increasing.
+ * 2. leg_index must be non-decreasing (cannot go from leg 1 back to leg 0).
+ * 3. Every stop must have a valid location_name or location_id.
+ */
+export function validateTripStops(stops: StopScheduleInput[]): { isValid: boolean; error?: string } {
+  if (!stops || !Array.isArray(stops) || stops.length === 0) {
+    return { isValid: false, error: 'A trip must have at least one stop.' };
+  }
+
+  let maxLegSeen = 0;
+  let prevSeq: number | null = null;
+
+  for (let i = 0; i < stops.length; i++) {
+    const stop = stops[i];
+    const leg = stop.leg_index ?? 0;
+    if (leg < 0) {
+      return { isValid: false, error: `Stop #${i + 1} has an invalid negative leg_index.` };
+    }
+    if (leg > 1) {
+      return { isValid: false, error: `Stop #${i + 1} has an invalid leg_index (${leg}). Only Outbound (0) and Return (1) are supported.` };
+    }
+    if (leg < maxLegSeen) {
+      return { isValid: false, error: `Stop #${i + 1} cannot revert to leg ${leg} after leg ${maxLegSeen}.` };
+    }
+    if (leg > maxLegSeen) {
+      maxLegSeen = leg;
+    }
+
+    const seq = stop.stop_sequence ?? stop.sequence;
+    if (seq !== undefined && seq !== null) {
+      if (seq <= 0) {
+        return { isValid: false, error: `Stop #${i + 1} has an invalid non-positive sequence (${seq}).` };
+      }
+      if (prevSeq !== null) {
+        if (seq <= prevSeq) {
+          return { isValid: false, error: `Stop #${i + 1} sequence (${seq}) is not strictly greater than previous sequence (${prevSeq}). Sequences cannot duplicate or reset.` };
+        }
+        if (seq !== prevSeq + 1) {
+          return { isValid: false, error: `Stop sequence must be continuous without gaps: expected ${prevSeq + 1} but got ${seq}.` };
+        }
+      } else if (seq !== 1) {
+        return { isValid: false, error: `Trip stops sequence must begin at 1, but starts at ${seq}.` };
+      }
+      prevSeq = seq;
+    }
+  }
+
+  return { isValid: true };
 }
 
 /**

@@ -390,7 +390,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 space-y-2 pt-2.5 animate-fade-in">
             <div className="flex items-center justify-between pb-1 border-b border-amber-200/80 dark:border-amber-900/80">
               <span className="text-[11px] font-extrabold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" /> LEG 2: RETURN JOURNEY ({slot.destination || 'Destination'} → {(!slot.returnDestination || isUuid(slot.returnDestination)) ? (slot.origin || 'Origin') : slot.returnDestination})
+                <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" /> LEG 2: RETURN JOURNEY ({slot.returnOrigin || slot.destination || 'Destination'} → {(!slot.returnDestination || isUuid(slot.returnDestination)) ? (slot.origin || 'Origin') : slot.returnDestination})
               </span>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100">
                 🔄 Round Trip Active
@@ -398,8 +398,26 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-              <div className="md:col-span-7 space-y-1">
-                <label className="text-xs font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+              {/* RETURN LOADING LOCATION */}
+              <div className="md:col-span-6 space-y-1">
+                <label className="text-[10px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                  RETURN LOADING LOCATION *
+                </label>
+                <LocationCombobox
+                  customerId={contractCustomer}
+                  value={slot.returnOrigin || slot.destination}
+                  onChange={(locId, locObj) => {
+                    const val = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
+                    handleUpdateTripSlot(slot.id, { returnOrigin: val, returnOriginLocationId: locObj?.id || (isUuid(locId) ? locId : null) });
+                  }}
+                  placeholder="Return loading (defaults to Outbound Destination)..."
+                  triggerClassName="h-9 border-slate-200 bg-[#FFFFFF] text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                />
+              </div>
+
+              {/* RETURN DESTINATION LOCATION */}
+              <div className="md:col-span-6 space-y-1">
+                <label className="text-[10px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
                   RETURN DESTINATION LOCATION *
                 </label>
                 <LocationCombobox
@@ -407,26 +425,26 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   value={slot.returnDestination || slot.origin}
                   onChange={(locId, locObj) => {
                     const val = locObj?.name || locObj?.address || (isUuid(locId) ? '' : locId);
-                    handleUpdateTripSlot(slot.id, { returnDestination: val });
+                    handleUpdateTripSlot(slot.id, { returnDestination: val, returnDestinationLocationId: locObj?.id || (isUuid(locId) ? locId : null) });
                   }}
-                  placeholder="Search return destination (defaults to Origin)..."
+                  placeholder="Return destination (defaults to Origin)..."
                   triggerClassName="h-9 border-slate-200 bg-[#FFFFFF] text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
                 />
               </div>
+            </div>
 
-              <div className="md:col-span-5 flex items-center gap-2">
-                {handleAddSlotReturnIntermediate && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddSlotReturnIntermediate(slot.id)}
-                    className="h-8.5 text-xs font-bold border-dashed border-amber-300 hover:border-amber-500 bg-white text-amber-800 gap-1 cursor-pointer w-full"
-                  >
-                    <Plus className="w-3 h-3" /> Add Return Stop
-                  </Button>
-                )}
-              </div>
+            <div className="flex items-center gap-2 pt-1">
+              {handleAddSlotReturnIntermediate && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAddSlotReturnIntermediate(slot.id)}
+                  className="h-7 text-[11px] font-bold border-dashed border-amber-300 hover:border-amber-500 bg-white text-amber-800 gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add Return Intermediate Stop
+                </Button>
+              )}
             </div>
 
             {/* RETURN INTERMEDIATE STOPS */}

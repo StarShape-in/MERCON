@@ -56,32 +56,52 @@ const LiveNavigationScreen = () => {
   // Leg index: 0 for first leg, 1 for return leg
   const legIndex = isRound && (ws === 'RETURN_LOADING' || ws === 'IN_TRANSIT_RETURN' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED' || ws.includes('RETURN_STOP')) ? 1 : 0;
 
-  // 1. Identify the trip's pickup stop
+  // 1. Identify the trip's pickup stop for the active leg
   const pickupStop = React.useMemo(() => {
     if (!trip?.stops || trip.stops.length === 0) return null;
-    const targetSeq = legIndex === 1 ? 3 : 1;
-    return trip.stops.find((s) => s.stop_sequence === targetSeq) ??
-           trip.stops.find((s) => s.stop_type === 'Pickup') ??
-           trip.stops[0];
+    const stops = trip.stops;
+    const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
+    if (legStops.length > 0) {
+      return legStops.find((s) => s.stop_type === 'Pickup') || legStops[0];
+    }
+    // Legacy fallback for trips created before leg_index was recorded
+    if (legIndex === 1) {
+      return stops.find((s) => s.stop_type === 'Pickup' && s.stop_sequence > 1) ??
+             stops.find((s) => s.stop_sequence === 3) ??
+             stops[0];
+    }
+    return stops.find((s) => s.stop_type === 'Pickup') ?? stops[0];
   }, [trip?.stops, legIndex]);
 
-  // 2. Identify the trip's drop-off / delivery stop
+  // 2. Identify the trip's drop-off / delivery stop for the active leg
   const dropoffStop = React.useMemo(() => {
     if (!trip?.stops || trip.stops.length === 0) return null;
-    if (legIndex === 1) {
-      return trip.stops.find((s) => s.stop_sequence === 4) ??
-             trip.stops.find((s) => s.stop_type === 'Dropoff' && s.stop_sequence > 2) ??
-             trip.stops[trip.stops.length - 1];
+    const stops = trip.stops;
+    const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
+    if (legStops.length > 0) {
+      return legStops.filter((s) => s.stop_type === 'Dropoff').pop() || legStops[legStops.length - 1];
     }
-    return trip.stops.find((s) => s.stop_type === 'Dropoff') ??
-           trip.stops.find((s) => s.stop_sequence === 2) ??
-           trip.stops[trip.stops.length - 1];
+    // Legacy fallback for trips created before leg_index was recorded
+    if (legIndex === 1) {
+      return stops.filter((s) => s.stop_type === 'Dropoff').pop() ??
+             stops.find((s) => s.stop_sequence === 4) ??
+             stops[stops.length - 1];
+    }
+    return stops.find((s) => s.stop_type === 'Dropoff') ??
+           stops[stops.length - 1];
   }, [trip?.stops, legIndex]);
 
-  // 3. Active stop preserves existing workflow behavior (action card, status update, photos, ETA)
+  // 3. Active stop dynamically resolves intermediate stops or heading pickup/dropoff
   const activeStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    const stops = trip.stops;
+    if (ws.includes('STOP') && !ws.includes('PICKUP') && !ws.includes('DELIVERY')) {
+      const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
+      const activeIntermediate = legStops.find((s) => !s.actual_departure && s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
+      if (activeIntermediate) return activeIntermediate;
+    }
     return isHeadingToPickup ? pickupStop : dropoffStop;
-  }, [isHeadingToPickup, pickupStop, dropoffStop]);
+  }, [trip?.stops, isHeadingToPickup, pickupStop, dropoffStop, ws, legIndex]);
 
   // 4. Create independent MarkerInfo objects for the map
   const pickupMarker = React.useMemo(() => {

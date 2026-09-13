@@ -1636,7 +1636,9 @@ export default function TripListPage() {
         if (stopsCount > 2) {
           const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
           const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
-          const isRound = firstLoc && lastLoc && firstLoc === lastLoc;
+          const isRound = stops.some((s: any) => s.leg_index === 1) ||
+            Boolean(row.line_type?.name && /round/i.test(row.line_type.name)) ||
+            Boolean(firstLoc && lastLoc && firstLoc === lastLoc);
           
           const activeIdx = stops.findIndex((s) => !s.actual_departure);
           const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;

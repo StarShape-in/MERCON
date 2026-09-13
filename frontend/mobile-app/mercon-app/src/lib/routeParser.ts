@@ -137,33 +137,7 @@ function buildTimeline(
 
   // ── Return Leg ───────────────────────────────────────────────────────────
   if (returnNodes.length > 0) {
-    let sanitizedReturnNodes = [...returnNodes];
-
-    // In a round trip, Return Loading MUST start at the location where outbound delivery completed.
-    if (outboundDelivery) {
-      const outDelivNorm = outboundDelivery.toLowerCase().trim();
-      const retStartNorm = sanitizedReturnNodes[0]?.toLowerCase().trim();
-
-      if (retStartNorm !== outDelivNorm) {
-        const matchIdx = sanitizedReturnNodes.findIndex((n) => n.toLowerCase().trim() === outDelivNorm);
-        const finalDest = sanitizedReturnNodes[sanitizedReturnNodes.length - 1];
-
-        if (matchIdx !== -1) {
-          // If the delivery destination was listed later in the return chain (e.g. forward-copied stops),
-          // extract the intermediate nodes and reverse them so they properly flow from delivery back to origin.
-          const rawIntermediates = sanitizedReturnNodes.filter(
-            (n, i) => i !== matchIdx && i !== sanitizedReturnNodes.length - 1
-          );
-          rawIntermediates.reverse();
-          sanitizedReturnNodes = [outboundDelivery, ...rawIntermediates, finalDest];
-        } else {
-          // If return loading point was missing or mismatched, anchor return loading to outbound delivery
-          sanitizedReturnNodes = [outboundDelivery, ...sanitizedReturnNodes];
-        }
-      }
-    }
-
-    const [returnPickup, ...returnRest] = sanitizedReturnNodes;
+    const [returnPickup, ...returnRest] = returnNodes;
     result.push(node('return-pickup', 'Return Loading', 'واپسی لوڈنگ', returnPickup, 'House', { legIndex: 1 }));
 
     if (returnRest.length > 1) {
@@ -205,24 +179,37 @@ function buildTimeline(
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
 /**
- * Parses any MobileTrip into a flat ordered list of 6 TimelineStop nodes
- * for round trips, or 2–3 nodes for one-way trips.
- *
- * Key insight: stop location_name can contain arrow-chains like
- * "AL BAHA → AL ABHA" — these are expanded into individual nodes.
- * The [RETURN:…] marker (in destination or stop name) identifies the return leg.
+ * Parses any MobileTrip into an ordered list of TimelineStop nodes.
  *
  * Strategy order:
+ * 0. Primary: Explicit DB stops with leg_index (Outbound = leg 0, Return = leg 1)
  * 1. Expand DB stops + use [RETURN:] chain from destination/stop name
  * 2. Expand DB stops + detect second Pickup for return leg split
  * 3. trip.origin + trip.destination string parsing
- * 4. Plain DB stops (2-stop simple trips)
+ * 4. Plain DB stops (simple trips)
  */
 export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
   if (!trip) return [];
 
   const dbStops = trip.stops ?? [];
   const isRound = isRoundTrip(trip);
+
+  // ── Strategy 0: Explicit DB Stops with leg_index (Primary Source of Truth) ──
+  const returnLegStops = dbStops.filter((s) => (s.leg_index ?? 0) === 1);
+  const outboundLegStops = dbStops.filter((s) => (s.leg_index ?? 0) === 0);
+
+  if (returnLegStops.length > 0) {
+    const outboundNames = outboundLegStops.map(rawStopName);
+    const returnNames = returnLegStops.map(rawStopName);
+    if (outboundNames.length >= 2 && returnNames.length >= 1) {
+      return buildTimeline(outboundNames, returnNames, dbStops);
+    }
+  }
+
+  if (outboundLegStops.length >= 2 && returnLegStops.length === 0 && !isRound) {
+    const outboundNames = outboundLegStops.map(rawStopName);
+    return buildTimeline(outboundNames, [], dbStops);
+  }
 
   // ── Strategy 1: Expand DB stops + [RETURN:] chain ────────────────────────
   const returnChain = extractReturnChain(trip);

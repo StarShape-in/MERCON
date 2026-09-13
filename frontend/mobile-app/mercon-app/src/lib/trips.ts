@@ -43,18 +43,10 @@ export type StopType = 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
 export interface TripStop {
   id: string;
   stop_sequence: number;
+  leg_index?: number;
   stop_type: StopType;
   location_lat: number;
   location_lng: number;
-  /**
-   * Where this stop actually is, in three parts — the API has always sent
-   * these; the type used to declare only the coordinates, so the app couldn't
-   * see them and the driver got a pin with no address.
-   *
-   *  location_name    short label — "Khamis Sorting Center"
-   *  location_address full postal address — what you navigate by
-   *  location         the lane endpoint it sits in — "Jeddah"
-   */
   location_name: string | null;
   location_address: string | null;
   location?: { id: string; name: string; address: string | null } | null;
@@ -172,6 +164,10 @@ export interface MobileTrip {
 /** Check whether a trip is genuinely a Round Trip */
 export function isRoundTrip(trip: MobileTrip | null | undefined): boolean {
   if (!trip) return false;
+
+  // Primary check: explicit return leg in structured stops
+  if (trip.stops?.some((s) => (s.leg_index ?? 0) === 1)) return true;
+
   const lineType = (
     trip.quotation_line_type ||
     trip.trip_type ||
@@ -216,10 +212,26 @@ export function getEffectiveWorkflowState(trip: MobileTrip | null | undefined): 
   }
 
   if (stops.length > 0) {
-    const s1 = stops.find((s) => s.stop_sequence === 1) || stops[0];
-    const s2 = stops.find((s) => s.stop_sequence === 2) || stops[1];
-    const s3 = isRound ? stops.find((s) => s.stop_sequence === 3) : null;
-    const s4 = isRound ? (stops.find((s) => s.stop_sequence === 4) || stops[stops.length - 1]) : null;
+    const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+    const returnStops = stops.filter((s) => (s.leg_index ?? 0) === 1);
+    const hasExplicitLegs = returnStops.length > 0;
+
+    const s1 = outboundStops[0] || stops[0];
+    const s2 = hasExplicitLegs
+      ? (outboundStops.filter((s) => s.stop_type === 'Dropoff').pop() || outboundStops[outboundStops.length - 1])
+      : (stops.find((s) => s.stop_sequence === 2) || stops[1] || stops[stops.length - 1]);
+
+    const s3 = isRound
+      ? (hasExplicitLegs
+          ? (returnStops.find((s) => s.stop_type === 'Pickup') || returnStops[0])
+          : stops.find((s) => s.stop_sequence === 3))
+      : null;
+
+    const s4 = isRound
+      ? (hasExplicitLegs
+          ? (returnStops.filter((s) => s.stop_type === 'Dropoff').pop() || returnStops[returnStops.length - 1])
+          : (stops.find((s) => s.stop_sequence === 4) || stops[stops.length - 1]))
+      : null;
 
     // 1. Final Delivery (Stop 4 for round trip, Stop 2 for single trip)
     if (isRound && s4) {
