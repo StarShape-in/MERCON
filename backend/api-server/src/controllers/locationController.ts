@@ -233,7 +233,7 @@ export const getLocationById = async (req: Request, res: Response) => {
                 status: true,
                 rate_amount: true,
                 currency: true,
-                billing_type: true,
+                operation_type: true,
                 vehicle_class: true,
                 customer: { select: { id: true, name: true } },
                 stops: {

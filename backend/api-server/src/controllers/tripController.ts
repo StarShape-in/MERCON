@@ -506,7 +506,8 @@ export const getTripById = async (req: Request, res: Response) => {
       currency: (trip as any).quotation.currency,
       vehicle_type: (trip as any).quotation.vehicle_class,
       rate_category: (trip as any).quotation.line_type,
-      billing_type: (trip as any).quotation.billing_type,
+      operation_type: (trip as any).quotation.operation_type || (trip as any).quotation.billing_type,
+      billing_type: (trip as any).quotation.operation_type || (trip as any).quotation.billing_type,
       driver_payout: (trip as any).quotation.driver_payout ? Number((trip as any).quotation.driver_payout) : null
     } : null;
 
@@ -851,7 +852,7 @@ export const createTrip = async (req: Request, res: Response) => {
                 create: {
                   quotationId: appliedQuotation ? appliedQuotation.id : null,
                   quotation_line_type: appliedQuotation ? (appliedQuotation.line_type || null) : (finalRateCategory || null),
-                  quotation_billing_type: appliedQuotation ? (appliedQuotation.billing_type || null) : (finalBillingType || null),
+                  quotation_operation_type: appliedQuotation ? (appliedQuotation.operation_type || appliedQuotation.billing_type || null) : (finalBillingType || null),
                   quotation_pricing_basis: appliedQuotation ? (appliedQuotation.pricing_basis || null) : null,
                   applied_rate: appliedQuotation ? (appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null) : (defaultBilling != null ? defaultBilling : null),
                   quotation_vehicle_class: appliedQuotation ? (appliedQuotation.vehicle_class || null) : null,
@@ -2235,7 +2236,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
     if (typeof billing_type === 'string' && billing_type.trim()) {
       const value = billing_type.trim();
       (whereClause.AND as Prisma.TripWhereInput[]).push({
-        OR: [{ billing_type: value }, { AND: [{ billing_type: null }, { quotation: { billing_type: value } }] }],
+        OR: [{ operation_type: value }, { AND: [{ operation_type: null }, { quotation: { operation_type: value } }] }],
       });
     }
 
@@ -2255,7 +2256,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         customerId: true,
         vehicle_type: true,
         rate_category: true,
-        billing_type: true,
+        operation_type: true,
         billing_amount: true,
         driver_payout: true,
         quotationId: true,
@@ -2266,7 +2267,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
             quotationId: true,
             applied_rate: true,
             quotation_line_type: true,
-            quotation_billing_type: true,
+            quotation_operation_type: true,
             quotation_pricing_basis: true,
             quotation_vehicle_class: true,
             quotation_source_vehicle_label: true,
@@ -2278,7 +2279,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         quotation: {
           select: {
             id: true, name: true, rate: true, currency: true,
-            source_vehicle_label: true, vehicle_class: true, line_type: true, billing_type: true, pricing_basis: true,
+            source_vehicle_label: true, vehicle_class: true, line_type: true, operation_type: true, pricing_basis: true,
           },
         },
         stops: {
@@ -2321,20 +2322,23 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         vehicle: trip.vehicle,
         vehicle_type: trip.vehicle_type ?? trip.quotation?.source_vehicle_label ?? trip.quotation?.vehicle_class ?? null,
         rate_category: trip.rate_category ?? trip.quotation?.line_type ?? null,
-        billing_type: trip.billing_type ?? trip.quotation?.billing_type ?? null,
+        operation_type: trip.operation_type ?? trip.quotation?.operation_type ?? null,
+        billing_type: trip.operation_type ?? trip.quotation?.operation_type ?? null,
         financials: trip.financials ? {
           id: trip.financials.id,
           tripId: trip.financials.tripId,
           quotationId: trip.financials.quotationId,
           applied_rate: trip.financials.applied_rate != null ? Number(trip.financials.applied_rate) : null,
           quotation_line_type: trip.financials.quotation_line_type,
-          quotation_billing_type: trip.financials.quotation_billing_type,
+          quotation_operation_type: trip.financials.quotation_operation_type,
+          quotation_billing_type: trip.financials.quotation_operation_type,
           quotation_pricing_basis: trip.financials.quotation_pricing_basis,
           quotation_vehicle_class: trip.financials.quotation_vehicle_class,
           quotation_source_vehicle_label: trip.financials.quotation_source_vehicle_label,
         } : null,
         quotation_line_type: trip.financials?.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
-        quotation_billing_type: trip.financials?.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
+        quotation_operation_type: trip.financials?.quotation_operation_type ?? trip.quotation?.operation_type ?? trip.operation_type ?? null,
+        quotation_billing_type: trip.financials?.quotation_operation_type ?? trip.quotation?.operation_type ?? trip.operation_type ?? null,
         quotation_pricing_basis: trip.financials?.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
         applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : (trip.billing_amount != null ? Number(trip.billing_amount) : null)),
         quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
@@ -2346,7 +2350,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation
-          ? { id: trip.quotation.id, name: trip.quotation.name, rate: Number(trip.quotation.rate), line_type: trip.quotation.line_type, billing_type: trip.quotation.billing_type, pricing_basis: trip.quotation.pricing_basis }
+          ? { id: trip.quotation.id, name: trip.quotation.name, rate: Number(trip.quotation.rate), line_type: trip.quotation.line_type, operation_type: trip.quotation.operation_type, billing_type: trip.quotation.operation_type, pricing_basis: trip.quotation.pricing_basis }
           : null,
         rate_card: trip.quotation
           ? { id: trip.quotation.id, name: trip.quotation.name, base_price: trip.quotation.rate, rate: trip.quotation.rate }

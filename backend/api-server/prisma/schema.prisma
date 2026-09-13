@@ -370,7 +370,7 @@ model Trip {
 
   vehicle_type  String?
   rate_category String?
-  billing_type  String?
+  operation_type String?
 
   status           TripStatus @default(Scheduled)
   driver_workflow_state String?
@@ -453,7 +453,7 @@ model TripFinancials {
   quotation                      Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
   applied_rate                   Decimal?   @db.Decimal(12, 2)
   quotation_line_type            String?
-  quotation_billing_type         String?
+  quotation_operation_type       String?
   quotation_pricing_basis        String?
   quotation_vehicle_class        String?
   quotation_source_vehicle_label String?
@@ -934,7 +934,7 @@ model Quotation {
   id                   String   @id @default(uuid()) @db.Uuid
   name                 String
   line_type            String?
-  billing_type         String?
+  operation_type       String?
   pricing_basis        String?
   rate                 Decimal  @db.Decimal(12, 2)
   driver_payout        Decimal? @db.Decimal(12, 2)

@@ -81,7 +81,7 @@ export const findQuotationForLane = async (
     whereClause.line_type = { in: ltVariants };
   }
   if (billingType && billingType.trim()) {
-    whereClause.billing_type = billingType.trim();
+    whereClause.operation_type = billingType.trim();
   }
   if (vehicleClass !== undefined && vehicleClass !== null) {
     whereClause.vehicle_class = vehicleClass;
@@ -120,7 +120,7 @@ export const findQuotationForLane = async (
           deletedAt: null,
         };
         if (ltVariants.length > 0) fallbackWhere.line_type = { in: ltVariants };
-        if (billingType && billingType.trim()) fallbackWhere.billing_type = billingType.trim();
+        if (billingType && billingType.trim()) fallbackWhere.operation_type = billingType.trim();
         if (vehicleClass !== undefined && vehicleClass !== null) {
           fallbackWhere.vehicle_class = vehicleClass;
         } else if (sourceVehicleLabel !== undefined && sourceVehicleLabel !== null) {

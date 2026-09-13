@@ -137,7 +137,8 @@ export const createQuotation = async (req: Request, res: Response) => {
           customerId: normalisedCustomerId,
           is_active: is_active ?? true,
           line_type: rateCategory,
-          billing_type: billingType,
+          operation_type: billingType || req.body.operation_type || null,
+          billing_type: billingType || req.body.operation_type || null,
           pricing_basis: pricingBasis,
           vehicle_class: vehicleClass,
           source_vehicle_label: vehicleType,
@@ -225,7 +226,7 @@ export const getQuotations = async (req: Request, res: Response) => {
     }
 
     if (line_type || rate_category) whereClause.line_type = (line_type || rate_category) as string;
-    if (billing_type) whereClause.billing_type = billing_type as string;
+    if (billing_type || req.query.operation_type) whereClause.operation_type = (billing_type || req.query.operation_type) as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
@@ -234,7 +235,7 @@ export const getQuotations = async (req: Request, res: Response) => {
         OR: [
           { name: { contains: term, mode: 'insensitive' } },
           { line_type: { contains: term, mode: 'insensitive' } },
-          { billing_type: { contains: term, mode: 'insensitive' } },
+          { operation_type: { contains: term, mode: 'insensitive' } },
           { source_vehicle_label: { contains: term, mode: 'insensitive' } },
           { vehicle_class: { contains: term, mode: 'insensitive' } },
           { customer: { name: { contains: term, mode: 'insensitive' } } },
@@ -408,7 +409,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),
           ...(lineTypeToUse !== undefined ? { line_type: lineTypeToUse } : {}),
-          ...(billingTypeToUse !== undefined ? { billing_type: billingTypeToUse } : {}),
+          ...(billingTypeToUse !== undefined ? { operation_type: billingTypeToUse } : {}),
           ...(pricingBasisToUse !== undefined ? { pricing_basis: pricingBasisToUse } : {}),
           ...(vehicleClassToUse !== undefined ? { vehicle_class: vehicleClassToUse } : {}),
           ...(vehicleTypeToUse !== undefined ? { source_vehicle_label: vehicleTypeToUse } : {}),
@@ -656,6 +657,7 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             customerId: customer.id,
             is_active: true,
             line_type: lineTypeMapped,
+            operation_type: operationType || lineTypeMapped,
             billing_type: billingTypeMapped,
             pricing_basis: pricingBasisMapped,
             vehicle_class: vehicleType || null,
@@ -787,7 +789,8 @@ export const getLanePriceHistory = async (req: Request, res: Response) => {
         destination: destName,
         vehicle_class: q.source_vehicle_label || q.vehicle_class || 'Default',
         line_type: q.line_type,
-        billing_type: q.billing_type,
+        operation_type: q.operation_type,
+        billing_type: q.operation_type,
         rate: Number(q.rate || 0),
         driver_payout: q.driver_payout != null ? Number(q.driver_payout) : null,
         updatedAt: q.updatedAt,
