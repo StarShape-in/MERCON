@@ -369,8 +369,14 @@ Do not sacrifice application performance for visual effects. Prefer efficient li
 
 ---
 
-## 32. Data Integrity
+## 32. Data Integrity & Database Migrations
 Protect quotation rates, history, route stops, canonical locations, driver charge `NULL` semantics. Enforce rules on the backend.
+
+### 32.1 Database Schema Migrations & CI/CD
+Whenever modifying `backend/api-server/prisma/schema.prisma` or making database DDL structure changes:
+- **Always create an official Prisma migration folder** inside `backend/api-server/prisma/migrations/<timestamp>_<migration_name>/migration.sql`.
+- **Never rely solely on inline node scripts or local DB alters** for schema changes.
+- **Commit and push the migration folder to Git**, because the CI/CD pipeline (`ci-cd-dev.yml` / `ci-cd.yml`) executes `npx prisma migrate deploy` on server container startup. Without a migration SQL folder in Git, the remote deployment database will NOT be updated automatically.
 
 ---
 
