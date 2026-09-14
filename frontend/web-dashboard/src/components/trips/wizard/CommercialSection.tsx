@@ -481,7 +481,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           )}
 
           {showInlineForm ? (
-            </div>
+            <DefineQuotationInlineForm
+              primarySlot={primarySlot}
+              selectedCustName={selectedCust?.name}
+              contractCustomer={contractCustomer}
+              contractVehicleType={contractVehicleType}
+              contractRateCategory={contractRateCategory}
+              contractBillingType={contractBillingType}
+              inlinePricingBasis={inlinePricingBasis}
+              setInlinePricingBasis={setInlinePricingBasis}
+              setContractBillingType={setContractBillingType}
+              setContractVehicleType={setContractVehicleType}
+              setContractRateCategory={setContractRateCategory}
+              handleUpdateTripSlot={handleUpdateTripSlot}
+            />
           ) : displayedRateCards.length > 0 ? (
             displayedRateCards.length <= 3 ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
