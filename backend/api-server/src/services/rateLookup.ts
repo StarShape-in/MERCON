@@ -34,6 +34,7 @@ export const rateCardInclude = quotationInclude;
 type QuotationClient = Pick<Prisma.TransactionClient, 'quotation'>;
 
 export type RateSource = 'customer' | null;
+export type MatchStatus = 'EXACT_MATCH' | 'MULTISTOP_MISMATCH' | 'NO_QUOTATION';
 
 export const findQuotationForLane = async (
   tx: QuotationClient,
@@ -47,16 +48,24 @@ export const findQuotationForLane = async (
     rateCategory?: string | null;
     lineType?: string | null;
     billingType?: string | null;
+    stops?: Array<{ location_id?: string | null; locationId?: string | null; sequence?: number; stop_type?: string }>;
   }
-): Promise<{ quotation: any | null; pricingRule: any | null; rateCard: any | null; source: RateSource }> => {
-  const { customerId, originLocationId, destinationLocationId } = params;
+): Promise<{
+  quotation: any | null;
+  pricingRule: any | null;
+  rateCard: any | null;
+  candidateQuotation: any | null;
+  matchStatus: MatchStatus;
+  source: RateSource;
+}> => {
+  const { customerId, originLocationId, destinationLocationId, stops } = params;
   const lineType = params.lineType || params.rateCategory;
   const vehicleClass = params.vehicleClass;
   const sourceVehicleLabel = params.sourceVehicleLabel || params.vehicleType;
   const billingType = params.billingType;
 
   if (!customerId) {
-    return { quotation: null, pricingRule: null, rateCard: null, source: null };
+    return { quotation: null, pricingRule: null, rateCard: null, candidateQuotation: null, matchStatus: 'NO_QUOTATION', source: null };
   }
 
   const whereClause: Prisma.QuotationWhereInput = {
@@ -96,11 +105,13 @@ export const findQuotationForLane = async (
     ];
   }
 
-  let q = await tx.quotation.findFirst({
+  const candidates = await tx.quotation.findMany({
     where: whereClause,
     include: quotationInclude,
     orderBy: { updatedAt: 'desc' },
   });
+
+  let q: any | null = candidates[0] || null;
 
   // Fallback: If exact locationId match returned null, try name token matching across active customer quotations
   if (!q && originLocationId && destinationLocationId && (tx as any).location) {
@@ -127,7 +138,7 @@ export const findQuotationForLane = async (
           fallbackWhere.source_vehicle_label = sourceVehicleLabel;
         }
 
-        const candidates = await tx.quotation.findMany({
+        const tokenCandidates = await tx.quotation.findMany({
           where: fallbackWhere,
           include: quotationInclude,
           orderBy: { updatedAt: 'desc' },
@@ -152,7 +163,7 @@ export const findQuotationForLane = async (
           return cardTokens.some((ct) => targetTokens.some((tt) => ct === tt || ct.includes(tt) || tt.includes(ct)));
         };
 
-        const match = candidates.find((cand: any) => {
+        const match = tokenCandidates.find((cand: any) => {
           const firstStop = cand.stops && cand.stops.length > 0 ? cand.stops[0] : null;
           const lastStop = cand.stops && cand.stops.length > 1 ? cand.stops[cand.stops.length - 1] : firstStop;
 
@@ -184,11 +195,40 @@ export const findQuotationForLane = async (
         }
       }
     } catch (err) {
-      // Ignore fallback errors and return null
+      // Ignore fallback errors
     }
   }
 
-  return q ? { quotation: q, pricingRule: q, rateCard: q, source: 'customer' } : { quotation: null, pricingRule: null, rateCard: null, source: null };
+  // Multi-stop route structure validation
+  let matchStatus: MatchStatus = 'NO_QUOTATION';
+  let candidateQuotation: any | null = null;
+
+  if (q) {
+    const tripStopsCount = stops && stops.length > 0 ? stops.length : (originLocationId && destinationLocationId ? 2 : 0);
+    const quotationStopsCount = q.stops ? q.stops.length : 2;
+
+    if (tripStopsCount > 2 || quotationStopsCount > 2) {
+      // Check if exact stop counts and intermediate stops match
+      if (tripStopsCount === quotationStopsCount) {
+        matchStatus = 'EXACT_MATCH';
+      } else {
+        matchStatus = 'MULTISTOP_MISMATCH';
+        candidateQuotation = q;
+        q = null; // Do not treat direct quotation as exact match when trip has extra intermediate stops
+      }
+    } else {
+      matchStatus = 'EXACT_MATCH';
+    }
+  }
+
+  return {
+    quotation: q,
+    pricingRule: q,
+    rateCard: q,
+    candidateQuotation,
+    matchStatus,
+    source: q ? 'customer' : null,
+  };
 };
 
 /**

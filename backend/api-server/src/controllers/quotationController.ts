@@ -275,18 +275,37 @@ export const getQuotations = async (req: Request, res: Response) => {
 
 export const lookupQuotation = async (req: Request, res: Response) => {
   try {
-    const { customer_id, origin_location_id, destination_location_id, vehicle_type, rate_category, line_type, billing_type } = req.query;
+    const customer_id = (req.query.customer_id || req.body?.customer_id) as string | undefined;
+    const origin_location_id = (req.query.origin_location_id || req.body?.origin_location_id) as string | undefined;
+    const destination_location_id = (req.query.destination_location_id || req.body?.destination_location_id) as string | undefined;
+    const vehicle_type = (req.query.vehicle_type || req.query.vehicle_class || req.body?.vehicle_type || req.body?.vehicle_class) as string | undefined;
+    const line_type = (req.query.line_type || req.query.rate_category || req.body?.line_type || req.body?.rate_category) as string | undefined;
+    const billing_type = (req.query.billing_type || req.body?.billing_type) as string | undefined;
+    const stops = req.body?.stops || req.query.stops;
 
-    const { quotation, source } = await findQuotationForLane(prisma, {
-      customerId: (customer_id as string) || null,
-      originLocationId: (origin_location_id as string) || null,
-      destinationLocationId: (destination_location_id as string) || null,
-      ...(vehicle_type !== undefined ? { vehicleType: (vehicle_type as string) || null } : {}),
-      ...(line_type !== undefined || rate_category !== undefined ? { lineType: ((line_type || rate_category) as string) || null } : {}),
-      ...(billing_type !== undefined ? { billingType: (billing_type as string) || null } : {}),
+    const { quotation, candidateQuotation, matchStatus, source } = await findQuotationForLane(prisma, {
+      customerId: customer_id || null,
+      originLocationId: origin_location_id || null,
+      destinationLocationId: destination_location_id || null,
+      ...(vehicle_type !== undefined ? { vehicleType: vehicle_type || null, vehicleClass: vehicle_type || null } : {}),
+      ...(line_type !== undefined ? { lineType: line_type || null } : {}),
+      ...(billing_type !== undefined ? { billingType: billing_type || null } : {}),
+      ...(Array.isArray(stops) ? { stops } : {}),
     });
 
-    res.json({ success: true, data: { quotation, rate_card: quotation, pricing_rule: quotation, source } });
+    res.json({
+      success: true,
+      data: {
+        quotation,
+        candidate_quotation: candidateQuotation,
+        candidateQuotation,
+        match_status: matchStatus,
+        matchStatus,
+        rate_card: quotation,
+        pricing_rule: quotation,
+        source,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to look up quotation rate' } });
   }
