@@ -146,24 +146,62 @@ export function analyzePastDateRows(rows: BulkImportTripRow[]): PastDateAnalysis
 }
 
 /**
- * Overrides status on rows that have past dates to the specified selected status.
- * Ensures past date trips are never left as 'Scheduled'.
+ * Applies selected status (Completed or Incompleted) to trip rows.
+ * If Completed: sets status to 'Completed'.
+ * If Incompleted: logically determines status based on date/time:
+ *   - Future / Today upcoming -> 'Scheduled'
+ *   - Yesterday / Past time -> 'InTransit'
+ *   - Older than 1 day ago -> 'Draft'
  */
 export function applyPastStatusToRows(
   rows: BulkImportTripRow[],
-  targetStatus: TripStatus = 'Completed'
+  targetStatus: TripStatus | 'Incompleted' = 'Completed'
 ): BulkImportTripRow[] {
   return rows.map((row) => {
     const dateVal = row.planned_start || row.date;
     const timeVal = row.pickup_time || row.pickupTime || row.time;
-    if (dateVal && isDateTimeInPast(dateVal, timeVal)) {
-      if (!row.status || row.status === 'Scheduled' || row.status === 'Draft' || row.status?.toLowerCase() === 'scheduled') {
+
+    if (targetStatus === 'Completed') {
+      return {
+        ...row,
+        status: 'Completed',
+      };
+    }
+
+    if (targetStatus === 'Incompleted' || targetStatus === 'Scheduled') {
+      if (dateVal && isDateTimeInPast(dateVal, timeVal)) {
+        const dayOnly = parseDateStart(dateVal);
+        const today = getTodayStart();
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        const yesterday = new Date(today.getTime() - oneDayMs);
+
+        if (dayOnly && dayOnly.getTime() < yesterday.getTime()) {
+          return {
+            ...row,
+            status: 'Draft',
+          };
+        } else {
+          return {
+            ...row,
+            status: 'InTransit',
+          };
+        }
+      } else {
         return {
           ...row,
-          status: targetStatus,
+          status: 'Scheduled',
         };
       }
     }
+
+    // Direct status fallback if explicit status like 'InTransit' or 'Draft' passed
+    if (dateVal && isDateTimeInPast(dateVal, timeVal)) {
+      return {
+        ...row,
+        status: targetStatus as TripStatus,
+      };
+    }
+
     return row;
   });
 }

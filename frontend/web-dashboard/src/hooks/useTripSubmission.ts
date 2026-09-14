@@ -66,18 +66,14 @@ export function useTripSubmission(
 
   const executeBulkSubmit = (rows: BulkImportTripRow[]) => {
     const analysis = analyzePastDateRows(rows);
-    if (analysis.hasPastTrips) {
-      setPendingRows(rows);
-      setPastDateAnalysis(analysis);
-      setPastDateModalOpen(true);
-    } else {
-      bulkMutation.mutate(rows);
-    }
+    setPendingRows(rows);
+    setPastDateAnalysis(analysis);
+    setPastDateModalOpen(true);
   };
 
-  const handlePastDateConfirm = (selectedStatus: TripStatus) => {
+  const handlePastDateConfirm = (selectedStatus: TripStatus | 'Incompleted') => {
     if (!pendingRows) return;
-    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus);
+    const finalRows = applyPastStatusToRows(pendingRows, selectedStatus as any);
     setPastDateModalOpen(false);
     setPendingRows(null);
     bulkMutation.mutate(finalRows);
