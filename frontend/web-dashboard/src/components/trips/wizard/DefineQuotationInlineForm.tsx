@@ -41,7 +41,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
       <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-orange-200/60 dark:border-slate-700">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1">
-            ✨ Define Master Quotation Rate Card
+            ✨ Rate Card
           </span>
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
             for {selectedCustName || 'Customer'}
@@ -77,12 +77,12 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         </div>
       </div>
 
-      {/* SPECIFICATION SELECTORS: OPERATION TYPE + VEHICLE CLASS + LINE TYPE */}
+      {/* SPECIFICATION SELECTORS: BILLING TYPE + VEHICLE CLASS + LINE TYPE */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pb-1">
-        {/* OPERATION / BILLING TYPE */}
+        {/* BILLING TYPE */}
         <div className="space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            Operation / Billing Type
+            Billing Type
           </label>
           <select
             value={contractBillingType?.toLowerCase() === 'extra' ? 'Extra' : 'Monthly'}
@@ -149,7 +149,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         </div>
       </div>
 
-      {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS TOGGLE */}
+      {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS DROPDOWN */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
         {/* CUSTOMER BILLING AMOUNT */}
         <div className="sm:col-span-5 space-y-1">
@@ -206,43 +206,39 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
           </div>
         </div>
 
-        {/* PRICING BASIS TOGGLE */}
+        {/* PRICING BASIS SELECT DROPDOWN */}
         <div className="sm:col-span-3 space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             Rate Basis
           </label>
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-300 dark:border-slate-700 h-8.5">
-            <button
-              type="button"
-              onClick={() => {
-                setInlinePricingBasis('Per Trip');
-                handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Trip' });
-              }}
-              className={`flex-1 text-[10px] font-black rounded-lg py-1 transition-all ${
-                inlinePricingBasis === 'Per Trip'
-                  ? 'bg-[#FA634E] text-white shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              Per Trip
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInlinePricingBasis('Per Month');
-                handleUpdateTripSlot(primarySlot.id, { pricingBasis: 'Per Month' });
-              }}
-              className={`flex-1 text-[10px] font-black rounded-lg py-1 transition-all ${
-                inlinePricingBasis === 'Per Month'
-                  ? 'bg-purple-600 text-white shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              Per Month
-            </button>
-          </div>
+          <select
+            value={inlinePricingBasis}
+            onChange={(e) => {
+              const val = e.target.value as 'Per Trip' | 'Per Month';
+              setInlinePricingBasis(val);
+              handleUpdateTripSlot(primarySlot.id, { pricingBasis: val });
+            }}
+            className="h-8.5 w-full px-2.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs cursor-pointer"
+          >
+            <option value="Per Trip">Per Trip</option>
+            <option value="Per Month">Per Month</option>
+          </select>
         </div>
       </div>
+
+      {/* PER-MONTH SPLITTER BREAKDOWN HELPER */}
+      {inlinePricingBasis === 'Per Month' && Number(primarySlot.billingAmount) > 0 && (
+        <div className="flex items-center justify-between flex-wrap gap-1 text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900">
+          <span>
+            ⚡ Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round(((Number(primarySlot.billingAmount) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip</strong> (30-day contract duty)
+          </span>
+          {Number(primarySlot.driverPayout) > 0 && (
+            <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400">
+              Driver Payout: SAR {(Math.round(((Number(primarySlot.driverPayout) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };

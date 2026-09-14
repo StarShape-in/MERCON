@@ -412,6 +412,12 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
+                  {contractBillingType === 'Monthly' && grandTotalBilling > 0 && (
+                    <div className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-900 flex items-center justify-between">
+                      <span>Rate Basis: <strong>Monthly Contract</strong></span>
+                      <span>Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round((grandTotalBilling / 30) * 100) / 100).toLocaleString()} / trip</strong></span>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
                     {/* 1. REVENUE BILLING */}
                     <div className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/70 dark:border-slate-700">
