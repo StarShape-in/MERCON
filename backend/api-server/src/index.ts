@@ -244,6 +244,10 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 async function startServer() {
+  httpServer.listen(port, () => {
+    logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
+  });
+
   const sqlCommands = [
     'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
     'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
@@ -265,10 +269,6 @@ async function startServer() {
       logger.warn({ errMessage: err?.message, sql }, 'Self-healing DB column statement warning');
     }
   }
-
-  httpServer.listen(port, () => {
-    logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
-  });
 }
 
 startServer();
