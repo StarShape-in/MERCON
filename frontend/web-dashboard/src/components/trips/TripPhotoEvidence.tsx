@@ -3,7 +3,7 @@ import {
   Clock, Eye, Camera, ChevronDown,
   ArrowUpRight, PackageCheck, Flag, FileText,
   Play, Video, AlertTriangle, UploadCloud,
-  MessageCircle, Layers, Grid, ListFilter, Share2, Sparkles, Filter, CheckCircle2
+  MessageCircle, ListFilter, Share2, Sparkles, Filter, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -192,7 +192,7 @@ export default function TripPhotoEvidence({
   onUpload,
 }: TripPhotoEvidenceProps) {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'stacks' | 'grid' | 'timeline'>('stacks');
+  const [viewMode, setViewMode] = useState<'stacks' | 'grid' | 'timeline'>('timeline');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'pod' | 'loading' | 'delay'>('all');
   const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
@@ -781,48 +781,6 @@ export default function TripPhotoEvidence({
           <h3 className="font-extrabold text-[13.5px] sm:text-[14px] text-[#111827] leading-tight">
             Trip Photo Evidence
           </h3>
-
-          {/* View Mode Toggle Segmented Pills */}
-          <div className="bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60 flex items-center gap-0.5">
-            <button
-              onClick={() => setViewMode('stacks')}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                viewMode === 'stacks'
-                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-              title="Compact Grouped Photo Stacks"
-            >
-              <Layers size={11} className={viewMode === 'stacks' ? 'text-[#FA634E]' : ''} />
-              <span>Compact Stacks</span>
-            </button>
-
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                viewMode === 'grid'
-                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-              title="Expanded Grid View"
-            >
-              <Grid size={11} className={viewMode === 'grid' ? 'text-[#FA634E]' : ''} />
-              <span>Grid Matrix</span>
-            </button>
-
-            <button
-              onClick={() => setViewMode('timeline')}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                viewMode === 'timeline'
-                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-              title="Chronological Timeline View"
-            >
-              <Clock size={11} className={viewMode === 'timeline' ? 'text-[#FA634E]' : ''} />
-              <span>Timeline</span>
-            </button>
-          </div>
         </div>
 
         {/* Right Header Controls: WhatsApp Share, Filters, Count Badge */}
