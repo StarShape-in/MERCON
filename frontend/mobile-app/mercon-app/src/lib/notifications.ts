@@ -10,16 +10,31 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api';
 
+// Helper to safely check if Notifications native module exists in current runtime
+export function isNotificationsAvailable(): boolean {
+  try {
+    return typeof Notifications?.setNotificationHandler === 'function';
+  } catch {
+    return false;
+  }
+}
+
 // Configure how notifications are presented when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+try {
+  if (isNotificationsAvailable()) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+} catch (err) {
+  console.warn('[Push] Could not configure setNotificationHandler:', err);
+}
 
 export interface MobileNotification {
   id: string;
@@ -73,13 +88,17 @@ export function timeAgo(iso: string): string {
  * Uses DEFAULT importance for non-alarm operational awareness.
  */
 export async function setupNotificationChannelAsync(): Promise<void> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'MERCON Operational Alerts',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FA634E',
-    });
+  try {
+    if (Platform.OS === 'android' && isNotificationsAvailable()) {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'MERCON Operational Alerts',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FA634E',
+      });
+    }
+  } catch (err) {
+    console.warn('[Push] Error setting up notification channel:', err);
   }
 }
 
@@ -90,6 +109,10 @@ export async function setupNotificationChannelAsync(): Promise<void> {
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   try {
+    if (!isNotificationsAvailable()) {
+      console.log('[Push] Notifications native module unavailable');
+      return null;
+    }
     await setupNotificationChannelAsync();
 
     if (!Device.isDevice) {

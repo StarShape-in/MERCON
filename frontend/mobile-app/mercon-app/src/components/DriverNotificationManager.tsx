@@ -179,26 +179,35 @@ export function DriverNotificationManager() {
     };
 
     // A. Cold-start push response recovery:
-    // When the app is launched by tapping a push notification from a terminated state,
-    // the tap occurred before this component mounted. Retrieve the launch response.
-    Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        if (isMounted && response) {
-          processNotificationResponse(response);
-        }
-      })
-      .catch((err) => {
-        console.warn('[NotificationManager] Error checking cold-start notification:', err);
-      });
+    let responseSubscription: any = null;
+    try {
+      if (typeof Notifications?.getLastNotificationResponseAsync === 'function') {
+        Notifications.getLastNotificationResponseAsync()
+          .then((response) => {
+            if (isMounted && response) {
+              processNotificationResponse(response);
+            }
+          })
+          .catch((err) => {
+            console.warn('[NotificationManager] Error checking cold-start notification:', err);
+          });
+      }
 
-    // B. Warm / background push notification response listener
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-      processNotificationResponse
-    );
+      // B. Warm / background push notification response listener
+      if (typeof Notifications?.addNotificationResponseReceivedListener === 'function') {
+        responseSubscription = Notifications.addNotificationResponseReceivedListener(
+          processNotificationResponse
+        );
+      }
+    } catch (err) {
+      console.warn('[NotificationManager] Notifications listeners unavailable in this environment:', err);
+    }
 
     return () => {
       isMounted = false;
-      responseSubscription.remove();
+      if (responseSubscription && typeof responseSubscription.remove === 'function') {
+        responseSubscription.remove();
+      }
     };
   }, [isLoggedIn, role]);
 
