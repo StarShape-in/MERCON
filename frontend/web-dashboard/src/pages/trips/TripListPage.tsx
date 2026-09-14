@@ -611,7 +611,15 @@ const matchesTripStatusFilter = (trip: Trip, filter: TripStatusFilter) => {
   if (filter === 'Active') {
     return ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(trip.status);
   }
-  if (filter === 'Completed,Invoiced') return trip.status === 'Completed' || trip.status === 'Invoiced';
+  if (filter === 'Scheduled' || filter === 'Draft') {
+    return trip.status === 'Scheduled' || trip.status === 'Draft' || trip.status === 'Dispatched';
+  }
+  if (filter === 'Loading' || filter === 'AtPickup') {
+    return trip.status === 'Loading' || trip.status === 'AtPickup';
+  }
+  if (filter === 'Completed' || filter === 'Completed,Invoiced') {
+    return trip.status === 'Completed' || trip.status === 'AtDelivery' || trip.status === 'Invoiced';
+  }
   if (filter === 'Issues') return trip.status === 'Cancelled' || trip.status === 'Delayed';
   return trip.status === filter;
 };
@@ -2291,14 +2299,11 @@ export default function TripListPage() {
                         className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
                       >
                         <option value="All">All Statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Dispatched">Dispatched</option>
-                        <option value="AtPickup">Loading</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Loading">Loading</option>
                         <option value="InTransit">In Transit</option>
-                        <option value="AtDelivery">At Delivery</option>
+                        <option value="Delayed">Delayed</option>
                         <option value="Completed">Completed</option>
-                        <option value="Invoiced">Invoiced</option>
                         <option value="Cancelled">Cancelled</option>
                       </select>
                     </div>
