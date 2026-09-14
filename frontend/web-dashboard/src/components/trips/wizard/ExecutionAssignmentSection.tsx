@@ -277,7 +277,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 /* UNSELECTED STATE: TODAY MORNING FIRST PUSH DESIGN (CENTERED AVATAR, 2-LINE NAMES, DIVIDER LINE) */
                 <div className="w-full flex-1 flex flex-col justify-between transition-all duration-300 animate-fade-in">
                   {(() => {
-                    const listToDisplay = driverOptions.slice(0, 2);
+                    const listToDisplay = driverOptions.filter((d) => d.value !== 'unassigned').slice(0, 2);
 
                     if (listToDisplay.length === 0) {
                       return (
