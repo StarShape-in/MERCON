@@ -70,8 +70,8 @@ jobs:
           ICCES_PASS: ${{ secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.ICCES_ACCT }}
           # Gemini Vision AI — injected from repo/environment secrets
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'AQ.Ab8RN6K3a4t83gB0yRI607axYGS8_JJIHhRuJZkYkLwxDDsNZA' }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-flash-latest' }}
           # Google address autocomplete. Reaches the frontend as a
           # docker-compose build arg, because Vite inlines VITE_* at build time
           # — a runtime env var would arrive after the bundle is written.

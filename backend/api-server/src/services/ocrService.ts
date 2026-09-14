@@ -329,7 +329,7 @@ export async function analyzeExternalScreenshotWithAI(
     };
   }
 
-  const apiKey = (process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '').trim();
+  const apiKey = (process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || 'AQ.Ab8RN6K3a4t83gB0yRI607axYGS8_JJIHhRuJZkYkLwxDDsNZA').trim();
   if (!apiKey) {
     return {
       detected_event_type: null,
