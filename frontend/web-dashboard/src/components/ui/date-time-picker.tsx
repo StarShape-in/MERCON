@@ -67,8 +67,16 @@ export function DateTimePicker({
     }
     if (typeof value === 'string') {
       if (!value.trim()) return undefined;
-      // Handle both "YYYY-MM-DDTHH:mm" and other ISO formats
-      const d = parseISO(value);
+      let str = value.trim();
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+        const parts = str.split(':');
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = new Date();
+        d.setHours(h, m, 0, 0);
+        return d;
+      }
+      const d = parseISO(str);
       return isValid(d) ? d : undefined;
     }
     return undefined;

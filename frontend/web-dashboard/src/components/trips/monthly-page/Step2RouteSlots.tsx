@@ -9,6 +9,7 @@ import { ContractSlot } from './types';
 import { cn, isUuid } from '@/lib/utils';
 
 import ServiceVehicleSelector from '@/components/trips/ServiceVehicleSelector';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 interface Step2RouteSlotsProps {
   contractCustomer: string;
@@ -515,11 +516,18 @@ export default function Step2RouteSlots({
                         <label className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1">
                           <Clock className="w-3 h-3 text-emerald-600" /> Time *
                         </label>
-                        <input
-                          type="time"
+                        <DateTimePicker
                           value={slot.pickupTime}
-                          onChange={(e) => onUpdateSlot(slot.id, { pickupTime: e.target.value })}
-                          className="w-full h-9 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                          onChange={(isoStr) => {
+                            if (!isoStr) {
+                              onUpdateSlot(slot.id, { pickupTime: '' });
+                              return;
+                            }
+                            const cleanTime = isoStr.includes('T') ? isoStr.split('T')[1].substring(0, 5) : isoStr;
+                            onUpdateSlot(slot.id, { pickupTime: cleanTime });
+                          }}
+                          placeholder="Pick date & time..."
+                          showPresets={false}
                         />
                       </div>
                     </div>
@@ -554,11 +562,18 @@ export default function Step2RouteSlots({
                         <label className="text-[10px] font-bold text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1">
                           <Clock className="w-3 h-3 text-brand" /> Time *
                         </label>
-                        <input
-                          type="time"
+                        <DateTimePicker
                           value={slot.dropoffTime}
-                          onChange={(e) => onUpdateSlot(slot.id, { dropoffTime: e.target.value })}
-                          className="w-full h-9 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                          onChange={(isoStr) => {
+                            if (!isoStr) {
+                              onUpdateSlot(slot.id, { dropoffTime: '' });
+                              return;
+                            }
+                            const cleanTime = isoStr.includes('T') ? isoStr.split('T')[1].substring(0, 5) : isoStr;
+                            onUpdateSlot(slot.id, { dropoffTime: cleanTime });
+                          }}
+                          placeholder="Pick date & time..."
+                          showPresets={false}
                         />
                       </div>
                     </div>
