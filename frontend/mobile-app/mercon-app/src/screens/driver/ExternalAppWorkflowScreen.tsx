@@ -6,22 +6,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  ArrowLeft, Upload, CheckCircle2, AlertCircle, FileCheck, Camera, Image as ImageIcon, Sparkles, Clock, RefreshCw,
+  ArrowLeft, Upload, CheckCircle2, AlertCircle, Camera, Image as ImageIcon, RefreshCw, Building2, ArrowRight,
 } from 'lucide-react-native';
-import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, type MobileTrip } from '../../lib/trips';
+import { tripService, getEffectiveWorkflowState, statusLabel, stopLabel } from '../../lib/trips';
 import { pickFromGallery, capturePhoto, type CapturedPhoto } from '../../lib/camera';
-import { getApiErrorMessage } from '../../lib/api';
+import { API_URL, getApiErrorMessage } from '../../lib/api';
+import { TripProgressStepper, DelayButton, DelayReportModal, BilingualText } from '../../components';
 
-const MILESTONES = [
-  { key: 'ASSIGNED', label: 'Assigned' },
-  { key: 'ARRIVED_AT_PICKUP', label: 'Pickup' },
-  { key: 'LOADING_COMPLETED', label: 'Loading' },
-  { key: 'IN_TRANSIT', label: 'In Transit' },
-  { key: 'ARRIVED_AT_DELIVERY', label: 'Delivery' },
-  { key: 'COMPLETED', label: 'Completed' },
-];
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
 export const ExternalAppWorkflowScreen = () => {
   const router = useRouter();
@@ -29,6 +22,7 @@ export const ExternalAppWorkflowScreen = () => {
 
   const [selectedPhoto, setSelectedPhoto] = useState<CapturedPhoto | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showDelayModal, setShowDelayModal] = useState(false);
   const [result, setResult] = useState<{
     extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
     event_type?: string | null;
@@ -38,16 +32,13 @@ export const ExternalAppWorkflowScreen = () => {
     validation_reason?: string | null;
   } | null>(null);
 
-  const currentWorkflowState = trip?.driver_workflow_state || (trip?.status === 'Completed' ? 'COMPLETED' : 'ASSIGNED');
+  const ws = getEffectiveWorkflowState(trip);
 
-  const getStepStatus = (stepKey: string) => {
-    if (trip?.status === 'Completed' || currentWorkflowState === 'COMPLETED') return 'completed';
-    const order = ['ASSIGNED', 'ARRIVED_AT_PICKUP', 'LOADING_COMPLETED', 'IN_TRANSIT', 'ARRIVED_AT_DELIVERY', 'COMPLETED'];
-    const currentIndex = order.indexOf(currentWorkflowState);
-    const stepIndex = order.indexOf(stepKey);
-    if (stepIndex < currentIndex) return 'completed';
-    if (stepIndex === currentIndex) return 'current';
-    return 'pending';
+  const getStepperStep = () => {
+    if (trip?.status === 'Completed' || ws === 'COMPLETED' || ws === 'REVIEW_COMPLETE') return 4;
+    if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN') return 3;
+    if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'LOADING_COMPLETED' || ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'IN_TRANSIT') return 2;
+    return 1;
   };
 
   const handlePickGallery = async () => {
@@ -100,83 +91,64 @@ export const ExternalAppWorkflowScreen = () => {
     }
   };
 
+  const pickupStop = trip?.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? trip?.stops?.[0];
+  const dropoffStop = trip?.stops?.find((s) => s.stop_sequence === (trip?.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? trip?.stops?.[trip?.stops?.length - 1];
+  const isCompleted = trip?.status === 'Completed' || trip?.status === 'Invoiced';
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="#3E3C3D" />
+      <StatusBar barStyle="dark-content" backgroundColor="#EEF1F6" />
 
-      {/* Top Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ArrowLeft size={20} color="#FFFFFF" />
+      {/* Top Header Bar */}
+      <View style={styles.topHeaderBar}>
+        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
+          <ArrowLeft size={20} color="#3E3C3D" strokeWidth={2.2} />
         </TouchableOpacity>
-        <View style={styles.headerTitleBlock}>
-          <Text style={styles.headerTitle}>External App Workflow</Text>
-          <Text style={styles.headerSub}>
-            {trip?.ref_id ? `Trip #${trip.ref_id}` : 'Operational Milestone Extraction'}
-          </Text>
+        <View style={styles.headerTitleCol}>
+          <BilingualText
+            ur="ایپ ویریفکیشن"
+            en="External App Verification"
+            primaryStyle={styles.headerTitleUrdu}
+            subStyle={styles.headerTitleEn}
+          />
         </View>
+        <DelayButton onPress={() => setShowDelayModal(true)} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner */}
-        <View style={styles.banner}>
-          <Sparkles size={20} color="#FA634E" />
-          <View style={styles.bannerTextBlock}>
-            <Text style={styles.bannerTitle}>External Customer App</Text>
-            <Text style={styles.bannerText}>
-              Execute your trip in the customer's application and upload app screenshots here. CargoPod AI automatically detects milestones.
-            </Text>
+        {/* 4-Step Progress Stepper */}
+        <TripProgressStepper currentStep={getStepperStep()} isCompletedAll={isCompleted} />
+
+        {/* Card 1: Hero Overview */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeaderRow}>
+            <View style={styles.logoFallback}>
+              <Building2 size={22} color="#FA634E" strokeWidth={2} />
+            </View>
+            <View style={styles.heroCustomerCol}>
+              <Text style={styles.customerName} numberOfLines={1}>
+                {trip?.customer?.name ?? 'Mercon Logistics'}
+              </Text>
+              <Text style={styles.tripRefId}>TRP-{trip?.ref_id ?? trip?.id?.slice(0, 8)}</Text>
+            </View>
+            <View style={[styles.statusBadge, isCompleted ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
+              <Text style={[styles.statusBadgeText, isCompleted ? styles.statusTextCompleted : styles.statusTextActive]}>
+                {ws ? ws.replace(/_/g, ' ') : statusLabel(trip?.status || 'Scheduled')}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardDivider} />
+
+          {/* Route Overview */}
+          <View style={styles.routeRow}>
+            <Text style={styles.routeOriginText} numberOfLines={1}>{stopLabel(pickupStop) ?? 'Pickup'}</Text>
+            <ArrowRight size={16} color="#FA634E" strokeWidth={2.5} style={styles.routeArrow} />
+            <Text style={styles.routeDestText} numberOfLines={1}>{stopLabel(dropoffStop) ?? 'Delivery'}</Text>
           </View>
         </View>
 
-        {/* Milestone Stepper */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Current Milestone Progress</Text>
-          <View style={styles.stepperContainer}>
-            {MILESTONES.map((m, idx) => {
-              const st = getStepStatus(m.key);
-              const isLast = idx === MILESTONES.length - 1;
-              return (
-                <View key={m.key} style={styles.stepItem}>
-                  <View style={styles.stepIndicatorRow}>
-                    <View
-                      style={[
-                        styles.stepDot,
-                        st === 'completed' && styles.stepDotCompleted,
-                        st === 'current' && styles.stepDotCurrent,
-                      ]}
-                    >
-                      {st === 'completed' ? (
-                        <CheckCircle2 size={12} color="#FFFFFF" />
-                      ) : (
-                        <View style={[styles.innerDot, st === 'current' && styles.innerDotCurrent]} />
-                      )}
-                    </View>
-                    {!isLast && (
-                      <View
-                        style={[
-                          styles.stepLine,
-                          st === 'completed' && styles.stepLineCompleted,
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.stepLabel,
-                      st === 'completed' && styles.stepLabelCompleted,
-                      st === 'current' && styles.stepLabelCurrent,
-                    ]}
-                  >
-                    {m.label}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Image Picker / Upload Card */}
+        {/* Card 2: Upload Screenshot */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Upload App Screenshot</Text>
 
@@ -194,14 +166,14 @@ export const ExternalAppWorkflowScreen = () => {
             </View>
           ) : (
             <View style={styles.pickersRow}>
-              <TouchableOpacity style={styles.pickerBox} onPress={handlePickGallery}>
-                <ImageIcon size={28} color="#FA634E" />
+              <TouchableOpacity style={styles.pickerBox} onPress={handlePickGallery} activeOpacity={0.8}>
+                <ImageIcon size={26} color="#FA634E" strokeWidth={2} />
                 <Text style={styles.pickerTitle}>Choose Screenshot</Text>
                 <Text style={styles.pickerSub}>Select from gallery</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.pickerBox} onPress={handleCamera}>
-                <Camera size={28} color="#3E3C3D" />
+              <TouchableOpacity style={styles.pickerBox} onPress={handleCamera} activeOpacity={0.8}>
+                <Camera size={26} color="#3E3C3D" strokeWidth={2} />
                 <Text style={styles.pickerTitle}>Take Photo</Text>
                 <Text style={styles.pickerSub}>Use camera</Text>
               </TouchableOpacity>
@@ -213,20 +185,21 @@ export const ExternalAppWorkflowScreen = () => {
               style={[styles.uploadActionBtn, analyzing && styles.uploadActionBtnDisabled]}
               onPress={handleUploadAndAnalyze}
               disabled={analyzing}
+              activeOpacity={0.88}
             >
               {analyzing ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Upload size={18} color="#FFFFFF" />
-                  <Text style={styles.uploadActionText}>Analyze Screenshot</Text>
+                  <Upload size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.uploadActionText}>Verify Milestone</Text>
                 </>
               )}
             </TouchableOpacity>
           )}
         </View>
 
-        {/* AI Extraction Result Card */}
+        {/* Card 3: Result Card */}
         {result && (
           <View
             style={[
@@ -240,28 +213,28 @@ export const ExternalAppWorkflowScreen = () => {
           >
             <View style={styles.resultHeader}>
               {result.applied ? (
-                <CheckCircle2 size={20} color="#059669" />
+                <CheckCircle2 size={20} color="#059669" strokeWidth={2.2} />
               ) : (
-                <AlertCircle size={20} color="#D97706" />
+                <AlertCircle size={20} color="#D97706" strokeWidth={2.2} />
               )}
               <Text style={styles.resultTitle}>
                 {result.applied
-                  ? 'Milestone Validated & Applied'
+                  ? 'Milestone Verified & Applied'
                   : result.extraction_status === 'NEEDS_REVIEW'
-                  ? 'Saved for Operator Review'
-                  : 'Extraction Failed'}
+                  ? 'Saved for Review'
+                  : 'Verification Failed'}
               </Text>
             </View>
 
             {result.event_type && (
               <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Detected Event:</Text>
+                <Text style={styles.resultLabel}>Milestone:</Text>
                 <Text style={styles.resultValue}>{result.event_type.replace(/_/g, ' ')}</Text>
               </View>
             )}
 
             <View style={styles.resultDetailRow}>
-              <Text style={styles.resultLabel}>AI Confidence:</Text>
+              <Text style={styles.resultLabel}>Confidence:</Text>
               <Text style={styles.resultValue}>{Math.round((result.confidence || 0) * 100)}%</Text>
             </View>
 
@@ -281,6 +254,13 @@ export const ExternalAppWorkflowScreen = () => {
           </View>
         )}
       </ScrollView>
+
+      <DelayReportModal
+        visible={showDelayModal}
+        tripId={trip?.id ?? null}
+        onClose={() => setShowDelayModal(false)}
+        onSuccess={() => refetch()}
+      />
     </SafeAreaView>
   );
 };
@@ -292,138 +272,145 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EEF1F6',
   },
-  header: {
-    backgroundColor: '#3E3C3D',
+  topHeaderBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
+    gap: 12,
   },
   backBtn: {
-    marginRight: 12,
-    padding: 4,
-  },
-  headerTitleBlock: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  headerSub: {
-    color: '#D1D5DB',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  banner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FA634E',
-    ...Shadows.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  bannerTextBlock: {
-    marginLeft: 12,
+  headerTitleCol: {
     flex: 1,
   },
-  bannerTitle: {
-    fontSize: 14,
+  headerTitleUrdu: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#3E3C3D',
   },
-  bannerText: {
+  headerTitleEn: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    lineHeight: 16,
+    fontWeight: '500',
+    color: '#6E6E80',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  heroCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  heroHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFF0ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCustomerCol: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#3E3C3D',
+  },
+  tripRefId: {
+    fontSize: 12,
+    color: '#9898A4',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#FFF0ED',
+  },
+  statusBadgeCompleted: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  statusTextActive: {
+    color: '#FA634E',
+  },
+  statusTextCompleted: {
+    color: '#15803D',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#EEF1F6',
+    marginVertical: 14,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  routeOriginText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3E3C3D',
+    flex: 1,
+  },
+  routeArrow: {
+    marginHorizontal: 4,
+  },
+  routeDestText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3E3C3D',
+    flex: 1,
+    textAlign: 'right',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    ...Shadows.sm,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#3E3C3D',
     marginBottom: 14,
-  },
-  stepperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  stepItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  stepIndicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    justifyContent: 'center',
-  },
-  stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  stepDotCurrent: {
-    backgroundColor: '#FA634E',
-  },
-  stepDotCompleted: {
-    backgroundColor: '#059669',
-  },
-  innerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#9CA3AF',
-  },
-  innerDotCurrent: {
-    backgroundColor: '#FFFFFF',
-  },
-  stepLine: {
-    position: 'absolute',
-    left: '50%',
-    right: '-50%',
-    height: 2,
-    backgroundColor: '#E5E7EB',
-    top: 9,
-    zIndex: 1,
-  },
-  stepLineCompleted: {
-    backgroundColor: '#059669',
-  },
-  stepLabel: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  stepLabelCurrent: {
-    color: '#FA634E',
-    fontWeight: '700',
-  },
-  stepLabelCompleted: {
-    color: '#059669',
-    fontWeight: '600',
   },
   pickersRow: {
     flexDirection: 'row',
@@ -432,12 +419,13 @@ const styles = StyleSheet.create({
   pickerBox: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: '#D8D8DC',
     borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FAFAFC',
   },
   pickerTitle: {
     fontSize: 13,
@@ -447,7 +435,7 @@ const styles = StyleSheet.create({
   },
   pickerSub: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#9898A4',
     marginTop: 2,
   },
   previewContainer: {
@@ -457,8 +445,8 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: 220,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    backgroundColor: '#EEF1F6',
   },
   changePhotoBtn: {
     flexDirection: 'row',
@@ -468,7 +456,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     backgroundColor: '#EEF1F6',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   changePhotoText: {
     fontSize: 12,
@@ -477,13 +465,13 @@ const styles = StyleSheet.create({
   },
   uploadActionBtn: {
     backgroundColor: '#FA634E',
-    borderRadius: 10,
+    borderRadius: 14,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
+    marginTop: 14,
   },
   uploadActionBtnDisabled: {
     opacity: 0.6,
@@ -512,7 +500,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   resultTitle: {
     fontSize: 15,
@@ -527,7 +515,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#4B5563',
-    width: 110,
+    width: 100,
   },
   resultValue: {
     fontSize: 12,
