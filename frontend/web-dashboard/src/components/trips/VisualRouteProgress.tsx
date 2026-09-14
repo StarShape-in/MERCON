@@ -131,7 +131,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
           >
             <div className="relative flex flex-col items-center">
               {/* Status pill badge above truck */}
-              <div className="mb-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FA634E] text-white text-[9.5px] font-black shadow-xs whitespace-nowrap">
+              <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10.5px] font-black shadow-xs whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 <span>{progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
               </div>
@@ -139,7 +139,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
               {/* Minimal 2D Orange Truck SVG */}
               <svg
                 viewBox="0 0 72 30"
-                className="w-14 h-6 filter drop-shadow-sm"
+                className="w-20 h-9 sm:w-24 sm:h-10 filter drop-shadow-md"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
