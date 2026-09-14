@@ -103,7 +103,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
           </span>
           <div className="w-20 sm:w-28 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5">
             <div
-              className="h-full bg-[#FA634E] rounded-full transition-all duration-500 shadow-xs"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-xs"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -114,17 +114,17 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
       <div className="relative w-full flex-1 flex flex-col pt-8 pb-2">
         {/* Progress Track Bar Row */}
         <div className="relative flex items-center justify-between w-full px-6 sm:px-10 h-6">
-          {/* Track Line Background (Solid #FA634E Orange - No multi-shaded gradient) */}
+          {/* Track Line Background (Solid Green Completed Line) */}
           <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-[#FA634E] rounded-full transition-all duration-500"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
 
-          {/* Minimal 2D Orange Truck Marker (Integrated directly ON top of the route line) */}
+          {/* Minimal 2D Orange Truck Marker (Positioned slightly lower on the route line) */}
           <div
-            className="absolute top-1/2 -translate-y-[calc(100%-6px)] z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
+            className="absolute top-1/2 -translate-y-[calc(50%+2px)] z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
             style={{
               left: `calc(2.5rem + (100% - 5rem) * (${truckPositionPercent} / 100))`,
             }}
