@@ -202,8 +202,8 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
           })}
         </div>
 
-        {/* Stop Details Row (Clean & Flat Typography, No Cluttered Cards) */}
-        <div className="relative flex items-start justify-between w-full px-2 sm:px-4 z-20 mt-3">
+        {/* Stop Details Row (Clean & Flat Typography, Ticks/Nodes centered directly above location names) */}
+        <div className="relative flex items-start justify-between w-full px-6 sm:px-10 z-20 mt-4">
           {normalizedStops.map((stop) => {
             const isCompleted = stop.status === 'completed';
             const isCurrent = stop.status === 'current';
