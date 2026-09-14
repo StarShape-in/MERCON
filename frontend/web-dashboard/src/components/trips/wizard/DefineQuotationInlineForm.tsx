@@ -16,6 +16,7 @@ interface DefineQuotationInlineFormProps {
   setContractVehicleType?: (vType: string) => void;
   setContractRateCategory?: (rCat: string) => void;
   handleUpdateTripSlot: (slotId: string, patch: any) => void;
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps> = ({
@@ -31,6 +32,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
   setContractVehicleType,
   setContractRateCategory,
   handleUpdateTripSlot,
+  fieldErrors = {},
 }) => {
   const vehicleClassOptions = React.useMemo(() => getAllTaxonomyOptions('VEHICLE_CLASS'), []);
   const lineTypeOptions = React.useMemo(() => getAllTaxonomyOptions('LINE_TYPE'), []);
@@ -152,9 +154,12 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
       {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS DROPDOWN */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
         {/* CUSTOMER BILLING AMOUNT */}
-        <div className="sm:col-span-5 space-y-1">
-          <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            💵 Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span>
+        <div id={`field-billing-amount-${primarySlot?.id}`} className="sm:col-span-5 space-y-1">
+          <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>💵 Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span></span>
+            {(fieldErrors?.[`billingAmount-${primarySlot?.id}`] || fieldErrors?.['billingAmount']) && (
+              <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+            )}
           </label>
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
@@ -173,15 +178,22 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
                   pricingBasis: inlinePricingBasis,
                 });
               }}
-              className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+              className={`h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs ${
+                (fieldErrors?.[`billingAmount-${primarySlot?.id}`] || fieldErrors?.['billingAmount'])
+                  ? 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20'
+                  : 'border-slate-300 dark:border-slate-700'
+              }`}
             />
           </div>
         </div>
 
         {/* DRIVER PAYOUT */}
-        <div className="sm:col-span-4 space-y-1">
-          <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            🚛 Driver Payout (SAR) <span className="text-[#FA634E]">*</span>
+        <div id={`field-driver-payout-${primarySlot?.id}`} className="sm:col-span-4 space-y-1">
+          <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>🚛 Driver Payout (SAR) <span className="text-[#FA634E]">*</span></span>
+            {(fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout']) && (
+              <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+            )}
           </label>
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
@@ -201,7 +213,11 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
                   pricingBasis: inlinePricingBasis,
                 });
               }}
-              className="h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs"
+              className={`h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs ${
+                (fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout'])
+                  ? 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20'
+                  : 'border-slate-300 dark:border-slate-700'
+              }`}
             />
           </div>
         </div>

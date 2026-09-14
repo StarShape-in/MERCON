@@ -26,6 +26,7 @@ interface CommercialSectionProps {
   setContractCustomer?: (customerId: string) => void;
   customers?: any[];
   customerOptions?: ComboboxOption[];
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const CommercialSection: React.FC<CommercialSectionProps> = ({
@@ -45,6 +46,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   setContractCustomer,
   customers = [],
   customerOptions = [],
+  fieldErrors = {},
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [isInlineMode, setIsInlineMode] = React.useState(false);
@@ -248,10 +250,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
           {/* CUSTOMER SEARCH COMBOBOX */}
           {setContractCustomer && (
-            <div className="w-full sm:w-[320px] shrink-0">
+            <div id="field-customer" className="w-full sm:w-[320px] shrink-0">
               <Combobox
                 options={derivedCustomerOptions}
                 value={contractCustomer}
+                hasError={Boolean(fieldErrors?.['customer'])}
                 onChange={(val) => setContractCustomer?.(val)}
                 placeholder="Select customer account..."
                 searchPlaceholder="Search customer name or code..."
@@ -479,6 +482,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               setContractVehicleType={setContractVehicleType}
               setContractRateCategory={setContractRateCategory}
               handleUpdateTripSlot={handleUpdateTripSlot}
+              fieldErrors={fieldErrors}
             />
           ) : displayedRateCards.length > 0 ? (
             displayedRateCards.length <= 3 ? (

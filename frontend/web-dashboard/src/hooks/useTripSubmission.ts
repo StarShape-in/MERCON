@@ -39,6 +39,7 @@ export function useTripSubmission(
   const [pastDateModalOpen, setPastDateModalOpen] = useState(false);
   const [pendingRows, setPendingRows] = useState<BulkImportTripRow[] | null>(null);
   const [pastDateAnalysis, setPastDateAnalysis] = useState<PastDateAnalysis | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   const bulkMutation = useMutation({
     mutationFn: (rows: BulkImportTripRow[]) => tripService.bulkImport(rows),
@@ -82,52 +83,120 @@ export function useTripSubmission(
     bulkMutation.mutate(finalRows);
   };
 
-  const handleContractSubmit = async () => {
+  const validateAndFocusErrors = (): boolean => {
+    const errors: Record<string, boolean> = {};
+    let firstErrId: string | null = null;
+    let firstErrMsg: string | null = null;
+
     if (!contractCustomer) {
-      toast.error('Please select a customer account.');
-      return;
-    }
-    if (!contractSlots || contractSlots.length === 0) {
-      toast.error('Please configure at least one route slot.');
-      return;
+      errors['customer'] = true;
+      firstErrId = 'field-customer';
+      firstErrMsg = 'Please select a customer account.';
     }
 
-    // Validate essential commercial fields & schedule for each slot
+    if (!contractSlots || contractSlots.length === 0) {
+      toast.error('Please configure at least one route slot.');
+      setContractStep(1);
+      return false;
+    }
+
     for (let i = 0; i < contractSlots.length; i++) {
       const slot = contractSlots[i];
 
       if (!slot.origin || !slot.origin.trim()) {
-        toast.error(`Slot #${i + 1}: Origin location is required.`);
-        return;
+        errors[`origin-${slot.id}`] = true;
+        errors['origin'] = true;
+        if (!firstErrId) {
+          firstErrId = `field-origin-${slot.id}`;
+          firstErrMsg = `Slot #${i + 1}: Origin location is required.`;
+        }
       }
+
       if (!slot.destination || !slot.destination.trim()) {
-        toast.error(`Slot #${i + 1}: Destination location is required.`);
-        return;
+        errors[`destination-${slot.id}`] = true;
+        errors['destination'] = true;
+        if (!firstErrId) {
+          firstErrId = `field-destination-${slot.id}`;
+          firstErrMsg = `Slot #${i + 1}: Destination location is required.`;
+        }
       }
+
       if (!slot.billingAmount || Number(slot.billingAmount) <= 0) {
-        toast.error(`Slot #${i + 1}: Customer Billing Rate must be greater than 0.`);
-        return;
+        errors[`billingAmount-${slot.id}`] = true;
+        errors['billingAmount'] = true;
+        if (!firstErrId) {
+          firstErrId = `field-billing-amount-${slot.id}`;
+          firstErrMsg = `Slot #${i + 1}: Customer Billing Rate is required.`;
+        }
+      }
+
+      if (slot.driverPayout === undefined || slot.driverPayout === null || slot.driverPayout === '' || Number(slot.driverPayout) <= 0) {
+        errors[`driverPayout-${slot.id}`] = true;
+        errors['driverPayout'] = true;
+        if (!firstErrId) {
+          firstErrId = `field-driver-payout-${slot.id}`;
+          firstErrMsg = `Slot #${i + 1}: Driver Payout Rate is required.`;
+        }
       }
 
       const dropoffDateVal = slot.dropoffDate || slot.date;
-      if (!slot.date || !dropoffDateVal) {
-        toast.error(`Slot #${i + 1} is missing schedule dates.`);
-        return;
-      }
-      try {
-        const plannedStart = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
-        const plannedEnd = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
-        const startMs = new Date(plannedStart).getTime();
-        const endMs = new Date(plannedEnd).getTime();
-        if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
-          toast.error(`Invalid schedule for Slot #${i + 1}: Drop-off date & time must be strictly after pickup date & time.`);
-          return;
+      if (!slot.date || !dropoffDateVal || !slot.pickupTime || !slot.dropoffTime) {
+        errors[`schedule-${slot.id}`] = true;
+        errors['schedule'] = true;
+        if (!firstErrId) {
+          firstErrId = `field-schedule-${slot.id}`;
+          firstErrMsg = `Slot #${i + 1}: Schedule date & times are required.`;
         }
-      } catch (err) {
-        toast.error(`Invalid schedule format for Slot #${i + 1}.`);
-        return;
+      } else {
+        try {
+          const plannedStart = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
+          const plannedEnd = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
+          const startMs = new Date(plannedStart).getTime();
+          const endMs = new Date(plannedEnd).getTime();
+          if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
+            errors[`schedule-${slot.id}`] = true;
+            errors['schedule'] = true;
+            if (!firstErrId) {
+              firstErrId = `field-schedule-${slot.id}`;
+              firstErrMsg = `Slot #${i + 1}: Drop-off schedule must be strictly after pickup time.`;
+            }
+          }
+        } catch (err) {
+          errors[`schedule-${slot.id}`] = true;
+          errors['schedule'] = true;
+          if (!firstErrId) {
+            firstErrId = `field-schedule-${slot.id}`;
+            firstErrMsg = `Slot #${i + 1}: Invalid schedule format.`;
+          }
+        }
       }
     }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setContractStep(1);
+      if (firstErrMsg) toast.error(firstErrMsg);
+
+      setTimeout(() => {
+        if (firstErrId) {
+          const el = document.getElementById(firstErrId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const input = el.querySelector('input, select, button') as HTMLElement;
+            input?.focus();
+          }
+        }
+      }, 100);
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleContractSubmit = async () => {
+    if (!validateAndFocusErrors()) return;
 
     const slotsToSaveAsQuotation = contractSlots.filter(
       (slot) => (slot.saveAsQuotation || slot.saveAsRateCard) && Number(slot.billingAmount) > 0
@@ -472,5 +541,8 @@ export function useTripSubmission(
     handleFileSubmit,
     resetAll,
     handleDialogClose,
+    fieldErrors,
+    setFieldErrors,
+    validateAndFocusErrors,
   };
 }

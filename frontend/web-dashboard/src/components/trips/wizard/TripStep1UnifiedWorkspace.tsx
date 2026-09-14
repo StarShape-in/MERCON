@@ -68,6 +68,7 @@ interface TripStep1UnifiedWorkspaceProps {
   vehicles?: any[];
   dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
   setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps> = ({
@@ -127,6 +128,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   vehicles = [],
   dayAssignments = {},
   setDayAssignments,
+  fieldErrors = {},
 }) => {
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
@@ -186,6 +188,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             setContractCustomer={setContractCustomer}
             customers={customers}
             customerOptions={customerOptions}
+            fieldErrors={fieldErrors}
           />
 
           <div className="space-y-3">
@@ -209,6 +212,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
                 handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
                 handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
+                fieldErrors={fieldErrors}
               />
             ))}
           </div>
