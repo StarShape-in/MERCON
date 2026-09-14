@@ -181,55 +181,6 @@ export default function TripDetailsPage() {
     setIsReassignModalOpen(true);
   };
 
-  const handleShareWhatsApp = () => {
-    if (!trip) return;
-    const pickupLoc = pickup ? resolveStopName(pickup, 'Pickup') : 'Pickup';
-    const dropoffLoc = dropoff ? resolveStopName(dropoff, 'Dropoff') : 'Dropoff';
-    const driverName = trip.is_third_party
-      ? trip.third_party_driver_name || 'Assigned Driver'
-      : trip.driver
-      ? `${trip.driver.first_name || ''} ${trip.driver.last_name || ''}`.trim() || 'Assigned Driver'
-      : 'Assigned Driver';
-    const vehicleInfo = trip.is_third_party
-      ? trip.third_party_vehicle_plate || 'Assigned Vehicle'
-      : trip.vehicle
-      ? trip.vehicle.plate_number
-      : 'Assigned Vehicle';
-    const etaText = trip.planned_end
-      ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
-      : 'On Schedule';
-    const createdText = trip.createdAt
-      ? formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a')
-      : 'N/A';
-    const scheduledText = `${fullScheduledDateText} | ${scheduledTimeStr}`;
-
-    const text = [
-      `*MERCON Logistics - Trip Status Update*`,
-      ``,
-      `*Trip ID:* ${trip.ref_id || trip.id}`,
-      `*Customer:* ${trip.customer?.name || 'Customer'}`,
-      `*Status:* ${(trip.status === 'Draft' || trip.status === 'Scheduled') ? 'SCHEDULED' : trip.status.toUpperCase()}`,
-      `*Scheduled:* ${scheduledText}`,
-      `*Created:* ${createdText}`,
-      ``,
-      `*Pickup:* ${pickupLoc}`,
-      `*Drop-off:* ${dropoffLoc}`,
-      `*ETA:* ${etaText}`,
-      ``,
-      `*Driver:* ${driverName}`,
-      `*Vehicle:* ${vehicleInfo}`,
-      ``,
-      `Thank you for shipping with MERCON Logistics!`,
-    ].join('\n');
-
-    const cleanPhone = trip.customer?.contact_phone?.replace(/[^0-9]/g, '');
-    const waUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
-  };
-
   if (isLoading) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
@@ -400,6 +351,55 @@ export default function TripDetailsPage() {
   const createdDateStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'MMM dd, yyyy') : '';
   const createdTimeStr = createdDateRaw ? formatInDeploymentTz(createdDateRaw, tz, 'hh:mm a') : '';
   const fullCreatedDateText = createdDayName ? `${createdDayName}, ${createdDateStr}` : createdDateStr;
+
+  const handleShareWhatsApp = () => {
+    if (!trip) return;
+    const pickupLoc = pickup ? resolveStopName(pickup, 'Pickup') : 'Pickup';
+    const dropoffLoc = dropoff ? resolveStopName(dropoff, 'Dropoff') : 'Dropoff';
+    const driverName = trip.is_third_party
+      ? trip.third_party_driver_name || 'Assigned Driver'
+      : trip.driver
+      ? `${trip.driver.first_name || ''} ${trip.driver.last_name || ''}`.trim() || 'Assigned Driver'
+      : 'Assigned Driver';
+    const vehicleInfo = trip.is_third_party
+      ? trip.third_party_vehicle_plate || 'Assigned Vehicle'
+      : trip.vehicle
+      ? trip.vehicle.plate_number
+      : 'Assigned Vehicle';
+    const etaText = trip.planned_end
+      ? formatInDeploymentTz(trip.planned_end, tz, 'dd MMM yyyy, hh:mm a')
+      : 'On Schedule';
+    const createdText = trip.createdAt
+      ? formatInDeploymentTz(trip.createdAt, tz, 'dd MMM yyyy, hh:mm a')
+      : 'N/A';
+    const scheduledText = `${fullScheduledDateText} | ${scheduledTimeStr}`;
+
+    const text = [
+      `*MERCON Logistics - Trip Status Update*`,
+      ``,
+      `*Trip ID:* ${trip.ref_id || trip.id}`,
+      `*Customer:* ${trip.customer?.name || 'Customer'}`,
+      `*Status:* ${(trip.status === 'Draft' || trip.status === 'Scheduled') ? 'SCHEDULED' : trip.status.toUpperCase()}`,
+      `*Scheduled:* ${scheduledText}`,
+      `*Created:* ${createdText}`,
+      ``,
+      `*Pickup:* ${pickupLoc}`,
+      `*Drop-off:* ${dropoffLoc}`,
+      `*ETA:* ${etaText}`,
+      ``,
+      `*Driver:* ${driverName}`,
+      `*Vehicle:* ${vehicleInfo}`,
+      ``,
+      `Thank you for shipping with MERCON Logistics!`,
+    ].join('\n');
+
+    const cleanPhone = trip.customer?.contact_phone?.replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Dynamically build real activity steps from trip metadata and actual stops
   const activitySteps: { label: string; time: string | null; done: boolean }[] = [
