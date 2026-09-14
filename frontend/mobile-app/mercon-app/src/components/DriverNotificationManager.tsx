@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { getSocket } from '@/lib/socket';
 import { tripService, type MobileTrip } from '@/lib/trips';
@@ -16,18 +17,25 @@ try {
 
 /**
  * Global driver notification manager:
- * 1. Handles real-time Socket.io foreground prompts when AppState === 'active'.
+ * 1. Handles real-time Socket.io foreground prompts when AppState === 'active' for:
+ *    - TripAssigned
+ *    - TripStartingSoon
+ *    - TripDelayPrompt (preserves existing DelayReportModal workflow)
+ *    - TripCancelled
+ *    - TripReassigned
  * 2. Unbinds notification listener in background/inactive to prevent duplicate alerts.
  *    Does NOT disconnect the shared socket singleton so live tracking is not disrupted.
  * 3. Handles background / cold-start push notification taps via expo-notifications
- *    (including getLastNotificationResponseAsync for cold starts).
- * 4. Resolves the active trip and safely triggers the existing DelayReportModal with stale-trip guards.
+ *    (including getLastNotificationResponseAsync for cold starts), navigating to the existing
+ *    trip details screen (/trip/details?tripId=...) with stale-trip guards.
+ * 4. Resolves the active trip and safely triggers the existing DelayReportModal for delay prompts.
  */
 
 // Cache handled notification response identifiers to prevent duplicate executions across remounts/cold starts
 const handledResponseIds = new Set<string>();
 
 export function DriverNotificationManager() {
+  const router = useRouter();
   const { role, profile, isLoggedIn } = useAuth();
   const [delayModalVisible, setDelayModalVisible] = useState(false);
   const [activeTrip, setActiveTrip] = useState<MobileTrip | null>(null);
@@ -68,6 +76,27 @@ export function DriverNotificationManager() {
     } catch (err) {
       console.warn('[NotificationManager] Failed to resolve active trip:', err);
       Alert.alert('Error', 'Could not load the active trip details. Please check your connection.');
+    }
+  };
+
+  /**
+   * Navigate to trip details screen with stale-trip verification.
+   */
+  const navigateToTripDetails = async (targetTripId: string) => {
+    try {
+      const trip = await tripService.getTripDetails(targetTripId);
+      if (!trip) {
+        Alert.alert('Trip Unavailable', 'The requested trip could not be found.');
+        return;
+      }
+      if (trip.status === 'Cancelled') {
+        Alert.alert('Trip Cancelled', 'This trip has been cancelled.');
+        return;
+      }
+      router.push({ pathname: '/trip/details', params: { tripId: targetTripId } } as any);
+    } catch {
+      // Fallback navigation
+      router.push({ pathname: '/trip/details', params: { tripId: targetTripId } } as any);
     }
   };
 
@@ -122,8 +151,84 @@ export function DriverNotificationManager() {
         const eventName = `driver:notification:${driverId}`;
         socket.off(eventName); // avoid duplicate listeners
         socket.on(eventName, (payload: any) => {
-          if (payload?.type === 'TripDelayPrompt') {
+          const notifId = payload?.id;
+          const tripId = payload?.entity_id || payload?.metadata?.tripId;
+          const eventType = (payload?.type || '').toString();
+
+          if (eventType === 'TripDelayPrompt') {
             handleForegroundDelayPrompt(payload);
+          } else if (eventType === 'TripAssigned') {
+            queryClient.invalidateQueries();
+            Alert.alert(
+              payload?.title || 'Trip Assigned',
+              payload?.message || 'You have been assigned a new trip.',
+              [
+                {
+                  text: 'Dismiss',
+                  style: 'cancel',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                  },
+                },
+                {
+                  text: 'View Trip',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                    if (tripId) navigateToTripDetails(tripId);
+                  },
+                },
+              ]
+            );
+          } else if (eventType === 'TripStartingSoon') {
+            queryClient.invalidateQueries();
+            Alert.alert(
+              payload?.title || 'Trip Starting Soon',
+              payload?.message || 'Your trip is starting soon. Open the app to prepare.',
+              [
+                {
+                  text: 'Dismiss',
+                  style: 'cancel',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                  },
+                },
+                {
+                  text: 'View Trip',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                    if (tripId) navigateToTripDetails(tripId);
+                  },
+                },
+              ]
+            );
+          } else if (eventType === 'TripCancelled') {
+            queryClient.invalidateQueries();
+            Alert.alert(
+              payload?.title || 'Trip Cancelled',
+              payload?.message || 'A trip has been cancelled.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                  },
+                },
+              ]
+            );
+          } else if (eventType === 'TripReassigned') {
+            queryClient.invalidateQueries();
+            Alert.alert(
+              payload?.title || 'Trip Reassigned',
+              payload?.message || 'A trip is no longer assigned to you.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    if (notifId) notificationService.markRead(notifId).catch(() => {});
+                  },
+                },
+              ]
+            );
           }
         });
       } catch (err) {
@@ -176,11 +281,27 @@ export function DriverNotificationManager() {
       }
 
       const data = response?.notification?.request?.content?.data as any;
-      if (data?.type === 'TripDelayPrompt') {
-        if (data?.notificationId) {
-          notificationService.markRead(data.notificationId).catch(() => {});
+      const notifId = data?.notificationId;
+      const tripId = data?.tripId || data?.entity_id;
+      const eventType = (data?.type || data?.event || '').toString();
+
+      if (notifId) {
+        notificationService.markRead(notifId).catch(() => {});
+      }
+
+      if (eventType === 'TripDelayPrompt') {
+        handleOpenDelayWorkflow(tripId);
+      } else if (eventType === 'TripAssigned' || eventType === 'TripStartingSoon') {
+        queryClient.invalidateQueries();
+        if (tripId) {
+          navigateToTripDetails(tripId);
         }
-        handleOpenDelayWorkflow(data?.tripId);
+      } else if (eventType === 'TripCancelled') {
+        queryClient.invalidateQueries();
+        Alert.alert('Trip Cancelled', 'This trip has been cancelled.');
+      } else if (eventType === 'TripReassigned') {
+        queryClient.invalidateQueries();
+        Alert.alert('Trip Reassigned', 'This trip is no longer assigned to you.');
       }
     };
 

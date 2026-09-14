@@ -223,11 +223,12 @@ async function notifyDriverAssigned(
   try {
     await createDriverNotification(
       driverId,
-      'Trip Assignment',
+      'Trip Assigned',
       `You've been assigned trip ${trip.ref_id ?? ''}. Open the app to start.`.replace('  ', ' '),
-      'Trip',
+      'TripAssigned',
       'Trip',
       trip.id,
+      { tripId: trip.id, ref_id: trip.ref_id, event: 'TripAssigned' }
     );
   } catch (err) {
     logger.error({ err }, 'Failed to send driver assignment notification');
@@ -1440,6 +1441,23 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       await notifyDriverAssigned(driverToNotify, trip);
     }
 
+    // Notify driver if trip was cancelled
+    if (status === TripStatus.Cancelled && trip.driverId) {
+      try {
+        await createDriverNotification(
+          trip.driverId,
+          'Trip Cancelled',
+          `Trip ${trip.ref_id ?? ''} has been cancelled.`.replace('  ', ' '),
+          'TripCancelled',
+          'Trip',
+          trip.id,
+          { tripId: trip.id, ref_id: trip.ref_id, event: 'TripCancelled' }
+        );
+      } catch (err) {
+        logger.error({ err }, 'Failed to send driver cancellation notification');
+      }
+    }
+
     // Alerted only once the transaction has committed, so operators are never
     // told about a delay on a trip update that then rolled back.
     if (delay) await notifyOperatorsOfDelay(delay);
@@ -1480,6 +1498,8 @@ export const dispatchTrip = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'driver_id or vehicle_id required' } });
     }
 
+    let oldDriverIdToNotify: string | null = null;
+
     // Run in a transaction to ensure atomic state updates. driver_id/vehicle_id
     // are independently optional — a trip created with "assign later" can have
     // just one filled in here, and the other assigned in a later call.
@@ -1500,6 +1520,7 @@ export const dispatchTrip = async (req: Request, res: Response) => {
           throw new Error('DRIVER_UNAVAILABLE');
         }
         if (trip.driverId) {
+          oldDriverIdToNotify = trip.driverId;
           await tx.driver.update({
             where: { id: trip.driverId },
             data: { status: 'Available' },
@@ -1544,6 +1565,23 @@ export const dispatchTrip = async (req: Request, res: Response) => {
     // Notify the driver after the dispatch commits.
     if (driver_id) await notifyDriverAssigned(driver_id, result);
 
+    // Notify the unassigned/replaced driver
+    if (oldDriverIdToNotify && oldDriverIdToNotify !== driver_id) {
+      try {
+        await createDriverNotification(
+          oldDriverIdToNotify,
+          'Trip Reassigned',
+          `Trip ${result.ref_id ?? ''} is no longer assigned to you.`.replace('  ', ' '),
+          'TripReassigned',
+          'Trip',
+          result.id,
+          { tripId: result.id, ref_id: result.ref_id, event: 'TripReassigned' }
+        );
+      } catch (err) {
+        logger.error({ err }, 'Failed to send driver reassignment notification');
+      }
+    }
+
     res.json({ success: true, data: result });
   } catch (error: any) {
     if (error.message === 'NOT_FOUND') {
@@ -1569,11 +1607,14 @@ export const replaceDriver = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'new_driver_id required' } });
     }
 
+    let oldDriverIdToNotify: string | null = null;
+
     const result = await prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({ where: { id: tripId } });
       if (!trip || !trip.driverId) throw new Error('TRIP_OR_DRIVER_NOT_FOUND');
 
       const oldDriverId = trip.driverId;
+      oldDriverIdToNotify = oldDriverId;
 
       // Atomically claim the new driver if trip status is active
       if (trip.status === 'InTransit' || trip.status === 'Loading' || trip.status === 'Delayed') {
@@ -1624,6 +1665,23 @@ export const replaceDriver = async (req: Request, res: Response) => {
 
     // Notify the newly-assigned driver after the swap commits.
     await notifyDriverAssigned(new_driver_id, result);
+
+    // Notify the unassigned/replaced driver
+    if (oldDriverIdToNotify && oldDriverIdToNotify !== new_driver_id) {
+      try {
+        await createDriverNotification(
+          oldDriverIdToNotify,
+          'Trip Reassigned',
+          `Trip ${result.ref_id ?? ''} is no longer assigned to you.`.replace('  ', ' '),
+          'TripReassigned',
+          'Trip',
+          result.id,
+          { tripId: result.id, ref_id: result.ref_id, event: 'TripReassigned' }
+        );
+      } catch (err) {
+        logger.error({ err }, 'Failed to send driver reassignment notification');
+      }
+    }
 
     res.json({ success: true, data: result });
   } catch (error: any) {
@@ -1996,16 +2054,16 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid status' } });
     }
 
-    const { updated, skipped } = await prisma.$transaction(async (tx) => {
+    const { updated, skipped, affectedTrips } = await prisma.$transaction(async (tx) => {
       const trips = await tx.trip.findMany({
         where: { id: { in: ids }, deletedAt: null },
-        select: { id: true, status: true, driverId: true, vehicleId: true },
+        select: { id: true, ref_id: true, status: true, driverId: true, vehicleId: true },
       });
 
       const validIds = trips.filter((t) => isValidTransition(t.status, status)).map((t) => t.id);
       const skippedCount = trips.length - validIds.length;
 
-      if (validIds.length === 0) return { updated: 0, skipped: skippedCount };
+      if (validIds.length === 0) return { updated: 0, skipped: skippedCount, affectedTrips: [] };
 
       // Completing a trip always goes through the shared helper so bulk
       // completion also generates invoices, same as the single-trip path.
@@ -2013,7 +2071,7 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
         for (const id of validIds) {
           await completeTripAndInvoice(tx, id, userId);
         }
-        return { updated: validIds.length, skipped: skippedCount };
+        return { updated: validIds.length, skipped: skippedCount, affectedTrips: [] };
       }
 
       await tx.trip.updateMany({
@@ -2021,10 +2079,11 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
         data: { status: status as TripStatus, updated_by: userId },
       });
 
+      const affected = trips.filter((t) => validIds.includes(t.id));
+
       // Same release rule as the single-trip update: Cancelled frees the
       // driver/vehicle back to Available.
       if (status === TripStatus.Cancelled) {
-        const affected = trips.filter((t) => validIds.includes(t.id));
         const driverIds = [...new Set(affected.map((t) => t.driverId).filter((id): id is string => !!id))];
         const vehicleIds = [...new Set(affected.map((t) => t.vehicleId).filter((id): id is string => !!id))];
         if (driverIds.length) {
@@ -2035,8 +2094,28 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
         }
       }
 
-      return { updated: validIds.length, skipped: skippedCount };
+      return { updated: validIds.length, skipped: skippedCount, affectedTrips: affected };
     });
+
+    if (status === TripStatus.Cancelled && affectedTrips?.length) {
+      for (const t of affectedTrips) {
+        if (t.driverId) {
+          try {
+            await createDriverNotification(
+              t.driverId,
+              'Trip Cancelled',
+              `Trip ${t.ref_id ?? ''} has been cancelled.`.replace('  ', ' '),
+              'TripCancelled',
+              'Trip',
+              t.id,
+              { tripId: t.id, ref_id: t.ref_id, event: 'TripCancelled' }
+            );
+          } catch (err) {
+            logger.error({ err }, 'Failed to send driver cancellation notification on bulk update');
+          }
+        }
+      }
+    }
 
     res.json({
       success: true,

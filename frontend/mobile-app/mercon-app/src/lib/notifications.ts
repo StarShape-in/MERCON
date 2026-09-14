@@ -69,7 +69,13 @@ export const notificationService = {
 export function notificationIcon(type: string): LucideIcon {
   switch (type.toLowerCase()) {
     case 'emergency': return TriangleAlert;
-    case 'trip': return Truck;
+    case 'trip':
+    case 'tripassigned':
+    case 'tripstartingsoon':
+    case 'tripcancelled':
+    case 'tripreassigned':
+    case 'tripdelayprompt':
+      return Truck;
     case 'document': return FileText;
     case 'system': return Settings;
     default: return Bell;
@@ -93,14 +99,14 @@ export function timeAgo(iso: string, lang: LanguageMode = 'en'): string {
 
 /**
  * Ensures the default operational notification channel exists on Android.
- * Uses DEFAULT importance for non-alarm operational awareness.
+ * Uses HIGH importance for heads-up alerts and sound on physical devices.
  */
 export async function setupNotificationChannelAsync(): Promise<void> {
   try {
     if (Platform.OS === 'android' && isNotificationsAvailable()) {
       await Notifications?.setNotificationChannelAsync('default', {
         name: 'MERCON Operational Alerts',
-        importance: Notifications?.AndroidImportance?.DEFAULT ?? 3,
+        importance: Notifications?.AndroidImportance?.HIGH ?? 4,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FA634E',
       });

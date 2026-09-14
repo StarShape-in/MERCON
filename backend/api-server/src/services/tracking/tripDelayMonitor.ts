@@ -69,6 +69,79 @@ export async function notifyOperatorsOfStaleScheduled(
 }
 
 /**
+ * Checks for trips starting within the next 30 minutes and sends an automated
+ * TripStartingSoon push notification/reminder to the assigned driver.
+ *
+ * Requirements:
+ * - Idempotency: Guaranteed by checking for an existing TripStartingSoon notification for (trip.id, trip.driverId).
+ * - Only trips that have not started (actual_start == null).
+ * - Only trips with an assigned driver (driverId != null).
+ * - Status in [Scheduled, Draft].
+ * - planned_start is in the upcoming window (now <= planned_start <= now + 30m).
+ */
+export async function checkTripsStartingSoon(now: Date = new Date()): Promise<number> {
+  let remindedCount = 0;
+  try {
+    const windowStart = now;
+    const windowEnd = new Date(now.getTime() + 30 * 60 * 1000);
+
+    const upcomingTrips = await prisma.trip.findMany({
+      where: {
+        status: { in: [TripStatus.Scheduled, TripStatus.Draft] },
+        deletedAt: null,
+        driverId: { not: null },
+        actual_start: null,
+        planned_start: {
+          gte: windowStart,
+          lte: windowEnd,
+        },
+      },
+      select: {
+        id: true,
+        ref_id: true,
+        driverId: true,
+        planned_start: true,
+      },
+    });
+
+    for (const trip of upcomingTrips) {
+      if (!trip.driverId) continue;
+
+      const existingReminder = await prisma.notification.findFirst({
+        where: {
+          driverId: trip.driverId,
+          entity_id: trip.id,
+          entity_type: 'Trip',
+          type: 'TripStartingSoon',
+        },
+      });
+
+      if (!existingReminder) {
+        await createDriverNotification(
+          trip.driverId,
+          'Trip Starting Soon',
+          `Your trip ${trip.ref_id ?? ''} starts in 30 minutes. Open the app to prepare.`.replace('  ', ' '),
+          'TripStartingSoon',
+          'Trip',
+          trip.id,
+          {
+            tripId: trip.id,
+            ref_id: trip.ref_id,
+            planned_start: trip.planned_start,
+            event: 'TripStartingSoon',
+          }
+        );
+        remindedCount++;
+      }
+    }
+  } catch (error) {
+    logger.error({ err: error }, '[TripDelayMonitor] Error checking trips starting soon');
+  }
+
+  return remindedCount;
+}
+
+/**
  * Checks all active trips against their planned stop schedules and timestamps.
  * 
  * 1. Stale Scheduled Trips: Previous-day scheduled trips that never started are
@@ -90,6 +163,9 @@ export async function checkTripsForDelay(now: Date = new Date()): Promise<number
   let delayedCount = 0;
 
   try {
+    // Check trips starting soon (30-minute automated reminder)
+    await checkTripsStartingSoon(now);
+
     const activeTrips = await prisma.trip.findMany({
       where: {
         status: { in: [TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit] },
