@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, ShieldCheck, Tag, AlertCircle } from 'lucide-react';
+import { X, CheckCircle2, Building2, MapPin, Truck, Calendar, ArrowRight, ShieldCheck, Tag, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -81,7 +81,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
   // Helper to safely resolve Driver Name & Avatar (NEVER returns a raw UUID)
   const resolveDriverDisplay = (dId: string) => {
-    if (!dId) return { name: 'Primary Fleet Driver', avatar: null, firstName: 'Driver', lastName: '', phone: '', status: '' };
+    if (!dId || dId === 'unassigned') return { name: 'Assign Later', avatar: null, firstName: 'Assign', lastName: 'Later', phone: '', status: '' };
     const dObj = drivers.find((d) => d.id === dId || d.ref_id === dId || d.uuid === dId);
     if (dObj) {
       const fullName = `${dObj.first_name || ''} ${dObj.last_name || ''}`.trim() || dObj.name;
@@ -99,19 +99,19 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
     if (!isUuidString(dId)) {
       return { name: dId, avatar: null, firstName: dId.split(' ')[0], lastName: dId.split(' ')[1] || '', phone: '', status: '' };
     }
-    return { name: 'Assigned Driver', avatar: null, firstName: 'Driver', lastName: '', phone: '', status: '' };
+    return { name: 'Assign Later', avatar: null, firstName: 'Assign', lastName: 'Later', phone: '', status: '' };
   };
 
   // Helper to safely resolve Vehicle Plate (NEVER returns a raw UUID)
   const resolveVehicleDisplay = (vId: string) => {
-    if (!vId) return 'Vehicle Assigned';
+    if (!vId || vId === 'unassigned') return 'Vehicle: Assign Later';
     const vObj = vehicles.find((v) => v.id === vId || v.plate_number === vId || v.plateNumber === vId);
     if (vObj) {
       const plate = vObj.plate_number || vObj.plateNumber;
       if (plate && !isUuidString(plate)) return plate;
     }
     if (!isUuidString(vId)) return vId;
-    return 'Vehicle Assigned';
+    return 'Vehicle: Assign Later';
   };
 
   // Resolve Primary Fleet Assignment
@@ -195,19 +195,6 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
         {/* MODAL BODY */}
         <div className="p-6 space-y-4">
-
-          {/* QUOTATION DRIVER PAYOUT UPDATE NOTICE */}
-          {contractSlots.some((s) => s.driverPayoutModified || s.updateQuotationPayout) && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-extrabold block">Master Quotation Driver Payout Update</span>
-                <span className="text-[11px] text-amber-700 dark:text-amber-400">
-                  Driver payout was modified. Saving will update the master Quotation rate card to <strong>SAR {primarySlot.driverPayout}</strong> for all future trips, and log a Quotation History entry.
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* SCHEDULE ERROR BANNER */}
           {scheduleErrors.length > 0 && (
@@ -356,6 +343,20 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                     </div>
                   );
                 })}
+              </div>
+            ) : (!masterDriver || masterDriver === 'unassigned') && (!masterVehicle || masterVehicle === 'unassigned') ? (
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900 text-xs">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold shrink-0 border border-amber-200 dark:border-amber-800">
+                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="font-extrabold text-amber-900 dark:text-amber-200 text-xs block">
+                    Assign Later (Pending Fleet Assignment)
+                  </span>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
+                    Driver and vehicle will be assigned prior to trip pickup dispatch.
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">

@@ -314,7 +314,20 @@ export function useCreateTripForm() {
       if (capB !== capA) return capB - capA;
       return (b.score || 0) - (a.score || 0);
     });
-    return mapped;
+
+    const assignLaterDriverOption: ComboboxOption = {
+      value: 'unassigned',
+      label: React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5' },
+        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
+        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending fleet assignment')
+      ),
+      selectedLabel: 'Assign Later (Unassigned)',
+      keywords: 'unassigned assign later pending null none',
+    };
+
+    return [assignLaterDriverOption, ...mapped];
   }, [drivers, vehicles, recommendedDriversRes]);
 
   const [searchParams] = useSearchParams();
@@ -428,11 +441,26 @@ export function useCreateTripForm() {
       'Available Vehicles': 3,
     };
 
-    return mapped.sort((a, b) => {
+    const sorted = mapped.sort((a, b) => {
       const pA = groupPriority[a.group] ?? 99;
       const pB = groupPriority[b.group] ?? 99;
       return pA - pB;
     });
+
+    const assignLaterVehicleOption: ComboboxOption = {
+      value: 'unassigned',
+      group: 'Assign Later',
+      label: React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5' },
+        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
+        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending truck assignment')
+      ),
+      selectedLabel: 'Assign Later (Unassigned)',
+      keywords: 'unassigned assign later pending null none',
+    };
+
+    return [assignLaterVehicleOption, ...sorted];
   }, [vehicles, masterVehicle, contractVehicleType, masterDriver, drivers]);
 
   useEffect(() => {
