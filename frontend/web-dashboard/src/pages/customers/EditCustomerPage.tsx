@@ -197,6 +197,7 @@ export default function EditCustomerPage() {
         email: '',
         billing_address: '',
         payment_terms: customer.payment_terms || 'Net 30 Days',
+        driver_workflow: customer.driver_workflow || 'NATIVE',
         isActive: customer.isActive ?? true,
       });
       setError(null);

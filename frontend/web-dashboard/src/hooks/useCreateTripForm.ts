@@ -662,10 +662,17 @@ export function useCreateTripForm() {
                 console.error('Quotation rate lookup error:', err);
               }
 
+              // No matching rate card found: preserve manually entered pricing if user typed billing or payout
+              const isUserDefined = !slot.rateMatched || slot.saveAsQuotation || slot.saveAsRateCard || slot.driverPayoutModified;
+              const keepBilling = isUserDefined && slot.billingAmount ? slot.billingAmount : '';
+              const keepTripCharges = isUserDefined && slot.tripCharges ? slot.tripCharges : '';
+              const keepDriverPayout = isUserDefined && slot.driverPayout !== undefined ? slot.driverPayout : undefined;
+
               return {
                 ...slot,
-                billingAmount: '',
-                tripCharges: '',
+                billingAmount: keepBilling,
+                tripCharges: keepTripCharges,
+                ...(keepDriverPayout !== undefined ? { driverPayout: keepDriverPayout } : {}),
                 rateMatched: false,
                 rateCardId: undefined,
                 rateCardName: undefined,

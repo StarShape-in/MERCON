@@ -352,7 +352,7 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
         align="start"
         side="bottom"
         sideOffset={4}
-        avoidCollisions={true}
+        avoidCollisions={false}
         collisionPadding={8}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
