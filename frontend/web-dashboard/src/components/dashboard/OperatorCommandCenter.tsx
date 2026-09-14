@@ -30,6 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -144,6 +152,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   const [assignVehicleId, setAssignVehicleId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
+  const [confirmItem, setConfirmItem] = useState<UnifiedActionItem | null>(null);
   const [handledItemIds, setHandledItemIds] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('mercon_operator_handled_items');
@@ -798,6 +807,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                               const msg = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${selectedDriverName}*\nReason: ${reason}`;
                               const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                               window.open(target, '_blank');
+                              setConfirmItem(selectedItem);
                             }}
                             className="w-11 h-11 rounded-full bg-[#FA634E] text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform cursor-pointer"
                           >
@@ -888,6 +898,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                               const msg = `📸 *MERCON POD PHOTO #1*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*`;
                               const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                               window.open(target, '_blank');
+                              setConfirmItem(selectedItem);
                             }
                           }}
                           className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center group"
@@ -926,6 +937,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                               const msg = `📸 *MERCON POD PHOTO #2*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*`;
                               const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                               window.open(target, '_blank');
+                              setConfirmItem(selectedItem);
                             }
                           }}
                           className="relative rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-slate-900 hover:bg-emerald-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center group"
@@ -1021,6 +1033,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                       toast.success('WhatsApp web message opened. Click \'Mark Completed\' when verified.');
                     } finally {
                       setIsSharingWhatsApp(false);
+                      setConfirmItem(selectedItem);
                     }
                   }}
                   className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer rounded-xl disabled:opacity-50"
@@ -1062,6 +1075,54 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
         </div>
 
       </div>
+
+      {/* ── 3. WHATSAPP CONFIRMATION MODAL ────────────────────────────────────── */}
+      <Dialog open={Boolean(confirmItem)} onOpenChange={(open) => { if (!open) setConfirmItem(null); }}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="flex flex-col items-center text-center space-y-2">
+            <div className="w-13 h-13 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shadow-sm mb-1">
+              <WhatsAppIcon className="w-7 h-7 fill-current" />
+            </div>
+            <DialogTitle className="text-base font-black text-[#3E3C3D] dark:text-slate-100">
+              Did you complete sharing to WhatsApp?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+              {confirmItem && (
+                <>
+                  Confirm if the {confirmItem.category === 'pod' ? 'POD photo' : 'delay report'} for{' '}
+                  <strong className="text-[#3E3C3D] dark:text-slate-200">{confirmItem.tripRef || confirmItem.entityName}</strong>{' '}
+                  was successfully shared to WhatsApp.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmItem(null)}
+              className="h-9 text-xs font-bold text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl px-4 cursor-pointer"
+            >
+              No, Keep in Queue
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (confirmItem) {
+                  markItemHandled(confirmItem.id);
+                  toast.success(`Alert ${confirmItem.tripRef || confirmItem.entityName} marked as completed & verified ✓`);
+                  setConfirmItem(null);
+                }
+              }}
+              className="h-9 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Yes, Mark as Completed</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
