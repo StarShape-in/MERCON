@@ -61,6 +61,18 @@ async function getOrCreateSettings() {
       create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS], defaultRedirectModule: 'quotations' },
     });
   } catch (err: any) {
+    if (err.message?.includes('defaultRedirectModule') || err.message?.includes('does not exist in the current database')) {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "defaultRedirectModule" TEXT DEFAULT 'quotations';`);
+        return await prisma.settings.upsert({
+          where: { id: SINGLETON_ID },
+          update: {},
+          create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS], defaultRedirectModule: 'quotations' },
+        });
+      } catch (_e) {
+        // Fall back to default settings object if column alter fails
+      }
+    }
     console.warn('[Settings] Unable to query Settings from database, using defaults:', err.message || err);
     return DEFAULT_SETTINGS as any;
   }
@@ -126,10 +138,47 @@ export const updateTimezone = async (req: Request, res: Response) => {
     }
 
     await getOrCreateSettings();
-    const settings = await prisma.settings.update({
-      where: { id: SINGLETON_ID },
-      data: { timezone, updated_by: userId },
-    });
+    let settings;
+    try {
+      settings = await prisma.settings.update({
+        where: { id: SINGLETON_ID },
+        data: { timezone, updated_by: userId },
+      });
+    } catch (err: any) {
+      if (err.message?.includes('defaultRedirectModule') || err.message?.includes('does not exist in the current database')) {
+        try {
+          await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "defaultRedirectModule" TEXT DEFAULT 'quotations';`);
+          settings = await prisma.settings.update({
+            where: { id: SINGLETON_ID },
+            data: { timezone, updated_by: userId },
+          });
+        } catch (_e) {
+          settings = await prisma.settings.update({
+            where: { id: SINGLETON_ID },
+            data: { timezone, updated_by: userId },
+            select: {
+              id: true,
+              appName: true,
+              companyLegalName: true,
+              logoUrl: true,
+              primaryColor: true,
+              timezone: true,
+              defaultCountryCode: true,
+              defaultCountryDialCode: true,
+              enabledModules: true,
+              themeColors: true,
+              taxonomyConfig: true,
+              maintenanceMode: true,
+              maintenanceBanner: true,
+              updated_by: true,
+              updatedAt: true,
+            },
+          });
+        }
+      } else {
+        throw err;
+      }
+    }
 
     return res.json({ success: true, data: settings });
   } catch (error) {
@@ -188,10 +237,35 @@ export const updateSettings = async (req: Request, res: Response) => {
     try {
       settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
     } catch (err: any) {
-      if (data.defaultRedirectModule !== undefined && (err.message?.includes('defaultRedirectModule') || err.message?.includes('does not exist in the current database'))) {
-        console.warn('[Settings] defaultRedirectModule column missing in DB, retrying update without it...');
-        delete data.defaultRedirectModule;
-        settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
+      if (err.message?.includes('defaultRedirectModule') || err.message?.includes('does not exist in the current database')) {
+        console.warn('[Settings] defaultRedirectModule column missing in DB, attempting column auto-add or fallback select...');
+        try {
+          await prisma.$executeRawUnsafe(`ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "defaultRedirectModule" TEXT DEFAULT 'quotations';`);
+          settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
+        } catch (_addErr) {
+          delete data.defaultRedirectModule;
+          settings = await prisma.settings.update({
+            where: { id: SINGLETON_ID },
+            data,
+            select: {
+              id: true,
+              appName: true,
+              companyLegalName: true,
+              logoUrl: true,
+              primaryColor: true,
+              timezone: true,
+              defaultCountryCode: true,
+              defaultCountryDialCode: true,
+              enabledModules: true,
+              themeColors: true,
+              taxonomyConfig: true,
+              maintenanceMode: true,
+              maintenanceBanner: true,
+              updated_by: true,
+              updatedAt: true,
+            },
+          });
+        }
       } else {
         throw err;
       }
