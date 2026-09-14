@@ -184,7 +184,18 @@ export const updateSettings = async (req: Request, res: Response) => {
     data.updated_by = userId;
 
     await getOrCreateSettings();
-    const settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
+    let settings;
+    try {
+      settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
+    } catch (err: any) {
+      if (data.defaultRedirectModule !== undefined && (err.message?.includes('defaultRedirectModule') || err.message?.includes('does not exist in the current database'))) {
+        console.warn('[Settings] defaultRedirectModule column missing in DB, retrying update without it...');
+        delete data.defaultRedirectModule;
+        settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
+      } else {
+        throw err;
+      }
+    }
 
     return res.json({ success: true, data: settings });
   } catch (error: any) {
