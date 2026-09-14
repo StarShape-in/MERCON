@@ -127,12 +127,12 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                 className="relative z-20 flex flex-col items-center justify-center"
               >
                 {isTruckHere ? (
-                  /* 3D Realistic MERCON Truck matching reference mockup */
-                  <div className="relative flex flex-col items-center z-30 transform -translate-y-2">
+                  /* 3D Realistic MERCON Truck aligned perfectly with route line and tick nodes */
+                  <div className="relative flex flex-col items-center z-30 transform translate-y-1">
                     <img
                       src="/mercon_truck_3d.png"
                       alt="MERCON Logistics Truck"
-                      className="w-24 sm:w-32 h-auto filter drop-shadow-md object-contain select-none pointer-events-none"
+                      className="w-24 sm:w-28 h-auto filter drop-shadow-md object-contain select-none pointer-events-none"
                     />
                   </div>
                 ) : (
