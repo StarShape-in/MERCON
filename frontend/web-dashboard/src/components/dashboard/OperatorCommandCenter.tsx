@@ -936,18 +936,35 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                     try {
                       const category = selectedItem.category === 'pod' ? 'pod' : 'delay';
                       const res = await tripService.shareMediaWhatsApp(tripId, { category });
-                      if (res.success) {
-                        toast.success(`WhatsApp Cloud API media dispatched natively to ${res.data?.recipient || 'customer'}`);
+                      if (res.success && res.data) {
+                        if (res.data.isCloudApi) {
+                          toast.success(`WhatsApp Cloud API media dispatched to ${res.data.recipient || 'customer'}`);
+                        } else if (res.data.whatsappWebUrl) {
+                          window.open(res.data.whatsappWebUrl, '_blank');
+                          toast.success('WhatsApp web message opened with public video link');
+                        }
                       }
                     } catch (err: any) {
-                      const errorMsg = err?.response?.data?.error?.message || err?.message || 'Failed to dispatch via WhatsApp API';
-                      const errorCode = err?.response?.data?.error?.code;
+                      const custName = selectedItem.entityName;
+                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                      const driverName = selectedDriverName;
+                      const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
 
-                      if (errorCode === 'WHATSAPP_CONFIG_MISSING' || err?.response?.status === 422) {
-                        toast.error(`WhatsApp Configuration Error: ${errorMsg}`);
-                      } else {
-                        toast.error(`WhatsApp Dispatch Error: ${errorMsg}`);
-                      }
+                      const publicBase = (import.meta.env.VITE_PUBLIC_BASE_URL || import.meta.env.VITE_API_URL || 'https://dev.mercon.com').replace(/\/api\/?$/, '').replace(/\/+$/, '');
+                      const rawFileUrl = selectedItem.videoUrl || '';
+                      const fullMediaUrl = rawFileUrl.startsWith('http') ? rawFileUrl : `${publicBase}${rawFileUrl.startsWith('/') ? '' : '/'}${rawFileUrl}`;
+
+                      const reason = selectedItem.delayReason || selectedItem.subtitle;
+                      const msg = selectedItem.category === 'delay'
+                        ? `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nReason: ${reason}\nWatch Video: ${fullMediaUrl}`
+                        : `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nView POD: ${fullMediaUrl}`;
+
+                      const target = phone
+                        ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`
+                        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+                      window.open(target, '_blank');
+                      toast.success('WhatsApp web message opened with public HTTPS video link');
                     } finally {
                       setIsSharingWhatsApp(false);
                     }

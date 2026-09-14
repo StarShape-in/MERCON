@@ -725,9 +725,13 @@ export interface ShareMediaWhatsAppParams {
 }
 
 export interface ShareMediaWhatsAppResponse {
-  messageId: string;
-  mediaId: string;
-  recipient: string;
+  isCloudApi?: boolean;
+  messageId?: string;
+  mediaId?: string;
+  recipient?: string;
+  publicMediaUrl?: string;
+  shareText?: string;
+  whatsappWebUrl?: string;
 }
 
 export async function shareMediaWhatsApp(

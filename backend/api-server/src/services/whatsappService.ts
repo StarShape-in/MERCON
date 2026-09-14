@@ -9,6 +9,7 @@ export interface WhatsAppServiceConfig {
   apiToken?: string;
   phoneNumberId?: string;
   graphApiVersion?: string;
+  publicBaseUrl?: string;
 }
 
 export class WhatsAppService {
@@ -17,6 +18,7 @@ export class WhatsAppService {
       apiToken: process.env.WHATSAPP_API_TOKEN,
       phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
       graphApiVersion: process.env.WHATSAPP_GRAPH_API_VERSION || 'v19.0',
+      publicBaseUrl: process.env.PUBLIC_BASE_URL || process.env.BASE_URL || 'https://dev.mercon.com',
     };
   }
 
@@ -26,6 +28,19 @@ export class WhatsAppService {
   public isConfigured(): boolean {
     const { apiToken, phoneNumberId } = this.config;
     return Boolean(apiToken && apiToken.trim() && phoneNumberId && phoneNumberId.trim());
+  }
+
+  /**
+   * Convert an internal relative media path (/uploads/...) into a complete public HTTPS URL.
+   */
+  public toPublicHttpsUrl(filePath: string): string {
+    if (!filePath) return '';
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    const publicBase = (this.config.publicBaseUrl || 'https://dev.mercon.com').replace(/\/+$/, '');
+    const cleanPath = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
+    return `${publicBase}${cleanPath}`;
   }
 
   /**
@@ -126,16 +141,18 @@ export class WhatsAppService {
   }
 
   /**
-   * High level workflow to locate trip media file, upload to WhatsApp Cloud API, and dispatch natively to group/phone.
+   * Build public media share payload without needing Cloud API credentials (avoids WhatsApp API costs).
    */
-  public async shareTripMedia(
+  public async buildPublicMediaShare(
     tripId: string,
     options: { category: 'delay' | 'pod'; recipientPhone?: string }
-  ): Promise<{ success: boolean; message: string; messageId?: string; recipientPhone: string }> {
-    if (!this.isConfigured()) {
-      throw new Error('WhatsApp API credentials (WHATSAPP_API_TOKEN, WHATSAPP_PHONE_NUMBER_ID) are not configured in backend environment.');
-    }
-
+  ): Promise<{
+    isCloudApi: boolean;
+    publicMediaUrl: string;
+    shareText: string;
+    recipientPhone: string;
+    whatsappWebUrl: string;
+  }> {
     const trip = await prisma.trip.findFirst({
       where: { id: tripId, deletedAt: null },
       include: {
@@ -151,18 +168,12 @@ export class WhatsAppService {
       throw new Error(`Trip with ID ${tripId} not found.`);
     }
 
-    // Resolve target recipient phone number
     const targetPhone = options.recipientPhone ||
       trip.customer?.whatsapp_number ||
       trip.customer?.contact_phone ||
       trip.driver?.phone_primary ||
       '';
 
-    if (!targetPhone) {
-      throw new Error('No valid WhatsApp recipient phone number found for this customer or driver.');
-    }
-
-    // Locate documents attached to trip
     const relatedDocs = await prisma.document.findMany({
       where: {
         OR: [
@@ -177,8 +188,10 @@ export class WhatsAppService {
     const customerName = trip.customer?.name || 'Customer';
     const driverName = trip.driver ? `${trip.driver.first_name || ''} ${trip.driver.last_name || ''}`.trim() : 'Driver Unassigned';
 
+    let relativeFilePath = '';
+    let shareText = '';
+
     if (options.category === 'delay') {
-      // Find delay video
       const videoDoc = relatedDocs.find((d: any) => {
         const fileUrl = String(d.file_url || d.file_path || '').toLowerCase();
         const mime = String(d.mime_type || '').toLowerCase();
@@ -186,32 +199,32 @@ export class WhatsAppService {
         return mime.startsWith('video/') || /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(fileUrl) || docType === 'delayevidence';
       });
 
-      const videoFilePath = videoDoc?.file_url || (trip as any).delay_video_url || (trip as any).video_url;
-      if (!videoFilePath) {
+      relativeFilePath = videoDoc?.file_url || (trip as any).delay_video_url || (trip as any).video_url;
+      if (!relativeFilePath) {
         throw new Error(`No delay video evidence file recorded for trip ${tripRef}.`);
       }
 
-      const mimeType = videoDoc?.mime_type || 'video/mp4';
+      const publicMediaUrl = this.toPublicHttpsUrl(relativeFilePath);
       const tripNotes = (trip as any).notes;
       const delayReason = (tripNotes && typeof tripNotes === 'string' && tripNotes.includes('[DELAY REPORT]'))
         ? tripNotes.replace(/^\[DELAY REPORT\]:\s*/i, '').trim()
         : 'Traffic congestion / Operational delay';
 
-      const caption = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nReason: ${delayReason}`;
+      shareText = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nReason: ${delayReason}\nWatch Video: ${publicMediaUrl}`;
 
-      // Upload & send
-      const mediaId = await this.uploadMedia(videoFilePath, mimeType);
-      const res = await this.sendMediaMessage(targetPhone, mediaId, 'video', caption);
+      const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+      const whatsappWebUrl = cleanPhone
+        ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shareText)}`
+        : `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
       return {
-        success: true,
-        message: `Delay video natively dispatched to WhatsApp (${targetPhone})`,
-        messageId: res?.messages?.[0]?.id,
+        isCloudApi: false,
+        publicMediaUrl,
+        shareText,
         recipientPhone: targetPhone,
+        whatsappWebUrl,
       };
-
     } else {
-      // Find POD image
       const podDoc = relatedDocs.find((d: any) => {
         const fileUrl = String(d.file_url || d.file_path || '').toLowerCase();
         const mime = String(d.mime_type || '').toLowerCase();
@@ -219,23 +232,89 @@ export class WhatsAppService {
         return docType.includes('pod') || docType.includes('proof') || mime.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(fileUrl);
       });
 
-      const photoFilePath = podDoc?.file_url || (trip as any).pod_photo_url;
-      if (!photoFilePath) {
+      relativeFilePath = podDoc?.file_url || (trip as any).pod_photo_url;
+      if (!relativeFilePath) {
         throw new Error(`No POD photo file recorded for trip ${tripRef}.`);
       }
 
-      const mimeType = podDoc?.mime_type || 'image/jpeg';
-      const caption = `📸 *MERCON POD PROOF OF DELIVERY*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nStatus: Verified Delivery Proof`;
+      const publicMediaUrl = this.toPublicHttpsUrl(relativeFilePath);
+      shareText = `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nStatus: Verified Proof of Delivery\nView POD: ${publicMediaUrl}`;
 
-      // Upload & send
-      const mediaId = await this.uploadMedia(photoFilePath, mimeType);
-      const res = await this.sendMediaMessage(targetPhone, mediaId, 'image', caption);
+      const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
+      const whatsappWebUrl = cleanPhone
+        ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shareText)}`
+        : `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+      return {
+        isCloudApi: false,
+        publicMediaUrl,
+        shareText,
+        recipientPhone: targetPhone,
+        whatsappWebUrl,
+      };
+    }
+  }
+
+  /**
+   * High level workflow to locate trip media file, convert to public HTTPS URL, and dispatch or return sharing link.
+   */
+  public async shareTripMedia(
+    tripId: string,
+    options: { category: 'delay' | 'pod'; recipientPhone?: string }
+  ): Promise<{
+    success: boolean;
+    isCloudApi: boolean;
+    message: string;
+    messageId?: string;
+    publicMediaUrl: string;
+    shareText: string;
+    recipientPhone: string;
+    whatsappWebUrl: string;
+  }> {
+    const publicShare = await this.buildPublicMediaShare(tripId, options);
+
+    // If Meta Cloud API credentials are not configured, return public HTTPS URL share payload directly
+    if (!this.isConfigured()) {
+      return {
+        success: true,
+        isCloudApi: false,
+        message: 'Public HTTPS media URL generated for WhatsApp dispatch',
+        publicMediaUrl: publicShare.publicMediaUrl,
+        shareText: publicShare.shareText,
+        recipientPhone: publicShare.recipientPhone,
+        whatsappWebUrl: publicShare.whatsappWebUrl,
+      };
+    }
+
+    // If Cloud API credentials ARE configured, dispatch natively via Meta API as well
+    try {
+      const relativeFilePath = publicShare.publicMediaUrl.replace((this.config.publicBaseUrl || '').replace(/\/+$/, ''), '');
+      const mimeType = options.category === 'delay' ? 'video/mp4' : 'image/jpeg';
+      const mediaType = options.category === 'delay' ? 'video' : 'image';
+
+      const mediaId = await this.uploadMedia(relativeFilePath, mimeType);
+      const res = await this.sendMediaMessage(publicShare.recipientPhone, mediaId, mediaType, publicShare.shareText);
 
       return {
         success: true,
-        message: `POD photo natively dispatched to WhatsApp (${targetPhone})`,
+        isCloudApi: true,
+        message: `Media natively dispatched to WhatsApp (${publicShare.recipientPhone})`,
         messageId: res?.messages?.[0]?.id,
-        recipientPhone: targetPhone,
+        publicMediaUrl: publicShare.publicMediaUrl,
+        shareText: publicShare.shareText,
+        recipientPhone: publicShare.recipientPhone,
+        whatsappWebUrl: publicShare.whatsappWebUrl,
+      };
+    } catch (err: any) {
+      logger.warn({ err }, 'Cloud API dispatch failed, falling back to public HTTPS WhatsApp Web URL');
+      return {
+        success: true,
+        isCloudApi: false,
+        message: 'Cloud API error; generated public HTTPS media URL for WhatsApp web dispatch',
+        publicMediaUrl: publicShare.publicMediaUrl,
+        shareText: publicShare.shareText,
+        recipientPhone: publicShare.recipientPhone,
+        whatsappWebUrl: publicShare.whatsappWebUrl,
       };
     }
   }
