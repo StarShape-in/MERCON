@@ -76,7 +76,8 @@ export const ExternalAppWorkflowScreen = () => {
     setAnalyzing(true);
     setResult(null);
     try {
-      const res = await tripService.uploadExternalScreenshot(trip.id, selectedPhoto);
+      const rawRes = await tripService.uploadExternalScreenshot(trip.id, selectedPhoto);
+      const res = (rawRes as any)?.data || rawRes;
       setResult({
         extraction_status: res.extraction_status,
         event_type: res.event_type,

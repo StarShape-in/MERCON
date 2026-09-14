@@ -491,7 +491,7 @@ export const tripService = {
     const res = await api.post<any>(`/mobile/trips/${id}/external-screenshot`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return res.data;
+    return (res.data?.data ?? res.data) as any;
   },
 
   async sendLocationUpdate(
