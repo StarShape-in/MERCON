@@ -663,7 +663,8 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
         doc_type: docTypeVal,
         file_url: fileUrl,
         mime_type: req.file.mimetype || 'image/jpeg',
-        uploaded_by: (req as any).user?.id || null,
+        created_by: (req as any).user?.id || null,
+        executorDriverId: driverId,
         status: applied ? 'Verified' : 'PendingReview',
         ai_extracted_json: {
           ...aiResult,
