@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 
 /**
@@ -107,7 +108,6 @@ export const SURCHARGE_COLUMNS: ColumnMap = {
   currency: ['currency', 'ccy'],
 };
 
-
 export const THIRD_PARTY_COLUMNS: ColumnMap = {
   name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
   contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],
@@ -146,11 +146,10 @@ export interface ParsedSheet {
  * A cell can come back as a string, a number, a Date, or a rich-text/formula
  * object. Flatten all of that to something the API can validate.
  */
-function cellToValue(value: ExcelJS.CellValue): string | number | null {
+function cellToValue(value: any): string | number | null {
   if (value === null || value === undefined) return null;
   if (value instanceof Date) {
-    // Dates go to the API as YYYY-MM-DD. Using the local date parts rather than
-    // toISOString(), which shifts to UTC and can move a date back a day.
+    if (isNaN(value.getTime())) return null;
     const y = value.getFullYear();
     const m = String(value.getMonth() + 1).padStart(2, '0');
     const d = String(value.getDate()).padStart(2, '0');
@@ -158,21 +157,33 @@ function cellToValue(value: ExcelJS.CellValue): string | number | null {
   }
   if (typeof value === 'number' || typeof value === 'string') return value;
   if (typeof value === 'object') {
-    const anyVal = value as any;
-    if ('text' in anyVal) return String(anyVal.text);
-    if ('result' in anyVal) return anyVal.result ?? null;      // formula cell
-    if ('richText' in anyVal) return anyVal.richText.map((r: any) => r.text).join('');
-    if ('hyperlink' in anyVal) return String(anyVal.text ?? anyVal.hyperlink);
+    if ('text' in value) return String(value.text);
+    if ('result' in value) return value.result ?? null;
+    if ('richText' in value && Array.isArray(value.richText)) return value.richText.map((r: any) => r.text).join('');
+    if ('hyperlink' in value) return String(value.text ?? value.hyperlink);
   }
   return String(value);
 }
 
-/**
- * Find the header row. The templates put a banner and instructions above the
- * table, so the headers are not row 1 — locate the first row that matches at
- * least two known column names instead of assuming a position.
- */
-function findHeaderRow(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | null {
+function findHeaderRowInMatrix(matrix: any[][], columns: ColumnMap): number | null {
+  const known = new Set(Object.values(columns).flat());
+  let best: { row: number; hits: number } | null = null;
+
+  for (let r = 0; r < Math.min(matrix.length, 25); r++) {
+    const row = matrix[r] || [];
+    let hits = 0;
+    for (const cell of row) {
+      if (cell !== null && cell !== undefined) {
+        if (known.has(normalise(String(cellToValue(cell) ?? '')))) hits++;
+      }
+    }
+    if (hits >= 2 && (!best || hits > best.hits)) best = { row: r, hits };
+  }
+
+  return best?.row ?? null;
+}
+
+function findHeaderRowExcelJS(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | null {
   const known = new Set(Object.values(columns).flat());
   let best: { row: number; hits: number } | null = null;
 
@@ -194,41 +205,123 @@ export async function parseSheet(
   /** Prefer a sheet whose name contains this, e.g. "driver". */
   preferSheet?: string
 ): Promise<ParsedSheet> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(await file.arrayBuffer());
+  const buffer = await file.arrayBuffer();
 
-  // The master template holds Instructions / Drivers / Vehicles / Reference in
-  // one file, so pick the right sheet rather than always taking the first.
+  // Primary parsing engine: SheetJS (xlsx) - robust against all OpenXML Excel file variances
+  try {
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const sheetNames = workbook.SheetNames || [];
+
+    if (sheetNames.length > 0) {
+      let targetSheetName = sheetNames[0];
+      if (preferSheet) {
+        const matched = sheetNames.find((s) => s.toLowerCase().includes(preferSheet.toLowerCase()));
+        if (matched) targetSheetName = matched;
+      }
+
+      if (!preferSheet || !targetSheetName) {
+        let bestSheetName = targetSheetName;
+        for (const sName of sheetNames) {
+          const ws = workbook.Sheets[sName];
+          if (!ws) continue;
+          const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
+          if (findHeaderRowInMatrix(matrix, columns) !== null) {
+            bestSheetName = sName;
+            break;
+          }
+        }
+        targetSheetName = bestSheetName;
+      }
+
+      const ws = workbook.Sheets[targetSheetName];
+      if (ws) {
+        const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
+        const headerRowIdx = findHeaderRowInMatrix(matrix, columns);
+
+        if (headerRowIdx === null) {
+          const isLookingForDrivers = columns === DRIVER_COLUMNS;
+          const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
+          const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
+          const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
+
+          for (const sName of sheetNames) {
+            const oppWs = workbook.Sheets[sName];
+            if (!oppWs) continue;
+            const oppMatrix: any[][] = XLSX.utils.sheet_to_json(oppWs, { header: 1, raw: false, defval: null });
+            if (findHeaderRowInMatrix(oppMatrix, oppositeColumns) !== null) {
+              throw new Error(
+                `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
+              );
+            }
+          }
+
+          throw new Error(
+            `Couldn't find the column headers on sheet "${targetSheetName}". Use the MERCON template, or check the header row wasn't deleted.`
+          );
+        }
+
+        const headerRow = matrix[headerRowIdx] || [];
+        const indexToField = new Map<number, string>();
+        const unmappedHeaders: string[] = [];
+
+        headerRow.forEach((cellVal, colIdx) => {
+          const header = normalise(String(cellToValue(cellVal) ?? ''));
+          if (!header) return;
+          const field = Object.entries(columns).find(([, aliases]) => aliases.includes(header))?.[0];
+          if (field && !Array.from(indexToField.values()).includes(field)) {
+            indexToField.set(colIdx, field);
+          } else if (!field) {
+            unmappedHeaders.push(String(cellToValue(cellVal) ?? ''));
+          }
+        });
+
+        const foundFields = new Set(indexToField.values());
+        const missingColumns = Object.keys(columns).filter((f) => !foundFields.has(f));
+
+        const rows: Record<string, string | number>[] = [];
+        for (let r = headerRowIdx + 1; r < matrix.length; r++) {
+          const rowCells = matrix[r] || [];
+          const parsed: Record<string, string | number> = {};
+
+          indexToField.forEach((field, colIdx) => {
+            const val = cellToValue(rowCells[colIdx]);
+            if (val === null || String(val).trim() === '') return;
+            parsed[field] = typeof val === 'number' ? val : String(val).trim();
+          });
+
+          if (Object.keys(parsed).length > 0) rows.push(parsed);
+        }
+
+        return { rows, missingColumns, unmappedHeaders, sheetName: targetSheetName };
+      }
+    }
+  } catch (err: any) {
+    if (err?.message?.includes('template') || err?.message?.includes('Couldn\'t find')) {
+      throw err;
+    }
+    console.warn('SheetJS parsing encountered error, falling back to ExcelJS:', err);
+  }
+
+  // Fallback engine: ExcelJS
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
   const sheet =
     (preferSheet
       ? workbook.worksheets.find((w) => w.name.toLowerCase().includes(preferSheet))
       : undefined) ??
-    workbook.worksheets.find((w) => findHeaderRow(w, columns) !== null) ??
+    workbook.worksheets.find((w) => findHeaderRowExcelJS(w, columns) !== null) ??
     workbook.worksheets[0];
 
   if (!sheet) throw new Error('That file has no readable sheets.');
 
-  const headerRowNumber = findHeaderRow(sheet, columns);
+  const headerRowNumber = findHeaderRowExcelJS(sheet, columns);
   if (headerRowNumber === null) {
-    // Smart detection: check if they uploaded the wrong entity template (e.g. Drivers vs Vehicles)
-    const isLookingForDrivers = columns === DRIVER_COLUMNS;
-    const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
-    const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
-    const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
-
-    const oppositeSheet = workbook.worksheets.find((w) => findHeaderRow(w, oppositeColumns) !== null);
-    if (oppositeSheet) {
-      throw new Error(
-        `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
-      );
-    }
-
     throw new Error(
       `Couldn't find the column headers on sheet "${sheet.name}". Use the MERCON template, or check the header row wasn't deleted.`
     );
   }
 
-  // Map each spreadsheet column index to one of our field names.
   const headerRow = sheet.getRow(headerRowNumber);
   const indexToField = new Map<number, string>();
   const unmappedHeaders: string[] = [];
@@ -258,7 +351,6 @@ export async function parseSheet(
       parsed[field] = typeof value === 'number' ? value : String(value).trim();
     });
 
-    // Skip blank spacer rows without skipping a row that merely has gaps.
     if (Object.keys(parsed).length > 0) rows.push(parsed);
   }
 

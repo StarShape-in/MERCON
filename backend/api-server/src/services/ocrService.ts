@@ -303,12 +303,22 @@ export interface ExternalScreenshotResult {
   notes?: string | null;
   detected_text?: string | null;
   extraction_error?: string | null;
+  is_wrong_trip?: boolean;
 }
 
 /**
  * Analyze external driver app screenshot using Gemini Vision API
  */
-export async function analyzeExternalScreenshotWithAI(filePath: string): Promise<ExternalScreenshotResult> {
+export async function analyzeExternalScreenshotWithAI(
+  filePath: string,
+  expectedTrip?: {
+    ref_id?: string;
+    waybill_number?: string;
+    customer_name?: string;
+    origin?: string;
+    destination?: string;
+  }
+): Promise<ExternalScreenshotResult> {
   if (!fs.existsSync(filePath)) {
     return {
       detected_event_type: null,
@@ -325,7 +335,7 @@ export async function analyzeExternalScreenshotWithAI(filePath: string): Promise
       detected_event_type: null,
       event_timestamp: null,
       confidence: 0,
-      notes: 'No Gemini API key available',
+      notes: 'Gemini AI service unavailable (No API Key configured)',
       extraction_error: 'NO_API_KEY',
     };
   }
@@ -338,9 +348,19 @@ export async function analyzeExternalScreenshotWithAI(filePath: string): Promise
     }
     const base64Data = fileBuffer.toString('base64');
 
+    const expectedContext = expectedTrip ? `
+Expected Trip Details for Validation:
+- Trip Reference / Order ID: ${expectedTrip.ref_id || 'N/A'}
+- Waybill Number: ${expectedTrip.waybill_number || 'N/A'}
+- Customer Name: ${expectedTrip.customer_name || 'N/A'}
+- Origin Location: ${expectedTrip.origin || 'N/A'}
+- Destination Location: ${expectedTrip.destination || 'N/A'}
+` : '';
+
     const promptText = `
 You are an operational logistics AI system analyzing a mobile screenshot from a driver's third-party / customer logistics app.
 Do NOT assume a specific app (do not hardcode app names like DHL, iMile, Shiptrack). Reason strictly from visible UI elements, text, status badges, timestamps, and locations in the screenshot.
+${expectedContext}
 
 Determine if the screenshot represents an operational trip milestone event.
 Allowed milestone event types:
@@ -352,12 +372,16 @@ Allowed milestone event types:
 - "DELAYED" (Traffic, exception, delay notification displayed)
 - null (If screenshot does not clearly show an operational milestone)
 
+Compare visible text on screenshot with expected trip details if provided.
+If screenshot clearly shows a DIFFERENT trip ref ID, different order number, or different customer than expected, set "is_wrong_trip": true.
+
 Extract into a JSON object matching this schema:
 {
   "detected_event_type": "ARRIVED_AT_PICKUP" | "LOADING_COMPLETED" | "DEPARTED_PICKUP" | "ARRIVED_AT_DELIVERY" | "DELIVERY_COMPLETED" | "DELAYED" | null,
   "event_timestamp": "YYYY-MM-DDTHH:mm:ssZ" or "YYYY-MM-DD HH:mm:ss" or null (ISO string or standard date-time string if visible in screenshot),
   "stop_location_name": string or null (Origin, pickup, destination, or stop location name displayed if visible),
   "external_reference": string or null (Waybill #, Order #, Trip #, Tracking # shown on screenshot),
+  "is_wrong_trip": boolean (true if screenshot clearly belongs to another trip/order/customer),
   "confidence": number between 0.0 and 1.0 (How confident you are in the detected event and timestamp),
   "notes": string or null (Short summary of what was visible in screenshot),
   "detected_text": string or null (Main header text or status text visible)
@@ -411,7 +435,7 @@ Respond ONLY with valid JSON inside a json code block.
         detected_event_type: null,
         event_timestamp: null,
         confidence: 0,
-        notes: `AI processing failed: ${lastError?.message || 'Empty response'}`,
+        notes: `AI processing error: ${lastError?.message || 'Gemini service did not return response'}`,
         extraction_error: lastError?.message || 'AI_FAILED',
       };
     }
@@ -437,6 +461,7 @@ Respond ONLY with valid JSON inside a json code block.
       event_timestamp: parsed.event_timestamp || null,
       stop_location_name: parsed.stop_location_name || null,
       external_reference: parsed.external_reference || null,
+      is_wrong_trip: Boolean(parsed.is_wrong_trip),
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.8,
       notes: parsed.notes || 'Analyzed screenshot via AI Vision',
       detected_text: parsed.detected_text || null,

@@ -26,6 +26,12 @@ export const ExternalAppWorkflowScreen = () => {
   const [result, setResult] = useState<{
     extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
     event_type?: string | null;
+    event_timestamp?: string | null;
+    stop_location_name?: string | null;
+    external_reference?: string | null;
+    detected_text?: string | null;
+    is_wrong_trip?: boolean;
+    extraction_error?: string | null;
     confidence: number;
     applied: boolean;
     notes?: string | null;
@@ -74,6 +80,12 @@ export const ExternalAppWorkflowScreen = () => {
       setResult({
         extraction_status: res.extraction_status,
         event_type: res.event_type,
+        event_timestamp: res.event_timestamp,
+        stop_location_name: res.stop_location_name,
+        external_reference: res.external_reference,
+        detected_text: res.detected_text,
+        is_wrong_trip: res.is_wrong_trip,
+        extraction_error: res.extraction_error,
         confidence: res.confidence,
         applied: res.applied,
         notes: res.notes,
@@ -94,6 +106,9 @@ export const ExternalAppWorkflowScreen = () => {
   const pickupStop = trip?.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? trip?.stops?.[0];
   const dropoffStop = trip?.stops?.find((s) => s.stop_sequence === (trip?.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? trip?.stops?.[trip?.stops?.length - 1];
   const isCompleted = trip?.status === 'Completed' || trip?.status === 'Invoiced';
+
+  const isWrongTripError = result?.is_wrong_trip || Boolean(result?.validation_reason?.toLowerCase().includes('wrong trip'));
+  const isAiError = Boolean(result?.extraction_error || result?.notes?.toLowerCase().includes('ai processing error') || result?.notes?.toLowerCase().includes('ai error'));
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -214,40 +229,79 @@ export const ExternalAppWorkflowScreen = () => {
             <View style={styles.resultHeader}>
               {result.applied ? (
                 <CheckCircle2 size={20} color="#059669" strokeWidth={2.2} />
-              ) : (
+              ) : isWrongTripError ? (
+                <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
+              ) : isAiError ? (
+                <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
+              ) : result.extraction_status === 'NEEDS_REVIEW' ? (
                 <AlertCircle size={20} color="#D97706" strokeWidth={2.2} />
+              ) : (
+                <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
               )}
               <Text style={styles.resultTitle}>
                 {result.applied
                   ? 'Milestone Verified & Applied'
+                  : isWrongTripError
+                  ? 'Wrong Trip Screenshot'
+                  : isAiError
+                  ? 'AI Processing Error'
                   : result.extraction_status === 'NEEDS_REVIEW'
                   ? 'Saved for Review'
                   : 'Verification Failed'}
               </Text>
             </View>
 
+            {/* Extracted Details Section */}
             {result.event_type && (
               <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Milestone:</Text>
+                <Text style={styles.resultLabel}>Extracted Milestone:</Text>
                 <Text style={styles.resultValue}>{result.event_type.replace(/_/g, ' ')}</Text>
               </View>
             )}
 
+            {result.external_reference && (
+              <View style={styles.resultDetailRow}>
+                <Text style={styles.resultLabel}>Extracted Ref #:</Text>
+                <Text style={styles.resultValue}>{result.external_reference}</Text>
+              </View>
+            )}
+
+            {result.stop_location_name && (
+              <View style={styles.resultDetailRow}>
+                <Text style={styles.resultLabel}>Extracted Location:</Text>
+                <Text style={styles.resultValue}>{result.stop_location_name}</Text>
+              </View>
+            )}
+
+            {result.event_timestamp && (
+              <View style={styles.resultDetailRow}>
+                <Text style={styles.resultLabel}>Extracted Time:</Text>
+                <Text style={styles.resultValue}>{result.event_timestamp}</Text>
+              </View>
+            )}
+
+            {result.detected_text && (
+              <View style={styles.resultDetailRow}>
+                <Text style={styles.resultLabel}>Detected Text:</Text>
+                <Text style={styles.resultValue}>{result.detected_text}</Text>
+              </View>
+            )}
+
             <View style={styles.resultDetailRow}>
-              <Text style={styles.resultLabel}>Confidence:</Text>
+              <Text style={styles.resultLabel}>AI Confidence:</Text>
               <Text style={styles.resultValue}>{Math.round((result.confidence || 0) * 100)}%</Text>
             </View>
 
             {result.notes && (
               <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Summary:</Text>
+                <Text style={styles.resultLabel}>AI Summary:</Text>
                 <Text style={styles.resultValue}>{result.notes}</Text>
               </View>
             )}
 
             {result.validation_reason && !result.applied && (
               <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Note:</Text>
+                <Text style={styles.resultLabel}>Notice:</Text>
                 <Text style={styles.resultValueDanger}>{result.validation_reason}</Text>
               </View>
             )}

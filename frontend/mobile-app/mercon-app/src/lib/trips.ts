@@ -468,6 +468,11 @@ export const tripService = {
     extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
     event_type?: string | null;
     event_timestamp?: string | null;
+    stop_location_name?: string | null;
+    external_reference?: string | null;
+    detected_text?: string | null;
+    is_wrong_trip?: boolean;
+    extraction_error?: string | null;
     confidence: number;
     applied: boolean;
     notes?: string | null;

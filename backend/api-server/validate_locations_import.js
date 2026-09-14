@@ -44,12 +44,24 @@ function loadWorksheet() {
     console.error('❌ Failed to read Excel file with xlsx library:', err.message);
     process.exit(1);
   }
-  const sheetName = workbook.SheetNames[0];
+  if (!workbook) {
+    console.error('❌ Workbook is undefined after reading the file.');
+    process.exit(1);
+  }
+  const sheetName = workbook.SheetNames && workbook.SheetNames[0];
   if (!sheetName) {
     console.error('❌ No sheets found in the Excel file.');
     process.exit(1);
   }
+  if (!workbook.Sheets) {
+    console.error('❌ Workbook does not contain a Sheets object.');
+    process.exit(1);
+  }
   const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    console.error(`❌ Sheet "${sheetName}" not found in workbook.`);
+    process.exit(1);
+  }
   // Minimal wrapper mimicking ExcelJS methods used below
   const ws = {
     getRow: (rowNum) => {
@@ -132,12 +144,6 @@ async function validateExcel() {
       console.error(`❌ Row ${rowNumber}: Latitude/Longitude must be numbers (got ${record.latitude}/${record.longitude})`);
       errorCount++;
     }
-    if (record.code && typeof record.code !== 'string') {
-      console.error(`⚠️ Row ${rowNumber}: Code is not string`);
-    }
-    if (record.slug && typeof record.slug !== 'string') {
-      console.error(`⚠️ Row ${rowNumber}: Slug is not string`);
-    }
     rows.push(record);
   });
 
@@ -150,11 +156,34 @@ async function validateExcel() {
   console.log('Sample rows:');
   rows.slice(0, 5).forEach((r, i) => console.log(`  ${i + 1}:`, r));
 
-  // Import locations into DB
+  // Import locations into DB – only when a customer is specified (required for uniqueness)
   for (const loc of rows) {
-    const customer = loc.customer ? await prisma.customer.findFirst({ where: { name: loc.customer } }) : null;
+    // Resolve customer if provided
+    let customer = null;
+    if (loc.customer) {
+      customer = await prisma.customer.findFirst({ where: { name: loc.customer } });
+      if (!customer) {
+        console.warn(`⚠️ Customer "${loc.customer}" not found – skipping location "${loc.name}"`);
+        continue;
+      }
+    } else {
+      console.warn(`⚠️ No customer for location "${loc.name}" – skipping import (cannot satisfy unique constraint).`);
+      continue;
+    }
+
+    // Build unique where clause based on available identifiers
+    const whereClause = {};
+    if (loc.code) {
+      whereClause.customerId_code = { customerId: customer.id, code: loc.code };
+    } else if (loc.slug) {
+      whereClause.customerId_slug = { customerId: customer.id, slug: loc.slug };
+    } else {
+      // Fallback: use name as a pseudo-unique key (not guaranteed)
+      whereClause.id = undefined; // will force create
+    }
+
     await prisma.location.upsert({
-      where: { code: loc.code || '' },
+      where: whereClause,
       update: {
         name: loc.name,
         city: loc.city,
@@ -162,17 +191,22 @@ async function validateExcel() {
         lat: Number(loc.latitude),
         lng: Number(loc.longitude),
         slug: loc.slug,
-        customerId: customer?.id || undefined,
+        address: loc.address,
+        postalCode: loc.postalCode,
+        coordinate_precision: 'EXACT',
       },
       create: {
+        customerId: customer.id,
+        code: loc.code || undefined,
+        slug: loc.slug || undefined,
         name: loc.name,
         city: loc.city,
         type: loc.type,
         lat: Number(loc.latitude),
         lng: Number(loc.longitude),
-        code: loc.code || undefined,
-        slug: loc.slug,
-        customer: customer ? { connect: { id: customer.id } } : undefined,
+        address: loc.address,
+        postalCode: loc.postalCode,
+        coordinate_precision: 'EXACT',
       },
     });
   }

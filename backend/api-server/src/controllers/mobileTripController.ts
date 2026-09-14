@@ -587,8 +587,16 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     const fileName = path.basename(localFilePath);
     const fileUrl = `/uploads/${fileName}`;
 
-    // 2. Run Gemini Vision screenshot extraction
-    const aiResult = await analyzeExternalScreenshotWithAI(localFilePath);
+    // 2. Run Gemini Vision screenshot extraction with expected trip context
+    const firstStop = trip.stops?.[0];
+    const lastStop = trip.stops?.[trip.stops.length - 1];
+    const aiResult = await analyzeExternalScreenshotWithAI(localFilePath, {
+      ref_id: trip.ref_id,
+      waybill_number: trip.waybill_number || undefined,
+      customer_name: trip.customer?.name,
+      origin: firstStop?.location_raw_name || firstStop?.location?.name || undefined,
+      destination: lastStop?.location_raw_name || lastStop?.location?.name || undefined,
+    });
 
     // 3. Validation and lifecycle transition logic
     let applied = false;
@@ -597,8 +605,14 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
 
     const detectedEvent = aiResult.detected_event_type;
     const confidence = aiResult.confidence ?? 0;
+    const isWrongTrip = aiResult.is_wrong_trip || false;
+    const hasAiError = Boolean(aiResult.extraction_error);
 
-    if (detectedEvent && confidence >= 0.70) {
+    if (hasAiError) {
+      transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
+    } else if (isWrongTrip) {
+      transitionReason = `Wrong trip screenshot uploaded! Screenshot shows reference (${aiResult.external_reference || 'other trip'}) which does not match TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
+    } else if (detectedEvent && confidence >= 0.70) {
       let targetStatus: TripStatus | null = null;
       let targetWorkflowState: string | null = null;
 
@@ -665,9 +679,7 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     }
 
     // 4. Save Document record
-    const fileSize = fs.existsSync(localFilePath) ? fs.statSync(localFilePath).size : (req.file.size || 0);
-
-    const extraction_status = applied ? 'SUCCESS' : (aiResult.detected_event_type ? 'NEEDS_REVIEW' : 'FAILED');
+    const extraction_status = applied ? 'SUCCESS' : (hasAiError ? 'FAILED' : (isWrongTrip ? 'FAILED' : (aiResult.detected_event_type ? 'NEEDS_REVIEW' : 'FAILED')));
     const docTypeVal = detectedEvent === 'DELAYED' ? DocType.Emergency : DocType.POD;
 
     const document = await prisma.document.create({
@@ -710,6 +722,11 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
         extraction_status,
         event_type: aiResult.detected_event_type,
         event_timestamp: aiResult.event_timestamp,
+        stop_location_name: aiResult.stop_location_name,
+        external_reference: aiResult.external_reference,
+        detected_text: aiResult.detected_text,
+        is_wrong_trip: isWrongTrip,
+        extraction_error: aiResult.extraction_error,
         confidence: aiResult.confidence,
         applied,
         notes: aiResult.notes,
