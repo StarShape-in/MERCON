@@ -192,10 +192,10 @@ export default function AppRouter() {
             {/* Literal path before /trips/:id, which would otherwise match it. */}
             <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
             <Route path="/trips/monthly/new"        element={<Navigate to="/trips/new?mode=monthly" replace />} />
-            <Route path="/trips/:id"                element={<TripDetailsPage />} />
-            <Route path="/trips/:id/edit"           element={<EditTripPage />} />
-            <Route path="/trips/:id/track"          element={<TripTrackingPage />} />
-            <Route path="/trips/:id/completion"     element={<TripCompletionPage />} />
+            <Route path="/trips/:id"                element={<WithIdKey Page={TripDetailsPage} />} />
+            <Route path="/trips/:id/edit"           element={<WithIdKey Page={EditTripPage} />} />
+            <Route path="/trips/:id/track"          element={<WithIdKey Page={TripTrackingPage} />} />
+            <Route path="/trips/:id/completion"     element={<WithIdKey Page={TripCompletionPage} />} />
 
             {/* Third Party */}
             <Route path="/third-party"              element={<ThirdPartyListPage />} />

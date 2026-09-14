@@ -80,14 +80,14 @@ function deriveTripType(trip: any): string {
     if (/12.?hour/i.test(s)) return '12 Hours Duty';
     return s;
   }
-  const stops = trip.stops || [];
+  const stops = Array.isArray(trip.stops) ? trip.stops : [];
   if (stops.length >= 3) {
-    const firstCity = stops[0]?.location_name?.toLowerCase().trim();
-    const lastCity = stops[stops.length - 1]?.location_name?.toLowerCase().trim();
+    const firstCity = String(stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+    const lastCity = String(stops[stops.length - 1]?.location_name || stops[stops.length - 1]?.location?.name || '').toLowerCase().trim();
     if (firstCity && lastCity && firstCity === lastCity) {
       return 'Round Trip';
     }
-    if (stops.some((s: any) => s.is_return || s.leg_index === 1)) {
+    if (stops.some((s: any) => s && (s.is_return || s.leg_index === 1))) {
       return 'Round Trip';
     }
   }
