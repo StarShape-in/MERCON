@@ -72,34 +72,37 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     return getAvailableRateCardsForLane({}) || [];
   }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
 
-  // Filter rate cards matching current line type & billing type specifications
+  // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
-    const normLt = (s?: string | null) => {
-      if (!s) return '';
-      const str = String(s).toUpperCase().replace(/_/g, ' ');
-      if (str.includes('10')) return '10_HRS';
-      if (str.includes('12')) return '12_HRS';
-      if (str.includes('ROUND')) return 'ROUND_TRIP';
-      if (str.includes('SINGLE')) return 'SINGLE_TRIP';
-      return str.replace(/[\s,_()[\]\/{}\-.]/g, '');
-    };
-
-    const targetLt = normLt(contractRateCategory);
     const targetBt = (contractBillingType || '').toLowerCase().trim();
 
     return effectiveRateCards.filter((rc) => {
-      const rcLt = normLt(rc.line_type || rc.rate_category);
-      const rcBt = String(rc.billing_type || rc.billingType || (rc as any).pricing_basis || '').toLowerCase().trim();
+      const rcBt = String(
+        rc.billing_type ||
+        rc.billingType ||
+        (rc as any).pricing_basis ||
+        (rc as any).quotation_billing_type ||
+        ''
+      ).toLowerCase().trim();
 
-      const ltMatch = !targetLt || !rcLt || rcLt === targetLt;
-      const btMatch = !targetBt || !rcBt || rcBt.includes(targetBt) || targetBt.includes(rcBt);
+      // Check billing type match:
+      // If target is "Monthly", match if rcBt is monthly, per month, contract, or default
+      // If target is "Extra", match if rcBt is extra, spot, single, per trip, or default
+      if (targetBt.includes('monthly') || targetBt.includes('contract')) {
+        if (rcBt.includes('spot') || rcBt.includes('extra')) return false;
+        return true;
+      } else if (targetBt.includes('extra') || targetBt.includes('spot')) {
+        if (rcBt.includes('monthly') || rcBt.includes('month')) return false;
+        return true;
+      }
 
-      return ltMatch && btMatch;
+      return true;
     });
-  }, [effectiveRateCards, contractRateCategory, contractBillingType]);
+  }, [effectiveRateCards, contractBillingType]);
 
-  const showInlineForm = isInlineMode || (matchingCardsForSpec.length === 0 && !quotationSearchQuery);
+  // Default to showing saved rate cards if available; only show inline form if explicitly toggled or customer has 0 cards
+  const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
 
   const matchedRateCard = primarySlot.matchedRateCard || null;
   const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
@@ -166,7 +169,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
-    let cards = quotationSearchQuery.trim() ? sortedRateCards : matchingCardsForSpec;
+    let cards = quotationSearchQuery.trim()
+      ? sortedRateCards
+      : matchingCardsForSpec.length > 0
+      ? matchingCardsForSpec
+      : sortedRateCards;
 
     if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
