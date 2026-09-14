@@ -144,6 +144,28 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   const [assignVehicleId, setAssignVehicleId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
+  const [handledItemIds, setHandledItemIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('mercon_operator_handled_items');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const markItemHandled = (itemId: string) => {
+    if (!itemId) return;
+    setHandledItemIds((prev) => {
+      const next = new Set(prev);
+      next.add(itemId);
+      try {
+        localStorage.setItem('mercon_operator_handled_items', JSON.stringify(Array.from(next)));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
 
   // 1. Fetch auxiliary records
   const { data: docs = [] } = useQuery({
@@ -292,7 +314,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
         });
       }
 
-      // C. POD Status for Trips (Received from Driver Mobile App vs Missing POD)
+      // C. POD Status for Trips (Only if driver ACTUALLY uploaded a POD via mobile app!)
       const tripRelatedDocs = [
         ...((t as any)?.documents || []),
         ...docs.filter((d: any) =>
@@ -302,45 +324,31 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
       ];
 
       const podDocsForTrip = tripRelatedDocs.filter((d: any) => {
-        const docType = String(d?.doc_type || d?.category || '').toLowerCase();
-        const mime = String(d?.mime_type || d?.file_type || '').toLowerCase();
-        const fileUrl = String(d?.file_url || d?.file_path || d?.url || '').toLowerCase();
+        const docType = String(d?.doc_type || d?.category || '').toUpperCase();
+        const title = String(d?.title || '').toUpperCase();
         return (
-          docType.includes('pod') ||
-          docType.includes('proof') ||
-          docType.includes('delivery') ||
-          docType.includes('waybill') ||
-          mime.startsWith('image/') ||
-          /\.(jpg|jpeg|png|webp|gif|pdf)$/i.test(fileUrl)
+          docType.includes('POD') ||
+          docType.includes('PROOF') ||
+          docType.includes('DELIVERY') ||
+          docType.includes('WAYBILL') ||
+          title.includes('POD') ||
+          title.includes('PROOF')
         );
       });
 
-      const hasDriverUploadedPOD = podDocsForTrip.length > 0;
+      const hasDriverUploadedPOD = podDocsForTrip.length > 0 || Boolean((t as any).pod_photo_url);
 
       if (hasDriverUploadedPOD) {
         items.push({
           id: `pod-${t.id}`,
           category: 'pod',
           priority: 'attention',
-          badgeLabel: '📱 POD RECEIVED',
+          badgeLabel: '📱 POD READY',
           entityType: 'company',
           entityName: customerName,
           initials: getInitials(customerName),
           tripRef,
-          subtitle: `${tripRef} • ${podDocsForTrip.length} Photo(s) Received from Mobile App`,
-          trip: t,
-        });
-      } else if (t.status === 'Completed' || t.status === 'Delivered') {
-        items.push({
-          id: `pod-${t.id}`,
-          category: 'pod',
-          priority: 'attention',
-          badgeLabel: 'MISSING POD',
-          entityType: 'company',
-          entityName: customerName,
-          initials: getInitials(customerName),
-          tripRef,
-          subtitle: `${tripRef} • ${routeStr} (Awaiting Mobile App Upload)`,
+          subtitle: `${tripRef} • ${podDocsForTrip.length || 1} Photo(s) Received from Mobile App`,
           trip: t,
         });
       }
@@ -406,9 +414,10 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
       }
     });
 
+    const activeItems = items.filter((item) => !handledItemIds.has(item.id));
     const priorityRank: Record<PriorityLevel, number> = { critical: 1, attention: 2, other: 3 };
-    return items.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
-  }, [allTrips, docs, drivers, vehicles, driverMap, vehicleMap]);
+    return activeItems.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
+  }, [allTrips, docs, drivers, vehicles, driverMap, vehicleMap, handledItemIds]);
 
   // Unique list of companies present in the queue items
   const companyList = useMemo(() => {
@@ -846,9 +855,11 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         {/* Photo 1 */}
                         <div 
                           onClick={() => {
+                            markItemHandled(selectedItem.id);
                             const msg = `📸 *MERCON POD PHOTO #1*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo1Url ? `\nView Photo: ${photo1Url}` : ''}`;
                             const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                             window.open(target, '_blank');
+                            toast.success('POD Photo #1 shared to WhatsApp & marked as completed');
                           }}
                           className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
                         >
@@ -875,9 +886,11 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         {/* Photo 2 */}
                         <div 
                           onClick={() => {
+                            markItemHandled(selectedItem.id);
                             const msg = `📸 *MERCON POD PHOTO #2*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo2Url ? `\nView Photo: ${photo2Url}` : ''}`;
                             const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
                             window.open(target, '_blank');
+                            toast.success('POD Photo #2 shared to WhatsApp & marked as completed');
                           }}
                           className="relative rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-slate-900 hover:bg-emerald-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
                         >
@@ -933,15 +946,16 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                     }
 
                     setIsSharingWhatsApp(true);
+                    markItemHandled(selectedItem.id);
                     try {
                       const category = selectedItem.category === 'pod' ? 'pod' : 'delay';
                       const res = await tripService.shareMediaWhatsApp(tripId, { category });
                       if (res.success && res.data) {
                         if (res.data.isCloudApi) {
-                          toast.success(`WhatsApp Cloud API media dispatched to ${res.data.recipient || 'customer'}`);
+                          toast.success(`WhatsApp Cloud API media dispatched & completed for ${res.data.recipient || 'customer'}`);
                         } else if (res.data.whatsappWebUrl) {
                           window.open(res.data.whatsappWebUrl, '_blank');
-                          toast.success('WhatsApp web message opened with public video link');
+                          toast.success('Report shared to WhatsApp & marked as completed');
                         }
                       }
                     } catch (err: any) {
@@ -964,7 +978,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
                       window.open(target, '_blank');
-                      toast.success('WhatsApp web message opened with public HTTPS video link');
+                      toast.success('Report shared to WhatsApp & marked as completed');
                     } finally {
                       setIsSharingWhatsApp(false);
                     }
