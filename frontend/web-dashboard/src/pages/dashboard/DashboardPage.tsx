@@ -684,25 +684,10 @@ export default function DashboardPage() {
       }
     });
 
-    // Fallback seed trips if system is fresh with 0 database records (started trips only)
-    const fallbackCurrent = [
-      { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80, planned_start: new Date().toISOString() },
-      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'Loading', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17, planned_start: new Date().toISOString() },
-    ];
-
-    const fallbackUpcoming = [
-      { id: 'TRP-0033', rawId: 'TRP-0033', pickup: 'Riyadh', dropoff: 'Madinah', route: 'Riyadh → Madinah', customerName: 'Jarir Marketing Co.', price: 1950, driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72, planned_start: new Date(Date.now() + 86400000).toISOString() },
-      { id: 'TRP-0032', rawId: 'TRP-0032', pickup: 'Jeddah', dropoff: 'Taif', route: 'Jeddah → Taif', customerName: 'BinDawood Superstores', price: 1200, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86, planned_start: new Date(Date.now() + 86400000).toISOString() },
-    ];
-
-    const fallbackCompleted = [
-      { id: 'TRP-0025', rawId: 'TRP-0025', pickup: 'Riyadh', dropoff: 'Qassim', route: 'Riyadh → Qassim', customerName: 'Al-Othaim Commercial', price: 2600, driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', rawStatus: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97, planned_start: new Date(Date.now() - 86400000).toISOString() },
-    ];
-
     return {
-      currentTrips: current.length ? current : (rawTrips.length > 0 ? [] : fallbackCurrent),
-      upcomingTrips: upcoming.length ? upcoming : (rawTrips.length > 0 ? [] : fallbackUpcoming),
-      completedTrips: completed.length ? completed : (rawTrips.length > 0 ? [] : fallbackCompleted),
+      currentTrips: current,
+      upcomingTrips: upcoming,
+      completedTrips: completed,
     };
   }, [rawTrips]);
 
