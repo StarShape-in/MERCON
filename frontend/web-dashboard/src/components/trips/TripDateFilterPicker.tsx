@@ -163,8 +163,8 @@ export function TripDateFilterPicker({
         align="start"
         sideOffset={6}
         className={cn(
-          "p-1.5 shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50 transition-all",
-          isCustomMode ? "w-72" : "w-56"
+          "shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50 transition-all",
+          isCustomMode ? "w-76 p-2.5" : "w-56 p-1.5"
         )}
       >
         {!isCustomMode ? (

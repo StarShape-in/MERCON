@@ -31,14 +31,14 @@ function Calendar({
         dropdowns: "flex items-center gap-1.5 justify-center z-10",
         dropdown: "bg-background text-foreground text-xs font-extrabold rounded-lg border border-border/80 px-2 py-1 focus:ring-1 focus:ring-primary focus:outline-none shadow-2xs cursor-pointer hover:border-primary/50 transition-all",
         dropdown_root: "relative flex items-center",
-        nav: "space-x-1 flex items-center",
+        nav: "flex items-center justify-between w-full absolute top-1 left-0 px-1 pointer-events-none z-20",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-70 hover:opacity-100 hover:bg-muted absolute left-0 top-0 rounded-lg border-border z-10"
+          "h-7 w-7 bg-white dark:bg-slate-800 p-0 opacity-80 hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs pointer-events-auto transition-all"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-70 hover:opacity-100 hover:bg-muted absolute right-0 top-0 rounded-lg border-border z-10"
+          "h-7 w-7 bg-white dark:bg-slate-800 p-0 opacity-80 hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs pointer-events-auto transition-all"
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
