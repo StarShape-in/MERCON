@@ -329,14 +329,14 @@ export async function analyzeExternalScreenshotWithAI(
     };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || 'AQ.Ab8RN6J4D3senP8aDF8M8Az4RT6XlQkYieZ-7ApiU2x8jcRi0w';
-  if (!apiKey) {
+  const apiKey = (process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '').trim();
+  if (!apiKey || apiKey.startsWith('AQ.') || !apiKey.startsWith('AIzaSy')) {
     return {
       detected_event_type: null,
       event_timestamp: null,
       confidence: 0,
-      notes: 'Gemini AI service unavailable (No API Key configured)',
-      extraction_error: 'NO_API_KEY',
+      notes: 'Invalid Gemini API key configured in server environment (Key must be a valid Google AI Studio key starting with AIzaSy...)',
+      extraction_error: 'INVALID_GEMINI_API_KEY',
     };
   }
 

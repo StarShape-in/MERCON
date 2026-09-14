@@ -617,7 +617,11 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     };
 
     if (hasAiError) {
-      transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
+      if (aiResult.extraction_error === 'INVALID_GEMINI_API_KEY' || aiResult.notes?.includes('API key')) {
+        transitionReason = 'Invalid Gemini API Key: The server has an invalid GEMINI_API_KEY configured in environment settings. Please set a valid Google AI Studio key starting with AIzaSy...';
+      } else {
+        transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
+      }
     } else if (isWrongTrip) {
       transitionReason = `Wrong trip screenshot! Screenshot shows reference (${aiResult.external_reference || 'other order'}) which does not match current trip TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
     } else if (detectedEvent && confidence >= 0.70) {
