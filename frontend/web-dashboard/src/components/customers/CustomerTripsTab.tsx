@@ -138,15 +138,6 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/create?customer_id=${customerId}`)}
-              className="h-8 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5" /> New Trip
-            </Button>
-          </div>
         </CardHeader>
 
         <CardContent className="p-4 space-y-4">
@@ -207,13 +198,6 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
                     : `No active or in-progress trips matched your filters. (Historical trips: ${completedTrips.length})`}
                 </p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => navigate(`/trips/create?customer_id=${customerId}`)}
-                className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Create Trip
-              </Button>
             </div>
           ) : (
             <DataTable
@@ -332,6 +316,8 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
                 },
               ]}
               data={filteredTrips}
+              pageSize={10}
+              pageSizeOptions={[10, 25, 50]}
               compact={true}
               enableSelection={false}
               emptyTitle="No Trips Match"

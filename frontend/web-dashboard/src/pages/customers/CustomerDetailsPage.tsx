@@ -47,25 +47,6 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function getPrimaryContactPerson(name: string): string {
-  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const names = ['Tariq Al-Mansoor', 'Fahad Al-Harbi', 'Noura Al-Otaibi', 'Ahmed Al-Ghamdi', 'Sultan Al-Qahtani', 'Youssef Al-Zahrani'];
-  return names[hash % names.length];
-}
-
-function getSecondaryContactPerson(name: string): string {
-  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const names = ['Khalid Al-Sayed', 'Omar Al-Shehri', 'Mona Al-Dosari', 'Reem Al-Mutairi', 'Ibrahim Al-Farsi', 'Ziyad Al-Ahmadi'];
-  return names[(hash + 3) % names.length];
-}
-
-function getSecondaryContactPhone(phoneOrId?: string): string {
-  if (phoneOrId && phoneOrId.length >= 7 && phoneOrId.startsWith('+')) {
-    return phoneOrId.slice(0, -2) + '88';
-  }
-  return '+966 55 987 6543';
-}
-
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -282,14 +263,6 @@ export default function CustomerDetailsPage() {
             className="h-8 px-3 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit Profile
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => navigate(`/trips/new?customerId=${id}`)}
-            className="h-8 px-3.5 rounded-xl text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1.5" /> New Trip
           </Button>
         </div>
       }
@@ -522,16 +495,6 @@ export default function CustomerDetailsPage() {
 
             {/* Quick Context Action based on Active Tab */}
             <div className="flex items-center gap-2">
-              {activeTab === 'dispatches' && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/trips/new?customerId=${id}`)}
-                  className="h-8 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-xl shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Dispatch Trip
-                </Button>
-              )}
-
               {activeTab === 'quotations' && (
                 <Button
                   size="sm"
