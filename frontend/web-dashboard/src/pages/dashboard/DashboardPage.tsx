@@ -618,7 +618,14 @@ export default function DashboardPage() {
       const display = getTripDisplayStatus(t.status, (t as any).driver_workflow_state, t.planned_end, t.planned_start);
       const mappedStatus = display.label;
       const progress = display.progress;
-      const eta = display.etaText;
+
+      const formattedEta = t.planned_end
+        ? formatInDeploymentTz(t.planned_end, tz, 'd MMM, hh:mm a')
+        : t.planned_start
+        ? formatInDeploymentTz(new Date(new Date(t.planned_start).getTime() + 24 * 3600 * 1000).toISOString(), tz, 'd MMM, hh:mm a')
+        : t.createdAt
+        ? formatInDeploymentTz(new Date(new Date(t.createdAt).getTime() + 24 * 3600 * 1000).toISOString(), tz, 'd MMM, hh:mm a')
+        : '—';
 
       const coords = t.stops?.[0]?.location_lat && t.stops?.[0]?.location_lng
         ? [t.stops[0].location_lat, t.stops[0].location_lng] as [number, number]
@@ -641,7 +648,7 @@ export default function DashboardPage() {
         startTime: t.planned_start
           ? formatInDeploymentTz(t.planned_start, tz, 'd MMM')
           : formatInDeploymentTz(t.createdAt, tz, 'd MMM'),
-        eta,
+        eta: formattedEta,
         progress,
         distance: `${t.planned_distance || 850} km`,
         lat: coords[0],
@@ -958,9 +965,9 @@ export default function DashboardPage() {
     },
     {
       header: 'ETA',
-      className: 'w-[80px] shrink-0',
+      className: 'w-[130px] shrink-0',
       accessor: (row: any) => (
-        <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
           {row.eta || '—'}
         </span>
       ),
