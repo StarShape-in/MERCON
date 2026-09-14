@@ -557,6 +557,12 @@ export const tripService = {
     const res = await api.get<ApiResponse<CustomerBillingRow[]>>('/invoices/billing-ledger/by-customer', { params: filters });
     return res.data;
   },
+
+  /** Dispatch delay video or POD photo natively via WhatsApp Cloud API. */
+  async shareMediaWhatsApp(tripId: string, params?: ShareMediaWhatsAppParams): Promise<ApiResponse<ShareMediaWhatsAppResponse>> {
+    const res = await api.post<ApiResponse<ShareMediaWhatsAppResponse>>(`/trips/${tripId}/share-whatsapp`, params || {});
+    return res.data;
+  },
 };
 
 export interface BulkImportTripRow {
@@ -712,3 +718,26 @@ export async function getVehicleRecommendations(driverId: string): Promise<ApiRe
   const res = await api.get<ApiResponse<VehicleRecommendation[]>>('/trips/recommendations/vehicles', { params: { driverId } });
   return res.data;
 }
+
+export interface ShareMediaWhatsAppParams {
+  category?: 'delay' | 'pod';
+  recipientPhone?: string;
+}
+
+export interface ShareMediaWhatsAppResponse {
+  messageId: string;
+  mediaId: string;
+  recipient: string;
+}
+
+export async function shareMediaWhatsApp(
+  tripId: string,
+  params?: ShareMediaWhatsAppParams
+): Promise<ApiResponse<ShareMediaWhatsAppResponse>> {
+  const res = await api.post<ApiResponse<ShareMediaWhatsAppResponse>>(
+    `/trips/${tripId}/share-whatsapp`,
+    params || {}
+  );
+  return res.data;
+}
+

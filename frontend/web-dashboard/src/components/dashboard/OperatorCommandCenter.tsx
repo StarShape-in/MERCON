@@ -18,6 +18,7 @@ import {
   MapPin,
   Camera,
   Building2,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -142,6 +143,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   const [assignDriverId, setAssignDriverId] = useState<string>('');
   const [assignVehicleId, setAssignVehicleId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
 
   // 1. Fetch auxiliary records
   const { data: docs = [] } = useQuery({
@@ -922,33 +924,42 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between gap-2">
                 <Button
                   size="sm"
-                  onClick={() => {
-                    const custName = selectedItem.entityName;
-                    const tripRef = selectedItem.tripRef || selectedItem.entityName;
-                    const driverName = selectedDriverName;
-                    const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
-
-                    let msg = '';
-                    if (selectedItem.category === 'delay') {
-                      const reason = selectedItem.delayReason || selectedItem.subtitle;
-                      msg = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nReason: ${reason}${selectedItem.videoUrl ? `\nWatch Video: ${selectedItem.videoUrl}` : ''}`;
-                    } else if (selectedItem.category === 'doc') {
-                      msg = `⚠️ *MERCON DOCUMENT ALERT*\nEntity: *${custName}*\nStatus: *${selectedItem.badgeLabel}*\nDetails: ${selectedItem.subtitle}`;
-                    } else {
-                      msg = `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nStatus: Pending POD Verification`;
+                  disabled={isSharingWhatsApp}
+                  onClick={async () => {
+                    const tripId = selectedItem.trip?.id || (selectedItem.id.startsWith('delay-') || selectedItem.id.startsWith('pod-') ? selectedItem.id.replace(/^(delay|pod)-/, '') : null);
+                    if (!tripId) {
+                      toast.error('No valid trip associated with this operational item');
+                      return;
                     }
 
-                    const target = phone
-                      ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`
-                      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                    setIsSharingWhatsApp(true);
+                    try {
+                      const category = selectedItem.category === 'pod' ? 'pod' : 'delay';
+                      const res = await tripService.shareMediaWhatsApp(tripId, { category });
+                      if (res.success) {
+                        toast.success(`WhatsApp Cloud API media dispatched natively to ${res.data?.recipient || 'customer'}`);
+                      }
+                    } catch (err: any) {
+                      const errorMsg = err?.response?.data?.error?.message || err?.message || 'Failed to dispatch via WhatsApp API';
+                      const errorCode = err?.response?.data?.error?.code;
 
-                    window.open(target, '_blank');
-                    toast.success('WhatsApp dispatch message prepared');
+                      if (errorCode === 'WHATSAPP_CONFIG_MISSING' || err?.response?.status === 422) {
+                        toast.error(`WhatsApp Configuration Error: ${errorMsg}`);
+                      } else {
+                        toast.error(`WhatsApp Dispatch Error: ${errorMsg}`);
+                      }
+                    } finally {
+                      setIsSharingWhatsApp(false);
+                    }
                   }}
-                  className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm cursor-pointer rounded-xl"
+                  className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm cursor-pointer rounded-xl disabled:opacity-50"
                 >
-                  <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
-                  <span>Share to WhatsApp</span>
+                  {isSharingWhatsApp ? (
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  ) : (
+                    <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
+                  )}
+                  <span>{isSharingWhatsApp ? 'Sharing...' : 'Share to WhatsApp'}</span>
                 </Button>
 
                 <Button

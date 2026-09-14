@@ -3,7 +3,7 @@ import {
   getTrips, getTripById, createTrip, updateTripStatus,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
-  logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard
+  logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard, shareTripMediaToWhatsApp
 } from '../controllers/tripController';
 import { exportTrips } from '../controllers/tripExportController';
 import { authenticateJWT } from '../middlewares/auth';
@@ -52,6 +52,9 @@ router.patch('/:id/stops/:stopId', validate({ body: updateTripStopBody }), updat
 router.post('/:id/pickup/arrive', pickupArrive);
 router.post('/:id/pickup/verify', pickupVerify);
 router.post('/:id/delivery/verify', deliveryVerify);
+
+// Phase 3: Operator WhatsApp Media Dispatch
+router.post('/:id/share-whatsapp', shareTripMediaToWhatsApp);
 
 
 export default router;

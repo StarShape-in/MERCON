@@ -14,6 +14,7 @@ import { getCompanyLegalName } from './settingsController';
 import { computeTripChargesTotal } from '../utils/tripFinancials';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
+import { whatsappService } from '../services/whatsappService';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -2574,6 +2575,42 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to load the monthly trip board' },
+    });
+  }
+};
+
+/**
+ * Dispatch trip media (delay video or POD photo) natively to WhatsApp Cloud API.
+ */
+export const shareTripMediaToWhatsApp = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { category, recipientPhone } = req.body || {};
+
+    if (!whatsappService.isConfigured()) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          code: 'WHATSAPP_CONFIG_MISSING',
+          message: 'WhatsApp Business API credentials (WHATSAPP_API_TOKEN, WHATSAPP_PHONE_NUMBER_ID) are not configured in backend environment.',
+        },
+      });
+    }
+
+    const result = await whatsappService.shareTripMedia(id, {
+      category: category === 'pod' ? 'pod' : 'delay',
+      recipientPhone,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to share trip media to WhatsApp:');
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'WHATSAPP_DISPATCH_FAILED',
+        message: error?.message || 'Failed to dispatch trip media via WhatsApp Cloud API',
+      },
     });
   }
 };
