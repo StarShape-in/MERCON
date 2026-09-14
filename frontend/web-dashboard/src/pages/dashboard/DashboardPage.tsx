@@ -252,128 +252,7 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
   'Cancelled':   { dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-600 border-slate-200',     label: 'Cancelled' },
 };
 
-const FALLBACK_KANBAN_TRIPS: Trip[] = [
-  {
-    id: 'TRP-0048',
-    ref_id: 'TRP-0048',
-    status: 'Delayed',
-    notes: '[DELAY REPORT]: Traffic congestion due to road construction on Highway 40',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 900000).toISOString(),
-    planned_start: new Date(Date.now() - 7200000).toISOString(),
-    customer: { id: 'c7', name: 'Almarai Logistics', contact_phone: '+966 50 777 8888', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd7', first_name: 'Liaqat', last_name: 'Ali Muhammad', phone: '+966 50 789 0123', iqama_number: '2345678907', license_number: 'LIC-9994', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v7', plate_number: 'ERA-9380', ref_id: 'VEH-016', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's13', trip_id: 'TRP-0048', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Hub', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's14', trip_id: 'TRP-0048', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, delay_reason: 'Traffic', delay_note: 'Road construction on Highway 40', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2950,
-    planned_distance: 980,
-  } as any,
-  {
-    id: 'TRP-0134',
-    ref_id: 'TRP-0134',
-    status: 'InTransit',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c1', name: 'IMILE DELIVERY SAUDI LOGISTICS', contact_phone: '+966 50 111 2222', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd1', first_name: 'Nouman', last_name: 'Ashraf', phone: '+966 50 123 4567', iqama_number: '2345678901', license_number: 'LIC-9988', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v1', plate_number: 'USA-6010', ref_id: 'VEH-010', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's1', trip_id: 'TRP-0134', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Warehouse', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's2', trip_id: 'TRP-0134', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Main Station', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 3325,
-    planned_distance: 1350,
-  } as any,
-  {
-    id: 'TRP-0030',
-    ref_id: 'TRP-0030',
-    status: 'InTransit',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c2', name: 'Saudi Aramco Logistics', contact_phone: '+966 50 222 3333', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd2', first_name: 'Mohammed', last_name: 'Faizan', phone: '+966 50 234 5678', iqama_number: '2345678902', license_number: 'LIC-9989', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v2', plate_number: 'VSA-3871', ref_id: 'VEH-011', type: 'Flatbed Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's3', trip_id: 'TRP-0030', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Port', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's4', trip_id: 'TRP-0030', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Gateway', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 3450,
-    planned_distance: 1234,
-  } as any,
-  {
-    id: 'TRP-0029',
-    ref_id: 'TRP-0029',
-    status: 'Dispatched',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c3', name: 'SABIC Petrochemicals', contact_phone: '+966 50 333 4444', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd3', first_name: 'Umar', last_name: 'Farooq', phone: '+966 50 345 6789', iqama_number: '2345678903', license_number: 'LIC-9990', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v3', plate_number: 'VRA-3356', ref_id: 'VEH-012', type: 'Curtainsider', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's5', trip_id: 'TRP-0029', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Central', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's6', trip_id: 'TRP-0029', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam City', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2100,
-    planned_distance: 1876,
-  } as any,
-  {
-    id: 'TRP-0028',
-    ref_id: 'TRP-0028',
-    status: 'AtPickup',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c4', name: 'Almarai Dairy Fleet', contact_phone: '+966 50 444 5555', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd4', first_name: 'Abdul', last_name: 'Malik', phone: '+966 50 456 7890', iqama_number: '2345678904', license_number: 'LIC-9991', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v4', plate_number: 'DRA-6484', ref_id: 'VEH-013', type: 'Reefer Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's7', trip_id: 'TRP-0028', stop_type: 'Pickup', sequence: 1, location_name: 'Al-Kharj Plant', location_lat: 24.15, location_lng: 47.31, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's8', trip_id: 'TRP-0028', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam Depot', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 4200,
-    planned_distance: 2145,
-  } as any,
-  {
-    id: 'TRP-0027',
-    ref_id: 'TRP-0027',
-    status: 'AtDelivery',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c5', name: 'Panda Retail Operations', contact_phone: '+966 50 555 6666', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd5', first_name: 'Liaqat', last_name: 'Ali', phone: '+966 50 567 8901', iqama_number: '2345678905', license_number: 'LIC-9992', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v5', plate_number: 'ERA-9380', ref_id: 'VEH-014', type: 'Box Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's9', trip_id: 'TRP-0027', stop_type: 'Pickup', sequence: 1, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's10', trip_id: 'TRP-0027', stop_type: 'Dropoff', sequence: 2, location_name: 'Riyadh Store 4', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 1850,
-    planned_distance: 876,
-  } as any,
-  {
-    id: 'TRP-0025',
-    ref_id: 'TRP-0025',
-    status: 'Completed',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c6', name: 'Al-Othaim Commercial', contact_phone: '+966 50 666 7777', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd6', first_name: 'Faizan', last_name: 'Malik', phone: '+966 50 678 9012', iqama_number: '2345678906', license_number: 'LIC-9993', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v6', plate_number: 'DRA-9873', ref_id: 'VEH-015', type: 'Flatbed', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's11', trip_id: 'TRP-0025', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Terminal', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's12', trip_id: 'TRP-0025', stop_type: 'Dropoff', sequence: 2, location_name: 'Qassim Hub', location_lat: 26.32, location_lng: 43.97, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2600,
-    planned_distance: 180,
-  } as any,
-];
+const FALLBACK_KANBAN_TRIPS: Trip[] = [];
 
 function DashboardLocationCell({ rawTrip }: { rawTrip?: any }) {
   const resolvedLoc = rawTrip?.vehicle?.resolved_location || rawTrip?.resolved_location || rawTrip?.rawTrip?.vehicle?.resolved_location;
@@ -629,23 +508,13 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Base active trips for Kanban board (only active operational transit fleet trips that have started)
+  // Base active trips for Kanban board (only real operational transit fleet trips from backend API)
   const baseTripsForKanban: Trip[] = useMemo(() => {
     const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : [];
-    const active = pool.filter((t) => {
+    return pool.filter((t) => {
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      if (['completed', 'invoiced', 'cancelled', 'scheduled', 'draft'].includes(s)) return false;
+      if (['completed', 'invoiced', 'cancelled'].includes(s)) return false;
       return true;
-    });
-    if (active.length > 0) {
-      return active;
-    }
-    if (rawTrips.length > 0) {
-      return [];
-    }
-    return FALLBACK_KANBAN_TRIPS.filter((t) => {
-      const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      return !['completed', 'invoiced', 'cancelled', 'scheduled', 'draft'].includes(s);
     });
   }, [rawTrips]);
 
