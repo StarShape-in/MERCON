@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   defaultCountryCode: 'SA',
   defaultCountryDialCode: '+966',
   enabledModules: [...MODULE_KEYS],
+  defaultRedirectModule: 'quotations',
   themeColors: null,
   taxonomyConfig: null,
   maintenanceMode: false,
@@ -57,7 +58,7 @@ async function getOrCreateSettings() {
     return await prisma.settings.upsert({
       where: { id: SINGLETON_ID },
       update: {},
-      create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS] },
+      create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS], defaultRedirectModule: 'quotations' },
     });
   } catch (err: any) {
     console.warn('[Settings] Unable to query Settings from database, using defaults:', err.message || err);
@@ -186,8 +187,9 @@ export const updateSettings = async (req: Request, res: Response) => {
     const settings = await prisma.settings.update({ where: { id: SINGLETON_ID }, data });
 
     return res.json({ success: true, data: settings });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update settings' } });
+  } catch (error: any) {
+    console.error('[Settings] Failed to update settings:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error?.message || 'Failed to update settings' } });
   }
 };
 

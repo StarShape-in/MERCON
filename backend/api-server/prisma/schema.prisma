@@ -1203,7 +1203,8 @@ model Settings {
   defaultCountryDialCode String @default("+966")
 
   // Module keys this deployment shows/allows.
-  enabledModules String[] @default([])
+  enabledModules        String[] @default([])
+  defaultRedirectModule String?  @default("quotations")
 
   // Theme palette and custom status colors for UI branding customization
   themeColors Json?

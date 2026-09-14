@@ -1,4 +1,4 @@
-﻿-- 1. Link quotationId for TRP-0005 and TRP-0006 if not already linked
+-- 1. Link quotationId for TRP-0005 and TRP-0006 if not already linked
 UPDATE "Trip"
 SET "quotationId" = 'd9fe6fe9-b034-4a6c-90c6-8bca1cfe69ea'
 WHERE "id" IN ('52c7a80c-5de8-4213-9742-8cb01dcc8647', 'ba246e46-63ca-492d-9752-3bf773d5ce1b')
