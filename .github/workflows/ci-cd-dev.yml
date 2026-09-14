@@ -153,13 +153,11 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf 2>/dev/null || true
           fi
 
-          # Update dev nginx site configs to proxy to dev API port 3051 and dev Frontend port 3061
-          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-available/*dev* /etc/nginx/sites-available/default /etc/nginx/sites-available/*mercon* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-available/*dev* /etc/nginx/sites-available/default /etc/nginx/sites-available/*mercon* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-enabled/*dev* /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/*mercon* 2>/dev/null || true
-          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-enabled/*dev* /etc/nginx/sites-enabled/default /etc/nginx/sites-enabled/*mercon* 2>/dev/null || true
+          # Update dev nginx site configs strictly (*dev*) to proxy to dev API port 3051 and dev Frontend port 3061
+          sudo sed -i 's/127\.0\.0\.1:3050/127.0.0.1:3051/g' /etc/nginx/sites-available/*dev* /etc/nginx/sites-enabled/*dev* 2>/dev/null || true
+          sudo sed -i 's/127\.0\.0\.1:3060/127.0.0.1:3061/g' /etc/nginx/sites-available/*dev* /etc/nginx/sites-enabled/*dev* 2>/dev/null || true
 
-          # Restore production configs (mercon-api.conf) strictly to production ports (API: 3050, Frontend: 3060)
+          # Ensure production configs (mercon-api.conf) strictly proxy to production ports (API: 3050, Frontend: 3060)
           if [ -f /etc/nginx/sites-available/mercon-api.conf ]; then
             sudo sed -i 's/127\.0\.0\.1:3051/127.0.0.1:3050/g' /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
             sudo sed -i 's/127\.0\.0\.1:3061/127.0.0.1:3060/g' /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
