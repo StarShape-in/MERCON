@@ -463,7 +463,7 @@ Respond ONLY with valid JSON inside a json code block.
       external_reference: parsed.external_reference || null,
       is_wrong_trip: Boolean(parsed.is_wrong_trip),
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.8,
-      notes: parsed.notes || 'Analyzed screenshot via AI Vision',
+      notes: parsed.notes || (detectedType ? `Detected ${detectedType.replace(/_/g, ' ')} status` : 'No operational milestone text (Pickup, Loading, Delivery, POD) was recognized in screenshot'),
       detected_text: parsed.detected_text || null,
     };
   } catch (err: any) {

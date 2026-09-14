@@ -683,7 +683,7 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     } else if (detectedEvent && confidence < 0.70) {
       transitionReason = `Low AI confidence score (${Math.round(confidence * 100)}%). Text in screenshot was not clear enough to automatically verify.`;
     } else {
-      transitionReason = aiResult.notes || 'No clear operational milestone (Arrived Pickup, Loading, In Transit, Delivery, POD) was recognized in this screenshot.';
+      transitionReason = `No operational milestone recognized: The screenshot does not show clear status text like "Arrived at Pickup", "Cargo Loaded", "In Transit", "Arrived at Delivery", or "Delivery Completed". Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
     }
 
     // 4. Save Document record
