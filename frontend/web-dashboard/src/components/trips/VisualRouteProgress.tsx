@@ -122,20 +122,54 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
             />
           </div>
 
-          {/* Floating Vehicle Position Marker (Riding ABOVE the line with Pointer Arrow) */}
+          {/* Minimal 2D Orange Truck Marker (Riding directly ON the route line) */}
           <div
-            className="absolute bottom-1/2 mb-3.5 z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
+            className="absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
             style={{
               left: `calc(2.5rem + (100% - 5rem) * (${truckPositionPercent} / 100))`,
             }}
           >
             <div className="relative flex flex-col items-center">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#3E3C3D] text-white text-[11px] font-bold shadow-md border border-slate-700 shrink-0">
-                <Truck size={13} className="text-[#FA634E]" />
+              {/* Status pill badge above truck */}
+              <div className="mb-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FA634E] text-white text-[9.5px] font-black shadow-xs whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 <span>{progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
               </div>
-              {/* Downward pointer triangle */}
-              <div className="w-0 h-0 border-x-4 border-x-transparent border-t-5 border-t-[#3E3C3D] -mt-[1px]" />
+
+              {/* Minimal 2D Orange Truck SVG */}
+              <svg
+                viewBox="0 0 72 30"
+                className="w-14 h-6 filter drop-shadow-sm"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                {/* Cargo Trailer (Minimal White & Orange accent) */}
+                <rect x="2" y="4" width="44" height="19" rx="2.5" fill="#FFFFFF" stroke="#FA634E" strokeWidth="1.5" />
+                <rect x="5" y="7" width="38" height="13" rx="1.5" fill="#FA634E" />
+                <text x="24" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="5.5" fontWeight="900" letterSpacing="0.8" fontFamily="Arial, sans-serif">MERCON</text>
+
+                {/* Hitch / Connector */}
+                <rect x="46" y="13" width="4" height="6" fill="#3E3C3D" />
+
+                {/* Minimal Truck Cab (Orange #FA634E) */}
+                <path d="M50 7 L61 7 L69 15 L69 23 L50 23 Z" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
+                {/* Windshield */}
+                <path d="M53 9 L60 9 L65 15 L53 15 Z" fill="#38BDF8" opacity="0.9" />
+                {/* Front Bumper */}
+                <rect x="67" y="19" width="3" height="4" rx="0.5" fill="#3E3C3D" />
+                {/* Headlight */}
+                <rect x="67" y="16" width="2" height="2" rx="0.5" fill="#FEF08A" />
+
+                {/* Minimal 2D Wheels */}
+                <circle cx="12" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
+                <circle cx="12" cy="23" r="1.2" fill="#FFFFFF" />
+
+                <circle cx="34" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
+                <circle cx="34" cy="23" r="1.2" fill="#FFFFFF" />
+
+                <circle cx="58" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
+                <circle cx="58" cy="23" r="1.2" fill="#FFFFFF" />
+              </svg>
             </div>
           </div>
 
