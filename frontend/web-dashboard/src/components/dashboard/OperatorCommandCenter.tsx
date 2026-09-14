@@ -16,6 +16,8 @@ import {
   User,
   Truck,
   MapPin,
+  Camera,
+  Building2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -131,6 +133,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   const queryClient = useQueryClient();
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<'all' | ActionItemCategory>('all');
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState<string>('all');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // Inspector form state
@@ -365,75 +368,32 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
       }
     });
 
-    // F. Fallback Items if Empty
-    if (items.length === 0) {
-      items.push(
-        {
-          id: 'fallback-delay-1',
-          category: 'delay',
-          priority: 'critical',
-          badgeLabel: 'DELAY',
-          entityType: 'company',
-          entityName: 'Almarai Logistics',
-          initials: 'AL',
-          tripRef: 'TRP-0048',
-          subtitle: 'TRP-0048 • Riyadh Hub → Jeddah DC',
-          trip: {
-            id: 'trp-0048',
-            ref_id: 'TRP-0048',
-            status: 'Delayed',
-            notes: '[DELAY REPORT]: Traffic congestion due to road construction on Highway 40',
-            customer: { name: 'Almarai Logistics' },
-            driver: { first_name: 'Liaqat', last_name: 'Ali', phone_primary: '+966 50 789 0123' },
-            vehicle: { plate_number: 'ERA-9380' },
-          } as any,
-          delayReason: 'Traffic congestion due to road construction on Highway 40',
-          delayTimeAgo: '15m ago',
-          hasVideo: false,
-          videoUrl: undefined,
-        },
-        {
-          id: 'fallback-doc-1',
-          category: 'doc',
-          priority: 'critical',
-          badgeLabel: 'EXPIRED',
-          entityType: 'vehicle',
-          entityName: 'ESA-4207',
-          initials: 'ES',
-          subtitle: 'FAHAS • 405d overdue',
-          doc: { id: 'fb-fahas', doc_type: 'FAHAS', expiry_date: '2025-08-01', entity_type: 'Vehicle', entity_id: 'ESA-4207' },
-          daysRemaining: -405,
-        },
-        {
-          id: 'fallback-pod-1',
-          category: 'pod',
-          priority: 'attention',
-          badgeLabel: 'MISSING POD',
-          entityType: 'company',
-          entityName: 'IMILE DELIVERY SAUDI LOGISTICS',
-          initials: 'IM',
-          tripRef: 'TRP-0368',
-          subtitle: 'TRP-0368 • Khamis → Dammam',
-          trip: {
-            id: 'trp-0368',
-            ref_id: 'TRP-0368',
-            status: 'Completed',
-            customer: { name: 'IMILE DELIVERY SAUDI LOGISTICS' },
-            driver: { first_name: 'Nouman', last_name: 'Ashraf', phone_primary: '+966 50 123 4567' },
-          } as any,
-        }
-      );
-    }
-
     const priorityRank: Record<PriorityLevel, number> = { critical: 1, attention: 2, other: 3 };
     return items.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
   }, [allTrips, docs, drivers, vehicles, driverMap, vehicleMap]);
 
-  // Filter items
+  // Unique list of companies present in the queue items
+  const companyList = useMemo(() => {
+    const list: string[] = [];
+    actionItems.forEach((item) => {
+      if (item.entityName && !list.includes(item.entityName)) {
+        list.push(item.entityName);
+      }
+    });
+    return list.sort();
+  }, [actionItems]);
+
+  // Filter items by category and selected company
   const filteredItems = useMemo(() => {
-    if (activeCategoryFilter === 'all') return actionItems;
-    return actionItems.filter((i) => i.category === activeCategoryFilter);
-  }, [actionItems, activeCategoryFilter]);
+    let items = actionItems;
+    if (activeCategoryFilter !== 'all') {
+      items = items.filter((i) => i.category === activeCategoryFilter);
+    }
+    if (selectedCompanyFilter !== 'all') {
+      items = items.filter((i) => i.entityName === selectedCompanyFilter);
+    }
+    return items;
+  }, [actionItems, activeCategoryFilter, selectedCompanyFilter]);
 
   // Selected item
   const selectedItem = useMemo<UnifiedActionItem | null>(() => {
@@ -441,6 +401,36 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
     const found = filteredItems.find((i) => i.id === selectedItemId);
     return found || filteredItems[0];
   }, [filteredItems, selectedItemId]);
+
+  // Selected driver name for display in inspector header
+  const selectedDriverName = useMemo(() => {
+    if (!selectedItem) return '';
+    if (selectedItem.driver) {
+      const fn = selectedItem.driver.first_name || '';
+      const ln = selectedItem.driver.last_name || '';
+      const name = `${fn} ${ln}`.trim();
+      if (name) return name;
+    }
+    const t = selectedItem.trip;
+    if (t) {
+      if (t.driver) {
+        const fn = (t.driver as any).first_name || '';
+        const ln = (t.driver as any).last_name || '';
+        const name = `${fn} ${ln}`.trim() || (t.driver as any).name || (t.driver as any).full_name;
+        if (name) return name;
+      }
+      const dName = (t as any).driver_name || (t as any).third_party_driver_name;
+      if (dName) return dName;
+      const dId = (t as any).driver_id;
+      if (dId && driverMap.has(dId)) {
+        const d = driverMap.get(dId)!;
+        const name = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+        if (name) return name;
+      }
+      return 'Driver Unassigned';
+    }
+    return selectedItem.subtitle;
+  }, [selectedItem, driverMap]);
 
   // Counts
   const counts = useMemo(() => {
@@ -506,577 +496,418 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm p-4 flex flex-col h-full max-h-[390px] overflow-hidden select-none font-sans">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-[#EEF1F6] dark:border-slate-800 shadow-sm p-4 flex flex-col h-full max-h-[430px] overflow-hidden select-none font-sans">
       
-      {/* ── 1. HEADER & MINIMAL SEGMENTED CONTROL ────────────────────────────────── */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#EEF1F6] dark:border-slate-800 shrink-0">
+      {/* ── 1. HEADER & CONTROLS BAR ────────────────────────────────── */}
+      <div className="flex items-center justify-between pb-2.5 border-b border-[#EEF1F6] dark:border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#FA634E]" />
-          <h3 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100">
-            OPERATOR COMMAND
-          </h3>
+          <span className="w-2 h-2 rounded-full bg-[#FA634E] shrink-0" />
+          <div className="min-w-0">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#3E3C3D] dark:text-slate-100 leading-tight flex items-center gap-2">
+              OPERATOR COMMAND
+              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-[#FA634E] border border-rose-200/60 text-[9px] font-black tracking-normal">
+                {filteredItems.length} ALERTS
+              </span>
+            </h3>
+          </div>
         </div>
 
-        {/* Minimal Segmented Tab Switcher */}
-        <div className="bg-[#EEF1F6] dark:bg-slate-800 p-0.5 rounded-lg flex items-center gap-0.5 border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveCategoryFilter('all')}
-            className={cn(
-              "px-2.5 py-1 rounded-md transition-all cursor-pointer",
-              activeCategoryFilter === 'all'
-                ? "bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 shadow-xs font-bold"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-            )}
-          >
-            All ({counts.all})
-          </button>
+        {/* Right Controls: Customer Dropdown + Category Tabs */}
+        <div className="flex items-center gap-2">
+          <Select value={selectedCompanyFilter} onValueChange={setSelectedCompanyFilter}>
+            <SelectTrigger className="h-7 text-[10.5px] font-bold border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 max-w-[160px] px-2.5 cursor-pointer rounded-lg shadow-2xs">
+              <SelectValue placeholder="All Customers" />
+            </SelectTrigger>
+            <SelectContent className="z-50 max-h-56">
+              <SelectItem value="all" className="text-xs font-bold text-[#FA634E]">
+                All Customers ({actionItems.length})
+              </SelectItem>
+              {companyList.map((name) => (
+                <SelectItem key={name} value={name} className="text-xs font-semibold">
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          {counts.delay > 0 && (
+          <div className="bg-[#EEF1F6] dark:bg-slate-800 p-0.5 rounded-lg flex items-center gap-0.5 border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold">
             <button
               type="button"
-              onClick={() => setActiveCategoryFilter('delay')}
+              onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'delay' ? 'all' : 'delay')}
               className={cn(
-                "px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1",
+                "px-2.5 py-1 rounded-md transition-all cursor-pointer text-[10.5px] flex items-center gap-1",
                 activeCategoryFilter === 'delay'
-                  ? "bg-white dark:bg-slate-900 text-[#FA634E] dark:text-rose-400 shadow-xs font-bold"
+                  ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-bold"
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
               )}
             >
               <span>Delays</span>
-              <span className="font-bold text-[10px]">({counts.delay})</span>
+              <span className="font-bold text-[9.5px]">({counts.delay})</span>
             </button>
-          )}
 
-          {counts.doc > 0 && (
             <button
               type="button"
-              onClick={() => setActiveCategoryFilter('doc')}
+              onClick={() => setActiveCategoryFilter(activeCategoryFilter === 'doc' ? 'all' : 'doc')}
               className={cn(
-                "px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1",
+                "px-2.5 py-1 rounded-md transition-all cursor-pointer text-[10.5px] flex items-center gap-1",
                 activeCategoryFilter === 'doc'
-                  ? "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 shadow-xs font-bold"
+                  ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-400 shadow-2xs font-bold"
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
               )}
             >
-              <span>Docs</span>
-              <span className="font-bold text-[10px]">({counts.doc})</span>
+              <span>Documents</span>
+              <span className="font-bold text-[9.5px]">({counts.doc})</span>
             </button>
-          )}
-
-          {counts.pod > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveCategoryFilter('pod')}
-              className={cn(
-                "px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1",
-                activeCategoryFilter === 'pod'
-                  ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs font-bold"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-              )}
-            >
-              <span>PODs</span>
-              <span className="font-bold text-[10px]">({counts.pod})</span>
-            </button>
-          )}
-
-          {counts.unassigned > 0 && (
-            <button
-              type="button"
-              onClick={() => setActiveCategoryFilter('unassigned')}
-              className={cn(
-                "px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1",
-                activeCategoryFilter === 'unassigned'
-                  ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-400 shadow-xs font-bold"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-              )}
-            >
-              <span>Assign</span>
-              <span className="font-bold text-[10px]">({counts.unassigned})</span>
-            </button>
-          )}
+          </div>
         </div>
       </div>
 
       {/* ── 2. DUAL-COLUMN LAYOUT ───────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-3.5 pt-2.5 overflow-hidden">
         
-        {/* ── COLUMN 1: QUEUE LIST WITH ROUND PROFILE AVATARS ON THE LEFT (5/12) ──── */}
-        <div className="col-span-5 flex flex-col gap-1.5 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-          {filteredItems.length === 0 ? (
-            <div className="p-4 text-center my-auto bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800 flex flex-col items-center justify-center gap-1">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">Queue Clear</span>
-            </div>
-          ) : (
-            filteredItems.map((item) => {
-              const isSelected = selectedItem?.id === item.id;
-              const isDelay = item.category === 'delay';
+        {/* ── COLUMN 1: QUEUE LIST & LIVE ONGOING TRIPS (5/12) ──── */}
+        <div className="col-span-5 flex flex-col justify-between overflow-hidden min-h-0">
+          
+          {/* Top Priority Queue Items */}
+          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0 space-y-1.5">
+            {filteredItems.length === 0 ? (
+              <div className="p-4 text-center my-auto bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800 flex flex-col items-center justify-center gap-1">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100">Queue Clear</span>
+              </div>
+            ) : (
+              filteredItems.map((item) => {
+                const isSelected = selectedItem?.id === item.id;
+                const isDelay = item.category === 'delay';
 
-              // Round Avatar Color Theme per Entity Type
-              const avatarBgClass =
-                item.entityType === 'company'
-                  ? "bg-orange-50 text-[#FA634E] border-orange-200/70 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/50"
-                  : item.entityType === 'driver'
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50"
-                  : "bg-blue-50 text-blue-700 border-blue-200/70 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50";
+                const avatarBgClass =
+                  item.entityType === 'company'
+                    ? "bg-orange-50 text-[#FA634E] border-orange-200/70 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-900/50"
+                    : item.entityType === 'driver'
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50"
+                    : "bg-blue-50 text-blue-700 border-blue-200/70 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50";
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedItemId(item.id)}
-                  className={cn(
-                    "p-2.5 rounded-xl transition-all duration-150 flex items-center gap-2.5 border cursor-pointer",
-                    isSelected
-                      ? "bg-[#EEF1F6]/90 dark:bg-slate-800 border-l-4 border-l-[#FA634E] border-slate-300 dark:border-slate-700 shadow-2xs"
-                      : "bg-white hover:bg-slate-50/80 border-l-4 border-l-transparent border-slate-200/70 dark:bg-slate-800/40 dark:hover:bg-slate-800 dark:border-slate-800"
-                  )}
-                >
-                  {/* FAR LEFT: ROUND PROFILE AVATAR */}
-                  <div className="shrink-0 relative">
-                    {item.avatarUrl ? (
-                      <img
-                        src={item.avatarUrl}
-                        alt={item.entityName}
-                        className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
-                      />
-                    ) : (
-                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-[11px] tracking-tight border shadow-2xs", avatarBgClass)}>
-                        {item.initials}
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedItemId(item.id)}
+                    className={cn(
+                      "p-2 rounded-xl transition-all duration-150 flex items-center gap-2 border cursor-pointer",
+                      isSelected
+                        ? "bg-[#EEF1F6]/90 dark:bg-slate-800 border-l-4 border-l-[#FA634E] border-slate-300 dark:border-slate-700 shadow-2xs"
+                        : "bg-white hover:bg-slate-50/80 border-l-4 border-l-transparent border-slate-200/70 dark:bg-slate-800/40 dark:hover:bg-slate-800 dark:border-slate-800"
+                    )}
+                  >
+                    <div className="shrink-0 relative">
+                      {item.avatarUrl ? (
+                        <img
+                          src={item.avatarUrl}
+                          alt={item.entityName}
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
+                        />
+                      ) : (
+                        <div className={cn("w-7 h-7 rounded-full flex items-center justify-center font-extrabold text-[10px] tracking-tight border shadow-2xs", avatarBgClass)}>
+                          {item.initials}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-extrabold text-[11.5px] text-[#3E3C3D] dark:text-slate-100 truncate">
+                          {item.entityName}
+                        </span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* CENTER: ENTITY NAME & SUBTITLE */}
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
-                        {item.entityName}
-                      </span>
+                      <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                        {item.subtitle}
+                      </div>
                     </div>
 
-                    <div className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                      {item.subtitle}
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                      <span className={cn(
+                        "text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shadow-3xs",
+                        item.category === 'delay'
+                          ? "bg-rose-100 text-[#FA634E] border-rose-200 dark:bg-rose-950 dark:text-rose-300"
+                          : item.category === 'pod'
+                          ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 font-extrabold"
+                          : item.category === 'unassigned'
+                          ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300"
+                          : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300"
+                      )}>
+                        {item.category === 'pod' ? '📱 POD READY' : item.badgeLabel}
+                      </span>
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
 
-                  {/* FAR RIGHT: BADGE & VIDEO TAG & CHEVRON */}
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={cn(
-                      "text-[8.5px] font-black uppercase tracking-wider",
-                      isDelay ? "text-[#FA634E]" : "text-slate-400"
-                    )}>
-                      {item.badgeLabel}
-                    </span>
+          {/* Bottom Live Ongoing Trips Mini Bar */}
+          {(() => {
+            const activeTrips = allTrips.filter(t => ['InTransit', 'Dispatched', 'AtPickup'].includes(t.status));
+            const liveTrip = allTrips.find(t => t.status === 'InTransit') || activeTrips[0];
+            const vehiclePlate = liveTrip?.vehicle?.plate_number || (liveTrip as any)?.plate || (liveTrip as any)?.vehicle_plate;
+            const liveDriver = liveTrip?.driver ? `${liveTrip.driver.first_name || ''} ${liveTrip.driver.last_name || ''}`.trim() : (liveTrip as any)?.driver_name;
 
-                    {item.hasVideo && (
-                      <span className="text-[8px] font-extrabold px-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                        VIDEO
-                      </span>
-                    )}
-
-                    {isSelected && (
-                      <ChevronRight className="w-3.5 h-3.5 text-[#FA634E]" />
-                    )}
-                  </div>
+            return (
+              <div className="pt-2 mt-1 border-t border-slate-200/80 dark:border-slate-800 shrink-0">
+                <div className="flex items-center justify-between text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                  <span className="flex items-center gap-1 text-[#FA634E]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE ONGOING TRIPS
+                  </span>
+                  <span>{activeTrips.length} ACTIVE</span>
                 </div>
-              );
-            })
-          )}
+                {liveTrip ? (
+                  <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10.5px]">
+                    <span className="font-bold text-[#3E3C3D] dark:text-slate-200 truncate max-w-[190px] flex items-center gap-1">
+                      <Truck className="w-3 h-3 text-emerald-600 shrink-0" />
+                      {vehiclePlate || liveTrip.ref_id || 'Active Trip'} {liveDriver ? `(${liveDriver})` : ''}
+                    </span>
+                    <span className="text-[9.5px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                      {liveTrip.status}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 text-[10.5px] font-semibold text-slate-400 text-center">
+                    No active trips in transit
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── COLUMN 2: CLEAN INSPECTOR PANEL (7/12) ───────────────────────────── */}
-        <div className="col-span-7 bg-[#EEF1F6]/30 dark:bg-slate-800/30 rounded-xl border border-[#EEF1F6] dark:border-slate-700/80 p-3 flex flex-col justify-between h-full overflow-hidden">
+        <div className="col-span-7 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 p-3 flex flex-col justify-between h-full overflow-hidden shadow-2xs">
           
           {!selectedItem ? (
             <div className="my-auto text-center text-xs font-semibold text-slate-400">
               Select an item from queue
             </div>
-          ) : selectedItem.category === 'delay' ? (
+          ) : (
 
-            /* ── A. DELAY INSPECTOR ─────────────────────────────────────────── */
+            /* ── UNIFIED INSPECTOR PANEL FOR ALL ALERTS & CATEGORIES ───────── */
             <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
+              
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200/80 text-[#FA634E] flex items-center justify-center font-extrabold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-orange-50 dark:bg-orange-950/50 border border-orange-200/70 text-[#FA634E] flex items-center justify-center font-extrabold text-xs shrink-0">
                     {selectedItem.initials}
                   </div>
                   <div className="min-w-0">
                     <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 block truncate">
                       {selectedItem.entityName}
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400 block truncate">
-                      {selectedItem.tripRef}
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block truncate">
+                      {selectedItem.category === 'doc' ? selectedDriverName : `Driver: ${selectedDriverName}`}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-[#FA634E] border border-rose-200/60 dark:bg-rose-950/40 dark:border-rose-900/50">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                    selectedItem.badgeLabel === 'DELAY'
+                      ? "bg-rose-100/80 text-[#FA634E] border-rose-200/80 dark:bg-rose-950 dark:border-rose-900"
+                      : selectedItem.badgeLabel === 'MISSING POD'
+                      ? "bg-blue-100/80 text-blue-700 border-blue-200/80 dark:bg-blue-950 dark:border-blue-900"
+                      : "bg-amber-100/80 text-amber-800 border-amber-200/80 dark:bg-amber-950 dark:border-amber-900"
+                  )}>
                     {selectedItem.badgeLabel}
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-400">
-                    {selectedItem.delayTimeAgo}
-                  </span>
-                </div>
-              </div>
-
-              {/* Integrated Operational Telemetry & Video Evidence Card */}
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between gap-2 overflow-y-auto">
-                
-                {/* Top Driver & Vehicle Metadata Row */}
-                <div className="grid grid-cols-2 gap-2 text-xs shrink-0">
-                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Driver</span>
-                      <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
-                        {selectedItem.trip?.driver
-                          ? `${selectedItem.trip.driver.first_name || ''} ${selectedItem.trip.driver.last_name || ''}`.trim()
-                          : (selectedItem.trip as any)?.driver_name || 'Liaqat Ali'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
-                    <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-[9px] font-extrabold uppercase text-slate-400 block leading-none mb-0.5">Vehicle</span>
-                      <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px] truncate block">
-                        {selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Delay Reason Log Box */}
-                <div className="p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border-l-3 border-l-amber-500 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-[#3E3C3D] dark:text-slate-200 shrink-0">
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-extrabold text-[9.5px] uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3 text-amber-600" /> Operational Delay Logged
-                    </span>
-                    <span className="text-[9.5px] font-semibold text-slate-400">Written Report</span>
-                  </div>
-                  <p className="font-semibold text-slate-700 dark:text-slate-300 leading-snug line-clamp-2">
-                    {selectedItem.delayReason}
-                  </p>
-                </div>
-
-                {/* Attached Video Player Container */}
-                {selectedItem.hasVideo && selectedItem.videoUrl ? (
-                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-slate-950 relative flex items-center justify-center shrink-0 max-h-[140px]">
-                    <video
-                      src={selectedItem.videoUrl}
-                      controls
-                      playsInline
-                      className="w-full max-h-[140px] object-cover"
-                      poster="/truck_3d_orange_transparent.png"
-                    >
-                      Video evidence player
-                    </video>
-                  </div>
-                ) : null}
-
-                {/* Operational Status bar */}
-                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 shrink-0">
-                  <span className="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[180px]">
-                    <MapPin className="w-3 h-3 text-[#FA634E] shrink-0" /> {selectedItem.subtitle.split(' • ')[1] || 'En route'}
-                  </span>
-                  {selectedItem.hasVideo ? (
-                    <span className="font-extrabold text-[9px] text-purple-600 dark:text-purple-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
-                      <Video className="w-3 h-3 text-purple-500" /> Video Attached
-                    </span>
-                  ) : (
-                    <span className="font-extrabold text-[9px] text-slate-400 uppercase tracking-wider shrink-0">
-                      No Video Attached
+                  {selectedItem.delayTimeAgo && (
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {selectedItem.delayTimeAgo}
                     </span>
                   )}
                 </div>
-
               </div>
 
-              {/* Quick 4-Action Grid */}
-              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700 shrink-0">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
-                  <span>QUICK OPERATOR ACTIONS</span>
-                  <span className="text-[9.5px] font-extrabold text-[#FA634E]">Priority: {selectedItem.priority.toUpperCase()}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {/* Action 1: Share Delay to Group */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const custName = selectedItem.entityName;
-                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
-                      const routeStr = selectedItem.subtitle;
-                      const msg = `🚨 *MERCON LOGISTICS — DELAY ALERT*\nTrip Ref: *${tripRef}*\nCustomer: @${custName}\nRoute: ${routeStr}\nReason: ${selectedItem.delayReason}\nTime: ${selectedItem.delayTimeAgo}`;
-                      const groupLink = (selectedItem.trip?.customer as any)?.whatsapp_group_link;
-                      if (groupLink) {
-                        window.open(groupLink, '_blank');
-                      } else {
-                        const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
-                        window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                      }
-                      toast.success('Delay report prepared for WhatsApp');
-                    }}
-                    className="h-9 px-2 text-[11px] font-extrabold bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
-                  >
-                    <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Share Delay to Group</span>
-                  </Button>
+              {/* ── VISUAL MEDIA PREVIEW AREA (DYNAMIC DATA, NO HARDCODING!) ── */}
+              <div className="flex-1 min-h-0 py-1 flex flex-col justify-center overflow-hidden">
+                {selectedItem.category === 'delay' ? (
 
-                  {/* Action 2: Send POD / Photo */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
-                      const fileUrl = selectedItem.videoUrl || (selectedItem.doc as any)?.file_url || 'https://dev.mercon.tech/docs/sample_pod.pdf';
-                      const msg = `📸 *MERCON LOGISTICS — POD / PHOTO EVIDENCE*\nTrip Ref: *${tripRef}*\nView Proof: ${fileUrl}`;
-                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
-                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                      toast.success('POD / Photo link prepared for WhatsApp');
-                    }}
-                    className="h-9 px-2 text-[11px] font-extrabold bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800 hover:bg-purple-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
-                  >
-                    <Upload className="w-3.5 h-3.5 shrink-0 text-purple-600" />
-                    <span className="truncate">Send POD / Photo</span>
-                  </Button>
+                  /* 🎥 DELAY VIDEO PLAYER PREVIEW */
+                  <div className="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md group flex flex-col justify-between h-[165px]">
+                    {selectedItem.videoUrl ? (
+                      <video
+                        src={selectedItem.videoUrl}
+                        controls
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <div className="relative w-full h-full bg-slate-950 flex flex-col items-center justify-center p-3 text-center">
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-slate-950/60" />
+                        
+                        <div className="relative z-10 flex flex-col items-center gap-1.5">
+                          <div 
+                            onClick={() => {
+                              const custName = selectedItem.entityName;
+                              const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                              const reason = selectedItem.delayReason || selectedItem.subtitle;
+                              const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
+                              const msg = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${selectedDriverName}*\nReason: ${reason}`;
+                              const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                              window.open(target, '_blank');
+                            }}
+                            className="w-11 h-11 rounded-full bg-[#FA634E] text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform cursor-pointer"
+                          >
+                            <Video className="w-5 h-5 fill-current ml-0.5" />
+                          </div>
+                          <span className="text-[11px] font-black text-white tracking-wide">
+                            DRIVER DELAY REPORT
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700 max-w-[240px] truncate">
+                            {selectedItem.delayReason || selectedItem.subtitle}
+                          </span>
+                        </div>
 
-                  {/* Action 3: ETA Send */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
-                      const plate = selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380';
-                      const msg = `⏱️ *MERCON LOGISTICS — LIVE ETA UPDATE*\nTrip Ref: *${tripRef}*\nTruck: *${plate}*\nLive Speed: 78 km/h\nDistance Remaining: ~185 KM\nEstimated Arrival: ~2.5 Hours`;
-                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
-                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                      toast.success('Live ETA update prepared for WhatsApp');
-                    }}
-                    className="h-9 px-2 text-[11px] font-extrabold bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800 hover:bg-amber-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
-                  >
-                    <Phone className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                    <span className="truncate">ETA Send</span>
-                  </Button>
-
-                  {/* Action 4: Fleet Daily Summary */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const msg = `📊 *MERCON DAILY FLEET SUMMARY*\nActive Trips: ${allTrips.length}\nIn-Transit: ${allTrips.filter(t => t.status === 'InTransit').length}\nDelays: ${allTrips.filter(t => t.status === 'Delayed').length}\nCompleted: ${allTrips.filter(t => t.status === 'Completed').length}`;
-                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
-                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                      toast.success('Fleet Daily Summary prepared for WhatsApp');
-                    }}
-                    className="h-9 px-2 text-[11px] font-extrabold bg-rose-50/70 dark:bg-rose-950/30 text-[#FA634E] border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
-                  >
-                    <FileText className="w-3.5 h-3.5 shrink-0 text-[#FA634E]" />
-                    <span className="truncate">Fleet Daily Summary</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-          ) : selectedItem.category === 'doc' ? (
-
-            /* ── B. EXPIRED/EXPIRING DOC INSPECTOR ─────────────────────────── */
-            <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 flex items-center justify-center font-extrabold text-xs shrink-0">
-                    {selectedItem.initials}
-                  </div>
-                  <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
-                    {selectedItem.entityName}
-                  </span>
-                </div>
-                <span className="text-[10.5px] font-bold text-slate-400 shrink-0">
-                  {selectedItem.subtitle.split(' · ')[1] || selectedItem.subtitle}
-                </span>
-              </div>
-
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2.5 justify-center">
-                <div className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200 flex items-center justify-between">
-                  <span>Re-upload &amp; Update Expiry</span>
-                  <span className="text-[10px] text-slate-400">{selectedItem.entityName}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[9.5px] font-extrabold text-slate-400 uppercase block mb-1">
-                      New Expiry Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={newExpiryDate}
-                      onChange={(e) => setNewExpiryDate(e.target.value)}
-                      className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700"
-                    />
+                        <div className="absolute bottom-2 left-2.5 right-2.5 z-10 flex items-center justify-between text-[9px] font-extrabold text-slate-300">
+                          <span className="flex items-center gap-1 text-rose-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> REPORTED BY DRIVER
+                          </span>
+                          <span>{selectedItem.delayTimeAgo || 'LIVE'}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="text-[9.5px] font-extrabold text-slate-400 uppercase block mb-1">
-                      Document File
-                    </label>
-                    <Input
-                      type="file"
-                      className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700 cursor-pointer"
-                    />
+                ) : selectedItem.category === 'pod' ? (
+
+                  /* 📸 POD PHOTO IMAGES (Dynamic POD Document / Photo Thumbnails) */
+                  (() => {
+                    const tripDocs = (selectedItem.trip as any)?.documents || docs.filter((d: any) => d.entity_id === selectedItem.trip?.id);
+                    const podDocs = Array.isArray(tripDocs) ? tripDocs.filter((d: any) => {
+                      const type = String(d?.doc_type || d?.category || '').toLowerCase();
+                      return type.includes('pod') || type.includes('proof') || type.includes('delivery');
+                    }) : [];
+
+                    const photo1Url = podDocs[0]?.file_url || podDocs[0]?.url ? resolveFileUrl(podDocs[0]?.file_url || podDocs[0]?.url) : null;
+                    const photo2Url = podDocs[1]?.file_url || podDocs[1]?.url ? resolveFileUrl(podDocs[1]?.file_url || podDocs[1]?.url) : null;
+
+                    const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
+
+                    return (
+                      <div className="grid grid-cols-2 gap-2 h-[165px]">
+                        {/* Photo 1 */}
+                        <div 
+                          onClick={() => {
+                            const msg = `📸 *MERCON POD PHOTO #1*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo1Url ? `\nView Photo: ${photo1Url}` : ''}`;
+                            const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                            window.open(target, '_blank');
+                          }}
+                          className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
+                        >
+                          {photo1Url ? (
+                            <img src={photo1Url} alt="POD Photo 1" className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <>
+                              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 flex items-center justify-center mb-1">
+                                <Camera className="w-4 h-4" />
+                              </div>
+                              <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">
+                                POD Photo #1
+                              </span>
+                              <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">
+                                {podDocs[0]?.title || 'Stamp & Signature'}
+                              </span>
+                              <span className="text-[8px] font-semibold text-slate-400 mt-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                {podDocs.length > 0 ? 'Uploaded' : 'Pending Upload'}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Photo 2 */}
+                        <div 
+                          onClick={() => {
+                            const msg = `📸 *MERCON POD PHOTO #2*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo2Url ? `\nView Photo: ${photo2Url}` : ''}`;
+                            const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                            window.open(target, '_blank');
+                          }}
+                          className="relative rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-slate-900 hover:bg-emerald-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
+                        >
+                          {photo2Url ? (
+                            <img src={photo2Url} alt="POD Photo 2" className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <>
+                              <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mb-1">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <span className="text-[11px] font-black text-slate-900 dark:text-slate-100">
+                                POD Photo #2
+                              </span>
+                              <span className="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                {podDocs[1]?.title || 'Weight Slip Proof'}
+                              </span>
+                              <span className="text-[8px] font-semibold text-slate-400 mt-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                                {podDocs.length > 1 ? 'Uploaded' : 'Pending Upload'}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+
+                ) : (
+
+                  /* 📄 OTHER ALERT PREVIEW */
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 h-[165px] flex flex-col items-center justify-center text-center gap-1.5">
+                    <AlertTriangle className="w-6 h-6 text-amber-500" />
+                    <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                      {selectedItem.entityName} — {selectedItem.badgeLabel}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {selectedItem.subtitle}
+                    </span>
                   </div>
-                </div>
+
+                )}
               </div>
 
-              <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
+              {/* ── BOTTOM ACTION TOOLBAR (WhatsApp Icon + Trip Details Button) ── */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/documents')}
-                  className="h-8 text-xs font-bold border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200 gap-1.5 cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" /> Documents Page
-                </Button>
-
-                <Button
-                  size="sm"
-                  disabled={isSubmitting}
-                  onClick={handleUpdateDocument}
-                  className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white gap-1 shadow-2xs cursor-pointer"
-                >
-                  <Check className="w-3.5 h-3.5" /> Save &amp; Update
-                </Button>
-              </div>
-            </div>
-
-          ) : selectedItem.category === 'pod' ? (
-
-            /* ── C. MISSING POD INSPECTOR ──────────────────────────────────── */
-            <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-200/80 text-blue-800 flex items-center justify-center font-extrabold text-xs shrink-0">
-                    {selectedItem.initials}
-                  </div>
-                  <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
-                    {selectedItem.entityName} · {selectedItem.tripRef} POD
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2 justify-center">
-                <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-200">
-                  Upload POD Document
-                </span>
-                <Input
-                  type="text"
-                  placeholder="POD Ref # / Receiving Signatory..."
-                  value={podRefNo}
-                  onChange={(e) => setPodRefNo(e.target.value)}
-                  className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700"
-                />
-                <Input
-                  type="file"
-                  className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
-                <Button
-                  size="sm"
-                  variant="outline"
                   onClick={() => {
-                    const phone = selectedItem.trip?.driver?.phone_primary || (selectedItem.trip?.driver as any)?.phone || '+966500000000';
-                    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Please submit POD for trip ${selectedItem.tripRef || selectedItem.entityName}`, '_blank');
+                    const custName = selectedItem.entityName;
+                    const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                    const driverName = selectedDriverName;
+                    const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
+
+                    let msg = '';
+                    if (selectedItem.category === 'delay') {
+                      const reason = selectedItem.delayReason || selectedItem.subtitle;
+                      msg = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nReason: ${reason}${selectedItem.videoUrl ? `\nWatch Video: ${selectedItem.videoUrl}` : ''}`;
+                    } else if (selectedItem.category === 'doc') {
+                      msg = `⚠️ *MERCON DOCUMENT ALERT*\nEntity: *${custName}*\nStatus: *${selectedItem.badgeLabel}*\nDetails: ${selectedItem.subtitle}`;
+                    } else {
+                      msg = `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${custName}*\nDriver: *${driverName}*\nStatus: Pending POD Verification`;
+                    }
+
+                    const target = phone
+                      ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`
+                      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+                    window.open(target, '_blank');
+                    toast.success('WhatsApp dispatch message prepared');
                   }}
-                  className="h-8 text-xs font-bold border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200 gap-1.5 cursor-pointer"
+                  className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm cursor-pointer rounded-xl"
                 >
-                  <WhatsAppIcon className="w-3.5 h-3.5" /> Request Driver
+                  <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
+                  <span>Share to WhatsApp</span>
                 </Button>
 
                 <Button
                   size="sm"
-                  disabled={isSubmitting}
-                  onClick={handleUploadPOD}
-                  className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white gap-1 shadow-2xs cursor-pointer"
+                  onClick={() => navigate(`/trips/${selectedItem.trip?.id || selectedItem.tripRef}`)}
+                  className="h-8 px-4 text-xs font-extrabold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white flex items-center justify-center gap-1 shadow-sm cursor-pointer rounded-xl shrink-0"
                 >
-                  <Upload className="w-3.5 h-3.5" /> Upload POD
-                </Button>
-              </div>
-            </div>
-
-          ) : (
-
-            /* ── D. UNASSIGNED TRIP INSPECTOR ──────────────────────────────── */
-            <div className="flex flex-col h-full justify-between gap-2 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-purple-50 border border-purple-200/80 text-purple-800 flex items-center justify-center font-extrabold text-xs shrink-0">
-                    {selectedItem.initials}
-                  </div>
-                  <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 truncate">
-                    {selectedItem.entityName} · {selectedItem.tripRef}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2.5 justify-center">
-                <div>
-                  <label className="text-[9.5px] font-extrabold text-slate-400 uppercase block mb-1">
-                    Assign Driver
-                  </label>
-                  <Select value={assignDriverId} onValueChange={setAssignDriverId}>
-                    <SelectTrigger className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700">
-                      <SelectValue placeholder="Select active driver..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers.map((d) => (
-                        <SelectItem key={d.id} value={d.id} className="text-xs font-semibold">
-                          {d.first_name} {d.last_name} ({d.phone_primary || 'No phone'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-[9.5px] font-extrabold text-slate-400 uppercase block mb-1">
-                    Assign Vehicle
-                  </label>
-                  <Select value={assignVehicleId} onValueChange={setAssignVehicleId}>
-                    <SelectTrigger className="h-8 text-xs font-semibold border-slate-200 dark:border-slate-700">
-                      <SelectValue placeholder="Select active vehicle..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id} className="text-xs font-semibold">
-                          {v.plate_number || v.ref_id} · {v.asset_type || (v as any).type || 'Truck'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate(`/trips/${selectedItem.trip?.id}`)}
-                  className="h-8 text-xs font-bold border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200 cursor-pointer"
-                >
-                  View Trip
-                </Button>
-
-                <Button
-                  size="sm"
-                  disabled={isSubmitting}
-                  onClick={handleAssignTrip}
-                  className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white gap-1 shadow-2xs cursor-pointer"
-                >
-                  <Check className="w-3.5 h-3.5" /> Assign &amp; Dispatch
+                  <span>Trip Details</span>
+                  <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
