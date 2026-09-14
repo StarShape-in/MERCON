@@ -31,7 +31,7 @@ const tripInclude = {
       id: true,
       name: true,
       line_type: true,
-      billing_type: true,
+      operation_type: true,
       rate: true,
       driver_payout: true,
       stops: {
