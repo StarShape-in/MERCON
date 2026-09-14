@@ -110,6 +110,7 @@ async function main() {
   // disabled a key that didn't exist yet, so this stays safe and idempotent.
   await backfillCompanyReportsModule();
   await backfillDocumentsModule();
+  await backfillNewModuleKeys();
 
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
@@ -208,6 +209,21 @@ async function backfillDocumentsModule() {
       data: { enabledModules: { push: 'documents' } },
     });
     console.log('  ✓ Backfilled documents module key');
+  }
+}
+
+async function backfillNewModuleKeys() {
+  const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+  if (settings) {
+    const missingKeys = MODULE_KEYS.filter((k) => !settings.enabledModules.includes(k));
+    if (missingKeys.length > 0) {
+      const updatedModules = Array.from(new Set([...settings.enabledModules, ...missingKeys]));
+      await prisma.settings.update({
+        where: { id: 'singleton' },
+        data: { enabledModules: updatedModules },
+      });
+      console.log(`  ✓ Backfilled ${missingKeys.length} new module keys to Settings`);
+    }
   }
 }
 

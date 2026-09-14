@@ -778,10 +778,6 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
             source_type: 'IMPORT',
-            route_origin: originText || null,
-            route_destination: destinationText || null,
-            originLocationId: originId,
-            destinationLocationId: destinationId,
           };
 
           const existing = await tx.quotation.findFirst({

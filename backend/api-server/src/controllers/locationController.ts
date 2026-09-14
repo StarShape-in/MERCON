@@ -40,6 +40,7 @@ export const resolveLocation = async (
     lat?: number | null;
     lng?: number | null;
     coordinate_precision?: CoordinatePrecision | null;
+    skipCanonicalUpdate?: boolean;
   },
   userId?: string | null
 ) => {
@@ -216,6 +217,9 @@ export const resolveLocation = async (
   const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
 
   if (found) {
+    if (input.skipCanonicalUpdate && !found.deletedAt && found.is_active) {
+      return found;
+    }
     const isSoftDeleted = found.deletedAt !== null || !found.is_active;
 
     let canUpdateCode = false;

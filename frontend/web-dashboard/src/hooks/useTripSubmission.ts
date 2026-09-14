@@ -347,9 +347,12 @@ export function useTripSubmission(
           leg_index: number;
           stop_type: string;
           location_name: string;
+          location_address?: string | null;
           location_id?: string | null;
           lat?: number | null;
           lng?: number | null;
+          coordinate_precision?: string | null;
+          update_canonical_location?: boolean;
         }> = [];
         let seq = 1;
 
@@ -358,10 +361,13 @@ export function useTripSubmission(
           stop_sequence: seq++,
           leg_index: 0,
           stop_type: 'Pickup',
-          location_name: slot.origin.trim(),
+          location_name: slot.originName || slot.origin.trim(),
+          location_address: slot.originAddress || null,
           location_id: slot.originLocationId || null,
           lat: slot.originLat ?? null,
           lng: slot.originLng ?? null,
+          coordinate_precision: slot.originPrecision || (slot.originLat != null ? 'APPROXIMATE' : 'UNKNOWN'),
+          update_canonical_location: slot.updateCanonicalOrigin === true,
         });
 
         // 2. Outbound Intermediate Stops (leg 0)
@@ -380,10 +386,13 @@ export function useTripSubmission(
           stop_sequence: seq++,
           leg_index: 0,
           stop_type: 'Dropoff',
-          location_name: slot.destination.trim(),
+          location_name: slot.destinationName || slot.destination.trim(),
+          location_address: slot.destinationAddress || null,
           location_id: slot.destinationLocationId || null,
           lat: slot.destinationLat ?? null,
           lng: slot.destinationLng ?? null,
+          coordinate_precision: slot.destinationPrecision || (slot.destinationLat != null ? 'APPROXIMATE' : 'UNKNOWN'),
+          update_canonical_location: slot.updateCanonicalDestination === true,
         });
 
         // 4. Return Leg (leg 1) if round trip

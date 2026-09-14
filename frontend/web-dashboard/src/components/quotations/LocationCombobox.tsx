@@ -35,6 +35,8 @@ interface LocationComboboxProps {
   customerId?: string;
   side?: 'top' | 'bottom';
   hasError?: boolean;
+  precision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+  onEditPrecision?: (location: Location) => void;
 }
 
 export default function LocationCombobox({
@@ -50,6 +52,8 @@ export default function LocationCombobox({
   customerId,
   side = 'top',
   hasError = false,
+  precision,
+  onEditPrecision,
 }: LocationComboboxProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -348,10 +352,37 @@ export default function LocationCombobox({
             triggerClassName
           )}
         >
-          <span className="flex items-center gap-2 truncate">
+          <span className="flex items-center gap-2 truncate flex-1 min-w-0">
             <MapPin className={cn('h-3.5 w-3.5 shrink-0', hasError ? 'text-red-500' : selected ? 'text-brand' : 'text-slate-400')} />
-            <span className="truncate">{displayLabel || placeholder}</span>
+            <span className="truncate font-semibold text-slate-900 dark:text-slate-100">{displayLabel || placeholder}</span>
           </span>
+          {selected && (
+            <div className="flex items-center gap-1 shrink-0 ml-1.5" onClick={(e) => e.stopPropagation()}>
+              {onEditPrecision ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEditPrecision(selected);
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md text-[10px] font-extrabold border transition-all cursor-pointer flex items-center gap-1 shadow-2xs",
+                    (precision || selected?.coordinate_precision || (selected?.lat != null ? 'APPROXIMATE' : 'UNKNOWN')) === 'EXACT'
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300"
+                      : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-300 animate-pulse"
+                  )}
+                  title="Click to edit exact address & map pin for this trip"
+                >
+                  {(precision || selected?.coordinate_precision || (selected?.lat != null ? 'APPROXIMATE' : 'UNKNOWN')) === 'EXACT' ? '✓ Exact' : '≈ Area (Edit)'}
+                </button>
+              ) : (
+                <Badge className={cn("text-[9px] font-bold px-1.5 py-0", (precision || selected?.coordinate_precision) === 'EXACT' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200")}>
+                  {(precision || selected?.coordinate_precision) === 'EXACT' ? '✓ Exact' : '≈ Area'}
+                </Badge>
+              )}
+            </div>
+          )}
           <ChevronDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -408,6 +439,11 @@ export default function LocationCombobox({
                   const doSelectLoc = () => {
                     onChange(loc.id, loc);
                     setOpen(false);
+                    if (onEditPrecision && prec === 'APPROXIMATE') {
+                      setTimeout(() => {
+                        onEditPrecision(loc);
+                      }, 100);
+                    }
                   };
 
                   return (
@@ -446,9 +482,36 @@ export default function LocationCombobox({
                           </Badge>
                         )}
                         {prec === 'APPROXIMATE' && (
-                          <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-[9px] font-bold">
-                            ≈ Area
-                          </Badge>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onChange(loc.id, loc);
+                              setOpen(false);
+                              if (onEditPrecision) {
+                                setTimeout(() => {
+                                  onEditPrecision(loc);
+                                }, 100);
+                              }
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onChange(loc.id, loc);
+                              setOpen(false);
+                              if (onEditPrecision) {
+                                setTimeout(() => {
+                                  onEditPrecision(loc);
+                                }, 100);
+                              }
+                            }}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-300 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+                            title="Select location and edit exact map pin / address for trip"
+                          >
+                            <span>≈ Area</span>
+                            <span className="text-[9px] underline font-black text-amber-900 dark:text-amber-100">Edit</span>
+                          </button>
                         )}
                         {prec === 'UNKNOWN' && (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">

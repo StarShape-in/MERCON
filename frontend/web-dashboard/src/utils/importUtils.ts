@@ -1,4 +1,5 @@
-import ExcelJS from 'exceljs';
+// @ts-ignore
+import * as XLSX from 'xlsx';
 
 /**
  * Reads the fleet import workbooks in the browser, so the operator sees exactly
@@ -164,17 +165,18 @@ function cellToValue(value: any): string | number | null {
   return String(value);
 }
 
-function findHeaderRowExcelJS(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | null {
+function findHeaderRowInMatrix(matrix: any[][], columns: ColumnMap): number | null {
   const known = new Set(Object.values(columns).flat());
   let best: { row: number; hits: number } | null = null;
 
-  const maxRowsToScan = Math.min(sheet.rowCount, 30);
-  for (let r = 1; r <= maxRowsToScan; r++) {
-    const row = sheet.getRow(r);
+  for (let r = 0; r < Math.min(matrix.length, 30); r++) {
+    const row = matrix[r] || [];
     let hits = 0;
-    row.eachCell({ includeEmpty: false }, (cell) => {
-      if (known.has(normalise(String(cellToValue(cell.value) ?? '')))) hits++;
-    });
+    for (const cell of row) {
+      if (cell !== null && cell !== undefined) {
+        if (known.has(normalise(String(cellToValue(cell) ?? '')))) hits++;
+      }
+    }
     if (hits >= 2 && (!best || hits > best.hits)) best = { row: r, hits };
   }
 
@@ -188,28 +190,54 @@ export async function parseSheet(
   preferSheet?: string
 ): Promise<ParsedSheet> {
   const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
 
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  const sheetNames = workbook.SheetNames || [];
+  if (!sheetNames.length) {
+    throw new Error('That file has no readable sheets.');
+  }
 
-  const sheet =
-    (preferSheet
-      ? workbook.worksheets.find((w) => w.name.toLowerCase().includes(preferSheet))
-      : undefined) ??
-    workbook.worksheets.find((w) => findHeaderRowExcelJS(w, columns) !== null) ??
-    workbook.worksheets[0];
+  // Pick target sheet
+  let targetSheetName = sheetNames[0];
+  if (preferSheet) {
+    const matched = sheetNames.find((s) => s.toLowerCase().includes(preferSheet.toLowerCase()));
+    if (matched) targetSheetName = matched;
+  }
 
-  if (!sheet) throw new Error('That file has no readable sheets.');
+  // If preferSheet wasn't found or wasn't given, find the sheet with the best matching headers
+  if (!preferSheet || !targetSheetName) {
+    let bestSheetName = targetSheetName;
+    for (const sName of sheetNames) {
+      const ws = workbook.Sheets[sName];
+      if (!ws) continue;
+      const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
+      if (findHeaderRowInMatrix(matrix, columns) !== null) {
+        bestSheetName = sName;
+        break;
+      }
+    }
+    targetSheetName = bestSheetName;
+  }
 
-  const headerRowNumber = findHeaderRowExcelJS(sheet, columns);
-  if (headerRowNumber === null) {
+  const ws = workbook.Sheets[targetSheetName];
+  if (!ws) {
+    throw new Error('That file has no readable sheets.');
+  }
+
+  const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
+  const headerRowIdx = findHeaderRowInMatrix(matrix, columns);
+
+  if (headerRowIdx === null) {
     const isLookingForDrivers = columns === DRIVER_COLUMNS;
     const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
     const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
     const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
 
-    for (const w of workbook.worksheets) {
-      if (findHeaderRowExcelJS(w, oppositeColumns) !== null) {
+    for (const sName of sheetNames) {
+      const oppWs = workbook.Sheets[sName];
+      if (!oppWs) continue;
+      const oppMatrix: any[][] = XLSX.utils.sheet_to_json(oppWs, { header: 1, raw: false, defval: null });
+      if (findHeaderRowInMatrix(oppMatrix, oppositeColumns) !== null) {
         throw new Error(
           `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
         );
@@ -217,22 +245,22 @@ export async function parseSheet(
     }
 
     throw new Error(
-      `Couldn't find the column headers on sheet "${sheet.name}". Use the MERCON template, or check the header row wasn't deleted.`
+      `Couldn't find the column headers on sheet "${targetSheetName}". Use the MERCON template, or check the header row wasn't deleted.`
     );
   }
 
-  const headerRow = sheet.getRow(headerRowNumber);
+  const headerRow = matrix[headerRowIdx] || [];
   const indexToField = new Map<number, string>();
   const unmappedHeaders: string[] = [];
 
-  headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-    const header = normalise(String(cellToValue(cell.value) ?? ''));
+  headerRow.forEach((cellVal, colIdx) => {
+    const header = normalise(String(cellToValue(cellVal) ?? ''));
     if (!header) return;
     const field = Object.entries(columns).find(([, aliases]) => aliases.includes(header))?.[0];
     if (field && !Array.from(indexToField.values()).includes(field)) {
-      indexToField.set(colNumber, field);
+      indexToField.set(colIdx, field);
     } else if (!field) {
-      unmappedHeaders.push(String(cellToValue(cell.value) ?? ''));
+      unmappedHeaders.push(String(cellToValue(cellVal) ?? ''));
     }
   });
 
@@ -240,19 +268,18 @@ export async function parseSheet(
   const missingColumns = Object.keys(columns).filter((f) => !foundFields.has(f));
 
   const rows: Record<string, string | number>[] = [];
-  for (let r = headerRowNumber + 1; r <= sheet.rowCount; r++) {
-    const row = sheet.getRow(r);
+  for (let r = headerRowIdx + 1; r < matrix.length; r++) {
+    const rowCells = matrix[r] || [];
     const parsed: Record<string, string | number> = {};
 
-    indexToField.forEach((field, colNumber) => {
-      const value = cellToValue(row.getCell(colNumber).value);
-      if (value === null || String(value).trim() === '') return;
-      parsed[field] = typeof value === 'number' ? value : String(value).trim();
+    indexToField.forEach((field, colIdx) => {
+      const val = cellToValue(rowCells[colIdx]);
+      if (val === null || String(val).trim() === '') return;
+      parsed[field] = typeof val === 'number' ? val : String(val).trim();
     });
 
     if (Object.keys(parsed).length > 0) rows.push(parsed);
   }
 
-  return { rows, missingColumns, unmappedHeaders, sheetName: sheet.name };
+  return { rows, missingColumns, unmappedHeaders, sheetName: targetSheetName };
 }
-

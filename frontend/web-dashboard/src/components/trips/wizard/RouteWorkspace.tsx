@@ -1,7 +1,9 @@
-import React from 'react';
-import { MapPin, Plus, Trash2, Calendar, Clock, Moon, RotateCcw, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Plus, Trash2, Calendar, Clock, Moon, RotateCcw, AlertCircle, Map as MapIcon, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
+import TripStopMap from '@/components/trips/TripStopMap';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
@@ -52,6 +54,9 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   handleUpdateSlotReturnIntermediate,
   fieldErrors = {},
 }) => {
+  const [isOriginMapOpen, setIsOriginMapOpen] = useState(false);
+  const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
+
   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
   const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
@@ -204,15 +209,105 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
                 )}
               </label>
-              <LocationCombobox
-                id="step2-first-field"
-                customerId={contractCustomer}
-                value={slot.origin}
-                hasError={Boolean(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin'])}
-                onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
-                placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
-                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
-              />
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="flex-1 min-w-0">
+                  <LocationCombobox
+                    id="step2-first-field"
+                    customerId={contractCustomer}
+                    value={slot.origin}
+                    hasError={Boolean(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin'])}
+                    onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
+                    placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
+                    triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                    precision={slot.originPrecision}
+                    onEditPrecision={() => setIsOriginMapOpen(true)}
+                  />
+                </div>
+                {slot.origin && (
+                  <Popover open={isOriginMapOpen} onOpenChange={setIsOriginMapOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          "h-9 px-2 rounded-xl border flex items-center gap-1 transition-all cursor-pointer shrink-0 text-xs font-bold",
+                          slot.originPrecision === 'EXACT'
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800"
+                            : "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800"
+                        )}
+                        title="Edit exact facility pin / address for this trip"
+                      >
+                        <MapIcon className="w-3.5 h-3.5" />
+                        <span className="text-[10px]">
+                          {slot.originPrecision === 'EXACT' ? '✓ Exact' : '≈ Area (Edit)'}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-3 rounded-xl space-y-2.5 z-[9999]" align="end">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-brand" /> Edit Origin Facility Pin
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          {slot.originPrecision === 'EXACT' ? 'Trip Exact Override' : 'Approximate Area'}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Exact Yard / Dock Name</label>
+                        <input
+                          type="text"
+                          value={slot.originName || slot.origin || ''}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { originName: e.target.value })}
+                          placeholder="e.g. Abha Central Hub Gate 2"
+                          className="w-full h-8 px-2 text-xs rounded-lg border border-slate-200 font-semibold bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Exact Address</label>
+                        <input
+                          type="text"
+                          value={slot.originAddress || ''}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { originAddress: e.target.value })}
+                          placeholder="e.g. King Fahd Road, Abha"
+                          className="w-full h-8 px-2 text-xs rounded-lg border border-slate-200 font-semibold bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <TripStopMap
+                        tone="pickup"
+                        lat={slot.originLat}
+                        lng={slot.originLng}
+                        onChange={(la, ln) => {
+                          handleUpdateTripSlot(slot.id, {
+                            originLat: la,
+                            originLng: ln,
+                            originPrecision: 'EXACT'
+                          });
+                        }}
+                        height={160}
+                      />
+                      <label className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-300 font-semibold cursor-pointer pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <input
+                          type="checkbox"
+                          checked={slot.updateCanonicalOrigin === true}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { updateCanonicalOrigin: e.target.checked })}
+                          className="rounded border-slate-300 text-brand focus:ring-brand/20"
+                        />
+                        <span>Update Customer Master Location</span>
+                      </label>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          handleUpdateTripSlot(slot.id, { originPrecision: 'EXACT' });
+                          setIsOriginMapOpen(false);
+                        }}
+                        className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        Confirm Exact Pin for Trip
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
@@ -331,14 +426,104 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
                 )}
               </label>
-              <LocationCombobox
-                customerId={contractCustomer}
-                value={slot.destination}
-                hasError={Boolean(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination'])}
-                onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
-                placeholder="Search delivery destination (e.g. Al Baha Station)..."
-                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
-              />
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="flex-1 min-w-0">
+                  <LocationCombobox
+                    customerId={contractCustomer}
+                    value={slot.destination}
+                    hasError={Boolean(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination'])}
+                    onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
+                    placeholder="Search delivery destination (e.g. Al Baha Station)..."
+                    triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                    precision={slot.destinationPrecision}
+                    onEditPrecision={() => setIsDestinationMapOpen(true)}
+                  />
+                </div>
+                {slot.destination && (
+                  <Popover open={isDestinationMapOpen} onOpenChange={setIsDestinationMapOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          "h-9 px-2 rounded-xl border flex items-center gap-1 transition-all cursor-pointer shrink-0 text-xs font-bold",
+                          slot.destinationPrecision === 'EXACT'
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800"
+                            : "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800"
+                        )}
+                        title="Edit exact facility pin / address for this trip"
+                      >
+                        <MapIcon className="w-3.5 h-3.5" />
+                        <span className="text-[10px]">
+                          {slot.destinationPrecision === 'EXACT' ? '✓ Exact' : '≈ Area (Edit)'}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-3 rounded-xl space-y-2.5 z-[9999]" align="end">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-brand" /> Edit Destination Facility Pin
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          {slot.destinationPrecision === 'EXACT' ? 'Trip Exact Override' : 'Approximate Area'}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Exact Yard / Dock Name</label>
+                        <input
+                          type="text"
+                          value={slot.destinationName || slot.destination || ''}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { destinationName: e.target.value })}
+                          placeholder="e.g. Al Baha Receiving Gate 1"
+                          className="w-full h-8 px-2 text-xs rounded-lg border border-slate-200 font-semibold bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Exact Address</label>
+                        <input
+                          type="text"
+                          value={slot.destinationAddress || ''}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { destinationAddress: e.target.value })}
+                          placeholder="e.g. Main Highway, Al Baha"
+                          className="w-full h-8 px-2 text-xs rounded-lg border border-slate-200 font-semibold bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <TripStopMap
+                        tone="dropoff"
+                        lat={slot.destinationLat}
+                        lng={slot.destinationLng}
+                        onChange={(la, ln) => {
+                          handleUpdateTripSlot(slot.id, {
+                            destinationLat: la,
+                            destinationLng: ln,
+                            destinationPrecision: 'EXACT'
+                          });
+                        }}
+                        height={160}
+                      />
+                      <label className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-300 font-semibold cursor-pointer pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <input
+                          type="checkbox"
+                          checked={slot.updateCanonicalDestination === true}
+                          onChange={(e) => handleUpdateTripSlot(slot.id, { updateCanonicalDestination: e.target.checked })}
+                          className="rounded border-slate-300 text-brand focus:ring-brand/20"
+                        />
+                        <span>Update Customer Master Location</span>
+                      </label>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          handleUpdateTripSlot(slot.id, { destinationPrecision: 'EXACT' });
+                          setIsDestinationMapOpen(false);
+                        }}
+                        className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        Confirm Exact Pin for Trip
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
 
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}

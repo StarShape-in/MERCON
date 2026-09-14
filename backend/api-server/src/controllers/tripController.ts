@@ -746,7 +746,7 @@ export const createTrip = async (req: Request, res: Response) => {
               const stopName = String(stop.location_name ?? '').trim();
               let locId = stop.location_id || null;
               if (locId) {
-                const loc = await resolveLocation(tx, { id: locId, customerId: customer_id }, createdBy);
+                const loc = await resolveLocation(tx, { id: locId, customerId: customer_id, skipCanonicalUpdate: true }, createdBy);
                 if (loc) locId = loc.id;
               } else if (stopName) {
                 try {
@@ -758,6 +758,7 @@ export const createTrip = async (req: Request, res: Response) => {
                       address: String(stop.location_address ?? '').trim() || null,
                       lat: parseOptionalFloat(stop.lat),
                       lng: parseOptionalFloat(stop.lng),
+                      skipCanonicalUpdate: !stop.update_canonical_location,
                     },
                     createdBy
                   );
@@ -766,6 +767,26 @@ export const createTrip = async (req: Request, res: Response) => {
                   logger.warn({ err: e }, 'Failed to resolve location for trip stop');
                 }
               }
+
+              if (stop.update_canonical_location === true && locId) {
+                const parsedLat = parseOptionalFloat(stop.lat);
+                const parsedLng = parseOptionalFloat(stop.lng);
+                try {
+                  await tx.location.update({
+                    where: { id: locId },
+                    data: {
+                      ...(parsedLat != null ? { lat: parsedLat } : {}),
+                      ...(parsedLng != null ? { lng: parsedLng } : {}),
+                      ...(stop.location_address ? { address: String(stop.location_address).trim() } : {}),
+                      coordinate_precision: 'EXACT',
+                      updated_by: createdBy,
+                    },
+                  });
+                } catch (uErr) {
+                  logger.warn({ err: uErr }, 'Failed to update canonical location master data during trip creation');
+                }
+              }
+
               return { ...stop, location_id: locId };
             })
           );

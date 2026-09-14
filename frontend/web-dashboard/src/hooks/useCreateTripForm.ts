@@ -497,12 +497,17 @@ export function useCreateTripForm() {
     const locationId = locObj?.id ?? (isUuid(locIdOrName) ? locIdOrName : null);
     const displayName = locObj?.name || locObj?.address || (isUuid(locIdOrName) ? '' : locIdOrName);
     const isOrigin = field === 'origin';
+    const locPrecision = locObj?.coordinate_precision || (locObj?.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
 
     handleUpdateTripSlot(slotId, {
       [field]: displayName,
       [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
       [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
       [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
+      [isOrigin ? 'originName' : 'destinationName']: displayName,
+      [isOrigin ? 'originAddress' : 'destinationAddress']: locObj?.address || displayName,
+      [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
+      [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
       rateMatched: false,
     });
 

@@ -33,6 +33,10 @@ export interface TripLocationFieldProps {
   locations: Location[];
   autoFocusSearch?: boolean;
   shortcutBadge?: string;
+  precision?: CoordinatePrecision;
+  onPrecisionChange?: (precision: CoordinatePrecision) => void;
+  updateCanonicalLocation?: boolean;
+  onUpdateCanonicalLocationChange?: (update: boolean) => void;
 }
 
 export default function TripLocationField({
@@ -50,6 +54,10 @@ export default function TripLocationField({
   locations,
   autoFocusSearch,
   shortcutBadge,
+  precision: explicitPrecision,
+  onPrecisionChange,
+  updateCanonicalLocation = false,
+  onUpdateCanonicalLocationChange,
 }: TripLocationFieldProps) {
   const isPickup = tone === 'pickup';
 
@@ -64,6 +72,7 @@ export default function TripLocationField({
   const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
   const [isResolvingPlace, setIsResolvingPlace] = useState(false);
+  const [isTripOverrideExact, setIsTripOverrideExact] = useState(false);
   const [addressOptions, setAddressOptions] = useState<{ en: string | null; ar: string | null }>({
     en: null,
     ar: null,
@@ -105,6 +114,7 @@ export default function TripLocationField({
       onLocationChange('', null);
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
+      setIsTripOverrideExact(false);
       paste.reset();
       return;
     }
@@ -118,6 +128,8 @@ export default function TripLocationField({
       void (async () => {
         const place = await paste.resolve(val.trim(), (lat, lng) => {
           onCoordsChange(lat, lng);
+          setIsTripOverrideExact(true);
+          onPrecisionChange?.('EXACT');
         });
         if (!place) return;
         setQuery(place.name);
@@ -159,6 +171,8 @@ export default function TripLocationField({
       onCoordsChange(loc.lat, loc.lng);
     }
     onLocationChange(loc.id, loc);
+    setIsTripOverrideExact(false);
+    onPrecisionChange?.(loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN'));
     setIsDropdownOpen(false);
   };
 
@@ -174,6 +188,8 @@ export default function TripLocationField({
         onNameChange(resolved.name);
         onAddressChange(resolved.address || resolved.name);
         onCoordsChange(resolved.lat, resolved.lng);
+        setIsTripOverrideExact(true);
+        onPrecisionChange?.('EXACT');
       }
     } catch (e) {
       console.error('Failed to resolve place', e);
@@ -183,19 +199,25 @@ export default function TripLocationField({
     }
   };
 
-  const confirmExactFacility = async () => {
-    if (!activeSelectedLocation || lat == null || lng == null) return;
-    try {
-      const updated = await locationService.update(activeSelectedLocation.id, {
-        lat,
-        lng,
-        address: address || activeSelectedLocation.address,
-        coordinate_precision: 'EXACT',
-      });
-      onLocationChange(activeSelectedLocation.id, updated);
-    } catch (err) {
-      console.error("Failed to upgrade location precision:", err);
+  const setExactTripPin = async () => {
+    if (lat == null || lng == null) return;
+    setIsTripOverrideExact(true);
+    onPrecisionChange?.('EXACT');
+
+    if (updateCanonicalLocation && activeSelectedLocation) {
+      try {
+        const updated = await locationService.update(activeSelectedLocation.id, {
+          lat,
+          lng,
+          address: address || activeSelectedLocation.address,
+          coordinate_precision: 'EXACT',
+        });
+        onLocationChange(activeSelectedLocation.id, updated);
+      } catch (err) {
+        console.error("Failed to upgrade location master data:", err);
+      }
     }
+    setIsMapOpen(false);
   };
 
   const resolvedAddress = address || activeSelectedLocation?.address;
@@ -203,8 +225,10 @@ export default function TripLocationField({
 
   const currentPrecision: CoordinatePrecision = useMemo(() => {
     if (!hasCoords) return 'UNKNOWN';
+    if (explicitPrecision) return explicitPrecision;
+    if (isTripOverrideExact) return 'EXACT';
     return activeSelectedLocation?.coordinate_precision || 'APPROXIMATE';
-  }, [hasCoords, activeSelectedLocation]);
+  }, [hasCoords, explicitPrecision, isTripOverrideExact, activeSelectedLocation]);
 
   const isPasteBusy = paste.status.kind === 'resolving' || paste.status.kind === 'naming';
   const isBusy = isSearchingGoogle || isPasteBusy;
@@ -248,6 +272,7 @@ export default function TripLocationField({
                   onNameChange('');
                   onAddressChange('');
                   onLocationChange('', null);
+                  setIsTripOverrideExact(false);
                   setIsDropdownOpen(false);
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
@@ -274,17 +299,40 @@ export default function TripLocationField({
                 <MapIcon className="w-4 h-4" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-2.5 rounded-xl space-y-2" align="end">
-              <TripStopMap tone={tone} lat={lat} lng={lng} onChange={(la, ln) => onCoordsChange(la, ln)} height={180} />
-              {activeSelectedLocation && hasCoords && currentPrecision === 'APPROXIMATE' && (
-                <Button
-                  size="sm"
-                  onClick={confirmExactFacility}
-                  className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Confirm Exact Facility
-                </Button>
+            <PopoverContent className="w-80 p-2.5 rounded-xl space-y-2.5" align="end">
+              <TripStopMap
+                tone={tone}
+                lat={lat}
+                lng={lng}
+                onChange={(la, ln) => {
+                  onCoordsChange(la, ln);
+                  setIsTripOverrideExact(true);
+                  onPrecisionChange?.('EXACT');
+                }}
+                height={180}
+              />
+              {activeSelectedLocation && hasCoords && (
+                <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  {onUpdateCanonicalLocationChange && (
+                    <label className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-300 font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={updateCanonicalLocation}
+                        onChange={(e) => onUpdateCanonicalLocationChange(e.target.checked)}
+                        className="rounded border-slate-300 text-brand focus:ring-brand/20"
+                      />
+                      <span>Update Customer Master Location</span>
+                    </label>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={setExactTripPin}
+                    className="w-full h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Set Exact Trip Location
+                  </Button>
+                </div>
               )}
             </PopoverContent>
           </Popover>

@@ -13,6 +13,10 @@ import {
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 
+import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '@/services/settingsService';
+import type { ModuleKey } from '@mercon/shared-types';
+
 interface HeaderProps {
   title?: string;
   breadcrumb?: string;
@@ -22,10 +26,22 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
-const operationsItems = [
+interface OperationsItem {
+  label: string;
+  path: string;
+  icon: any;
+  moduleKey: ModuleKey;
+  iconColor: string;
+  activeClass: string;
+  hoverClass: string;
+  accentColor: string;
+}
+
+const rawOperationsItems: OperationsItem[] = [
   {
     label: 'Trips',
     path: '/trips',
+    moduleKey: 'trips',
     icon: Truck,
     iconColor: 'text-orange-500 dark:text-orange-400',
     activeClass: 'text-orange-600 dark:text-orange-400 bg-orange-50/90 dark:bg-orange-950/40 font-extrabold',
@@ -35,6 +51,7 @@ const operationsItems = [
   {
     label: 'Monthly Trips',
     path: '/trips/monthly',
+    moduleKey: 'trips',
     icon: CalendarRange,
     iconColor: 'text-purple-600 dark:text-purple-400',
     activeClass: 'text-purple-600 dark:text-purple-400 bg-purple-50/90 dark:bg-purple-950/40 font-extrabold',
@@ -44,6 +61,7 @@ const operationsItems = [
   {
     label: 'Drivers',
     path: '/drivers',
+    moduleKey: 'drivers',
     icon: Users,
     iconColor: 'text-emerald-500 dark:text-emerald-400',
     activeClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/90 dark:bg-emerald-950/40 font-extrabold',
@@ -53,6 +71,7 @@ const operationsItems = [
   {
     label: 'Vehicles',
     path: '/vehicles',
+    moduleKey: 'vehicles',
     icon: Car,
     iconColor: 'text-blue-500 dark:text-blue-400',
     activeClass: 'text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 font-extrabold',
@@ -62,6 +81,7 @@ const operationsItems = [
   {
     label: '3rd Party Fleet',
     path: '/third-party',
+    moduleKey: 'third-party',
     icon: Building2,
     iconColor: 'text-teal-600 dark:text-teal-400',
     activeClass: 'text-teal-600 dark:text-teal-400 bg-teal-50/90 dark:bg-teal-950/40 font-extrabold',
@@ -71,6 +91,7 @@ const operationsItems = [
   {
     label: 'Maintenance',
     path: '/maintenance',
+    moduleKey: 'maintenance',
     icon: Wrench,
     iconColor: 'text-rose-500 dark:text-rose-400',
     activeClass: 'text-rose-600 dark:text-rose-400 bg-rose-50/90 dark:bg-rose-950/40 font-extrabold',
@@ -80,6 +101,7 @@ const operationsItems = [
   {
     label: 'Customers',
     path: '/customers',
+    moduleKey: 'customers',
     icon: Building2,
     iconColor: 'text-indigo-600 dark:text-indigo-400',
     activeClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/40 font-extrabold',
@@ -93,8 +115,23 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
   const location = useLocation();
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+    staleTime: 60000,
+  });
+
+  const enabledModules = settings?.enabledModules;
+
+  const operationsItems = rawOperationsItems.filter((item) => {
+    if (isSuperAdmin) return true;
+    if (!enabledModules || !Array.isArray(enabledModules)) return true;
+    return enabledModules.includes(item.moduleKey);
+  });
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');

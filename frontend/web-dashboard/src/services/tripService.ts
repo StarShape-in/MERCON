@@ -260,8 +260,8 @@ export interface CreateTripPayload {
   third_party_cost?: number;
   stops: {
     stop_type: string;
-    lat: number;
-    lng: number;
+    lat?: number | null;
+    lng?: number | null;
     planned_arrival?: string;
     /** The exact yard/dock — what the driver navigates to. */
     location_name?: string;
@@ -269,6 +269,8 @@ export interface CreateTripPayload {
     location_address?: string;
     /** The lane endpoint this stop sits in ("Riyadh") — what the rate is priced against. */
     location_id?: string;
+    coordinate_precision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+    update_canonical_location?: boolean;
   }[];
 }
 

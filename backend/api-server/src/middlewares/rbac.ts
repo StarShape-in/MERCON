@@ -44,8 +44,15 @@ export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response
 
 // Gates an optional module's routes on this deployment's enabledModules list.
 export const requireModuleEnabled = (moduleKey: string) => {
-  return async (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      // SuperAdmins bypass backend module locks to configure and test endpoints
+      const roleLower = (req.user?.role || '').toLowerCase();
+      const isSuperAdminUser = roleLower === 'superadmin' || roleLower === 'super_admin' || (req.user as any)?.isSuperAdmin === true;
+      if (isSuperAdminUser) {
+        return next();
+      }
+
       const enabled = await getEnabledModules();
       if (!enabled.has(moduleKey)) {
         return res.status(403).json({ success: false, error: { code: 'MODULE_DISABLED', message: `The "${moduleKey}" module is not enabled on this deployment` } });

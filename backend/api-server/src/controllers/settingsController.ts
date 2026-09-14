@@ -153,6 +153,7 @@ export const updateSettings = async (req: Request, res: Response) => {
       defaultCountryCode,
       defaultCountryDialCode,
       enabledModules,
+      defaultRedirectModule,
     } = req.body;
 
     const data: Record<string, unknown> = {};
@@ -172,6 +173,7 @@ export const updateSettings = async (req: Request, res: Response) => {
     }
     if (defaultCountryCode !== undefined) data.defaultCountryCode = String(defaultCountryCode).trim();
     if (defaultCountryDialCode !== undefined) data.defaultCountryDialCode = String(defaultCountryDialCode).trim();
+    if (defaultRedirectModule !== undefined) data.defaultRedirectModule = String(defaultRedirectModule).trim();
     if (enabledModules !== undefined) {
       if (!Array.isArray(enabledModules) || !enabledModules.every((m) => typeof m === 'string')) {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'enabledModules must be an array of strings' } });

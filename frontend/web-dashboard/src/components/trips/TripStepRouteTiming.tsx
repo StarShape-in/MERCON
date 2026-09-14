@@ -32,6 +32,14 @@ interface TripStepRouteTimingProps {
   onDropoffCoordinatesChange: (lat: number | null, lng: number | null) => void;
   onDropoffNameChange: (name: string) => void;
   onDropoffAddressChange: (address: string) => void;
+  pickupPrecision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+  onPickupPrecisionChange?: (p: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN') => void;
+  updateCanonicalPickup?: boolean;
+  onUpdateCanonicalPickupChange?: (u: boolean) => void;
+  dropoffPrecision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+  onDropoffPrecisionChange?: (p: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN') => void;
+  updateCanonicalDropoff?: boolean;
+  onUpdateCanonicalDropoffChange?: (u: boolean) => void;
   focusPickupSearch?: boolean;
   focusDropoffSearch?: boolean;
   // Truck Arrival Time (the only manually-entered time in this step)
@@ -65,6 +73,14 @@ export default function TripStepRouteTiming({
   onDropoffCoordinatesChange,
   onDropoffNameChange,
   onDropoffAddressChange,
+  pickupPrecision,
+  onPickupPrecisionChange,
+  updateCanonicalPickup,
+  onUpdateCanonicalPickupChange,
+  dropoffPrecision,
+  onDropoffPrecisionChange,
+  updateCanonicalDropoff,
+  onUpdateCanonicalDropoffChange,
   focusPickupSearch,
   focusDropoffSearch,
   truckArrivalTime,
@@ -116,6 +132,10 @@ export default function TripStepRouteTiming({
             locations={locations}
             autoFocusSearch={focusPickupSearch}
             shortcutBadge="\"
+            precision={pickupPrecision}
+            onPrecisionChange={onPickupPrecisionChange}
+            updateCanonicalLocation={updateCanonicalPickup}
+            onUpdateCanonicalLocationChange={onUpdateCanonicalPickupChange}
           />
 
           <TripLocationField
@@ -141,6 +161,10 @@ export default function TripStepRouteTiming({
             locations={locations}
             autoFocusSearch={focusDropoffSearch}
             shortcutBadge="Shift+\"
+            precision={dropoffPrecision}
+            onPrecisionChange={onDropoffPrecisionChange}
+            updateCanonicalLocation={updateCanonicalDropoff}
+            onUpdateCanonicalLocationChange={onUpdateCanonicalDropoffChange}
           />
         </div>
 
@@ -179,14 +203,16 @@ export default function TripStepRouteTiming({
           const dLoc = locations.find((l) => l.id === dropoffLocationId || l.name === dropoffName);
 
           const pCode = pLoc?.code || 'ORIGIN';
-          const pName = pLoc?.name || pickupName || pickupLocationName || 'Pickup Location';
+          const pLabelName = pLoc?.name || pickupName || pickupLocationName || 'Pickup Location';
           const pAddr = pLoc?.address || pickupAddress || pLoc?.city || '';
-          const pPrec = pLoc?.coordinate_precision || (pickupLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+          const pPrec = pickupPrecision || pLoc?.coordinate_precision || (pickupLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+          const isPickupOverride = pickupPrecision === 'EXACT' && pLoc?.coordinate_precision === 'APPROXIMATE';
 
           const dCode = dLoc?.code || 'DEST';
-          const dName = dLoc?.name || dropoffName || dropoffLocationName || 'Dropoff Location';
+          const dLabelName = dLoc?.name || dropoffName || dropoffLocationName || 'Dropoff Location';
           const dAddr = dLoc?.address || dropoffAddress || dLoc?.city || '';
-          const dPrec = dLoc?.coordinate_precision || (dropoffLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+          const dPrec = dropoffPrecision || dLoc?.coordinate_precision || (dropoffLat != null ? 'APPROXIMATE' : 'UNKNOWN');
+          const isDropoffOverride = dropoffPrecision === 'EXACT' && dLoc?.coordinate_precision === 'APPROXIMATE';
 
           return (
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 space-y-3 font-sans">
@@ -212,9 +238,10 @@ export default function TripStepRouteTiming({
                       <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 rounded">
                         {pCode}
                       </span>
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{pName}</span>
-                      {pPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
-                      {pPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{pLabelName}</span>
+                      {isPickupOverride && <span className="text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 px-1.5 py-0.2 rounded-md">★ Trip Exact</span>}
+                      {!isPickupOverride && pPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
+                      {!isPickupOverride && pPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
                       {pPrec === 'UNKNOWN' && <span className="text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.2 rounded-md">○ Not Pinned</span>}
                     </div>
                     {pAddr && <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{pAddr}</p>}
@@ -232,9 +259,10 @@ export default function TripStepRouteTiming({
                       <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 rounded">
                         {dCode}
                       </span>
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{dName}</span>
-                      {dPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
-                      {dPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{dLabelName}</span>
+                      {isDropoffOverride && <span className="text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 px-1.5 py-0.2 rounded-md">★ Trip Exact</span>}
+                      {!isDropoffOverride && dPrec === 'EXACT' && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.2 rounded-md">✓ Exact</span>}
+                      {!isDropoffOverride && dPrec === 'APPROXIMATE' && <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 px-1.5 py-0.2 rounded-md">≈ Area</span>}
                       {dPrec === 'UNKNOWN' && <span className="text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.2 rounded-md">○ Not Pinned</span>}
                     </div>
                     {dAddr && <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{dAddr}</p>}

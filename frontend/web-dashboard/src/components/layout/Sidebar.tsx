@@ -9,6 +9,9 @@ import {
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
 
+import { settingsService } from '@/services/settingsService';
+import type { ModuleKey } from '@mercon/shared-types';
+
 interface SidebarProps {
   active?: string;
   /** Mobile drawer open state — ignored at lg and above, where the sidebar is always visible */
@@ -22,13 +25,12 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-
-
 export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
 
   const isItemActive = (itemPath: string, itemEnd?: boolean) => {
@@ -69,47 +71,87 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     refetchInterval: 60000,
   });
 
-  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+    staleTime: 60000,
+  });
 
-  const groups = [
+  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
+  const enabledModules = settings?.enabledModules;
+
+  interface NavItem {
+    icon: any;
+    label: string;
+    path: string;
+    moduleKey?: ModuleKey;
+    end?: boolean;
+    badge?: number;
+  }
+
+  const rawGroups: { label: string; items: NavItem[] }[] = [
     {
       label: '',
       items: [
-        { icon: Home, label: 'Dashboard', path: '/' },
+        { icon: Home, label: 'Dashboard', path: '/', moduleKey: 'dashboard' },
+      ],
+    },
+    {
+      label: 'OPERATIONS',
+      items: [
+        { icon: Truck, label: 'Trips Ledger', path: '/trips', moduleKey: 'trips' },
+        { icon: Users, label: 'Drivers', path: '/drivers', moduleKey: 'drivers' },
+        { icon: Car, label: 'Vehicles', path: '/vehicles', moduleKey: 'vehicles' },
+        { icon: Building2, label: 'Customers', path: '/customers', moduleKey: 'customers' },
+        { icon: Wrench, label: 'Maintenance', path: '/maintenance', moduleKey: 'maintenance' },
+        { icon: Truck, label: 'Third Parties', path: '/third-party', moduleKey: 'third-party' },
       ],
     },
     {
       label: 'FINANCE',
       items: [
-        { icon: Calculator, label: 'Quotations', path: '/quotations' },
-        { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials' },
+        { icon: Calculator, label: 'Quotations', path: '/quotations', moduleKey: 'quotations' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses' },
+        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials', moduleKey: 'vehicles' },
       ],
     },
     {
       label: 'COMPLIANCE & REPORTS',
       items: [
-        { icon: Files, label: 'Documents', path: '/documents' },
-        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports' },
-        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder' },
+        { icon: Files, label: 'Documents', path: '/documents', moduleKey: 'documents' },
+        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports' },
+        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder', moduleKey: 'report-builder' },
       ],
     },
     {
       label: 'MASTER DATA',
       items: [
-        { icon: MapPin, label: 'Locations', path: '/locations' },
-        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy' },
+        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations' },
+        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy', moduleKey: 'taxonomy' },
       ],
     },
     {
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
+        ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance' }] : []),
         ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents' },
+        { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents', moduleKey: 'aprodac-documents' },
       ],
     },
   ];
+
+  const groups = rawGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((item) => {
+        if (!item.moduleKey) return true;
+        if (isSuperAdmin) return true;
+        if (!enabledModules || !Array.isArray(enabledModules)) return true;
+        return enabledModules.includes(item.moduleKey);
+      }),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <>

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   User, Shield, Building2, Bell, Key, Save, CheckCircle2,
-  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings, Layers, Palette, Activity
+  AlertTriangle, Upload, Loader2, Globe, ChevronDown, Check, Lock, Clock, Mail, Phone, Sliders, Settings, Layers, Palette, Activity, SlidersHorizontal
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -764,52 +764,21 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Modules Config Grid */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Active Logistics Modules</Label>
-                      <span className="text-[10px] text-slate-500 block leading-normal mt-0.5">Toggle optional workspace modules on the dashboard</span>
+                  {/* Module Governance Shortcut for SuperAdmin */}
+                  {user?.isSuperAdmin && (
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Module & Page Governance</Label>
+                        <span className="text-[10px] text-slate-500 block leading-normal mt-0.5">Configure active logistics modules, feature toggles & fallback landing pages on the dedicated SuperAdmin page</span>
+                      </div>
+                      <Link to="/settings/module-governance" className="shrink-0">
+                        <Button type="button" variant="outline" size="sm" className="text-xs font-bold gap-2 cursor-pointer border-brand/40 text-brand hover:bg-orange-50 dark:hover:bg-orange-950/30">
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          <span>Module Governance</span>
+                        </Button>
+                      </Link>
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {MODULE_KEYS.filter((k) => k !== 'recycle-bin').map((key) => {
-                        const isEnabled = enabledModules.includes(key);
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => toggleModule(key)}
-                            disabled={!user?.isSuperAdmin}
-                            className={cn(
-                              "flex items-start gap-3.5 p-3.5 rounded-2xl border text-left transition-all hover:bg-slate-50/50 dark:hover:bg-slate-800/20 cursor-pointer",
-                              isEnabled
-                                ? "border-brand bg-orange-50/5 text-slate-900 dark:text-slate-100 dark:bg-orange-950/5"
-                                : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950",
-                              !user?.isSuperAdmin && "opacity-75 cursor-not-allowed"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                              isEnabled ? "bg-brand border-brand text-white" : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                            )}>
-                              {isEnabled && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <span className="text-xs font-bold block capitalize leading-none mb-1">{key.replace(/-/g, ' ')}</span>
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-tight font-medium">
-                                {key === 'invoices' && 'Manage customer billing, payments & invoices ledger.'}
-                                {key === 'expenses' && 'Track operational expenses, fuel logs & cash flows.'}
-                                {key === 'maintenance' && 'Manage vehicle service tasks, workshop records & inspections.'}
-                                {key === 'reports' && 'Generate dispatch reports, performance & audit summaries.'}
-                                {key === 'documents' && 'Store, assign & track driver & vehicle documents.'}
-                                {key === 'company-reports' && 'Configure and generate company-specific custom Excel reports.'}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  )}
 
                   {brandingSuccess && (
                     <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-2 animate-fade-in">

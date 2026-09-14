@@ -114,6 +114,7 @@ const DocumentTypeAdminPage   = lazyWithRetry(() => import('@/pages/settings/Doc
 const TaxonomySettingsPage    = lazyWithRetry(() => import('@/pages/settings/TaxonomySettingsPage'));
 const BrandingSettingsPage    = lazyWithRetry(() => import('@/pages/settings/BrandingSettingsPage'));
 const SystemHealthPage        = lazyWithRetry(() => import('@/pages/settings/SystemHealthPage'));
+const ModuleGovernancePage    = lazyWithRetry(() => import('@/pages/settings/ModuleGovernancePage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -182,80 +183,80 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           >
-            <Route path="/"            element={<DashboardPage />} />
+            <Route path="/"            element={<RequireModule moduleKey="dashboard"><DashboardPage /></RequireModule>} />
             <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* Trips */}
-            <Route path="/trips"                    element={<TripListPage />} />
+            <Route path="/trips"                    element={<RequireModule moduleKey="trips"><TripListPage /></RequireModule>} />
             <Route path="/trips/kanban"             element={<Navigate to="/trips?view=kanban" replace />} />
-            <Route path="/trips/new"                element={<CreateTripPage />} />
+            <Route path="/trips/new"                element={<RequireModule moduleKey="trips"><CreateTripPage /></RequireModule>} />
             {/* Literal path before /trips/:id, which would otherwise match it. */}
-            <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
+            <Route path="/trips/monthly"            element={<RequireModule moduleKey="trips"><MonthlyTripsPage /></RequireModule>} />
             <Route path="/trips/monthly/new"        element={<Navigate to="/trips/new?mode=monthly" replace />} />
-            <Route path="/trips/:id"                element={<WithIdKey Page={TripDetailsPage} />} />
-            <Route path="/trips/:id/edit"           element={<WithIdKey Page={EditTripPage} />} />
-            <Route path="/trips/:id/track"          element={<WithIdKey Page={TripTrackingPage} />} />
-            <Route path="/trips/:id/completion"     element={<WithIdKey Page={TripCompletionPage} />} />
+            <Route path="/trips/:id"                element={<RequireModule moduleKey="trips"><WithIdKey Page={TripDetailsPage} /></RequireModule>} />
+            <Route path="/trips/:id/edit"           element={<RequireModule moduleKey="trips"><WithIdKey Page={EditTripPage} /></RequireModule>} />
+            <Route path="/trips/:id/track"          element={<RequireModule moduleKey="trips"><WithIdKey Page={TripTrackingPage} /></RequireModule>} />
+            <Route path="/trips/:id/completion"     element={<RequireModule moduleKey="trips"><WithIdKey Page={TripCompletionPage} /></RequireModule>} />
 
             {/* Third Party */}
-            <Route path="/third-party"              element={<ThirdPartyListPage />} />
-            <Route path="/third-party/:id"          element={<WithIdKey Page={ThirdPartyDetailsPage} />} />
-            <Route path="/drivers"                  element={<DriverListPage />} />
-            <Route path="/drivers/new"              element={<AddDriverPage />} />
-            <Route path="/drivers/:id"              element={<WithIdKey Page={DriverDetailsPage} />} />
-            <Route path="/drivers/:id/edit"         element={<EditDriverPage />} />
-            <Route path="/drivers/:id/documents"    element={<DriverDocumentsPage />} />
-            <Route path="/drivers/:id/trips"        element={<DriverTripsPage />} />
+            <Route path="/third-party"              element={<RequireModule moduleKey="third-party"><ThirdPartyListPage /></RequireModule>} />
+            <Route path="/third-party/:id"          element={<RequireModule moduleKey="third-party"><WithIdKey Page={ThirdPartyDetailsPage} /></RequireModule>} />
+            <Route path="/drivers"                  element={<RequireModule moduleKey="drivers"><DriverListPage /></RequireModule>} />
+            <Route path="/drivers/new"              element={<RequireModule moduleKey="drivers"><AddDriverPage /></RequireModule>} />
+            <Route path="/drivers/:id"              element={<RequireModule moduleKey="drivers"><WithIdKey Page={DriverDetailsPage} /></RequireModule>} />
+            <Route path="/drivers/:id/edit"         element={<RequireModule moduleKey="drivers"><EditDriverPage /></RequireModule>} />
+            <Route path="/drivers/:id/documents"    element={<RequireModule moduleKey="drivers"><DriverDocumentsPage /></RequireModule>} />
+            <Route path="/drivers/:id/trips"        element={<RequireModule moduleKey="drivers"><DriverTripsPage /></RequireModule>} />
 
             {/* Vehicles */}
-            <Route path="/vehicles"                 element={<VehicleListPage />} />
-            <Route path="/vehicles/financials"      element={<VehicleFinancialsPage />} />
-            <Route path="/vehicles/new"             element={<AddVehiclePage />} />
-            <Route path="/vehicles/:id"             element={<VehicleDetailsPage />} />
-            <Route path="/vehicles/:id/edit"        element={<EditVehiclePage />} />
-            <Route path="/vehicles/:id/documents"   element={<VehicleDocumentsPage />} />
-            <Route path="/vehicles/:id/financials"  element={<VehicleSingleFinancialsPage />} />
+            <Route path="/vehicles"                 element={<RequireModule moduleKey="vehicles"><VehicleListPage /></RequireModule>} />
+            <Route path="/vehicles/financials"      element={<RequireModule moduleKey="vehicles"><VehicleFinancialsPage /></RequireModule>} />
+            <Route path="/vehicles/new"             element={<RequireModule moduleKey="vehicles"><AddVehiclePage /></RequireModule>} />
+            <Route path="/vehicles/:id"             element={<RequireModule moduleKey="vehicles"><VehicleDetailsPage /></RequireModule>} />
+            <Route path="/vehicles/:id/edit"        element={<RequireModule moduleKey="vehicles"><EditVehiclePage /></RequireModule>} />
+            <Route path="/vehicles/:id/documents"   element={<RequireModule moduleKey="vehicles"><VehicleDocumentsPage /></RequireModule>} />
+            <Route path="/vehicles/:id/financials"  element={<RequireModule moduleKey="vehicles"><VehicleSingleFinancialsPage /></RequireModule>} />
             <Route path="/maintenance"              element={<RequireModule moduleKey="maintenance"><MaintenanceListPage /></RequireModule>} />
-            <Route path="/maintenance/new"          element={<AddMaintenancePage />} />
-            <Route path="/maintenance/:id"          element={<MaintenanceDetailsPage />} />
-            <Route path="/maintenance/:id/edit"     element={<EditMaintenancePage />} />
+            <Route path="/maintenance/new"          element={<RequireModule moduleKey="maintenance"><AddMaintenancePage /></RequireModule>} />
+            <Route path="/maintenance/:id"          element={<RequireModule moduleKey="maintenance"><MaintenanceDetailsPage /></RequireModule>} />
+            <Route path="/maintenance/:id/edit"     element={<RequireModule moduleKey="maintenance"><EditMaintenancePage /></RequireModule>} />
 
             {/* Customers */}
-            <Route path="/customers"                          element={<CustomerListPage />} />
-            <Route path="/customers/new"                      element={<AddCustomerPage />} />
-            <Route path="/customers/:id"                      element={<WithIdKey Page={CustomerDetailsPage} />} />
-            <Route path="/customers/:id/edit"                 element={<EditCustomerPage />} />
-            <Route path="/customers/:customerId/locations/create" element={<AddLocationPage />} />
-            <Route path="/customers/:customerId/locations/new"    element={<AddLocationPage />} />
+            <Route path="/customers"                          element={<RequireModule moduleKey="customers"><CustomerListPage /></RequireModule>} />
+            <Route path="/customers/new"                      element={<RequireModule moduleKey="customers"><AddCustomerPage /></RequireModule>} />
+            <Route path="/customers/:id"                      element={<RequireModule moduleKey="customers"><WithIdKey Page={CustomerDetailsPage} /></RequireModule>} />
+            <Route path="/customers/:id/edit"                 element={<RequireModule moduleKey="customers"><EditCustomerPage /></RequireModule>} />
+            <Route path="/customers/:customerId/locations/create" element={<RequireModule moduleKey="customers"><AddLocationPage /></RequireModule>} />
+            <Route path="/customers/:customerId/locations/new"    element={<RequireModule moduleKey="customers"><AddLocationPage /></RequireModule>} />
 
             {/* Locations */}
-            <Route path="/locations"                element={<LocationListPage />} />
-            <Route path="/locations/create"         element={<AddLocationPage />} />
-            <Route path="/locations/new"            element={<AddLocationPage />} />
-            <Route path="/locations/:id"            element={<LocationDetailsPage />} />
+            <Route path="/locations"                element={<RequireModule moduleKey="locations"><LocationListPage /></RequireModule>} />
+            <Route path="/locations/create"         element={<RequireModule moduleKey="locations"><AddLocationPage /></RequireModule>} />
+            <Route path="/locations/new"            element={<RequireModule moduleKey="locations"><AddLocationPage /></RequireModule>} />
+            <Route path="/locations/:id"            element={<RequireModule moduleKey="locations"><LocationDetailsPage /></RequireModule>} />
 
             {/* Master Data Taxonomy & Universal Colors */}
-            <Route path="/taxonomy"                 element={<TaxonomyManagementPage />} />
-            <Route path="/master-data/taxonomy"     element={<TaxonomyManagementPage />} />
+            <Route path="/taxonomy"                 element={<RequireModule moduleKey="taxonomy"><TaxonomyManagementPage /></RequireModule>} />
+            <Route path="/master-data/taxonomy"     element={<RequireModule moduleKey="taxonomy"><TaxonomyManagementPage /></RequireModule>} />
             <Route path="/master-data"              element={<Navigate to="/taxonomy" replace />} />
 
             {/* Commercial Agreements Redirect */}
             <Route path="/commercial-agreements" element={<Navigate to="/quotations" replace />} />
 
             {/* Quotations (Canonical) & Rate Cards (Legacy Alias) */}
-            <Route path="/quotations"               element={<QuotationListPage />} />
-            <Route path="/quotations/new"           element={<AddQuotationPage />} />
-            <Route path="/quotations/import"        element={<QuotationAiImportPage />} />
+            <Route path="/quotations"               element={<RequireModule moduleKey="quotations"><QuotationListPage /></RequireModule>} />
+            <Route path="/quotations/new"           element={<RequireModule moduleKey="quotations"><AddQuotationPage /></RequireModule>} />
+            <Route path="/quotations/import"        element={<RequireModule moduleKey="quotations"><QuotationAiImportPage /></RequireModule>} />
             <Route path="/quotations/:id"           element={<QuotationIdRedirect />} />
-            <Route path="/quotations/:id/edit"      element={<EditQuotationPage />} />
-            <Route path="/quotations/:id/documents" element={<QuotationDocsPage />} />
+            <Route path="/quotations/:id/edit"      element={<RequireModule moduleKey="quotations"><EditQuotationPage /></RequireModule>} />
+            <Route path="/quotations/:id/documents" element={<RequireModule moduleKey="quotations"><QuotationDocsPage /></RequireModule>} />
 
-            <Route path="/rate-cards"               element={<QuotationListPage />} />
-            <Route path="/rate-cards/new"           element={<AddQuotationPage />} />
-            <Route path="/rate-cards/import"        element={<QuotationAiImportPage />} />
+            <Route path="/rate-cards"               element={<RequireModule moduleKey="quotations"><QuotationListPage /></RequireModule>} />
+            <Route path="/rate-cards/new"           element={<RequireModule moduleKey="quotations"><AddQuotationPage /></RequireModule>} />
+            <Route path="/rate-cards/import"        element={<RequireModule moduleKey="quotations"><QuotationAiImportPage /></RequireModule>} />
             <Route path="/rate-cards/:id"           element={<QuotationIdRedirect />} />
-            <Route path="/rate-cards/:id/edit"      element={<EditQuotationPage />} />
-            <Route path="/rate-cards/:id/documents" element={<QuotationDocsPage />} />
+            <Route path="/rate-cards/:id/edit"      element={<RequireModule moduleKey="quotations"><EditQuotationPage /></RequireModule>} />
+            <Route path="/rate-cards/:id/documents" element={<RequireModule moduleKey="quotations"><QuotationDocsPage /></RequireModule>} />
 
             {/* Expenses */}
             <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
@@ -268,12 +269,12 @@ export default function AppRouter() {
             <Route path="/docs/:docId"              element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
             <Route path="/documents/details/:docId" element={<RequireModule moduleKey="documents"><DocumentDetailPage /></RequireModule>} />
             <Route path="/documents/:ownerType/:ownerId" element={<RequireModule moduleKey="documents"><OwnerFolderPage /></RequireModule>} />
-            <Route path="/aprodac-documents"        element={<AprodacDocumentsPage />} />
+            <Route path="/aprodac-documents"        element={<RequireModule moduleKey="aprodac-documents"><AprodacDocumentsPage /></RequireModule>} />
             <Route path="/aprodac"                  element={<Navigate to="/aprodac-documents" replace />} />
 
             {/* Custom Report Builder */}
-            <Route path="/custom-report"            element={<CustomReportPage />} />
-            <Route path="/reports/custom"          element={<CustomReportPage />} />
+            <Route path="/custom-report"            element={<RequireModule moduleKey="reports"><CustomReportPage /></RequireModule>} />
+            <Route path="/reports/custom"          element={<RequireModule moduleKey="reports"><CustomReportPage /></RequireModule>} />
 
             {/* Reports (Legacy -> Redirect to Company Reports) */}
             <Route path="/reports/*"                element={<Navigate to="/company-reports" replace />} />
@@ -283,9 +284,9 @@ export default function AppRouter() {
             <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
 
             {/* Smart Report Builder */}
-            <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
-            <Route path="/report-builder/quick"    element={<QuickReportPage />} />
-            <Route path="/report-builder/advanced" element={<AdvancedBuilderPage />} />
+            <Route path="/report-builder"          element={<RequireModule moduleKey="report-builder"><ReportBuilderLandingPage /></RequireModule>} />
+            <Route path="/report-builder/quick"    element={<RequireModule moduleKey="report-builder"><QuickReportPage /></RequireModule>} />
+            <Route path="/report-builder/advanced" element={<RequireModule moduleKey="report-builder"><AdvancedBuilderPage /></RequireModule>} />
 
             {/* Settings & Governance */}
             <Route path="/settings"                 element={<SettingsPage />} />
@@ -295,6 +296,7 @@ export default function AppRouter() {
             <Route path="/settings/taxonomy"        element={<RequireRole roles={['SuperAdmin']}><TaxonomySettingsPage /></RequireRole>} />
             <Route path="/settings/branding"        element={<RequireRole roles={['SuperAdmin']}><BrandingSettingsPage /></RequireRole>} />
             <Route path="/settings/system-health"   element={<RequireRole roles={['SuperAdmin']}><SystemHealthPage /></RequireRole>} />
+            <Route path="/settings/module-governance" element={<RequireRole roles={['SuperAdmin']}><ModuleGovernancePage /></RequireRole>} />
           </Route>
 
           {/* Fallback */}

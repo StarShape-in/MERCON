@@ -41,8 +41,16 @@ export interface TripSlot {
   returnIntermediateStopFees?: string[];
   originLat?: number | null;
   originLng?: number | null;
+  originName?: string;
+  originAddress?: string;
+  originPrecision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+  updateCanonicalOrigin?: boolean;
   destinationLat?: number | null;
   destinationLng?: number | null;
+  destinationName?: string;
+  destinationAddress?: string;
+  destinationPrecision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+  updateCanonicalDestination?: boolean;
   returnOriginLat?: number | null;
   returnOriginLng?: number | null;
   returnDestinationLat?: number | null;
