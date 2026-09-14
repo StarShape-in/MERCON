@@ -250,7 +250,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
           </span>
           {Number(primarySlot.driverPayout) > 0 && (
             <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400">
-              Driver Payout: SAR {(Math.round(((Number(primarySlot.driverPayout) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip
+              Driver Payout: SAR {Number(primarySlot.driverPayout).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip
             </span>
           )}
         </div>
