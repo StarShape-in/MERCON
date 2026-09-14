@@ -786,16 +786,16 @@ export default function LocationDetailsPage() {
                         >
                           <div className="flex items-center gap-3">
                             <span className="font-mono font-black text-slate-900 dark:text-slate-100">
-                              {q.quotationNumber}
+                              {q.name || q.quotationNumber}
                             </span>
                             <span className="font-bold text-slate-700 dark:text-slate-300">
                               {origin} → {dest}
                             </span>
                             <span className="text-[11px] text-slate-500">
-                              {q.vehicle_class || q.billing_type || 'Per Trip'}
+                              {q.vehicle_class || q.operation_type || q.billing_type || 'Per Trip'}
                             </span>
                             <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                              SAR {q.rate_amount != null ? Number(q.rate_amount).toLocaleString() : '—'}
+                              SAR {(q.rate ?? q.rate_amount) != null ? Number(q.rate ?? q.rate_amount).toLocaleString() : '—'}
                             </span>
                           </div>
                           <Link

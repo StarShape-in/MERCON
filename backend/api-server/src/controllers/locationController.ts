@@ -346,9 +346,9 @@ export const getLocationById = async (req: Request, res: Response) => {
             quotation: {
               select: {
                 id: true,
-                quotationNumber: true,
-                status: true,
-                rate_amount: true,
+                name: true,
+                is_active: true,
+                rate: true,
                 currency: true,
                 operation_type: true,
                 vehicle_class: true,

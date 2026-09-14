@@ -500,7 +500,7 @@ export const deleteQuotation = async (req: Request, res: Response) => {
 
     const quotation = await prisma.quotation.findFirst({
       where: { id: targetId, deletedAt: null },
-      select: { id: true, quotationNumber: true, name: true }
+      select: { id: true, name: true }
     });
 
     if (!quotation) {
@@ -512,7 +512,7 @@ export const deleteQuotation = async (req: Request, res: Response) => {
     });
 
     if (linkedTripsCount > 0 && !force) {
-      const label = quotation.name || quotation.quotationNumber || targetId;
+      const label = quotation.name || targetId;
       return res.status(409).json({
         success: false,
         error: {
