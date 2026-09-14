@@ -210,11 +210,11 @@ export default function TripKanbanCard({
       )}
     >
       {/* ── ROW 1: Trip Type badge (left) + Trip ID + ··· menu (right) ─────── */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-1.5 w-full min-w-0">
         {/* Left cluster: Checkbox + Trip type label */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
           {showCheckbox && onToggleSelect && (
-            <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+            <div onClick={(e) => e.stopPropagation()} className="flex items-center shrink-0">
               <Checkbox 
                 checked={isSelected} 
                 onCheckedChange={() => onToggleSelect(trip)} 
@@ -226,7 +226,7 @@ export default function TripKanbanCard({
             </div>
           )}
           <span className={cn(
-            'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase',
+            'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase shrink-0',
             trip.is_third_party
               ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
               : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
@@ -234,20 +234,20 @@ export default function TripKanbanCard({
             {tripType}
           </span>
           {legInfo?.badgeText && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded border tracking-tight uppercase bg-amber-50 text-amber-700 border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700">
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded border tracking-tight uppercase bg-amber-50 text-amber-700 border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 shrink-0">
               {legInfo.badgeText}
             </span>
           )}
         </div>
 
         {/* Right cluster: ref_id + actions menu */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          <span className="font-mono text-[11px] font-black text-slate-700 dark:text-slate-300 group-hover:text-brand transition-colors tracking-tight">
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <span className="font-mono text-[11px] font-black text-[#FA634E] dark:text-[#FA634E] tracking-tight shrink-0 whitespace-nowrap">
             {trip.ref_id}
           </span>
 
           {/* Quick Action Dropdown */}
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
