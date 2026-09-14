@@ -272,9 +272,18 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       });
     });
 
-    // This is the path the GPS geofence takes, so it is where most real
-    // delays surface. Fired post-commit, and never allowed to fail the
-    // driver's status update.
+    // Mark pending external app screenshots as Verified on status update
+    if (updatedTrip && (trip as any).driver_workflow === 'EXTERNAL_APP') {
+      try {
+        await prisma.document.updateMany({
+          where: { entity_type: 'Trip', entity_id: id, status: 'PendingReview' },
+          data: { status: 'Verified' },
+        });
+      } catch (docErr) {
+        logger.warn({ err: docErr }, 'Failed to update pending document status:');
+      }
+    }
+
     if (delay) await notifyOperatorsOfDelay(delay);
 
     res.json({ success: true, data: await attachTripDocuments(updatedTrip) });
@@ -599,9 +608,13 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     });
 
     // 3. Validation and lifecycle transition logic
+    const autoApply = req.body?.auto_apply === 'true' || req.body?.auto_apply === true || req.query?.auto_apply === 'true';
     let applied = false;
+    let canConfirm = false;
     let transitionReason: string | null = null;
     let delayNotification: DelayDetection | null = null;
+    let targetStatus: TripStatus | null = null;
+    let targetWorkflowState: string | null = null;
 
     const detectedEvent = aiResult.detected_event_type;
     const confidence = aiResult.confidence ?? 0;
@@ -625,9 +638,6 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     } else if (isWrongTrip) {
       transitionReason = `Wrong trip screenshot! Screenshot shows reference (${aiResult.external_reference || 'other order'}) which does not match current trip TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
     } else if (detectedEvent && confidence >= 0.70) {
-      let targetStatus: TripStatus | null = null;
-      let targetWorkflowState: string | null = null;
-
       if (detectedEvent === 'ARRIVED_AT_PICKUP') {
         targetStatus = TripStatus.Loading;
         targetWorkflowState = 'ARRIVED_AT_PICKUP';
@@ -649,37 +659,41 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
       }
 
       if (targetStatus && isValidTransition(trip.status, targetStatus)) {
-        try {
-          delayNotification = await prisma.$transaction(async (tx) => {
-            let delay: DelayDetection | null = null;
-            if (targetStatus === TripStatus.Completed) {
-              await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
-              await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
-              await tx.trip.update({
-                where: { id: trip.id },
-                data: {
-                  driver_workflow_state: 'COMPLETED',
-                  updated_by: (req as any).user?.id || null,
-                },
-              });
-            } else {
-              delay = await stampStopTransition(tx, trip.id, targetStatus);
-              await stampWorkflowTransition(tx, trip.id, targetWorkflowState!, undefined);
-              await tx.trip.update({
-                where: { id: trip.id },
-                data: {
-                  status: targetStatus,
-                  driver_workflow_state: targetWorkflowState,
-                  updated_by: (req as any).user?.id || null,
-                },
-              });
-            }
-            return delay;
-          });
-          applied = true;
-        } catch (txErr: any) {
-          logger.error({ err: txErr }, 'Failed to apply extracted lifecycle transition:');
-          transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
+        canConfirm = true;
+        if (autoApply) {
+          try {
+            delayNotification = await prisma.$transaction(async (tx) => {
+              let delay: DelayDetection | null = null;
+              if (targetStatus === TripStatus.Completed) {
+                await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
+                await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
+                await tx.trip.update({
+                  where: { id: trip.id },
+                  data: {
+                    driver_workflow_state: 'COMPLETED',
+                    updated_by: (req as any).user?.id || null,
+                  },
+                });
+              } else {
+                delay = await stampStopTransition(tx, trip.id, targetStatus);
+                await stampWorkflowTransition(tx, trip.id, targetWorkflowState!, undefined);
+                await tx.trip.update({
+                  where: { id: trip.id },
+                  data: {
+                    status: targetStatus,
+                    driver_workflow_state: targetWorkflowState,
+                    updated_by: (req as any).user?.id || null,
+                  },
+                });
+              }
+              return delay;
+            });
+            applied = true;
+          } catch (txErr: any) {
+            logger.error({ err: txErr }, 'Failed to apply extracted lifecycle transition:');
+            transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
+            canConfirm = false;
+          }
         }
       } else {
         transitionReason = `Out-of-sequence milestone: Screenshot shows '${detectedEvent.replace(/_/g, ' ')}', but the trip is currently in '${trip.status}' state. Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
@@ -691,7 +705,7 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     }
 
     // 4. Save Document record
-    const extraction_status = applied ? 'SUCCESS' : (hasAiError ? 'FAILED' : (isWrongTrip ? 'FAILED' : (aiResult.detected_event_type ? 'NEEDS_REVIEW' : 'FAILED')));
+    const extraction_status = applied ? 'SUCCESS' : (hasAiError ? 'FAILED' : (isWrongTrip ? 'FAILED' : (canConfirm ? 'NEEDS_REVIEW' : 'FAILED')));
     const docTypeVal = detectedEvent === 'DELAYED' ? DocType.Emergency : DocType.POD;
 
     const document = await prisma.document.create({
@@ -707,6 +721,9 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
         ai_extracted_json: {
           ...aiResult,
           applied,
+          canConfirm,
+          targetStatus,
+          targetWorkflowState,
           extraction_status,
           validation_reason: transitionReason,
           uploaded_at: new Date().toISOString(),
@@ -741,6 +758,9 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
         extraction_error: aiResult.extraction_error,
         confidence: aiResult.confidence,
         applied,
+        can_confirm: canConfirm,
+        target_status: targetStatus,
+        target_workflow_state: targetWorkflowState,
         notes: aiResult.notes,
         validation_reason: transitionReason,
         trip: enrichedTrip,

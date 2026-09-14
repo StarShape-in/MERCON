@@ -22,8 +22,11 @@ export const ExternalAppWorkflowScreen = () => {
 
   const [selectedPhoto, setSelectedPhoto] = useState<CapturedPhoto | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const [showDelayModal, setShowDelayModal] = useState(false);
   const [result, setResult] = useState<{
+    document_id?: string;
     extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
     event_type?: string | null;
     event_timestamp?: string | null;
@@ -34,8 +37,12 @@ export const ExternalAppWorkflowScreen = () => {
     extraction_error?: string | null;
     confidence: number;
     applied: boolean;
+    can_confirm?: boolean;
+    target_status?: string | null;
+    target_workflow_state?: string | null;
     notes?: string | null;
     validation_reason?: string | null;
+    trip?: MobileTrip | null;
   } | null>(null);
 
   const ws = getEffectiveWorkflowState(trip);
@@ -47,12 +54,21 @@ export const ExternalAppWorkflowScreen = () => {
     return 1;
   };
 
+  const resetPhotoState = () => {
+    setSelectedPhoto(null);
+    setResult(null);
+    setIsConfirmed(false);
+    setConfirming(false);
+  };
+
   const handlePickGallery = async () => {
     try {
       const photo = await pickFromGallery();
       if (photo) {
         setSelectedPhoto(photo);
         setResult(null);
+        setIsConfirmed(false);
+        setConfirming(false);
       }
     } catch (err) {
       Alert.alert('Error', getApiErrorMessage(err));
@@ -65,6 +81,8 @@ export const ExternalAppWorkflowScreen = () => {
       if (photo) {
         setSelectedPhoto(photo);
         setResult(null);
+        setIsConfirmed(false);
+        setConfirming(false);
       }
     } catch (err) {
       Alert.alert('Error', getApiErrorMessage(err));
@@ -75,10 +93,14 @@ export const ExternalAppWorkflowScreen = () => {
     if (!trip || !selectedPhoto) return;
     setAnalyzing(true);
     setResult(null);
+    setIsConfirmed(false);
+    setConfirming(false);
     try {
       const rawRes = await tripService.uploadExternalScreenshot(trip.id, selectedPhoto);
       const res = (rawRes as any)?.data || rawRes;
+      const appliedSuccess = Boolean(res.applied);
       setResult({
+        document_id: res.document_id,
         extraction_status: res.extraction_status,
         event_type: res.event_type,
         event_timestamp: res.event_timestamp,
@@ -88,19 +110,50 @@ export const ExternalAppWorkflowScreen = () => {
         is_wrong_trip: res.is_wrong_trip,
         extraction_error: res.extraction_error,
         confidence: res.confidence,
-        applied: res.applied,
+        applied: appliedSuccess,
+        can_confirm: res.can_confirm ?? (res.event_type && !res.is_wrong_trip && !res.extraction_error),
+        target_status: res.target_status,
+        target_workflow_state: res.target_workflow_state,
         notes: res.notes,
         validation_reason: res.validation_reason,
+        trip: res.trip,
       });
-      if (res.trip) {
-        setTrip(res.trip);
-      } else {
-        await refetch();
+
+      if (appliedSuccess) {
+        setIsConfirmed(true);
+        if (res.trip) {
+          setTrip(res.trip);
+        } else {
+          await refetch();
+        }
       }
     } catch (err) {
       Alert.alert('Upload Error', getApiErrorMessage(err));
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleConfirmUpdate = async () => {
+    if (!trip || !result) return;
+    setConfirming(true);
+    try {
+      if (result.target_status) {
+        const updatedTrip = await tripService.updateTripStatus(trip.id, {
+          status: result.target_status as any,
+          driver_workflow_state: result.target_workflow_state ?? undefined,
+        });
+        setTrip(updatedTrip);
+      } else if (result.trip) {
+        setTrip(result.trip);
+      } else {
+        await refetch();
+      }
+      setIsConfirmed(true);
+    } catch (err) {
+      Alert.alert('Error', getApiErrorMessage(err));
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -110,6 +163,21 @@ export const ExternalAppWorkflowScreen = () => {
 
   const isWrongTripError = result?.is_wrong_trip || Boolean(result?.validation_reason?.toLowerCase().includes('wrong trip'));
   const isAiError = Boolean(result?.extraction_error || result?.notes?.toLowerCase().includes('ai processing error') || result?.notes?.toLowerCase().includes('ai error'));
+  const isFullyAppliedOrConfirmed = (result?.applied || isConfirmed) && !isWrongTripError && !isAiError;
+  const canConfirm = Boolean(result && (result.can_confirm || (result.event_type && !isWrongTripError && !isAiError)) && !isFullyAppliedOrConfirmed);
+
+  const formatMilestoneName = (event?: string | null) => {
+    if (!event) return 'Milestone';
+    switch (event) {
+      case 'ARRIVED_AT_PICKUP': return 'Arrived at Pickup';
+      case 'LOADING_COMPLETED': return 'Loading Completed';
+      case 'DEPARTED_PICKUP': return 'Departed Pickup (In Transit)';
+      case 'ARRIVED_AT_DELIVERY': return 'Arrived at Delivery';
+      case 'DELIVERY_COMPLETED': return 'Delivery Completed';
+      case 'DELAYED': return 'Trip Delayed';
+      default: return event.replace(/_/g, ' ');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -179,8 +247,8 @@ export const ExternalAppWorkflowScreen = () => {
               <Image source={{ uri: selectedPhoto.uri }} style={styles.previewImage} resizeMode="contain" />
               <TouchableOpacity
                 style={styles.changePhotoBtn}
-                onPress={() => setSelectedPhoto(null)}
-                disabled={analyzing}
+                onPress={resetPhotoState}
+                disabled={analyzing || confirming}
               >
                 <RefreshCw size={14} color="#3E3C3D" />
                 <Text style={styles.changePhotoText}>Change Screenshot</Text>
@@ -204,17 +272,50 @@ export const ExternalAppWorkflowScreen = () => {
 
           {selectedPhoto && (
             <TouchableOpacity
-              style={[styles.uploadActionBtn, analyzing && styles.uploadActionBtnDisabled]}
-              onPress={handleUploadAndAnalyze}
-              disabled={analyzing}
+              style={[
+                styles.uploadActionBtn,
+                (analyzing || confirming || isFullyAppliedOrConfirmed) && styles.uploadActionBtnDisabled,
+                isFullyAppliedOrConfirmed && styles.uploadActionBtnConfirmed,
+              ]}
+              onPress={
+                isFullyAppliedOrConfirmed
+                  ? undefined
+                  : canConfirm
+                  ? handleConfirmUpdate
+                  : handleUploadAndAnalyze
+              }
+              disabled={analyzing || confirming || isFullyAppliedOrConfirmed}
               activeOpacity={0.88}
             >
               {analyzing ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={styles.uploadActionText}>Analysing Screenshot...</Text>
+                </>
+              ) : confirming ? (
+                <>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={styles.uploadActionText}>Confirming Update...</Text>
+                </>
+              ) : isFullyAppliedOrConfirmed ? (
+                <>
+                  <CheckCircle2 size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.uploadActionText}>Progress Update Confirmed</Text>
+                </>
+              ) : canConfirm ? (
+                <>
+                  <CheckCircle2 size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.uploadActionText}>Confirm & Update Progress</Text>
+                </>
+              ) : result ? (
+                <>
+                  <RefreshCw size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text style={styles.uploadActionText}>Re-analyse Screenshot</Text>
+                </>
               ) : (
                 <>
                   <Upload size={18} color="#FFFFFF" strokeWidth={2.2} />
-                  <Text style={styles.uploadActionText}>Analyse & Update Progress</Text>
+                  <Text style={styles.uploadActionText}>Analyse Screenshot</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -226,34 +327,30 @@ export const ExternalAppWorkflowScreen = () => {
           <View
             style={[
               styles.card,
-              result.applied
+              isFullyAppliedOrConfirmed
                 ? styles.resultCardSuccess
-                : result.extraction_status === 'NEEDS_REVIEW'
+                : canConfirm
                 ? styles.resultCardWarning
                 : styles.resultCardDanger,
             ]}
           >
             <View style={styles.resultHeader}>
-              {result.applied ? (
+              {isFullyAppliedOrConfirmed ? (
                 <CheckCircle2 size={20} color="#059669" strokeWidth={2.2} />
-              ) : isWrongTripError ? (
-                <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
-              ) : isAiError ? (
-                <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
-              ) : result.extraction_status === 'NEEDS_REVIEW' ? (
+              ) : canConfirm ? (
                 <AlertCircle size={20} color="#D97706" strokeWidth={2.2} />
               ) : (
                 <AlertCircle size={20} color="#DC2626" strokeWidth={2.2} />
               )}
               <Text style={styles.resultTitle}>
-                {result.applied
+                {isFullyAppliedOrConfirmed
                   ? 'Milestone Verified & Applied'
+                  : canConfirm
+                  ? 'Milestone Extracted — Ready to Confirm'
                   : isWrongTripError
                   ? 'Wrong Trip Screenshot'
                   : isAiError
                   ? 'AI Processing Error'
-                  : result.extraction_status === 'NEEDS_REVIEW'
-                  ? 'Saved for Review'
                   : 'Verification Failed'}
               </Text>
             </View>
@@ -262,7 +359,7 @@ export const ExternalAppWorkflowScreen = () => {
             {result.event_type && (
               <View style={styles.resultDetailRow}>
                 <Text style={styles.resultLabel}>Extracted Milestone:</Text>
-                <Text style={styles.resultValue}>{result.event_type.replace(/_/g, ' ')}</Text>
+                <Text style={styles.resultValue}>{formatMilestoneName(result.event_type)}</Text>
               </View>
             )}
 
@@ -287,17 +384,12 @@ export const ExternalAppWorkflowScreen = () => {
               </View>
             )}
 
-            {result.detected_text && (
+            {result.confidence > 0 && (
               <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Detected Text:</Text>
-                <Text style={styles.resultValue}>{result.detected_text}</Text>
+                <Text style={styles.resultLabel}>AI Confidence:</Text>
+                <Text style={styles.resultValue}>{Math.round((result.confidence || 0) * 100)}%</Text>
               </View>
             )}
-
-            <View style={styles.resultDetailRow}>
-              <Text style={styles.resultLabel}>AI Confidence:</Text>
-              <Text style={styles.resultValue}>{Math.round((result.confidence || 0) * 100)}%</Text>
-            </View>
 
             {result.notes && (
               <View style={styles.resultDetailRow}>
@@ -306,7 +398,7 @@ export const ExternalAppWorkflowScreen = () => {
               </View>
             )}
 
-            {!result.applied && (
+            {!isFullyAppliedOrConfirmed && !canConfirm && (
               <View style={styles.failureReasonBox}>
                 <View style={styles.failureReasonTitleRow}>
                   <AlertCircle size={16} color="#DC2626" strokeWidth={2.2} />

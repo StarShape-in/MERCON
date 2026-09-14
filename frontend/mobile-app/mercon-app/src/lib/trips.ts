@@ -475,6 +475,9 @@ export const tripService = {
     extraction_error?: string | null;
     confidence: number;
     applied: boolean;
+    can_confirm?: boolean;
+    target_status?: string | null;
+    target_workflow_state?: string | null;
     notes?: string | null;
     validation_reason?: string | null;
     trip?: MobileTrip | null;
