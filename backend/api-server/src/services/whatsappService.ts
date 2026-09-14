@@ -192,8 +192,9 @@ export class WhatsAppService {
       }
 
       const mimeType = videoDoc?.mime_type || 'video/mp4';
-      const delayReason = (trip.notes && trip.notes.includes('[DELAY REPORT]'))
-        ? trip.notes.replace(/^\[DELAY REPORT\]:\s*/i, '').trim()
+      const tripNotes = (trip as any).notes;
+      const delayReason = (tripNotes && typeof tripNotes === 'string' && tripNotes.includes('[DELAY REPORT]'))
+        ? tripNotes.replace(/^\[DELAY REPORT\]:\s*/i, '').trim()
         : 'Traffic congestion / Operational delay';
 
       const caption = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nReason: ${delayReason}`;
