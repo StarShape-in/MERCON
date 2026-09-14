@@ -97,29 +97,25 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
         </div>
 
         {/* Minimal Progress Pill */}
-        <div className="inline-flex items-center gap-2.5 bg-[#EEF1F6] dark:bg-slate-800 px-3.5 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-700 text-xs">
-          <span className="font-bold text-[#3E3C3D] dark:text-slate-200 text-[11px]">
-            {completedCount} of {totalStops} stops completed <span className="text-slate-300 dark:text-slate-600">•</span> {progressPercent}%
-          </span>
-          <div className="w-20 sm:w-28 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5">
-            <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-xs"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+        <div className="inline-flex items-center gap-2 bg-[#E6F4EA] dark:bg-emerald-950/50 px-3.5 py-1.5 rounded-full border border-[#CEEAD6] dark:border-emerald-800 text-xs font-bold text-[#0F9D58] dark:text-emerald-400 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-[#0F9D58] animate-pulse" />
+          <span>{isTripFullyCompleted || progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
         </div>
       </div>
 
       {/* ── 2. STATE-OF-THE-ART TRANSIT TRACK & MILESTONES ── */}
       <div className="relative w-full flex-1 flex flex-col pt-8 pb-2">
         {/* Progress Track Bar Row */}
-        <div className="relative flex items-center justify-between w-full px-6 sm:px-10 h-6">
-          {/* Track Line Background (Solid Green Completed Line) */}
-          <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+        <div className="relative flex items-center justify-between w-full px-6 sm:px-10 h-8">
+          {/* Track Line Background (Green Road Bar with White Dashed Center Lane Line) */}
+          <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner flex items-center">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              className="relative h-full bg-[#10B981] dark:bg-[#059669] rounded-full transition-all duration-500 flex items-center overflow-hidden"
               style={{ width: `${progressPercent}%` }}
-            />
+            >
+              {/* White dashed center road lane line matching reference mockup */}
+              <div className="w-full h-[2px] border-t-2 border-dashed border-white/90 shrink-0" />
+            </div>
           </div>
 
           {/* Milestone Nodes along the Track Line */}
@@ -134,47 +130,38 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                 className="relative z-20 flex flex-col items-center justify-center"
               >
                 {isTruckHere ? (
-                  /* 2D Orange MERCON Truck sitting directly on the route line at current/end location */
-                  <div className="relative flex flex-col items-center z-30 transform -translate-y-1">
-                    {/* Status pill badge above truck */}
-                    <div className="mb-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black shadow-xs whitespace-nowrap">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span>{isTripFullyCompleted || progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
-                    </div>
-
-                    {/* 2D Orange Truck SVG */}
+                  /* 2D Orange MERCON Truck sitting directly on the green road line at current/end location */
+                  <div className="relative flex flex-col items-center z-30 transform -translate-y-1.5">
+                    {/* 2D Orange MERCON Truck SVG matching mockup */}
                     <svg
-                      viewBox="0 0 72 30"
-                      className="w-18 h-8 sm:w-22 sm:h-9 filter drop-shadow-md"
+                      viewBox="0 0 100 36"
+                      className="w-22 h-9 sm:w-26 sm:h-10 filter drop-shadow-md"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      {/* Cargo Trailer */}
-                      <rect x="2" y="4" width="44" height="19" rx="2.5" fill="#FFFFFF" stroke="#FA634E" strokeWidth="1.5" />
-                      <rect x="5" y="7" width="38" height="13" rx="1.5" fill="#FA634E" />
-                      <text x="24" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="5.5" fontWeight="900" letterSpacing="0.8" fontFamily="Arial, sans-serif">MERCON</text>
+                      {/* Cargo Trailer (Orange #FA634E with bold White MERCON text) */}
+                      <rect x="2" y="4" width="62" height="22" rx="3" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
+                      <text x="33" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900" letterSpacing="1.2" fontFamily="Arial, Helvetica, sans-serif">MERCON</text>
 
                       {/* Hitch / Connector */}
-                      <rect x="46" y="13" width="4" height="6" fill="#3E3C3D" />
+                      <rect x="64" y="14" width="5" height="7" fill="#3E3C3D" />
 
-                      {/* Minimal Truck Cab (Orange #FA634E) */}
-                      <path d="M50 7 L61 7 L69 15 L69 23 L50 23 Z" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
-                      {/* Windshield */}
-                      <path d="M53 9 L60 9 L65 15 L53 15 Z" fill="#38BDF8" opacity="0.9" />
-                      {/* Front Bumper */}
-                      <rect x="67" y="19" width="3" height="4" rx="0.5" fill="#3E3C3D" />
-                      {/* Headlight */}
-                      <rect x="67" y="16" width="2" height="2" rx="0.5" fill="#FEF08A" />
+                      {/* Truck Cab (Orange #FA634E) */}
+                      <path d="M69 6 L84 6 L96 16 L96 26 L69 26 Z" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
+                      {/* Windshield Glass */}
+                      <path d="M72 8 L82 8 L89 16 L72 16 Z" fill="#38BDF8" opacity="0.85" />
+                      {/* Bumper */}
+                      <rect x="94" y="21" width="4" height="5" rx="0.5" fill="#3E3C3D" />
 
-                      {/* Minimal 2D Wheels */}
-                      <circle cx="12" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
-                      <circle cx="12" cy="23" r="1.2" fill="#FFFFFF" />
+                      {/* Wheels (Dual rear wheels + 1 front wheel) */}
+                      <circle cx="16" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
+                      <circle cx="16" cy="26" r="1.8" fill="#FFFFFF" />
 
-                      <circle cx="34" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
-                      <circle cx="34" cy="23" r="1.2" fill="#FFFFFF" />
+                      <circle cx="28" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
+                      <circle cx="28" cy="26" r="1.8" fill="#FFFFFF" />
 
-                      <circle cx="58" cy="23" r="3.5" fill="#3E3C3D" stroke="#FFFFFF" strokeWidth="1" />
-                      <circle cx="58" cy="23" r="1.2" fill="#FFFFFF" />
+                      <circle cx="82" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
+                      <circle cx="82" cy="26" r="1.8" fill="#FFFFFF" />
                     </svg>
                   </div>
                 ) : (
@@ -182,7 +169,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                     className={cn(
                       "w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-200 shadow-xs",
                       isCompleted
-                        ? "bg-emerald-600 text-white ring-4 ring-emerald-50 dark:ring-emerald-950/60"
+                        ? "bg-[#10B981] text-white ring-4 ring-emerald-50 dark:ring-emerald-950/60"
                         : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700 ring-4 ring-white dark:ring-slate-900"
                     )}
                   >
@@ -202,7 +189,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
           })}
         </div>
 
-        {/* Stop Details Row (Clean & Flat Typography, Ticks/Nodes centered directly above location names) */}
+        {/* Stop Details Row (Matching reference typography: Location -> Badge Pill -> Monospace Time) */}
         <div className="relative flex items-start justify-between w-full px-6 sm:px-10 z-20 mt-4">
           {normalizedStops.map((stop) => {
             const isCompleted = stop.status === 'completed';
@@ -211,24 +198,24 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
             return (
               <div
                 key={`card-${stop.id}`}
-                className="flex flex-col items-center text-center min-w-[85px] sm:min-w-[110px] max-w-[140px]"
+                className="flex flex-col items-center text-center min-w-[95px] sm:min-w-[120px] max-w-[150px]"
               >
-                <span className="font-extrabold text-xs text-[#3E3C3D] dark:text-slate-100 tracking-tight truncate w-full text-center" title={stop.city}>
+                <span className="font-extrabold text-sm sm:text-base text-[#111827] dark:text-slate-100 tracking-tight truncate w-full text-center" title={stop.city}>
                   {stop.city}
                 </span>
                 <span
                   className={cn(
-                    "mt-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide leading-none",
-                    isCompleted
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/80"
+                    "mt-1 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide leading-none transition-all shadow-2xs",
+                    isCompleted || stop.isLast
+                      ? "bg-[#E6F4EA] text-[#0F9D58] dark:bg-emerald-950/60 dark:text-emerald-300 border border-[#CEEAD6] dark:border-emerald-800"
                       : isCurrent
-                      ? "bg-rose-50 text-[#FA634E] dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/80"
+                      ? "bg-rose-50 text-[#FA634E] dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/80"
                       : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/80"
                   )}
                 >
                   {stop.label}
                 </span>
-                <span className="text-[10.5px] font-mono font-bold text-slate-500 dark:text-slate-400 mt-1">
+                <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 mt-1">
                   {stop.time}
                 </span>
               </div>
