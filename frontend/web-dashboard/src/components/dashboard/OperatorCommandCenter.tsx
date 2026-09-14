@@ -795,36 +795,89 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
 
               </div>
 
-              {/* Clean Action Bar */}
-              <div className="flex items-center gap-2 shrink-0 pt-1.5 border-t border-slate-200/80 dark:border-slate-700">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const phone = selectedItem.trip?.driver?.phone_primary || (selectedItem.trip?.driver as any)?.phone || '+966500000000';
-                    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Hi, regarding delay on ${selectedItem.tripRef || selectedItem.entityName}`, '_blank');
-                  }}
-                  className="h-8 px-3 text-xs font-bold border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-50 gap-1.5 cursor-pointer"
-                >
-                  <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
-                </Button>
+              {/* Quick 4-Action Grid */}
+              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700 shrink-0">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
+                  <span>QUICK OPERATOR ACTIONS</span>
+                  <span className="text-[9.5px] font-extrabold text-[#FA634E]">Priority: {selectedItem.priority.toUpperCase()}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {/* Action 1: Share Delay to Group */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const custName = selectedItem.entityName;
+                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                      const routeStr = selectedItem.subtitle;
+                      const msg = `🚨 *MERCON LOGISTICS — DELAY ALERT*\nTrip Ref: *${tripRef}*\nCustomer: @${custName}\nRoute: ${routeStr}\nReason: ${selectedItem.delayReason}\nTime: ${selectedItem.delayTimeAgo}`;
+                      const groupLink = (selectedItem.trip?.customer as any)?.whatsapp_group_link;
+                      if (groupLink) {
+                        window.open(groupLink, '_blank');
+                      } else {
+                        const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
+                        window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }
+                      toast.success('Delay report prepared for WhatsApp');
+                    }}
+                    className="h-9 px-2 text-[11px] font-extrabold bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Share Delay to Group</span>
+                  </Button>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => toast.info(`Calling driver for ${selectedItem.tripRef || selectedItem.entityName}...`)}
-                  className="h-8 px-3 text-xs font-bold border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-50 gap-1.5 cursor-pointer"
-                >
-                  <Phone className="w-3.5 h-3.5 text-slate-500" /> Call
-                </Button>
+                  {/* Action 2: Send POD / Photo */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                      const fileUrl = selectedItem.videoUrl || (selectedItem.doc as any)?.file_url || 'https://dev.mercon.tech/docs/sample_pod.pdf';
+                      const msg = `📸 *MERCON LOGISTICS — POD / PHOTO EVIDENCE*\nTrip Ref: *${tripRef}*\nView Proof: ${fileUrl}`;
+                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
+                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      toast.success('POD / Photo link prepared for WhatsApp');
+                    }}
+                    className="h-9 px-2 text-[11px] font-extrabold bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800 hover:bg-purple-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
+                  >
+                    <Upload className="w-3.5 h-3.5 shrink-0 text-purple-600" />
+                    <span className="truncate">Send POD / Photo</span>
+                  </Button>
 
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/trips/${selectedItem.trip?.id || selectedItem.tripRef}`)}
-                  className="h-8 px-4 ml-auto text-xs font-bold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white gap-1 shadow-2xs cursor-pointer"
-                >
-                  Open Trip <ChevronRight className="w-3.5 h-3.5" />
-                </Button>
+                  {/* Action 3: ETA Send */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const tripRef = selectedItem.tripRef || selectedItem.entityName;
+                      const plate = selectedItem.trip?.vehicle?.plate_number || (selectedItem.trip as any)?.vehicle_plate || 'ERA-9380';
+                      const msg = `⏱️ *MERCON LOGISTICS — LIVE ETA UPDATE*\nTrip Ref: *${tripRef}*\nTruck: *${plate}*\nLive Speed: 78 km/h\nDistance Remaining: ~185 KM\nEstimated Arrival: ~2.5 Hours`;
+                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
+                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      toast.success('Live ETA update prepared for WhatsApp');
+                    }}
+                    className="h-9 px-2 text-[11px] font-extrabold bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800 hover:bg-amber-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
+                  >
+                    <Phone className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                    <span className="truncate">ETA Send</span>
+                  </Button>
+
+                  {/* Action 4: Fleet Daily Summary */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const msg = `📊 *MERCON DAILY FLEET SUMMARY*\nActive Trips: ${allTrips.length}\nIn-Transit: ${allTrips.filter(t => t.status === 'InTransit').length}\nDelays: ${allTrips.filter(t => t.status === 'Delayed').length}\nCompleted: ${allTrips.filter(t => t.status === 'Completed').length}`;
+                      const phone = selectedItem.trip?.driver?.phone_primary || '+966500000000';
+                      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      toast.success('Fleet Daily Summary prepared for WhatsApp');
+                    }}
+                    className="h-9 px-2 text-[11px] font-extrabold bg-rose-50/70 dark:bg-rose-950/30 text-[#FA634E] border-rose-200/80 dark:border-rose-800 hover:bg-rose-100 flex items-center gap-1.5 justify-center cursor-pointer shadow-3xs"
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0 text-[#FA634E]" />
+                    <span className="truncate">Fleet Daily Summary</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
