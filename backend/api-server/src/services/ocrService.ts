@@ -330,13 +330,13 @@ export async function analyzeExternalScreenshotWithAI(
   }
 
   const apiKey = (process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '').trim();
-  if (!apiKey || apiKey.startsWith('AQ.') || !apiKey.startsWith('AIzaSy')) {
+  if (!apiKey) {
     return {
       detected_event_type: null,
       event_timestamp: null,
       confidence: 0,
-      notes: 'Invalid Gemini API key configured in server environment (Key must be a valid Google AI Studio key starting with AIzaSy...)',
-      extraction_error: 'INVALID_GEMINI_API_KEY',
+      notes: 'No Gemini API key configured in server environment',
+      extraction_error: 'NO_API_KEY',
     };
   }
 
@@ -406,8 +406,8 @@ Respond ONLY with valid JSON inside a json code block.
       ],
     };
 
-    const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const fallbackModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+    const fallbackModels = ['gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-3.5-flash', 'gemini-2.5-flash'];
     const modelsToTry = Array.from(new Set([primaryModel, ...fallbackModels]));
 
     let responseText: string | null = null;
