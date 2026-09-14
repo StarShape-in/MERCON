@@ -270,7 +270,7 @@ export function useCreateTripForm() {
           : '';
 
         const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [truckInfo, statusTag, badgesStr].filter(Boolean).join(' • ');
+        const detailsStr = [truckInfo, statusTag].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
 
         const label = React.createElement(
@@ -315,7 +315,7 @@ export function useCreateTripForm() {
       return (b.score || 0) - (a.score || 0);
     });
 
-    const assignLaterDriverOption: ComboboxOption = {
+    const assignLaterDriverOption: ComboboxOption & Record<string, any> = {
       value: 'unassigned',
       label: React.createElement(
         'div',
@@ -323,7 +323,10 @@ export function useCreateTripForm() {
         React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
         React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending fleet assignment')
       ),
-      selectedLabel: 'Assign Later (Unassigned)',
+      selectedLabel: 'Assign Later',
+      first_name: 'Assign',
+      last_name: 'Later',
+      detailsStr: 'Truck: Unassigned',
       keywords: 'unassigned assign later pending null none',
     };
 
@@ -456,7 +459,7 @@ export function useCreateTripForm() {
         React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
         React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending truck assignment')
       ),
-      selectedLabel: 'Assign Later (Unassigned)',
+      selectedLabel: 'Assign Later',
       keywords: 'unassigned assign later pending null none',
     };
 
@@ -510,7 +513,10 @@ export function useCreateTripForm() {
 
   const handleDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
-    if (!driverId || driverId === 'unassigned') return;
+    if (!driverId || driverId === 'unassigned') {
+      setMasterVehicle('unassigned');
+      return;
+    }
 
     const selectedDriver = drivers.find((d) => d.id === driverId);
     if (!selectedDriver) return;

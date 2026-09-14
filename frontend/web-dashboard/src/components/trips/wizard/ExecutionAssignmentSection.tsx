@@ -218,7 +218,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           <div className="md:col-span-5 flex flex-col justify-between pl-0 md:pl-0.5 transition-all duration-300 ease-in-out">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                {masterDriver ? 'ASSIGNED DRIVER' : 'RECOMMENDED DRIVERS'}
+                {masterDriver ? (masterDriver === 'unassigned' ? 'ASSIGN LATER' : 'ASSIGNED DRIVER') : 'RECOMMENDED DRIVERS'}
               </span>
               {masterDriver && (
                 <button
