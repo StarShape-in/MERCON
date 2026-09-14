@@ -130,7 +130,38 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
   ];
 
-  const groups = rawGroups;
+  const checkIsDisabled = (item: NavItem) => {
+    return item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+  };
+
+  const processedGroups: { label: string; items: NavItem[] }[] = [];
+  const comingSoonItems: NavItem[] = [];
+
+  rawGroups.forEach((g) => {
+    const enabledItems: NavItem[] = [];
+    g.items.forEach((item) => {
+      if (checkIsDisabled(item)) {
+        comingSoonItems.push(item);
+      } else {
+        enabledItems.push(item);
+      }
+    });
+    if (enabledItems.length > 0) {
+      processedGroups.push({
+        label: g.label,
+        items: enabledItems,
+      });
+    }
+  });
+
+  if (comingSoonItems.length > 0) {
+    processedGroups.push({
+      label: 'COMING SOON',
+      items: comingSoonItems,
+    });
+  }
+
+  const groups = processedGroups;
 
   return (
     <>

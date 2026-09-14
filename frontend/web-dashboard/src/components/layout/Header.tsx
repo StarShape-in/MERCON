@@ -128,7 +128,13 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
 
   const enabledModules = settings?.enabledModules;
 
-  const operationsItems = rawOperationsItems;
+  const checkIsDisabled = (item: OperationsItem) => {
+    return item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+  };
+
+  const enabledOps = rawOperationsItems.filter(item => !checkIsDisabled(item));
+  const disabledOps = rawOperationsItems.filter(item => checkIsDisabled(item));
+  const operationsItems = [...enabledOps, ...disabledOps];
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
