@@ -471,8 +471,8 @@ export default function TripDetailsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 px-1 py-1">
           {/* Left: ID, Status, Route, Metadata */}
           <div className="flex flex-col justify-center min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="font-mono font-black text-xl sm:text-2xl text-[#1F2937] tracking-tight">
+            <div className="flex items-center gap-3">
+              <h1 className="font-mono font-black text-2xl sm:text-3xl md:text-4xl text-slate-900 dark:text-white tracking-tight">
                 {trip.ref_id || trip.id || 'TRP-0235'}
               </h1>
               <button
@@ -481,30 +481,30 @@ export default function TripDetailsPage() {
                 aria-label="Copy trip ID"
                 className="text-[#9CA3AF] hover:text-[#2563EB] transition-colors p-0.5 cursor-pointer"
               >
-                {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                {copied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
               </button>
 
               {/* Status Pill Badge (Dynamic: Indigo for Scheduled, Amber for InTransit, Emerald for Completed) */}
               <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold ${statusProps.badgeClass}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black tracking-wide ${statusProps.badgeClass}`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${statusProps.dotClass}`} />
+                <span className={`w-2 h-2 rounded-full ${statusProps.dotClass}`} />
                 <span>{statusProps.label}</span>
               </div>
             </div>
 
             {/* Subtitle: Route, Scheduled Date & Created Date */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-[#6B7280]">
-              <span className="font-bold text-[#1F2937] text-[13px]">{routeLabel}</span>
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#6B7280]">
+              <span className="font-black text-[#111827] dark:text-slate-100 text-sm sm:text-base tracking-tight">{routeLabel}</span>
               <span className="text-[#D1D5DB]">•</span>
-              <span className="font-medium text-[#374151]">
-                Scheduled for <span className="font-bold text-[#1F2937]">{fullScheduledDateText}</span> <span className="text-[#D1D5DB]">|</span> {scheduledTimeStr}
+              <span className="font-semibold text-[#374151] dark:text-slate-300">
+                Scheduled for <span className="font-extrabold text-[#111827] dark:text-white">{fullScheduledDateText}</span> <span className="text-[#D1D5DB]">|</span> {scheduledTimeStr}
               </span>
               {createdDateRaw && (
                 <>
                   <span className="text-[#D1D5DB]">•</span>
                   <span className="font-medium text-[#6B7280]">
-                    Created on <span className="font-semibold text-[#374151]">{fullCreatedDateText}</span> <span className="text-[#D1D5DB]">|</span> {createdTimeStr}
+                    Created on <span className="font-semibold text-[#374151] dark:text-slate-300">{fullCreatedDateText}</span> <span className="text-[#D1D5DB]">|</span> {createdTimeStr}
                   </span>
                 </>
               )}
