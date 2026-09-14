@@ -43,6 +43,7 @@ import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUt
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory, downloadTripExport } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -1023,15 +1024,29 @@ export default function TripListPage() {
     return list;
   }, [tripsRes?.data, localTripOverrides]);
 
+  const { data: customerLookupRes } = useQuery({
+    queryKey: ['customers-lookup'],
+    queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
+    const masterList = customerLookupRes?.data || [];
+    masterList.forEach((c) => {
+      if (c.id && c.name) {
+        map.set(c.id, c.name);
+      }
+    });
     rawTrips.forEach((t) => {
       if (t.customer?.id && t.customer?.name) {
         map.set(t.customer.id, t.customer.name);
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [rawTrips]);
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [customerLookupRes?.data, rawTrips]);
 
   const companyOptions = useMemo(() => {
     const icon = <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
@@ -2309,20 +2324,23 @@ export default function TripListPage() {
                     </div>
 
                     {/* Company Filter */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
-                      <Combobox
-                        options={companyOptions}
+                      <select
                         value={selectedCustomerId}
-                        onChange={(val) => {
-                          setSelectedCustomerId(val);
+                        onChange={(e) => {
+                          setSelectedCustomerId(e.target.value);
                           setCurrentPage(1);
                         }}
-                        placeholder="Select Company..."
-                        searchPlaceholder="Search company..."
-                        emptyText="No companies found."
-                        triggerClassName="h-8 rounded-lg border-slate-200 dark:border-slate-800 text-xs font-semibold shadow-3xs"
-                      />
+                        className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All Companies</option>
+                        {customerFilterOptions.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
