@@ -116,14 +116,30 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
             {/* PRIMARY DRIVER SELECTION */}
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <User className="w-3 h-3 text-emerald-600" /> PRIMARY DRIVER
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                  <User className="w-3 h-3 text-emerald-600" /> PRIMARY DRIVER
+                </label>
+                {(!masterDriver || masterDriver === 'unassigned') ? (
+                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                    Assign Later
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleDriverChange('unassigned')}
+                    className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                    title="Mark driver as assign later"
+                  >
+                    Assign Later
+                  </button>
+                )}
+              </div>
               <Combobox
                 options={driverOptions}
                 value={masterDriver}
                 onChange={handleDriverChange}
-                placeholder="Select primary driver..."
+                placeholder="Select primary driver or assign later..."
                 searchPlaceholder="Search driver name, phone..."
                 triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
               />
@@ -131,14 +147,30 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 
             {/* VEHICLE */}
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                <span>VEHICLE {!masterVehicle && <span className="text-amber-600 font-bold ml-1">⚠ Pending</span>}</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                  <Truck className="w-3 h-3 text-indigo-600" /> PRIMARY VEHICLE
+                </label>
+                {(!masterVehicle || masterVehicle === 'unassigned') ? (
+                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                    Assign Later
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleVehicleChange('unassigned')}
+                    className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                    title="Mark vehicle as assign later"
+                  >
+                    Assign Later
+                  </button>
+                )}
+              </div>
               <Combobox
                 options={vehicleOptions}
                 value={masterVehicle}
                 onChange={handleVehicleChange}
-                placeholder="Select primary vehicle..."
+                placeholder="Select primary vehicle or assign later..."
                 searchPlaceholder="Search plate, asset code..."
                 triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
               />

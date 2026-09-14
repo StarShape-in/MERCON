@@ -83,11 +83,32 @@ export function useTripSubmission(
   };
 
   const handleContractSubmit = async () => {
-    if (!contractCustomer || contractSlots.length === 0) return;
+    if (!contractCustomer) {
+      toast.error('Please select a customer account.');
+      return;
+    }
+    if (!contractSlots || contractSlots.length === 0) {
+      toast.error('Please configure at least one route slot.');
+      return;
+    }
 
-    // Validate that all slots satisfy planned_start < planned_end
+    // Validate essential commercial fields & schedule for each slot
     for (let i = 0; i < contractSlots.length; i++) {
       const slot = contractSlots[i];
+
+      if (!slot.origin || !slot.origin.trim()) {
+        toast.error(`Slot #${i + 1}: Origin location is required.`);
+        return;
+      }
+      if (!slot.destination || !slot.destination.trim()) {
+        toast.error(`Slot #${i + 1}: Destination location is required.`);
+        return;
+      }
+      if (!slot.billingAmount || Number(slot.billingAmount) <= 0) {
+        toast.error(`Slot #${i + 1}: Customer Billing Rate must be greater than 0.`);
+        return;
+      }
+
       const dropoffDateVal = slot.dropoffDate || slot.date;
       if (!slot.date || !dropoffDateVal) {
         toast.error(`Slot #${i + 1} is missing schedule dates.`);

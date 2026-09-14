@@ -154,7 +154,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         {/* CUSTOMER BILLING AMOUNT */}
         <div className="sm:col-span-5 space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            💵 Customer Billing Rate (SAR)
+            💵 Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span>
           </label>
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
@@ -181,7 +181,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         {/* DRIVER PAYOUT */}
         <div className="sm:col-span-4 space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-            🚛 Driver Payout (SAR)
+            🚛 Driver Payout (SAR) <span className="text-[#FA634E]">*</span>
           </label>
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
