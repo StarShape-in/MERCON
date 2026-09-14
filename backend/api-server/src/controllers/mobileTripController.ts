@@ -659,12 +659,14 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
       }
 
       if (targetStatus && isValidTransition(trip.status, targetStatus)) {
+        const nextStatus = targetStatus;
+        const nextWorkflowState = targetWorkflowState || 'IN_TRANSIT';
         canConfirm = true;
         if (autoApply) {
           try {
             delayNotification = await prisma.$transaction(async (tx) => {
               let delay: DelayDetection | null = null;
-              if (targetStatus === TripStatus.Completed) {
+              if (nextStatus === TripStatus.Completed) {
                 await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
                 await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
                 await tx.trip.update({
@@ -675,13 +677,13 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
                   },
                 });
               } else {
-                delay = await stampStopTransition(tx, trip.id, targetStatus);
-                await stampWorkflowTransition(tx, trip.id, targetWorkflowState!, undefined);
+                delay = await stampStopTransition(tx, trip.id, nextStatus);
+                await stampWorkflowTransition(tx, trip.id, nextWorkflowState, undefined);
                 await tx.trip.update({
                   where: { id: trip.id },
                   data: {
-                    status: targetStatus,
-                    driver_workflow_state: targetWorkflowState,
+                    status: nextStatus,
+                    driver_workflow_state: nextWorkflowState,
                     updated_by: (req as any).user?.id || null,
                   },
                 });
