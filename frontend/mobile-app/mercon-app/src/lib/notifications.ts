@@ -4,16 +4,22 @@
  *   POST /mobile/notifications/:id/read → mark one as read
  */
 import { TriangleAlert, Truck, FileText, Settings, Bell, type LucideIcon } from 'lucide-react-native';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api';
 
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (err) {
+  console.warn('[Push] expo-notifications native module unavailable in this environment:', err);
+}
+
 // Helper to safely check if Notifications native module exists in current runtime
 export function isNotificationsAvailable(): boolean {
   try {
-    return typeof Notifications?.setNotificationHandler === 'function';
+    return !!Notifications && typeof Notifications.setNotificationHandler === 'function';
   } catch {
     return false;
   }
@@ -22,7 +28,7 @@ export function isNotificationsAvailable(): boolean {
 // Configure how notifications are presented when the app is foregrounded
 try {
   if (isNotificationsAvailable()) {
-    Notifications.setNotificationHandler({
+    Notifications?.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
@@ -90,9 +96,9 @@ export function timeAgo(iso: string): string {
 export async function setupNotificationChannelAsync(): Promise<void> {
   try {
     if (Platform.OS === 'android' && isNotificationsAvailable()) {
-      await Notifications.setNotificationChannelAsync('default', {
+      await Notifications?.setNotificationChannelAsync('default', {
         name: 'MERCON Operational Alerts',
-        importance: Notifications.AndroidImportance.DEFAULT,
+        importance: Notifications?.AndroidImportance?.DEFAULT ?? 3,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FA634E',
       });
@@ -120,12 +126,12 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       return null;
     }
 
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    const existingStatus = (await Notifications?.getPermissionsAsync())?.status ?? 'undetermined';
+    let finalStatus: string = existingStatus;
 
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      const req = await Notifications?.requestPermissionsAsync();
+      finalStatus = req?.status ?? 'denied';
     }
 
     if (finalStatus !== 'granted') {
@@ -136,8 +142,8 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ?? '2697c85a-0ac8-4a2e-9225-5cc84a5b518d';
 
-    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    return tokenData.data;
+    const tokenData = await Notifications?.getExpoPushTokenAsync({ projectId });
+    return tokenData?.data ?? null;
   } catch (error) {
     console.warn('[Push] Error getting push token:', error);
     return null;

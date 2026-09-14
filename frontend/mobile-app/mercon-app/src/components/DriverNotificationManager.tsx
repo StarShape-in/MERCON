@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/lib/auth-context';
 import { getSocket } from '@/lib/socket';
 import { tripService, type MobileTrip } from '@/lib/trips';
-import { notificationService } from '@/lib/notifications';
+import { notificationService, isNotificationsAvailable } from '@/lib/notifications';
 import { DelayReportModal } from './DelayReportModal';
 import { queryClient } from '@/lib/query-client';
+
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+} catch {
+  // Gracefully handled if native module is unavailable
+}
 
 /**
  * Global driver notification manager:
@@ -160,7 +166,7 @@ export function DriverNotificationManager() {
 
     let isMounted = true;
 
-    const processNotificationResponse = (response: Notifications.NotificationResponse) => {
+    const processNotificationResponse = (response: any) => {
       const identifier = response?.notification?.request?.identifier;
       if (identifier) {
         if (handledResponseIds.has(identifier)) {
