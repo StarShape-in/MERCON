@@ -608,10 +608,18 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     const isWrongTrip = aiResult.is_wrong_trip || false;
     const hasAiError = Boolean(aiResult.extraction_error);
 
+    const getExpectedMilestoneForStatus = (st: TripStatus) => {
+      if (st === TripStatus.Scheduled || st === TripStatus.Draft) return 'Arrived at Pickup or Loading Completed';
+      if (st === TripStatus.Loading) return 'Departed Pickup (In Transit)';
+      if (st === TripStatus.InTransit) return 'Arrived at Delivery or Delivery Completed';
+      if (st === TripStatus.Completed || st === TripStatus.Invoiced) return 'Trip already completed';
+      return 'Next operational milestone';
+    };
+
     if (hasAiError) {
       transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
     } else if (isWrongTrip) {
-      transitionReason = `Wrong trip screenshot uploaded! Screenshot shows reference (${aiResult.external_reference || 'other trip'}) which does not match TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
+      transitionReason = `Wrong trip screenshot! Screenshot shows reference (${aiResult.external_reference || 'other order'}) which does not match current trip TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
     } else if (detectedEvent && confidence >= 0.70) {
       let targetStatus: TripStatus | null = null;
       let targetWorkflowState: string | null = null;
@@ -670,12 +678,12 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
           transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
         }
       } else {
-        transitionReason = `Transition from '${trip.status}' to '${targetStatus}' is invalid for current trip state`;
+        transitionReason = `Out-of-sequence milestone: Screenshot shows '${detectedEvent.replace(/_/g, ' ')}', but the trip is currently in '${trip.status}' state. Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
       }
     } else if (detectedEvent && confidence < 0.70) {
-      transitionReason = `Low confidence score (${Math.round(confidence * 100)}%) requires manual verification`;
+      transitionReason = `Low AI confidence score (${Math.round(confidence * 100)}%). Text in screenshot was not clear enough to automatically verify.`;
     } else {
-      transitionReason = aiResult.notes || 'No clear operational milestone detected in screenshot';
+      transitionReason = aiResult.notes || 'No clear operational milestone (Arrived Pickup, Loading, In Transit, Delivery, POD) was recognized in this screenshot.';
     }
 
     // 4. Save Document record

@@ -299,10 +299,15 @@ export const ExternalAppWorkflowScreen = () => {
               </View>
             )}
 
-            {result.validation_reason && !result.applied && (
-              <View style={styles.resultDetailRow}>
-                <Text style={styles.resultLabel}>Notice:</Text>
-                <Text style={styles.resultValueDanger}>{result.validation_reason}</Text>
+            {!result.applied && (
+              <View style={styles.failureReasonBox}>
+                <View style={styles.failureReasonTitleRow}>
+                  <AlertCircle size={16} color="#DC2626" strokeWidth={2.2} />
+                  <Text style={styles.failureReasonTitle}>Why Verification Failed:</Text>
+                </View>
+                <Text style={styles.failureReasonText}>
+                  {result.validation_reason || result.notes || 'The uploaded screenshot could not be automatically verified for this trip.'}
+                </Text>
               </View>
             )}
           </View>
@@ -580,5 +585,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#DC2626',
     flex: 1,
+  },
+  failureReasonBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  failureReasonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  failureReasonTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  failureReasonText: {
+    fontSize: 13,
+    color: '#7F1D1D',
+    lineHeight: 18,
   },
 });
