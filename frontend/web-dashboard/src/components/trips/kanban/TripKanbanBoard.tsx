@@ -56,6 +56,7 @@ export interface TripKanbanBoardProps {
   statusFilter?: string;
   focusedStage?: string | null;
   onStageFocusChange?: (stage: string | null) => void;
+  collapsed?: boolean;
 }
 
 interface ColumnConfig {
@@ -193,6 +194,7 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
     statusFilter,
     focusedStage: focusedStageProp,
     onStageFocusChange,
+    collapsed = false,
   },
   ref
 ) {
@@ -546,6 +548,100 @@ const TripKanbanBoard = forwardRef<TripKanbanBoardRef, TripKanbanBoardProps>(fun
               </tbody>
             </table>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (collapsed) {
+    return (
+      <div className="w-full h-full min-h-[145px] max-h-[160px] flex flex-col justify-center overflow-hidden animate-fade-in">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 h-full">
+          {renderedColumns.map((col) => {
+            const Icon = col.icon;
+            const colTrips = groupedTrips[col.id] || [];
+
+            return (
+              <div
+                key={col.id}
+                className={cn(
+                  'flex flex-col rounded-xl border p-2.5 transition-all shadow-2xs h-[145px] overflow-hidden',
+                  col.columnBg
+                )}
+              >
+                {/* Stage Header */}
+                <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-slate-200/60 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon size={13} className={cn('shrink-0', col.accentColor)} />
+                    <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                      {col.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={cn('font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border shrink-0 leading-none', col.badgeClass)}>
+                      {colTrips.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFocusedStage(col.id)}
+                      className="p-0.5 rounded text-slate-400 hover:text-brand transition-colors cursor-pointer"
+                      title={`Expand ${col.label} stage`}
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Compact Trip Pills List */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar py-1 flex flex-col gap-1 min-h-0">
+                  {colTrips.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 italic">
+                      No {col.label} trips
+                    </div>
+                  ) : (
+                    <>
+                      {colTrips.slice(0, 2).map((trip) => {
+                        const driver = trip.is_third_party
+                          ? (trip.third_party_driver_name || '3PL')
+                          : trip.driver
+                          ? `${trip.driver.first_name?.[0] || ''}.${trip.driver.last_name || ''}`
+                          : 'Unassigned';
+                        const vehicle = trip.vehicle?.plate_number || trip.third_party_vehicle_plate || '—';
+
+                        return (
+                          <div
+                            key={trip.id}
+                            onClick={() => window.open(`/trips/${trip.id}`, '_self')}
+                            className="px-2 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[10px] font-semibold hover:border-brand transition-all cursor-pointer group shadow-3xs"
+                            title={`Trip ${trip.ref_id || 'Draft'} · ${driver} · ${vehicle}`}
+                          >
+                            <span className="font-mono font-extrabold text-brand group-hover:underline truncate max-w-[70px]">
+                              {trip.ref_id || 'Draft'}
+                            </span>
+                            <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[75px]">
+                              {driver}
+                            </span>
+                            <span className="font-mono text-[9px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[55px]">
+                              {vehicle}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {colTrips.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => setFocusedStage(col.id)}
+                          className="text-[9px] font-extrabold text-brand hover:underline text-center py-0.5 cursor-pointer shrink-0"
+                        >
+                          +{colTrips.length - 2} more trips →
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );

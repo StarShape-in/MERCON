@@ -250,6 +250,8 @@ async function main() {
     }
   }
 
+  const now = new Date();
+
   // Add today's active trips covering all 5 Kanban columns (Draft, Loading, InTransit, Delayed, Completed)
   const todayTripsData: any[] = [
     {
@@ -259,7 +261,7 @@ async function main() {
       planned_end: new Date(now.getTime() + 8 * HOUR),
       planned_distance: 350,
       billing_amount: 5200,
-      trip_charges: 5200,
+      driver_charge: 5200,
       vehicle_type: '32 Ton Trailer',
       rate_category: 'Standard Freight',
       billing_type: 'Per Trip',
@@ -276,13 +278,13 @@ async function main() {
     },
     {
       ref_id: 'TRP-TODAY-002',
-      status: TripStatus.AtPickup,
+      status: TripStatus.Loading,
       planned_start: new Date(now.getTime() - 1.5 * HOUR),
       actual_start: new Date(now.getTime() - 1.2 * HOUR),
       planned_end: new Date(now.getTime() + 4 * HOUR),
       planned_distance: 430,
       billing_amount: 6700,
-      trip_charges: 6700,
+      driver_charge: 6700,
       vehicle_type: 'Reefer 28T',
       rate_category: 'Refrigerated Dairy',
       billing_type: 'Per Trip',
@@ -305,7 +307,7 @@ async function main() {
       planned_end: new Date(now.getTime() + 2 * HOUR),
       planned_distance: 395,
       billing_amount: 5800,
-      trip_charges: 5800,
+      driver_charge: 5800,
       vehicle_type: '32 Ton Trailer',
       rate_category: 'Standard Freight',
       billing_type: 'Per Trip',
@@ -328,7 +330,7 @@ async function main() {
       planned_end: new Date(now.getTime() - 1.5 * HOUR), // Overdue = Delayed
       planned_distance: 680,
       billing_amount: 8900,
-      trip_charges: 8900,
+      driver_charge: 8900,
       vehicle_type: 'Reefer 28T',
       rate_category: 'Refrigerated Pharma',
       billing_type: 'Per Trip',
@@ -339,7 +341,7 @@ async function main() {
       stops: {
         create: [
           { stop_sequence: 1, stop_type: 'Pickup', location_name: 'Jeddah Islamic Port', location_address: 'Port Customs Gate 3, Jeddah', location_lat: 21.490, location_lng: 39.188, planned_arrival: new Date(now.getTime() - 8 * HOUR), actual_arrival: new Date(now.getTime() - 8 * HOUR), actual_departure: new Date(now.getTime() - 7.5 * HOUR) },
-          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Abha Cold Storage Center', location_address: 'Airport Road, Abha', location_lat: 18.239, location_lng: 42.512, planned_arrival: new Date(now.getTime() - 1.5 * HOUR), delay_reason: DelayReason.Traffic, delay_note: 'Severe highway bottleneck at Aqabat Dila pass due to rockslide & road works', delay_logged_by: 'Ahmed Operator', delay_logged_at: new Date(now.getTime() - 1.2 * HOUR) },
+          { stop_sequence: 2, stop_type: 'Dropoff', location_name: 'Abha Cold Storage Center', location_address: 'Airport Road, Abha', location_lat: 18.239, location_lng: 42.512, planned_arrival: new Date(now.getTime() - 1.5 * HOUR), delay_reason: DelayReason.Traffic, delay_note: 'Severe highway bottleneck at Aqabat Dila pass due to rockslide & road works', delay_logged_by: DEMO_MARKER, delay_logged_at: new Date(now.getTime() - 1.2 * HOUR) },
         ],
       },
     },
@@ -352,7 +354,7 @@ async function main() {
       actual_end: new Date(now.getTime() - 3.2 * HOUR),
       planned_distance: 290,
       billing_amount: 4200,
-      trip_charges: 4200,
+      driver_charge: 4200,
       vehicle_type: 'Reefer 24T',
       rate_category: 'Refrigerated Dairy',
       billing_type: 'Per Trip',
