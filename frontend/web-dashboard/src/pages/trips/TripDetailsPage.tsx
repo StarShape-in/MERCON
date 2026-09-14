@@ -583,12 +583,7 @@ export default function TripDetailsPage() {
           </div>
         </div>
 
-        {/* ── 2. VISUAL ROUTE PROGRESS (Panorama Highway Banner) ── */}
-        <div className="shrink-0">
-          <VisualRouteProgress stops={trip.stops || []} tz={tz} tripStatus={trip.status} />
-        </div>
-
-        {/* ── 3. UNIFIED OVERVIEW CARD: TRUCK, DRIVER, COMPANY, ALERTS (ALL IN ONE CARD, SAME 25% SIZE) ── */}
+        {/* ── 2. UNIFIED OVERVIEW CARD: TRUCK, DRIVER, COMPANY, ALERTS (ALL IN ONE CARD, SAME 25% SIZE) ── */}
         <div className="shrink-0">
           <TripOverviewBarCard
             trip={trip}
@@ -596,6 +591,11 @@ export default function TripDetailsPage() {
             onViewAllAlerts={() => setIsActivityLogOpen(true)}
             onPreviewImage={(img) => setPreviewImage(img)}
           />
+        </div>
+
+        {/* ── 3. VISUAL ROUTE PROGRESS (Panorama Highway Banner) ── */}
+        <div className="shrink-0">
+          <VisualRouteProgress stops={trip.stops || []} tz={tz} tripStatus={trip.status} />
         </div>
 
         {/* ── 4. BOTTOM ROW: TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}
