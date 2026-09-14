@@ -130,39 +130,13 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                 className="relative z-20 flex flex-col items-center justify-center"
               >
                 {isTruckHere ? (
-                  /* 2D Orange MERCON Truck sitting directly on the green road line at current/end location */
-                  <div className="relative flex flex-col items-center z-30 transform -translate-y-1.5">
-                    {/* 2D Orange MERCON Truck SVG matching mockup */}
-                    <svg
-                      viewBox="0 0 100 36"
-                      className="w-22 h-9 sm:w-26 sm:h-10 filter drop-shadow-md"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      {/* Cargo Trailer (Orange #FA634E with bold White MERCON text) */}
-                      <rect x="2" y="4" width="62" height="22" rx="3" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
-                      <text x="33" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="7.5" fontWeight="900" letterSpacing="1.2" fontFamily="Arial, Helvetica, sans-serif">MERCON</text>
-
-                      {/* Hitch / Connector */}
-                      <rect x="64" y="14" width="5" height="7" fill="#3E3C3D" />
-
-                      {/* Truck Cab (Orange #FA634E) */}
-                      <path d="M69 6 L84 6 L96 16 L96 26 L69 26 Z" fill="#FA634E" stroke="#E04835" strokeWidth="1" />
-                      {/* Windshield Glass */}
-                      <path d="M72 8 L82 8 L89 16 L72 16 Z" fill="#38BDF8" opacity="0.85" />
-                      {/* Bumper */}
-                      <rect x="94" y="21" width="4" height="5" rx="0.5" fill="#3E3C3D" />
-
-                      {/* Wheels (Dual rear wheels + 1 front wheel) */}
-                      <circle cx="16" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
-                      <circle cx="16" cy="26" r="1.8" fill="#FFFFFF" />
-
-                      <circle cx="28" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
-                      <circle cx="28" cy="26" r="1.8" fill="#FFFFFF" />
-
-                      <circle cx="82" cy="26" r="4.5" fill="#374151" stroke="#FFFFFF" strokeWidth="1.2" />
-                      <circle cx="82" cy="26" r="1.8" fill="#FFFFFF" />
-                    </svg>
+                  /* 3D Realistic MERCON Truck matching reference mockup */
+                  <div className="relative flex flex-col items-center z-30 transform -translate-y-2">
+                    <img
+                      src="/mercon_truck_3d.png"
+                      alt="MERCON Logistics Truck"
+                      className="w-24 sm:w-32 h-auto filter drop-shadow-md object-contain select-none pointer-events-none"
+                    />
                   </div>
                 ) : (
                   <div
