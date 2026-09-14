@@ -224,10 +224,10 @@ export function TripDateFilterPicker({
         ) : (
           /* Custom Calendar Mode inside little box */
           <div className="p-1 space-y-2">
-            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800 px-1">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Custom Range</span>
 
-              <span className="text-[11px] font-mono text-slate-500 truncate max-w-[150px]">
+              <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[150px]">
                 {tempRange?.from ? (
                   tempRange.to ? (
                     `${format(tempRange.from, 'MMM d')} – ${format(tempRange.to, 'MMM d')}`
@@ -240,7 +240,7 @@ export function TripDateFilterPicker({
               </span>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center relative pt-1">
               <Calendar
                 mode="range"
                 selected={tempRange}
