@@ -8,6 +8,9 @@ import {
   Truck, User, Wrench, Users
 } from 'lucide-react';
 
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import DateRangePicker from '@/components/ui/date-range-picker';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyBoard from '@/components/trips/monthly/MonthlyCompanyBoard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -101,6 +104,7 @@ export default function MonthlyTripsPage() {
 
   const [month, setMonth] = useState(currentMonthKey());
   const [search, setSearch] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [customerId, setCustomerId] = useState('All');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
@@ -154,14 +158,34 @@ export default function MonthlyTripsPage() {
   }, [customers]);
 
   const companies = useMemo(() => {
-    if (!search.trim()) return rawCompanies;
+    let fromStr: string | null = null;
+    let toStr: string | null = null;
+
+    if (dateRange?.from) {
+      fromStr = format(dateRange.from, 'yyyy-MM-dd');
+      toStr = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : fromStr;
+    }
+
+    if (!search.trim() && !fromStr) return rawCompanies;
     
     const query = search.trim();
     const filtered = rawCompanies.map((c) => {
       const filteredDays = c.days.map((d) => {
-        const matchingTrips = d.trips.filter((t) => computeMonthlyTripSearchRelevance(t, query) > 0);
+        // Date Filter
+        if (fromStr && toStr) {
+          if (d.date < fromStr || d.date > toStr) return null;
+        }
+
+        // Search Filter
+        let matchingTrips = d.trips;
+        if (query) {
+          matchingTrips = d.trips.filter((t) => computeMonthlyTripSearchRelevance(t, query) > 0);
+        }
+
+        if (matchingTrips.length === 0) return null;
+
         return { ...d, trips: matchingTrips };
-      }).filter((d) => d.trips.length > 0);
+      }).filter(Boolean) as typeof c.days;
 
       const totalMatchingTrips = filteredDays.reduce((sum, d) => sum + d.trips.length, 0);
 
@@ -177,6 +201,8 @@ export default function MonthlyTripsPage() {
       };
     }).filter((c) => c.total_trips > 0);
 
+    if (!query) return filtered;
+
     return filtered.sort((a, b) => {
       const aTrips = a.days.flatMap((d) => d.trips);
       const bTrips = b.days.flatMap((d) => d.trips);
@@ -185,7 +211,7 @@ export default function MonthlyTripsPage() {
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.total_trips - a.total_trips;
     });
-  }, [rawCompanies, search]);
+  }, [rawCompanies, search, dateRange]);
 
   const allVisibleTripIds = useMemo(
     () => companies.flatMap((c) => c.days.flatMap((d) => d.trips.map((t) => t.id))),
@@ -263,6 +289,7 @@ export default function MonthlyTripsPage() {
     setBillingType('');
     setStatus('');
     setSearch('');
+    setDateRange(undefined);
   };
 
   const appliedFiltersCount = [
@@ -271,6 +298,7 @@ export default function MonthlyTripsPage() {
     Boolean(vehicleType),
     Boolean(billingType),
     Boolean(status),
+    Boolean(dateRange?.from),
   ].filter(Boolean).length;
 
   const exportRows: MonthlyExportRow[] = useMemo(
@@ -365,6 +393,26 @@ export default function MonthlyTripsPage() {
                   <X size={13} />
                 </button>
               )}
+            </div>
+
+            {/* Date Filter Button */}
+            <div className="w-auto min-w-[170px]">
+              <DateRangePicker
+                value={dateRange}
+                onChange={(newRange) => {
+                  setDateRange(newRange);
+                  if (newRange?.from) {
+                    const newMonthKey = format(newRange.from, 'yyyy-MM');
+                    if (newMonthKey !== month) {
+                      setMonth(newMonthKey);
+                    }
+                  }
+                }}
+                placeholder="Filter by Date"
+                showPresets={true}
+                className="w-auto"
+                buttonClassName="h-9 text-xs font-bold rounded-xl border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 shadow-2xs"
+              />
             </div>
 
           </div>
