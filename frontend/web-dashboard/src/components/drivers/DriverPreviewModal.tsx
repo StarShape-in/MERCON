@@ -91,14 +91,6 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-4 h-4" />
-          </Button>
         </DialogHeader>
 
         {/* Content Body */}

@@ -776,9 +776,10 @@ export default function TripListPage() {
 
       const updated = await tripService.updateStatus(trip.id, targetStatus as TripStatus);
 
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      await refetch();
       toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
 
       setStatusConfirmModal({
@@ -1248,8 +1249,9 @@ export default function TripListPage() {
     try {
       setIsUpdatingStatus(true);
       const updated = await tripService.updateStatus(targetTrip.id, targetStatus);
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await refetch();
       setSelectionResetKey(k => k + 1);
       setStatusDialogTrip(null);
       toast.success('Trip status updated successfully');
@@ -1979,8 +1981,9 @@ export default function TripListPage() {
                     onConfirm: async () => {
                       try {
                         await tripService.bulkDelete([row.id]);
-                        queryClient.invalidateQueries({ queryKey: ['trips'] });
-                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        await queryClient.invalidateQueries({ queryKey: ['trips'] });
+                        await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        await refetch();
                         setSelectionResetKey(k => k + 1);
                         toast.success('Trip moved to Trash');
                       } catch (e: any) {
@@ -2060,8 +2063,9 @@ export default function TripListPage() {
           onConfirm: async () => {
             try {
               const res = await tripService.bulkDelete(selectedRows.map(r => r.id));
-              queryClient.invalidateQueries({ queryKey: ['trips'] });
-              queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+              await queryClient.invalidateQueries({ queryKey: ['trips'] });
+              await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+              await refetch();
               clearSelection?.();
               setSelectionResetKey(k => k + 1);
               if (res?.skippedCount > 0) {
@@ -2544,8 +2548,9 @@ export default function TripListPage() {
                           onConfirm: async () => {
                             try {
                               await tripService.bulkDelete([trip.id]);
-                              queryClient.invalidateQueries({ queryKey: ['trips'] });
-                              queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                              await queryClient.invalidateQueries({ queryKey: ['trips'] });
+                              await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                              await refetch();
                               toast.success(`Moved trip ${trip.ref_id} to Trash`);
                             } catch (e: any) {
                               toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
