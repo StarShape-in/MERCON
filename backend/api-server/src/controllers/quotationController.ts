@@ -575,33 +575,58 @@ export const bulkDeleteQuotations = async (req: Request, res: Response) => {
   }
 };
 
+const KNOWN_CITY_CODES = new Set([
+  'RUH', 'JED', 'DMM', 'BUR', 'UNZ', 'HAI', 'HAIL', 'TAIF', 'MAK', 'TIF',
+  'MED', 'YNB', 'BSH', 'EDB', 'MHY', 'MUH', 'QUN', 'AHS', 'HOF', 'JUB',
+  'TUU', 'KHA', 'ABH', 'ABHA', 'NAJ', 'QUR', 'BAH', 'ELQ', 'AIRPORT', 'YNB', 'JIZ'
+]);
+
 function parseImportStops(originText: string, destinationText: string, viaText?: string): string[] {
   const clean = (s: string) => (s || '')
     .replace(/^(SHIPA|JDL|iMile|AKS|GFS|Arkan Barwan|Horizon)\s+/i, '')
     .replace(/\(.*\)/g, '')
+    .replace(/\b(STATION|HUB|DEPOT|SORTING CENTER|SORTING CENTRE|DISPATCH|TRANSIT|CORRIDOR|DISTRIBUTION|LINE|ROUTE|10H|12H|MAXIMUM|DUTY)\b/gi, '')
     .trim();
 
   const origClean = clean(originText);
   const destClean = clean(destinationText);
   const viaClean = clean(viaText || '');
 
-  const rawStops: string[] = [];
-  if (origClean) rawStops.push(origClean);
-  if (viaClean) rawStops.push(viaClean);
+  const stops: string[] = [];
 
-  const destParts = destClean
-    .split(/[\-\+\/→,]+/)
-    .flatMap((part) => part.trim().split(/\s+/))
-    .map((p) => p.trim())
-    .filter(Boolean);
-
-  destParts.forEach((part) => {
-    if (rawStops.length === 0 || rawStops[rawStops.length - 1].toUpperCase() !== part.toUpperCase()) {
-      rawStops.push(part);
+  const addStop = (raw: string) => {
+    if (!raw) return;
+    const str = raw.trim().replace(/^[\-\+\/→,]+|[\-\+\/→,]+$/g, '').trim();
+    if (!str || str === '-' || str === '+' || str === '/') return;
+    if (stops.length === 0 || stops[stops.length - 1].toUpperCase() !== str.toUpperCase()) {
+      stops.push(str);
     }
-  });
+  };
 
-  return rawStops.length > 0 ? rawStops : [originText, destinationText].filter(Boolean);
+  addStop(origClean);
+  addStop(viaClean);
+
+  if (destClean) {
+    const parts = destClean
+      .split(/[\-\+\/→,]+|\s+to\s+|\s+via\s+/i)
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    const subParts: string[] = [];
+    parts.forEach(part => {
+      const words = part.split(/\s+/).filter(Boolean);
+      const allAreCodes = words.length > 1 && words.every(w => KNOWN_CITY_CODES.has(w.toUpperCase()));
+      if (allAreCodes) {
+        words.forEach(w => subParts.push(w));
+      } else {
+        subParts.push(part);
+      }
+    });
+
+    subParts.forEach(addStop);
+  }
+
+  return stops.length > 0 ? stops : [originText, destinationText].filter(Boolean);
 }
 
 export const bulkImportQuotations = async (req: Request, res: Response) => {
