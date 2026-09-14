@@ -57,6 +57,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -379,6 +380,11 @@ export default function QuotationListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Right-side Route Details Drawer State
   const [drawerQuotation, setDrawerQuotation] = useState<Quotation | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -536,10 +542,59 @@ export default function QuotationListPage() {
     setWorkspacePage(1);
   }, [selectedCustomerId]);
 
-  // Reset workspace page on filter change
+  // Reset selection on customer change or filter change
   useEffect(() => {
-    setWorkspacePage(1);
-  }, [search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+    setSelectedIds(new Set());
+  }, [selectedCustomerId, search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+
+  const isAllSelected = useMemo(() => {
+    if (filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.every((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds]);
+
+  const isSomeSelected = useMemo(() => {
+    if (isAllSelected || filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.some((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds, isAllSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      const next = new Set<string>();
+      filteredWorkspaceRoutes.forEach((q) => next.add(q.id));
+      setSelectedIds(next);
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const idsArray = Array.from(selectedIds);
+      await quotationService.bulkDelete(idsArray);
+      toast.success(`Deleted ${idsArray.length} commercial route(s) successfully`);
+      setSelectedIds(new Set());
+      setIsBulkDeleteModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete selected quotations');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!selectedQuotation) return;
@@ -846,8 +901,34 @@ export default function QuotationListPage() {
                             className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-2.5 shrink-0 font-medium"
                           >
                             <X className="h-3.5 w-3.5 mr-1" />
-                            <span>Clear</span>
+                            <span>Clear Filters</span>
                           </Button>
+                        )}
+
+                        {/* Bulk Action Controls */}
+                        {selectedIds.size > 0 && (
+                          <div className="flex items-center gap-2 ml-auto pl-2 border-l border-slate-200 dark:border-slate-700">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {selectedIds.size} selected
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setIsBulkDeleteModalOpen(true)}
+                              className="h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 flex items-center gap-1.5 cursor-pointer shadow-xs border-0"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete Selected ({selectedIds.size})</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedIds(new Set())}
+                              className="h-8 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 rounded-lg px-2 cursor-pointer"
+                            >
+                              Deselect
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -889,6 +970,14 @@ export default function QuotationListPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-800/20">
+                            <th className="py-2.5 px-3.5 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                                onCheckedChange={handleToggleSelectAll}
+                                aria-label="Select all commercial routes"
+                                className="translate-y-[1px]"
+                              />
+                            </th>
                             <th className="py-2.5 px-3.5 w-10">#</th>
                             <th className="py-2.5 px-3.5">Route / Stops</th>
                             <th className="py-2.5 px-3.5">Vehicle Class</th>
@@ -907,13 +996,26 @@ export default function QuotationListPage() {
                             const driverChargeText = row.driver_payout != null && !isNaN(Number(row.driver_payout))
                               ? `SAR ${Number(row.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                               : '—';
+                            const isSelectedRow = selectedIds.has(row.id);
 
                             return (
                               <tr
                                 key={row.id}
                                 onClick={() => handleOpenDrawer(row)}
-                                className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                                className={cn(
+                                  "hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors",
+                                  isSelectedRow && "bg-rose-50/30 dark:bg-rose-950/20 hover:bg-rose-50/50"
+                                )}
                               >
+                                <td className="py-3 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={isSelectedRow}
+                                    onCheckedChange={() => handleToggleSelectRow(row.id)}
+                                    aria-label={`Select route ${row.name || row.id}`}
+                                    className="translate-y-[1px]"
+                                  />
+                                </td>
+
                                 <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">
                                   {rowNumber}
                                 </td>
@@ -1101,6 +1203,17 @@ export default function QuotationListPage() {
         title="Delete Commercial Route"
         message="Are you sure you want to delete this commercial route quotation? Historical trips billed with this quotation will retain their commercial snapshot."
         confirmLabel="Delete Route"
+        isDestructive
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedIds.size} Commercial Routes`}
+        message={`Are you sure you want to delete ${selectedIds.size} selected commercial route(s)? Historical trips billed with these quotations will retain their commercial rate snapshots.`}
+        confirmLabel={isBulkDeleting ? 'Deleting...' : `Delete ${selectedIds.size} Routes`}
         isDestructive
       />
 
