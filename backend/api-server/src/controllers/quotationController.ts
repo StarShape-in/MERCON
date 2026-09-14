@@ -575,6 +575,35 @@ export const bulkDeleteQuotations = async (req: Request, res: Response) => {
   }
 };
 
+function parseImportStops(originText: string, destinationText: string, viaText?: string): string[] {
+  const clean = (s: string) => (s || '')
+    .replace(/^(SHIPA|JDL|iMile|AKS|GFS|Arkan Barwan|Horizon)\s+/i, '')
+    .replace(/\(.*\)/g, '')
+    .trim();
+
+  const origClean = clean(originText);
+  const destClean = clean(destinationText);
+  const viaClean = clean(viaText || '');
+
+  const rawStops: string[] = [];
+  if (origClean) rawStops.push(origClean);
+  if (viaClean) rawStops.push(viaClean);
+
+  const destParts = destClean
+    .split(/[\-\+\/→,]+/)
+    .flatMap((part) => part.trim().split(/\s+/))
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  destParts.forEach((part) => {
+    if (rawStops.length === 0 || rawStops[rawStops.length - 1].toUpperCase() !== part.toUpperCase()) {
+      rawStops.push(part);
+    }
+  });
+
+  return rawStops.length > 0 ? rawStops : [originText, destinationText].filter(Boolean);
+}
+
 export const bulkImportQuotations = async (req: Request, res: Response) => {
   try {
     const rows: Record<string, any>[] = req.body.rows || [];
@@ -638,7 +667,7 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
 
       const customerName = String(row.customer_name || '').trim();
       const originText = String(row.origin || '').trim();
-      const destinationText = String(row.destination || '').trim();
+      const destinationText = String(row.destination || row.parsed_stop_sequence || '').trim();
       const viaText = String(row.via || '').trim();
       const vehicleType = String(row.vehicle_type || '').trim();
       const operationType = String(row.operation_type || row.rate_category || row.line_type || '').trim();
@@ -675,16 +704,22 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
         }
 
         const action = await prisma.$transaction(async (tx) => {
-          let originId: string | null = null;
-          let destinationId: string | null = null;
-          if (originText) {
-            const originLoc = await findOrCreateLocation(tx, originText, customer.id);
-            originId = originLoc?.id || null;
+          const stopTokens = parseImportStops(originText, destinationText, viaText);
+          const resolvedStops: Array<{ locationId: string | null; label: string; sequence: number; stop_type: 'Pickup' | 'Dropoff' }> = [];
+
+          for (let sIdx = 0; sIdx < stopTokens.length; sIdx++) {
+            const tokenLabel = stopTokens[sIdx];
+            const loc = await findOrCreateLocation(tx, tokenLabel, customer.id);
+            resolvedStops.push({
+              locationId: loc?.id || null,
+              label: tokenLabel,
+              sequence: sIdx + 1,
+              stop_type: sIdx === 0 ? 'Pickup' : 'Dropoff',
+            });
           }
-          if (destinationText) {
-            const destLoc = await findOrCreateLocation(tx, destinationText, customer.id);
-            destinationId = destLoc?.id || null;
-          }
+
+          const originId = resolvedStops[0]?.locationId || null;
+          const destinationId = resolvedStops[resolvedStops.length - 1]?.locationId || null;
 
           const lineTypeMapped =
             operationType.toLowerCase().includes('single') ? 'SINGLE_TRIP' :
@@ -709,6 +744,10 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
             source_type: 'IMPORT',
+            route_origin: originText || null,
+            route_destination: destinationText || null,
+            originLocationId: originId,
+            destinationLocationId: destinationId,
           };
 
           const existing = await tx.quotation.findFirst({
@@ -719,26 +758,32 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
             },
           });
 
+          let targetId = existing?.id;
+
           if (existing) {
             await tx.quotation.update({
               where: { id: existing.id },
               data: { ...data, updated_by: userId, version: existing.version + 1 },
             });
-            return 'updated';
+          } else {
+            const createdQuotation = await tx.quotation.create({ data: { ...data, created_by: userId } });
+            targetId = createdQuotation.id;
           }
 
-          const createdQuotation = await tx.quotation.create({ data: { ...data, created_by: userId } });
-          if (originId || destinationId || viaText) {
-            const stopsToCreate = [
-              ...(originId ? [{ quotationId: createdQuotation.id, sequence: 1, locationId: originId, stop_type: 'Pickup' as const, source_label: originText }] : []),
-              ...(viaText ? [{ quotationId: createdQuotation.id, sequence: 2, locationId: null, stop_type: 'Rest' as const, source_label: viaText }] : []),
-              ...(destinationId ? [{ quotationId: createdQuotation.id, sequence: viaText ? 3 : 2, locationId: destinationId, stop_type: 'Dropoff' as const, source_label: destinationText }] : []),
-            ];
-            if (stopsToCreate.length > 0) {
-              await tx.quotationStop.createMany({ data: stopsToCreate });
-            }
+          if (targetId && resolvedStops.length > 0) {
+            await tx.quotationStop.deleteMany({ where: { quotationId: targetId } });
+            await tx.quotationStop.createMany({
+              data: resolvedStops.map((s) => ({
+                quotationId: targetId!,
+                sequence: s.sequence,
+                locationId: s.locationId,
+                stop_type: s.stop_type,
+                source_label: s.label,
+              })),
+            });
           }
-          return 'created';
+
+          return existing ? 'updated' : 'created';
         });
 
         results.push({ row: rowNumber, success: true, label, action });

@@ -76,7 +76,7 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   origin: ['origin', 'from', 'starting city', 'pickup', 'pickup city'],
   origin_label: ['origin label', 'origin facility', 'pickup facility', 'pickup label'],
   via: ['via', 'connecting city', 'connecting stop', 'stop'],
-  destination: ['destination', 'to', 'destination city', 'drop off', 'dropoff', 'drop off city'],
+  destination: ['destination', 'destination / waypoints', 'parsed stop sequence', 'to', 'destination city', 'drop off', 'dropoff', 'drop off city'],
   destination_label: ['destination label', 'destination facility', 'dropoff facility', 'dropoff label'],
   vehicle_type: ['vehicle class', 'vehicle type', 'vehicle', 'truck type', 'body type'],
   price: ['billing rate', 'billing rate sar', 'price', 'rate', 'base price', 'amount'],
