@@ -109,7 +109,12 @@ const DeliveryVerificationScreen = () => {
   // If this delivery stop is already completed and departed, navigate forward
   useEffect(() => {
     if (trip?.driver_workflow === 'EXTERNAL_APP') {
-      router.replace('/trip/external-app');
+      const ws = getEffectiveWorkflowState(trip);
+      if (ws === 'ASSIGNED') {
+        router.replace('/');
+      } else {
+        router.replace('/trip/external-app');
+      }
       return;
     }
     if (loading || !trip || !dropoffStop) return;

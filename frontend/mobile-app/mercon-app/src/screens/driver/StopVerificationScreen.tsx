@@ -108,9 +108,14 @@ export default function StopVerificationScreen() {
 
   useEffect(() => {
     if (trip?.driver_workflow === 'EXTERNAL_APP') {
-      router.replace('/trip/external-app');
+      const ws = trip?.driver_workflow_state || 'ASSIGNED';
+      if (ws === 'ASSIGNED') {
+        router.replace('/');
+      } else {
+        router.replace('/trip/external-app');
+      }
     }
-  }, [trip?.driver_workflow]);
+  }, [trip?.driver_workflow, trip]);
 
   // Restore photos from SecureStore on mount
   useEffect(() => {

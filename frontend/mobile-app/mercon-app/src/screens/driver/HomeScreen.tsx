@@ -132,11 +132,13 @@ const HomeScreen = () => {
   useEffect(() => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
+    const ws = getEffectiveWorkflowState(trip);
     if (trip.driver_workflow === 'EXTERNAL_APP') {
-      router.push('/trip/external-app');
+      if (ws !== 'ASSIGNED') {
+        router.push('/trip/external-app');
+      }
       return;
     }
-    const ws = getEffectiveWorkflowState(trip);
     if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
       router.push('/trip/navigate');
     } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
@@ -198,11 +200,25 @@ const HomeScreen = () => {
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
     if (t.driver_workflow === 'EXTERNAL_APP') {
-      const isAssigned = !t.driver_workflow_state || t.driver_workflow_state === 'ASSIGNED';
+      const ws = getEffectiveWorkflowState(t);
+      const isAssigned = ws === 'ASSIGNED';
       return {
-        badgeLabel: 'External App',
+        badgeLabel: isAssigned ? 'Assigned (External)' : 'External App',
         btnLabel: isAssigned ? 'Start Trip' : 'Upload App Screenshot',
-        onPress: () => router.push('/trip/external-app'),
+        onPress: async () => {
+          if (isAssigned) {
+            setAdvancing(true);
+            try {
+              const updated = await tripService.updateStatus(t.id, 'Scheduled', 'GOING_TO_PICKUP');
+              setTrip(updated);
+            } catch (err) {
+              console.warn('Could not update trip status on start:', err);
+            } finally {
+              setAdvancing(false);
+            }
+          }
+          router.push('/trip/external-app');
+        },
       };
     }
     const ws = getEffectiveWorkflowState(t);
@@ -709,9 +725,12 @@ const HomeScreen = () => {
                     </View>
                     <TouchableOpacity
                       style={styles.startTripSmallBtn}
-                      onPress={() => {
+                      onPress={async () => {
                         setTrip(st);
                         if (st.driver_workflow === 'EXTERNAL_APP') {
+                          try {
+                            await tripService.updateStatus(st.id, 'Scheduled', 'GOING_TO_PICKUP');
+                          } catch {}
                           router.push('/trip/external-app');
                         } else {
                           router.push('/trip/navigate');

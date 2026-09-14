@@ -109,7 +109,12 @@ const PickupVerificationScreen = () => {
   // If this pickup stop is already completed and departed, navigate forward to the next stage
   useEffect(() => {
     if (trip?.driver_workflow === 'EXTERNAL_APP') {
-      router.replace('/trip/external-app');
+      const ws = getEffectiveWorkflowState(trip);
+      if (ws === 'ASSIGNED') {
+        router.replace('/');
+      } else {
+        router.replace('/trip/external-app');
+      }
       return;
     }
     if (loading || !trip || !pickupStop) return;
