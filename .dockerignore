@@ -34,6 +34,7 @@ Trucks Docs (1)
 *.log
 *.dump
 *.sql
+!**/prisma/migrations/**/*.sql
 .env
 .env.*
 !.env.example
