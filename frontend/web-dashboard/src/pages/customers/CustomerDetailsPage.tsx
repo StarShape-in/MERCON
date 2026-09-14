@@ -695,7 +695,7 @@ export default function CustomerDetailsPage() {
                     {customer.primary_contact_phone || customer.contact_phone || customer.phone || '—'}
                   </InfoRow>
                   <InfoRow label="Email Address">
-                    {customer.email || customer.contact_email || '—'}
+                    {(customer as any).email || (customer as any).contact_email || '—'}
                   </InfoRow>
                   <InfoRow label="WhatsApp Operations">
                     {customer.whatsapp_group_link ? (
