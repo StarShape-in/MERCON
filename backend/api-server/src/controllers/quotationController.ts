@@ -137,7 +137,7 @@ export const createQuotation = async (req: Request, res: Response) => {
           customerId: normalisedCustomerId,
           is_active: is_active ?? true,
           line_type: rateCategory,
-          billing_type: billingType,
+          operation_type: billingType || req.body.operation_type || null,
           pricing_basis: pricingBasis,
           vehicle_class: vehicleClass,
           source_vehicle_label: vehicleType,
@@ -225,7 +225,7 @@ export const getQuotations = async (req: Request, res: Response) => {
     }
 
     if (line_type || rate_category) whereClause.line_type = (line_type || rate_category) as string;
-    if (billing_type) whereClause.billing_type = billing_type as string;
+    if (billing_type || req.query.operation_type) whereClause.operation_type = (billing_type || req.query.operation_type) as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();
@@ -234,7 +234,7 @@ export const getQuotations = async (req: Request, res: Response) => {
         OR: [
           { name: { contains: term, mode: 'insensitive' } },
           { line_type: { contains: term, mode: 'insensitive' } },
-          { billing_type: { contains: term, mode: 'insensitive' } },
+          { operation_type: { contains: term, mode: 'insensitive' } },
           { source_vehicle_label: { contains: term, mode: 'insensitive' } },
           { vehicle_class: { contains: term, mode: 'insensitive' } },
           { customer: { name: { contains: term, mode: 'insensitive' } } },
@@ -275,18 +275,37 @@ export const getQuotations = async (req: Request, res: Response) => {
 
 export const lookupQuotation = async (req: Request, res: Response) => {
   try {
-    const { customer_id, origin_location_id, destination_location_id, vehicle_type, rate_category, line_type, billing_type } = req.query;
+    const customer_id = (req.query.customer_id || req.body?.customer_id) as string | undefined;
+    const origin_location_id = (req.query.origin_location_id || req.body?.origin_location_id) as string | undefined;
+    const destination_location_id = (req.query.destination_location_id || req.body?.destination_location_id) as string | undefined;
+    const vehicle_type = (req.query.vehicle_type || req.query.vehicle_class || req.body?.vehicle_type || req.body?.vehicle_class) as string | undefined;
+    const line_type = (req.query.line_type || req.query.rate_category || req.body?.line_type || req.body?.rate_category) as string | undefined;
+    const billing_type = (req.query.billing_type || req.body?.billing_type) as string | undefined;
+    const stops = req.body?.stops || req.query.stops;
 
-    const { quotation, source } = await findQuotationForLane(prisma, {
-      customerId: (customer_id as string) || null,
-      originLocationId: (origin_location_id as string) || null,
-      destinationLocationId: (destination_location_id as string) || null,
-      ...(vehicle_type !== undefined ? { vehicleType: (vehicle_type as string) || null } : {}),
-      ...(line_type !== undefined || rate_category !== undefined ? { lineType: ((line_type || rate_category) as string) || null } : {}),
-      ...(billing_type !== undefined ? { billingType: (billing_type as string) || null } : {}),
+    const { quotation, candidateQuotation, matchStatus, source } = await findQuotationForLane(prisma, {
+      customerId: customer_id || null,
+      originLocationId: origin_location_id || null,
+      destinationLocationId: destination_location_id || null,
+      ...(vehicle_type !== undefined ? { vehicleType: vehicle_type || null, vehicleClass: vehicle_type || null } : {}),
+      ...(line_type !== undefined ? { lineType: line_type || null } : {}),
+      ...(billing_type !== undefined ? { billingType: billing_type || null } : {}),
+      ...(Array.isArray(stops) ? { stops } : {}),
     });
 
-    res.json({ success: true, data: { quotation, rate_card: quotation, pricing_rule: quotation, source } });
+    res.json({
+      success: true,
+      data: {
+        quotation,
+        candidate_quotation: candidateQuotation,
+        candidateQuotation,
+        match_status: matchStatus,
+        matchStatus,
+        rate_card: quotation,
+        pricing_rule: quotation,
+        source,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to look up quotation rate' } });
   }
@@ -408,7 +427,7 @@ export const updateQuotation = async (req: Request, res: Response) => {
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),
           ...(lineTypeToUse !== undefined ? { line_type: lineTypeToUse } : {}),
-          ...(billingTypeToUse !== undefined ? { billing_type: billingTypeToUse } : {}),
+          ...(billingTypeToUse !== undefined ? { operation_type: billingTypeToUse } : {}),
           ...(pricingBasisToUse !== undefined ? { pricing_basis: pricingBasisToUse } : {}),
           ...(vehicleClassToUse !== undefined ? { vehicle_class: vehicleClassToUse } : {}),
           ...(vehicleTypeToUse !== undefined ? { source_vehicle_label: vehicleTypeToUse } : {}),
@@ -477,6 +496,35 @@ export const deleteQuotation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const targetId = id as string;
+    const force = req.query.force === 'true' || req.body?.force === true;
+
+    const quotation = await prisma.quotation.findFirst({
+      where: { id: targetId, deletedAt: null },
+      select: { id: true, quotationNumber: true, name: true }
+    });
+
+    if (!quotation) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Quotation not found' } });
+    }
+
+    const linkedTripsCount = await prisma.trip.count({
+      where: { quotationId: targetId, deletedAt: null }
+    });
+
+    if (linkedTripsCount > 0 && !force) {
+      const label = quotation.name || quotation.quotationNumber || targetId;
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete quotation "${label}" because it is linked to ${linkedTripsCount} active trip(s). You can archive it, or confirm force delete to detach it.`,
+          details: {
+            linkedTripsCount,
+            canForce: true,
+          },
+        }
+      });
+    }
 
     await prisma.$transaction([
       prisma.trip.updateMany({ where: { quotationId: targetId }, data: { quotationId: null } }),
@@ -485,9 +533,9 @@ export const deleteQuotation = async (req: Request, res: Response) => {
       prisma.quotationHistory.deleteMany({ where: { quotationId: targetId } }),
       prisma.quotation.delete({ where: { id: targetId } })
     ]);
-    res.json({ success: true, message: 'Quotation permanently deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+    res.json({ success: true, message: 'Quotation deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to delete quotation' } });
   }
 };
 
@@ -499,18 +547,87 @@ export const bulkDeleteQuotations = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
+    const linkedTrips = await prisma.trip.findMany({
+      where: { quotationId: { in: ids }, deletedAt: null },
+      select: { quotationId: true }
+    });
+
+    if (linkedTrips.length > 0) {
+      const blockedQuotationIds = new Set(linkedTrips.map(t => t.quotationId).filter(Boolean));
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete selected quotation(s) because ${blockedQuotationIds.size} of them are linked to active operational trips. Please archive them instead.`
+        }
+      });
+    }
+
     await prisma.$transaction([
-      prisma.trip.updateMany({ where: { quotationId: { in: ids } }, data: { quotationId: null } }),
       prisma.surchargeRule.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotationStop.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotationHistory.deleteMany({ where: { quotationId: { in: ids } } }),
       prisma.quotation.deleteMany({ where: { id: { in: ids } } })
     ]);
-    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} quotations` } });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete quotations` } });
+    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} quotation(s)` } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to bulk delete quotations' } });
   }
 };
+
+const KNOWN_CITY_CODES = new Set([
+  'RUH', 'JED', 'DMM', 'BUR', 'UNZ', 'HAI', 'HAIL', 'TAIF', 'MAK', 'TIF',
+  'MED', 'YNB', 'BSH', 'EDB', 'MHY', 'MUH', 'QUN', 'AHS', 'HOF', 'JUB',
+  'TUU', 'KHA', 'ABH', 'ABHA', 'NAJ', 'QUR', 'BAH', 'ELQ', 'AIRPORT', 'YNB', 'JIZ'
+]);
+
+function parseImportStops(originText: string, destinationText: string, viaText?: string): string[] {
+  const clean = (s: string) => (s || '')
+    .replace(/^(SHIPA|JDL|iMile|AKS|GFS|Arkan Barwan|Horizon)\s+/i, '')
+    .replace(/\(.*\)/g, '')
+    .replace(/\b(STATION|HUB|DEPOT|SORTING CENTER|SORTING CENTRE|DISPATCH|TRANSIT|CORRIDOR|DISTRIBUTION|LINE|ROUTE|10H|12H|MAXIMUM|DUTY)\b/gi, '')
+    .trim();
+
+  const origClean = clean(originText);
+  const destClean = clean(destinationText);
+  const viaClean = clean(viaText || '');
+
+  const stops: string[] = [];
+
+  const addStop = (raw: string) => {
+    if (!raw) return;
+    const str = raw.trim().replace(/^[\-\+\/→,]+|[\-\+\/→,]+$/g, '').trim();
+    if (!str || str === '-' || str === '+' || str === '/') return;
+    if (stops.length === 0 || stops[stops.length - 1].toUpperCase() !== str.toUpperCase()) {
+      stops.push(str);
+    }
+  };
+
+  addStop(origClean);
+  addStop(viaClean);
+
+  if (destClean) {
+    const parts = destClean
+      .split(/[\-\+\/→,]+|\s+to\s+|\s+via\s+/i)
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    const subParts: string[] = [];
+    parts.forEach(part => {
+      const words = part.split(/\s+/).filter(Boolean);
+      const allAreCodes = words.length > 1 && words.every(w => KNOWN_CITY_CODES.has(w.toUpperCase()));
+      if (allAreCodes) {
+        words.forEach(w => subParts.push(w));
+      } else {
+        subParts.push(part);
+      }
+    });
+
+    subParts.forEach(addStop);
+  }
+
+  return stops.length > 0 ? stops : [originText, destinationText].filter(Boolean);
+}
 
 export const bulkImportQuotations = async (req: Request, res: Response) => {
   try {
@@ -520,20 +637,51 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
 
     const customerCache = new Map<string, any>();
     const findCustomer = async (name: string) => {
-      const key = name.toLowerCase();
+      const key = name.toLowerCase().trim();
       if (customerCache.has(key)) return customerCache.get(key);
-      const customer = await prisma.customer.findFirst({
-        where: { deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+
+      let customer = await prisma.customer.findFirst({
+        where: { deletedAt: null, name: { equals: name.trim(), mode: 'insensitive' } },
       });
+      if (!customer) {
+        customer = await prisma.customer.findFirst({
+          where: { deletedAt: null, name: { startsWith: name.trim(), mode: 'insensitive' } },
+        });
+      }
+      if (!customer) {
+        customer = await prisma.customer.findFirst({
+          where: { deletedAt: null, name: { contains: name.trim(), mode: 'insensitive' } },
+        });
+      }
+      if (!customer) {
+        const allCustomers = await prisma.customer.findMany({ where: { deletedAt: null } });
+        const cleanInput = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        customer = allCustomers.find(c => {
+          const cleanName = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanName.includes(cleanInput) || cleanInput.includes(cleanName);
+        }) || null;
+      }
+      if (!customer) {
+        // Auto-create missing customer on the fly
+        customer = await prisma.customer.create({
+          data: {
+            name: name.trim(),
+            contact_phone: '+966000000000',
+            isActive: true,
+            created_by: userId,
+          },
+        });
+      }
+
       customerCache.set(key, customer);
       return customer;
     };
 
     const locationCache = new Map<string, any>();
-    const findOrCreateLocation = async (tx: any, name: string) => {
-      const key = name.trim().toLowerCase();
+    const findOrCreateLocation = async (tx: any, name: string, customerId?: string) => {
+      const key = `${(customerId || 'global').toLowerCase()}:${name.trim().toLowerCase()}`;
       if (locationCache.has(key)) return locationCache.get(key);
-      const location = await resolveLocation(tx, { name }, userId);
+      const location = await resolveLocation(tx, { name, customerId }, userId);
       locationCache.set(key, location);
       return location;
     };
@@ -544,13 +692,14 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
 
       const customerName = String(row.customer_name || '').trim();
       const originText = String(row.origin || '').trim();
-      const destinationText = String(row.destination || '').trim();
+      const destinationText = String(row.destination || row.parsed_stop_sequence || '').trim();
       const viaText = String(row.via || '').trim();
       const vehicleType = String(row.vehicle_type || '').trim();
-      const rateCategory = String(row.rate_category || row.line_type || '').trim();
+      const operationType = String(row.operation_type || row.rate_category || row.line_type || '').trim();
       const billingType = String(row.billing_type || '').trim();
+      const pricingBasisRaw = String(row.pricing_basis || '').trim();
       const currency = String(row.currency || '').trim() || 'SAR';
-      const label = [customerName, rateCategory || null, originText, destinationText].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
+      const label = [customerName, operationType || null, originText, destinationText].filter(Boolean).join(' — ') || `Row ${rowNumber}`;
 
       try {
         if (!customerName) {
@@ -558,11 +707,15 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
           continue;
         }
 
-        const price = Number(row.rate ?? row.price ?? row.base_price);
+        const rawPrice = row.rate ?? row.price ?? row.base_price ?? row.billing_rate;
+        const price = Number(rawPrice);
         if (isNaN(price) || price <= 0) {
           results.push({ row: rowNumber, success: false, label, error: 'Rate is missing or not a number greater than 0' });
           continue;
         }
+
+        const rawPayout = row.driver_payout ?? row.driver_charge ?? row.payout_rate;
+        const driverPayout = rawPayout != null && rawPayout !== '' && !isNaN(Number(rawPayout)) ? Number(rawPayout) : null;
 
         const customer = await findCustomer(customerName);
         if (!customer) {
@@ -576,67 +729,86 @@ export const bulkImportQuotations = async (req: Request, res: Response) => {
         }
 
         const action = await prisma.$transaction(async (tx) => {
-          let originId: string | null = null;
-          let destinationId: string | null = null;
-          if (originText) {
-            const originLoc = await findOrCreateLocation(tx, originText);
-            originId = originLoc?.id || null;
+          const stopTokens = parseImportStops(originText, destinationText, viaText);
+          const resolvedStops: Array<{ locationId: string | null; label: string; sequence: number; stop_type: 'Pickup' | 'Dropoff' }> = [];
+
+          for (let sIdx = 0; sIdx < stopTokens.length; sIdx++) {
+            const tokenLabel = stopTokens[sIdx];
+            const loc = await findOrCreateLocation(tx, tokenLabel, customer.id);
+            resolvedStops.push({
+              locationId: loc?.id || null,
+              label: tokenLabel,
+              sequence: sIdx + 1,
+              stop_type: sIdx === 0 ? 'Pickup' : 'Dropoff',
+            });
           }
-          if (destinationText) {
-            const destLoc = await findOrCreateLocation(tx, destinationText);
-            destinationId = destLoc?.id || null;
-          }
+
+          const originId = resolvedStops[0]?.locationId || null;
+          const destinationId = resolvedStops[resolvedStops.length - 1]?.locationId || null;
 
           const lineTypeMapped =
-            rateCategory.toLowerCase().includes('single') ? 'SINGLE_TRIP' :
-            rateCategory.toLowerCase().includes('round') ? 'ROUND_TRIP' :
-            rateCategory.toLowerCase().includes('10') ? '10_HRS' :
-            rateCategory.toLowerCase().includes('12') ? '12_HRS' : rateCategory || 'SINGLE_TRIP';
+            operationType.toLowerCase().includes('single') ? 'SINGLE_TRIP' :
+            operationType.toLowerCase().includes('round') ? 'ROUND_TRIP' :
+            operationType.toLowerCase().includes('10') ? '10_HRS' :
+            operationType.toLowerCase().includes('12') ? '12_HRS' : operationType || 'SINGLE_TRIP';
 
-          const billingTypeMapped = billingType.toLowerCase().includes('monthly') ? 'MONTHLY' : 'EXTRA';
+          const pricingBasisMapped = pricingBasisRaw || (lineTypeMapped === '10_HRS' || lineTypeMapped === '12_HRS' ? 'Per Duty' : 'Per Trip');
+
+          const name = String(row.quotation_name || row.name || '').trim() || `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`;
 
           const data = {
-            name: `${customer.name} — ${originText || 'General'} → ${destinationText || 'General'}${vehicleType ? ` (${vehicleType})` : ''}`,
+            name,
             rate: price,
+            driver_payout: driverPayout,
             currency,
             customerId: customer.id,
             is_active: true,
             line_type: lineTypeMapped,
-            billing_type: billingTypeMapped,
+            operation_type: operationType || lineTypeMapped,
+            pricing_basis: pricingBasisMapped,
+            vehicle_class: vehicleType || null,
             source_vehicle_label: vehicleType || null,
             source_type: 'IMPORT',
+            route_origin: originText || null,
+            route_destination: destinationText || null,
+            originLocationId: originId,
+            destinationLocationId: destinationId,
           };
 
           const existing = await tx.quotation.findFirst({
             where: {
               deletedAt: null,
               customerId: customer.id,
-              line_type: lineTypeMapped,
-              billing_type: billingTypeMapped,
-              source_vehicle_label: vehicleType || null,
+              name,
             },
           });
+
+          let targetId = existing?.id;
 
           if (existing) {
             await tx.quotation.update({
               where: { id: existing.id },
               data: { ...data, updated_by: userId, version: existing.version + 1 },
             });
-            return 'updated';
+          } else {
+            const createdQuotation = await tx.quotation.create({ data: { ...data, created_by: userId } });
+            targetId = createdQuotation.id;
           }
 
-          const createdQuotation = await tx.quotation.create({ data: { ...data, created_by: userId } });
-          if (originId || destinationId || viaText) {
-            const stopsToCreate = [
-              ...(originId ? [{ quotationId: createdQuotation.id, sequence: 1, locationId: originId, stop_type: 'Pickup' as const, source_label: originText }] : []),
-              ...(viaText ? [{ quotationId: createdQuotation.id, sequence: 2, locationId: null, stop_type: 'Rest' as const, source_label: viaText }] : []),
-              ...(destinationId ? [{ quotationId: createdQuotation.id, sequence: viaText ? 3 : 2, locationId: destinationId, stop_type: 'Dropoff' as const, source_label: destinationText }] : []),
-            ];
-            if (stopsToCreate.length > 0) {
-              await tx.quotationStop.createMany({ data: stopsToCreate });
-            }
+          if (targetId && resolvedStops.length > 0) {
+            await tx.quotationStop.deleteMany({ where: { quotationId: targetId } });
+            await tx.quotationStop.createMany({
+              data: resolvedStops.map((s) => ({
+                quotationId: targetId!,
+                sequence: s.sequence,
+                locationId: s.locationId,
+                stop_type: s.stop_type,
+                source_label: s.label,
+              })),
+            });
           }
-          return 'created';
+
+          return existing ? 'updated' : 'created';
         });
 
         results.push({ row: rowNumber, success: true, label, action });
@@ -733,7 +905,8 @@ export const getLanePriceHistory = async (req: Request, res: Response) => {
         destination: destName,
         vehicle_class: q.source_vehicle_label || q.vehicle_class || 'Default',
         line_type: q.line_type,
-        billing_type: q.billing_type,
+        operation_type: q.operation_type,
+        billing_type: q.operation_type,
         rate: Number(q.rate || 0),
         driver_payout: q.driver_payout != null ? Number(q.driver_payout) : null,
         updatedAt: q.updatedAt,

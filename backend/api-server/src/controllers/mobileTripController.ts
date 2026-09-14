@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
@@ -6,6 +8,8 @@ import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWo
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 import { compressUploadedImage } from '../services/imageCompressor';
+import { generateRefId } from '../utils/refId';
+import { analyzeExternalScreenshotWithAI } from '../services/ocrService';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
@@ -536,5 +540,185 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error({ err: error }, 'recordDriverLocation error:');
     return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to record driver location' } });
+  }
+};
+
+export const uploadExternalScreenshot = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  const tripId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (!driverId) {
+    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: { message: 'No screenshot file uploaded' } });
+  }
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, deletedAt: null },
+      include: tripInclude,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
+    }
+
+    if (trip.driverId !== driverId) {
+      return res.status(403).json({ success: false, error: { message: 'Driver is not assigned to this trip' } });
+    }
+
+    if (trip.driver_workflow !== 'EXTERNAL_APP') {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'This trip does not use the EXTERNAL_APP driver workflow' },
+      });
+    }
+
+    // 1. Compress image
+    let localFilePath = req.file.path;
+    try {
+      localFilePath = await compressUploadedImage(req.file.path);
+    } catch (compressErr) {
+      logger.warn({ err: compressErr }, 'Failed to compress screenshot image, using raw file');
+    }
+
+    const fileName = path.basename(localFilePath);
+    const fileUrl = `/uploads/${fileName}`;
+
+    // 2. Run Gemini Vision screenshot extraction
+    const aiResult = await analyzeExternalScreenshotWithAI(localFilePath);
+
+    // 3. Validation and lifecycle transition logic
+    let applied = false;
+    let transitionReason: string | null = null;
+    let delayNotification: DelayDetection | null = null;
+
+    const detectedEvent = aiResult.detected_event_type;
+    const confidence = aiResult.confidence ?? 0;
+
+    if (detectedEvent && confidence >= 0.70) {
+      let targetStatus: TripStatus | null = null;
+      let targetWorkflowState: string | null = null;
+
+      if (detectedEvent === 'ARRIVED_AT_PICKUP') {
+        targetStatus = TripStatus.Loading;
+        targetWorkflowState = 'ARRIVED_AT_PICKUP';
+      } else if (detectedEvent === 'LOADING_COMPLETED') {
+        targetStatus = TripStatus.Loading;
+        targetWorkflowState = 'LOADING_COMPLETED';
+      } else if (detectedEvent === 'DEPARTED_PICKUP') {
+        targetStatus = TripStatus.InTransit;
+        targetWorkflowState = 'IN_TRANSIT';
+      } else if (detectedEvent === 'ARRIVED_AT_DELIVERY') {
+        targetStatus = TripStatus.InTransit;
+        targetWorkflowState = 'ARRIVED_AT_DELIVERY';
+      } else if (detectedEvent === 'DELIVERY_COMPLETED') {
+        targetStatus = TripStatus.Completed;
+        targetWorkflowState = 'COMPLETED';
+      } else if (detectedEvent === 'DELAYED') {
+        targetStatus = TripStatus.Delayed;
+        targetWorkflowState = trip.driver_workflow_state || 'DELAYED';
+      }
+
+      if (targetStatus && isValidTransition(trip.status, targetStatus)) {
+        try {
+          delayNotification = await prisma.$transaction(async (tx) => {
+            let delay: DelayDetection | null = null;
+            if (targetStatus === TripStatus.Completed) {
+              await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
+              await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
+              await tx.trip.update({
+                where: { id: trip.id },
+                data: {
+                  driver_workflow_state: 'COMPLETED',
+                  updated_by: (req as any).user?.id || null,
+                },
+              });
+            } else {
+              delay = await stampStopTransition(tx, trip.id, targetStatus);
+              await stampWorkflowTransition(tx, trip.id, targetWorkflowState!, undefined);
+              await tx.trip.update({
+                where: { id: trip.id },
+                data: {
+                  status: targetStatus,
+                  driver_workflow_state: targetWorkflowState,
+                  updated_by: (req as any).user?.id || null,
+                },
+              });
+            }
+            return delay;
+          });
+          applied = true;
+        } catch (txErr: any) {
+          logger.error({ err: txErr }, 'Failed to apply extracted lifecycle transition:');
+          transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
+        }
+      } else {
+        transitionReason = `Transition from '${trip.status}' to '${targetStatus}' is invalid for current trip state`;
+      }
+    } else if (detectedEvent && confidence < 0.70) {
+      transitionReason = `Low confidence score (${Math.round(confidence * 100)}%) requires manual verification`;
+    } else {
+      transitionReason = aiResult.notes || 'No clear operational milestone detected in screenshot';
+    }
+
+    // 4. Save Document record
+    const fileSize = fs.existsSync(localFilePath) ? fs.statSync(localFilePath).size : (req.file.size || 0);
+
+    const extraction_status = applied ? 'SUCCESS' : (aiResult.detected_event_type ? 'NEEDS_REVIEW' : 'FAILED');
+    const docTypeVal = detectedEvent === 'DELAYED' ? DocType.Emergency : DocType.POD;
+
+    const document = await prisma.document.create({
+      data: {
+        entity_type: 'Trip',
+        entity_id: trip.id,
+        doc_type: docTypeVal,
+        file_url: fileUrl,
+        mime_type: req.file.mimetype || 'image/jpeg',
+        created_by: (req as any).user?.id || null,
+        executorDriverId: driverId,
+        status: applied ? 'Verified' : 'PendingReview',
+        ai_extracted_json: {
+          ...aiResult,
+          applied,
+          extraction_status,
+          validation_reason: transitionReason,
+          uploaded_at: new Date().toISOString(),
+        },
+      },
+    });
+
+    if (delayNotification) {
+      notifyOperatorsOfDelay(delayNotification).catch((err) =>
+        logger.warn({ err }, 'Failed to send delay notification for screenshot transition:')
+      );
+    }
+
+    // 5. Fetch updated trip state
+    const updatedTrip = await prisma.trip.findFirst({
+      where: { id: trip.id, deletedAt: null },
+      include: tripInclude,
+    });
+    const enrichedTrip = updatedTrip ? await attachTripDocuments(updatedTrip) : null;
+
+    return res.json({
+      success: true,
+      data: {
+        document_id: document.id,
+        extraction_status,
+        event_type: aiResult.detected_event_type,
+        event_timestamp: aiResult.event_timestamp,
+        confidence: aiResult.confidence,
+        applied,
+        notes: aiResult.notes,
+        validation_reason: transitionReason,
+        trip: enrichedTrip,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'uploadExternalScreenshot error:');
+    return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to process screenshot' } });
   }
 };

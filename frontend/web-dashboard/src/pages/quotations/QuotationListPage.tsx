@@ -57,6 +57,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -76,7 +77,7 @@ const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
   { id: 'vehicle_class', label: 'Vehicle Class', accessor: (q) => q.vehicle_class || '—' },
   { id: 'source_vehicle_label', label: 'Source Vehicle Label', accessor: (q) => q.source_vehicle_label || q.vehicle_type || '—' },
   { id: 'line_type', label: 'Line Type', accessor: (q) => q.line_type || q.rate_category || 'Single Trip' },
-  { id: 'billing_type', label: 'Operation Type', accessor: (q) => q.billing_type || 'EXTRA' },
+  { id: 'operation_type', label: 'Operation Type', accessor: (q) => q.operation_type || q.billing_type || 'EXTRA' },
   { id: 'rate', label: 'Billing Rate (SAR)', accessor: (q) => `SAR ${Number(q.rate || q.base_price || 0).toLocaleString()}` },
   { id: 'driver_payout', label: 'Driver Charge (SAR)', accessor: (q) => q.driver_payout != null ? `SAR ${Number(q.driver_payout).toLocaleString()}` : '—' },
   { id: 'status', label: 'Status', accessor: (q) => (q.is_active ? 'Active' : 'Inactive') },
@@ -121,20 +122,36 @@ function getOperationTypeBadge(billingType?: string | null) {
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
   const stops = (quotation.stops || (quotation as any).via_stops || (quotation as any).viaStops || []) as any[];
 
-  // Determine stop names in exact sequence
-  const stopNames = useMemo(() => {
+  // Determine stop details in exact sequence
+  const stopDetails = useMemo(() => {
     if (stops.length > 0) {
-      return stops.map((s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location');
+      return stops.map((s: any) => {
+        const shortName = s.source_label || s.location?.code || s.name || s.label || 'Location';
+        const canonicalName =
+          s.location?.name && s.location.name.trim().toLowerCase() !== shortName.trim().toLowerCase()
+            ? s.location.name
+            : null;
+        return {
+          shortName,
+          canonicalName,
+          city: s.location?.city || null,
+        };
+      });
     }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
-    return [origin, dest];
+    return [
+      { shortName: origin, canonicalName: null, city: null },
+      { shortName: dest, canonicalName: null, city: null },
+    ];
   }, [stops, quotation]);
 
-  const firstStop = stopNames[0] || 'Origin';
-  const lastStop = stopNames[stopNames.length - 1] || 'Destination';
+  const stopNames = useMemo(() => stopDetails.map((s) => s.shortName), [stopDetails]);
+
+  const firstStop = stopDetails[0]?.shortName || 'Origin';
+  const lastStop = stopDetails[stopDetails.length - 1]?.shortName || 'Destination';
   const intermediateStops = stopNames.slice(1, -1);
-  const totalStops = Math.max(stopNames.length, 2);
+  const totalStops = Math.max(stopDetails.length, 2);
 
   // Line 2 subtitle generation
   let viaText = 'Direct';
@@ -182,7 +199,7 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
       </HoverCardTrigger>
 
-      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-72 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
+      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-80 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Route Preview</span>
           <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -197,10 +214,19 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
 
         <div className="space-y-1.5 pt-1 max-h-40 overflow-y-auto">
-          {stopNames.map((name, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 py-0.5 px-1.5 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
-              <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
-              <span className="font-semibold truncate">{name}</span>
+          {stopDetails.map((stop, idx) => (
+            <div key={idx} className="flex flex-col text-[11px] text-slate-700 dark:text-slate-300 py-1 px-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
+                <span className="font-bold text-[#3E3C3D] dark:text-slate-100 truncate">{stop.shortName}</span>
+              </div>
+              {(stop.canonicalName || stop.city) && (
+                <div className="pl-6 text-[10px] font-medium text-slate-500 truncate flex items-center gap-1">
+                  {stop.canonicalName && <span>{stop.canonicalName}</span>}
+                  {stop.canonicalName && stop.city && <span>·</span>}
+                  {stop.city && <span className="font-mono text-[9px] text-slate-400">{stop.city}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -354,6 +380,11 @@ export default function QuotationListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Right-side Route Details Drawer State
   const [drawerQuotation, setDrawerQuotation] = useState<Quotation | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -407,7 +438,8 @@ export default function QuotationListPage() {
       }
       const entry = map.get(custId)!;
       entry.quotations.push(q);
-      if ((q.billing_type || '').toUpperCase() === 'MONTHLY') {
+      const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+      if (opType === 'MONTHLY') {
         entry.monthlyCount++;
       } else {
         entry.extraCount++;
@@ -462,7 +494,8 @@ export default function QuotationListPage() {
 
       // Operation Type Filter
       if (billingTypeFilter !== 'ALL') {
-        if ((q.billing_type || '').toUpperCase() !== billingTypeFilter) return false;
+        const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+        if (opType !== billingTypeFilter) return false;
       }
 
       // Vehicle Class Filter
@@ -509,10 +542,59 @@ export default function QuotationListPage() {
     setWorkspacePage(1);
   }, [selectedCustomerId]);
 
-  // Reset workspace page on filter change
+  // Reset selection on customer change or filter change
   useEffect(() => {
-    setWorkspacePage(1);
-  }, [search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+    setSelectedIds(new Set());
+  }, [selectedCustomerId, search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+
+  const isAllSelected = useMemo(() => {
+    if (filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.every((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds]);
+
+  const isSomeSelected = useMemo(() => {
+    if (isAllSelected || filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.some((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds, isAllSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      const next = new Set<string>();
+      filteredWorkspaceRoutes.forEach((q) => next.add(q.id));
+      setSelectedIds(next);
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const idsArray = Array.from(selectedIds);
+      await quotationService.bulkDelete(idsArray);
+      toast.success(`Deleted ${idsArray.length} commercial route(s) successfully`);
+      setSelectedIds(new Set());
+      setIsBulkDeleteModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete selected quotations');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!selectedQuotation) return;
@@ -596,6 +678,17 @@ export default function QuotationListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Excel Direct Import Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-lg px-3.5 cursor-pointer transition-all"
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Import Excel</span>
+            </Button>
+
             {/* AI Import Action */}
             <Button
               size="sm"
@@ -604,7 +697,7 @@ export default function QuotationListPage() {
               onClick={() => navigate('/quotations/import')}
             >
               <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>AI Import</span>
+              <span>AI Studio</span>
             </Button>
 
             {/* + New Commercial Route Action (Primary Coral Red #FA634E) */}
@@ -808,8 +901,34 @@ export default function QuotationListPage() {
                             className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-2.5 shrink-0 font-medium"
                           >
                             <X className="h-3.5 w-3.5 mr-1" />
-                            <span>Clear</span>
+                            <span>Clear Filters</span>
                           </Button>
+                        )}
+
+                        {/* Bulk Action Controls */}
+                        {selectedIds.size > 0 && (
+                          <div className="flex items-center gap-2 ml-auto pl-2 border-l border-slate-200 dark:border-slate-700">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {selectedIds.size} selected
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setIsBulkDeleteModalOpen(true)}
+                              className="h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 flex items-center gap-1.5 cursor-pointer shadow-xs border-0"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete Selected ({selectedIds.size})</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedIds(new Set())}
+                              className="h-8 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 rounded-lg px-2 cursor-pointer"
+                            >
+                              Deselect
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -851,6 +970,14 @@ export default function QuotationListPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-800/20">
+                            <th className="py-2.5 px-3.5 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                                onCheckedChange={handleToggleSelectAll}
+                                aria-label="Select all commercial routes"
+                                className="translate-y-[1px]"
+                              />
+                            </th>
                             <th className="py-2.5 px-3.5 w-10">#</th>
                             <th className="py-2.5 px-3.5">Route / Stops</th>
                             <th className="py-2.5 px-3.5">Vehicle Class</th>
@@ -869,13 +996,26 @@ export default function QuotationListPage() {
                             const driverChargeText = row.driver_payout != null && !isNaN(Number(row.driver_payout))
                               ? `SAR ${Number(row.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                               : '—';
+                            const isSelectedRow = selectedIds.has(row.id);
 
                             return (
                               <tr
                                 key={row.id}
                                 onClick={() => handleOpenDrawer(row)}
-                                className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                                className={cn(
+                                  "hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors",
+                                  isSelectedRow && "bg-rose-50/30 dark:bg-rose-950/20 hover:bg-rose-50/50"
+                                )}
                               >
+                                <td className="py-3 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={isSelectedRow}
+                                    onCheckedChange={() => handleToggleSelectRow(row.id)}
+                                    aria-label={`Select route ${row.name || row.id}`}
+                                    className="translate-y-[1px]"
+                                  />
+                                </td>
+
                                 <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">
                                   {rowNumber}
                                 </td>
@@ -889,7 +1029,7 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5">
-                                  {getOperationTypeBadge(row.billing_type)}
+                                  {getOperationTypeBadge(row.operation_type || row.billing_type)}
                                 </td>
 
                                 <td className="py-3 px-3.5">
@@ -903,7 +1043,7 @@ export default function QuotationListPage() {
                                       ? false
                                       : row.pricing_basis === 'PER_MONTH'
                                       ? true
-                                      : (row.billing_type || '').toLowerCase().includes('monthly');
+                                      : (row.operation_type || row.billing_type || '').toLowerCase().includes('monthly');
 
                                     if (isMonthly && rawRate > 0) {
                                       const dailyEq = rawRate / 30;
@@ -1063,6 +1203,17 @@ export default function QuotationListPage() {
         title="Delete Commercial Route"
         message="Are you sure you want to delete this commercial route quotation? Historical trips billed with this quotation will retain their commercial snapshot."
         confirmLabel="Delete Route"
+        isDestructive
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedIds.size} Commercial Routes`}
+        message={`Are you sure you want to delete ${selectedIds.size} selected commercial route(s)? Historical trips billed with these quotations will retain their commercial rate snapshots.`}
+        confirmLabel={isBulkDeleting ? 'Deleting...' : `Delete ${selectedIds.size} Routes`}
         isDestructive
       />
 

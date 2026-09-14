@@ -146,6 +146,9 @@ export function useTripSlotsState() {
               intermediateLocations: [...s.intermediateLocations, ''],
               intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
               intermediateStopFees: [...(s.intermediateStopFees || []), ''],
+              rateMatched: false,
+              matchedRateCard: null,
+              rateCardId: undefined,
             }
           : s
       )
@@ -161,6 +164,9 @@ export function useTripSlotsState() {
               intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
               intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
               intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
+              rateMatched: false,
+              matchedRateCard: null,
+              rateCardId: undefined,
             }
           : s
       )
@@ -179,6 +185,9 @@ export function useTripSlotsState() {
           ...s,
           intermediateLocations: newLocs,
           intermediateLocationIds: newIds,
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
         };
       })
     );

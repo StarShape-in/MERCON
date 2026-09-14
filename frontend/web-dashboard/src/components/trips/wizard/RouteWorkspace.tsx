@@ -29,6 +29,7 @@ interface RouteWorkspaceProps {
   handleAddSlotReturnIntermediate?: (slotId: string) => void;
   handleRemoveSlotReturnIntermediate?: (slotId: string, idx: number) => void;
   handleUpdateSlotReturnIntermediate?: (slotId: string, idx: number, val: string) => void;
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
@@ -49,6 +50,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   handleAddSlotReturnIntermediate,
   handleRemoveSlotReturnIntermediate,
   handleUpdateSlotReturnIntermediate,
+  fieldErrors = {},
 }) => {
   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
@@ -193,16 +195,20 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           {/* LINE 1: ORIGIN + UNIFIED PICKUP DATETIME */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start">
             {/* ORIGIN LOCATION (BALANCED 8 COLS) */}
-            <div className="md:col-span-8 space-y-1">
+            <div id={`field-origin-${slot.id}`} className="md:col-span-8 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> ORIGIN LOCATION <span className="text-[#FA634E]">*</span>
                 </span>
+                {(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin']) && (
+                  <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+                )}
               </label>
               <LocationCombobox
                 id="step2-first-field"
                 customerId={contractCustomer}
                 value={slot.origin}
+                hasError={Boolean(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin'])}
                 onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                 placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
                 triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
@@ -316,15 +322,19 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
           {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start pt-1 border-t border-slate-100 dark:border-slate-800">
             {/* DESTINATION LOCATION (BALANCED 8 COLS) */}
-            <div className="md:col-span-8 space-y-1">
+            <div id={`field-destination-${slot.id}`} className="md:col-span-8 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {isRoundTrip ? 'OUTBOUND DESTINATION *' : 'DESTINATION LOCATION *'}
                 </span>
+                {(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination']) && (
+                  <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+                )}
               </label>
               <LocationCombobox
                 customerId={contractCustomer}
                 value={slot.destination}
+                hasError={Boolean(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination'])}
                 onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                 placeholder="Search delivery destination (e.g. Al Baha Station)..."
                 triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"

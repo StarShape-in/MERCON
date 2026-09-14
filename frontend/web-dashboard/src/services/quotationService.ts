@@ -300,8 +300,8 @@ export const quotationService = {
     return res.data.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/quotations/${id}`);
+  async delete(id: string, force?: boolean): Promise<void> {
+    await api.delete(`/quotations/${id}${force ? '?force=true' : ''}`);
   },
 
   async bulkDelete(ids: string[]): Promise<void> {

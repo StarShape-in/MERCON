@@ -49,27 +49,36 @@ const resolveStopCoords = async (
   placeText: string,
   customerId: string
 ): Promise<{ lat: number | null; lng: number | null; address: string | null; name: string; locationId: string | null } | null> => {
-  const needle = placeText.trim().toLowerCase();
-  if (!needle) return null;
+  const rawText = placeText.trim();
+  if (!rawText) return null;
+
+  const strippedText = rawText.replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
 
   const locationMatch = await prisma.location.findFirst({
     where: {
-      customerId,
       deletedAt: null,
       OR: [
-        { name: { equals: placeText.trim(), mode: 'insensitive' } },
-        { code: { equals: placeText.trim(), mode: 'insensitive' } },
-        { slug: { equals: placeText.trim().toLowerCase(), mode: 'insensitive' } },
+        { code: { equals: rawText, mode: 'insensitive' } },
+        { name: { equals: rawText, mode: 'insensitive' } },
+        { slug: { equals: rawText.toLowerCase(), mode: 'insensitive' } },
+        { code: { equals: strippedText, mode: 'insensitive' } },
+        { name: { equals: strippedText, mode: 'insensitive' } },
+        { slug: { equals: strippedText.toLowerCase(), mode: 'insensitive' } },
+        { name: { contains: strippedText, mode: 'insensitive' } },
       ],
     },
+    orderBy: customerId ? [
+      { customerId: customerId ? 'asc' : 'desc' },
+      { createdAt: 'asc' }
+    ] : undefined
   });
 
   if (locationMatch) {
     return {
       lat: locationMatch.lat,
       lng: locationMatch.lng,
-      address: locationMatch.address || `${placeText.trim()}, Saudi Arabia`,
-      name: placeText.trim(),
+      address: locationMatch.address || `${locationMatch.name}, ${locationMatch.city || 'Saudi Arabia'}`,
+      name: locationMatch.name || rawText,
       locationId: locationMatch.id,
     };
   }
@@ -77,8 +86,8 @@ const resolveStopCoords = async (
   return {
     lat: null,
     lng: null,
-    address: `${placeText.trim()}, Saudi Arabia`,
-    name: placeText.trim(),
+    address: `${rawText}, Saudi Arabia`,
+    name: rawText,
     locationId: null,
   };
 };
@@ -506,7 +515,8 @@ export const getTripById = async (req: Request, res: Response) => {
       currency: (trip as any).quotation.currency,
       vehicle_type: (trip as any).quotation.vehicle_class,
       rate_category: (trip as any).quotation.line_type,
-      billing_type: (trip as any).quotation.billing_type,
+      operation_type: (trip as any).quotation.operation_type || (trip as any).quotation.billing_type,
+      billing_type: (trip as any).quotation.operation_type || (trip as any).quotation.billing_type,
       driver_payout: (trip as any).quotation.driver_payout ? Number((trip as any).quotation.driver_payout) : null
     } : null;
 
@@ -840,6 +850,7 @@ export const createTrip = async (req: Request, res: Response) => {
             data: {
               ref_id,
               customerId: customer_id,
+              driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
               planned_start: parsedPlannedStart,
@@ -851,7 +862,7 @@ export const createTrip = async (req: Request, res: Response) => {
                 create: {
                   quotationId: appliedQuotation ? appliedQuotation.id : null,
                   quotation_line_type: appliedQuotation ? (appliedQuotation.line_type || null) : (finalRateCategory || null),
-                  quotation_billing_type: appliedQuotation ? (appliedQuotation.billing_type || null) : (finalBillingType || null),
+                  quotation_operation_type: appliedQuotation ? (appliedQuotation.operation_type || appliedQuotation.billing_type || null) : (finalBillingType || null),
                   quotation_pricing_basis: appliedQuotation ? (appliedQuotation.pricing_basis || null) : null,
                   applied_rate: appliedQuotation ? (appliedQuotation.rate != null ? Number(appliedQuotation.rate) : null) : (defaultBilling != null ? defaultBilling : null),
                   quotation_vehicle_class: appliedQuotation ? (appliedQuotation.vehicle_class || null) : null,
@@ -863,7 +874,7 @@ export const createTrip = async (req: Request, res: Response) => {
               } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
-              ...(finalBillingType !== null ? { billing_type: finalBillingType } : {}),
+              ...(finalBillingType !== null ? { operation_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               driver_payout: finalTripCharges,
               is_third_party: is_third_party === true,
@@ -986,7 +997,27 @@ function parseFullTripStops(originStr: string, destinationStr: string) {
     returnStr = parts[1].replace(']', '').trim();
   }
 
-  const splitChain = (str: string) => str.split(/\s*(?:→|->|-->)\s*/).map(s => s.trim()).filter(Boolean);
+  const splitChain = (str: string) => {
+    if (!str) return [];
+    let s = str.trim().replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
+    let norm = s.replace(/→|->|-->/g, ' + ').replace(/\//g, ' + ').replace(/&/g, ' + ');
+    const chunks = norm.split('+').map(c => c.trim()).filter(Boolean);
+    const items: string[] = [];
+    const KNOWN_CODES = ['RUH','JED','DMM','BUR','UNZ','HAI','HAIL','KHA','ABH','TAI','TAIF','MAK','MAD','HOF','QUR','TAB','TABUK','ALB','JIZ','NAJ','WAD','TUB','SUD','DAM','AHSAR','AHSAN'];
+    for (const chunk of chunks) {
+      if (/\s+-\s+/.test(chunk) || /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+/i.test(chunk)) {
+        items.push(...chunk.split('-').map(sp => sp.trim()).filter(Boolean));
+      } else {
+        const words = chunk.split(/\s+/).map(w => w.trim()).filter(Boolean);
+        if (words.length >= 2 && words.every(w => KNOWN_CODES.includes(w.toUpperCase()) || w.length <= 6)) {
+          items.push(...words);
+        } else {
+          items.push(chunk);
+        }
+      }
+    }
+    return items;
+  };
 
   const outboundItems = splitChain(outboundStr);
   outboundItems.forEach((item) => {
@@ -1073,11 +1104,12 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         if (row.customer_id) {
           customer = await prisma.customer.findFirst({ where: { id: row.customer_id, deletedAt: null } });
         } else if (row.customer_name) {
+          const cName = String(row.customer_name).trim();
           customer = await prisma.customer.findFirst({
             where: {
               OR: [
-                { name: { equals: row.customer_name, mode: 'insensitive' } },
-                { company_name: { equals: row.customer_name, mode: 'insensitive' } },
+                { name: { equals: cName, mode: 'insensitive' } },
+                { name: { contains: cName, mode: 'insensitive' } },
               ],
               deletedAt: null,
             },
@@ -1241,6 +1273,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             data: {
               ref_id,
               customerId: customer.id,
+              driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               ...(appliedQuotation ? { quotationId: appliedQuotation.id } : {}),
@@ -1265,7 +1298,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                   quotationId: appliedQuotation ? appliedQuotation.id : null,
                   quotation_line_type: appliedQuotation?.line_type || row.rate_category || null,
                   quotation_source_vehicle_label: appliedQuotation?.source_vehicle_label || row.vehicle_type || null,
-                  quotation_billing_type: appliedQuotation?.billing_type || row.billing_type || null,
+                  quotation_operation_type: (appliedQuotation as any)?.operation_type || row.billing_type || (row as any).operation_type || null,
                   applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                     ? Number(row.billing_amount)
                     : (appliedQuotation?.rate != null ? Number(appliedQuotation.rate) : null),
@@ -1273,7 +1306,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               },
               ...(row.rate_category ? { rate_category: row.rate_category } : (appliedQuotation?.line_type ? { rate_category: appliedQuotation.line_type } : {})),
               ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : (appliedQuotation?.source_vehicle_label ? { vehicle_type: appliedQuotation.source_vehicle_label } : {})),
-              ...(row.billing_type ? { billing_type: row.billing_type } : (appliedQuotation?.billing_type ? { billing_type: appliedQuotation.billing_type } : {})),
+              ...((row.billing_type || (row as any).operation_type)
+                ? { operation_type: row.billing_type || (row as any).operation_type }
+                : ((appliedQuotation as any)?.operation_type ? { operation_type: (appliedQuotation as any).operation_type } : {})),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : (appliedQuotation?.rate != null ? { billing_amount: Number(appliedQuotation.rate) } : {})),
@@ -2291,7 +2326,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
     if (typeof billing_type === 'string' && billing_type.trim()) {
       const value = billing_type.trim();
       (whereClause.AND as Prisma.TripWhereInput[]).push({
-        OR: [{ billing_type: value }, { AND: [{ billing_type: null }, { quotation: { billing_type: value } }] }],
+        OR: [{ operation_type: value }, { AND: [{ operation_type: null }, { quotation: { operation_type: value } }] }],
       });
     }
 
@@ -2311,7 +2346,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         customerId: true,
         vehicle_type: true,
         rate_category: true,
-        billing_type: true,
+        operation_type: true,
         billing_amount: true,
         driver_payout: true,
         quotationId: true,
@@ -2322,7 +2357,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
             quotationId: true,
             applied_rate: true,
             quotation_line_type: true,
-            quotation_billing_type: true,
+            quotation_operation_type: true,
             quotation_pricing_basis: true,
             quotation_vehicle_class: true,
             quotation_source_vehicle_label: true,
@@ -2334,7 +2369,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         quotation: {
           select: {
             id: true, name: true, rate: true, currency: true,
-            source_vehicle_label: true, vehicle_class: true, line_type: true, billing_type: true, pricing_basis: true,
+            source_vehicle_label: true, vehicle_class: true, line_type: true, operation_type: true, pricing_basis: true,
           },
         },
         stops: {
@@ -2377,20 +2412,23 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         vehicle: trip.vehicle,
         vehicle_type: trip.vehicle_type ?? trip.quotation?.source_vehicle_label ?? trip.quotation?.vehicle_class ?? null,
         rate_category: trip.rate_category ?? trip.quotation?.line_type ?? null,
-        billing_type: trip.billing_type ?? trip.quotation?.billing_type ?? null,
+        operation_type: trip.operation_type ?? trip.quotation?.operation_type ?? null,
+        billing_type: trip.operation_type ?? trip.quotation?.operation_type ?? null,
         financials: trip.financials ? {
           id: trip.financials.id,
           tripId: trip.financials.tripId,
           quotationId: trip.financials.quotationId,
           applied_rate: trip.financials.applied_rate != null ? Number(trip.financials.applied_rate) : null,
           quotation_line_type: trip.financials.quotation_line_type,
-          quotation_billing_type: trip.financials.quotation_billing_type,
+          quotation_operation_type: trip.financials.quotation_operation_type,
+          quotation_billing_type: trip.financials.quotation_operation_type,
           quotation_pricing_basis: trip.financials.quotation_pricing_basis,
           quotation_vehicle_class: trip.financials.quotation_vehicle_class,
           quotation_source_vehicle_label: trip.financials.quotation_source_vehicle_label,
         } : null,
         quotation_line_type: trip.financials?.quotation_line_type ?? trip.quotation?.line_type ?? trip.rate_category ?? null,
-        quotation_billing_type: trip.financials?.quotation_billing_type ?? trip.quotation?.billing_type ?? trip.billing_type ?? null,
+        quotation_operation_type: trip.financials?.quotation_operation_type ?? trip.quotation?.operation_type ?? trip.operation_type ?? null,
+        quotation_billing_type: trip.financials?.quotation_operation_type ?? trip.quotation?.operation_type ?? trip.operation_type ?? null,
         quotation_pricing_basis: trip.financials?.quotation_pricing_basis ?? trip.quotation?.pricing_basis ?? null,
         applied_rate: trip.financials?.applied_rate != null ? Number(trip.financials.applied_rate) : (trip.quotation?.rate != null ? Number(trip.quotation.rate) : (trip.billing_amount != null ? Number(trip.billing_amount) : null)),
         quotation_vehicle_class: trip.financials?.quotation_vehicle_class ?? trip.quotation?.vehicle_class ?? null,
@@ -2402,7 +2440,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         currency: trip.quotation?.currency ?? 'SAR',
         quotationId: trip.quotationId,
         quotation: trip.quotation
-          ? { id: trip.quotation.id, name: trip.quotation.name, rate: Number(trip.quotation.rate), line_type: trip.quotation.line_type, billing_type: trip.quotation.billing_type, pricing_basis: trip.quotation.pricing_basis }
+          ? { id: trip.quotation.id, name: trip.quotation.name, rate: Number(trip.quotation.rate), line_type: trip.quotation.line_type, operation_type: trip.quotation.operation_type, billing_type: trip.quotation.operation_type, pricing_basis: trip.quotation.pricing_basis }
           : null,
         rate_card: trip.quotation
           ? { id: trip.quotation.id, name: trip.quotation.name, base_price: trip.quotation.rate, rate: trip.quotation.rate }

@@ -26,6 +26,7 @@ if (!API_URL) {
 const KEY_PREFIX = `${Constants.expoConfig?.slug ?? 'mercon-app'}_`;
 export const TOKEN_KEY = `${KEY_PREFIX}token`;
 export const SESSION_KEY = `${KEY_PREFIX}session`;
+export const PUSH_TOKEN_KEY = `${KEY_PREFIX}push_token`;
 
 const LOGIN_PATHS = ['/auth/login', '/mobile/auth/login'];
 

@@ -67,8 +67,8 @@ export const locationService = {
     return res.data.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/locations/${id}`);
+  async delete(id: string, force?: boolean): Promise<void> {
+    await api.delete(`/locations/${id}${force ? '?force=true' : ''}`);
   },
 
   async importRows(rows: Record<string, any>[]): Promise<ImportSummary> {

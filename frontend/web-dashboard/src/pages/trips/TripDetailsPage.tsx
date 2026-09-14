@@ -41,15 +41,22 @@ const isUuidVal = (str?: string | null) =>
 
 function resolveStopName(stop: any, fallback: string): string {
   if (!stop) return fallback;
-  const code = stop.location?.codes?.[0] || stop.location?.code;
-  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
-  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
-  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
-  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
-  const rawName = !isUuidVal(stop.name) ? stop.name : null;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name?.trim() : null;
+  const locAddress = !isUuidVal(stop.location?.address) ? stop.location?.address?.trim() : (!isUuidVal(stop.location_address) ? stop.location_address?.trim() : null);
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city?.trim() : null;
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name?.trim() : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label?.trim() : null;
+  const rawName = !isUuidVal(stop.name) ? stop.name?.trim() : null;
+  const code = stop.location?.code?.trim();
 
-  const result = code || locName || locCity || rawLocName || rawSourceLabel || rawName || fallback;
-  return String(result).replace(/\[RETURN:.*?\]/gi, '').replace(/🔁\s*/g, '').trim() || fallback;
+  let base = locName || rawLocName || rawSourceLabel || rawName || code || fallback;
+  base = String(base).replace(/\[RETURN:.*?\]/gi, '').replace(/🔁\s*/g, '').replace(/\s*\(\s*\)$/, '').trim() || fallback;
+
+  let detail = (locCity && locCity !== base) ? locCity : (locAddress && locAddress !== base ? locAddress : null);
+  if (detail && detail.length > 0 && !detail.startsWith('(')) {
+    return `${base} (${detail})`;
+  }
+  return base;
 }
 
 const chargesToInputs = (charges: Trip['charges']): TripChargeInput[] =>
@@ -578,7 +585,7 @@ export default function TripDetailsPage() {
 
         {/* ── 2. VISUAL ROUTE PROGRESS (Panorama Highway Banner) ── */}
         <div className="shrink-0">
-          <VisualRouteProgress stops={trip.stops || []} tz={tz} />
+          <VisualRouteProgress stops={trip.stops || []} tz={tz} tripStatus={trip.status} />
         </div>
 
         {/* ── 3. UNIFIED OVERVIEW CARD: TRUCK, DRIVER, COMPANY, ALERTS (ALL IN ONE CARD, SAME 25% SIZE) ── */}

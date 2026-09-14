@@ -40,21 +40,38 @@ BEGIN
     END IF;
 END $$;
 
--- Backfill TripFinancials for any existing Trip rows
-INSERT INTO "TripFinancials" ("id", "tripId", "quotationId", "applied_rate", "quotation_line_type", "quotation_billing_type", "quotation_pricing_basis", "quotation_vehicle_class", "quotation_source_vehicle_label", "createdAt", "updatedAt")
-SELECT
-    gen_random_uuid(),
-    t."id",
-    t."quotationId",
-    t."applied_rate",
-    t."quotation_line_type",
-    t."quotation_billing_type",
-    t."quotation_pricing_basis",
-    t."quotation_vehicle_class",
-    t."quotation_source_vehicle_label",
-    t."createdAt",
-    t."updatedAt"
-FROM "Trip" t
-WHERE NOT EXISTS (
-    SELECT 1 FROM "TripFinancials" tf WHERE tf."tripId" = t."id"
-);
+-- Backfill TripFinancials for any existing Trip rows safely
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Trip' AND column_name='applied_rate') THEN
+        INSERT INTO "TripFinancials" ("id", "tripId", "quotationId", "applied_rate", "quotation_line_type", "quotation_billing_type", "quotation_pricing_basis", "quotation_vehicle_class", "quotation_source_vehicle_label", "createdAt", "updatedAt")
+        SELECT
+            gen_random_uuid(),
+            t."id",
+            t."quotationId",
+            t."applied_rate",
+            t."quotation_line_type",
+            t."quotation_billing_type",
+            t."quotation_pricing_basis",
+            t."quotation_vehicle_class",
+            t."quotation_source_vehicle_label",
+            t."createdAt",
+            t."updatedAt"
+        FROM "Trip" t
+        WHERE NOT EXISTS (
+            SELECT 1 FROM "TripFinancials" tf WHERE tf."tripId" = t."id"
+        );
+    ELSE
+        INSERT INTO "TripFinancials" ("id", "tripId", "quotationId", "createdAt", "updatedAt")
+        SELECT
+            gen_random_uuid(),
+            t."id",
+            t."quotationId",
+            t."createdAt",
+            t."updatedAt"
+        FROM "Trip" t
+        WHERE NOT EXISTS (
+            SELECT 1 FROM "TripFinancials" tf WHERE tf."tripId" = t."id"
+        );
+    END IF;
+END $$;

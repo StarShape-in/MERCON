@@ -22,6 +22,9 @@ export async function getSocket(): Promise<Socket> {
   } else {
     // Token may have changed (re-login) since the socket was created.
     socket.auth = { token };
+    if (socket.disconnected) {
+      socket.connect();
+    }
   }
   return socket;
 }

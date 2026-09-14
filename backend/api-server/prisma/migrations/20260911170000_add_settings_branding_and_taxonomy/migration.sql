@@ -1,4 +1,4 @@
-﻿-- Migration: 20260911170000_add_settings_branding_and_taxonomy
+-- Migration: 20260911170000_add_settings_branding_and_taxonomy
 -- Adds branding colors, taxonomy register configuration, and maintenance mode fields to Settings.
 -- This migration is strictly additive and non-destructive.
 

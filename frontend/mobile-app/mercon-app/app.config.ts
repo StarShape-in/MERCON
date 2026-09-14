@@ -17,8 +17,8 @@ const CLIENT_PROFILES = {
     name: 'mercon-app',
     slug: 'mercon-app',
     scheme: 'merconapp',
-    iosBundleIdentifier: 'com.sayedhysam.mercon-app',
-    androidPackage: 'com.sayedhysam.merconapp',
+    iosBundleIdentifier: 'tech.merconmobile.app',
+    androidPackage: 'tech.merconmobile.app',
     icon: './assets/images/merconclosed.png',
     splashImage: './assets/images/merconclosed.png',
     androidAdaptiveForeground: './assets/images/merconclosed.png',
@@ -70,6 +70,7 @@ export default (): ExpoConfig => ({
       'android.permission.RECORD_AUDIO',
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.POST_NOTIFICATIONS',
     ],
     package: client.androidPackage,
   },
@@ -102,6 +103,13 @@ export default (): ExpoConfig => ({
       });
     }) as any,
     'expo-router',
+    [
+      'expo-notifications',
+      {
+        icon: client.icon,
+        color: client.brandColor,
+      },
+    ],
     [
       'expo-splash-screen',
       {

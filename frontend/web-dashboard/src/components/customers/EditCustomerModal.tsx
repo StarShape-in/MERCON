@@ -27,6 +27,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30 Days');
+  const [driverWorkflow, setDriverWorkflow] = useState<'NATIVE' | 'EXTERNAL_APP'>('NATIVE');
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +39,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       setPrimaryContactPerson(customer.primary_contact_person || '');
       setWhatsappGroupLink(customer.whatsapp_group_link || '');
       setPaymentTerms(customer.payment_terms || 'Net 30 Days');
+      setDriverWorkflow(customer.driver_workflow || 'NATIVE');
       setIsActive(customer.isActive ?? true);
       setError(null);
     }
@@ -80,6 +82,7 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       primary_contact_person: primaryContactPerson.trim() || undefined,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
       payment_terms: paymentTerms || undefined,
+      driver_workflow: driverWorkflow,
       isActive,
     });
   };
@@ -147,6 +150,21 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
                 placeholder="50 123 4567"
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit_driver_workflow" className="text-xs font-bold flex items-center gap-1.5">
+              Driver Workflow Configuration
+            </Label>
+            <select
+              id="edit_driver_workflow"
+              value={driverWorkflow}
+              onChange={(e) => setDriverWorkflow(e.target.value as 'NATIVE' | 'EXTERNAL_APP')}
+              className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              <option value="NATIVE">Native CargoPod App (Standard Driver Stepper)</option>
+              <option value="EXTERNAL_APP">External Customer App (Screenshot AI Ingestion)</option>
+            </select>
           </div>
 
           <div className="space-y-1.5">

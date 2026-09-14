@@ -74,6 +74,7 @@ export default function EditCustomerPage() {
     email: '',
     billing_address: '',
     payment_terms: 'Net 30 Days',
+    driver_workflow: 'NATIVE' as 'NATIVE' | 'EXTERNAL_APP',
     isActive: true,
   });
 
@@ -96,6 +97,7 @@ export default function EditCustomerPage() {
         email: '',
         billing_address: '',
         payment_terms: customer.payment_terms || 'Net 30 Days',
+        driver_workflow: customer.driver_workflow || 'NATIVE',
         isActive: customer.isActive ?? true,
       });
 
@@ -195,6 +197,7 @@ export default function EditCustomerPage() {
         email: '',
         billing_address: '',
         payment_terms: customer.payment_terms || 'Net 30 Days',
+        driver_workflow: customer.driver_workflow || 'NATIVE',
         isActive: customer.isActive ?? true,
       });
       setError(null);
@@ -235,6 +238,7 @@ export default function EditCustomerPage() {
         secondary_contact_person: secondary?.name || undefined,
         secondary_contact_phone: secondary?.phone || undefined,
         payment_terms: formData.payment_terms || undefined,
+        driver_workflow: formData.driver_workflow,
         isActive: formData.isActive,
       });
 
@@ -384,6 +388,24 @@ export default function EditCustomerPage() {
                         onChange={(e) => handleChange('trade_alias', e.target.value)}
                         className="h-8 text-xs font-medium"
                       />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="driver_workflow" className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Driver Workflow Configuration
+                      </Label>
+                      <Select
+                        value={formData.driver_workflow}
+                        onValueChange={(val) => handleChange('driver_workflow', val)}
+                      >
+                        <SelectTrigger id="driver_workflow" className="h-8 text-xs font-semibold">
+                          <SelectValue placeholder="Select workflow..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NATIVE">Native CargoPod App (Standard Driver Stepper)</SelectItem>
+                          <SelectItem value="EXTERNAL_APP">External Customer App (Screenshot AI Ingestion)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-1">

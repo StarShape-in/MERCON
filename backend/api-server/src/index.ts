@@ -44,6 +44,7 @@ import reportBuilderRoutes from './routes/reportBuilderRoutes';
 import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
+import mobileDeviceRoutes from './routes/mobileDeviceRoutes';
 import mobileProfileRoutes from './routes/mobileProfileRoutes';
 import mobileEmergencyRoutes from './routes/mobileEmergencyRoutes';
 import mobileMiscRoutes from './routes/mobileMiscRoutes';
@@ -143,6 +144,8 @@ app.use(apiRouter);
 app.use('/mobile/auth', mobileAuthRoutes);
 app.use('/mobile/trips', mobileTripRoutes);
 app.use('/mobile/notifications', mobileNotificationRoutes);
+app.use('/mobile/devices', mobileDeviceRoutes);
+app.use('/api/mobile/devices', mobileDeviceRoutes);
 app.use('/mobile/profile', mobileProfileRoutes);
 app.use('/mobile/emergency', mobileEmergencyRoutes);
 app.use('/mobile', mobileMiscRoutes); // /mobile/documents, /mobile/vehicle

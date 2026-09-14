@@ -344,6 +344,7 @@ export interface TripFinancialsDto {
   quotationId?: string | null;
   applied_rate?: number | string | null;
   quotation_line_type?: LineType | string | null;
+  quotation_operation_type?: BillingType | string | null;
   quotation_billing_type?: BillingType | string | null;
   quotation_pricing_basis?: PricingBasisType | string | null;
   quotation_vehicle_class?: string | null;
@@ -419,6 +420,7 @@ export interface Quotation {
   vehicle_type?: string | null;
   line_type?: LineType | string | null;
   rate_category?: string | null;
+  operation_type?: BillingType | string | null;
   billing_type?: BillingType | string | null;
   pricing_basis?: PricingBasisType | string | null;
   rate: number;

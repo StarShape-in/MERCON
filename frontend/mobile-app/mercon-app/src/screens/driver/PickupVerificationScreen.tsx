@@ -125,6 +125,15 @@ const PickupVerificationScreen = () => {
 
   // If this pickup stop is already completed and departed, navigate forward to the next stage
   useEffect(() => {
+    if (trip?.driver_workflow === 'EXTERNAL_APP') {
+      const ws = getEffectiveWorkflowState(trip);
+      if (ws === 'ASSIGNED') {
+        router.replace('/');
+      } else {
+        router.replace('/trip/external-app');
+      }
+      return;
+    }
     if (loading || !trip || !pickupStop) return;
     if (pickupStop.actual_departure) {
       const outStops = getOutboundIntermediateStops(trip);
@@ -143,7 +152,7 @@ const PickupVerificationScreen = () => {
         }
       }
     }
-  }, [loading, trip?.id, pickupStop?.id, pickupStop?.actual_departure, isReturnLoading]);
+  }, [loading, trip?.id, trip?.driver_workflow, pickupStop?.id, pickupStop?.actual_departure, isReturnLoading]);
 
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;

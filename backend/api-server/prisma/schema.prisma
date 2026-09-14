@@ -38,6 +38,11 @@ enum AssetType {
   Tanker
 }
 
+enum DriverWorkflow {
+  NATIVE
+  EXTERNAL_APP
+}
+
 enum TripStatus {
   Scheduled
   Loading
@@ -188,6 +193,8 @@ model Customer {
   whatsapp_group_link     String?
   whatsapp_group_name     String?
 
+  driver_workflow         DriverWorkflow @default(NATIVE)
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -242,6 +249,7 @@ model Driver {
   originalTrips      Trip[]                  @relation("TripOriginalDriver")
   vehicleAssignments DriverVehicleAssignment[]
   notifications      Notification[]
+  devices            DriverDevice[]
   expenses           Expense[]
   executedTripStops  TripStop[]              @relation("TripStopExecutorDriver")
   executedDocuments  Document[]              @relation("DocumentExecutorDriver")
@@ -363,17 +371,18 @@ model Trip {
 
   // Which quotation the billing amount came from, recorded at dispatch.
   quotationId String?    @db.Uuid
-  quotation   Quotation? @relation(fields: [quotationId], references: [id])
+  quotation   Quotation? @relation(fields: [quotationId], references: [id], onDelete: Restrict)
 
   // Dedicated 1-to-1 Commercial Financials Snapshot
   financials TripFinancials?
 
   vehicle_type  String?
   rate_category String?
-  billing_type  String?
+  operation_type String?
 
   status           TripStatus @default(Scheduled)
   driver_workflow_state String?
+  driver_workflow  DriverWorkflow @default(NATIVE)
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz
@@ -453,7 +462,7 @@ model TripFinancials {
   quotation                      Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
   applied_rate                   Decimal?   @db.Decimal(12, 2)
   quotation_line_type            String?
-  quotation_billing_type         String?
+  quotation_operation_type       String?
   quotation_pricing_basis        String?
   quotation_vehicle_class        String?
   quotation_source_vehicle_label String?
@@ -536,7 +545,7 @@ model TripStop {
   // yard within it that location_name/lat/lng describe. This is what makes a
   // trip's lane recoverable after the fact, and what the rate lookup keys on.
   locationId       String?   @db.Uuid
-  location         Location? @relation(fields: [locationId], references: [id])
+  location         Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
   planned_arrival  DateTime? @db.Timestamptz
   actual_arrival   DateTime? @db.Timestamptz
   // When the driver left this stop. Paired with actual_arrival this is how
@@ -934,7 +943,7 @@ model Quotation {
   id                   String   @id @default(uuid()) @db.Uuid
   name                 String
   line_type            String?
-  billing_type         String?
+  operation_type       String?
   pricing_basis        String?
   rate                 Decimal  @db.Decimal(12, 2)
   driver_payout        Decimal? @db.Decimal(12, 2)
@@ -981,7 +990,7 @@ model QuotationStop {
   sequence     Int
   leg_index    Int       @default(0)
   locationId   String?   @db.Uuid
-  location     Location? @relation(fields: [locationId], references: [id])
+  location     Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   stop_type    StopType
   source_label String?
@@ -1234,6 +1243,21 @@ model Notification {
   // recipient; neither column was indexed.
   @@index([userId, createdAt])
   @@index([driverId, createdAt])
+}
+
+model DriverDevice {
+  id         String   @id @default(uuid()) @db.Uuid
+  driverId   String   @db.Uuid
+  driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  platform   String
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+
+  @@index([driverId, isActive])
+  @@map("driver_devices")
 }
 
 // -----------------------------------------

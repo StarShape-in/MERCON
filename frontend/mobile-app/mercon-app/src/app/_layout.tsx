@@ -13,6 +13,7 @@ import { OperatorBottomNav } from '@/navigation/OperatorBottomNav';
 
 import { LanguageProvider } from '@/lib/language-context';
 import { DriverLiveTracking } from '@/lib/DriverLiveTracking';
+import { DriverNotificationManager } from '@/components/DriverNotificationManager';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -92,6 +93,7 @@ function RootNavigator() {
       </Stack>
 
       {isLoggedIn && role === 'Driver' && <DriverLiveTracking />}
+      {isLoggedIn && role === 'Driver' && <DriverNotificationManager />}
 
       {showBottomNav && (
         <View style={styles.floatingNavOverlay} pointerEvents="box-none">

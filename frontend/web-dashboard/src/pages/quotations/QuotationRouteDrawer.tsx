@@ -46,18 +46,36 @@ export function QuotationRouteDrawer({
 
   const stops = (quotation?.stops || (quotation as any)?.via_stops || (quotation as any)?.viaStops || []) as any[];
 
-  // Determine canonical stop names in exact sequence
-  const stopNames = useMemo(() => {
-    if (!quotation) return ['Origin', 'Destination'];
+  // Determine canonical stop details in exact sequence
+  const stopDetails = useMemo(() => {
+    if (!quotation) return [];
     if (stops.length > 0) {
-      return stops.map(
-        (s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location'
-      );
+      return stops.map((s: any) => {
+        const shortName = s.source_label || s.location?.code || s.name || s.label || 'Location';
+        const canonicalName =
+          s.location?.name && s.location.name.trim().toLowerCase() !== shortName.trim().toLowerCase()
+            ? s.location.name
+            : null;
+        const city = s.location?.city || null;
+        return {
+          shortName,
+          canonicalName,
+          city,
+          stop_type: s.stop_type,
+          location: s.location,
+        };
+      });
     }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
-    return [origin, dest];
+    return [
+      { shortName: origin, canonicalName: null, city: null, stop_type: 'Pickup', location: null },
+      { shortName: dest, canonicalName: null, city: null, stop_type: 'Dropoff', location: null },
+    ];
   }, [stops, quotation]);
+
+  // Backward compatible stop names array
+  const stopNames = useMemo(() => stopDetails.map((s) => s.shortName), [stopDetails]);
 
   // Fetch trips consuming this specific rate / quotation (Always called unconditionally at top level)
   const { data: tripsRes, isLoading: isLoadingTrips } = useQuery({
@@ -114,10 +132,10 @@ export function QuotationRouteDrawer({
 
   if (!quotation) return null;
 
-  const firstStop = stopNames[0] || 'Origin';
-  const lastStop = stopNames[stopNames.length - 1] || 'Destination';
+  const firstStop = stopDetails[0] || { shortName: 'Origin', canonicalName: null };
+  const lastStop = stopDetails[stopDetails.length - 1] || { shortName: 'Destination', canonicalName: null };
   const intermediateStops = stopNames.slice(1, -1);
-  const totalStops = Math.max(stopNames.length, 2);
+  const totalStops = Math.max(stopDetails.length, 2);
 
   // Line 2 subtitle generation
   let viaText = 'Direct';
@@ -242,9 +260,23 @@ export function QuotationRouteDrawer({
           </div>
 
           <SheetTitle className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2 pt-1">
-            <span>{firstStop}</span>
-            <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0" />
-            <span>{lastStop}</span>
+            <div className="flex flex-col min-w-0">
+              <span className="truncate">{firstStop.shortName}</span>
+              {firstStop.canonicalName && (
+                <span className="text-[11px] font-semibold text-[#FA634E] dark:text-[#FA634E] tracking-normal font-sans truncate">
+                  {firstStop.canonicalName}
+                </span>
+              )}
+            </div>
+            <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0 my-auto" />
+            <div className="flex flex-col min-w-0">
+              <span className="truncate">{lastStop.shortName}</span>
+              {lastStop.canonicalName && (
+                <span className="text-[11px] font-semibold text-[#FA634E] dark:text-[#FA634E] tracking-normal font-sans truncate">
+                  {lastStop.canonicalName}
+                </span>
+              )}
+            </div>
           </SheetTitle>
 
           <div className="text-xs text-slate-500 font-medium flex items-center justify-between gap-2">
@@ -277,11 +309,11 @@ export function QuotationRouteDrawer({
 
             {/* Timeline Container */}
             <div className="relative pl-3 pr-1 py-1 space-y-0 max-h-64 overflow-y-auto">
-              {stopNames.map((name, idx) => {
+              {stopDetails.map((stop, idx) => {
                 const isFirst = idx === 0;
-                const isLast = idx === stopNames.length - 1;
+                const isLast = idx === stopDetails.length - 1;
                 const rawStop = stops[idx];
-                const semanticType = rawStop?.stop_type; // Only render if explicitly present
+                const semanticType = stop.stop_type || rawStop?.stop_type; // Only render if explicitly present
 
                 return (
                   <div key={idx} className="relative flex items-start gap-3.5 pb-4 last:pb-0">
@@ -293,7 +325,7 @@ export function QuotationRouteDrawer({
                     {/* Numbered node */}
                     <div
                       className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-black shrink-0 z-10 shadow-2xs",
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-black shrink-0 z-10 shadow-2xs mt-0.5",
                         isFirst || isLast
                           ? "bg-[#FA634E] text-white"
                           : "bg-slate-200 text-[#3E3C3D] dark:bg-slate-800 dark:text-slate-300"
@@ -303,21 +335,30 @@ export function QuotationRouteDrawer({
                     </div>
 
                     {/* Location Info */}
-                    <div className="flex-1 min-w-0 pt-0.5 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-800/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
-                      <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
-                        {name}
-                      </span>
-                      {semanticType ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] font-mono font-bold uppercase px-1.5 py-0 shrink-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
-                        >
-                          {semanticType}
-                        </Badge>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                          Stop {idx + 1}
+                    <div className="flex-1 min-w-0 pt-0.5 bg-slate-50/70 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800/80">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-[#3E3C3D] dark:text-slate-100 truncate">
+                          {stop.shortName}
                         </span>
+                        {semanticType ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-mono font-bold uppercase px-1.5 py-0 shrink-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                          >
+                            {semanticType}
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            Stop {idx + 1}
+                          </span>
+                        )}
+                      </div>
+                      {(stop.canonicalName || stop.city) && (
+                        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                          {stop.canonicalName && <span className="font-semibold text-slate-700 dark:text-slate-300">{stop.canonicalName}</span>}
+                          {stop.canonicalName && stop.city && <span className="text-slate-300">·</span>}
+                          {stop.city && <span className="font-mono text-[10px] text-slate-400">{stop.city}</span>}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -346,7 +387,7 @@ export function QuotationRouteDrawer({
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
                 <div>
-                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.billing_type} fallbackText="Extra" />
+                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.operation_type || quotation.billing_type} fallbackText="Extra" />
                 </div>
               </div>
 

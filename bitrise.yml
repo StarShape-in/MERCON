@@ -43,7 +43,7 @@ workflows:
             echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
 
             # ── 4. Patch MainActivity.kt: setTheme(AppTheme) + try/catch SplashScreen
-            MAIN_ACTIVITY="android/app/src/main/java/com/sayedhysam/merconapp/MainActivity.kt"
+            MAIN_ACTIVITY="android/app/src/main/java/tech/merconmobile/app/MainActivity.kt"
             if grep -q 'SplashScreenManager.registerOnActivity(this)' "$MAIN_ACTIVITY" && \
                ! grep -q 'SplashScreenManager failed' "$MAIN_ACTIVITY"; then
               sed -i 's/SplashScreenManager\.registerOnActivity(this)/setTheme(R.style.AppTheme)\n    try {\n      SplashScreenManager.registerOnActivity(this)\n    } catch (e: Throwable) {\n      android.util.Log.w("MainActivity", "SplashScreenManager failed: \${e.message}")\n    }/' "$MAIN_ACTIVITY"

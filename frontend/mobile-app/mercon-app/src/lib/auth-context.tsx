@@ -11,8 +11,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { safeSecureStore as SecureStore } from './secure-store';
-import { api, TOKEN_KEY, SESSION_KEY, setAuthToken, ensureAuthToken } from './api';
+import { api, TOKEN_KEY, SESSION_KEY, PUSH_TOKEN_KEY, setAuthToken, ensureAuthToken } from './api';
 import { queryClient } from './query-client';
+import {
+  registerForPushNotificationsAsync,
+  registerPushDeviceWithBackend,
+  unregisterPushDeviceWithBackend,
+} from './notifications';
 
 export type Role = 'Driver' | 'Operator' | 'Admin';
 
@@ -51,6 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const syncPushToken = async () => {
+    try {
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, pushToken);
+        await registerPushDeviceWithBackend(pushToken);
+      }
+    } catch (err) {
+      console.warn('[Auth] Non-fatal push token registration failure:', err);
+    }
+  };
+
   // Restore session on app start
   useEffect(() => {
     (async () => {
@@ -61,7 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]);
         if (token && rawSession) {
           setAuthToken(token);
-          setSession(JSON.parse(rawSession));
+          const parsed = JSON.parse(rawSession);
+          setSession(parsed);
+          if (parsed.role === 'Driver') {
+            syncPushToken().catch(() => {});
+          }
         }
       } finally {
         setIsLoading(false);
@@ -87,6 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const { token, driver } = data.data;
     await persist(token, { role: 'Driver', profile: driver });
+    // Register push device token in background (non-blocking for login)
+    syncPushToken().catch(() => {});
   };
 
   const signInOperator = async (username: string, password: string) => {
@@ -112,16 +135,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    // 1. Purge query cache so previous driver data cannot linger in memory
+    // 1. Attempt to unregister push token with backend before wiping credentials
+    try {
+      const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+      if (pushToken) {
+        await unregisterPushDeviceWithBackend(pushToken).catch(() => {});
+      }
+    } catch {
+      // Non-fatal unregistration
+    }
+
+    // 2. Purge query cache so previous driver data cannot linger in memory
     queryClient.clear();
-    // 2. Clear in-memory token
+    // 3. Clear in-memory token
     setAuthToken(null);
-    // 3. Clear SecureStore items
+    // 4. Clear SecureStore items
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(SESSION_KEY),
+      SecureStore.deleteItemAsync(PUSH_TOKEN_KEY),
     ]);
-    // 4. Reset auth session state
+    // 5. Reset auth session state
     setSession(null);
   };
 

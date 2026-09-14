@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface VisualRouteProgressProps {
   stops: any[];
   tz: string;
+  tripStatus?: string;
 }
 
 interface NormalizedStop {
@@ -24,26 +25,27 @@ const DEFAULT_STOPS: NormalizedStop[] = [
   { id: '2', seq: 2, label: 'DESTINATION', city: 'Al Abha', time: 'ETA 20:30 PM', status: 'upcoming', isFirst: false, isLast: true },
 ];
 
-export default function VisualRouteProgress({ stops, tz }: VisualRouteProgressProps) {
+export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRouteProgressProps) {
+  const isTripFullyCompleted = ['completed', 'invoiced'].includes(String(tripStatus || '').trim().toLowerCase());
+
   const normalizedStops: NormalizedStop[] =
     stops && stops.length >= 2
       ? stops.map((st, idx) => {
           const isFirst = idx === 0;
           const isLast = idx === stops.length - 1;
-          const isCompleted = !!st.actual_arrival;
+          const isCompleted = !!st.actual_arrival || isTripFullyCompleted;
           const isCurrent = !isCompleted && (idx === 0 || !!stops[idx - 1]?.actual_arrival);
 
-          const cityName =
-            st.location?.city ||
-            st.location_name ||
-            st.name ||
-            (isFirst ? 'Riyadh' : isLast ? 'Al Abha' : `Stop ${idx}`);
+          const rawCity = st.location?.city || st.location?.name || st.location_name || st.name;
+          const cityName = rawCity
+            ? String(rawCity).replace(/\s*\(\s*\)$/, '').trim()
+            : (isFirst ? 'Riyadh' : isLast ? 'Al Abha' : `Stop ${idx}`);
 
           const timeStr = st.actual_arrival
             ? formatInDeploymentTz(st.actual_arrival, tz, 'hh:mm a')
             : st.planned_arrival
-            ? (isLast ? `ETA ${formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a')}` : formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a'))
-            : isLast ? 'ETA 20:30 PM' : '12:00 PM';
+            ? (isLast && !isTripFullyCompleted ? `ETA ${formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a')}` : formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a'))
+            : isLast && !isTripFullyCompleted ? 'ETA 20:30 PM' : '12:00 PM';
 
           return {
             id: st.id || `stop-${idx}`,

@@ -51,6 +51,8 @@ services:
       ICCES_USER: "${ICCES_USER:-}"
       ICCES_PASS: "${ICCES_PASS:-}"
       ICCES_ACCT: "${ICCES_ACCT:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-}"
       PORT: 3000
     volumes:
       # Parameterized by CLIENT_NAME so a second stack (e.g. dev) on the same

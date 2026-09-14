@@ -15,6 +15,7 @@ export interface Customer {
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
+  driver_workflow?: 'NATIVE' | 'EXTERNAL_APP';
   isActive: boolean;
   createdAt: string;
   trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
@@ -31,6 +32,7 @@ export interface CreateCustomerPayload {
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
+  driver_workflow?: 'NATIVE' | 'EXTERNAL_APP';
   isActive?: boolean;
   whatsapp_number?: string;
   whatsapp_group_link?: string;

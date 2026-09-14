@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { prisma } from '../db';
 import type { DelayDetection } from '../services/tripLifecycle';
+import { sendDriverPushNotification } from '../services/pushNotificationService';
 
 const getIO = () => {
   try {
@@ -167,14 +168,28 @@ export const createDriverNotification = async (
   message: string,
   type: string,
   entity_type?: string,
-  entity_id?: string
+  entity_id?: string,
+  dataPayload?: Record<string, any>
 ) => {
   try {
     const notification = await prisma.notification.create({
       data: { driverId, title, message, type, entity_type, entity_id }
     });
 
+    // 1. Emit real-time Socket.io event to driver's private room
     getIO()?.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
+
+    // 2. Attempt push notification dispatch (non-blocking for DB and socket)
+    const pushData = {
+      type,
+      entity_type,
+      entity_id,
+      notificationId: notification.id,
+      ...(dataPayload || {}),
+    };
+    sendDriverPushNotification(driverId, title, message, pushData).catch((err) => {
+      logger.error({ err, driverId }, '[NotificationController] Background push dispatch failed');
+    });
 
     return notification;
   } catch (error) {

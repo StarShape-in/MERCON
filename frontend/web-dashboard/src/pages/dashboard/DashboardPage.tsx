@@ -7,6 +7,8 @@ import {
   FileText,
   RotateCw,
   Maximize2,
+  Minimize2,
+  ChevronUp,
   Activity,
   Truck,
   Building2,
@@ -250,128 +252,7 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
   'Cancelled':   { dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-600 border-slate-200',     label: 'Cancelled' },
 };
 
-const FALLBACK_KANBAN_TRIPS: Trip[] = [
-  {
-    id: 'TRP-0048',
-    ref_id: 'TRP-0048',
-    status: 'Delayed',
-    notes: '[DELAY REPORT]: Traffic congestion due to road construction on Highway 40',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 900000).toISOString(),
-    planned_start: new Date(Date.now() - 7200000).toISOString(),
-    customer: { id: 'c7', name: 'Almarai Logistics', contact_phone: '+966 50 777 8888', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd7', first_name: 'Liaqat', last_name: 'Ali Muhammad', phone: '+966 50 789 0123', iqama_number: '2345678907', license_number: 'LIC-9994', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v7', plate_number: 'ERA-9380', ref_id: 'VEH-016', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's13', trip_id: 'TRP-0048', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Hub', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's14', trip_id: 'TRP-0048', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, delay_reason: 'Traffic', delay_note: 'Road construction on Highway 40', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2950,
-    planned_distance: 980,
-  } as any,
-  {
-    id: 'TRP-0134',
-    ref_id: 'TRP-0134',
-    status: 'InTransit',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c1', name: 'IMILE DELIVERY SAUDI LOGISTICS', contact_phone: '+966 50 111 2222', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd1', first_name: 'Nouman', last_name: 'Ashraf', phone: '+966 50 123 4567', iqama_number: '2345678901', license_number: 'LIC-9988', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v1', plate_number: 'USA-6010', ref_id: 'VEH-010', type: 'Reefer Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's1', trip_id: 'TRP-0134', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Warehouse', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's2', trip_id: 'TRP-0134', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Main Station', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 3325,
-    planned_distance: 1350,
-  } as any,
-  {
-    id: 'TRP-0030',
-    ref_id: 'TRP-0030',
-    status: 'InTransit',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c2', name: 'Saudi Aramco Logistics', contact_phone: '+966 50 222 3333', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd2', first_name: 'Mohammed', last_name: 'Faizan', phone: '+966 50 234 5678', iqama_number: '2345678902', license_number: 'LIC-9989', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v2', plate_number: 'VSA-3871', ref_id: 'VEH-011', type: 'Flatbed Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's3', trip_id: 'TRP-0030', stop_type: 'Pickup', sequence: 1, location_name: 'Dammam Port', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's4', trip_id: 'TRP-0030', stop_type: 'Dropoff', sequence: 2, location_name: 'Jeddah Gateway', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 3450,
-    planned_distance: 1234,
-  } as any,
-  {
-    id: 'TRP-0029',
-    ref_id: 'TRP-0029',
-    status: 'Dispatched',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c3', name: 'SABIC Petrochemicals', contact_phone: '+966 50 333 4444', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd3', first_name: 'Umar', last_name: 'Farooq', phone: '+966 50 345 6789', iqama_number: '2345678903', license_number: 'LIC-9990', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v3', plate_number: 'VRA-3356', ref_id: 'VEH-012', type: 'Curtainsider', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's5', trip_id: 'TRP-0029', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Central', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's6', trip_id: 'TRP-0029', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam City', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2100,
-    planned_distance: 1876,
-  } as any,
-  {
-    id: 'TRP-0028',
-    ref_id: 'TRP-0028',
-    status: 'AtPickup',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c4', name: 'Almarai Dairy Fleet', contact_phone: '+966 50 444 5555', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd4', first_name: 'Abdul', last_name: 'Malik', phone: '+966 50 456 7890', iqama_number: '2345678904', license_number: 'LIC-9991', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v4', plate_number: 'DRA-6484', ref_id: 'VEH-013', type: 'Reefer Trailer', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's7', trip_id: 'TRP-0028', stop_type: 'Pickup', sequence: 1, location_name: 'Al-Kharj Plant', location_lat: 24.15, location_lng: 47.31, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's8', trip_id: 'TRP-0028', stop_type: 'Dropoff', sequence: 2, location_name: 'Dammam Depot', location_lat: 26.42, location_lng: 50.08, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 4200,
-    planned_distance: 2145,
-  } as any,
-  {
-    id: 'TRP-0027',
-    ref_id: 'TRP-0027',
-    status: 'AtDelivery',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c5', name: 'Panda Retail Operations', contact_phone: '+966 50 555 6666', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd5', first_name: 'Liaqat', last_name: 'Ali', phone: '+966 50 567 8901', iqama_number: '2345678905', license_number: 'LIC-9992', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v5', plate_number: 'ERA-9380', ref_id: 'VEH-014', type: 'Box Truck', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's9', trip_id: 'TRP-0027', stop_type: 'Pickup', sequence: 1, location_name: 'Jeddah DC', location_lat: 21.54, location_lng: 39.17, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's10', trip_id: 'TRP-0027', stop_type: 'Dropoff', sequence: 2, location_name: 'Riyadh Store 4', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 1850,
-    planned_distance: 876,
-  } as any,
-  {
-    id: 'TRP-0025',
-    ref_id: 'TRP-0025',
-    status: 'Completed',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    planned_start: new Date().toISOString(),
-    customer: { id: 'c6', name: 'Al-Othaim Commercial', contact_phone: '+966 50 666 7777', isActive: true, createdAt: new Date().toISOString() },
-    driver: { id: 'd6', first_name: 'Faizan', last_name: 'Malik', phone: '+966 50 678 9012', iqama_number: '2345678906', license_number: 'LIC-9993', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    vehicle: { id: 'v6', plate_number: 'DRA-9873', ref_id: 'VEH-015', type: 'Flatbed', is_active: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    stops: [
-      { id: 's11', trip_id: 'TRP-0025', stop_type: 'Pickup', sequence: 1, location_name: 'Riyadh Terminal', location_lat: 24.71, location_lng: 46.67, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 's12', trip_id: 'TRP-0025', stop_type: 'Dropoff', sequence: 2, location_name: 'Qassim Hub', location_lat: 26.32, location_lng: 43.97, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ],
-    billing_amount: 2600,
-    planned_distance: 180,
-  } as any,
-];
+const FALLBACK_KANBAN_TRIPS: Trip[] = [];
 
 function DashboardLocationCell({ rawTrip }: { rawTrip?: any }) {
   const resolvedLoc = rawTrip?.vehicle?.resolved_location || rawTrip?.resolved_location || rawTrip?.rawTrip?.vehicle?.resolved_location;
@@ -444,7 +325,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'ledger'>('ledger');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'collapsed' | 'ledger'>('kanban');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
@@ -627,23 +508,13 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Base active trips for Kanban board (only active operational transit fleet trips that have started)
+  // Base active trips for Kanban board (only real operational transit fleet trips from backend API)
   const baseTripsForKanban: Trip[] = useMemo(() => {
     const pool = (rawTrips && rawTrips.length > 0) ? (rawTrips as Trip[]) : [];
-    const active = pool.filter((t) => {
+    return pool.filter((t) => {
       const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      if (['completed', 'invoiced', 'cancelled', 'scheduled', 'draft'].includes(s)) return false;
+      if (['completed', 'invoiced', 'cancelled'].includes(s)) return false;
       return true;
-    });
-    if (active.length > 0) {
-      return active;
-    }
-    if (rawTrips.length > 0) {
-      return [];
-    }
-    return FALLBACK_KANBAN_TRIPS.filter((t) => {
-      const s = String(t.status || '').toLowerCase().replace(/[\s_-]/g, '');
-      return !['completed', 'invoiced', 'cancelled', 'scheduled', 'draft'].includes(s);
     });
   }, [rawTrips]);
 
@@ -669,10 +540,16 @@ export default function DashboardPage() {
     });
   }, [baseTripsForKanban, customersRes]);
 
-  // Filtered trips for Kanban board (Active only: Search and Active Status Filter)
+  // Filtered trips for Kanban board (Active only: Company, Search and Active Status Filter)
   const filteredTripsForKanban: Trip[] = useMemo(() => {
     return baseTripsForKanban.filter((t) => {
-      // 1. Status filter (Active tracking statuses)
+      // 1. Company filter
+      if (selectedCompany !== 'all') {
+        const name = t.customer?.name || (t as any).customerName;
+        if (name !== selectedCompany) return false;
+      }
+
+      // 2. Status filter (Active tracking statuses)
       if (selectedStatusFilter !== 'all') {
         const display = getTripDisplayStatus(t.status, (t as any).driver_workflow_state, t.planned_end);
         if (selectedStatusFilter === 'Delayed') {
@@ -684,7 +561,7 @@ export default function DashboardPage() {
         }
       }
 
-      // 2. Search filter
+      // 3. Search filter
       if (tripSearch.trim()) {
         const q = tripSearch.toLowerCase().trim();
         const refStr = (t.ref_id || t.id || '').toLowerCase();
@@ -711,7 +588,7 @@ export default function DashboardPage() {
 
       return true;
     });
-  }, [baseTripsForKanban, selectedStatusFilter, tripSearch]);
+  }, [baseTripsForKanban, selectedCompany, selectedStatusFilter, tripSearch]);
 
   // Categorize live trips into current, upcoming, completed for Ledger table
   const { currentTrips, upcomingTrips, completedTrips } = useMemo(() => {
@@ -1131,8 +1008,8 @@ export default function DashboardPage() {
 
   return (
     <TooltipProvider>
-      <DashboardLayout active="Dashboard" title="Dashboard" hideBackButton>
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 h-full flex flex-col gap-5 animate-fade-in">
+      <DashboardLayout active="Dashboard" title="Dashboard" hideBackButton fixedViewport={dashboardViewMode === 'collapsed'}>
+        <div className={cn("px-4 sm:px-6 lg:px-8 pb-4 h-full flex flex-col gap-4 animate-fade-in", dashboardViewMode === 'collapsed' && "overflow-hidden flex-1 justify-between pb-2")}>
 
           {/* ── Page Subheader / Context Bar ─────────────────────────────── */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.04]">
@@ -1210,12 +1087,12 @@ export default function DashboardPage() {
           <div className="flex flex-col lg:flex-row gap-4 items-stretch transition-all duration-300 ease-in-out">
 
             {/* 1. Unified 2-Column Operator Command Center (~58% width) */}
-            <div className="w-full lg:w-[58%] xl:w-[60%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
+            <div className={cn("w-full lg:w-[58%] xl:w-[60%] shrink-0 flex flex-col transition-all duration-300 ease-in-out", dashboardViewMode === 'collapsed' ? "h-[calc(100vh-325px)] min-h-[300px] max-h-[365px]" : "h-[390px] max-h-[390px]")}>
               <OperatorCommandCenter trips={rawTrips} />
             </div>
 
             {/* 2. Active Trips Live Map (~42% width) */}
-            <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
+            <div className={cn("flex-1 min-w-0 flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out", dashboardViewMode === 'collapsed' ? "h-[calc(100vh-325px)] min-h-[300px] max-h-[365px]" : "h-[390px] max-h-[390px]")}>
 
               {/* Map Canvas with Overlays */}
               <div 
@@ -1479,70 +1356,68 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Compact Highlighted Company Filter Button (Ledger mode) */}
-                {dashboardViewMode === 'ledger' && (
-                  <div
-                    className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
-                      selectedCompany !== 'all'
-                        ? 'bg-orange-50 dark:bg-orange-950/50 border border-orange-300 dark:border-orange-700/80 text-brand'
-                        : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                {/* Compact Highlighted Company Filter Button */}
+                <div
+                  className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
+                    selectedCompany !== 'all'
+                      ? 'bg-orange-50 dark:bg-orange-950/50 border border-orange-300 dark:border-orange-700/80 text-brand'
+                      : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                  }`}
+                >
+                  <Building2
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      selectedCompany !== 'all' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
                     }`}
+                  />
+                  <Select
+                    value={selectedCompany}
+                    onValueChange={(val) => {
+                      setSelectedCompany(val);
+                      setTripSearch('');
+                    }}
                   >
-                    <Building2
-                      className={`w-3.5 h-3.5 shrink-0 ${
-                        selectedCompany !== 'all' ? 'text-brand' : 'text-slate-500 dark:text-slate-400'
+                    <SelectTrigger
+                      className={`h-7 text-xs border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 truncate cursor-pointer ${
+                        selectedCompany !== 'all'
+                          ? 'font-extrabold text-brand dark:text-orange-400 max-w-[140px]'
+                          : 'font-semibold text-slate-700 dark:text-slate-200 max-w-[110px]'
                       }`}
-                    />
-                    <Select
-                      value={selectedCompany}
-                      onValueChange={(val) => {
-                        setSelectedCompany(val);
-                        setTripSearch('');
-                      }}
                     >
-                      <SelectTrigger
-                        className={`h-7 text-xs border-0 bg-transparent shadow-none px-1 focus:ring-0 focus:ring-offset-0 truncate cursor-pointer ${
-                          selectedCompany !== 'all'
-                            ? 'font-extrabold text-brand dark:text-orange-400 max-w-[140px]'
-                            : 'font-semibold text-slate-700 dark:text-slate-200 max-w-[110px]'
-                        }`}
-                      >
-                        <SelectValue placeholder="Company">
-                          {selectedCompany === 'all' ? 'Company' : selectedCompany}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
-                        <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
-                          All Companies (Show All)
+                      <SelectValue placeholder="Company">
+                        {selectedCompany === 'all' ? 'Company' : selectedCompany}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl">
+                      <SelectItem value="all" className="text-xs font-bold text-brand cursor-pointer">
+                        All Companies (Show All)
+                      </SelectItem>
+                      {companyOptions.map(([name, tripCount]) => (
+                        <SelectItem key={name} value={name} className="text-xs cursor-pointer">
+                          <span className="font-semibold">{name}</span>
+                          {tripCount > 0 && (
+                            <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
+                              ({tripCount})
+                            </span>
+                          )}
                         </SelectItem>
-                        {companyOptions.map(([name, tripCount]) => (
-                          <SelectItem key={name} value={name} className="text-xs cursor-pointer">
-                            <span className="font-semibold">{name}</span>
-                            {tripCount > 0 && (
-                              <span className="ml-1.5 text-[10px] text-slate-400 font-mono">
-                                ({tripCount})
-                              </span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                    {selectedCompany !== 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCompany('all')}
-                        className="p-0.5 -mr-0.5 rounded-full hover:bg-orange-200/80 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-300 transition-colors cursor-pointer"
-                        title="Clear company filter"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                )}
+                  {selectedCompany !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCompany('all')}
+                      className="p-0.5 -mr-0.5 rounded-full hover:bg-orange-200/80 dark:hover:bg-orange-900 text-orange-600 dark:text-orange-300 transition-colors cursor-pointer"
+                      title="Clear company filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
 
-                {/* Active Status Filter Dropdown (Only in Kanban mode) */}
-                {dashboardViewMode === 'kanban' && (
+                {/* Active Status Filter Dropdown (Only in Kanban/Collapsed mode) */}
+                {(dashboardViewMode === 'kanban' || dashboardViewMode === 'collapsed') && (
                   <div
                     className={`flex items-center gap-1 rounded-lg px-2 py-0.5 shadow-2xs transition-all ${
                       selectedStatusFilter !== 'all'
@@ -1622,7 +1497,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* View Switcher (Kanban | Ledger) */}
+                {/* View Switcher (Kanban Board | Collapsed | Ledger) */}
                 <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
                   <button
                     type="button"
@@ -1632,10 +1507,24 @@ export default function DashboardPage() {
                         ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
-                    title="Kanban Board View"
+                    title="Kanban Full Board View"
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
-                    <span>Kanban</span>
+                    <span>Board</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDashboardViewMode('collapsed')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      dashboardViewMode === 'collapsed'
+                        ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                    title="Collapsed View (Unscrollable Screen Mode)"
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>Collapsed</span>
                   </button>
 
                   <button
@@ -1658,20 +1547,19 @@ export default function DashboardPage() {
             </div>
 
             {/* View Canvas Body */}
-            {dashboardViewMode === 'kanban' ? (
-              <div className="w-full flex-1 min-h-[460px] flex flex-col">
-                <CompanyTripKanbanBoard
+            {dashboardViewMode === 'kanban' || dashboardViewMode === 'collapsed' ? (
+              <div className={cn("w-full flex-1 flex flex-col transition-all duration-300", dashboardViewMode === 'collapsed' ? "min-h-[145px] max-h-[160px]" : "min-h-[460px]")}>
+                <TripKanbanBoard
                   trips={filteredTripsForKanban}
-                  companies={companyOptions.map(([name]) => name)}
+                  collapsed={dashboardViewMode === 'collapsed'}
+                  statusFilter={selectedStatusFilter !== 'all' ? selectedStatusFilter : undefined}
                   onStatusChange={handleKanbanStatusChange}
                   onShareWhatsapp={handleOpenWhatsappTrip}
+                  onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
+                  onCreateTrip={() => navigate('/trips/new')}
                   isLoading={isTripsLoading}
                   isError={isTripsError}
                   onRetry={() => refetchTrips()}
-                  statusFilter={selectedStatusFilter}
-                  onStatusFilterChange={setSelectedStatusFilter}
-                  onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
-                  onCreateTrip={() => navigate('/trips/new')}
                 />
               </div>
             ) : (

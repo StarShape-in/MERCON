@@ -22,6 +22,7 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
   const [contactPhone, setContactPhone] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
+  const [driverWorkflow, setDriverWorkflow] = useState<'NATIVE' | 'EXTERNAL_APP'>('NATIVE');
   const [error, setError] = useState<string | null>(null);
 
   const createMutation = useMutation({
@@ -44,6 +45,7 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
     setContactPhone('');
     setPrimaryContactPerson('');
     setWhatsappGroupLink('');
+    setDriverWorkflow('NATIVE');
     setError(null);
   };
 
@@ -60,6 +62,7 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
       contact_phone: contactPhone.trim() || 'N/A',
       primary_contact_person: primaryContactPerson.trim() || undefined,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
+      driver_workflow: driverWorkflow,
     } as any);
   };
 
@@ -120,6 +123,21 @@ export default function CreateCustomerModal({ isOpen, onClose, onSuccess }: Crea
                 placeholder="50 123 4567"
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="driver_workflow" className="text-xs font-bold flex items-center gap-1.5">
+              Driver Workflow Configuration
+            </Label>
+            <select
+              id="driver_workflow"
+              value={driverWorkflow}
+              onChange={(e) => setDriverWorkflow(e.target.value as 'NATIVE' | 'EXTERNAL_APP')}
+              className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              <option value="NATIVE">Native CargoPod App (Standard Driver Stepper)</option>
+              <option value="EXTERNAL_APP">External Customer App (Screenshot AI Ingestion)</option>
+            </select>
           </div>
 
           <div className="space-y-1.5">

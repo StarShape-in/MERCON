@@ -33,6 +33,8 @@ interface LocationComboboxProps {
   excludeLocationId?: string;
   triggerClassName?: string;
   customerId?: string;
+  side?: 'top' | 'bottom';
+  hasError?: boolean;
 }
 
 export default function LocationCombobox({
@@ -46,6 +48,8 @@ export default function LocationCombobox({
   excludeLocationId,
   triggerClassName,
   customerId,
+  side = 'top',
+  hasError = false,
 }: LocationComboboxProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -336,12 +340,13 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
           onKeyDown={handleTriggerKeyDown}
           className={cn(
             'w-full justify-between font-normal text-xs h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none focus-visible:border-[#FA634E]',
+            hasError && 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20 text-red-900 dark:text-red-200',
             !selected && 'text-slate-400',
             triggerClassName
           )}
         >
           <span className="flex items-center gap-2 truncate">
-            <MapPin className={cn('h-3.5 w-3.5 shrink-0', selected ? 'text-brand' : 'text-slate-400')} />
+            <MapPin className={cn('h-3.5 w-3.5 shrink-0', hasError ? 'text-red-500' : selected ? 'text-brand' : 'text-slate-400')} />
             <span className="truncate">{displayLabel || placeholder}</span>
           </span>
           <ChevronDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -350,7 +355,7 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
 
       <PopoverContent
         align="start"
-        side="bottom"
+        side={side}
         sideOffset={4}
         avoidCollisions={true}
         collisionPadding={8}
@@ -359,10 +364,10 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
           inputRef.current?.focus();
         }}
         onKeyDownCapture={handleInputKeyDown}
-        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-[9999] bg-white dark:bg-slate-900"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-[9999] bg-white dark:bg-slate-900 max-h-[var(--radix-popover-content-available-height)] flex flex-col"
       >
-        <div className="w-full overflow-hidden">
-          <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-3 bg-white dark:bg-slate-900">
+        <div className="w-full flex flex-col min-h-0 overflow-hidden flex-1">
+          <div className="flex items-center border-b border-slate-100 dark:border-slate-800 px-3 bg-white dark:bg-slate-900 shrink-0">
             <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50 text-slate-400" />
             <input
               ref={inputRef}
@@ -374,11 +379,11 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
             />
           </div>
           {paste.status.kind !== 'idle' && (
-            <div className="px-2 pt-1.5">
+            <div className="px-2 pt-1.5 shrink-0">
               <PasteLocationStatus status={paste.status} />
             </div>
           )}
-          <div ref={listRef} className="max-h-[min(280px,var(--radix-popover-content-available-height,280px))] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
+          <div ref={listRef} className="flex-1 min-h-0 max-h-[min(280px,var(--radix-popover-content-available-height,280px))] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
             {(isLoading || isSearchingGoogle) && (
               <div className="py-2.5 px-3 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" />

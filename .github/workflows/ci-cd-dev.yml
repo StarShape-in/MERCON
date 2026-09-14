@@ -12,7 +12,7 @@ on:
 # --build` is never interrupted.
 concurrency:
   group: ci-cd-dev
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -105,6 +105,9 @@ jobs:
           ICCES_USER: ${{ secrets.DEV_ICCES_USER || secrets.ICCES_USER }}
           ICCES_PASS: ${{ secrets.DEV_ICCES_PASS || secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.DEV_ICCES_ACCT || secrets.ICCES_ACCT }}
+          # Gemini Vision AI — injected from repo/environment secrets
+          GEMINI_API_KEY: ${{ secrets.DEV_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.DEV_GEMINI_MODEL || secrets.GEMINI_MODEL }}
         run: |
           echo "=== REBUILDING DEV STACK (mercon-dev) ==="
           echo "Target Project: mercon-dev (CLIENT_NAME=dev)"
@@ -125,11 +128,10 @@ jobs:
           echo "Building and updating mercon-dev services with BuildKit cache..."
           docker compose -p mercon-dev up -d --build
 
-          # Migration is handled authoritatively at container boot by Dockerfile CMD:
+          # Build and start services in detached mode
+          # Migration and prisma generation are handled authoritatively at container boot by Dockerfile CMD:
           # npx prisma migrate deploy && npx prisma generate && node dist/index.js
-          docker compose -p mercon-dev exec -T mercon-api npx prisma generate
-
-          sleep 5
+          sleep 8
           echo "--- dev-api logs (last 100 lines) ---"
           docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
           echo "--- dev-api container status ---"

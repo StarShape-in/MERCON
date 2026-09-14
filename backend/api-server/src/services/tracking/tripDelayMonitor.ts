@@ -2,7 +2,7 @@ import { TripStatus, StopType, Role } from '@prisma/client';
 import { prisma } from '../../db';
 import { logger } from '../../utils/logger';
 import { DELAY_THRESHOLD_MINUTES } from '../tripLifecycle';
-import { notifyOperatorsOfDelay, createNotification } from '../../controllers/notificationController';
+import { notifyOperatorsOfDelay, createNotification, createDriverNotification } from '../../controllers/notificationController';
 
 let monitorInterval: NodeJS.Timeout | null = null;
 let isChecking = false;
@@ -218,6 +218,43 @@ export async function checkTripsForDelay(now: Date = new Date()): Promise<number
             locationName: targetStop?.location_name || null,
             delayMinutes,
           });
+        }
+
+        // Driver delay prompt notification with stop-level deduplication
+        if (trip.driverId) {
+          const targetStopId = targetStop?.id || '';
+          const existingDriverPrompt = await prisma.notification.findFirst({
+            where: {
+              driverId: trip.driverId,
+              entity_id: trip.id,
+              entity_type: 'Trip',
+              type: 'TripDelayPrompt',
+              message: { contains: targetStopId ? `[stop:${targetStopId}]` : '' },
+              createdAt: { gte: sixHoursAgo },
+            },
+          });
+
+          if (!existingDriverPrompt) {
+            const stopSeq = targetStop?.stop_sequence || 1;
+            const stopLoc = targetStop?.location_name || 'your stop';
+            const driverPromptTitle = 'Trip Delay Detected';
+            const driverPromptMessage = `Your trip is delayed by ${delayMinutes} minutes at stop ${stopSeq} (${stopLoc}). Please report the reason for the delay. [stop:${targetStopId}]`;
+
+            await createDriverNotification(
+              trip.driverId,
+              driverPromptTitle,
+              driverPromptMessage,
+              'TripDelayPrompt',
+              'Trip',
+              trip.id,
+              {
+                tripId: trip.id,
+                stopId: targetStopId,
+                stopSequence: stopSeq,
+                delayMinutes,
+              }
+            );
+          }
         }
 
         // Broadcast status update to sockets

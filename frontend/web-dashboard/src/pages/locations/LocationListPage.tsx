@@ -157,6 +157,7 @@ export default function LocationListPage() {
     message: string;
     onConfirm: () => void | Promise<void>;
     isDestructive?: boolean;
+    confirmLabel?: string;
   }>({
     isOpen: false,
     title: '',
@@ -372,22 +373,30 @@ export default function LocationListPage() {
                   const parts: string[] = [];
                   if (qCount > 0) parts.push(`${qCount} quotation stop${qCount === 1 ? '' : 's'}`);
                   if (tCount > 0) parts.push(`${tCount} trip stop${tCount === 1 ? '' : 's'}`);
-                  const message = parts.length > 0
-                    ? `"${locName}" (${row.code}) is referenced in ${parts.join(' and ')}. Deleting it will remove the location — linked quotations and historical trip stops may be affected.`
+                  const isReferenced = parts.length > 0;
+                  const message = isReferenced
+                    ? `"${locName}" (${row.code}) is referenced in ${parts.join(' and ')}. Operational locations with active history cannot be deleted. Would you like to deactivate this location instead?`
                     : `"${locName}" (${row.code}) has no linked quotations or trip stops. This will permanently delete the location.`;
+
                   setConfirmModal({
                     isOpen: true,
-                    title: 'Delete Customer Location?',
+                    title: isReferenced ? 'Deactivate Location?' : 'Delete Customer Location?',
                     message,
-                    isDestructive: true,
+                    confirmLabel: isReferenced ? 'Deactivate Location' : 'Delete Location',
+                    isDestructive: !isReferenced,
                     onConfirm: async () => {
                       try {
-                        await locationService.delete(row.id);
-                        toast.success(`Location "${locName}" deleted successfully`);
+                        if (isReferenced) {
+                          await locationService.update(row.id, { is_active: false });
+                          toast.success(`Location "${locName}" deactivated successfully`);
+                        } else {
+                          await locationService.delete(row.id);
+                          toast.success(`Location "${locName}" deleted successfully`);
+                        }
                         queryClient.invalidateQueries({ queryKey: ['locations'] });
                         setSelectionResetKey(k => k + 1);
                       } catch (e: any) {
-                        toast.error(e?.response?.data?.error?.message || 'Failed to delete location');
+                        toast.error(e?.response?.data?.error?.message || e?.message || 'Action failed');
                       }
                     },
                   });
@@ -796,7 +805,7 @@ export default function LocationListPage() {
         title={confirmModal.title}
         message={confirmModal.message}
         isDestructive={confirmModal.isDestructive}
-        confirmLabel="Delete Location"
+        confirmLabel={confirmModal.confirmLabel || 'Delete Location'}
       />
 
       {isExportOpen && (

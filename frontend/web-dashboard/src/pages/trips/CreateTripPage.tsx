@@ -158,7 +158,11 @@ export default function CreateTripPage() {
             isStepValid={form.isStepValid}
             canNavigateToStep={form.canNavigateToStep}
             setContractStep={form.setContractStep}
-            handleContractSubmit={() => setIsReviewModalOpen(true)}
+            handleContractSubmit={() => {
+              if (form.validateAndFocusErrors()) {
+                setIsReviewModalOpen(true);
+              }
+            }}
             handleDialogClose={form.handleDialogClose}
             isPending={form.bulkMutation.isPending}
             batchTripRowsCount={form.batchTripRows.length}
@@ -230,6 +234,7 @@ export default function CreateTripPage() {
                         vehicles={form.vehicles}
                         dayAssignments={form.dayAssignments}
                         setDayAssignments={form.setDayAssignments}
+                        fieldErrors={form.fieldErrors}
                       />
                     )}
 

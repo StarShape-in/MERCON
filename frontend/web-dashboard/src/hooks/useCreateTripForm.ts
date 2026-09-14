@@ -270,7 +270,7 @@ export function useCreateTripForm() {
           : '';
 
         const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [truckInfo, statusTag, badgesStr].filter(Boolean).join(' • ');
+        const detailsStr = [truckInfo, statusTag].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
 
         const label = React.createElement(
@@ -314,7 +314,23 @@ export function useCreateTripForm() {
       if (capB !== capA) return capB - capA;
       return (b.score || 0) - (a.score || 0);
     });
-    return mapped;
+
+    const assignLaterDriverOption: ComboboxOption & Record<string, any> = {
+      value: 'unassigned',
+      label: React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5' },
+        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
+        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending fleet assignment')
+      ),
+      selectedLabel: 'Assign Later',
+      first_name: 'Assign',
+      last_name: 'Later',
+      detailsStr: 'Truck: Unassigned',
+      keywords: 'unassigned assign later pending null none',
+    };
+
+    return [assignLaterDriverOption, ...mapped];
   }, [drivers, vehicles, recommendedDriversRes]);
 
   const [searchParams] = useSearchParams();
@@ -428,11 +444,26 @@ export function useCreateTripForm() {
       'Available Vehicles': 3,
     };
 
-    return mapped.sort((a, b) => {
+    const sorted = mapped.sort((a, b) => {
       const pA = groupPriority[a.group] ?? 99;
       const pB = groupPriority[b.group] ?? 99;
       return pA - pB;
     });
+
+    const assignLaterVehicleOption: ComboboxOption = {
+      value: 'unassigned',
+      group: 'Assign Later',
+      label: React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5' },
+        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
+        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending truck assignment')
+      ),
+      selectedLabel: 'Assign Later',
+      keywords: 'unassigned assign later pending null none',
+    };
+
+    return [assignLaterVehicleOption, ...sorted];
   }, [vehicles, masterVehicle, contractVehicleType, masterDriver, drivers]);
 
   useEffect(() => {
@@ -482,7 +513,10 @@ export function useCreateTripForm() {
 
   const handleDriverChange = (driverId: string) => {
     setMasterDriver(driverId);
-    if (!driverId || driverId === 'unassigned') return;
+    if (!driverId || driverId === 'unassigned') {
+      setMasterVehicle('unassigned');
+      return;
+    }
 
     const selectedDriver = drivers.find((d) => d.id === driverId);
     if (!selectedDriver) return;
@@ -662,10 +696,17 @@ export function useCreateTripForm() {
                 console.error('Quotation rate lookup error:', err);
               }
 
+              // No matching rate card found: preserve manually entered pricing if user typed billing or payout
+              const isUserDefined = !slot.rateMatched || slot.saveAsQuotation || slot.saveAsRateCard || slot.driverPayoutModified;
+              const keepBilling = isUserDefined && slot.billingAmount ? slot.billingAmount : '';
+              const keepTripCharges = isUserDefined && slot.tripCharges ? slot.tripCharges : '';
+              const keepDriverPayout = isUserDefined && slot.driverPayout !== undefined ? slot.driverPayout : undefined;
+
               return {
                 ...slot,
-                billingAmount: '',
-                tripCharges: '',
+                billingAmount: keepBilling,
+                tripCharges: keepTripCharges,
+                ...(keepDriverPayout !== undefined ? { driverPayout: keepDriverPayout } : {}),
                 rateMatched: false,
                 rateCardId: undefined,
                 rateCardName: undefined,
@@ -848,6 +889,9 @@ export function useCreateTripForm() {
     handlePastDateConfirm,
     bulkMutation,
     handleContractSubmit,
+    fieldErrors,
+    setFieldErrors,
+    validateAndFocusErrors,
     handleGridSubmit: handleGridSubmitBase,
     handleFileSubmit: handleFileSubmitBase,
     resetAll,
@@ -1207,6 +1251,9 @@ export function useCreateTripForm() {
     handlePastDateConfirm,
     bulkMutation,
     handleContractSubmit,
+    fieldErrors,
+    setFieldErrors,
+    validateAndFocusErrors,
     handleGridSubmit,
     handleFileSubmit,
     resetAll,

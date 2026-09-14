@@ -68,6 +68,7 @@ interface TripStep1UnifiedWorkspaceProps {
   vehicles?: any[];
   dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
   setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps> = ({
@@ -127,6 +128,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   vehicles = [],
   dayAssignments = {},
   setDayAssignments,
+  fieldErrors = {},
 }) => {
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
@@ -150,13 +152,10 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           </span>
         </div>
       ) : contractBillingType?.toLowerCase() === 'extra' ? (
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-orange-50/90 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-900/80 shadow-2xs">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-orange-50/90 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-900/80 shadow-2xs">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
               <Zap className="w-3 h-3" /> Extra / Spot Trip Mode
-            </span>
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Single spot dispatch trip • Billed per single trip rate
             </span>
           </div>
           <span className="text-[10px] font-extrabold text-[#FA634E] bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-900">
@@ -189,6 +188,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             setContractCustomer={setContractCustomer}
             customers={customers}
             customerOptions={customerOptions}
+            fieldErrors={fieldErrors}
           />
 
           <div className="space-y-3">
@@ -212,6 +212,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
                 handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
                 handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
+                fieldErrors={fieldErrors}
               />
             ))}
           </div>

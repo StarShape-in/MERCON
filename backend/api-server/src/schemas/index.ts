@@ -174,6 +174,7 @@ export const createTripBody = z.object({
   rate_category: z.string().trim().max(60).nullable().optional(),
   // Whether this trip is a one-off "Extra" job or part of a standing
   // "Monthly" commitment — see BILLING_TYPES in @mercon/shared-types.
+  operation_type: z.string().trim().max(60).nullable().optional(),
   billing_type: z.string().trim().max(60).nullable().optional(),
   // Third-Party Logistics & Rental fields
   is_third_party: z.boolean().optional(),
@@ -339,6 +340,7 @@ export const bulkImportTripsBody = z.object({
     planned_end: z.string().trim().optional(),
     rate_category: z.string().trim().optional(),
     vehicle_type: z.string().trim().optional(),
+    operation_type: z.string().trim().optional(),
     billing_type: z.string().trim().optional(),
     billing_amount: z.coerce.number().optional(),
     // What MERCON paid its own driver for this specific trip -- unlike
@@ -451,6 +453,7 @@ export const createCustomerBody = z.object({
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -466,6 +469,7 @@ export const updateCustomerBody = z.object({
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 
