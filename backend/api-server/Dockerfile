@@ -43,4 +43,4 @@ EXPOSE 3000
 # failure there is worth shouting about but not worth taking the API down for.
 #
 # NOTE: `migrate deploy` requires the database to have a `_prisma_migrations`
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate resolve --rolled-back 20260914140000_add_driver_devices_table 2>/dev/null || true; npx prisma migrate deploy && npx prisma generate && node dist/index.js"]
