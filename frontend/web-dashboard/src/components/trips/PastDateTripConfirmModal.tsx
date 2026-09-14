@@ -27,7 +27,16 @@ export default function PastDateTripConfirmModal({
   analysis,
   isSubmitting = false,
 }: PastDateTripConfirmModalProps) {
-  const [selectedOption, setSelectedOption] = useState<'Completed' | 'Incompleted'>('Completed');
+  const isPastDate = Boolean(analysis?.hasPastTrips);
+  const [selectedOption, setSelectedOption] = useState<'Completed' | 'Incompleted'>(
+    isPastDate ? 'Completed' : 'Incompleted'
+  );
+
+  React.useEffect(() => {
+    if (open) {
+      setSelectedOption(isPastDate ? 'Completed' : 'Incompleted');
+    }
+  }, [open, isPastDate]);
 
   if (!open) return null;
 
@@ -56,7 +65,7 @@ export default function PastDateTripConfirmModal({
                 </Badge>
               </div>
               <DialogDescription className="text-xs text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
-                {analysis?.hasPastTrips ? (
+                {isPastDate ? (
                   <>
                     You are creating {pastTripsCount === 1 ? '1 trip' : `${pastTripsCount} trip(s)`} for a previous date ({samplePastDate}). Please confirm the initial execution status.
                   </>
@@ -96,7 +105,11 @@ export default function PastDateTripConfirmModal({
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Completed</span>
-                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] py-0">Recommended</Badge>
+                    {isPastDate ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] py-0 font-bold">Recommended</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-slate-500 border-slate-300 text-[10px] py-0 font-normal">Already Executed</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     The trip was already executed on that date and is finished. Saved with status <strong>Completed</strong>.
@@ -122,7 +135,11 @@ export default function PastDateTripConfirmModal({
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Incompleted</span>
-                    <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] py-0">Auto Status by Date</Badge>
+                    {!isPastDate ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] py-0 font-bold">Recommended</Badge>
+                    ) : (
+                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] py-0">Auto Status by Date</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Trip is in progress or planned. Status will be automatically set based on date (<strong>Scheduled</strong> for future dates, <strong>In Transit</strong> for past dates).
