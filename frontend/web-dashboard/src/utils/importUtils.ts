@@ -1,5 +1,3 @@
-// @ts-ignore
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 
 /**
@@ -166,24 +164,6 @@ function cellToValue(value: any): string | number | null {
   return String(value);
 }
 
-function findHeaderRowInMatrix(matrix: any[][], columns: ColumnMap): number | null {
-  const known = new Set(Object.values(columns).flat());
-  let best: { row: number; hits: number } | null = null;
-
-  for (let r = 0; r < Math.min(matrix.length, 30); r++) {
-    const row = matrix[r] || [];
-    let hits = 0;
-    for (const cell of row) {
-      if (cell !== null && cell !== undefined) {
-        if (known.has(normalise(String(cellToValue(cell) ?? '')))) hits++;
-      }
-    }
-    if (hits >= 2 && (!best || hits > best.hits)) best = { row: r, hits };
-  }
-
-  return best?.row ?? null;
-}
-
 function findHeaderRowExcelJS(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | null {
   const known = new Set(Object.values(columns).flat());
   let best: { row: number; hits: number } | null = null;
@@ -209,102 +189,6 @@ export async function parseSheet(
 ): Promise<ParsedSheet> {
   const buffer = await file.arrayBuffer();
 
-  // Primary parsing engine: SheetJS (xlsx) - handles all OpenXML variances cleanly
-  try {
-    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-    const sheetNames = workbook.SheetNames || [];
-
-    if (sheetNames.length > 0) {
-      let targetSheetName = sheetNames[0];
-      if (preferSheet) {
-        const matched = sheetNames.find((s) => s.toLowerCase().includes(preferSheet.toLowerCase()));
-        if (matched) targetSheetName = matched;
-      }
-
-      if (!preferSheet || !targetSheetName) {
-        let bestSheetName = targetSheetName;
-        for (const sName of sheetNames) {
-          const ws = workbook.Sheets[sName];
-          if (!ws) continue;
-          const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
-          if (findHeaderRowInMatrix(matrix, columns) !== null) {
-            bestSheetName = sName;
-            break;
-          }
-        }
-        targetSheetName = bestSheetName;
-      }
-
-      const ws = workbook.Sheets[targetSheetName];
-      if (ws) {
-        const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: null });
-        const headerRowIdx = findHeaderRowInMatrix(matrix, columns);
-
-        if (headerRowIdx === null) {
-          const isLookingForDrivers = columns === DRIVER_COLUMNS;
-          const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
-          const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
-          const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
-
-          for (const sName of sheetNames) {
-            const oppWs = workbook.Sheets[sName];
-            if (!oppWs) continue;
-            const oppMatrix: any[][] = XLSX.utils.sheet_to_json(oppWs, { header: 1, raw: false, defval: null });
-            if (findHeaderRowInMatrix(oppMatrix, oppositeColumns) !== null) {
-              throw new Error(
-                `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
-              );
-            }
-          }
-
-          throw new Error(
-            `Couldn't find the column headers on sheet "${targetSheetName}". Use the MERCON template, or check the header row wasn't deleted.`
-          );
-        }
-
-        const headerRow = matrix[headerRowIdx] || [];
-        const indexToField = new Map<number, string>();
-        const unmappedHeaders: string[] = [];
-
-        headerRow.forEach((cellVal, colIdx) => {
-          const header = normalise(String(cellToValue(cellVal) ?? ''));
-          if (!header) return;
-          const field = Object.entries(columns).find(([, aliases]) => aliases.includes(header))?.[0];
-          if (field && !Array.from(indexToField.values()).includes(field)) {
-            indexToField.set(colIdx, field);
-          } else if (!field) {
-            unmappedHeaders.push(String(cellToValue(cellVal) ?? ''));
-          }
-        });
-
-        const foundFields = new Set(indexToField.values());
-        const missingColumns = Object.keys(columns).filter((f) => !foundFields.has(f));
-
-        const rows: Record<string, string | number>[] = [];
-        for (let r = headerRowIdx + 1; r < matrix.length; r++) {
-          const rowCells = matrix[r] || [];
-          const parsed: Record<string, string | number> = {};
-
-          indexToField.forEach((field, colIdx) => {
-            const val = cellToValue(rowCells[colIdx]);
-            if (val === null || String(val).trim() === '') return;
-            parsed[field] = typeof val === 'number' ? val : String(val).trim();
-          });
-
-          if (Object.keys(parsed).length > 0) rows.push(parsed);
-        }
-
-        return { rows, missingColumns, unmappedHeaders, sheetName: targetSheetName };
-      }
-    }
-  } catch (err: any) {
-    if (err?.message?.includes('template') || err?.message?.includes('Couldn\'t find')) {
-      throw err;
-    }
-    console.warn('SheetJS error, falling back to ExcelJS:', err);
-  }
-
-  // Fallback engine: ExcelJS
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 
@@ -319,6 +203,19 @@ export async function parseSheet(
 
   const headerRowNumber = findHeaderRowExcelJS(sheet, columns);
   if (headerRowNumber === null) {
+    const isLookingForDrivers = columns === DRIVER_COLUMNS;
+    const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
+    const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
+    const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
+
+    for (const w of workbook.worksheets) {
+      if (findHeaderRowExcelJS(w, oppositeColumns) !== null) {
+        throw new Error(
+          `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
+        );
+      }
+    }
+
     throw new Error(
       `Couldn't find the column headers on sheet "${sheet.name}". Use the MERCON template, or check the header row wasn't deleted.`
     );
@@ -358,3 +255,4 @@ export async function parseSheet(
 
   return { rows, missingColumns, unmappedHeaders, sheetName: sheet.name };
 }
+

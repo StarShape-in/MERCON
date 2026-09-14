@@ -325,7 +325,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'collapsed' | 'ledger'>('kanban');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'kanban' | 'collapsed' | 'ledger'>('ledger');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
