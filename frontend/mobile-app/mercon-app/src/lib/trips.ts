@@ -574,6 +574,18 @@ export const tripService = {
     return trip;
   },
 
+  async updateTripStatus(
+    id: string,
+    payload: { status: TripStatus; driver_workflow_state?: string; reason?: string } | TripStatus,
+    driver_workflow_state?: string,
+    reason?: string
+  ): Promise<MobileTrip> {
+    if (typeof payload === 'object' && payload !== null) {
+      return tripService.updateStatus(id, payload.status, payload.driver_workflow_state, payload.reason);
+    }
+    return tripService.updateStatus(id, payload, driver_workflow_state, reason);
+  },
+
   /** Upload a cargo (pickup) or POD (delivery) photo and attach it to the trip. */
   async uploadPhoto(
     id: string,
