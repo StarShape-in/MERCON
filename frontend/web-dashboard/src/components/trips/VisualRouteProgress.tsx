@@ -107,15 +107,12 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
       <div className="relative w-full flex-1 flex flex-col pt-8 pb-2">
         {/* Progress Track Bar Row */}
         <div className="relative flex items-center justify-between w-full px-6 sm:px-10 h-8">
-          {/* Track Line Background (Green Road Bar with White Dashed Center Lane Line) */}
+          {/* Track Line Background (Solid Smooth Green Progress Bar) */}
           <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner flex items-center">
             <div
-              className="relative h-full bg-[#10B981] dark:bg-[#059669] rounded-full transition-all duration-500 flex items-center overflow-hidden"
+              className="h-full bg-[#10B981] dark:bg-[#059669] rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
-            >
-              {/* White dashed center road lane line matching reference mockup */}
-              <div className="w-full h-[2px] border-t-2 border-dashed border-white/90 shrink-0" />
-            </div>
+            />
           </div>
 
           {/* Milestone Nodes along the Track Line */}
