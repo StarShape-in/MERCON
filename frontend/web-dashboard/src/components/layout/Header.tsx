@@ -127,11 +127,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
 
   const enabledModules = settings?.enabledModules;
 
-  const operationsItems = rawOperationsItems.filter((item) => {
-    if (isSuperAdmin) return true;
-    if (!enabledModules || !Array.isArray(enabledModules)) return true;
-    return enabledModules.includes(item.moduleKey);
-  });
+  const operationsItems = rawOperationsItems;
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
@@ -238,6 +234,24 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
+              const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+              if (isDisabledModule) {
+                return (
+                  <div
+                    key={item.path}
+                    title={`${item.label} — Coming Soon`}
+                    className="relative inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-2.5 text-xs font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50/80 dark:bg-slate-900/60"
+                  >
+                    <Icon size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                    <span>{item.label}</span>
+                    <span className="px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                      Soon
+                    </span>
+                  </div>
+                );
+              }
+
               return (
                 <NavLink
                   key={item.path}
@@ -276,6 +290,24 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
         {operationsItems.map((item) => {
           const isActive = isItemActive(item.path);
           const Icon = item.icon;
+          const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+          if (isDisabledModule) {
+            return (
+              <div
+                key={item.path}
+                title={`${item.label} — Coming Soon`}
+                className="relative inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50 dark:bg-slate-900"
+              >
+                <Icon size={12} className="text-slate-400 shrink-0" />
+                <span>{item.label}</span>
+                <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                  Soon
+                </span>
+              </div>
+            );
+          }
+
           return (
             <NavLink
               key={item.path}

@@ -141,17 +141,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
   ];
 
-  const groups = rawGroups
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((item) => {
-        if (!item.moduleKey) return true;
-        if (isSuperAdmin) return true;
-        if (!enabledModules || !Array.isArray(enabledModules)) return true;
-        return enabledModules.includes(item.moduleKey);
-      }),
-    }))
-    .filter((g) => g.items.length > 0);
+  const groups = rawGroups;
 
   return (
     <>
@@ -261,6 +251,33 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
               <div className="space-y-1">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
+                  const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+                  if (isDisabledModule) {
+                    return (
+                      <div
+                        key={item.label}
+                        title={collapsed ? `${item.label} — Coming Soon` : `${item.label} (Coming Soon)`}
+                        className={`
+                          flex items-center gap-2.5 px-3 py-2 rounded-xl opacity-50 cursor-not-allowed select-none transition-opacity relative
+                          text-[#EEF1F6]/50 bg-white/5 font-medium
+                          ${collapsed ? 'lg:justify-center lg:px-2' : ''}
+                        `}
+                      >
+                        <item.icon size={17} className="shrink-0 stroke-[1.8] text-[#EEF1F6]/40" />
+                        <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
+                          {item.label}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
+                          Soon
+                        </span>
+                        {collapsed && (
+                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400/80" />
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <NavLink
                       key={item.label}
