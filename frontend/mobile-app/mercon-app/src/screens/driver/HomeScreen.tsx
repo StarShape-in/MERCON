@@ -132,6 +132,10 @@ const HomeScreen = () => {
   useEffect(() => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
+    if (trip.driver_workflow === 'EXTERNAL_APP') {
+      router.push('/trip/external-app');
+      return;
+    }
     const ws = getEffectiveWorkflowState(trip);
     if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
       router.push('/trip/navigate');
@@ -193,6 +197,13 @@ const HomeScreen = () => {
   }
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
+    if (t.driver_workflow === 'EXTERNAL_APP') {
+      return {
+        badgeLabel: 'External App',
+        btnLabel: 'Upload App Screenshot',
+        onPress: () => router.push('/trip/external-app'),
+      };
+    }
     const ws = getEffectiveWorkflowState(t);
     const outboundStops = getOutboundIntermediateStops(t);
     const returnStops = getReturnIntermediateStops(t);

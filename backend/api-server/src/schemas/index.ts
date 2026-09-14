@@ -437,6 +437,7 @@ export const createCustomerBody = z.object({
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -452,6 +453,7 @@ export const updateCustomerBody = z.object({
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 

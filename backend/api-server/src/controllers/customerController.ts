@@ -43,6 +43,7 @@ export const getCustomers = async (req: Request, res: Response) => {
             whatsapp_group_link: true,
             whatsapp_group_name: true,
             payment_terms: true,
+            driver_workflow: true,
             isActive: true,
             createdAt: true,
           },
@@ -129,6 +130,7 @@ export const createCustomer = async (req: Request, res: Response) => {
       whatsapp_number,
       whatsapp_group_link,
       whatsapp_group_name,
+      driver_workflow,
       isActive,
     } = req.body;
     
@@ -145,6 +147,7 @@ export const createCustomer = async (req: Request, res: Response) => {
         whatsapp_number,
         whatsapp_group_link,
         whatsapp_group_name,
+        driver_workflow: driver_workflow || 'NATIVE',
         isActive: isActive ?? true,
         created_by: (req as any).user?.id
       }

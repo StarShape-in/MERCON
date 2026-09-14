@@ -132,6 +132,7 @@ export interface MobileTrip {
   id: string;
   ref_id: string | null;
   status: TripStatus;
+  driver_workflow: 'NATIVE' | 'EXTERNAL_APP';
   driver_workflow_state?: string | null;
   planned_distance: number | null;
   planned_start?: string | null;
@@ -456,6 +457,36 @@ export const tripService = {
       params: { from_lat: fromLat, from_lng: fromLng },
     });
     return data.data as TripRoute;
+  },
+
+  /** Upload an external app screenshot for AI Vision extraction and milestone processing. */
+  async uploadExternalScreenshot(
+    id: string,
+    asset: { uri: string; mimeType?: string | null; fileName?: string | null }
+  ): Promise<{
+    document_id: string;
+    extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
+    event_type?: string | null;
+    event_timestamp?: string | null;
+    confidence: number;
+    applied: boolean;
+    notes?: string | null;
+    validation_reason?: string | null;
+    trip?: MobileTrip | null;
+  }> {
+    const form = new FormData();
+    const fileName = asset.fileName || 'external-screenshot.jpg';
+    const mimeType = asset.mimeType || 'image/jpeg';
+    form.append('file', {
+      uri: asset.uri,
+      name: fileName,
+      type: mimeType,
+    } as any);
+
+    const res = await api.post<any>(`/mobile/trips/${id}/external-screenshot`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
   },
 
   async sendLocationUpdate(

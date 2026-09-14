@@ -850,6 +850,7 @@ export const createTrip = async (req: Request, res: Response) => {
             data: {
               ref_id,
               customerId: customer_id,
+              driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
               planned_start: parsedPlannedStart,
@@ -1220,6 +1221,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             data: {
               ref_id,
               customerId: customer.id,
+              driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               is_third_party: Boolean(row.is_third_party),

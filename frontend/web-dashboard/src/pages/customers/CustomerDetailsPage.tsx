@@ -487,6 +487,23 @@ export default function CustomerDetailsPage() {
                     </span>
                   </div>
                 </div>
+
+                <div className="p-2.5 rounded-xl bg-[#F8F9FA] dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">Default Driver Workflow</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-slate-100 mt-0.5 block">
+                      {customer.driver_workflow === 'EXTERNAL_APP' ? 'External Customer App' : 'Native CargoPod App'}
+                    </span>
+                  </div>
+                  <Badge className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 border",
+                    customer.driver_workflow === 'EXTERNAL_APP'
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
+                      : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300"
+                  )}>
+                    {customer.driver_workflow === 'EXTERNAL_APP' ? 'Screenshot AI' : 'Standard'}
+                  </Badge>
+                </div>
               </div>
 
               {customer.whatsapp_group_link && (
