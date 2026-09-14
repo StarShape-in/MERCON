@@ -490,6 +490,7 @@ export const tripService = {
 
     const res = await api.post<any>(`/mobile/trips/${id}/external-screenshot`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
     });
     return (res.data?.data ?? res.data) as any;
   },
