@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, Calculator, Files, FileBarChart,
   Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
-  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -94,17 +94,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: '',
       items: [
         { icon: Home, label: 'Dashboard', path: '/', moduleKey: 'dashboard' },
-      ],
-    },
-    {
-      label: 'OPERATIONS',
-      items: [
-        { icon: Truck, label: 'Trips Ledger', path: '/trips', moduleKey: 'trips' },
-        { icon: Users, label: 'Drivers', path: '/drivers', moduleKey: 'drivers' },
-        { icon: Car, label: 'Vehicles', path: '/vehicles', moduleKey: 'vehicles' },
-        { icon: Building2, label: 'Customers', path: '/customers', moduleKey: 'customers' },
-        { icon: Wrench, label: 'Maintenance', path: '/maintenance', moduleKey: 'maintenance' },
-        { icon: Truck, label: 'Third Parties', path: '/third-party', moduleKey: 'third-party' },
       ],
     },
     {
@@ -257,9 +246,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                     return (
                       <div
                         key={item.label}
-                        title={collapsed ? `${item.label} — Coming Soon` : `${item.label} (Coming Soon)`}
+                        title={collapsed ? `${item.label} — Locked` : `${item.label} (Locked)`}
                         className={`
-                          flex items-center gap-2.5 px-3 py-2 rounded-xl opacity-50 cursor-not-allowed select-none transition-opacity relative
+                          flex items-center gap-2.5 px-3 py-2 rounded-xl opacity-45 cursor-not-allowed select-none transition-opacity relative
                           text-[#EEF1F6]/50 bg-white/5 font-medium
                           ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         `}
@@ -268,11 +257,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.label}
                         </span>
-                        <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
-                          Soon
-                        </span>
+                        <Lock size={13} className={`text-amber-400/90 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
                         {collapsed && (
-                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400/80" />
+                          <Lock size={12} className="hidden lg:block absolute top-1.5 right-1.5 text-amber-400/90" />
                         )}
                       </div>
                     );

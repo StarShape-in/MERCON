@@ -8,7 +8,8 @@ import {
   CalendarRange, 
   Car, 
   Building2, 
-  Wrench, 
+  Wrench,
+  Lock, 
 } from 'lucide-react';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
@@ -240,14 +241,12 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
                 return (
                   <div
                     key={item.path}
-                    title={`${item.label} — Coming Soon`}
+                    title={`${item.label} — Locked`}
                     className="relative inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-2.5 text-xs font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50/80 dark:bg-slate-900/60"
                   >
                     <Icon size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                     <span>{item.label}</span>
-                    <span className="px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
-                      Soon
-                    </span>
+                    <Lock size={13} className="text-amber-500 dark:text-amber-400 shrink-0" />
                   </div>
                 );
               }
@@ -296,14 +295,12 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
             return (
               <div
                 key={item.path}
-                title={`${item.label} — Coming Soon`}
+                title={`${item.label} — Locked`}
                 className="relative inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50 dark:bg-slate-900"
               >
                 <Icon size={12} className="text-slate-400 shrink-0" />
                 <span>{item.label}</span>
-                <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
-                  Soon
-                </span>
+                <Lock size={11} className="text-amber-500 dark:text-amber-400 shrink-0" />
               </div>
             );
           }
