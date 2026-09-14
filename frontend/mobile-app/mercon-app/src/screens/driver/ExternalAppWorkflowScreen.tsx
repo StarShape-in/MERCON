@@ -9,7 +9,7 @@ import {
   ArrowLeft, Upload, CheckCircle2, AlertCircle, Camera, Image as ImageIcon, RefreshCw, Building2, ArrowRight,
 } from 'lucide-react-native';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, getEffectiveWorkflowState, statusLabel, stopLabel } from '../../lib/trips';
+import { tripService, getEffectiveWorkflowState, statusLabel, stopLabel, type MobileTrip } from '../../lib/trips';
 import { pickFromGallery, capturePhoto, type CapturedPhoto } from '../../lib/camera';
 import { API_URL, getApiErrorMessage } from '../../lib/api';
 import { TripProgressStepper, DelayButton, DelayReportModal, BilingualText } from '../../components';
@@ -633,6 +633,9 @@ const styles = StyleSheet.create({
   },
   uploadActionBtnDisabled: {
     opacity: 0.6,
+  },
+  uploadActionBtnConfirmed: {
+    backgroundColor: '#059669',
   },
   uploadActionText: {
     color: '#FFFFFF',

@@ -139,6 +139,7 @@ export interface MobileTrip {
   actual_start?: string | null;
   planned_end: string | null;
   actual_end?: string | null;
+  driver_payout?: number | string | null;
   driver_charge?: number | string | null;
   trip_charges?: number | string | null;
   billing_amount?: number | string | null;

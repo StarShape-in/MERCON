@@ -46,6 +46,18 @@ const tripInclude = {
   },
 };
 
+const formatMobileTrip = (trip: any) => {
+  if (!trip) return trip;
+  const rawPayout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.quotation?.driver_payout;
+  const payout = rawPayout != null ? Number(rawPayout) : 0;
+  return {
+    ...trip,
+    driver_payout: payout,
+    driver_charge: payout,
+    trip_charges: payout,
+  };
+};
+
 const attachTripDocuments = async (trip: any) => {
   if (!trip) return trip;
   let docs: any[] = [];
@@ -70,7 +82,7 @@ const attachTripDocuments = async (trip: any) => {
     trip.driver_workflow_state,
     trip.status,
   );
-  return { ...trip, documents: docs, authoritative_active_stop };
+  return formatMobileTrip({ ...trip, documents: docs, authoritative_active_stop });
 };
 
 export const getCurrentTrip = async (req: Request, res: Response) => {
@@ -143,7 +155,7 @@ export const getTripHistory = async (req: Request, res: Response) => {
       take: limit,
     });
 
-    res.json({ success: true, data: trips });
+    res.json({ success: true, data: trips.map(formatMobileTrip) });
   } catch (error) {
     logger.error({ err: error }, 'getTripHistory error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
@@ -171,7 +183,7 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
       take: 20,
     });
 
-    res.json({ success: true, data: trips });
+    res.json({ success: true, data: trips.map(formatMobileTrip) });
   } catch (error) {
     logger.error({ err: error }, 'getScheduledTrips error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
