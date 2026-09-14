@@ -249,6 +249,7 @@ model Driver {
   originalTrips      Trip[]                  @relation("TripOriginalDriver")
   vehicleAssignments DriverVehicleAssignment[]
   notifications      Notification[]
+  devices            DriverDevice[]
   expenses           Expense[]
   executedTripStops  TripStop[]              @relation("TripStopExecutorDriver")
   executedDocuments  Document[]              @relation("DocumentExecutorDriver")
@@ -1242,6 +1243,21 @@ model Notification {
   // recipient; neither column was indexed.
   @@index([userId, createdAt])
   @@index([driverId, createdAt])
+}
+
+model DriverDevice {
+  id         String   @id @default(uuid()) @db.Uuid
+  driverId   String   @db.Uuid
+  driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  platform   String
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+
+  @@index([driverId, isActive])
+  @@map("driver_devices")
 }
 
 // -----------------------------------------
