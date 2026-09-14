@@ -198,9 +198,10 @@ const HomeScreen = () => {
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
     if (t.driver_workflow === 'EXTERNAL_APP') {
+      const isAssigned = !t.driver_workflow_state || t.driver_workflow_state === 'ASSIGNED';
       return {
         badgeLabel: 'External App',
-        btnLabel: 'Upload App Screenshot',
+        btnLabel: isAssigned ? 'Start Trip' : 'Upload App Screenshot',
         onPress: () => router.push('/trip/external-app'),
       };
     }
@@ -498,6 +499,10 @@ const HomeScreen = () => {
                 const isReturnLeg = (idx: number) => returnLegStartIdx !== -1 && idx >= returnLegStartIdx;
 
                 const handleStopPress = (st: TimelineStop) => {
+                  if (displayTrip?.driver_workflow === 'EXTERNAL_APP') {
+                    router.push('/trip/external-app');
+                    return;
+                  }
                   if (st.isIntermediate) {
                     router.push({ pathname: '/trip/stop', params: { legIndex: String(st.legIndex ?? 0) } } as any);
                   } else {
@@ -706,7 +711,11 @@ const HomeScreen = () => {
                       style={styles.startTripSmallBtn}
                       onPress={() => {
                         setTrip(st);
-                        router.push('/trip/navigate');
+                        if (st.driver_workflow === 'EXTERNAL_APP') {
+                          router.push('/trip/external-app');
+                        } else {
+                          router.push('/trip/navigate');
+                        }
                       }}
                     >
                       <Text style={styles.startTripSmallBtnText}>Start Trip</Text>
