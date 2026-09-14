@@ -87,11 +87,6 @@ export function TripDateFilterPicker({
         label: 'This Month',
         getRange: () => ({ from: startOfMonth(today), to: endOfMonth(today) }),
       },
-      {
-        id: 'Last30Days',
-        label: 'Last 30 Days',
-        getRange: () => ({ from: subDays(today, 29), to: today }),
-      },
     ];
   }, []);
 
