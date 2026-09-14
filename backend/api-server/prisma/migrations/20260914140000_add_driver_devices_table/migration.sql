@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "driver_devices" (
     "id" UUID NOT NULL,
     "driverId" UUID NOT NULL,
