@@ -156,16 +156,16 @@ export default function LocationCombobox({
 
     const timer = setTimeout(() => {
       void performAddressSearch(search);
-    }, 250);
+    }, 450);
 
     return () => clearTimeout(timer);
   }, [trimmedSearch, open, search]);
 
-const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address: string; lat: number; lng: number }> = {
-  'g-riyadh': { name: 'Riyadh Hub', city: 'Riyadh', address: 'Riyadh, Saudi Arabia', lat: 24.7136, lng: 46.6753 },
-  'g-jeddah': { name: 'Jeddah Hub', city: 'Jeddah', address: 'Jeddah, Saudi Arabia', lat: 21.5433, lng: 39.1728 },
-  'g-dammam': { name: 'Dammam Hub', city: 'Dammam', address: 'Dammam, Saudi Arabia', lat: 26.4207, lng: 50.0888 },
-};
+  const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address: string; lat: number; lng: number }> = {
+    'g-riyadh': { name: 'Riyadh Hub', city: 'Riyadh', address: 'Riyadh, Saudi Arabia', lat: 24.7136, lng: 46.6753 },
+    'g-jeddah': { name: 'Jeddah Hub', city: 'Jeddah', address: 'Jeddah, Saudi Arabia', lat: 21.5433, lng: 39.1728 },
+    'g-dammam': { name: 'Dammam Hub', city: 'Dammam', address: 'Dammam, Saudi Arabia', lat: 26.4207, lng: 50.0888 },
+  };
 
   const handleSelectGoogleSuggestion = async (sug: AddressSuggestion) => {
     setIsSearchingGoogle(true);
@@ -174,7 +174,10 @@ const DEFAULT_CITY_PRESETS: Record<string, { name: string; city: string; address
 
       if (DEFAULT_CITY_PRESETS[sug.id]) {
         resolved = DEFAULT_CITY_PRESETS[sug.id];
-      } else if (searchSessionRef.current) {
+      } else {
+        if (!searchSessionRef.current) {
+          searchSessionRef.current = createAddressSearchSession();
+        }
         resolved = await searchSessionRef.current.resolve(sug.id);
       }
 

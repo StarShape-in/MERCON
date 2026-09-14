@@ -148,7 +148,7 @@ export default function TripLocationField({
       } finally {
         setIsSearchingGoogle(false);
       }
-    }, 280);
+    }, 450);
   };
 
   const handleSelectLocation = (loc: Location) => {
@@ -163,7 +163,7 @@ export default function TripLocationField({
   };
 
   const handleSelectGooglePlace = async (suggestion: AddressSuggestion) => {
-    if (!searchSessionRef.current) return;
+    if (!searchSessionRef.current) searchSessionRef.current = createAddressSearchSession();
     setIsResolvingPlace(true);
     try {
       const resolved = await searchSessionRef.current.resolve(suggestion.id);
