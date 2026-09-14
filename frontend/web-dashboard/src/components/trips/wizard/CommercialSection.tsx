@@ -435,21 +435,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                     Extra / Spot Trip
                   </button>
                 </div>
-
-                {/* MODE INDICATOR BADGE */}
-                <div className="flex items-center gap-2 ml-auto">
-                  {contractBillingType?.toLowerCase() === 'monthly' ? (
-                    <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
-                      Monthly Contract Mode (Billed Per Month)
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-extrabold text-[#FA634E] dark:text-orange-400 bg-orange-100/80 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200/90 dark:border-orange-800 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#FA634E] animate-pulse" />
-                      Extra / Spot Trip Mode (Billed Per Single Trip)
-                    </span>
-                  )}
-                </div>
               </div>
 
               {/* SEARCH INPUT ROW */}
