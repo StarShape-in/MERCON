@@ -290,9 +290,45 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
         });
       }
 
-      // C. Missing POD for Completed Trips
-      const isCompletedWithoutPOD = t.status === 'Completed' && (!(t as any).documents || (t as any).documents.length === 0);
-      if (isCompletedWithoutPOD) {
+      // C. POD Status for Trips (Received from Driver Mobile App vs Missing POD)
+      const tripRelatedDocs = [
+        ...((t as any)?.documents || []),
+        ...docs.filter((d: any) =>
+          (t.id && d.entity_id === t.id) ||
+          (t.ref_id && d.entity_id === t.ref_id)
+        )
+      ];
+
+      const podDocsForTrip = tripRelatedDocs.filter((d: any) => {
+        const docType = String(d?.doc_type || d?.category || '').toLowerCase();
+        const mime = String(d?.mime_type || d?.file_type || '').toLowerCase();
+        const fileUrl = String(d?.file_url || d?.file_path || d?.url || '').toLowerCase();
+        return (
+          docType.includes('pod') ||
+          docType.includes('proof') ||
+          docType.includes('delivery') ||
+          docType.includes('waybill') ||
+          mime.startsWith('image/') ||
+          /\.(jpg|jpeg|png|webp|gif|pdf)$/i.test(fileUrl)
+        );
+      });
+
+      const hasDriverUploadedPOD = podDocsForTrip.length > 0;
+
+      if (hasDriverUploadedPOD) {
+        items.push({
+          id: `pod-${t.id}`,
+          category: 'pod',
+          priority: 'attention',
+          badgeLabel: '📱 POD RECEIVED',
+          entityType: 'company',
+          entityName: customerName,
+          initials: getInitials(customerName),
+          tripRef,
+          subtitle: `${tripRef} • ${podDocsForTrip.length} Photo(s) Received from Mobile App`,
+          trip: t,
+        });
+      } else if (t.status === 'Completed' || t.status === 'Delivered') {
         items.push({
           id: `pod-${t.id}`,
           category: 'pod',
@@ -302,7 +338,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           entityName: customerName,
           initials: getInitials(customerName),
           tripRef,
-          subtitle: `${tripRef} • ${routeStr}`,
+          subtitle: `${tripRef} • ${routeStr} (Awaiting Mobile App Upload)`,
           trip: t,
         });
       }
@@ -778,11 +814,25 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
 
                   /* 📸 POD PHOTO IMAGES (Dynamic POD Document / Photo Thumbnails) */
                   (() => {
-                    const tripDocs = (selectedItem.trip as any)?.documents || docs.filter((d: any) => d.entity_id === selectedItem.trip?.id);
-                    const podDocs = Array.isArray(tripDocs) ? tripDocs.filter((d: any) => {
+                    const tId = selectedItem.trip?.id;
+                    const tRef = selectedItem.trip?.ref_id;
+                    const tripDocs = [
+                      ...((selectedItem.trip as any)?.documents || []),
+                      ...docs.filter((d: any) => (tId && d.entity_id === tId) || (tRef && d.entity_id === tRef))
+                    ];
+                    const podDocs = tripDocs.filter((d: any) => {
                       const type = String(d?.doc_type || d?.category || '').toLowerCase();
-                      return type.includes('pod') || type.includes('proof') || type.includes('delivery');
-                    }) : [];
+                      const mime = String(d?.mime_type || d?.file_type || '').toLowerCase();
+                      const fileUrl = String(d?.file_url || d?.file_path || d?.url || '').toLowerCase();
+                      return (
+                        type.includes('pod') ||
+                        type.includes('proof') ||
+                        type.includes('delivery') ||
+                        type.includes('waybill') ||
+                        mime.startsWith('image/') ||
+                        /\.(jpg|jpeg|png|webp|gif|pdf)$/i.test(fileUrl)
+                      );
+                    });
 
                     const photo1Url = podDocs[0]?.file_url || podDocs[0]?.url ? resolveFileUrl(podDocs[0]?.file_url || podDocs[0]?.url) : null;
                     const photo2Url = podDocs[1]?.file_url || podDocs[1]?.url ? resolveFileUrl(podDocs[1]?.file_url || podDocs[1]?.url) : null;
