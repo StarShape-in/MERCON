@@ -122,23 +122,24 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
             />
           </div>
 
-          {/* Milestone Nodes along the Track Line (2D Orange Truck sits directly on the active current stop) */}
+          {/* Milestone Nodes along the Track Line */}
           {normalizedStops.map((stop) => {
             const isCompleted = stop.status === 'completed';
             const isCurrent = stop.status === 'current';
+            const isTruckHere = isCurrent || (isTripFullyCompleted && stop.isLast);
 
             return (
               <div
                 key={`node-${stop.id}`}
                 className="relative z-20 flex flex-col items-center justify-center"
               >
-                {isCurrent ? (
-                  /* 2D Orange MERCON Truck sitting directly on the route line at current location */
+                {isTruckHere ? (
+                  /* 2D Orange MERCON Truck sitting directly on the route line at current/end location */
                   <div className="relative flex flex-col items-center z-30 transform -translate-y-1">
                     {/* Status pill badge above truck */}
-                    <div className="mb-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#FA634E] text-white text-[9.5px] font-black shadow-xs whitespace-nowrap">
+                    <div className="mb-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black shadow-xs whitespace-nowrap">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span>{progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
+                      <span>{isTripFullyCompleted || progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
                     </div>
 
                     {/* 2D Orange Truck SVG */}
