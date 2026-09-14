@@ -831,23 +831,50 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                       ...((selectedItem.trip as any)?.documents || []),
                       ...docs.filter((d: any) => (tId && d.entity_id === tId) || (tRef && d.entity_id === tRef))
                     ];
+
                     const podDocs = tripDocs.filter((d: any) => {
                       const type = String(d?.doc_type || d?.category || '').toLowerCase();
                       const mime = String(d?.mime_type || d?.file_type || '').toLowerCase();
                       const fileUrl = String(d?.file_url || d?.file_path || d?.url || '').toLowerCase();
+                      const title = String(d?.title || '').toLowerCase();
                       return (
                         type.includes('pod') ||
                         type.includes('proof') ||
                         type.includes('delivery') ||
                         type.includes('waybill') ||
+                        title.includes('pod') ||
+                        title.includes('proof') ||
                         mime.startsWith('image/') ||
                         /\.(jpg|jpeg|png|webp|gif|pdf)$/i.test(fileUrl)
                       );
                     });
 
-                    const photo1Url = podDocs[0]?.file_url || podDocs[0]?.url ? resolveFileUrl(podDocs[0]?.file_url || podDocs[0]?.url) : null;
-                    const photo2Url = podDocs[1]?.file_url || podDocs[1]?.url ? resolveFileUrl(podDocs[1]?.file_url || podDocs[1]?.url) : null;
+                    const allPodUrls: string[] = [];
+                    const tripDirectPod = (selectedItem.trip as any)?.pod_photo_url || (selectedItem.trip as any)?.pod_url || (selectedItem.trip as any)?.delivery_proof_url;
+                    if (tripDirectPod) allPodUrls.push(resolveFileUrl(tripDirectPod));
 
+                    podDocs.forEach((d: any) => {
+                      const raw = d?.file_url || d?.file_path || d?.url;
+                      if (raw) {
+                        const resolved = resolveFileUrl(raw);
+                        if (!allPodUrls.includes(resolved)) allPodUrls.push(resolved);
+                      }
+                    });
+
+                    selectedItem.trip?.stops?.forEach((s: any) => {
+                      if (s.documents && Array.isArray(s.documents)) {
+                        s.documents.forEach((d: any) => {
+                          const raw = d?.file_url || d?.file_path || d?.url;
+                          if (raw) {
+                            const resolved = resolveFileUrl(raw);
+                            if (!allPodUrls.includes(resolved)) allPodUrls.push(resolved);
+                          }
+                        });
+                      }
+                    });
+
+                    const photo1Url = allPodUrls[0] || null;
+                    const photo2Url = allPodUrls[1] || null;
                     const phone = selectedItem.trip?.driver?.phone_primary || selectedItem.driver?.phone_primary || '';
 
                     return (
@@ -855,16 +882,23 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         {/* Photo 1 */}
                         <div 
                           onClick={() => {
-                            markItemHandled(selectedItem.id);
-                            const msg = `📸 *MERCON POD PHOTO #1*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo1Url ? `\nView Photo: ${photo1Url}` : ''}`;
-                            const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-                            window.open(target, '_blank');
-                            toast.success('POD Photo #1 shared to WhatsApp & marked as completed');
+                            if (photo1Url) {
+                              window.open(photo1Url, '_blank');
+                            } else {
+                              const msg = `📸 *MERCON POD PHOTO #1*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*`;
+                              const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                              window.open(target, '_blank');
+                            }
                           }}
-                          className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
+                          className="relative rounded-xl overflow-hidden border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-900 hover:bg-blue-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center group"
                         >
                           {photo1Url ? (
-                            <img src={photo1Url} alt="POD Photo 1" className="w-full h-full object-cover rounded-lg" />
+                            <>
+                              <img src={photo1Url} alt="POD Photo 1" className="w-full h-full object-cover rounded-lg" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold gap-1 rounded-lg">
+                                <ExternalLink className="w-3.5 h-3.5" /> View Full Image
+                              </div>
+                            </>
                           ) : (
                             <>
                               <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 flex items-center justify-center mb-1">
@@ -874,10 +908,10 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                                 POD Photo #1
                               </span>
                               <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">
-                                {podDocs[0]?.title || 'Stamp & Signature'}
+                                {podDocs[0]?.title || 'Delivery Proof'}
                               </span>
                               <span className="text-[8px] font-semibold text-slate-400 mt-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                                {podDocs.length > 0 ? 'Uploaded' : 'Pending Upload'}
+                                {allPodUrls.length > 0 ? 'Uploaded' : 'Pending Upload'}
                               </span>
                             </>
                           )}
@@ -886,16 +920,23 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         {/* Photo 2 */}
                         <div 
                           onClick={() => {
-                            markItemHandled(selectedItem.id);
-                            const msg = `📸 *MERCON POD PHOTO #2*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*${photo2Url ? `\nView Photo: ${photo2Url}` : ''}`;
-                            const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-                            window.open(target, '_blank');
-                            toast.success('POD Photo #2 shared to WhatsApp & marked as completed');
+                            if (photo2Url) {
+                              window.open(photo2Url, '_blank');
+                            } else {
+                              const msg = `📸 *MERCON POD PHOTO #2*\nTrip: *${selectedItem.tripRef || selectedItem.entityName}*\nCustomer: *${selectedItem.entityName}*\nDriver: *${selectedDriverName}*`;
+                              const target = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                              window.open(target, '_blank');
+                            }
                           }}
-                          className="relative rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-slate-900 hover:bg-emerald-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center"
+                          className="relative rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-slate-900 hover:bg-emerald-100/60 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex flex-col items-center justify-center p-2 text-center group"
                         >
                           {photo2Url ? (
-                            <img src={photo2Url} alt="POD Photo 2" className="w-full h-full object-cover rounded-lg" />
+                            <>
+                              <img src={photo2Url} alt="POD Photo 2" className="w-full h-full object-cover rounded-lg" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold gap-1 rounded-lg">
+                                <ExternalLink className="w-3.5 h-3.5" /> View Full Image
+                              </div>
+                            </>
                           ) : (
                             <>
                               <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 flex items-center justify-center mb-1">
@@ -908,7 +949,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                                 {podDocs[1]?.title || 'Weight Slip Proof'}
                               </span>
                               <span className="text-[8px] font-semibold text-slate-400 mt-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                                {podDocs.length > 1 ? 'Uploaded' : 'Pending Upload'}
+                                {allPodUrls.length > 1 ? 'Uploaded' : 'Pending Upload'}
                               </span>
                             </>
                           )}
@@ -933,7 +974,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                 )}
               </div>
 
-              {/* ── BOTTOM ACTION TOOLBAR (WhatsApp Icon + Trip Details Button) ── */}
+              {/* ── BOTTOM ACTION TOOLBAR (WhatsApp Icon + Mark Completed + Details) ── */}
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between gap-2">
                 <Button
                   size="sm"
@@ -946,16 +987,15 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                     }
 
                     setIsSharingWhatsApp(true);
-                    markItemHandled(selectedItem.id);
                     try {
                       const category = selectedItem.category === 'pod' ? 'pod' : 'delay';
                       const res = await tripService.shareMediaWhatsApp(tripId, { category });
                       if (res.success && res.data) {
                         if (res.data.isCloudApi) {
-                          toast.success(`WhatsApp Cloud API media dispatched & completed for ${res.data.recipient || 'customer'}`);
+                          toast.success(`WhatsApp Cloud API message dispatched. Click 'Mark Completed' when done.`);
                         } else if (res.data.whatsappWebUrl) {
                           window.open(res.data.whatsappWebUrl, '_blank');
-                          toast.success('Report shared to WhatsApp & marked as completed');
+                          toast.success('WhatsApp web message opened. Click \'Mark Completed\' when verified.');
                         }
                       }
                     } catch (err: any) {
@@ -978,27 +1018,41 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
                       window.open(target, '_blank');
-                      toast.success('Report shared to WhatsApp & marked as completed');
+                      toast.success('WhatsApp web message opened. Click \'Mark Completed\' when verified.');
                     } finally {
                       setIsSharingWhatsApp(false);
                     }
                   }}
-                  className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm cursor-pointer rounded-xl disabled:opacity-50"
+                  className="h-8 flex-1 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer rounded-xl disabled:opacity-50"
                 >
                   {isSharingWhatsApp ? (
                     <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                   ) : (
                     <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
                   )}
-                  <span>{isSharingWhatsApp ? 'Sharing...' : 'Share to WhatsApp'}</span>
+                  <span>Share to WhatsApp</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Mark ${selectedItem.badgeLabel} for ${selectedItem.tripRef || selectedItem.entityName} as completed & verified?`)) {
+                      markItemHandled(selectedItem.id);
+                      toast.success(`Alert ${selectedItem.tripRef || selectedItem.entityName} marked as completed ✓`);
+                    }
+                  }}
+                  className="h-8 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer rounded-xl px-3 shrink-0"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Mark Completed</span>
                 </Button>
 
                 <Button
                   size="sm"
                   onClick={() => navigate(`/trips/${selectedItem.trip?.id || selectedItem.tripRef}`)}
-                  className="h-8 px-4 text-xs font-extrabold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white flex items-center justify-center gap-1 shadow-sm cursor-pointer rounded-xl shrink-0"
+                  className="h-8 px-3 text-xs font-extrabold bg-[#FA634E] hover:bg-[#FA634E]/90 text-white flex items-center justify-center gap-1 shadow-sm cursor-pointer rounded-xl shrink-0"
                 >
-                  <span>Trip Details</span>
+                  <span>Details</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
