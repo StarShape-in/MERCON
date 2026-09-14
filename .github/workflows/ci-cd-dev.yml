@@ -125,11 +125,10 @@ jobs:
           echo "Building and updating mercon-dev services with BuildKit cache..."
           docker compose -p mercon-dev up -d --build
 
-          # Migration is handled authoritatively at container boot by Dockerfile CMD:
+          # Build and start services in detached mode
+          # Migration and prisma generation are handled authoritatively at container boot by Dockerfile CMD:
           # npx prisma migrate deploy && npx prisma generate && node dist/index.js
-          docker compose -p mercon-dev exec -T mercon-api npx prisma generate
-
-          sleep 5
+          sleep 8
           echo "--- dev-api logs (last 100 lines) ---"
           docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
           echo "--- dev-api container status ---"
