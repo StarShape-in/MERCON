@@ -47,6 +47,12 @@ const LiveNavigationScreen = () => {
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<OsmMapViewRef>(null);
 
+  useEffect(() => {
+    if (trip?.driver_workflow === 'EXTERNAL_APP') {
+      router.replace('/trip/external-app');
+    }
+  }, [trip?.driver_workflow]);
+
   const ws = trip?.driver_workflow_state || 'ASSIGNED';
   const isRound = isRoundTrip(trip);
 

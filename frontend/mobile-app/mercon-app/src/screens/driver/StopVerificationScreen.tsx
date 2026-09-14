@@ -106,6 +106,12 @@ export default function StopVerificationScreen() {
   const parsedIndex = paramStopIndex ? parseInt(paramStopIndex, 10) : 0;
   const activeStop: TimelineStop | undefined = activeStopsList[parsedIndex] || activeStopsList[0] || allStops[1];
 
+  useEffect(() => {
+    if (trip?.driver_workflow === 'EXTERNAL_APP') {
+      router.replace('/trip/external-app');
+    }
+  }, [trip?.driver_workflow]);
+
   // Restore photos from SecureStore on mount
   useEffect(() => {
     if (!trip?.id || !activeStop?.id) return;

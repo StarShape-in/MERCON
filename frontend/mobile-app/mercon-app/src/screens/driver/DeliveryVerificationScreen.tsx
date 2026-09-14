@@ -108,6 +108,10 @@ const DeliveryVerificationScreen = () => {
 
   // If this delivery stop is already completed and departed, navigate forward
   useEffect(() => {
+    if (trip?.driver_workflow === 'EXTERNAL_APP') {
+      router.replace('/trip/external-app');
+      return;
+    }
     if (loading || !trip || !dropoffStop) return;
     if (dropoffStop.actual_departure) {
       if (isReturnDelivery || !isRound) {
@@ -116,7 +120,7 @@ const DeliveryVerificationScreen = () => {
         router.replace('/trip/pickup');
       }
     }
-  }, [loading, trip?.id, dropoffStop?.id, dropoffStop?.actual_departure, isReturnDelivery, isRound]);
+  }, [loading, trip?.id, trip?.driver_workflow, dropoffStop?.id, dropoffStop?.actual_departure, isReturnDelivery, isRound]);
 
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;
