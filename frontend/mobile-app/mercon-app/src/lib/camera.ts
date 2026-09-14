@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { Alert } from 'react-native';
+import { translate } from './language-context';
 
 export interface LocationTag {
   latitude: number;
@@ -86,7 +87,7 @@ async function toPhoto(result: ImagePicker.ImagePickerResult): Promise<CapturedP
 export async function capturePhoto(): Promise<CapturedPhoto | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
-    throw new Error('Camera permission is required to take trip photos.');
+    throw new Error(translate('err_camera_permission', 'Camera permission is required to take trip photos.'));
   }
 
   const result = await ImagePicker.launchCameraAsync({
@@ -119,7 +120,7 @@ export interface CapturedMedia {
 export async function captureVideo(): Promise<CapturedMedia | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
-    throw new Error('Camera permission is required to record videos.');
+    throw new Error(translate('err_video_permission', 'Camera permission is required to record videos.'));
   }
 
   const [result, loc] = await Promise.all([
@@ -147,7 +148,7 @@ export async function captureVideo(): Promise<CapturedMedia | null> {
 export async function pickVideoFromGallery(): Promise<CapturedMedia | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    throw new Error('Gallery permission is required to select videos.');
+    throw new Error(translate('err_gallery_permission', 'Gallery permission is required to select videos.'));
   }
 
   const [result, loc] = await Promise.all([
@@ -174,22 +175,22 @@ export async function pickVideoFromGallery(): Promise<CapturedMedia | null> {
 export async function choosePhoto(): Promise<CapturedPhoto | null> {
   return new Promise((resolve, reject) => {
     Alert.alert(
-      'Attach Photo',
-      'Take a photo now or choose an existing photo from your gallery.',
+      translate('dialog_attach_photo', 'Attach Photo'),
+      translate('dialog_take_or_gallery', 'Take a photo now or choose an existing photo from your gallery.'),
       [
         {
-          text: 'Take Photo 📷',
+          text: translate('action_take_photo', 'Take Photo 📷'),
           onPress: () => {
             capturePhoto().then(resolve).catch(reject);
           },
         },
         {
-          text: 'Choose from Gallery 🖼️',
+          text: translate('action_pick_gallery', 'Choose from Gallery 🖼️'),
           onPress: () => {
             pickFromGallery().then(resolve).catch(reject);
           },
         },
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+        { text: translate('action_cancel', 'Cancel'), style: 'cancel', onPress: () => resolve(null) },
       ],
       { cancelable: true, onDismiss: () => resolve(null) },
     );
@@ -202,11 +203,11 @@ export async function choosePhoto(): Promise<CapturedPhoto | null> {
 export async function chooseMedia(): Promise<CapturedMedia | null> {
   return new Promise((resolve, reject) => {
     Alert.alert(
-      'Add Evidence',
-      'Take a photo, record a video, or choose from gallery.',
+      translate('dialog_add_evidence', 'Add Evidence'),
+      translate('dialog_add_evidence_desc', 'Take a photo, record a video, or choose from gallery.'),
       [
         {
-          text: 'Take Photo 📷',
+          text: translate('action_take_photo', 'Take Photo 📷'),
           onPress: () => {
             capturePhoto()
               .then((p) => resolve(p ? { uri: p.uri, type: 'image', mimeType: p.mimeType, fileName: p.fileName } : null))
@@ -214,13 +215,13 @@ export async function chooseMedia(): Promise<CapturedMedia | null> {
           },
         },
         {
-          text: 'Record Video 🎥',
+          text: translate('action_record_video', 'Record Video 🎥'),
           onPress: () => {
             captureVideo().then(resolve).catch(reject);
           },
         },
         {
-          text: 'Choose from Gallery 🖼️',
+          text: translate('action_pick_gallery', 'Choose from Gallery 🖼️'),
           onPress: () => {
             ImagePicker.launchImageLibraryAsync({
               mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -238,7 +239,7 @@ export async function chooseMedia(): Promise<CapturedMedia | null> {
               .catch(reject);
           },
         },
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+        { text: translate('action_cancel', 'Cancel'), style: 'cancel', onPress: () => resolve(null) },
       ],
       { cancelable: true, onDismiss: () => resolve(null) },
     );

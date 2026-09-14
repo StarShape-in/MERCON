@@ -10,6 +10,8 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { safeSecureStore as SecureStore } from './secure-store';
 import { router } from 'expo-router';
+import { translate } from './language-context';
+import { LanguageMode } from './translations';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra?.apiUrl as string);
 
@@ -107,28 +109,31 @@ api.interceptors.response.use(
  * console log (visible in Metro) and the alert text itself carry the real
  * cause so the next occurrence is diagnosable on the spot.
  */
-export function getApiErrorMessage(err: unknown): string {
+export function getApiErrorMessage(err: unknown, lang?: LanguageMode): string {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 401) {
       return (
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
-        'Invalid credentials. Please check your username/phone and password/license.'
+        translate('err_invalid_credentials', 'Invalid credentials. Please check your username/phone and password/license.', lang)
       );
     }
     if (err.response?.data?.error?.message) return err.response.data.error.message;
     if (err.response?.data?.message) return err.response.data.message;
-    if (err.code === 'ECONNABORTED') return 'Request timed out. Check your connection.';
+    if (err.code === 'ECONNABORTED') {
+      return translate('err_network_timeout', 'Request timed out. Check your connection.', lang);
+    }
     if (!err.response) {
-      return `Cannot reach the server (${err.message || err.code || 'network error'}). Check your connection.`;
+      const details = err.message || err.code || 'network error';
+      return `${translate('err_cannot_reach_server', 'Cannot reach the server.', lang)} (${details})`;
     }
     console.error('[API error]', err);
-    return `Server error (HTTP ${err.response.status}). Please try again.`;
+    return `${translate('err_server_error', 'Server error. Please try again.', lang)} (HTTP ${err.response.status})`;
   }
 
   console.error('[API error]', err);
   if (err instanceof Error) {
-    return `Something went wrong: ${err.message}`;
+    return `${translate('err_something_went_wrong', 'Something went wrong. Please try again.', lang)}: ${err.message}`;
   }
-  return 'Something went wrong. Please try again.';
+  return translate('err_something_went_wrong', 'Something went wrong. Please try again.', lang);
 }

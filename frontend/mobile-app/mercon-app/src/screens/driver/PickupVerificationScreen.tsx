@@ -4,11 +4,11 @@ import {
   StatusBar, Image, Alert, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G, Polygon, Ellipse } from 'react-native-svg';
 import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, FileText, Check, Navigation, Send, RotateCcw } from 'lucide-react-native';
 import { Colors } from '../../theme/tokens';
-import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
+import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton, ReturnLoadingModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
@@ -16,6 +16,7 @@ import { API_URL, getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
 import { getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops } from '../../lib/routeParser';
+import { useLanguage } from '../../lib/language-context';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -84,6 +85,7 @@ const SideMapTileBox = () => (
 
 const PickupVerificationScreen = () => {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = getEffectiveWorkflowState(trip);
   const isRound = isRoundTrip(trip);
@@ -106,13 +108,42 @@ const PickupVerificationScreen = () => {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
 
+  // Return Loading Announcement Modal state
+  const { showReturnPrompt } = useLocalSearchParams<{ showReturnPrompt?: string }>();
+  const [showReturnModal, setShowReturnModal] = useState(showReturnPrompt === '1');
+
+  useEffect(() => {
+    if (showReturnPrompt === '1') {
+      setShowReturnModal(true);
+    }
+  }, [showReturnPrompt]);
+
+  const handleConfirmReturnLoading = () => {
+    setShowReturnModal(false);
+    triggerGPayHapticsAndSound();
+  };
+
   // If this pickup stop is already completed and departed, navigate forward to the next stage
   useEffect(() => {
     if (loading || !trip || !pickupStop) return;
     if (pickupStop.actual_departure) {
-      router.replace('/trip/navigate');
+      const outStops = getOutboundIntermediateStops(trip);
+      const retStops = getReturnIntermediateStops(trip);
+      if (isReturnLoading) {
+        if (retStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '1', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/navigate');
+        }
+      } else {
+        if (outStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '0', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/navigate');
+        }
+      }
     }
-  }, [loading, trip?.id, pickupStop?.id, pickupStop?.actual_departure]);
+  }, [loading, trip?.id, pickupStop?.id, pickupStop?.actual_departure, isReturnLoading]);
 
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;
@@ -218,7 +249,7 @@ const PickupVerificationScreen = () => {
         });
       }
     } catch (e) {
-      Alert.alert('Camera', getApiErrorMessage(e));
+      Alert.alert(t('err_camera_title', 'Camera'), getApiErrorMessage(e));
     }
   };
 
@@ -255,11 +286,17 @@ const PickupVerificationScreen = () => {
     if (!trip || submitting) return;
     if (validPhotosCount < 3) {
       Alert.alert(
-        '3 Loading Photos Required',
-        `Please upload all 3 loading photos before proceeding (${validPhotosCount}/3 uploaded).`
+        isReturnLoading
+          ? t('title_upload_return_loading_photos', 'Upload Return Loading Photos')
+          : t('title_upload_loading_photos', 'Upload Loading Photos'),
+        `${isReturnLoading ? t('title_upload_return_loading_photos', 'Upload return loading photos') : t('title_upload_loading_photos', 'Upload loading photos')} (${validPhotosCount}/3).`
       );
       return;
     }
+    const outboundStops = getOutboundIntermediateStops(trip);
+    const returnStops = getReturnIntermediateStops(trip);
+    const hasStopsForLeg = isReturnLoading ? returnStops.length > 0 : outboundStops.length > 0;
+
     setSubmitting(true);
     try {
       if (trip?.id) {
@@ -303,9 +340,6 @@ const PickupVerificationScreen = () => {
           }
         }
       }
-      const outboundStops = getOutboundIntermediateStops(trip);
-      const returnStops = getReturnIntermediateStops(trip);
-      const hasStopsForLeg = isReturnLoading ? returnStops.length > 0 : outboundStops.length > 0;
       const nextWorkflowState = isReturnLoading
         ? (hasStopsForLeg ? 'GOING_TO_RETURN_STOP' : 'IN_TRANSIT_RETURN')
         : (hasStopsForLeg ? 'GOING_TO_STOP' : 'IN_TRANSIT');
@@ -334,7 +368,19 @@ const PickupVerificationScreen = () => {
     } catch (err) {
       console.error('Pickup completion error:', err);
       triggerGPayHapticsAndSound();
-      router.replace('/trip/navigate');
+      if (isReturnLoading) {
+        if (returnStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '1', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/navigate');
+        }
+      } else {
+        if (outboundStops.length > 0) {
+          router.replace({ pathname: '/trip/stop', params: { legIndex: '0', stopIndex: '0' } } as any);
+        } else {
+          router.replace('/trip/navigate');
+        }
+      }
     } finally {
       setSubmitting(false);
     }
@@ -362,16 +408,16 @@ const PickupVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isReturnLoading ? 'Return Loading' : 'Loading'}</Text>
+          <Text style={styles.headerTitle}>{isReturnLoading ? t('title_return_loading_header', 'Return Loading') : t('title_loading_header', 'Loading')}</Text>
           <DelayButton onPress={() => setShowDelayModal(true)} />
         </View>
 
         {/* 4-Step Progress Stepper: Pickup -> Loading -> Delivery -> Complete */}
         <TripProgressStepper
           currentStep={isStarted ? 2 : 1}
-          customStep1Label={isReturnLoading ? 'Pickup ↩' : undefined}
-          customStep2Label={isReturnLoading ? 'Loading ↩' : undefined}
-          customStep3Label={isReturnLoading ? 'Delivery ↩' : undefined}
+          customStep1Label={isReturnLoading ? (language === 'ur' ? 'واپسی لوڈنگ ↩' : language === 'ur-en' ? 'واپسی لوڈنگ / Return Loading ↩' : 'Return Loading ↩') : undefined}
+          customStep2Label={isReturnLoading ? (language === 'ur' ? 'لوڈنگ ↩' : language === 'ur-en' ? 'لوڈنگ / Loading ↩' : 'Loading ↩') : undefined}
+          customStep3Label={isReturnLoading ? (language === 'ur' ? 'ڈلیوری ↩' : language === 'ur-en' ? 'ڈلیوری / Delivery ↩' : 'Delivery ↩') : undefined}
         />
 
         {/* Location Card (Horizontal Side-by-Side matching Screenshot 2) */}
@@ -380,10 +426,10 @@ const PickupVerificationScreen = () => {
 
           <View style={styles.locationRightColumn}>
             <View style={styles.locationTopRow}>
-              <Text style={styles.locationSubLabel}>{isReturnLoading ? 'Return Pickup Point' : 'Pickup Point'}</Text>
+              <Text style={styles.locationSubLabel}>{isReturnLoading ? t('label_return_pickup_point', 'Return Loading Point') : t('label_pickup_point', 'Pickup Point')}</Text>
               <TouchableOpacity style={styles.navigateBlueBtn} activeOpacity={0.8} onPress={openNavigation}>
                 <Send size={12} color="#2563EB" strokeWidth={2.2} />
-                <Text style={styles.navigateBlueBtnText}>Navigate</Text>
+                <Text style={styles.navigateBlueBtnText}>{t('action_navigate', 'Navigate')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -399,7 +445,7 @@ const PickupVerificationScreen = () => {
         {/* Upload Loading Photos Section */}
         <View style={styles.uploadSectionCard}>
           <View style={styles.uploadHeaderRow}>
-            <Text style={styles.uploadTitle}>{isReturnLoading ? 'UPLOAD RETURN LOADING PHOTOS' : 'UPLOAD LOADING PHOTOS'}</Text>
+            <Text style={styles.uploadTitle}>{isReturnLoading ? t('title_upload_return_loading_photos', 'UPLOAD RETURN LOADING PHOTOS') : t('title_upload_loading_photos', 'UPLOAD LOADING PHOTOS')}</Text>
             <View style={styles.cameraIconCircle}>
               <Camera size={16} color="#2563EB" strokeWidth={2.2} />
             </View>
@@ -433,7 +479,7 @@ const PickupVerificationScreen = () => {
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <BlueCameraPlusIcon />
-                    <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
+                    <Text style={styles.photoPlaceholderText}>{language === 'ur' ? `تصویر ${i + 1}` : `Photo ${i + 1}`}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -453,8 +499,8 @@ const PickupVerificationScreen = () => {
             <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
             <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
-                ? 'PROCESSING…'
-                : (isReturnLoading ? 'RETURN LOADING COMPLETE' : 'LOADING COMPLETE')}
+                ? t('msg_processing', 'PROCESSING…')
+                : (isReturnLoading ? t('action_return_loading_complete', 'RETURN LOADING COMPLETE') : t('action_loading_complete', 'LOADING COMPLETE'))}
             </Text>
             <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
@@ -466,7 +512,7 @@ const PickupVerificationScreen = () => {
 
       <GeotagPhotoModal
         visible={!!previewPhoto}
-        photo={previewPhoto ? { uri: previewPhoto.uri, title: 'Loading Photo Preview', location: previewPhoto.location } : null}
+        photo={previewPhoto ? { uri: previewPhoto.uri, title: t('title_loading_preview', 'Loading Photo Preview'), location: previewPhoto.location } : null}
         onClose={() => setPreviewPhoto(null)}
       />
 
@@ -475,6 +521,14 @@ const PickupVerificationScreen = () => {
         tripId={trip?.id ?? ''}
         onClose={() => setShowDelayModal(false)}
         onSuccess={() => setShowDelayModal(false)}
+      />
+
+      <ReturnLoadingModal
+        visible={showReturnModal}
+        destinationName={pickupLocationName}
+        destinationAddress={pickupLocationAddr}
+        onConfirm={handleConfirmReturnLoading}
+        onClose={() => setShowReturnModal(false)}
       />
     </SafeAreaView>
   );

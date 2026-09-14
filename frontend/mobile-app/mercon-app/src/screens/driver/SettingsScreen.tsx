@@ -147,7 +147,9 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
           <View>
             <Text style={styles.versionAppName}>MERCON Driver</Text>
-            <Text style={styles.versionNum}>Version 2.1.0 (Build 210)</Text>
+            <Text style={styles.versionNum}>
+              {t('label_version', 'Version')} <Text style={{ writingDirection: 'ltr' }}>2.1.0 (Build 210)</Text>
+            </Text>
           </View>
           <View style={styles.versionBadge}>
             <Text style={styles.versionBadgeText}>{t('status_up_to_date', 'Up to date')}</Text>

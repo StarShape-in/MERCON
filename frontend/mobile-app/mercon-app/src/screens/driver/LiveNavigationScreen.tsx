@@ -15,6 +15,7 @@ import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel, isRoundTrip, resolveAuthoritativeActiveStop } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
+import { useLanguage } from '../../lib/language-context';
 
 const ARRIVAL_RADIUS_M = 200;
 
@@ -32,6 +33,7 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) 
 const LiveNavigationScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const { trip, loading, refetch } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -82,11 +84,53 @@ const LiveNavigationScreen = () => {
     return stops.find((s) => s.stop_type === 'Dropoff') ?? stops[stops.length - 1];
   }, [trip?.stops, legIndex]);
 
-  // 3. Active stop dynamically resolves from authoritative resolver or heading stop
+  // LiveNavigationScreen (the arrival image page) is strictly for Loading (Pickup) and Delivery (Dropoff).
+  // Intermediate stops must NEVER show this arrival image page — they go directly to /trip/stop.
+  const isIntermediateStop = React.useMemo(() => {
+    if (!trip) return false;
+    const isStopWorkflow =
+      ws === 'GOING_TO_STOP' ||
+      ws === 'ARRIVED_AT_STOP' ||
+      ws === 'STOP_VERIFICATION' ||
+      ws === 'GOING_TO_RETURN_STOP' ||
+      ws === 'ARRIVED_AT_RETURN_STOP' ||
+      ws === 'RETURN_STOP_VERIFICATION';
+    if (isStopWorkflow) return true;
+
+    if (authActive.activeStop) {
+      const isPickup = pickupStop && authActive.activeStop.id === pickupStop.id;
+      const isDropoff = dropoffStop && authActive.activeStop.id === dropoffStop.id;
+      if (!isPickup && !isDropoff) {
+        return true;
+      }
+    }
+
+    // If in transit, check if there are uncompleted intermediate stops for this leg
+    if (ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+      const legStops = (trip.stops || []).filter((s) => (s.leg_index ?? 0) === legIndex);
+      const uncompletedStop = legStops.find(
+        (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+      );
+      if (uncompletedStop) return true;
+    }
+
+    return false;
+  }, [trip, ws, authActive.activeStop, pickupStop, dropoffStop, legIndex]);
+
+  useEffect(() => {
+    if (loading || !trip) return;
+    if (isIntermediateStop) {
+      router.replace({
+        pathname: '/trip/stop',
+        params: { legIndex: String(legIndex) },
+      } as any);
+    }
+  }, [loading, trip, isIntermediateStop, legIndex]);
+
+  // 3. For LiveNavigationScreen, the active destination is strictly pickupStop or dropoffStop
   const activeStop = React.useMemo(() => {
-    if (authActive.activeStop) return authActive.activeStop;
     return isHeadingToPickup ? pickupStop : dropoffStop;
-  }, [authActive.activeStop, isHeadingToPickup, pickupStop, dropoffStop]);
+  }, [isHeadingToPickup, pickupStop, dropoffStop]);
 
   // 4. Create independent MarkerInfo objects for the map
   const pickupMarker = React.useMemo(() => {
@@ -118,7 +162,7 @@ const LiveNavigationScreen = () => {
         setArrivalPhoto(photo);
       }
     } catch (e) {
-      Alert.alert('Camera Error', getApiErrorMessage(e));
+      Alert.alert(t('err_camera_title', 'Camera Error'), getApiErrorMessage(e));
     }
   };
 
@@ -127,11 +171,11 @@ const LiveNavigationScreen = () => {
 
     if (!arrivalPhoto) {
       Alert.alert(
-        'Arrival Photo Required',
-        'Please capture or attach an arrival photo before confirming arrival.',
+        t('err_arrival_photo_needed', 'Arrival Photo Required'),
+        t('err_arrival_photo_needed', 'Please capture or attach an arrival photo before confirming arrival.'),
         [
-          { text: 'Add Image 📷', onPress: handleAddPhoto },
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('action_add_image', 'Add Image') + ' 📷', onPress: handleAddPhoto },
+          { text: t('action_cancel', 'Cancel'), style: 'cancel' },
         ]
       );
       return;
@@ -168,13 +212,7 @@ const LiveNavigationScreen = () => {
         }
       }
 
-      if (ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION') {
-        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_RETURN_STOP');
-        router.replace({ pathname: '/trip/stop', params: { legIndex: '1' } } as any);
-      } else if (ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'STOP_VERIFICATION') {
-        await tripService.updateStatus(trip.id, 'InTransit', 'ARRIVED_AT_STOP');
-        router.replace({ pathname: '/trip/stop', params: { legIndex: '0' } } as any);
-      } else if (isHeadingToPickup) {
+      if (isHeadingToPickup) {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
@@ -339,6 +377,14 @@ const LiveNavigationScreen = () => {
       : `${Math.round(distanceToTarget)} m`;
   }
 
+  if (isIntermediateStop) {
+    return (
+      <View style={[styles.container, styles.centerBox]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -377,10 +423,10 @@ const LiveNavigationScreen = () => {
               <View style={styles.headerTitleCenter}>
                 <View style={styles.currentStepTagRow}>
                   <View style={styles.coralIndicatorDot} />
-                  <Text style={styles.currentStepTag}>CURRENT STEP</Text>
+                  <Text style={styles.currentStepTag}>{t('label_current_step', 'CURRENT STEP')}</Text>
                 </View>
                 <Text style={styles.headerStateTitle} numberOfLines={1}>
-                  {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
+                  {isHeadingToPickup ? t('msg_en_route_pickup', 'On the way to pickup') : t('msg_en_route_delivery', 'On the way to delivery')}
                 </Text>
               </View>
 
@@ -410,7 +456,7 @@ const LiveNavigationScreen = () => {
               <Text style={styles.floatingEtaDivider}>•</Text>
             ) : null}
             {displayEta ? (
-              <Text style={styles.floatingEtaText}>{displayEta} remaining</Text>
+              <Text style={styles.floatingEtaText}>{displayEta} {language === 'ur' ? 'باقی' : 'remaining'}</Text>
             ) : null}
           </View>
         </View>
@@ -434,7 +480,7 @@ const LiveNavigationScreen = () => {
             <View style={styles.destinationRow}>
               <View style={styles.destinationTextCol}>
                 <Text style={styles.destinationLabel}>
-                  {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
+                  {isHeadingToPickup ? t('label_picking_up_at', 'PICKING UP AT') : t('label_delivering_to', 'DELIVERING TO')}
                 </Text>
                 <Text style={styles.destinationName} numberOfLines={1}>
                   {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
@@ -474,8 +520,8 @@ const LiveNavigationScreen = () => {
                   <View style={styles.addPhotoIconCircle}>
                     <Camera size={18} color="#FA634E" strokeWidth={2.2} />
                   </View>
-                  <Text style={styles.addPhotoBtnText}>Add Image</Text>
-                  <Text style={styles.requiredBadge}>Required</Text>
+                  <Text style={styles.addPhotoBtnText}>{t('action_add_image', 'Add Image')}</Text>
+                  <Text style={styles.requiredBadge}>{t('badge_required', 'Required')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -483,7 +529,7 @@ const LiveNavigationScreen = () => {
             {!hasValidActiveCoords && (
               <View style={styles.missingCoordsBanner}>
                 <Text style={styles.missingCoordsBannerText}>
-                  ⚠️ Stop GPS coordinates unavailable — Tap Open Navigation to search by address
+                  {t('warn_gps_missing', '⚠️ Stop GPS coordinates unavailable — Tap Open Navigation to search by address')}
                 </Text>
               </View>
             )}
@@ -502,12 +548,12 @@ const LiveNavigationScreen = () => {
           >
             <Text style={styles.primaryArrivedBtnText}>
               {arriving
-                ? 'Updating State…'
+                ? t('msg_updating_state', 'Updating State…')
                 : !arrivalPhoto
-                ? 'ADD IMAGE TO CONFIRM ARRIVAL'
+                ? t('action_add_image_first', 'ADD IMAGE TO CONFIRM ARRIVAL')
                 : isHeadingToPickup
-                ? "I'VE ARRIVED AT PICKUP"
-                : "I'VE ARRIVED AT DELIVERY"}
+                ? t('action_arrived_pickup', "I'VE ARRIVED AT PICKUP")
+                : t('action_arrived_delivery', "I'VE ARRIVED AT DELIVERY")}
             </Text>
           </TouchableOpacity>
 
@@ -523,9 +569,9 @@ const LiveNavigationScreen = () => {
 
             <View style={styles.navTileTextCol}>
               <Text style={styles.navTileTitle}>
-                {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
+                {isHeadingToPickup ? t('action_go_to_pickup', 'GO TO PICKUP') : t('action_go_to_delivery', 'GO TO DELIVERY')}
               </Text>
-              <Text style={styles.navTileSubtext}>Open navigation app</Text>
+              <Text style={styles.navTileSubtext}>{t('label_open_nav_app', 'Open navigation app')}</Text>
             </View>
 
             <ArrowUpRight size={18} color="#94A3B8" strokeWidth={2.4} />

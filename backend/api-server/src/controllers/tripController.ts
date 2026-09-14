@@ -961,7 +961,15 @@ export const createTrip = async (req: Request, res: Response) => {
  *  name/plate (the sheet can't know internal ids). Rows are independent —
  *  a bad row is reported and skipped rather than failing the whole import. */
 function parseFullTripStops(originStr: string, destinationStr: string) {
-  const stopsList: Array<{ stop_sequence: number; leg_index: number; stop_type: 'Pickup' | 'Dropoff'; location_name: string }> = [];
+  const stopsList: Array<{
+    stop_sequence: number;
+    leg_index: number;
+    stop_type: 'Pickup' | 'Dropoff';
+    location_name: string;
+    location_id?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  }> = [];
   let seq = 1;
 
   const originClean = originStr.trim();
@@ -1149,22 +1157,66 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(row.third_party_cost)
           : undefined;
 
-        const parsedStops = Array.isArray(row.stops) && row.stops.length > 0
+        const targetQuotationId = (row as any).quotation_id || (row as any).rate_card_id || null;
+        let appliedQuotation: any = null;
+        if (targetQuotationId) {
+          appliedQuotation = await prisma.quotation.findFirst({
+            where: { id: targetQuotationId, customerId: customer.id, deletedAt: null },
+            include: { stops: { orderBy: { sequence: 'asc' }, include: { location: true } } },
+          });
+        }
+
+        let parsedStops = Array.isArray(row.stops) && row.stops.length > 0
           ? row.stops.map((st, idx) => ({
               stop_sequence: st.stop_sequence ?? (idx + 1),
               leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
               stop_type: (st.stop_type || (idx === 0 ? 'Pickup' : 'Dropoff')) as 'Pickup' | 'Dropoff',
               location_name: String(st.location_name ?? '').trim(),
+              location_id: st.location_id || null,
+              lat: st.lat ?? null,
+              lng: st.lng ?? null,
             }))
           : ((row.origin || row.destination)
               ? parseFullTripStops(row.origin || '', row.destination || '')
               : []);
 
+        if (parsedStops.length === 0 && appliedQuotation?.stops && appliedQuotation.stops.length > 0) {
+          const isQuoRound = (appliedQuotation.line_type || row.rate_category || '').toLowerCase().includes('round');
+          parsedStops = appliedQuotation.stops.map((qs: any, idx: number) => ({
+            stop_sequence: idx + 1,
+            leg_index: (qs.leg_index !== undefined && qs.leg_index !== null) ? Number(qs.leg_index) : 0,
+            stop_type: (qs.stop_type || (idx === 0 ? 'Pickup' : 'Dropoff')) as 'Pickup' | 'Dropoff',
+            location_name: qs.location_name || qs.source_label || qs.location?.name || '',
+            location_id: qs.location_id || qs.locationId || null,
+            lat: qs.lat ?? qs.location?.lat ?? null,
+            lng: qs.lng ?? qs.location?.lng ?? null,
+          }));
+        }
+
         const resolvedImportStops = await Promise.all(
           parsedStops.map(async (st, idx, arr) => {
-            const coords = await resolveStopCoords(st.location_name, customer.id);
-            let latVal = coords?.lat ?? null;
-            let lngVal = coords?.lng ?? null;
+            let latVal = st.lat ?? null;
+            let lngVal = st.lng ?? null;
+            let addressVal: string | null = null;
+            let locIdVal: string | null = st.location_id ?? null;
+
+            if (locIdVal) {
+              const loc = await prisma.location.findFirst({ where: { id: locIdVal, deletedAt: null } });
+              if (loc) {
+                if (latVal == null) latVal = loc.lat;
+                if (lngVal == null) lngVal = loc.lng;
+                addressVal = loc.address;
+              }
+            } else if (st.location_name) {
+              const coords = await resolveStopCoords(st.location_name, customer.id);
+              if (coords) {
+                if (latVal == null) latVal = coords.lat;
+                if (lngVal == null) lngVal = coords.lng;
+                addressVal = coords.address;
+                locIdVal = coords.locationId;
+              }
+            }
+
             // Enforce invariant: (0, 0) is never legitimate; unknown coordinates are strictly NULL
             if (latVal === 0 && lngVal === 0) {
               latVal = null;
@@ -1174,9 +1226,9 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               stop_sequence: st.stop_sequence,
               leg_index: st.leg_index ?? 0,
               stop_type: st.stop_type as any,
-              location_name: st.location_name,
-              location_address: coords?.address ?? null,
-              locationId: coords?.locationId ?? null,
+              location_name: st.location_name || null,
+              location_address: addressVal,
+              locationId: locIdVal,
               location_lat: latVal,
               location_lng: lngVal,
               planned_arrival: idx === 0 ? parsedPlannedStart : (idx === arr.length - 1 ? parsedPlannedEnd : null),
@@ -1191,6 +1243,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               customerId: customer.id,
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
+              ...(appliedQuotation ? { quotationId: appliedQuotation.id } : {}),
               is_third_party: Boolean(row.is_third_party),
               ...(row.is_third_party ? {
                 subcontract: {
@@ -1209,21 +1262,24 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               status: targetStatus,
               financials: {
                 create: {
-                  quotation_line_type: row.rate_category || null,
-                  quotation_source_vehicle_label: row.vehicle_type || null,
-                  quotation_billing_type: row.billing_type || null,
-                  applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount)) ? Number(row.billing_amount) : null,
+                  quotationId: appliedQuotation ? appliedQuotation.id : null,
+                  quotation_line_type: appliedQuotation?.line_type || row.rate_category || null,
+                  quotation_source_vehicle_label: appliedQuotation?.source_vehicle_label || row.vehicle_type || null,
+                  quotation_billing_type: appliedQuotation?.billing_type || row.billing_type || null,
+                  applied_rate: row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
+                    ? Number(row.billing_amount)
+                    : (appliedQuotation?.rate != null ? Number(appliedQuotation.rate) : null),
                 }
               },
-              ...(row.rate_category ? { rate_category: row.rate_category } : {}),
-              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
-              ...(row.billing_type ? { billing_type: row.billing_type } : {}),
+              ...(row.rate_category ? { rate_category: row.rate_category } : (appliedQuotation?.line_type ? { rate_category: appliedQuotation.line_type } : {})),
+              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : (appliedQuotation?.source_vehicle_label ? { vehicle_type: appliedQuotation.source_vehicle_label } : {})),
+              ...(row.billing_type ? { billing_type: row.billing_type } : (appliedQuotation?.billing_type ? { billing_type: appliedQuotation.billing_type } : {})),
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
-                : {}),
+                : (appliedQuotation?.rate != null ? { billing_amount: Number(appliedQuotation.rate) } : {})),
               ...(((row as any).driver_payout !== undefined || (row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges))
                 ? { driver_payout: Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : {})),
+                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : (appliedQuotation?.driver_payout != null ? { driver_payout: Number(appliedQuotation.driver_payout) } : {}))),
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {

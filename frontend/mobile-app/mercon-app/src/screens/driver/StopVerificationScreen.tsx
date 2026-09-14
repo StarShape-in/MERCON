@@ -83,7 +83,7 @@ const RedCameraPlusIcon = () => (
 export default function StopVerificationScreen() {
   const router = useRouter();
   const { stopIndex: paramStopIndex, legIndex: paramLegIndex } = useLocalSearchParams<{ stopIndex?: string; legIndex?: string }>();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
 
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
@@ -132,7 +132,7 @@ export default function StopVerificationScreen() {
       if (!photo) return;
       savePhotosState([...photos, photo]);
     } catch (e) {
-      Alert.alert('Camera Error', getApiErrorMessage(e));
+      Alert.alert(t('err_camera_title', 'Camera Error'), getApiErrorMessage(e));
     }
   };
 
@@ -189,15 +189,16 @@ export default function StopVerificationScreen() {
         router.replace('/trip/navigate' as any);
       }
     } catch (e) {
-      Alert.alert('Could not complete stop', getApiErrorMessage(e));
+      Alert.alert(t('err_could_not_complete_stop', 'Could not complete stop'), getApiErrorMessage(e));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const stopName = activeStop?.name || (isReturnLeg ? 'Return Intermediate Stop' : 'Intermediate Stop');
-  const stopTypeEn = isReturnLeg ? `Return Stop #${parsedIndex + 1}` : (activeStop?.typeEn || `Outbound Stop #${parsedIndex + 1}`);
-  const stopTypeUrdu = isReturnLeg ? `واپسی اسٹاپ #${parsedIndex + 1}` : (activeStop?.typeUrdu || `آؤٹ باؤنڈ اسٹاپ #${parsedIndex + 1}`);
+  const stopName = activeStop?.name || (isReturnLeg ? (language === 'ur' ? 'واپسی کا درمیانی اسٹاپ' : 'Return Intermediate Stop') : (language === 'ur' ? 'درمیانی اسٹاپ' : 'Intermediate Stop'));
+  const stopHeaderTitle = language === 'ur'
+    ? (isReturnLeg ? `واپسی کا درمیانی اسٹاپ #${parsedIndex + 1}` : `درمیانی اسٹاپ #${parsedIndex + 1}`)
+    : (isReturnLeg ? `Return Stop #${parsedIndex + 1}` : `Intermediate Stop #${parsedIndex + 1}`);
   const totalStopsInLeg = activeStopsList.length > 0 ? activeStopsList.length : 1;
 
   return (
@@ -210,7 +211,7 @@ export default function StopVerificationScreen() {
           <ArrowLeft size={22} color="#3E3C3D" strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitleText}>
-          {isReturnLeg ? `Return Stop #${parsedIndex + 1}` : (activeStop?.typeEn || `Outbound Stop #${parsedIndex + 1}`)}
+          {stopHeaderTitle}
         </Text>
         <DelayButton onPress={() => setShowDelayModal(true)} />
       </View>
@@ -218,9 +219,9 @@ export default function StopVerificationScreen() {
       {/* Stepper Bar */}
       <TripProgressStepper
         currentStep={2}
-        customStep1Label={isReturnLeg ? 'Pickup ↩' : undefined}
-        customStep2Label={isReturnLeg ? 'Return Stop ↩' : 'Stop'}
-        customStep3Label={isReturnLeg ? 'Delivery ↩' : undefined}
+        customStep1Label={isReturnLeg ? (language === 'ur' ? 'واپسی لوڈنگ ↩' : language === 'ur-en' ? 'واپسی لوڈنگ / Return Loading ↩' : 'Return Loading ↩') : undefined}
+        customStep2Label={isReturnLeg ? (language === 'ur' ? 'واپسی اسٹاپ ↩' : 'Return Stop ↩') : (language === 'ur' ? 'اسٹاپ' : 'Stop')}
+        customStep3Label={isReturnLeg ? (language === 'ur' ? 'ڈلیوری ↩' : 'Delivery ↩') : undefined}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -231,7 +232,9 @@ export default function StopVerificationScreen() {
           <View style={styles.locationRightColumn}>
             <View style={styles.locationTopRow}>
               <Text style={styles.locationSubLabel}>
-                {isReturnLeg ? `RETURN STOP ${parsedIndex + 1} OF ${totalStopsInLeg}` : `STOP ${parsedIndex + 1} OF ${totalStopsInLeg}`}
+                {language === 'ur'
+                  ? (isReturnLeg ? `واپسی اسٹاپ ${parsedIndex + 1} از ${totalStopsInLeg}` : `اسٹاپ ${parsedIndex + 1} از ${totalStopsInLeg}`)
+                  : (isReturnLeg ? `RETURN STOP ${parsedIndex + 1} OF ${totalStopsInLeg}` : `STOP ${parsedIndex + 1} OF ${totalStopsInLeg}`)}
               </Text>
               <TouchableOpacity
                 style={styles.navigateBlueBtn}
@@ -239,7 +242,7 @@ export default function StopVerificationScreen() {
                 onPress={() => openInGoogleMaps({ location_name: stopName, location_address: activeStop?.address })}
               >
                 <Send size={12} color="#2563EB" strokeWidth={2.2} />
-                <Text style={styles.navigateBlueBtnText}>Navigate</Text>
+                <Text style={styles.navigateBlueBtnText}>{t('action_navigate', 'Navigate')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -258,7 +261,9 @@ export default function StopVerificationScreen() {
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionTitleText}>
-              {isReturnLeg ? "UPLOAD RETURN STOP PHOTOS" : "UPLOAD INTERMEDIATE STOP PHOTOS"}
+              {isReturnLeg
+                ? t('title_upload_return_stop_photos', 'UPLOAD RETURN STOP PHOTOS')
+                : t('title_upload_stop_photos', 'UPLOAD INTERMEDIATE STOP PHOTOS')}
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={handleAddPhoto}>
               <View style={styles.cameraCircleBadge}>
@@ -290,7 +295,7 @@ export default function StopVerificationScreen() {
                 ) : (
                   <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                     <RedCameraPlusIcon />
-                    <Text style={styles.addPhotoLabel}>Photo {i + 1}</Text>
+                    <Text style={styles.addPhotoLabel}>{language === 'ur' ? `تصویر ${i + 1}` : `Photo ${i + 1}`}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -311,8 +316,8 @@ export default function StopVerificationScreen() {
                 <Route size={18} color="#FFFFFF" strokeWidth={2.2} />
                 <Text style={styles.completeBtnText}>
                   {parsedIndex + 1 < activeStopsList.length
-                    ? (isReturnLeg ? 'COMPLETE STOP & NEXT' : 'COMPLETE STOP & NEXT')
-                    : (isReturnLeg ? 'COMPLETE STOP & PROCEED' : 'COMPLETE STOP & PROCEED')}
+                    ? t('action_complete_stop_next', 'COMPLETE STOP & NEXT')
+                    : t('action_complete_stop_proceed', 'COMPLETE STOP & PROCEED')}
                 </Text>
                 <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.5} />
               </>

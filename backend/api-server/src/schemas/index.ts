@@ -358,6 +358,22 @@ export const bulkImportTripsBody = z.object({
     third_party_vehicle_plate: z.string().trim().optional(),
     third_party_vehicle_type: z.string().trim().optional(),
     third_party_cost: z.coerce.number().optional(),
+    rate_card_id: z.string().trim().optional(),
+    quotation_id: z.string().trim().optional(),
+    driver_charge: z.coerce.number().optional(),
+    driver_payout: z.coerce.number().optional(),
+    update_quotation_driver_payout: z.boolean().optional(),
+    stops: z.array(z.object({
+      stop_sequence: z.number().int().optional(),
+      leg_index: z.number().int().optional(),
+      stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']).optional(),
+      location_name: z.string().trim().optional(),
+      location_address: z.string().trim().optional(),
+      location_id: z.string().uuid().nullable().optional(),
+      lat: z.coerce.number().nullable().optional(),
+      lng: z.coerce.number().nullable().optional(),
+      planned_arrival: z.string().optional(),
+    })).optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
   }).refine((data) => {

@@ -8,7 +8,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import {
   FileText, Truck, Settings, IdCard, Globe, ShieldCheck,
-  ChevronRight, ChevronDown, Camera, CheckCircle2, Award, Check, Wallet, X,
+  ChevronRight, ChevronLeft, ChevronDown, Camera, CheckCircle2, Award, Check, Wallet, X,
 } from 'lucide-react-native';
 import { Avatar } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -16,7 +16,7 @@ import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
 import { useCargoPodPhotos, docTypeLabel } from '../../lib/documents';
 import { API_URL } from '../../lib/api';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, formatCurrency } from '../../lib/language-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
@@ -209,12 +209,16 @@ const ProfileScreen = () => {
                   <Wallet size={12} color="#FA634E" strokeWidth={2.2} />
                 </View>
                 <View style={styles.chargeTextCol}>
-                  <Text style={styles.chargeAmount}>
-                    SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <Text style={[styles.chargeAmount, { writingDirection: 'ltr' }]}>
+                    {formatCurrency(totalEarnings, language)}
                   </Text>
-                  <Text style={styles.chargeLabel}>Driver Charge</Text>
+                  <Text style={styles.chargeLabel}>{t('label_driver_charge', 'Driver Charge')}</Text>
                 </View>
-                <ChevronRight size={12} color="#9898A4" strokeWidth={2.2} />
+                {language === 'ur' ? (
+                  <ChevronLeft size={12} color="#9898A4" strokeWidth={2.2} />
+                ) : (
+                  <ChevronRight size={12} color="#9898A4" strokeWidth={2.2} />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -284,10 +288,10 @@ const ProfileScreen = () => {
 
             <View style={styles.vehicleDetailsCol}>
               <View style={styles.plateRow}>
-                <Text style={styles.vehiclePlateText}>{plateNumber}</Text>
+                <Text style={[styles.vehiclePlateText, { writingDirection: 'ltr' }]}>{plateNumber}</Text>
                 <View style={styles.activeStatusPill}>
                   <Text style={styles.activeStatusDot}>●</Text>
-                  <Text style={styles.activeStatusText}>Active</Text>
+                  <Text style={styles.activeStatusText}>{t('status_active', 'Active')}</Text>
                 </View>
               </View>
               <Text style={styles.vehicleSubText}>
@@ -304,7 +308,7 @@ const ProfileScreen = () => {
               {t('title_my_documents', 'My Documents')}
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/documents' as any)}>
-              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} &gt;</Text>
+              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} {language === 'ur' ? '<' : '>'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -328,7 +332,7 @@ const ProfileScreen = () => {
                   </View>
 
                   <View style={styles.docRightCol}>
-                    <Text style={styles.docExpiryText}>Exp: {doc.expiry}</Text>
+                    <Text style={[styles.docExpiryText, { writingDirection: 'ltr' }]}>{t('label_expiry', 'Exp')}: {doc.expiry}</Text>
 
                     <View
                       style={[
@@ -346,12 +350,16 @@ const ProfileScreen = () => {
                           doc.status === 'expired' && styles.statusTextExpired,
                         ]}
                       >
-                        {doc.statusLabel}
+                        {doc.status === 'valid' ? t('label_valid', 'Valid') : doc.status === 'expiring' ? t('label_expiring', 'Expiring') : t('status_expired', 'Expired')}
                       </Text>
                     </View>
                   </View>
 
-                  <ChevronRight size={15} color="#9898A4" strokeWidth={2.2} />
+                  {language === 'ur' ? (
+                    <ChevronLeft size={15} color="#9898A4" strokeWidth={2.2} />
+                  ) : (
+                    <ChevronRight size={15} color="#9898A4" strokeWidth={2.2} />
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -365,7 +373,7 @@ const ProfileScreen = () => {
               {t('title_uploaded_photos', 'My Uploaded Photos')} ({uploadedPhotos.length || 24})
             </Text>
             <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/cargo-pod-photos' as any)}>
-              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} &gt;</Text>
+              <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} {language === 'ur' ? '<' : '>'}</Text>
             </TouchableOpacity>
           </View>
 

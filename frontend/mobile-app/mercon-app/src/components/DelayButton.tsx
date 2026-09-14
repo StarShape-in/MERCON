@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet, ViewStyle } from 'react-native';
 import { Clock } from 'lucide-react-native';
+import { useLanguage } from '../lib/language-context';
 
 export interface DelayButtonProps {
   onPress: () => void;
@@ -8,6 +9,8 @@ export interface DelayButtonProps {
 }
 
 export const DelayButton: React.FC<DelayButtonProps> = ({ onPress, style }) => {
+  const { t } = useLanguage();
+
   return (
     <TouchableOpacity
       style={[styles.container, style]}
@@ -21,7 +24,7 @@ export const DelayButton: React.FC<DelayButtonProps> = ({ onPress, style }) => {
 
       {/* Joint Attached Soft Pill Body on Right */}
       <View style={styles.pillBody}>
-        <Text style={styles.label}>Delay</Text>
+        <Text style={styles.label}>{t('status_delayed', 'Delay')}</Text>
       </View>
     </TouchableOpacity>
   );

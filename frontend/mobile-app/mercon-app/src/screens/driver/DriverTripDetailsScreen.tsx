@@ -14,7 +14,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { tripService, statusLabel, stopLabel, stopAddress, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { getTripChargeValue } from './DriverChargesScreen';
 import { BilingualText } from '../../components';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, formatCurrency, getLocalizedStatus } from '../../lib/language-context';
 import { API_URL } from '../../lib/api';
 
 import { parseTripRouteNodes } from '../../lib/routeParser';
@@ -55,7 +55,7 @@ function resolveLogoUrl(rawLogo?: string | null): string | null {
 export default function DriverTripDetailsScreen() {
   const router = useRouter();
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [trip, setTrip] = useState<MobileTrip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +129,7 @@ export default function DriverTripDetailsScreen() {
         </View>
       ) : !trip ? (
         <View style={styles.centerLoading}>
-          <Text style={styles.errorText}>Trip not found.</Text>
+          <Text style={styles.errorText}>{t('err_trip_not_found', 'Trip not found.')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -160,13 +160,13 @@ export default function DriverTripDetailsScreen() {
                 <Text style={styles.customerName} numberOfLines={1}>
                   {trip.customer?.name ?? 'Mercon Logistics'}
                 </Text>
-                <Text style={styles.tripRefId}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                <Text style={[styles.tripRefId, { writingDirection: 'ltr' }]}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
               </View>
 
               {/* Status Badge */}
               <View style={[styles.statusBadge, isCompleted ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
                 <Text style={[styles.statusBadgeText, isCompleted ? styles.statusTextCompleted : styles.statusTextActive]}>
-                  {statusLabel(trip.status)}
+                  {getLocalizedStatus(trip.status, language)}
                 </Text>
               </View>
             </View>
@@ -177,8 +177,8 @@ export default function DriverTripDetailsScreen() {
             <View style={styles.heroMetaGrid}>
               <View style={styles.metaCol}>
                 <Text style={styles.metaLabel}>{t('label_driver_charge', 'Driver Charge')}</Text>
-                <Text style={[styles.metaChargeVal, isCompleted ? styles.chargeValCompleted : styles.chargeValActive]}>
-                  SAR {chargeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <Text style={[styles.metaChargeVal, isCompleted ? styles.chargeValCompleted : styles.chargeValActive, { writingDirection: 'ltr' }]}>
+                  {formatCurrency(chargeAmount, language)}
                 </Text>
               </View>
 
@@ -188,7 +188,7 @@ export default function DriverTripDetailsScreen() {
                 <Text style={styles.metaLabel}>{t('label_assigned_vehicle', 'Vehicle')}</Text>
                 <View style={styles.vehicleRow}>
                   <Truck size={16} color="#3E3C3D" strokeWidth={2} />
-                  <Text style={styles.metaVehicleVal}>{trip.vehicle?.plate_number ?? 'Assigned Vehicle'}</Text>
+                  <Text style={[styles.metaVehicleVal, { writingDirection: 'ltr' }]}>{trip.vehicle?.plate_number ?? 'Assigned Vehicle'}</Text>
                 </View>
               </View>
             </View>
@@ -276,23 +276,23 @@ export default function DriverTripDetailsScreen() {
 
             <View style={styles.scheduleGrid}>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>Planned Start</Text>
-                <Text style={styles.scheduleVal}>{formatDateTime(trip.planned_start)}</Text>
+                <Text style={styles.scheduleLabel}>{t('label_planned_start', 'Planned Start')}</Text>
+                <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.planned_start)}</Text>
               </View>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>Planned End</Text>
-                <Text style={styles.scheduleVal}>{formatDateTime(trip.planned_end)}</Text>
+                <Text style={styles.scheduleLabel}>{t('label_planned_end', 'Planned End')}</Text>
+                <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.planned_end)}</Text>
               </View>
               {trip.actual_start && (
                 <View style={styles.scheduleRow}>
-                  <Text style={styles.scheduleLabel}>Actual Start</Text>
-                  <Text style={styles.scheduleVal}>{formatDateTime(trip.actual_start)}</Text>
+                  <Text style={styles.scheduleLabel}>{t('label_actual_start', 'Actual Start')}</Text>
+                  <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.actual_start)}</Text>
                 </View>
               )}
               {trip.actual_end && (
                 <View style={styles.scheduleRow}>
-                  <Text style={styles.scheduleLabel}>Actual End</Text>
-                  <Text style={styles.scheduleVal}>{formatDateTime(trip.actual_end)}</Text>
+                  <Text style={styles.scheduleLabel}>{t('label_actual_end', 'Actual End')}</Text>
+                  <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.actual_end)}</Text>
                 </View>
               )}
             </View>

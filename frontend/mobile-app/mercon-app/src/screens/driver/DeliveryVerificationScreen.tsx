@@ -8,13 +8,14 @@ import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Circle, Line, G, Polygon, Ellipse } from 'react-native-svg';
 import { Info, Camera, MapPin, Trash2, Package, ArrowRight, Clock, Check, MessageSquare, ClipboardList, Send, Navigation, RotateCcw } from 'lucide-react-native';
 import { Colors } from '../../theme/tokens';
-import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton } from '../../components';
+import { GoogleMapsGeotagPreview, GeotagPhotoModal, TripProgressStepper, FadedBottomIllustration, DelayReportModal, DelayButton, ReturnLoadingModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { API_URL, getApiErrorMessage } from '../../lib/api';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
 import { triggerGPayHapticsAndSound } from '../../lib/sound';
+import { useLanguage } from '../../lib/language-context';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -84,6 +85,7 @@ const SideMapTileBox = () => (
 
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = getEffectiveWorkflowState(trip);
   const isRound = isRoundTrip(trip);
@@ -105,18 +107,19 @@ const DeliveryVerificationScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [showDelayModal, setShowDelayModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
 
   // If this delivery stop is already completed and departed, navigate forward
   useEffect(() => {
-    if (loading || !trip || !dropoffStop) return;
+    if (loading || !trip || !dropoffStop || showReturnModal) return;
     if (dropoffStop.actual_departure) {
       if (isReturnDelivery || !isRound) {
         router.replace('/trip/completed');
       } else {
-        router.replace('/trip/pickup');
+        router.replace({ pathname: '/trip/pickup', params: { showReturnPrompt: '1' } } as any);
       }
     }
-  }, [loading, trip?.id, dropoffStop?.id, dropoffStop?.actual_departure, isReturnDelivery, isRound]);
+  }, [loading, trip?.id, dropoffStop?.id, dropoffStop?.actual_departure, isReturnDelivery, isRound, showReturnModal]);
 
   const validPhotosCount = photos.filter((p) => !!p?.uri).length;
   const hasAllPhotos = validPhotosCount >= 3;
@@ -222,7 +225,7 @@ const DeliveryVerificationScreen = () => {
         });
       }
     } catch (e) {
-      Alert.alert('Camera', getApiErrorMessage(e));
+      Alert.alert(t('err_camera_title', 'Camera'), getApiErrorMessage(e));
     }
   };
 
@@ -245,8 +248,10 @@ const DeliveryVerificationScreen = () => {
     if (!trip || submitting) return;
     if (validPhotosCount < 3) {
       Alert.alert(
-        '3 Delivery Photos Required',
-        `Please upload all 3 delivery photos before completing delivery (${validPhotosCount}/3 uploaded).`
+        isReturnDelivery
+          ? t('title_upload_return_delivery_photos', 'Upload Return Delivery Photos')
+          : t('title_upload_delivery_photos', 'Upload Delivery Photos'),
+        `${isReturnDelivery ? t('title_upload_return_delivery_photos', 'Upload return delivery photos') : t('title_upload_delivery_photos', 'Upload delivery photos')} (${validPhotosCount}/3).`
       );
       return;
     }
@@ -317,16 +322,7 @@ const DeliveryVerificationScreen = () => {
         if (dropoffStop?.id) {
           await SecureStore.deleteItemAsync(`delivery_draft_${trip.id}_${dropoffStop.id}`).catch(() => {});
         }
-        Alert.alert(
-          'Delivery Completed!',
-          'Outbound delivery confirmed. Proceed to Return Cargo Loading at ' + (stopLabel(dropoffStop) || 'destination'),
-          [
-            {
-              text: 'Start Return Loading',
-              onPress: () => router.replace('/trip/pickup'),
-            },
-          ]
-        );
+        router.replace({ pathname: '/trip/pickup', params: { showReturnPrompt: '1' } } as any);
       } else {
         // Final leg delivery completed! Transition to COMPLETED
         if (dropoffStop?.id) {
@@ -372,16 +368,16 @@ const DeliveryVerificationScreen = () => {
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isReturnDelivery ? 'Return Delivery' : 'Delivery'}</Text>
+          <Text style={styles.headerTitle}>{isReturnDelivery ? t('title_return_delivery_header', 'Return Delivery') : t('title_delivery_header', 'Delivery')}</Text>
           <DelayButton onPress={() => setShowDelayModal(true)} />
         </View>
 
         {/* 4-Step Progress Stepper: Pickup ✓ -> Loading ✓ -> Delivery ● -> Complete */}
         <TripProgressStepper
           currentStep={3}
-          customStep1Label={isReturnDelivery ? 'Pickup ↩' : undefined}
-          customStep2Label={isReturnDelivery ? 'Loading ↩' : undefined}
-          customStep3Label={isReturnDelivery ? 'Delivery ↩' : undefined}
+          customStep1Label={isReturnDelivery ? (language === 'ur' ? 'واپسی لوڈنگ ↩' : language === 'ur-en' ? 'واپسی لوڈنگ / Return Loading ↩' : 'Return Loading ↩') : undefined}
+          customStep2Label={isReturnDelivery ? (language === 'ur' ? 'لوڈنگ ↩' : language === 'ur-en' ? 'لوڈنگ / Loading ↩' : 'Loading ↩') : undefined}
+          customStep3Label={isReturnDelivery ? (language === 'ur' ? 'ڈلیوری ↩' : language === 'ur-en' ? 'ڈلیوری / Delivery ↩' : 'Delivery ↩') : undefined}
         />
 
         {/* Location Card (Horizontal Side-by-Side matching Screenshot 2) */}
@@ -390,10 +386,10 @@ const DeliveryVerificationScreen = () => {
 
           <View style={styles.locationRightColumn}>
             <View style={styles.locationTopRow}>
-              <Text style={styles.locationSubLabel}>{isReturnDelivery ? 'Return Delivery Point' : 'Delivery Point'}</Text>
+              <Text style={styles.locationSubLabel}>{isReturnDelivery ? t('label_return_delivery_point', 'Return Delivery Point') : t('label_delivery_point', 'Delivery Point')}</Text>
               <TouchableOpacity style={styles.navigateBlueBtn} activeOpacity={0.8} onPress={openNavigation}>
                 <Send size={12} color="#2563EB" strokeWidth={2.2} />
-                <Text style={styles.navigateBlueBtnText}>Navigate</Text>
+                <Text style={styles.navigateBlueBtnText}>{t('action_navigate', 'Navigate')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -409,7 +405,7 @@ const DeliveryVerificationScreen = () => {
         {/* Upload Delivery Photos Section */}
         <View style={styles.uploadSectionCard}>
           <View style={styles.uploadHeaderRow}>
-            <Text style={styles.uploadTitle}>{isReturnDelivery ? 'UPLOAD RETURN DELIVERY PHOTOS' : 'UPLOAD DELIVERY PHOTOS'}</Text>
+            <Text style={styles.uploadTitle}>{isReturnDelivery ? t('title_upload_return_delivery_photos', 'UPLOAD RETURN DELIVERY PHOTOS') : t('title_upload_delivery_photos', 'UPLOAD DELIVERY PHOTOS')}</Text>
             <View style={styles.chatIconCircle}>
               <MessageSquare size={16} color="#16A34A" strokeWidth={2.2} />
             </View>
@@ -443,7 +439,7 @@ const DeliveryVerificationScreen = () => {
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <GreenCameraPlusIcon />
-                    <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
+                    <Text style={styles.photoPlaceholderText}>{language === 'ur' ? `تصویر ${i + 1}` : `Photo ${i + 1}`}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -463,8 +459,8 @@ const DeliveryVerificationScreen = () => {
             <Package size={22} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2} />
             <Text style={[styles.mainActionBtnText, !hasAllPhotos && styles.mainActionBtnTextDisabled]}>
               {submitting
-                ? 'COMPLETING…'
-                : (isReturnDelivery ? 'RETURN DELIVERY COMPLETE' : 'DELIVERY COMPLETE')}
+                ? t('msg_completing', 'COMPLETING…')
+                : (isReturnDelivery ? t('action_return_delivery_complete', 'RETURN DELIVERY COMPLETE') : t('action_delivery_complete', 'DELIVERY COMPLETE'))}
             </Text>
             <ArrowRight size={20} color={hasAllPhotos ? "#FFFFFF" : "#94A3B8"} strokeWidth={2.2} />
           </TouchableOpacity>
@@ -476,7 +472,7 @@ const DeliveryVerificationScreen = () => {
 
       <GeotagPhotoModal
         visible={!!previewPhoto}
-        photo={previewPhoto ? { uri: previewPhoto.uri, title: 'POD Photo Preview', location: previewPhoto.location } : null}
+        photo={previewPhoto ? { uri: previewPhoto.uri, title: t('title_pod_preview', 'POD Photo Preview'), location: previewPhoto.location } : null}
         onClose={() => setPreviewPhoto(null)}
       />
 
@@ -485,6 +481,17 @@ const DeliveryVerificationScreen = () => {
         tripId={trip?.id ?? ''}
         onClose={() => setShowDelayModal(false)}
         onSuccess={() => setShowDelayModal(false)}
+      />
+
+      <ReturnLoadingModal
+        visible={showReturnModal}
+        destinationName={stopLabel(dropoffStop) || 'Return Pickup Depot'}
+        destinationAddress={stopAddress(dropoffStop) || undefined}
+        onConfirm={() => {
+          setShowReturnModal(false);
+          router.replace({ pathname: '/trip/pickup', params: { showReturnPrompt: '1' } } as any);
+        }}
+        onClose={() => setShowReturnModal(false)}
       />
     </SafeAreaView>
   );

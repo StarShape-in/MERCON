@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Check, Truck, Package, MapPin, Flag } from 'lucide-react-native';
+import { useLanguage } from '../lib/language-context';
 
 export interface TripStepperStep {
   id: number;
@@ -32,7 +33,27 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
   customStep2Label,
   customStep3Label,
 }) => {
+  const { language, t } = useLanguage();
   const allDone = isCompletedAll || currentStep >= 4;
+
+  const getStepLabel = (stepId: number, fallbackLabel: string) => {
+    if (stepId === 1) {
+      if (customStep1Label) return customStep1Label;
+      return language === 'ur' ? 'پک اپ' : language === 'ur-en' ? 'پک اپ / Pickup' : 'Pickup';
+    }
+    if (stepId === 2) {
+      if (customStep2Label) return customStep2Label;
+      return language === 'ur' ? 'لوڈنگ' : language === 'ur-en' ? 'لوڈنگ / Loading' : 'Loading';
+    }
+    if (stepId === 3) {
+      if (customStep3Label) return customStep3Label;
+      return language === 'ur' ? 'ڈلیوری' : language === 'ur-en' ? 'ڈلیوری / Delivery' : 'Delivery';
+    }
+    if (stepId === 4) {
+      return language === 'ur' ? 'مکمل' : language === 'ur-en' ? 'مکمل / Complete' : 'Complete';
+    }
+    return fallbackLabel;
+  };
 
   return (
     <View style={styles.container}>
@@ -82,16 +103,10 @@ export const TripProgressStepper: React.FC<TripProgressStepperProps> = ({
                   ]}
                   numberOfLines={1}
                 >
-                  {step.id === 1 && customStep1Label
-                    ? customStep1Label
-                    : step.id === 2 && customStep2Label
-                    ? customStep2Label
-                    : step.id === 3 && customStep3Label
-                    ? customStep3Label
-                    : step.label}
+                  {getStepLabel(step.id, step.label)}
                 </Text>
                 {allDone && (
-                  <Text style={styles.subtextCompleted}>Completed</Text>
+                  <Text style={styles.subtextCompleted}>{t('status_completed', 'Completed')}</Text>
                 )}
               </View>
 

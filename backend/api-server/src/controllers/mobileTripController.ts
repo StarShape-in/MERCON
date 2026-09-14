@@ -22,9 +22,23 @@ import { compressUploadedImage } from '../services/imageCompressor';
 const tripInclude = {
   customer: true,
   vehicle: true,
+  quotation: {
+    select: {
+      id: true,
+      name: true,
+      line_type: true,
+      billing_type: true,
+      rate: true,
+      driver_payout: true,
+      stops: {
+        orderBy: { sequence: 'asc' as const },
+        include: { location: { select: { id: true, name: true, address: true, code: true } } },
+      },
+    },
+  },
   stops: {
     orderBy: { stop_sequence: 'asc' as const },
-    include: { location: { select: { id: true, name: true, address: true } } },
+    include: { location: { select: { id: true, name: true, address: true, code: true } } },
   },
 };
 

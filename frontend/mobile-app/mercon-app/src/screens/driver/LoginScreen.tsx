@@ -55,14 +55,14 @@ const LoginScreen = () => {
     setError(null);
     setNotice(null);
     if (!identifier.trim()) {
-      setError('Enter your phone number first, then tap "Can\'t log in?" again.');
+      setError(t('err_enter_phone_first', 'Enter your phone number first, then tap "Can\'t log in?" again.'));
       return;
     }
     const formattedPhone = formatPhoneForAuth(identifier);
     try {
       // Notifies all operators/admins that this user needs a reset.
       await api.post('/auth/request-reset', { identifier: formattedPhone });
-      setNotice('Your operator has been notified. They will help you log in.');
+      setNotice(t('msg_operator_notified', 'Your operator has been notified. They will help you log in.'));
     } catch (err) {
       setError(getApiErrorMessage(err));
     }
@@ -70,7 +70,7 @@ const LoginScreen = () => {
 
   const handleSignIn = async () => {
     if (!identifier.trim() || !secret.trim()) {
-      setError('Please enter your phone number and password or license number.');
+      setError(t('err_missing_credentials', 'Please enter your phone number and password or license number.'));
       return;
     }
     setError(null);
@@ -114,7 +114,7 @@ const LoginScreen = () => {
               label={t('label_phone', 'Phone Number')}
               value={identifier}
               onChangeText={setIdentifier}
-              placeholder="50 000 0001"
+              placeholder={t('placeholder_phone', '50 000 0001')}
               keyboardType="phone-pad"
               autoCapitalize="none"
               iconLeft={
@@ -129,7 +129,7 @@ const LoginScreen = () => {
               label={t('label_password', 'Password or License Number')}
               value={secret}
               onChangeText={setSecret}
-              placeholder="Enter password or license number"
+              placeholder={t('placeholder_password', 'Enter password or license number')}
               autoCapitalize="none"
               secureTextEntry={!showSecret}
               iconLeft={<Lock size={20} color={Colors.gray400} />}
@@ -146,7 +146,7 @@ const LoginScreen = () => {
             {notice && <Text style={styles.noticeText}>{notice}</Text>}
 
             <Button
-              title={loading ? t('msg_syncing', 'Signing In...') : t('action_login', 'Sign In')}
+              title={loading ? t('action_signing_in', 'Signing In...') : t('action_login', 'Sign In')}
               onPress={handleSignIn}
               disabled={loading}
               size="lg"
@@ -158,12 +158,11 @@ const LoginScreen = () => {
         {/* Notify my operator — outside the card */}
         <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.notifyBtn}>
           <Headset size={20} color={Colors.primary} />
-          <Text style={styles.notifyText}>Can't log in? Notify my operator</Text>
+          <Text style={styles.notifyText}>{t('action_cant_login', "Can't log in? Notify my operator")}</Text>
         </TouchableOpacity>
 
         <Text style={styles.footer}>
-          Having trouble? Contact{' '}
-          <Text style={styles.footerLink}>support@mercon.sa</Text>
+          {t('label_help_support', 'Having trouble? Contact support@mercon.sa')}
         </Text>
       </ScrollView>
       </SafeAreaView>

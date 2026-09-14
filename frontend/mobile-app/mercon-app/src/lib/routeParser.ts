@@ -122,8 +122,8 @@ function buildTimeline(
       result.push(
         node(
           `outbound-stop-${idx}`,
-          `Outbound Stop #${idx + 1}`,
-          `آؤٹ باؤنڈ اسٹاپ #${idx + 1}`,
+          `Intermediate Stop #${idx + 1}`,
+          `درمیانی اسٹاپ #${idx + 1}`,
           name, 'Route',
           { legIndex: 0, isIntermediate: true },
         ),
@@ -148,7 +148,7 @@ function buildTimeline(
           node(
             `return-stop-${idx}`,
             `Return Stop #${idx + 1}`,
-            `واپسی اسٹاپ #${idx + 1}`,
+            `واپسی کا درمیانی اسٹاپ #${idx + 1}`,
             name, 'Route',
             { legIndex: 1, isIntermediate: true, isReturnStop: true },
           ),
@@ -302,6 +302,37 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
     }
     if (outboundNodes.length >= 2) {
       return buildTimeline(outboundNodes, returnNodes, dbStops);
+    }
+  }
+
+  // ── Strategy 5: Quotation stops & lane name fallback ───────────────────
+  const quo = (trip as any).quotation;
+  if (quo) {
+    const quoStops = Array.isArray(quo.stops) ? quo.stops : [];
+    if (quoStops.length >= 2) {
+      const names = quoStops.map((s: any) => s.location_name || s.source_label || s.location?.name || s.name || 'Location');
+      const isQuoRound = isRound || (quo.line_type || '').toLowerCase().includes('round');
+      let ret: string[] = [];
+      if (isQuoRound) {
+        ret = [names[names.length - 1], names[0]];
+      }
+      return buildTimeline(names, ret, dbStops);
+    }
+
+    if (quo.name && typeof quo.name === 'string') {
+      const cleanName = quo.name.replace(/\[RETURN:.*?\]/i, '').trim();
+      const returnMatch = quo.name.match(/\[RETURN:\s*(.*?)\s*\]/i);
+      const splitSegments = cleanName.split(/\s*(?:→|->|-->|–|-)\s*/).map((s: string) => s.trim()).filter(Boolean);
+      if (splitSegments.length >= 2) {
+        const isQuoRound = isRound || (quo.line_type || '').toLowerCase().includes('round');
+        let ret: string[] = [];
+        if (returnMatch?.[1]) {
+          ret = splitChain(returnMatch[1]);
+        } else if (isQuoRound) {
+          ret = [splitSegments[splitSegments.length - 1], splitSegments[0]];
+        }
+        return buildTimeline(splitSegments, ret, dbStops);
+      }
     }
   }
 

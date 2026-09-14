@@ -11,6 +11,7 @@ import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useCargoPodPhotos } from '../../lib/documents';
 import { tripService, isRoundTrip as checkIsRoundTrip, type MobileTrip } from '../../lib/trips';
 import { safeSecureStore as SecureStore } from '../../lib/secure-store';
+import { useLanguage } from '../../lib/language-context';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../../assets/images/mercon-logo.png');
@@ -36,6 +37,7 @@ const getPhotoUri = (item: any): string | null => {
 
 const TripCompletedScreen = () => {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { trip, refetch } = useCurrentTrip();
   const { photos: docs } = useCargoPodPhotos();
   const documents = docs || [];
@@ -243,7 +245,7 @@ const TripCompletedScreen = () => {
 
           {/* Delivered To Subtitle & Bold Customer Name */}
           <View style={styles.cleanHeaderGroup}>
-            <Text style={styles.cleanSubtitle}>Delivered to</Text>
+            <Text style={styles.cleanSubtitle}>{t('title_delivered_to', 'Delivered to')}</Text>
             <Text style={styles.cleanCustomerName}>{customerName}</Text>
           </View>
 
@@ -264,7 +266,7 @@ const TripCompletedScreen = () => {
             {/* Row 3: Trip ID */}
             <View style={styles.cleanInfoRow}>
               <FileText size={20} color="#16A34A" strokeWidth={2.2} />
-              <Text style={styles.cleanInfoText}>Trip ID: {tripIdDisplay}</Text>
+              <Text style={styles.cleanInfoText}>{language === 'ur' ? `ٹرپ نمبر: ${tripIdDisplay}` : `Trip ID: ${tripIdDisplay}`}</Text>
             </View>
           </View>
 
@@ -279,18 +281,18 @@ const TripCompletedScreen = () => {
           {/* 1. Share screenshot */}
           <TouchableOpacity style={styles.cleanBtnShare} activeOpacity={0.8} onPress={handleShare}>
             <Share2 size={15} color="#16A34A" strokeWidth={2.2} />
-            <Text style={styles.cleanBtnShareText} numberOfLines={1}>Share screenshot</Text>
+            <Text style={styles.cleanBtnShareText} numberOfLines={1}>{t('action_share_screenshot', 'Share screenshot')}</Text>
           </TouchableOpacity>
 
           {/* 2. More details */}
           <TouchableOpacity style={styles.cleanBtnDetails} activeOpacity={0.8} onPress={() => setShowDetails(true)}>
             <FileText size={16} color="#2563EB" strokeWidth={2.2} />
-            <Text style={styles.cleanBtnDetailsText} numberOfLines={1}>More details</Text>
+            <Text style={styles.cleanBtnDetailsText} numberOfLines={1}>{t('action_more_details', 'More details')}</Text>
           </TouchableOpacity>
 
           {/* 3. Done */}
           <TouchableOpacity style={styles.cleanBtnDone} activeOpacity={0.85} onPress={handleBackHome}>
-            <Text style={styles.cleanBtnDoneText}>Done</Text>
+            <Text style={styles.cleanBtnDoneText}>{t('action_done', 'Done')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -309,7 +311,7 @@ const TripCompletedScreen = () => {
         <TouchableOpacity style={styles.detailedBackBtn} activeOpacity={0.8} onPress={() => setShowDetails(false)}>
           <ArrowLeft size={20} color="#0F172A" strokeWidth={2.2} />
         </TouchableOpacity>
-        <Text style={styles.detailedHeaderTitle}>Trip Details Summary</Text>
+        <Text style={styles.detailedHeaderTitle}>{t('title_trip_summary', 'Trip Details Summary')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -318,7 +320,7 @@ const TripCompletedScreen = () => {
         <View style={styles.summaryCard}>
           {/* Card Header Row */}
           <View style={styles.summaryCardHeader}>
-            <Text style={styles.summaryTitle}>Trip Summary</Text>
+            <Text style={styles.summaryTitle}>{t('title_trip_summary', 'Trip Summary')}</Text>
             <Text style={styles.tripIdBadge}>{tripRefId}</Text>
           </View>
 
@@ -331,7 +333,7 @@ const TripCompletedScreen = () => {
                   <User size={11} color="#10B981" strokeWidth={2.2} />
                 </View>
                 <View style={styles.cellTextWrapper}>
-                  <Text style={styles.cellLabel}>Customer</Text>
+                  <Text style={styles.cellLabel}>{t('label_customer', 'Customer')}</Text>
                   <Text style={styles.cellValueBold} numberOfLines={2}>
                     {customerName}
                   </Text>
@@ -343,8 +345,8 @@ const TripCompletedScreen = () => {
                   <Clock size={11} color="#10B981" strokeWidth={2.2} />
                 </View>
                 <View style={styles.cellTextWrapper}>
-                  <Text style={styles.cellLabel}>Duration</Text>
-                  <Text style={styles.cellValueBold}>2h 18m</Text>
+                  <Text style={styles.cellLabel}>{t('label_duration', 'Duration')}</Text>
+                  <Text style={[styles.cellValueBold, { writingDirection: 'ltr' }]}>2h 18m</Text>
                 </View>
               </View>
             </View>
@@ -356,8 +358,10 @@ const TripCompletedScreen = () => {
                   <MapPin size={11} color="#10B981" strokeWidth={2.2} />
                 </View>
                 <View style={styles.cellTextWrapper}>
-                  <Text style={styles.cellLabel}>Distance</Text>
-                  <Text style={styles.cellValueBold}>164 km</Text>
+                  <Text style={styles.cellLabel}>{t('label_distance', 'Distance')}</Text>
+                  <Text style={[styles.cellValueBold, { writingDirection: 'ltr' }]}>
+                    {((activeTrip as any)?.distance_km || 164)} {t('unit_km', 'km')}
+                  </Text>
                 </View>
               </View>
 
@@ -366,7 +370,7 @@ const TripCompletedScreen = () => {
                   <CheckCircle2 size={11} color="#10B981" strokeWidth={2.2} />
                 </View>
                 <View style={styles.cellTextWrapper}>
-                  <Text style={styles.cellLabel}>Delivery Completed</Text>
+                  <Text style={styles.cellLabel}>{t('label_delivery_completed', 'Delivery Completed')}</Text>
                   <Text style={styles.cellValueBold}>{formattedDeliveryDate}</Text>
                 </View>
               </View>
@@ -379,7 +383,7 @@ const TripCompletedScreen = () => {
                   <PackageCheck size={11} color="#10B981" strokeWidth={2.2} />
                 </View>
                 <View style={styles.cellTextWrapper}>
-                  <Text style={styles.cellLabel}>Loading Completed</Text>
+                  <Text style={styles.cellLabel}>{t('label_loading_completed', 'Loading Completed')}</Text>
                   <Text style={styles.cellValueBold}>{formattedLoadingDate}</Text>
                 </View>
               </View>
@@ -390,7 +394,7 @@ const TripCompletedScreen = () => {
                     <PackageCheck size={11} color="#FA634E" strokeWidth={2.2} />
                   </View>
                   <View style={styles.cellTextWrapper}>
-                    <Text style={styles.cellLabel}>Return Loading Completed</Text>
+                    <Text style={styles.cellLabel}>{t('label_return_loading_done', 'Return Loading Completed')}</Text>
                     <Text style={styles.cellValueBold}>{formattedReturnLoadingDate}</Text>
                   </View>
                 </View>
@@ -407,7 +411,7 @@ const TripCompletedScreen = () => {
                     <CheckCircle2 size={11} color="#FA634E" strokeWidth={2.2} />
                   </View>
                   <View style={styles.cellTextWrapper}>
-                    <Text style={styles.cellLabel}>Return Delivery Completed</Text>
+                    <Text style={styles.cellLabel}>{t('label_return_delivery_done', 'Return Delivery Completed')}</Text>
                     <Text style={styles.cellValueBold}>{formattedReturnDeliveryDate}</Text>
                   </View>
                 </View>
@@ -423,11 +427,11 @@ const TripCompletedScreen = () => {
           <View style={styles.mediaSectionHeader}>
             <View style={styles.mediaSectionTitleGroup}>
               <PackageCheck size={18} color="#10B981" strokeWidth={2.2} />
-              <Text style={styles.mediaSectionTitle}>Proof of Loading (POL)</Text>
+              <Text style={styles.mediaSectionTitle}>{t('title_proof_loading', 'Proof of Loading (POL)')}</Text>
             </View>
             {polList.length > 0 && (
               <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
-                <Text style={styles.viewAllText}>View all ›</Text>
+                <Text style={styles.viewAllText}>{t('action_view_all', 'View all')} {language === 'ur' ? '‹' : '›'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -435,7 +439,7 @@ const TripCompletedScreen = () => {
           {polList.length === 0 ? (
             <View style={styles.emptyPhotoBox}>
               <PackageCheck size={18} color="#94A3B8" />
-              <Text style={styles.emptyPhotoText}>No loading photo attached</Text>
+              <Text style={styles.emptyPhotoText}>{t('msg_no_loading_photo', 'No loading photo attached')}</Text>
             </View>
           ) : (
             <View style={styles.mediaGrid}>
@@ -447,7 +451,7 @@ const TripCompletedScreen = () => {
                     key={idx}
                     style={styles.mediaThumbFrame}
                     activeOpacity={0.8}
-                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Loading (POL) #${idx + 1}` })}
+                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `${t('title_proof_loading', 'Proof of Loading (POL)')} #${idx + 1}` })}
                   >
                     <Image
                       source={{ uri: photoUri }}
@@ -466,11 +470,11 @@ const TripCompletedScreen = () => {
           <View style={styles.mediaSectionHeader}>
             <View style={styles.mediaSectionTitleGroup}>
               <CheckCircle2 size={18} color="#10B981" strokeWidth={2.2} />
-              <Text style={styles.mediaSectionTitle}>Proof of Delivery (POD)</Text>
+              <Text style={styles.mediaSectionTitle}>{t('title_proof_delivery', 'Proof of Delivery (POD)')}</Text>
             </View>
             {podList.length > 0 && (
               <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
-                <Text style={styles.viewAllText}>View all ›</Text>
+                <Text style={styles.viewAllText}>{t('action_view_all', 'View all')} {language === 'ur' ? '‹' : '›'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -478,7 +482,7 @@ const TripCompletedScreen = () => {
           {podList.length === 0 ? (
             <View style={styles.emptyPhotoBox}>
               <CheckCircle2 size={18} color="#94A3B8" />
-              <Text style={styles.emptyPhotoText}>No delivery photo attached</Text>
+              <Text style={styles.emptyPhotoText}>{t('msg_no_delivery_photo', 'No delivery photo attached')}</Text>
             </View>
           ) : (
             <View style={styles.mediaGrid}>
@@ -490,7 +494,7 @@ const TripCompletedScreen = () => {
                     key={idx}
                     style={styles.mediaThumbFrame}
                     activeOpacity={0.8}
-                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `Proof of Delivery (POD) #${idx + 1}` })}
+                    onPress={() => setSelectedPhoto({ uri: photoUri, title: `${t('title_proof_delivery', 'Proof of Delivery (POD)')} #${idx + 1}` })}
                   >
                     <Image
                       source={{ uri: photoUri }}
@@ -510,11 +514,11 @@ const TripCompletedScreen = () => {
               <View style={styles.mediaSectionHeader}>
                 <View style={styles.mediaSectionTitleGroup}>
                   <PackageCheck size={18} color="#FA634E" strokeWidth={2.2} />
-                  <Text style={styles.mediaSectionTitle}>Return Proof of Loading (Return POL)</Text>
+                  <Text style={styles.mediaSectionTitle}>{language === 'ur' ? 'واپسی لوڈنگ کا ثبوت (Return POL)' : 'Return Proof of Loading (Return POL)'}</Text>
                 </View>
                 {returnPolList.length > 0 && (
                   <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
-                    <Text style={styles.viewAllText}>View all ›</Text>
+                    <Text style={styles.viewAllText}>{t('action_view_all', 'View all')} {language === 'ur' ? '‹' : '›'}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -522,7 +526,7 @@ const TripCompletedScreen = () => {
               {returnPolList.length === 0 ? (
                 <View style={styles.emptyPhotoBox}>
                   <PackageCheck size={18} color="#94A3B8" />
-                  <Text style={styles.emptyPhotoText}>No return loading photo attached</Text>
+                  <Text style={styles.emptyPhotoText}>{language === 'ur' ? 'واپسی لوڈنگ کی کوئی تصویر منسلک نہیں ہے' : 'No return loading photo attached'}</Text>
                 </View>
               ) : (
                 <View style={styles.mediaGrid}>
@@ -534,7 +538,7 @@ const TripCompletedScreen = () => {
                         key={idx}
                         style={styles.mediaThumbFrame}
                         activeOpacity={0.8}
-                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `Return Proof of Loading #${idx + 1}` })}
+                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `${language === 'ur' ? 'واپسی لوڈنگ کا ثبوت' : 'Return Proof of Loading'} #${idx + 1}` })}
                       >
                         <Image
                           source={{ uri: photoUri }}
@@ -556,11 +560,11 @@ const TripCompletedScreen = () => {
               <View style={styles.mediaSectionHeader}>
                 <View style={styles.mediaSectionTitleGroup}>
                   <CheckCircle2 size={18} color="#FA634E" strokeWidth={2.2} />
-                  <Text style={styles.mediaSectionTitle}>Return Proof of Delivery (Return POD)</Text>
+                  <Text style={styles.mediaSectionTitle}>{language === 'ur' ? 'واپسی ڈلیوری کا ثبوت (Return POD)' : 'Return Proof of Delivery (Return POD)'}</Text>
                 </View>
                 {returnPodList.length > 0 && (
                   <TouchableOpacity style={styles.viewAllBtn} activeOpacity={0.7} onPress={() => router.push('/cargo-pod-photos')}>
-                    <Text style={styles.viewAllText}>View all ›</Text>
+                    <Text style={styles.viewAllText}>{t('action_view_all', 'View all')} {language === 'ur' ? '‹' : '›'}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -568,7 +572,7 @@ const TripCompletedScreen = () => {
               {returnPodList.length === 0 ? (
                 <View style={styles.emptyPhotoBox}>
                   <CheckCircle2 size={18} color="#94A3B8" />
-                  <Text style={styles.emptyPhotoText}>No return delivery photo attached</Text>
+                  <Text style={styles.emptyPhotoText}>{language === 'ur' ? 'واپسی ڈلیوری کی کوئی تصویر منسلک نہیں ہے' : 'No return delivery photo attached'}</Text>
                 </View>
               ) : (
                 <View style={styles.mediaGrid}>
@@ -580,7 +584,7 @@ const TripCompletedScreen = () => {
                         key={idx}
                         style={styles.mediaThumbFrame}
                         activeOpacity={0.8}
-                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `Return Proof of Delivery #${idx + 1}` })}
+                        onPress={() => setSelectedPhoto({ uri: photoUri, title: `${language === 'ur' ? 'واپسی ڈلیوری کا ثبوت' : 'Return Proof of Delivery'} #${idx + 1}` })}
                       >
                         <Image
                           source={{ uri: photoUri }}
@@ -600,12 +604,12 @@ const TripCompletedScreen = () => {
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity style={styles.shareBtn} activeOpacity={0.8} onPress={() => setShowDetails(false)}>
             <ArrowLeft size={16} color="#10B981" strokeWidth={2.2} />
-            <Text style={styles.shareBtnText}>BACK TO SUMMARY</Text>
+            <Text style={styles.shareBtnText}>{t('action_back', 'BACK TO SUMMARY')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.homeBtn} activeOpacity={0.85} onPress={handleBackHome}>
             <Home size={16} color="#FFFFFF" strokeWidth={2.2} />
-            <Text style={styles.homeBtnText}>BACK TO HOME</Text>
+            <Text style={styles.homeBtnText}>{language === 'ur' ? 'ہوم اسکرین پر جائیں' : 'BACK TO HOME'}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -29,7 +29,7 @@ function openFile(fileUrl: string) {
 
 const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
   const st = docStatus(doc);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <View style={[styles.card, st.kind === 'expired' ? styles.cardExpired : null]}>
       <View style={styles.cardHeader}>
@@ -38,7 +38,7 @@ const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.docTitle}>{docTypeLabel(doc.doc_type)}</Text>
-          {doc.issue_date ? <Text style={styles.docNumber}>Issued {formatDate(doc.issue_date)}</Text> : null}
+          {doc.issue_date ? <Text style={styles.docNumber}>{language === 'ur' ? `تاریخ اجراء ${formatDate(doc.issue_date)}` : `Issued ${formatDate(doc.issue_date)}`}</Text> : null}
         </View>
         <StatusBadge status={st.label} />
       </View>
@@ -106,7 +106,7 @@ const DocumentsScreen = () => {
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
-            <Text style={styles.emptyText}>{error ?? 'No documents on file.'}</Text>
+            <Text style={styles.emptyText}>{error ?? t('msg_no_trips_found', 'No documents on file.')}</Text>
           )
         }
       />

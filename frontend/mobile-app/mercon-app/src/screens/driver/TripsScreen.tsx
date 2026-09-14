@@ -6,8 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
-  Building2, Calendar, CheckCircle2, ChevronRight, Wallet,
-  ArrowRight, CalendarClock, TriangleAlert,
+  Building2, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Wallet,
+  ArrowRight, ArrowLeft, CalendarClock, TriangleAlert,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { SearchInput, DriverChargePill } from '../../components';
@@ -16,7 +16,7 @@ import { useScheduledTrips } from '../../lib/use-scheduled-trips';
 import { useTripHistory } from '../../lib/use-trip-history';
 import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { matchesSearch } from '../../lib/search';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, formatCurrency, getLocalizedStatus, LanguageMode } from '../../lib/language-context';
 import { API_URL } from '../../lib/api';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
@@ -31,15 +31,15 @@ function formatDateTime(iso?: string | null): string {
   return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatRelativeDate(iso?: string | null): string {
-  if (!iso) return 'Scheduled';
+function formatRelativeDate(iso?: string | null, lang: LanguageMode = 'en'): string {
+  if (!iso) return lang === 'ur' ? 'شیڈول شدہ' : 'Scheduled';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Scheduled';
+  if (Number.isNaN(d.getTime())) return lang === 'ur' ? 'شیڈول شدہ' : 'Scheduled';
   const now = new Date();
   const diffDays = Math.round((d.getTime() - now.getTime()) / (1000 * 3600 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays === 0) return lang === 'ur' ? 'آج' : 'Today';
+  if (diffDays === 1) return lang === 'ur' ? 'کل' : 'Tomorrow';
+  if (diffDays > 1 && diffDays <= 7) return lang === 'ur' ? `${diffDays} دنوں میں` : `In ${diffDays} days`;
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 }
 
@@ -63,11 +63,6 @@ function extractChargeNumber(val: any): number {
 export function getTripChargeValue(t: MobileTrip | any): number {
   if (!t) return 0;
   return extractChargeNumber(t.driver_charge ?? t.trip_charges);
-}
-
-function formatCharge(val?: any): string {
-  const n = extractChargeNumber(val);
-  return `SAR ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 interface CardData {
@@ -110,12 +105,12 @@ function resolveLogoUrl(rawLogo?: string | null): string | null {
   return isValidUri(fullUrl) ? fullUrl : null;
 }
 
-function toCard(t: MobileTrip, isCompletedTab: boolean): CardData {
+function toCard(t: MobileTrip, isCompletedTab: boolean, lang: LanguageMode = 'en', tr: any = (k: string, fb?: string) => fb || k): CardData {
   const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
   const pickup = t.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = t.stops?.find((s) => s.stop_type === 'Dropoff');
-  const fromCity = stopLabel(pickup, 'Pickup Location') ?? 'Pickup Location';
-  const toCity = stopLabel(dropoff, 'Dropoff Location') ?? 'Dropoff Location';
+  const fromCity = stopLabel(pickup, tr('label_pickup_point', 'Pickup Point')) ?? tr('label_pickup_point', 'Pickup Point');
+  const toCity = stopLabel(dropoff, tr('label_delivery_point', 'Delivery Point')) ?? tr('label_delivery_point', 'Delivery Point');
   const isComp = t.status === 'Completed' || t.status === 'Invoiced' || isCompletedTab;
   const logoUrl = resolveLogoUrl(t.customer?.logo_url || null);
   const chargeValue = getTripChargeValue(t);
@@ -128,16 +123,16 @@ function toCard(t: MobileTrip, isCompletedTab: boolean): CardData {
     logoUrl,
     fromCity,
     toCity,
-    statusText: statusLabel(t.status),
+    statusText: getLocalizedStatus(t.status, lang),
     rawStatus: t.status,
     isCompleted: isComp,
     dateFormatted: formatDateTime(dateSource),
-    relativeDate: formatRelativeDate(dateSource),
-    chargeText: formatCharge(chargeValue),
+    relativeDate: formatRelativeDate(dateSource, lang),
+    chargeText: formatCurrency(chargeValue, lang),
   };
 }
 
-const TripCard = ({ item, onPress, t }: { item: CardData; onPress: () => void; t: any }) => {
+const TripCard = ({ item, onPress, t, language }: { item: CardData; onPress: () => void; t: any; language: LanguageMode }) => {
   const [imgError, setImgError] = useState(false);
   const showLogo = item.logoUrl && isValidUri(item.logoUrl) && !imgError;
 
@@ -166,7 +161,7 @@ const TripCard = ({ item, onPress, t }: { item: CardData; onPress: () => void; t
               {item.title}
             </Text>
             <Text style={styles.tripIdSubtext} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
-              {t('label_trip_id', 'Trip ID')} · TRP-{item.displayId}
+              {t('label_trip_id', 'Trip ID')} · <Text style={{ writingDirection: 'ltr' }}>TRP-{item.displayId}</Text>
             </Text>
           </View>
         </View>
@@ -191,7 +186,11 @@ const TripCard = ({ item, onPress, t }: { item: CardData; onPress: () => void; t
       {/* 2. Route Row */}
       <View style={styles.routeRow}>
         <Text style={styles.routeOriginText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{item.fromCity}</Text>
-        <ArrowRight size={16} color="#FA634E" strokeWidth={2.5} style={styles.routeArrow} />
+        {language === 'ur' ? (
+          <ArrowLeft size={16} color="#FA634E" strokeWidth={2.5} style={styles.routeArrow} />
+        ) : (
+          <ArrowRight size={16} color="#FA634E" strokeWidth={2.5} style={styles.routeArrow} />
+        )}
         <Text style={styles.routeDestText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{item.toCity}</Text>
       </View>
 
@@ -219,13 +218,17 @@ const TripCard = ({ item, onPress, t }: { item: CardData; onPress: () => void; t
               {t('label_driver_charge', 'Driver Charge')}
             </Text>
           </View>
-          <Text style={[styles.chargeValue, item.isCompleted ? styles.chargeValueCompleted : styles.chargeValueScheduled]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+          <Text style={[styles.chargeValue, item.isCompleted ? styles.chargeValueCompleted : styles.chargeValueScheduled, { writingDirection: 'ltr' }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
             {item.chargeText}
           </Text>
         </View>
 
         {/* Action Chevron */}
-        <ChevronRight size={18} color="#9898A4" strokeWidth={2.2} style={styles.cardChevron} />
+        {language === 'ur' ? (
+          <ChevronLeft size={18} color="#9898A4" strokeWidth={2.2} style={styles.cardChevron} />
+        ) : (
+          <ChevronRight size={18} color="#9898A4" strokeWidth={2.2} style={styles.cardChevron} />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -280,9 +283,9 @@ const TripsScreen = ({ navigation }: any) => {
     const isCompTab = selectedTab === 'Completed';
     const source = isCompTab ? historyList : scheduledTripsCombined;
     return source
-      .map((t) => toCard(t, isCompTab))
+      .map((tripItem) => toCard(tripItem, isCompTab, language, t))
       .filter((c) => matchesSearch(search, [c.displayId, c.title, c.fromCity, c.toCity]));
-  }, [selectedTab, scheduledTripsCombined, historyList, search]);
+  }, [selectedTab, scheduledTripsCombined, historyList, search, language, t]);
 
   const onRefresh = () => {
     refetchCurrent();
@@ -310,7 +313,7 @@ const TripsScreen = ({ navigation }: any) => {
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder={t('placeholder_search_trips', 'Search by trip ID, customer, route...')}
+        placeholder={t('label_search_trips', 'Search trips by ID, city, customer...')}
         style={styles.searchContainer}
       />
 
@@ -381,20 +384,20 @@ const TripsScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={loading && cards.length > 0} onRefresh={onRefresh} tintColor="#FA634E" />
         }
         renderItem={({ item }) => (
-          <TripCard item={item} onPress={() => handleCardPress(item.tripId)} t={t} />
+          <TripCard item={item} onPress={() => handleCardPress(item.tripId)} t={t} language={language} />
         )}
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyBox}>
               <ActivityIndicator color="#FA634E" size="large" />
-              <Text style={styles.loadingText}>Loading trips…</Text>
+              <Text style={styles.loadingText}>{t('msg_loading_trips', 'Loading trips…')}</Text>
             </View>
           ) : error ? (
             <View style={styles.emptyBox}>
               <View style={styles.emptyIconCircle}>
                 <TriangleAlert size={30} color="#EAB308" strokeWidth={2} />
               </View>
-              <Text style={styles.emptyTitle}>Couldn't load trips</Text>
+              <Text style={styles.emptyTitle}>{t('err_cannot_reach_server', "Couldn't load trips")}</Text>
               <Text style={styles.emptySub}>{error}</Text>
             </View>
           ) : (

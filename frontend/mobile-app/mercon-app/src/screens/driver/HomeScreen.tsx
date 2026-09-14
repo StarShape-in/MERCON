@@ -9,7 +9,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import {
   MapPin, Globe, Clock, ChevronRight, ChevronDown, Building2, Navigation,
-  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, Route, House, Camera, Settings, RotateCcw,
+  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, ArrowLeft, Route, House, Camera, Settings, RotateCcw,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
@@ -17,7 +17,7 @@ import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, getLocalizedStatus } from '../../lib/language-context';
 import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
 
 import { getTripChargeValue } from './DriverChargesScreen';
@@ -26,15 +26,15 @@ const WORKFLOW_URDU_LABEL: Record<string, string> = {
   ASSIGNED: 'ٹرپ شروع کریں',
   GOING_TO_PICKUP: 'پک اپ پر جائیں',
   ARRIVED_AT_PICKUP: 'لوڈنگ شروع کریں',
-  LOADING: 'ٹرپ شروع کریں',
+  LOADING: 'لوڈنگ مکمل کریں',
   IN_TRANSIT: 'ڈلیوری پر جائیں',
-  ARRIVED_AT_DELIVERY: 'ان لوڈ اور تصدیق کریں',
-  DELIVERY_VERIFICATION: 'ان لوڈ اور تصدیق کریں',
+  ARRIVED_AT_DELIVERY: 'ڈلیوری مکمل کریں',
+  DELIVERY_VERIFICATION: 'ڈلیوری مکمل کریں',
   FIRST_DELIVERY_COMPLETED: 'واپسی لوڈنگ شروع کریں',
-  RETURN_LOADING: 'واپسی ٹرپ شروع کریں',
-  IN_TRANSIT_RETURN: 'فائنل ڈلیوری پر جائیں',
-  ARRIVED_AT_FINAL_DELIVERY: 'فائنل ان لوڈ اور تصدیق',
-  FINAL_DELIVERY_VERIFICATION: 'فائنل ان لوڈ اور تصدیق',
+  RETURN_LOADING: 'واپسی لوڈنگ مکمل کریں',
+  IN_TRANSIT_RETURN: 'واپسی ڈلیوری پر جائیں',
+  ARRIVED_AT_FINAL_DELIVERY: 'واپسی ڈلیوری مکمل کریں',
+  FINAL_DELIVERY_VERIFICATION: 'واپسی ڈلیوری مکمل کریں',
   REVIEW_COMPLETE: 'ٹرپ مکمل کریں',
 };
 
@@ -133,10 +133,28 @@ const HomeScreen = () => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
     const ws = getEffectiveWorkflowState(trip);
-    if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+    if (ws === 'GOING_TO_PICKUP') {
       router.push('/trip/navigate');
     } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
       router.push('/trip/pickup');
+    } else if (
+      ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'STOP_VERIFICATION' ||
+      ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION'
+    ) {
+      const isReturn = ws.includes('RETURN');
+      router.push({ pathname: '/trip/stop', params: { legIndex: isReturn ? '1' : '0' } });
+    } else if (ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+      const isReturn = ws === 'IN_TRANSIT_RETURN';
+      const legIdx = isReturn ? 1 : 0;
+      const legStops = (trip.stops || []).filter((s) => (s.leg_index ?? 0) === legIdx);
+      const hasUncompletedIntermediate = legStops.some(
+        (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+      );
+      if (hasUncompletedIntermediate) {
+        router.push({ pathname: '/trip/stop', params: { legIndex: isReturn ? '1' : '0' } });
+      } else {
+        router.push('/trip/navigate');
+      }
     } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
       router.push('/trip/delivery');
     }
@@ -245,12 +263,24 @@ const HomeScreen = () => {
           btnLabel: 'Verify Stop & Upload Photo',
           onPress: () => router.push('/trip/stop'),
         };
-      case 'IN_TRANSIT':
+      case 'IN_TRANSIT': {
+        const legStops = (t.stops || []).filter((s) => (s.leg_index ?? 0) === 0);
+        const uncompletedStop = legStops.find(
+          (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+        );
+        if (uncompletedStop || (hasStops && (t.driver_workflow_state || '').includes('STOP'))) {
+          return {
+            badgeLabel: 'At Intermediate Stop',
+            btnLabel: 'Verify Stop & Upload Photo',
+            onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '0' } }),
+          };
+        }
         return {
           badgeLabel: 'In Transit',
           btnLabel: 'Go to Delivery',
           onPress: () => router.push('/trip/navigate'),
         };
+      }
       case 'ARRIVED_AT_DELIVERY':
       case 'DELIVERY_VERIFICATION':
         return {
@@ -293,12 +323,24 @@ const HomeScreen = () => {
           btnLabel: 'Verify Return Stop & Upload Photo',
           onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '1' } }),
         };
-      case 'IN_TRANSIT_RETURN':
+      case 'IN_TRANSIT_RETURN': {
+        const legStops = (t.stops || []).filter((s) => (s.leg_index ?? 0) === 1);
+        const uncompletedStop = legStops.find(
+          (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+        );
+        if (uncompletedStop || (hasReturnStops && (t.driver_workflow_state || '').includes('STOP'))) {
+          return {
+            badgeLabel: 'At Return Stop',
+            btnLabel: 'Verify Return Stop & Upload Photo',
+            onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '1' } }),
+          };
+        }
         return {
           badgeLabel: 'In Transit (Return)',
           btnLabel: 'Go to Return Delivery',
           onPress: () => router.push('/trip/navigate'),
         };
+      }
       case 'ARRIVED_AT_FINAL_DELIVERY':
       case 'FINAL_DELIVERY_VERIFICATION':
         return {
@@ -385,7 +427,7 @@ const HomeScreen = () => {
           ) : error && !displayTrip ? (
             <View style={styles.centerBox}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
+              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>{t('action_tap_to_retry', 'Tap to retry')}</Text></TouchableOpacity>
             </View>
           ) : !displayTrip ? (
             <View style={styles.emptyCard}>
@@ -434,16 +476,26 @@ const HomeScreen = () => {
                         if (!activeStop || (activeStop.leg_index ?? 0) === 0) {
                           const activeOutIdx = outboundStops.findIndex((s) => !s.actual_departure);
                           const num = activeOutIdx >= 0 ? activeOutIdx + 1 : outboundStops.length;
-                          badgeStr = `Outbound: ${num}/${outboundStops.length}`;
+                          badgeStr = language === 'ur'
+                            ? `روانگی: ${num}/${outboundStops.length}`
+                            : language === 'ur-en'
+                            ? `روانگی / Outbound: ${num}/${outboundStops.length}`
+                            : `Outbound: ${num}/${outboundStops.length}`;
                         } else {
                           const activeRetIdx = returnStops.findIndex((s) => !s.actual_departure);
                           const num = activeRetIdx >= 0 ? activeRetIdx + 1 : returnStops.length;
-                          badgeStr = `Return: ${num}/${returnStops.length}`;
+                          badgeStr = language === 'ur'
+                            ? `واپسی: ${num}/${returnStops.length}`
+                            : language === 'ur-en'
+                            ? `واپسی / Return: ${num}/${returnStops.length}`
+                            : `Return: ${num}/${returnStops.length}`;
                         }
                       } else {
                         const activeIdx = stops.findIndex((s) => !s.actual_departure);
                         const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
-                        badgeStr = isRound ? `Leg ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`;
+                        badgeStr = isRound
+                          ? (language === 'ur' ? `لیگ ${currentStopNum}/${stopsCount}` : `Leg ${currentStopNum}/${stopsCount}`)
+                          : (language === 'ur' ? `اسٹاپ ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`);
                       }
 
                       return (
@@ -459,7 +511,7 @@ const HomeScreen = () => {
                   <View style={styles.inProgressBadge}>
                     <View style={styles.coralDot} />
                     <Text style={styles.inProgressText} numberOfLines={1} ellipsizeMode="tail">
-                      {displayTrip.driver_workflow_state ? displayTrip.driver_workflow_state.replace(/_/g, ' ') : statusLabel(displayTrip.status)}
+                      {getLocalizedStatus(displayTrip.driver_workflow_state || displayTrip.status, language)}
                     </Text>
                   </View>
                   <TouchableOpacity style={styles.moreOptionsBtn}>
@@ -470,7 +522,7 @@ const HomeScreen = () => {
 
               {/* Trip ID Row */}
               <View style={styles.tripIdRow}>
-                <Text style={styles.tripIdLabel}>Trip ID</Text>
+                <Text style={styles.tripIdLabel}>{t('label_trip_id', 'Trip ID')}</Text>
                 <Text style={styles.tripIdValue}>
                   {displayTrip.ref_id
                     ? (displayTrip.ref_id.startsWith('TRP-') ? displayTrip.ref_id : `TRP-${displayTrip.ref_id}`)
@@ -493,6 +545,27 @@ const HomeScreen = () => {
                     router.push('/trip/navigate');
                   }
                 };
+
+                if (timelineStops.length === 0) {
+                  const fallbackOrigin = (displayTrip as any).quotation?.name?.split(/→|->|–|-/)[0]?.trim() || displayTrip.origin;
+                  const fallbackDest = (displayTrip as any).quotation?.name?.split(/→|->|–|-/)?.[1]?.replace(/\[.*?\]/g, '')?.trim() || displayTrip.destination;
+
+                  return (
+                    <View style={styles.routeContainer}>
+                      <View style={styles.fallbackRouteBanner}>
+                        <Route size={20} color="#FA634E" strokeWidth={2.2} />
+                        <View style={styles.fallbackRouteTextCol}>
+                          <Text style={styles.fallbackRouteTitle}>
+                            {fallbackOrigin && fallbackDest ? `${fallbackOrigin} → ${fallbackDest}` : 'Route Stops Pending Assignment'}
+                          </Text>
+                          <Text style={styles.fallbackRouteSub}>
+                            {fallbackOrigin && fallbackDest ? 'Detailed GPS checkpoints will sync upon dispatch' : 'Contact dispatch for assigned pickup and delivery stops'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }
 
                 return (
                   <View style={styles.routeContainer}>
@@ -517,7 +590,7 @@ const HomeScreen = () => {
                                 <View style={styles.returnLegDividerLine} />
                                 <View style={styles.returnLegPill}>
                                   <RotateCcw size={11} color="#FA634E" strokeWidth={2.5} />
-                                  <Text style={styles.returnLegPillText}>Return Leg</Text>
+                                  <Text style={styles.returnLegPillText}>{language === 'ur' ? 'واپسی کا سفر' : 'Return Leg'}</Text>
                                 </View>
                                 <View style={styles.returnLegDividerLine} />
                               </View>
@@ -554,7 +627,7 @@ const HomeScreen = () => {
                                 ) : (
                                   /* Stop node — circle with "STOP" text */
                                   <View style={[styles.stopLetterCircle, { borderColor: iconColor }]}>
-                                    <Text style={[styles.stopLetterText, { color: iconColor }]}>STOP</Text>
+                                    <Text style={[styles.stopLetterText, { color: iconColor }]}>{t('label_stop', 'STOP')}</Text>
                                   </View>
                                 )}
                               </View>
@@ -618,7 +691,11 @@ const HomeScreen = () => {
                             primaryStyle={styles.ctaUrduPrimary}
                             subStyle={styles.ctaSubEn}
                           />
-                          <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          {language === 'ur' ? (
+                            <ArrowLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          ) : (
+                            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          )}
                         </View>
                       )}
                     </TouchableOpacity>
@@ -656,13 +733,20 @@ const HomeScreen = () => {
                 subStyle={styles.scheduledSectionEn}
               />
               <TouchableOpacity onPress={() => router.push('/(tabs)/trips' as any)}>
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.viewAllText}>{t('action_view_all', 'View All')}</Text>
               </TouchableOpacity>
             </View>
 
             {remainingScheduled.map((st) => {
               const p = st.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? st.stops?.[0];
               const d = st.stops?.find((s) => s.stop_sequence === (st.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? st.stops?.[st.stops?.length - 1];
+              const quoNameParts = (st as any).quotation?.name ? (st as any).quotation.name.split(/\s*(?:→|->|–|-)\s*/).map((s: string) => s.trim()).filter(Boolean) : [];
+              const originLabel = stopLabel(p) || (st.stops?.length ? null : quoNameParts[0]) || st.origin || 'Pickup';
+              const destLabel = stopLabel(d) || (st.stops?.length ? null : quoNameParts[1]) || st.destination || 'Delivery';
+              const tripRef = st.ref_id
+                ? (st.ref_id.startsWith('TRP-') ? st.ref_id : `TRP-${st.ref_id}`)
+                : `TRP-${st.id.slice(0, 8)}`;
+
               return (
                 <View key={st.id} style={styles.scheduledCard}>
                   <View style={styles.scheduledCardHeader}>
@@ -673,17 +757,17 @@ const HomeScreen = () => {
                       <Text style={styles.scheduledCustomerName} numberOfLines={1}>
                         {st.customer?.name || 'MERCON Customer'}
                       </Text>
-                      <Text style={styles.scheduledTripIdText}>Trip ID · TRP-{st.ref_id ?? st.id.slice(0, 8)}</Text>
+                      <Text style={styles.scheduledTripIdText}>{t('label_trip_id', 'Trip ID')} · {tripRef}</Text>
                     </View>
                     <View style={styles.scheduledPillBadge}>
-                      <Text style={styles.scheduledPillText}>Scheduled</Text>
+                      <Text style={styles.scheduledPillText}>{t('status_scheduled', 'Scheduled')}</Text>
                     </View>
                   </View>
 
                   <View style={styles.scheduledRouteRow}>
-                    <Text style={styles.scheduledCityText} numberOfLines={1}>{stopLabel(p) ?? 'Pickup'}</Text>
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{originLabel}</Text>
                     <ArrowRight size={14} color="#FA634E" strokeWidth={2.2} />
-                    <Text style={styles.scheduledCityText} numberOfLines={1}>{stopLabel(d) ?? 'Delivery'}</Text>
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{destLabel}</Text>
                   </View>
 
                   <View style={styles.scheduledCardFooter}>
@@ -698,7 +782,7 @@ const HomeScreen = () => {
                         router.push('/trip/navigate');
                       }}
                     >
-                      <Text style={styles.startTripSmallBtnText}>Start Trip</Text>
+                      <Text style={styles.startTripSmallBtnText}>{t('action_start_trip', 'Start Trip')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -975,12 +1059,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF0ED',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 14,
-    gap: 5,
+    gap: 4,
     flexShrink: 1,
-    maxWidth: 160,
   },
   coralDot: {
     width: 6,
@@ -1028,6 +1111,31 @@ const styles = StyleSheet.create({
   routeContainer: {
     flexDirection: 'column',
     marginVertical: 4,
+  },
+  fallbackRouteBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F4',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    borderRadius: 14,
+    padding: 12,
+    marginVertical: 6,
+  },
+  fallbackRouteTextCol: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  fallbackRouteTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  fallbackRouteSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6E6E80',
+    marginTop: 2,
   },
   /* A single timeline row: dot column on left, content on right */
   timelineRow: {
