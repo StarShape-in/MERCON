@@ -591,11 +591,11 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
     const firstStop = trip.stops?.[0];
     const lastStop = trip.stops?.[trip.stops.length - 1];
     const aiResult = await analyzeExternalScreenshotWithAI(localFilePath, {
-      ref_id: trip.ref_id,
-      waybill_number: trip.waybill_number || undefined,
+      ref_id: trip.ref_id || undefined,
+      waybill_number: (trip as any).waybill_number || undefined,
       customer_name: trip.customer?.name,
-      origin: firstStop?.location_raw_name || firstStop?.location?.name || undefined,
-      destination: lastStop?.location_raw_name || lastStop?.location?.name || undefined,
+      origin: firstStop?.location_name || firstStop?.location?.name || undefined,
+      destination: lastStop?.location_name || lastStop?.location?.name || undefined,
     });
 
     // 3. Validation and lifecycle transition logic
