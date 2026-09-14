@@ -378,10 +378,19 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   // Live Queries for summary (Admin only) + real trips from API
+  // Wrapped in try/catch: if reports module returns 403 MODULE_DISABLED,
+  // the global axios interceptor redirects to '/' — we swallow it here.
   const { refetch: refetchSummary } = useQuery({
     queryKey: ['dashboard-summary'],
-    queryFn: reportsService.getSummary,
+    queryFn: async () => {
+      try {
+        return await reportsService.getSummary();
+      } catch {
+        return null;
+      }
+    },
     enabled: isAdmin,
+    retry: false,
   });
 
   const { data: tripsRes, refetch: refetchTrips, isLoading: isTripsLoading, isError: isTripsError } = useQuery({

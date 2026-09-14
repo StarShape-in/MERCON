@@ -177,9 +177,19 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
   };
 
   // 1. Fetch auxiliary records
+  // Wrap in try/catch: if the documents module is disabled (403 MODULE_DISABLED),
+  // the global axios interceptor would redirect to '/' — we swallow it here and
+  // return an empty array so the dashboard stays functional.
   const { data: docs = [] } = useQuery({
     queryKey: ['documents', 'all'],
-    queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+    queryFn: async () => {
+      try {
+        return (await documentService.getAll({ per_page: 200 })).data;
+      } catch {
+        return [];
+      }
+    },
+    retry: false,
   });
 
   const { data: drivers = [] } = useQuery({

@@ -72,9 +72,17 @@ export default function MonthlyOverview() {
   const [chartPeriod, setChartPeriod] = useState<PeriodType>('monthly');
 
   // Live Query integration from backend reports summary
+  // try/catch prevents MODULE_DISABLED 403 from triggering global redirect to /
   const { data: summaryData, refetch, isFetching } = useQuery({
     queryKey: ['dashboard-summary'],
-    queryFn: reportsService.getSummary,
+    queryFn: async () => {
+      try {
+        return await reportsService.getSummary();
+      } catch {
+        return null;
+      }
+    },
+    retry: false,
   });
 
   const chartData = useMemo(() => {

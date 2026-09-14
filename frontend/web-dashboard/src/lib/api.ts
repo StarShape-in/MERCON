@@ -18,14 +18,12 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* ─── Response interceptor — handle 401 and 403 ────────────────────────────── */
+/* ─── Response interceptor — handle 401 ────────────────────────────────────── */
 // 401 = token expired / revoked: clear the session and redirect to login.
-// 403 = authenticated but not authorised: do NOT clear the session — let the
-//       calling page surface an inline "you don't have permission" message.
-// MODULE_DISABLED is a narrower case of 403: normal navigation is already
-// blocked client-side by RequireModule, so this only fires for a tab left
-// open on a gated page when a superadmin disables that module mid-session —
-// send it home rather than leaving a broken page up.
+// 403 = authenticated but not authorised: do NOT redirect — let the calling
+//       page handle it inline. RequireModule already blocks gated pages
+//       client-side, so a MODULE_DISABLED 403 on a background query must
+//       never redirect the user away from the page they are on.
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
@@ -45,11 +43,11 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
-    } else if (errCode === 'MODULE_DISABLED') {
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
     }
+    // MODULE_DISABLED: do NOT redirect here. Background queries (documents,
+    // reports) can return MODULE_DISABLED on dashboards/trip-detail pages
+    // that are not themselves gated — redirecting would bounce the user away
+    // from unrelated pages. RequireModule handles route-level gating.
     return Promise.reject(error);
   }
 );
