@@ -114,29 +114,29 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
       <div className="relative w-full flex-1 flex flex-col pt-8 pb-2">
         {/* Progress Track Bar Row */}
         <div className="relative flex items-center justify-between w-full px-6 sm:px-10 h-6">
-          {/* Track Line Background */}
-          <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          {/* Track Line Background (Solid #FA634E Orange - No multi-shaded gradient) */}
+          <div className="absolute left-10 right-10 top-1/2 -translate-y-1/2 h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-[#FA634E] via-[#FA634E] to-emerald-500 rounded-full transition-all duration-500 shadow-xs"
+              className="h-full bg-[#FA634E] rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
 
-          {/* Minimal 2D Orange Truck Marker (Riding directly ON the route line) */}
+          {/* Minimal 2D Orange Truck Marker (Integrated directly ON top of the route line) */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
+            className="absolute top-1/2 -translate-y-[calc(100%-6px)] z-30 transition-all duration-700 pointer-events-none transform -translate-x-1/2"
             style={{
               left: `calc(2.5rem + (100% - 5rem) * (${truckPositionPercent} / 100))`,
             }}
           >
             <div className="relative flex flex-col items-center">
               {/* Status pill badge above truck */}
-              <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10.5px] font-black shadow-xs whitespace-nowrap">
+              <div className="mb-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black shadow-xs whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 <span>{progressPercent === 100 ? 'Delivered' : progressPercent > 0 ? 'In Transit' : 'Scheduled'}</span>
               </div>
 
-              {/* Minimal 2D Orange Truck SVG */}
+              {/* Minimal 2D Orange Truck SVG integrated on the track */}
               <svg
                 viewBox="0 0 72 30"
                 className="w-20 h-9 sm:w-24 sm:h-10 filter drop-shadow-md"
