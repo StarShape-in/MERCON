@@ -1004,10 +1004,10 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                       const res = await tripService.shareMediaWhatsApp(tripId, { category });
                       if (res.success && res.data) {
                         if (res.data.isCloudApi) {
-                          toast.success(`WhatsApp Cloud API message dispatched. Click 'Mark Completed' when done.`);
+                          toast.success(`WhatsApp Cloud API message dispatched.`);
                         } else if (res.data.whatsappWebUrl) {
                           window.open(res.data.whatsappWebUrl, '_blank');
-                          toast.success('WhatsApp web message opened. Click \'Mark Completed\' when verified.');
+                          toast.success('WhatsApp web message opened.');
                         }
                       }
                     } catch (err: any) {
@@ -1030,7 +1030,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                         : `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
                       window.open(target, '_blank');
-                      toast.success('WhatsApp web message opened. Click \'Mark Completed\' when verified.');
+                      toast.success('WhatsApp web message opened.');
                     } finally {
                       setIsSharingWhatsApp(false);
                       setConfirmItem(selectedItem);
@@ -1044,20 +1044,6 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                     <WhatsAppIcon className="w-4 h-4 fill-current shrink-0" />
                   )}
                   <span>Share to WhatsApp</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (window.confirm(`Mark ${selectedItem.badgeLabel} for ${selectedItem.tripRef || selectedItem.entityName} as completed & verified?`)) {
-                      markItemHandled(selectedItem.id);
-                      toast.success(`Alert ${selectedItem.tripRef || selectedItem.entityName} marked as completed ✓`);
-                    }
-                  }}
-                  className="h-8 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer rounded-xl px-3 shrink-0"
-                >
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Mark Completed</span>
                 </Button>
 
                 <Button
