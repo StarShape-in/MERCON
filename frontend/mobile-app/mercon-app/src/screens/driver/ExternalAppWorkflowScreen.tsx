@@ -132,8 +132,14 @@ export const ExternalAppWorkflowScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* 4-Step Progress Stepper */}
-        <TripProgressStepper currentStep={getStepperStep()} isCompletedAll={isCompleted} />
+        {/* 4-Step Progress Stepper showing route location names */}
+        <TripProgressStepper
+          currentStep={getStepperStep()}
+          isCompletedAll={isCompleted}
+          customStep1Label={stopLabel(pickupStop) ?? 'Pickup'}
+          customStep2Label="In Transit"
+          customStep3Label={stopLabel(dropoffStop) ?? 'Delivery'}
+        />
 
         {/* Card 1: Hero Overview */}
         <View style={styles.heroCard}>
@@ -208,7 +214,7 @@ export const ExternalAppWorkflowScreen = () => {
               ) : (
                 <>
                   <Upload size={18} color="#FFFFFF" strokeWidth={2.2} />
-                  <Text style={styles.uploadActionText}>Verify Milestone</Text>
+                  <Text style={styles.uploadActionText}>Analyse & Update Progress</Text>
                 </>
               )}
             </TouchableOpacity>
