@@ -156,6 +156,8 @@ export function useTripSlotsState() {
               rateMatched: false,
               matchedRateCard: null,
               rateCardId: undefined,
+              billingAmount: '',
+              driverPayout: '',
             }
           : s
       )
@@ -174,6 +176,8 @@ export function useTripSlotsState() {
               rateMatched: false,
               matchedRateCard: null,
               rateCardId: undefined,
+              billingAmount: '',
+              driverPayout: '',
             }
           : s
       )
@@ -195,6 +199,8 @@ export function useTripSlotsState() {
           rateMatched: false,
           matchedRateCard: null,
           rateCardId: undefined,
+          billingAmount: '',
+          driverPayout: '',
         };
       })
     );

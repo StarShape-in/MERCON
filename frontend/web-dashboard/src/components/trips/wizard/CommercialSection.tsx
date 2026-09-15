@@ -66,17 +66,27 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   );
 
   const effectiveRateCards = React.useMemo(() => {
+    const laneCards = primarySlot ? getAvailableRateCardsForLane(primarySlot) || [] : [];
+    const hasRouteSpec = Boolean(
+      primarySlot?.origin ||
+      primarySlot?.destination ||
+      primarySlot?.originLocationId ||
+      primarySlot?.destinationLocationId
+    );
+
+    if (hasRouteSpec && laneCards.length > 0) {
+      return laneCards;
+    }
     if (customerRateCards && customerRateCards.length > 0) {
       return customerRateCards;
     }
-    if (availableRateCards && availableRateCards.length > 0) {
-      return availableRateCards;
-    }
-    return primarySlot ? getAvailableRateCardsForLane(primarySlot) || [] : [];
-  }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane, primarySlot]);
+    return laneCards;
+  }, [customerRateCards, getAvailableRateCardsForLane, primarySlot]);
 
-  const matchedRateCard = primarySlot.matchedRateCard || null;
-  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
+  const matchedRateCard = primarySlot.rateMatched ? primarySlot.matchedRateCard : null;
+  const activeSelectedId = primarySlot.rateMatched && (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
+    ? (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
+    : null;
 
   // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {

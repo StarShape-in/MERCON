@@ -495,10 +495,14 @@ export function useCreateTripForm() {
       [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
       [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
       rateMatched: false,
+      matchedRateCard: null,
+      rateCardId: undefined,
+      billingAmount: '',
+      driverPayout: '',
     });
 
     setTimeout(() => {
-      triggerRateLookupForSlots();
+      triggerRateLookupForSlots(undefined, undefined, undefined, undefined, true);
     }, 100);
   };
 
@@ -580,7 +584,7 @@ export function useCreateTripForm() {
   }, [contractSlots]);
 
   const triggerRateLookupForSlots = useCallback(
-    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
+    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string, forceRelookup = false) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
       const vType = overrideVehicleType !== undefined ? overrideVehicleType : contractVehicleType;
       const rCat = overrideRateCategory !== undefined ? overrideRateCategory : contractRateCategory;
@@ -594,8 +598,8 @@ export function useCreateTripForm() {
         .then(async ({ quotationService }) => {
           const updatedSlots = await Promise.all(
             currentSlots.map(async (slot) => {
-              // Always preserve selected quotation card on slot to prevent background lookup overwrites
-              if (slot.matchedRateCard) {
+              // Only preserve matchedRateCard if NOT forceRelookup
+              if (!forceRelookup && slot.matchedRateCard && slot.rateMatched) {
                 return slot;
               }
 
