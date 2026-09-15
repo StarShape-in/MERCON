@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { normalizeRateCategory, normalizeVehicleClass } from '@/utils/taxonomyRegistry';
+import { normalizeRateCategory, normalizeVehicleClass, normalizeBillingType } from '@/utils/taxonomyRegistry';
 
 export interface RateCardItem {
   id: string;
@@ -15,6 +15,8 @@ export interface RateCardItem {
   lineType?: string;
   billing_type?: string;
   billingType?: string;
+  operation_type?: string;
+  quotation_operation_type?: string;
   pricing_basis?: string;
   quotation_billing_type?: string;
   driver_payout?: number | string;
@@ -79,8 +81,9 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
   const rawCat = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
   const rCat = normalizeRateCategory(rawCat);
 
-  const cardBType = (rc.quotation_billing_type || rc.billing_type || rc.billingType || rc.pricing_basis || '').toLowerCase();
-  const isMonthlyCard = cardBType.includes('monthly') || cardBType.includes('month');
+  const rawBType = rc.operation_type || rc.quotation_operation_type || rc.billing_type || rc.billingType || rc.pricing_basis || rc.quotation_billing_type;
+  const cardBType = normalizeBillingType(rawBType);
+  const isMonthlyCard = cardBType === 'Monthly';
 
   const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
   const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;

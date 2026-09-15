@@ -80,7 +80,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     const targetBt = normalizeBillingType(contractBillingType);
 
     return effectiveRateCards.filter((rc) => {
-      const rcRaw = rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
+      const rcRaw = (rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
       const rcBt = normalizeBillingType(rcRaw);
       return rcBt === targetBt;
     });
