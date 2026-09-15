@@ -73,6 +73,7 @@ export interface DataTableProps<T> {
   isSelectionMode?: boolean;
   onSelectionModeChange?: (active: boolean) => void;
   hideSelectButton?: boolean;
+  rowClassName?: (row: T) => string;
 }
 
 export default function DataTable<T>({
@@ -114,6 +115,7 @@ export default function DataTable<T>({
   isSelectionMode: controlledSelectionMode,
   onSelectionModeChange,
   hideSelectButton = false,
+  rowClassName,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
   const [internalPage, setInternalPage] = useState(1);
@@ -446,7 +448,8 @@ export default function DataTable<T>({
                         ? "bg-indigo-50/25 dark:bg-indigo-950/20 hover:bg-indigo-50/45 dark:hover:bg-indigo-950/30" 
                         : (isSelectionMode || onRowClick)
                           ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" 
-                          : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                          : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40",
+                      rowClassName?.(row)
                     )}
                     style={{ animationDelay: `${rowIndex * 0.02}s` }}
                     tabIndex={(isSelectionMode || onRowClick) ? 0 : undefined}

@@ -30,7 +30,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authStore } from '@/store/authStore';
 import { userService, UserDTO } from '@/services/userService';
-import { driverService, Driver } from '@/services/driverService';
+import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import UserModal from './components/UserModal';
 import DriverPasswordModal from './components/DriverPasswordModal';
 
@@ -88,7 +88,7 @@ export default function UserManagementPage() {
     error: driversError,
   } = useQuery({
     queryKey: ['drivers', 'for-user-management'],
-    queryFn: () => driverService.getAll(),
+    queryFn: () => driverService.getAll({ per_page: 5000 }),
   });
 
   const driversList: Driver[] = driversRes?.data || [];
@@ -198,7 +198,7 @@ export default function UserManagementPage() {
     mutationFn: ({ id, data }: { id: string; data: any }) => userService.updateUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User updated successfully');
+      toast.success('User status updated successfully');
       setIsModalOpen(false);
     },
     onError: (err: any) => {
@@ -206,14 +206,26 @@ export default function UserManagementPage() {
     }
   });
 
+  const updateDriverStatusMutation = useMutation({
+    mutationFn: ({ driverId, status }: { driverId: string; status: DriverStatus }) =>
+      driverService.update(driverId, { status }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['drivers', 'for-user-management'] });
+      toast.success(`Driver account ${variables.status === 'Inactive' ? 'deactivated' : 'activated'}`);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error?.message || 'Failed to update driver status');
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: userService.deleteUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User status updated');
+      toast.success('User deleted successfully');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Failed to update user status');
+      toast.error(err.response?.data?.error?.message || 'Failed to delete user');
     }
   });
 
@@ -254,7 +266,7 @@ export default function UserManagementPage() {
       if (u.originalUser) {
         updateMutation.mutate({ id: u.originalUser.id, data: { status: newStatus } });
       } else if (u.originalDriver) {
-        toast.success(`Driver ${u.name} ${actionText}d`);
+        updateDriverStatusMutation.mutate({ driverId: u.originalDriver.id, status: newStatus as any });
       }
     }
   };
@@ -584,6 +596,7 @@ export default function UserManagementPage() {
           pageSize={10}
           pageSizeOptions={[10, 25, 50]}
           compact={true}
+          rowClassName={(row) => row.status === 'Inactive' ? 'opacity-55 bg-slate-100/50 dark:bg-slate-900/40 text-slate-500 hover:bg-slate-100/80' : ''}
           isLoading={isUsersLoading || isDriversLoading}
           isError={isUsersError || isDriversError}
           errorMessage={(usersError || driversError as Error)?.message || 'Failed to load user records.'}
