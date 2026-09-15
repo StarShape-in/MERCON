@@ -122,6 +122,11 @@ export const updateUser = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can modify a SuperAdmin account' } });
     }
 
+    // Target hierarchy rule: Operators cannot modify Admin accounts
+    if (requester?.role === 'Operator' && targetUser.role === 'Admin') {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Operators cannot modify Admin accounts' } });
+    }
+
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
     if (username) dataToUpdate.username = String(username).trim();
@@ -208,6 +213,10 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can delete a SuperAdmin account' } });
+    }
+
+    if (requester?.role === 'Operator' && targetUser.role === 'Admin') {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Operators cannot delete or deactivate Admin accounts' } });
     }
 
     if (isTargetSuperAdmin) {
