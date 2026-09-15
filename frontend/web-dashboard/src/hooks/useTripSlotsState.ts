@@ -99,40 +99,38 @@ export function useTripSlotsState() {
   ]);
 
   const handleAddTripSlot = () => {
-    const nextNum = contractSlots.length + 1;
-    const defaultPickup = prev[0]?.pickupTime || '08:00';
-    const defaultDropoff = prev[0]?.dropoffTime || '14:00';
-    setContractSlots((prev) => [
-      ...prev,
-      {
-        id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        origin: prev[0]?.origin || '',
-        destination: prev[0]?.destination || '',
-        originLocationId: prev[0]?.originLocationId || null,
-        destinationLocationId: prev[0]?.destinationLocationId || null,
-        pickupTime: defaultPickup,
-        dropoffTime: defaultDropoff,
-        date: prev[0]?.date || new Date().toISOString().slice(0, 10),
-        dropoffDate: '',
-        billingAmount: prev[0]?.billingAmount || '',
-        tripCharges: prev[0]?.tripCharges || '',
-        rateMatched: prev[0]?.rateMatched || false,
-        rateCardId: prev[0]?.rateCardId,
-        rateCardName: prev[0]?.rateCardName,
-        rateCardBasePrice: prev[0]?.rateCardBasePrice,
-        rateCardDefaultTripCharge: prev[0]?.rateCardDefaultTripCharge,
-        isOvernight: false,
-        intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
-        intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
-        returnOrigin: prev[0]?.returnOrigin || '',
-        returnDestination: prev[0]?.returnDestination || '',
-        returnPickupTime: '16:00',
-        returnDropoffTime: '22:00',
-        returnIsOvernight: false,
-        returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
-        returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
-      },
-    ]);
+    setContractSlots((prev) => {
+      const defaultPickup = prev[0]?.pickupTime || '08:00';
+      const defaultDropoff = prev[0]?.dropoffTime || '14:00';
+      return [
+        ...prev,
+        {
+          id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          origin: prev[0]?.origin || '',
+          destination: prev[0]?.destination || '',
+          originLocationId: prev[0]?.originLocationId || null,
+          destinationLocationId: prev[0]?.destinationLocationId || null,
+          pickupTime: defaultPickup,
+          dropoffTime: defaultDropoff,
+          date: prev[0]?.date || new Date().toISOString().slice(0, 10),
+          dropoffDate: '',
+          billingAmount: prev[0]?.billingAmount || '',
+          tripCharges: prev[0]?.tripCharges || '',
+          rateMatched: prev[0]?.rateMatched || false,
+          rateCardId: prev[0]?.rateCardId,
+          rateCardName: prev[0]?.rateCardName,
+          rateCardBasePrice: prev[0]?.rateCardBasePrice,
+          rateCardDefaultTripCharge: prev[0]?.rateCardDefaultTripCharge,
+          isOvernight: false,
+          intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
+          intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
+          returnOrigin: prev[0]?.returnOrigin || '',
+          returnDestination: prev[0]?.returnDestination || '',
+          returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
+          returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
+        },
+      ];
+    });
   };
 
   const handleRemoveTripSlot = (id: string) => {

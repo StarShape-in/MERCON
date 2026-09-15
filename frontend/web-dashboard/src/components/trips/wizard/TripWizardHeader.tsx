@@ -1,3 +1,4 @@
+import React from 'react';
 import { toast } from 'sonner';
 import {
   ChevronLeft,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
