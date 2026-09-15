@@ -1706,24 +1706,8 @@ export default function TripListPage() {
             {/* Dropoff (To) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate flex items-center gap-1">
-                {(() => {
-                  const raw = dropoff.name || '—';
-                  // Strip 🔁 emoji, then extract destination from "[RETURN: From → To]" or "RETURN: From → To" patterns
-                  const clean = raw.replace(/🔁\s*/g, '').trim();
-                  const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
-                  if (match) {
-                    // Return trip: show only the final destination city
-                    const dest = match[2].includes('→') ? match[2].split('→').pop()?.trim() : match[2].trim();
-                    return <span className="truncate">{dest || match[1].trim()}</span>;
-                  }
-                  // Also handle "RETURN: From → To" without brackets
-                  if (/^RETURN:/i.test(clean)) {
-                    const dest = clean.includes('→') ? clean.split('→').pop()?.trim() : clean.replace(/^RETURN:\s*/i, '').trim();
-                    return <span className="truncate">{dest}</span>;
-                  }
-                  return clean;
-                })()}
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                {(dropoff.name || '—').replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim()}
               </span>
             </div>
 

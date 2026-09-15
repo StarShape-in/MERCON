@@ -74,8 +74,16 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
     return Math.min(96, Math.max(2, completedRatio));
   }, [completedCount, totalStops]);
 
+  const outboundStops = stops && stops.length >= 2 ? stops.filter((st) => (st.leg_index ?? 0) === 0) : [];
+  const firstCityName = String(stops?.[0]?.location_name || stops?.[0]?.location?.name || '').toLowerCase().trim();
+  const lastCityName = String(stops?.[stops.length - 1]?.location_name || stops?.[stops.length - 1]?.location?.name || '').toLowerCase().trim();
+  const isRoundTrip = stops && stops.length > 2 && (stops.some((st) => st.leg_index === 1) || (firstCityName && lastCityName && firstCityName === lastCityName));
+  const targetDropoff = (isRoundTrip && outboundStops.length > 1) ? outboundStops[outboundStops.length - 1] : (stops && stops.length > 1 ? stops[stops.length - 1] : undefined);
+
   const originCity = normalizedStops[0]?.city || 'Origin';
-  const destCity = normalizedStops[normalizedStops.length - 1]?.city || 'Destination';
+  const destCity = targetDropoff
+    ? String(targetDropoff.location?.city || targetDropoff.location?.name || targetDropoff.location_name || targetDropoff.name || '').replace(/\s*\(\s*\)$/, '').trim()
+    : (normalizedStops[normalizedStops.length - 1]?.city || 'Destination');
   const routeTitle = `${originCity} → ${destCity} Corridor`;
 
   return (
