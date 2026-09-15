@@ -3,7 +3,7 @@ import { Truck, User, ShieldAlert, Plus, Trash2, TrendingUp, Tag } from 'lucide-
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DriverAvatar from '@/components/ui/DriverAvatar';
-import { thirdPartyService, ProviderRateCard } from '@/services/thirdPartyService';
+import { thirdPartyService, ProviderRateCard, Previous3PLDriver } from '@/services/thirdPartyService';
 
 interface ExecutionAssignmentSectionProps {
   assignmentType: 'own' | 'third_party' | '3pl';
@@ -57,6 +57,60 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
   const [matchedRate, setMatchedRate] = useState<ProviderRateCard | null>(null);
+
+  const [previousDrivers, setPreviousDrivers] = useState<Previous3PLDriver[]>([]);
+  const [isLoadingPreviousDrivers, setIsLoadingPreviousDrivers] = useState(false);
+  const [driverInputMode, setDriverInputMode] = useState<'previous' | 'new'>('previous');
+  const [selectedDriverIndex, setSelectedDriverIndex] = useState<string>('');
+
+  useEffect(() => {
+    if ((assignmentType === 'third_party' || assignmentType === '3pl') && thirdPartyProviderId) {
+      setIsLoadingPreviousDrivers(true);
+      thirdPartyService
+        .getPreviousDrivers(thirdPartyProviderId)
+        .then((drivers) => {
+          setPreviousDrivers(drivers);
+          if (drivers.length > 0) {
+            setDriverInputMode('previous');
+          } else {
+            setDriverInputMode('new');
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to load previous 3PL drivers:', err);
+          setPreviousDrivers([]);
+          setDriverInputMode('new');
+        })
+        .finally(() => {
+          setIsLoadingPreviousDrivers(false);
+        });
+    } else {
+      setPreviousDrivers([]);
+      setSelectedDriverIndex('');
+    }
+  }, [thirdPartyProviderId, assignmentType]);
+
+  const handleSelectPreviousDriver = (indexStr: string) => {
+    setSelectedDriverIndex(indexStr);
+    const index = parseInt(indexStr, 10);
+    if (!isNaN(index) && previousDrivers[index]) {
+      const drv = previousDrivers[index];
+      setThirdPartyDriverName(drv.driverName || '');
+      setThirdPartyDriverPhone?.(drv.driverPhone || '');
+      setThirdPartyVehiclePlate(drv.vehiclePlate || '');
+      if (drv.vehicleType && setContractVehicleType) {
+        setContractVehicleType(drv.vehicleType);
+      }
+    }
+  };
+
+  const handleSwitchToNewDriver = () => {
+    setDriverInputMode('new');
+    setSelectedDriverIndex('');
+    setThirdPartyDriverName('');
+    setThirdPartyDriverPhone?.('');
+    setThirdPartyVehiclePlate('');
+  };
 
   useEffect(() => {
     if (assignmentType !== 'third_party' && assignmentType !== '3pl') {
@@ -403,6 +457,69 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </Select>
           </div>
 
+          {/* 3PL DRIVER SELECTOR / MODE SWITCHER */}
+          <div className="space-y-1 bg-slate-50/70 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3 h-3 text-indigo-600" /> 3PL DRIVER
+              </label>
+
+              <div className="flex items-center gap-1">
+                {previousDrivers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setDriverInputMode('previous')}
+                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                      driverInputMode === 'previous'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300'
+                    }`}
+                  >
+                    Select Previous Driver
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSwitchToNewDriver}
+                  className={`text-[9px] font-extrabold px-2 py-0.5 rounded cursor-pointer transition-colors flex items-center gap-1 ${
+                    driverInputMode === 'new'
+                      ? 'bg-[#FA634E] text-white shadow-2xs'
+                      : 'bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300'
+                  }`}
+                >
+                  <Plus className="w-2.5 h-2.5" /> Create New
+                </button>
+              </div>
+            </div>
+
+            {driverInputMode === 'previous' && previousDrivers.length > 0 && (
+              <Select value={selectedDriverIndex} onValueChange={handleSelectPreviousDriver}>
+                <SelectTrigger className="h-8 rounded-lg border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs bg-white dark:bg-slate-900">
+                  <SelectValue placeholder={isLoadingPreviousDrivers ? 'Loading history...' : 'Select Previous Driver...'} />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  {previousDrivers.map((drv, idx) => {
+                    const labelParts = [
+                      drv.driverName,
+                      drv.driverPhone,
+                      drv.vehiclePlate,
+                    ].filter(Boolean);
+                    const label = labelParts.join(' — ');
+                    return (
+                      <SelectItem key={idx} value={String(idx)} className="text-xs font-bold cursor-pointer">
+                        {label}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+
+            {driverInputMode === 'previous' && previousDrivers.length === 0 && !isLoadingPreviousDrivers && thirdPartyProviderId && (
+              <p className="text-[10px] text-slate-400 italic">No previous driver history found for this provider.</p>
+            )}
+          </div>
+
           {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="space-y-1">
@@ -474,6 +591,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
               </div>
             </div>
           </div>
+
 
           {/* REAL-TIME 3PL PROFITABILITY TRACKER CARD */}
           {(() => {

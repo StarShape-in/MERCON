@@ -12,6 +12,7 @@ import {
   updateProviderRateCard,
   deleteProviderRateCard,
   matchProviderRateCard,
+  getPreviousDrivers,
 } from '../controllers/thirdPartyController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -30,6 +31,7 @@ router.put('/rates/:id', updateProviderRateCard);
 router.delete('/rates/:id', deleteProviderRateCard);
 router.get('/:providerId/rates', getProviderRates);
 router.post('/:providerId/rates', createProviderRateCard);
+router.get('/:providerId/previous-drivers', getPreviousDrivers);
 router.get('/:id', getThirdPartyProviderById);
 router.post('/', createThirdPartyProvider);
 router.post('/import', bulkImportThirdPartyProviders);

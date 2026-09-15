@@ -701,3 +701,81 @@ export const matchProviderRateCard = async (req: Request, res: Response) => {
   }
 };
 
+export const getPreviousDrivers = async (req: Request, res: Response) => {
+  try {
+    const providerId = req.params.providerId as string;
+
+    if (!providerId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'providerId is required' },
+      });
+    }
+
+    const subcontracts = await prisma.tripSubcontract.findMany({
+      where: {
+        providerId,
+        trip: { deletedAt: null },
+        OR: [
+          { driverName: { not: null } },
+          { driverPhone: { not: null } },
+          { vehiclePlate: { not: null } },
+        ],
+      },
+      select: {
+        driverName: true,
+        driverPhone: true,
+        vehiclePlate: true,
+        vehicleType: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 200,
+    });
+
+    const seen = new Set<string>();
+    const deduplicated: Array<{
+      driverName: string | null;
+      driverPhone: string | null;
+      vehiclePlate: string | null;
+      vehicleType: string | null;
+    }> = [];
+
+    const norm = (str?: string | null) => (str ? str.trim().toLowerCase().replace(/[\s\-_()]/g, '') : '');
+
+    for (const item of subcontracts) {
+      const nameNorm = norm(item.driverName);
+      const phoneNorm = norm(item.driverPhone);
+      const plateNorm = norm(item.vehiclePlate);
+
+      const identityKey = `${nameNorm}|${phoneNorm}|${plateNorm}`;
+
+      if (!identityKey.replace(/\|/g, '')) {
+        continue;
+      }
+
+      if (!seen.has(identityKey)) {
+        seen.add(identityKey);
+        deduplicated.push({
+          driverName: item.driverName ? item.driverName.trim() : null,
+          driverPhone: item.driverPhone ? item.driverPhone.trim() : null,
+          vehiclePlate: item.vehiclePlate ? item.vehiclePlate.trim() : null,
+          vehicleType: item.vehicleType ? item.vehicleType.trim() : null,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: deduplicated,
+    });
+  } catch (error) {
+    console.error('Failed to fetch 3PL previous drivers:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch previous drivers' },
+    });
+  }
+};
+
+

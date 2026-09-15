@@ -156,4 +156,17 @@ export const thirdPartyService = {
     const res = await api.post<ApiResponse<ProviderRateCard | null>>('/third-party-providers/rates/match', payload);
     return res.data.data;
   },
+
+  getPreviousDrivers: async (providerId: string): Promise<Previous3PLDriver[]> => {
+    const res = await api.get<ApiResponse<Previous3PLDriver[]>>(`/third-party-providers/${providerId}/previous-drivers`);
+    return res.data.data;
+  },
 };
+
+export interface Previous3PLDriver {
+  driverName: string | null;
+  driverPhone: string | null;
+  vehiclePlate: string | null;
+  vehicleType: string | null;
+}
+
