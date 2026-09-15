@@ -83,13 +83,13 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     return laneCards;
   }, [customerRateCards, getAvailableRateCardsForLane, primarySlot]);
 
-  const matchedRateCard = primarySlot.rateMatched ? primarySlot.matchedRateCard : null;
-  const activeSelectedId = primarySlot.rateMatched && (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
-    ? (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
+  const matchedRateCard = (primarySlot.rateMatched || primarySlot.matchedRateCard) ? primarySlot.matchedRateCard : null;
+  const activeSelectedId = (primarySlot.rateMatched || primarySlot.matchedRateCard)
+    ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
     : null;
 
   const isSelectedQuotation = Boolean(
-    primarySlot.rateMatched && (primarySlot.matchedRateCard || primarySlot.rateCardId)
+    (primarySlot.rateMatched || primarySlot.matchedRateCard) && (primarySlot.matchedRateCard || primarySlot.rateCardId)
   );
 
   // Filter rate cards matching current billing type specifications
@@ -472,7 +472,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               contractVehicleType={contractVehicleType}
               onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal, isCurrentlySelected) => {
                 const clickedId = getCardId(rc);
-                const activeId = primarySlot.rateMatched && (primarySlot.matchedRateCard || primarySlot.rateCardId)
+                const activeId = (primarySlot.rateMatched || primarySlot.matchedRateCard)
                   ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
                   : null;
                 const isAlreadySelected = isCurrentlySelected || Boolean(clickedId && activeId && clickedId === activeId);
@@ -504,6 +504,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
                   // Single unified slot patch to prevent multi-render race conditions
                   handleUpdateTripSlot(primarySlot.id, {
+                    rateMatched: true,
                     matchedRateCard: rc,
                     rateCardId: clickedId || undefined,
                     billingAmount: String(rateVal),

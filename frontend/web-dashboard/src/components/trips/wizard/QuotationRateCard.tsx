@@ -44,7 +44,7 @@ export interface RateCardItem {
 
 export function getCardId(rc: any): string | null {
   if (!rc) return null;
-  const rawId = rc.id || rc.quotation_id || rc.quotationId || rc.rateCardId || rc.rate_card_id || rc.agreement_ref;
+  const rawId = rc.id || rc.quotation_id || rc.quotationId || rc.rateCardId || rc.rate_card_id || rc.agreement_ref || (rc.quotation_number != null ? `QT-${rc.quotation_number}` : null);
   if (rawId == null) return null;
   return String(rawId).trim();
 }
