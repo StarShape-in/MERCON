@@ -42,10 +42,22 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'users.view',
     'users.manage',
 
-    // Master Data & Reports
+    // Settings & Master Data Refined Keys
+    'company.settings.view',
+    'company.settings.manage',
+    'regional.settings.view',
+    'regional.settings.manage',
+    'master_data.view',
+    'master_data.manage',
+    'document_types.manage',
     'settings.view',
+    'settings.manage',
+
+    // Reports, Audit & System Health
     'reports.view',
+    'reports.financial',
     'audit.view',
+    'system.health.view',
   ],
   Operator: [
     // Trips / Ops
@@ -78,14 +90,18 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'drivers.manage',
     'drivers.security.reset',
 
-    // Users
+    // Users (Target Hierarchy Enforced)
     'users.view',
     'users.manage',
 
-    // Master Data & Reports
+    // Settings & Master Data Read/Operational Keys
+    'company.settings.view',
+    'regional.settings.view',
+    'master_data.view',
     'settings.view',
+
+    // Reports (Operational)
     'reports.view',
-    'audit.view',
   ],
   Driver: [
     // Driver Assigned Scope Only
