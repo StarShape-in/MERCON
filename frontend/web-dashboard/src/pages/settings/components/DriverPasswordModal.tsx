@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  X,
   Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -109,28 +108,28 @@ export default function DriverPasswordModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
-        {/* Crisp Header */}
-        <div className="p-5 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[500px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3 pr-12">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-[#FA634E] flex items-center justify-center border border-rose-100 dark:border-rose-900/40 shrink-0">
               <KeyRound size={20} />
             </div>
-            <div>
-              <DialogTitle className="text-base font-black text-[#3E3C3D] dark:text-white tracking-tight">
+            <div className="min-w-0">
+              <DialogTitle className="text-base font-black text-[#3E3C3D] dark:text-white tracking-tight leading-snug">
                 {driver.hasAccountPassword ? 'Update Driver Password' : 'Set Mobile App Password'}
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+              <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium leading-normal">
                 Configure authentication details for MERCON Mobile App access
               </DialogDescription>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
           {/* Driver Identity Card */}
-          <div className="bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {driver.avatar_url ? (
                 <img src={driver.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200" />
               ) : (
@@ -138,9 +137,9 @@ export default function DriverPasswordModal({
                   {driver.first_name?.[0]?.toUpperCase() || ''}{driver.last_name?.[0]?.toUpperCase() || ''}
                 </div>
               )}
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 truncate">
-                  <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate max-w-[160px] sm:max-w-none">
                     {driver.first_name} {driver.last_name}
                   </span>
                   {driver.ref_id && (
@@ -151,19 +150,19 @@ export default function DriverPasswordModal({
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                   <Phone size={11} className="text-slate-400 shrink-0" />
-                  <span className="font-mono">{driver.phone_primary || 'No phone number'}</span>
+                  <span className="font-mono truncate">{driver.phone_primary || 'No phone number'}</span>
                 </div>
               </div>
             </div>
 
             <div className="shrink-0">
-              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                 driver.hasAccountPassword
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
                   : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
               }`}>
-                <ShieldCheck size={11} />
-                {driver.hasAccountPassword ? 'Active' : 'Pending'}
+                <ShieldCheck size={10} />
+                {driver.hasAccountPassword ? 'Active' : 'Pending Setup'}
               </span>
             </div>
           </div>
@@ -179,8 +178,8 @@ export default function DriverPasswordModal({
           ) : (
             <div className="text-xs bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 rounded-xl p-3 flex items-center gap-2 font-medium">
               <Info className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>
-                Driver logs into MERCON Mobile App using <strong>{driver.phone_primary}</strong>.
+              <span className="truncate">
+                Driver logs in using <strong>{driver.phone_primary}</strong>
               </span>
             </div>
           )}
@@ -193,20 +192,20 @@ export default function DriverPasswordModal({
           )}
 
           {/* Credentials Action Row */}
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 shrink-0">
               <Lock className="w-3.5 h-3.5 text-[#FA634E]" />
               <span>Password Setup</span>
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleGeneratePassword}
-                className="h-7 text-xs font-bold text-[#FA634E] border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 px-2.5"
+                className="h-7 text-[11px] font-bold text-[#FA634E] border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg gap-1 px-2 cursor-pointer shrink-0"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#FA634E]" />
+                <Sparkles className="w-3 h-3 text-[#FA634E]" />
                 <span>Generate PIN</span>
               </Button>
               {password && (
@@ -215,9 +214,9 @@ export default function DriverPasswordModal({
                   variant="outline"
                   size="sm"
                   onClick={handleCopyCredentials}
-                  className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 rounded-lg gap-1 px-2.5"
+                  className="h-7 text-[11px] font-semibold text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 rounded-lg gap-1 px-2 cursor-pointer shrink-0"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-400" />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
                 </Button>
               )}
@@ -248,7 +247,7 @@ export default function DriverPasswordModal({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -305,7 +304,7 @@ export default function DriverPasswordModal({
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                 tabIndex={-1}
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -314,13 +313,13 @@ export default function DriverPasswordModal({
           </div>
 
           {/* Dialog Footer */}
-          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 gap-2 flex items-center justify-end">
+          <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 gap-2 flex items-center justify-end sm:flex-row">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isLoading}
-              className="h-10 px-4 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              className="h-9 px-4 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
             >
               Cancel
             </Button>
@@ -328,16 +327,16 @@ export default function DriverPasswordModal({
             <Button
               type="submit"
               disabled={isLoading || !isFormValid}
-              className="h-10 px-5 text-xs font-extrabold rounded-xl bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs border-none flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="h-9 px-4 text-xs font-extrabold rounded-xl bg-[#FA634E] hover:bg-[#FA634E]/90 text-white shadow-2xs border-none flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving Password...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-3.5 h-3.5" />
                   <span>{driver.hasAccountPassword ? 'Update Password' : 'Set Password'}</span>
                 </>
               )}
