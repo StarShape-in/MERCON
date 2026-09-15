@@ -458,9 +458,13 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
                     <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
                       {fin.isMonthly && grandTotalBilling > 0 && (
-                        <div className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900 flex items-center justify-between">
-                          <span>Rate Basis: <strong>Monthly Contract</strong></span>
-                          <span>Daily: <strong className="font-mono">{fin.formattedLabels.dailyLabel}</strong></span>
+                        <div className="text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-2 rounded-lg border border-purple-200 dark:border-purple-900 flex items-center justify-between flex-wrap gap-1">
+                          <span className="flex items-center gap-1">
+                            Rate Basis: <strong>Monthly Contract</strong> ({fin.formattedLabels.monthlyLabel})
+                          </span>
+                          <span className="font-mono text-purple-800 dark:text-purple-200">
+                            Per-Trip Rate: <strong>{fin.formattedLabels.dailyLabel}</strong>
+                          </span>
                         </div>
                       )}
 
@@ -471,9 +475,13 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                           <span className="text-xs font-mono font-black text-slate-900 dark:text-white block mt-0.5">
                             SAR {fin.resolvedBilling.toLocaleString()}
                           </span>
-                          {fin.isMonthly && (
+                          {fin.isMonthly ? (
+                            <span className="text-[9px] text-purple-600 dark:text-purple-400 block truncate font-sans font-semibold mt-0.5">
+                              {totalOperatingDays}d @ SAR {fin.dailyRate}/trip
+                            </span>
+                          ) : (
                             <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
-                              {totalOperatingDays}d @ SAR {fin.dailyRate}/d
+                              {totalOperatingDays} Trip{totalOperatingDays > 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
@@ -486,6 +494,11 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                           <span className="text-xs font-mono font-black text-slate-900 dark:text-white mt-0.5">
                             {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
                           </span>
+                          {costValue > 0 && (
+                            <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
+                              {totalOperatingDays}d @ SAR {costValue}/d
+                            </span>
+                          )}
                         </div>
 
                         {/* 3. NET MARGIN */}
@@ -505,6 +518,9 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                             )}
                           >
                             {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
+                            {marginPct >= 0 ? `+${marginPct.toFixed(1)}%` : `${marginPct.toFixed(1)}%`}
                           </span>
                         </div>
                       </div>
