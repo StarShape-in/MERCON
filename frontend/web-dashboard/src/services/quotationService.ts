@@ -26,6 +26,7 @@ export interface CreateQuotationPayload {
   vehicle_type?: string | null;
   line_type?: string | null;
   rate_category?: string | null;
+  operation_type?: string | null;
   billing_type?: string | null;
   pricing_basis?: string | null;
   agreement_ref?: string | null;

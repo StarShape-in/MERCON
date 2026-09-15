@@ -233,7 +233,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
   useEffect(() => {
     if (!isEdit || !existingQuotation) return;
     setCustomerId(existingQuotation.customerId || '');
-    setOperationType((existingQuotation.billing_type as 'MONTHLY' | 'EXTRA') || 'EXTRA');
+    setOperationType(((existingQuotation.operation_type || existingQuotation.billing_type) as 'MONTHLY' | 'EXTRA') || 'EXTRA');
     setValidFrom(existingQuotation.valid_from ? existingQuotation.valid_from.substring(0, 10) : '');
     setValidTo(existingQuotation.valid_to ? existingQuotation.valid_to.substring(0, 10) : '');
 
@@ -520,6 +520,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
             origin_name: origName,
             destination_name: destName,
             vehicle_class: line.vehicleClass,
+            operation_type: operationType,
             billing_type: operationType,
             line_type: line.lineType,
             pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,
@@ -552,6 +553,7 @@ export default function AddQuotationPage({ isEdit = false }: { isEdit?: boolean 
               origin_name: origName,
               destination_name: destName,
               vehicle_class: line.vehicleClass,
+              operation_type: operationType,
               billing_type: operationType,
               line_type: line.lineType,
               pricing_basis: line.pricingBasis !== 'NULL' ? line.pricingBasis : undefined,

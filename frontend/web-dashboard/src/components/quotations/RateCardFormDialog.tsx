@@ -104,7 +104,7 @@ export default function QuotationFormDialog({
       setVehicleClass(quotation.vehicle_class || '');
       setSourceVehicleLabel(quotation.source_vehicle_label || quotation.vehicle_type || '');
       setLineType(quotation.line_type || quotation.rate_category || '');
-      setBillingType(quotation.billing_type || '');
+      setBillingType(quotation.operation_type || quotation.billing_type || '');
       setPricingBasis(quotation.pricing_basis || 'UNSPECIFIED');
       setValidFrom(quotation.valid_from ? quotation.valid_from.substring(0, 10) : '');
       setValidTo(quotation.valid_to ? quotation.valid_to.substring(0, 10) : '');
@@ -157,6 +157,7 @@ export default function QuotationFormDialog({
         vehicle_type: sourceVehicleLabel.trim() || vehicleClass.trim() || null,
         line_type: lineType || null,
         rate_category: lineType || null,
+        operation_type: billingType || null,
         billing_type: billingType || null,
         pricing_basis: pricingBasis === 'UNSPECIFIED' ? null : pricingBasis,
         valid_from: validFrom || null,
