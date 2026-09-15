@@ -70,12 +70,14 @@ export const resolveLocation = async (
       },
     });
 
-    if (codeClash && codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
-      // If code belongs to same name, reuse it without error
+    if (codeClash && (!idToUse || codeClash.id !== idToUse)) {
+      if (codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
+        throw new Error(`LOCATION_CODE_DUPLICATE: Location code "${inputCode}" is already in use for this customer.`);
+      }
     }
   }
 
-  // 1. Search for existing location by exact Code, Slug, or exact Name (first customer-scoped, then global)
+  // 1. Search for existing location by exact Code, Slug, or exact Name (customer-scoped when customerIdToUse is provided)
   let found = await tx.location.findFirst({
     where: {
       ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
@@ -89,24 +91,13 @@ export const resolveLocation = async (
     },
   });
 
-  if (!found && customerIdToUse) {
-    found = await tx.location.findFirst({
-      where: {
-        OR: [
-          { slug },
-          { name: { equals: name, mode: 'insensitive' as const } },
-          { code: { equals: name, mode: 'insensitive' as const } },
-          ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
-        ],
-        deletedAt: null,
-      },
-    });
-  }
-
   // 2. Advanced Fuzzy / Token / City Alias Search if direct exact match failed
   if (!found) {
     const candidates = await tx.location.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
+      },
       include: { customer: { select: { id: true, name: true } } },
     });
 

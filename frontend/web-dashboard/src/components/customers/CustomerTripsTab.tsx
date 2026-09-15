@@ -219,9 +219,26 @@ export default function CustomerTripsTab({ customerId, customerName }: CustomerT
                   header: 'Operational Route',
                   accessor: (t: Trip) => {
                     const stops = t.stops || [];
+                    const isRoundTrip =
+                      stops.some((s: any) => (s.leg_index ?? 0) === 1) ||
+                      Boolean((t as any).line_type?.name && /round/i.test((t as any).line_type.name)) ||
+                      Boolean((t as any).quotation_line_type && /round/i.test((t as any).quotation_line_type));
+
                     const origin = stops[0]?.location_name || (t as any).origin_city || 'Origin';
-                    const dest = stops[stops.length - 1]?.location_name || (t as any).destination_city || 'Destination';
-                    const via = stops.length > 2 ? stops.slice(1, -1).map((s: any) => s.location_name).filter(Boolean).join(', ') : null;
+                    
+                    let dest = 'Destination';
+                    let via: string | null = null;
+
+                    if (isRoundTrip) {
+                      const outboundStops = stops.filter((s: any) => (s.leg_index ?? 0) === 0);
+                      const targetDropoff = outboundStops.length > 1
+                        ? outboundStops[outboundStops.length - 1]
+                        : stops.find((s: any) => s.stop_type === 'Dropoff') || (stops.length > 1 ? stops[1] : undefined);
+                      dest = targetDropoff?.location_name || (t as any).destination_city || 'Destination';
+                    } else {
+                      dest = stops[stops.length - 1]?.location_name || (t as any).destination_city || 'Destination';
+                      via = stops.length > 2 ? stops.slice(1, -1).map((s: any) => s.location_name).filter(Boolean).join(', ') : null;
+                    }
 
                     return (
                       <div className="space-y-0.5">

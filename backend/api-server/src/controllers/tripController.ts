@@ -58,6 +58,7 @@ const resolveStopCoords = async (
   const locationMatch = await prisma.location.findFirst({
     where: {
       deletedAt: null,
+      ...(customerId ? { customerId } : {}),
       OR: [
         { code: { equals: rawText, mode: 'insensitive' } },
         { name: { equals: rawText, mode: 'insensitive' } },

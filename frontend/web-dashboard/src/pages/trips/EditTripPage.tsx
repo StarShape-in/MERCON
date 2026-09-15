@@ -1,706 +1,265 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { 
-  Truck, 
-  UserCheck, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  Building2, 
-  DollarSign, 
-  MapPin, 
-  RotateCcw, 
-  Eye, 
-  Save, 
-  ShieldCheck,
-  UserRound,
-  FileText
-} from 'lucide-react';
-
+import React from 'react';
+import { Truck, RotateCcw, Eye, Save, Lock, AlertCircle } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import StopAddressEditor from '@/components/trips/StopAddressEditor';
-import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
+import CreateDriverModal from '@/components/drivers/CreateDriverModal';
+import CreateVehicleModal from '@/components/fleet/CreateVehicleModal';
+import CreateCustomerModal from '@/components/customers/CreateCustomerModal';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+import CustomerPreviewModal from '@/components/customers/CustomerPreviewModal';
 import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
 import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
-import { tripService, TripStatus } from '@/services/tripService';
-import { driverService, Driver } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import ThirdPartyPreviewModal from '@/components/third-party/ThirdPartyPreviewModal';
+import EditCustomerModal from '@/components/customers/EditCustomerModal';
+import EditVehicleModal from '@/components/fleet/EditVehicleModal';
+import EditDriverModal from '@/components/drivers/EditDriverModal';
+import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+import TripStep1UnifiedWorkspace from '@/components/trips/wizard/TripStep1UnifiedWorkspace';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
+import { Badge } from '@/components/ui/badge';
 import { KbdBadge } from '@/components/ui/KbdBadge';
-
-const STOPS_FROZEN_IN: TripStatus[] = ['Completed', 'Invoiced', 'Cancelled'];
-
-const STATUS_DESCRIPTIONS: Record<string, { title: string; description: string; color: string }> = {
-  Draft: {
-    title: 'Scheduled / Draft (Planned Shipment)',
-    description: 'The trip is scheduled and planned. Driver and vehicle details can be attached or updated before dispatch.',
-    color: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700',
-  },
-  Dispatched: {
-    title: 'Dispatched (Assigned to Driver)',
-    description: 'Driver and truck are assigned and notified. Driver is preparing to head to pickup.',
-    color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
-  },
-  AtPickup: {
-    title: 'At Pickup (Loading Dock)',
-    description: 'Driver and truck have arrived at the pickup origin point and loading is in progress.',
-    color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-  },
-  InTransit: {
-    title: 'In Transit (On the Road)',
-    description: 'Cargo is loaded and the truck is actively driving along the designated shipping route.',
-    color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800',
-  },
-  AtDelivery: {
-    title: 'At Delivery (Unloading Dock)',
-    description: 'Truck reached the customer destination and cargo is being inspected and unloaded.',
-    color: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
-  },
-  Completed: {
-    title: 'Completed (Delivered Successfully)',
-    description: 'Shipment delivered, proof of delivery (POD) captured, and trip is ready for settlement.',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-  },
-  Invoiced: {
-    title: 'Invoiced (Billed to Client)',
-    description: 'Customer invoice generated and attached to commercial accounting records.',
-    color: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800',
-  },
-  Cancelled: {
-    title: 'Cancelled (Trip Revoked)',
-    description: 'Shipment was cancelled prior to completion due to client request or operational issue.',
-    color: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
-  },
-};
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEditTripForm, isRoundTripCategory, normalizeRateCategory } from '@/hooks/useEditTripForm';
+import { TripStatus } from '@/services/tripService';
 
 export default function EditTripPage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const form = useEditTripForm();
 
-  const [status, setStatus] = useState<TripStatus>('Draft');
-  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
-  const [billingAmountInput, setBillingAmountInput] = useState<string>('');
-  const [tripChargesInput, setTripChargesInput] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-
-  // Preview modals state
-  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
-  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
-
-  // Fetch trip data
-  const { data: trip, isLoading, refetch } = useQuery({
-    queryKey: ['trip', id],
-    queryFn: () => tripService.getById(id!),
-    enabled: !!id,
-  });
-
-  // Fetch drivers list for reassignment
-  const { data: driversRes } = useQuery({
-    queryKey: ['drivers-all'],
-    queryFn: () => driverService.getAll({ per_page: 100, mode: 'lookup' }),
-  });
-
-  // Fetch vehicles list for reassignment
-  const { data: vehiclesRes } = useQuery({
-    queryKey: ['vehicles-all'],
-    queryFn: () => vehicleService.getAll({ per_page: 100, mode: 'lookup' }),
-  });
-
-  useEffect(() => {
-    if (trip) {
-      setStatus(trip.status);
-      setSelectedDriverId(trip.driver?.id || '');
-      setSelectedVehicleId(trip.vehicle?.id || '');
-      setBillingAmountInput(trip.billing_amount !== undefined && trip.billing_amount !== null ? String(trip.billing_amount) : '');
-      setTripChargesInput(trip.trip_charges !== undefined && trip.trip_charges !== null ? String(trip.trip_charges) : '');
-    }
-  }, [trip]);
-
-  // Mutations
-  const updateStatusMutation = useMutation({
-    mutationFn: (newStatus: TripStatus) => tripService.updateStatus(id!, newStatus),
-  });
-
-  const dispatchMutation = useMutation({
-    mutationFn: (payload: { driver_id?: string; vehicle_id?: string }) => tripService.dispatch(id!, payload),
-  });
-
-  const updateFinancialsMutation = useMutation({
-    mutationFn: (payload: { billing_amount?: number; trip_charges?: number }) => tripService.updateFinancials(id!, payload),
-  });
-
-  const handleReset = () => {
-    if (trip) {
-      setStatus(trip.status);
-      setSelectedDriverId(trip.driver?.id || '');
-      setSelectedVehicleId(trip.vehicle?.id || '');
-      setBillingAmountInput(trip.billing_amount !== undefined && trip.billing_amount !== null ? String(trip.billing_amount) : '');
-      setTripChargesInput(trip.trip_charges !== undefined && trip.trip_charges !== null ? String(trip.trip_charges) : '');
-      setError(null);
-      toast.info('Form reset to original trip manifest state');
-    }
-  };
-
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setError(null);
-
-    try {
-      // 1. Update status if changed
-      if (trip && status !== trip.status) {
-        await updateStatusMutation.mutateAsync(status);
-      }
-
-      // 2. Dispatch/reassign driver or vehicle if changed
-      const driverChanged = trip?.driver?.id !== selectedDriverId;
-      const vehicleChanged = trip?.vehicle?.id !== selectedVehicleId;
-
-      if (driverChanged || vehicleChanged) {
-        await dispatchMutation.mutateAsync({
-          driver_id: selectedDriverId || undefined,
-          vehicle_id: selectedVehicleId || undefined,
-        });
-      }
-
-      // 3. Financials update if changed
-      const parsedBilling = parseFloat(billingAmountInput);
-      const parsedCharges = parseFloat(tripChargesInput);
-      const newBilling = isNaN(parsedBilling) ? undefined : parsedBilling;
-      const newCharges = isNaN(parsedCharges) ? undefined : parsedCharges;
-
-      if (newBilling !== trip?.billing_amount || newCharges !== trip?.trip_charges) {
-        await updateFinancialsMutation.mutateAsync({
-          billing_amount: newBilling,
-          trip_charges: newCharges,
-        });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      toast.success('Trip manifest updated successfully');
-      navigate(`/trips/${id}`);
-    } catch (err: any) {
-      const msg = err.response?.data?.error?.message || err.message || 'Failed to update trip manifest';
-      setError(msg);
-      toast.error(msg);
-    }
-  };
-
-  if (isLoading || !trip) {
+  if (form.isTripLoading || !form.trip) {
     return (
-      <DashboardLayout active="Trips" title="Edit Trip Manifest">
+      <DashboardLayout active="Trips" title="Edit Trip">
         <div className="p-12 flex flex-col items-center justify-center gap-3">
           <div className="h-8 w-8 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs text-muted-foreground font-medium">Loading trip manifest details...</p>
+          <p className="text-xs text-muted-foreground font-medium">Loading trip details...</p>
         </div>
       </DashboardLayout>
     );
   }
 
-  const isSubmitting = updateStatusMutation.isPending || dispatchMutation.isPending || updateFinancialsMutation.isPending;
-  const currentStatusInfo = STATUS_DESCRIPTIONS[status] || STATUS_DESCRIPTIONS['Draft'];
-  const assignedDriverObj = driversRes?.data?.find((d) => d.id === selectedDriverId) || (trip.driver as any);
-  const assignedVehicleObj = vehiclesRes?.data?.find((v) => v.id === selectedVehicleId) || (trip.vehicle as any);
-
-  // ERP Keyboard Shortcuts Integration
-  useFormKeyboardShortcuts({
-    onSave: () => {
-      if (!isSubmitting) handleSubmit();
-    },
-    onCancel: () => navigate('/trips'),
-    isSubmitting,
-  });
-
-  const stopsList = (trip.stops ?? []).slice().sort((a, b) => a.stop_sequence - b.stop_sequence);
-  const pickupStop = stopsList.find((s) => s.stop_type === 'Pickup') || stopsList[0];
-  const dropoffStop = stopsList.find((s) => s.stop_type === 'Dropoff') || (stopsList.length > 1 ? stopsList[stopsList.length - 1] : null);
-
-  // Completion Tracking (matching Vehicle edit style)
-  const completionFields = [
-    { label: 'Customer Context', filled: !!trip.customer },
-    { label: 'Operational Status', filled: !!status },
-    { label: 'Assigned Driver', filled: !!selectedDriverId },
-    { label: 'Assigned Truck', filled: !!selectedVehicleId },
-    { label: 'Route Pickup / Dropoff', filled: stopsList.length >= 2 },
-    { label: 'Client Financial Billing', filled: parseFloat(billingAmountInput) > 0 },
-  ];
-  const filledCount = completionFields.filter((f) => f.filled).length;
-  const completionPct = Math.round((filledCount / completionFields.length) * 100);
-
   return (
-    <DashboardLayout active="Trips" title={`Edit ${trip.ref_id || 'Trip Manifest'}`}>
-      <div className="px-3 sm:px-5 pb-4 space-y-3 animate-fade-in max-w-[1350px] mx-auto">
-        
-        {/* Slim Top Action Strip (Matching EditVehiclePage) */}
-        <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 font-bold border-none text-[11px] px-2 py-0.5">
-              <Truck className="w-3 h-3 mr-1 inline text-amber-600" /> Edit Trip Manifest
-            </Badge>
-            <span className="text-xs text-slate-400 font-mono font-medium hidden sm:inline">
-              Ref: {trip.ref_id || 'TRIP-LOG'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate(`/trips/${id}`)}
-              className="h-7 text-xs text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 px-2"
-            >
-              <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" /> View Details
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReset}
-              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 px-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate('/trips')}
-              className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
-            >
-              Cancel <KbdBadge keys="Esc" />
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
-            >
-              {isSubmitting ? 'Saving...' : 'Save Manifest Changes'} <KbdBadge keys="Ctrl+S" />
-            </Button>
-          </div>
-        </div>
-
-        {/* 2-Column High-Density Layout (Matching EditVehiclePage) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <DashboardLayout active="Trips" title={`Edit ${form.trip.ref_id || 'Trip'}`} hideBackButton hideHeader fixedViewport>
+      <div className="px-2 sm:px-4 pb-2 sm:pb-3 animate-fade-in w-full h-full flex flex-col min-h-0">
+        <div className="w-full flex-1 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl flex flex-col min-h-0">
           
-          {/* Main Form Column (8 cols) */}
-          <div className="lg:col-span-8 space-y-3">
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-              <CardContent className="p-3.5 sm:p-4 space-y-3.5">
+          {/* Header Bar */}
+          <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between px-4 py-2.5 gap-3 w-full">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 font-bold border-none text-xs px-2.5 py-1 flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-amber-600" /> Edit Trip
+              </Badge>
+              <span className="text-xs text-slate-500 font-mono font-bold">
+                Ref: {form.trip.ref_id || 'TRIP-LOG'}
+              </span>
 
-                {/* Section 1: Primary Manifest & Operational Stage */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-brand" /> Primary Manifest & Operational Stage
-                    </h2>
-                    <span className="text-[10px] text-slate-400 font-mono">Manifest: {trip.ref_id}</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Customer / Client Account
-                      </Label>
-                      <Input
-                        disabled
-                        value={trip.customer?.name ? `${trip.customer.name} (+966 ${trip.customer.contact_phone || ''})` : 'Standard Customer'}
-                        className="h-8 text-xs font-medium bg-slate-50 dark:bg-slate-800/50"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="status" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Shipment Stage / Status <span className="text-rose-500">*</span>
-                      </Label>
-                      <Select
-                        value={status}
-                        onValueChange={(val: TripStatus) => setStatus(val)}
-                      >
-                        <SelectTrigger id="status" className="h-8 text-xs font-semibold">
-                          <SelectValue placeholder="Select status..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Draft" className="text-xs">Scheduled — Preparing & assigned shipment</SelectItem>
-                          <SelectItem value="AtPickup" className="text-xs">At Pickup — Loading cargo at origin</SelectItem>
-                          <SelectItem value="InTransit" className="text-xs">In Transit — Highway delivery in progress</SelectItem>
-                          <SelectItem value="Completed" className="text-xs">Completed — Delivered & signed off</SelectItem>
-                          <SelectItem value="Invoiced" className="text-xs">Invoiced — Billing processed</SelectItem>
-                          <SelectItem value="Cancelled" className="text-xs">Cancelled — Shipment revoked</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Status Banner */}
-                  <div className={`p-2.5 rounded-lg border ${currentStatusInfo.color} flex items-start gap-2.5 text-xs transition-colors`}>
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">{currentStatusInfo.title}</p>
-                      <p className="text-[11px] opacity-90 leading-tight mt-0.5">{currentStatusInfo.description}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 2: Dispatch & Fleet Resource Assignment */}
-                <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-blue-500" /> Dispatch & Resource Roster
-                    </h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Driver Selection */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="selectedDriverId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                          <UserRound className="w-3 h-3 text-indigo-500" /> Assigned Driver
-                        </Label>
-                        {selectedDriverId && assignedDriverObj && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewDriver(assignedDriverObj)}
-                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-                          >
-                            <Eye className="w-3 h-3" /> View Driver Profile
-                          </button>
-                        )}
-                      </div>
-                      <Select
-                        value={selectedDriverId}
-                        onValueChange={(val) => setSelectedDriverId(val)}
-                      >
-                        <SelectTrigger id="selectedDriverId" className="h-8 text-xs">
-                          <SelectValue placeholder="-- No driver assigned --" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="" className="text-xs italic text-slate-400">
-                            -- No driver assigned (Unassigned) --
-                          </SelectItem>
-                          {driversRes?.data?.map((d) => {
-                            const embeddedVeh = d.assignedVehicle && typeof d.assignedVehicle === 'object' ? (d.assignedVehicle as any) : null;
-                            const vId = d.assignedVehicleId || (d as any).assigned_vehicle_id || embeddedVeh?.id;
-                            const matchedVeh = vId ? vehiclesRes?.data?.find((v) => v.id === vId) : null;
-                            const capKg = embeddedVeh?.capacity_kg ?? embeddedVeh?.capacityKg ?? matchedVeh?.capacity_kg ?? (matchedVeh as any)?.capacityKg;
-                            let capLabel = '';
-                            if (capKg != null && capKg > 0) {
-                              const tons = capKg / 1000;
-                              capLabel = Number.isInteger(tons) ? `${tons} TON` : `${tons.toFixed(1)} TON`;
-                            }
-                            return (
-                              <SelectItem key={d.id} value={d.id} className="text-xs font-medium">
-                                {d.first_name} {d.last_name} {capLabel ? `(${capLabel}) ` : ''}({d.phone_primary}) • [{d.status}]
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Truck Selection */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="selectedVehicleId" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                          <Truck className="w-3 h-3 text-amber-500" /> Assigned Vehicle / Truck
-                        </Label>
-                        {selectedVehicleId && assignedVehicleObj && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewVehicle(assignedVehicleObj)}
-                            className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
-                          >
-                            <Eye className="w-3 h-3" /> View Truck Profile
-                          </button>
-                        )}
-                      </div>
-                      <Select
-                        value={selectedVehicleId}
-                        onValueChange={(val) => setSelectedVehicleId(val)}
-                      >
-                        <SelectTrigger id="selectedVehicleId" className="h-8 text-xs font-mono">
-                          <SelectValue placeholder="-- No truck assigned --" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="" className="text-xs italic text-slate-400">
-                            -- No truck assigned (Unassigned) --
-                          </SelectItem>
-                          {vehiclesRes?.data?.map((v) => (
-                            <SelectItem key={v.id} value={v.id} className="text-xs font-mono font-medium">
-                              Plate: {v.plate_number} ({v.asset_type}) • [{v.status}]
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Route Stops & Delivery Locations */}
-                <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-500" /> Route Stops & Delivery Locations
-                    </h2>
-                    {STOPS_FROZEN_IN.includes(trip.status) && (
-                      <span className="text-[10px] text-amber-600 font-semibold italic">
-                        Stops frozen (Trip {trip.status})
-                      </span>
-                    )}
-                  </div>
-
-                  {(() => {
-                    const stops = (trip.stops ?? []).slice().sort((a, b) => a.stop_sequence - b.stop_sequence);
-                    if (stops.length === 0) {
-                      return (
-                        <div className="p-3 border border-slate-100 dark:border-slate-800 rounded-xl text-xs text-slate-400 italic text-center bg-slate-50/50">
-                          No stops attached to this trip manifest.
-                        </div>
-                      );
-                    }
-
-                    const pickupStop = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
-                    const dropoffStop = stops.find((s) => s.stop_type === 'Dropoff') || (stops.length > 1 ? stops[stops.length - 1] : null);
-                    const intermediateStops = stops.filter((s) => s !== pickupStop && s !== dropoffStop);
-
-                    return (
-                      <div className="space-y-3">
-                        {/* Pickup Stop Card */}
-                        {pickupStop && (
-                          <StopAddressEditor
-                            key={pickupStop.id}
-                            tripId={id!}
-                            stop={pickupStop}
-                            title="Pickup Stop (Origin)"
-                            editable={!STOPS_FROZEN_IN.includes(trip.status)}
-                            customerId={trip.customer?.id}
-                          />
-                        )}
-
-                        {/* Transit Time & Route Distance Badge */}
-                        {pickupStop && dropoffStop && (
-                          <TransitTimeBadge
-                            origin={pickupStop.location_name || pickupStop.location_address || ''}
-                            destination={dropoffStop.location_name || dropoffStop.location_address || ''}
-                            compact={true}
-                          />
-                        )}
-
-                        {/* Dropoff Stop Card */}
-                        {dropoffStop && dropoffStop !== pickupStop && (
-                          <StopAddressEditor
-                            key={dropoffStop.id}
-                            tripId={id!}
-                            stop={dropoffStop}
-                            title="Dropoff Stop (Destination)"
-                            editable={!STOPS_FROZEN_IN.includes(trip.status)}
-                            customerId={trip.customer?.id}
-                          />
-                        )}
-
-                        {/* Intermediate Stop Cards */}
-                        {intermediateStops.length > 0 && (
-                          <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                              Intermediate Stop Locations ({intermediateStops.length})
-                            </span>
-                            <div className="space-y-2.5">
-                              {intermediateStops.map((stop, idx) => (
-                                <StopAddressEditor
-                                  key={stop.id}
-                                  tripId={id!}
-                                  stop={stop}
-                                  title={`Intermediate Stop #${idx + 1}`}
-                                  editable={!STOPS_FROZEN_IN.includes(trip.status)}
-                                  customerId={trip.customer?.id}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Section 4: Commercial Financials & Driver Payout */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Commercial Financials & Driver Payout
-                    </h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="space-y-1">
-                      <Label htmlFor="billing_amount" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Client Billing Amount (SAR)
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">SAR</span>
-                        <Input
-                          id="billing_amount"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={billingAmountInput}
-                          onChange={(e) => setBillingAmountInput(e.target.value)}
-                          className="h-8 pl-12 text-xs font-mono font-semibold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="trip_charges" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        Driver Charge / Payout (SAR)
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1.5 font-mono text-xs font-bold text-slate-400">SAR</span>
-                        <Input
-                          id="trip_charges"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={tripChargesInput}
-                          onChange={(e) => setTripChargesInput(e.target.value)}
-                          className="h-8 pl-12 text-xs font-mono font-semibold"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-
-            {error && (
-              <div className="p-2.5 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-800 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+              {/* Status Selector */}
+              <div className="flex items-center gap-1.5 ml-2">
+                <span className="text-[11px] font-medium text-slate-400">Stage:</span>
+                <Select
+                  value={form.status}
+                  onValueChange={(val: TripStatus) => form.setStatus(val)}
+                >
+                  <SelectTrigger className="h-7 text-xs font-semibold w-[150px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                    <SelectValue placeholder="Select status..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Draft" className="text-xs font-medium">Scheduled</SelectItem>
+                    <SelectItem value="Dispatched" className="text-xs font-medium">Dispatched</SelectItem>
+                    <SelectItem value="AtPickup" className="text-xs font-medium">At Pickup</SelectItem>
+                    <SelectItem value="InTransit" className="text-xs font-medium">In Transit</SelectItem>
+                    <SelectItem value="Completed" className="text-xs font-medium">Completed</SelectItem>
+                    <SelectItem value="Invoiced" className="text-xs font-medium">Invoiced</SelectItem>
+                    <SelectItem value="Cancelled" className="text-xs font-medium">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+
+              {/* Editing Rules Badges */}
+              {form.isAssignmentLocked ? (
+                <Badge variant="outline" className="text-[10px] text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Trip Frozen ({form.status})
+                </Badge>
+              ) : form.isRouteLocked ? (
+                <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/30 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Route Locked ({form.status})
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 flex items-center gap-1">
+                  Customer & Quotation Fixed
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => form.handleReset()}
+                className="h-7 text-xs text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 px-2.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.history.back()}
+                className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
+              >
+                Cancel <KbdBadge keys="Esc" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => form.handleSave()}
+                disabled={form.isSubmitting}
+                className="h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-3 shadow-xs"
+              >
+                {form.isSubmitting ? 'Saving...' : 'Save Changes'} <KbdBadge keys="Ctrl+S" />
+              </Button>
+            </div>
           </div>
 
-          {/* Right Sidebar Column (4 cols) (Matching EditVehiclePage) */}
-          <div className="lg:col-span-4 space-y-3 sticky top-2">
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-3.5 space-y-3 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Manifest Summary</span>
-                <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
-                  {completionPct}% Complete
-                </Badge>
-              </div>
-
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-200 dark:border-indigo-900/50">
-                    <Truck className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100 truncate">
-                      {trip.ref_id || 'TRIP-MANIFEST'}
-                    </p>
-                    <span className="text-[10px] text-slate-500 block truncate">
-                      Client: {trip.customer?.name || 'Standard Client'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Status Indicator */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Current Stage</span>
-                  <StatusBadge status={status} />
-                </div>
-
-                {/* Route Summary */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Route Details</span>
-                  <div className="text-xs space-y-0.5">
-                    <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                      Origin: {pickupStop?.location_name || pickupStop?.location_address || 'Pickup Yard'}
-                    </p>
-                    <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-brand inline-block"></span>
-                      Dest: {dropoffStop?.location_name || dropoffStop?.location_address || 'Delivery Dock'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Dispatch Roster */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Assigned Driver & Truck</span>
-                  <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate">
-                    {assignedDriverObj ? `${assignedDriverObj.first_name || ''} ${assignedDriverObj.last_name || ''}`.trim() || 'Assigned Driver' : 'Driver: Unassigned'}
-                  </p>
-                  <p className="text-[10px] font-mono text-slate-500 truncate">
-                    {assignedVehicleObj ? `Plate: ${assignedVehicleObj.plate_number} (${assignedVehicleObj.asset_type})` : 'Vehicle: Unassigned'}
-                  </p>
-                </div>
-
-                {/* Billing Financials Summary */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] text-slate-400 uppercase font-bold block">Financial Billing Total</span>
-                  <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    SAR {(parseFloat(billingAmountInput) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-
-              {/* Progress Bar (Matching EditVehiclePage) */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
-                  <span>Requirements</span>
-                  <span>{filledCount} of {completionFields.length}</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-brand h-full transition-all duration-300 rounded-full"
-                    style={{ width: `${completionPct}%` }}
-                  />
-                </div>
-              </div>
-
-              <Button 
-                size="sm" 
-                onClick={handleSubmit} 
-                disabled={isSubmitting}
-                className="w-full h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs mt-1"
-              >
-                {isSubmitting ? 'Saving...' : 'Save Manifest Changes'}
-              </Button>
-            </Card>
+          {/* Unified Workspace Form Body */}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 pt-2 pb-4 min-h-0 custom-scrollbar">
+            <TripStep1UnifiedWorkspace
+              contractCustomer={form.contractCustomer}
+              setContractCustomer={form.setContractCustomer}
+              customers={form.customers}
+              customerRateCards={form.customerRateCards}
+              customerOptions={form.customerOptions}
+              contractSlots={form.contractSlots}
+              contractRateCategory={form.contractRateCategory}
+              setContractRateCategory={form.setContractRateCategory}
+              contractBillingType={form.contractBillingType}
+              setContractBillingType={form.setContractBillingType}
+              contractVehicleType={form.contractVehicleType}
+              setContractVehicleType={form.setContractVehicleType}
+              selectedMonth={form.selectedMonth}
+              setSelectedMonth={form.setSelectedMonth}
+              selectedDates={form.selectedDates}
+              setSelectedDates={form.setSelectedDates}
+              handleAddSlotIntermediate={form.handleAddSlotIntermediate}
+              handleRemoveTripSlot={form.handleRemoveTripSlot}
+              handleSlotLocationChange={form.handleSlotLocationChange}
+              handleUpdateTripSlot={form.handleUpdateTripSlot}
+              handleRemoveSlotIntermediate={form.handleRemoveSlotIntermediate}
+              handleUpdateSlotIntermediate={form.handleUpdateSlotIntermediate}
+              handleAddSlotReturnIntermediate={form.handleAddSlotReturnIntermediate}
+              handleRemoveSlotReturnIntermediate={form.handleRemoveSlotReturnIntermediate}
+              handleUpdateSlotReturnIntermediate={form.handleUpdateSlotReturnIntermediate}
+              recentRoutesList={form.recentRoutesList}
+              handleApplyRecentRoute={form.handleApplyRecentRoute}
+              isRoundTripCategory={isRoundTripCategory}
+              normalizeRateCategory={normalizeRateCategory}
+              getAvailableRateCardsForLane={form.getAvailableRateCardsForLane}
+              handleOpenCreateQuotation={form.handleOpenCreateQuotation}
+              setIsManualRateOverride={form.setIsManualRateOverride}
+              assignmentType={form.assignmentType}
+              setAssignmentType={form.setAssignmentType}
+              masterVehicle={form.masterVehicle}
+              masterDriver={form.masterDriver}
+              handleVehicleChange={form.handleVehicleChange}
+              handleDriverChange={form.handleDriverChange}
+              vehicleOptions={form.vehicleOptions}
+              driverOptions={form.driverOptions}
+              thirdPartyProviderId={form.thirdPartyProviderId}
+              setThirdPartyProviderId={form.setThirdPartyProviderId}
+              thirdPartyProviders={form.thirdPartyProviders}
+              thirdPartyVehiclePlate={form.thirdPartyVehiclePlate}
+              setThirdPartyVehiclePlate={form.setThirdPartyVehiclePlate}
+              thirdPartyDriverName={form.thirdPartyDriverName}
+              setThirdPartyDriverName={form.setThirdPartyDriverName}
+              thirdPartyCost={form.thirdPartyCost}
+              setThirdPartyCost={form.setThirdPartyCost}
+              marginMetrics={form.marginMetrics}
+              drivers={form.drivers}
+              vehicles={form.vehicles}
+              dayAssignments={form.dayAssignments}
+              setDayAssignments={form.setDayAssignments}
+            />
           </div>
 
         </div>
       </div>
 
-      {/* Preview Modals */}
-      <VehiclePreviewModal
-        vehicle={previewVehicle}
-        isOpen={!!previewVehicle}
-        onClose={() => setPreviewVehicle(null)}
-        onSelectDriver={(d) => setPreviewDriver(d)}
+      {/* Modal Dialogs */}
+      <CreateDriverModal
+        isOpen={form.isCreateDriverOpen}
+        onClose={() => form.setIsCreateDriverOpen(false)}
+        onSuccess={form.handleDriverCreated}
+      />
+      <CreateVehicleModal
+        isOpen={form.isCreateVehicleOpen}
+        onClose={() => form.setIsCreateVehicleOpen(false)}
+        onSuccess={(v) => {
+          form.setMasterVehicle(v.id);
+        }}
+      />
+      <CreateCustomerModal
+        isOpen={form.isCreateCustomerOpen}
+        onClose={() => form.setIsCreateCustomerOpen(false)}
+        onSuccess={(c) => {
+          form.setContractCustomer(c.id);
+        }}
+      />
+      <CreateThirdPartyModal
+        isOpen={form.isCreateProviderOpen}
+        onClose={() => form.setIsCreateProviderOpen(false)}
+        onSuccess={(provider) => {
+          form.setThirdPartyProviderId(provider.id);
+        }}
       />
 
-      <DriverPreviewModal
-        driver={previewDriver}
-        isOpen={!!previewDriver}
-        onClose={() => setPreviewDriver(null)}
-        onSelectVehicle={(v) => setPreviewVehicle(v)}
+      <VehiclePreviewModal
+        vehicle={form.previewVehicle}
+        isOpen={!!form.previewVehicle}
+        onClose={() => form.setPreviewVehicle(null)}
+        onEdit={(v) => form.setEditVehicle(v)}
       />
+      <CustomerPreviewModal
+        customer={form.previewCustomer}
+        isOpen={!!form.previewCustomer}
+        onClose={() => form.setPreviewCustomer(null)}
+        onEdit={(c) => form.setEditCustomer(c)}
+      />
+      <ThirdPartyPreviewModal
+        provider={form.previewThirdParty}
+        isOpen={!!form.previewThirdParty}
+        onClose={() => form.setPreviewThirdParty(null)}
+        onEdit={(p) => form.setEditThirdParty(p)}
+      />
+      <DriverPreviewModal
+        driver={form.previewDriver}
+        isOpen={!!form.previewDriver}
+        onClose={() => form.setPreviewDriver(null)}
+        onEdit={(d) => form.setEditDriver(d)}
+      />
+
+      {form.editCustomer && (
+        <EditCustomerModal
+          isOpen={!!form.editCustomer}
+          customer={form.editCustomer}
+          onClose={() => form.setEditCustomer(null)}
+        />
+      )}
+      {form.editThirdParty && (
+        <EditThirdPartyModal
+          isOpen={!!form.editThirdParty}
+          provider={form.editThirdParty}
+          onClose={() => form.setEditThirdParty(null)}
+        />
+      )}
+      {form.editDriver && (
+        <EditDriverModal
+          isOpen={!!form.editDriver}
+          driver={form.editDriver}
+          onClose={() => form.setEditDriver(null)}
+        />
+      )}
+      {form.editVehicle && (
+        <EditVehicleModal
+          isOpen={!!form.editVehicle}
+          vehicle={form.editVehicle}
+          onClose={() => form.setEditVehicle(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
-

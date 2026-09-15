@@ -1693,13 +1693,17 @@ export default function TripListPage() {
 
         let intermediateList: string[] = [];
         if (stopNames.length > 2) {
-          intermediateList = stopNames.slice(1, stopNames.length - 1);
+          intermediateList = stopNames
+            .slice(1, stopNames.length - 1)
+            .filter((name, idx, arr) => idx === 0 || name.toLowerCase() !== arr[idx - 1].toLowerCase());
         } else if (firstStop.toLowerCase() === lastStop.toLowerCase() && dropoff.name && dropoff.name.toLowerCase() !== firstStop.toLowerCase()) {
           intermediateList = [dropoff.name];
         }
 
+        const fullRouteDisplay = [firstStop, ...intermediateList, lastStop].filter(Boolean).join(' → ');
+
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={stopNames.join(' → ') || `${firstStop} → ${lastStop}`}>
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={fullRouteDisplay}>
             {/* Origin (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -2494,24 +2498,35 @@ export default function TripListPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
                   <DropdownMenuItem
-                    onClick={() => navigate('/trips/new')}
+                    onClick={() => navigate('/trips/new?billingType=Extra')}
                     className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                   >
                     <Plus className="w-4 h-4 text-brand shrink-0" />
                     <div>
-                      <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                      <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Spot Trip</div>
+                      <div className="text-[10px] text-slate-500">Single or round trip at spot rate cards</div>
                     </div>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => navigate('/trips/monthly?bulk=true')}
+                    onClick={() => navigate('/trips/new?billingType=Monthly')}
                     className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
                   >
                     <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
-                      <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                      <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Monthly Duty Trip</div>
+                      <div className="text-[10px] text-slate-500">Dedicated monthly contract duty & calendar</div>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?assignment=third_party')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">3PL Partner Dispatch</div>
+                      <div className="text-[10px] text-slate-500">Subcontracted trip with 3PL carrier cost</div>
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

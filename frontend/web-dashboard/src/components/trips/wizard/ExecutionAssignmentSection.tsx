@@ -20,6 +20,8 @@ interface ExecutionAssignmentSectionProps {
   setThirdPartyVehiclePlate: (plate: string) => void;
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (name: string) => void;
+  thirdPartyDriverPhone?: string;
+  setThirdPartyDriverPhone?: (phone: string) => void;
   thirdPartyCost?: string;
   setThirdPartyCost?: (cost: string) => void;
   contractSlots?: any[];
@@ -43,6 +45,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   setThirdPartyVehiclePlate,
   thirdPartyDriverName,
   setThirdPartyDriverName,
+  thirdPartyDriverPhone = '',
+  setThirdPartyDriverPhone,
   thirdPartyCost = '',
   setThirdPartyCost,
   contractSlots = [],
@@ -61,31 +65,16 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
           <Truck className="w-3.5 h-3.5 text-[#FA634E] shrink-0" /> ASSIGNMENT
         </h4>
-        {/* ASSIGNMENT MODE TOGGLE */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
-          <button
-            type="button"
-            onClick={() => setAssignmentType('own')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-              assignmentType === 'own'
-                ? 'bg-emerald-600 text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            Own Fleet
-          </button>
-          <button
-            type="button"
-            onClick={() => setAssignmentType('third_party')}
-            className={`px-2 py-0.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-              assignmentType === 'third_party'
-                ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            3PL Partner
-          </button>
-        </div>
+        {/* ASSIGNMENT CONTEXT BADGE */}
+        <span
+          className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+            assignmentType === 'third_party' || assignmentType === '3pl'
+              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+          }`}
+        >
+          {assignmentType === 'third_party' || assignmentType === '3pl' ? '3PL Partner' : 'Own Fleet'}
+        </span>
       </div>
 
       {assignmentType === 'own' ? (
@@ -370,8 +359,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </Select>
           </div>
 
-          {/* DRIVER NAME, VEHICLE PLATE & 3PL COST IN A 3-COLUMN GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                 3PL DRIVER NAME
@@ -381,6 +370,19 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 value={thirdPartyDriverName}
                 onChange={(e) => setThirdPartyDriverName(e.target.value)}
                 placeholder="Driver name..."
+                className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                3PL DRIVER PHONE
+              </label>
+              <input
+                type="text"
+                value={thirdPartyDriverPhone}
+                onChange={(e) => setThirdPartyDriverPhone?.(e.target.value)}
+                placeholder="Driver phone..."
                 className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
               />
             </div>

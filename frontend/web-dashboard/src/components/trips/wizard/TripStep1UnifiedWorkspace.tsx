@@ -62,6 +62,8 @@ interface TripStep1UnifiedWorkspaceProps {
   setThirdPartyVehiclePlate: (val: string) => void;
   thirdPartyDriverName: string;
   setThirdPartyDriverName: (val: string) => void;
+  thirdPartyDriverPhone?: string;
+  setThirdPartyDriverPhone?: (val: string) => void;
   thirdPartyCost: string;
   setThirdPartyCost?: (val: string) => void;
   marginMetrics: any;
@@ -122,6 +124,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   setThirdPartyVehiclePlate,
   thirdPartyDriverName,
   setThirdPartyDriverName,
+  thirdPartyDriverPhone = '',
+  setThirdPartyDriverPhone,
   thirdPartyCost,
   setThirdPartyCost,
   marginMetrics,
@@ -142,34 +146,6 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
 
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
-      {/* MODE-SPECIFIC WORKSPACE HEADER BANNER */}
-      {contractBillingType?.toLowerCase() === 'monthly' ? (
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/80 shadow-2xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-              <Calendar className="w-3 h-3" /> Monthly Contract Duty Mode
-            </span>
-            <span className="text-xs font-bold text-purple-900 dark:text-purple-200">
-              Recurring monthly billing contract • Billed per monthly agreement rate
-            </span>
-          </div>
-          <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-white dark:bg-purple-900/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-            Monthly Contract
-          </span>
-        </div>
-      ) : contractBillingType?.toLowerCase() === 'extra' ? (
-        <div className="flex items-center justify-between p-2 rounded-xl bg-orange-50/90 dark:bg-orange-950/30 border border-orange-200/90 dark:border-orange-900/80 shadow-2xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#FA634E] text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-              <Zap className="w-3 h-3" /> Extra / Spot Trip Mode
-            </span>
-          </div>
-          <span className="text-[10px] font-extrabold text-[#FA634E] bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-900">
-            Extra (Spot Rate)
-          </span>
-        </div>
-      ) : null}
-
       {/* 58% / 42% 2-COLUMN COMMAND CENTER GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
@@ -229,28 +205,33 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
             <div className={cn("transition-opacity duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
-              <ExecutionAssignmentSection
-                assignmentType={assignmentType}
-                setAssignmentType={setAssignmentType}
-                masterVehicle={masterVehicle}
-                masterDriver={masterDriver}
-                handleVehicleChange={handleVehicleChange}
-                handleDriverChange={handleDriverChange}
-                vehicleOptions={vehicleOptions}
-                driverOptions={driverOptions}
-                thirdPartyProviderId={thirdPartyProviderId}
-                setThirdPartyProviderId={setThirdPartyProviderId}
-                thirdPartyProviders={thirdPartyProviders}
-                thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-                setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
-                thirdPartyDriverName={thirdPartyDriverName}
-                setThirdPartyDriverName={setThirdPartyDriverName}
-                thirdPartyCost={thirdPartyCost}
-                setThirdPartyCost={setThirdPartyCost}
-                contractSlots={contractSlots}
-                contractVehicleType={contractVehicleType}
-                setContractVehicleType={setContractVehicleType}
-              />
+              {/* REQUIREMENT 3: For Monthly trips, DO NOT show Assignment on Page 1 */}
+              {contractBillingType !== 'Monthly' && (
+                <ExecutionAssignmentSection
+                  assignmentType={assignmentType}
+                  setAssignmentType={setAssignmentType}
+                  masterVehicle={masterVehicle}
+                  masterDriver={masterDriver}
+                  handleVehicleChange={handleVehicleChange}
+                  handleDriverChange={handleDriverChange}
+                  vehicleOptions={vehicleOptions}
+                  driverOptions={driverOptions}
+                  thirdPartyProviderId={thirdPartyProviderId}
+                  setThirdPartyProviderId={setThirdPartyProviderId}
+                  thirdPartyProviders={thirdPartyProviders}
+                  thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                  setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
+                  thirdPartyDriverName={thirdPartyDriverName}
+                  setThirdPartyDriverName={setThirdPartyDriverName}
+                  thirdPartyDriverPhone={thirdPartyDriverPhone}
+                  setThirdPartyDriverPhone={setThirdPartyDriverPhone}
+                  thirdPartyCost={thirdPartyCost}
+                  setThirdPartyCost={setThirdPartyCost}
+                  contractSlots={contractSlots}
+                  contractVehicleType={contractVehicleType}
+                  setContractVehicleType={setContractVehicleType}
+                />
+              )}
 
               <TripEconomicsSection
                 contractSlots={contractSlots}

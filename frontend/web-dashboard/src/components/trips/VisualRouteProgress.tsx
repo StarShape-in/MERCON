@@ -25,63 +25,146 @@ const DEFAULT_STOPS: NormalizedStop[] = [
   { id: '2', seq: 2, label: 'DESTINATION', city: 'Al Abha', time: 'ETA 20:30 PM', status: 'upcoming', isFirst: false, isLast: true },
 ];
 
+function getCanonicalCity(stop: any): string {
+  if (!stop) return '';
+  const rawCity = stop.location?.city || stop.location?.name || stop.location_name || stop.name;
+  if (!rawCity) return '';
+  return String(rawCity)
+    .replace(/\[RETURN:.*?\]/gi, '')
+    .replace(/🔁\s*/g, '')
+    .replace(/\s*\(\s*\)$/, '')
+    .trim();
+}
+
+function isTurnaroundPair(prevStop: any, nextStop: any): boolean {
+  if (!prevStop || !nextStop) return false;
+
+  const prevLeg = prevStop.leg_index ?? 0;
+  const nextLeg = nextStop.leg_index ?? 0;
+  const isLegTransition = prevLeg === 0 && nextLeg === 1;
+
+  const prevType = String(prevStop.stop_type || '').toLowerCase();
+  const nextType = String(nextStop.stop_type || '').toLowerCase();
+  const isDropoffToPickup = (prevType === 'dropoff' || prevType === 'unloading') && (nextType === 'pickup' || nextType === 'loading');
+
+  const prevLocId = prevStop.location_id || prevStop.locationId || prevStop.location?.id;
+  const nextLocId = nextStop.location_id || nextStop.locationId || nextStop.location?.id;
+
+  let sameLocation = false;
+  if (prevLocId && nextLocId) {
+    sameLocation = String(prevLocId) === String(nextLocId);
+  } else {
+    const prevCity = getCanonicalCity(prevStop);
+    const nextCity = getCanonicalCity(nextStop);
+    sameLocation = !!prevCity && !!nextCity && prevCity.toLowerCase() === nextCity.toLowerCase();
+  }
+
+  return (isLegTransition || isDropoffToPickup) && sameLocation;
+}
+
 export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRouteProgressProps) {
   const isTripFullyCompleted = ['completed', 'invoiced'].includes(String(tripStatus || '').trim().toLowerCase());
 
-  const normalizedStops: NormalizedStop[] =
-    stops && stops.length >= 2
-      ? stops.map((st, idx) => {
-          const isFirst = idx === 0;
-          const isLast = idx === stops.length - 1;
-          const isCompleted = !!st.actual_arrival || isTripFullyCompleted;
-          const isCurrent = !isCompleted && (idx === 0 || !!stops[idx - 1]?.actual_arrival);
+  const isRoundTrip = useMemo(() => {
+    if (!stops || stops.length < 2) return false;
+    return (
+      stops.some((st: any) => (st.leg_index ?? 0) === 1) ||
+      (stops.length >= 3 && getCanonicalCity(stops[0]).toLowerCase() === getCanonicalCity(stops[stops.length - 1]).toLowerCase())
+    );
+  }, [stops]);
 
-          const rawCity = st.location?.city || st.location?.name || st.location_name || st.name;
-          const cityName = rawCity
-            ? String(rawCity).replace(/\s*\(\s*\)$/, '').trim()
-            : (isFirst ? 'Riyadh' : isLast ? 'Al Abha' : `Stop ${idx}`);
+  const normalizedStops: NormalizedStop[] = useMemo(() => {
+    if (!stops || stops.length < 2) return DEFAULT_STOPS;
 
-          const timeStr = st.actual_arrival
-            ? formatInDeploymentTz(st.actual_arrival, tz, 'hh:mm a')
-            : st.planned_arrival
-            ? (isLast && !isTripFullyCompleted ? `ETA ${formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a')}` : formatInDeploymentTz(st.planned_arrival, tz, 'hh:mm a'))
-            : isLast && !isTripFullyCompleted ? 'ETA 20:30 PM' : '12:00 PM';
+    const groupedItems: { stops: any[]; isTurnaround: boolean }[] = [];
+    let i = 0;
+    while (i < stops.length) {
+      const currentStop = stops[i];
+      const nextStop = stops[i + 1];
 
-          return {
-            id: st.id || `stop-${idx}`,
-            seq: idx + 1,
-            label: isFirst ? 'Pickup' : isLast ? 'Destination' : `Stop ${idx}`,
-            city: cityName,
-            time: timeStr,
-            status: isCompleted ? 'completed' : isCurrent ? 'current' : 'upcoming',
-            isFirst,
-            isLast,
-          };
-        })
-      : DEFAULT_STOPS;
+      if (
+        nextStop &&
+        i > 0 &&
+        i + 1 < stops.length &&
+        isTurnaroundPair(currentStop, nextStop)
+      ) {
+        groupedItems.push({
+          stops: [currentStop, nextStop],
+          isTurnaround: true,
+        });
+        i += 2;
+      } else {
+        groupedItems.push({
+          stops: [currentStop],
+          isTurnaround: false,
+        });
+        i += 1;
+      }
+    }
+
+    const totalMilestones = groupedItems.length;
+    let prevAllCompleted = true;
+
+    return groupedItems.map((group, mIdx) => {
+      const isFirst = mIdx === 0;
+      const isLast = mIdx === totalMilestones - 1;
+      const isTurnaround = group.isTurnaround;
+
+      const allStopsCompleted = group.stops.every((st) => !!st.actual_arrival) || isTripFullyCompleted;
+      const isCurrent = !allStopsCompleted && prevAllCompleted;
+      if (!allStopsCompleted) {
+        prevAllCompleted = false;
+      }
+
+      const primaryStop = group.stops[group.stops.length - 1] || group.stops[0];
+      const firstStopInGroup = group.stops[0];
+
+      const city = getCanonicalCity(firstStopInGroup) || (isFirst ? 'Origin' : isLast ? 'Destination' : `Stop ${mIdx}`);
+
+      const relevantTime = primaryStop.actual_arrival || firstStopInGroup.actual_arrival || primaryStop.planned_arrival || firstStopInGroup.planned_arrival;
+      const timeStr = relevantTime
+        ? formatInDeploymentTz(relevantTime, tz, 'hh:mm a')
+        : isLast && !isTripFullyCompleted
+        ? 'ETA 20:30 PM'
+        : '12:00 PM';
+
+      let label = isFirst
+        ? 'Pickup'
+        : isLast
+        ? (isRoundTrip ? 'Return Delivery' : 'Destination')
+        : isTurnaround
+        ? 'Turnaround'
+        : `Stop ${mIdx}`;
+
+      return {
+        id: group.stops.map((s) => s.id || s.seq || s.stop_sequence).join('-') || `m-${mIdx}`,
+        seq: mIdx + 1,
+        label,
+        city,
+        time: timeStr,
+        status: allStopsCompleted ? 'completed' : isCurrent ? 'current' : 'upcoming',
+        isFirst,
+        isLast,
+      };
+    });
+  }, [stops, tz, tripStatus, isTripFullyCompleted, isRoundTrip]);
 
   const totalStops = normalizedStops.length;
   const completedCount = normalizedStops.filter((s) => s.status === 'completed').length;
   const progressPercent = Math.round((completedCount / totalStops) * 100);
 
-  // Position vehicle marker along progress track
-  const truckPositionPercent = useMemo(() => {
-    if (totalStops <= 1) return 50;
-    if (completedCount === totalStops) return 98;
-    if (completedCount === 0) return 2;
-    const segmentWidth = 100 / (totalStops - 1);
-    const completedRatio = (completedCount - 0.5) * segmentWidth;
-    return Math.min(96, Math.max(2, completedRatio));
-  }, [completedCount, totalStops]);
-
-  const outboundStops = stops && stops.length >= 2 ? stops.filter((st) => (st.leg_index ?? 0) === 0) : [];
-  const targetDropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : (stops && stops.length > 1 ? stops[stops.length - 1] : undefined);
-
   const originCity = normalizedStops[0]?.city || 'Origin';
-  const destCity = targetDropoff
-    ? String(targetDropoff.location?.city || targetDropoff.location?.name || targetDropoff.location_name || targetDropoff.name || '').replace(/\s*\(\s*\)$/, '').trim()
-    : (normalizedStops[normalizedStops.length - 1]?.city || 'Destination');
-  const routeTitle = `${originCity} → ${destCity} Corridor`;
+  const turnaroundOrDestCity = useMemo(() => {
+    if (isRoundTrip && normalizedStops.length >= 3) {
+      const turnaroundNode = normalizedStops.find((s) => (s as any).isTurnaround) || normalizedStops[1];
+      return turnaroundNode?.city || 'Turnaround';
+    }
+    return normalizedStops[normalizedStops.length - 1]?.city || 'Destination';
+  }, [isRoundTrip, normalizedStops]);
+
+  const routeTitle = isRoundTrip
+    ? `${originCity} → ${turnaroundOrDestCity} · Round Trip`
+    : `${originCity} → ${turnaroundOrDestCity} Corridor`;
 
   return (
     <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-6 sm:py-4 gap-4">
@@ -96,7 +179,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
               {routeTitle}
             </h3>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              {totalStops} Milestones • Direct Commercial Transit
+              {totalStops} Milestones • {isRoundTrip ? 'Round Trip Transit' : 'Direct Commercial Transit'}
             </p>
           </div>
         </div>

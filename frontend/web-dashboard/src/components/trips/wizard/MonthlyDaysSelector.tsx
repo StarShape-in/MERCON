@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Check, X, User, Truck, Repeat, RotateCcw, Building2, ChevronDown, Plus } from 'lucide-react';
+import { Calendar, Check, X, User, Truck, Repeat, RotateCcw, Building2, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { shiftMonth, monthOptions } from '@/components/trips/monthly/monthlyBoardUtils';
@@ -65,6 +65,8 @@ interface MonthlyDaysSelectorProps {
   setThirdPartyVehiclePlate?: (plate: string) => void;
   thirdPartyDriverName?: string;
   setThirdPartyDriverName?: (name: string) => void;
+  thirdPartyDriverPhone?: string;
+  setThirdPartyDriverPhone?: (phone: string) => void;
   thirdPartyCost?: string;
   setThirdPartyCost?: (cost: string) => void;
   contractVehicleType?: string;
@@ -96,11 +98,15 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
   setThirdPartyVehiclePlate,
   thirdPartyDriverName = '',
   setThirdPartyDriverName,
+  thirdPartyDriverPhone = '',
+  setThirdPartyDriverPhone,
   thirdPartyCost = '',
   setThirdPartyCost,
   contractVehicleType = '10 TON',
   setContractVehicleType,
 }) => {
+  const [coDriver, setCoDriver] = useState('');
+  const [showCoDriver, setShowCoDriver] = useState(false);
   const monthDates = useMemo(() => getMonthDates(selectedMonth), [selectedMonth]);
 
   // Strategy Mode: 'single' vs 'rotation'
@@ -429,33 +435,16 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
               </h4>
             </div>
 
-            {/* OWN FLEET VS 3PL TOGGLE */}
-            {setAssignmentType && (
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setAssignmentType('own')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer ${
-                    assignmentType === 'own'
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  Own Fleet
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAssignmentType('third_party')}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer ${
-                    assignmentType === 'third_party'
-                      ? 'bg-purple-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                  }`}
-                >
-                  3PL Partner
-                </button>
-              </div>
-            )}
+            {/* ASSIGNMENT CONTEXT BADGE */}
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                assignmentType === 'third_party'
+                  ? 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
+                  : 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+              }`}
+            >
+              {assignmentType === 'third_party' ? '3PL Partner' : 'Own Fleet'}
+            </span>
           </div>
 
           {/* ASSIGNMENT STRATEGY MODE PILLS */}
@@ -603,6 +592,43 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                   }
                 )}
               </div>
+
+              {/* OPTIONAL CO-DRIVER / RELIEVER (REQUIREMENT 4) */}
+              {showCoDriver ? (
+                <div className="space-y-1 p-2 rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                      CO-DRIVER / RELIEVER
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoDriver('');
+                        setShowCoDriver(false);
+                      }}
+                      className="text-slate-400 hover:text-rose-600 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <Combobox
+                    options={driverOptions.filter((d) => d.value !== masterDriver)}
+                    value={coDriver}
+                    onChange={setCoDriver}
+                    placeholder="Select co-driver..."
+                    searchPlaceholder="Search co-driver name..."
+                    triggerClassName="h-7 text-xs font-semibold"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCoDriver(true)}
+                  className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 flex items-center gap-1 cursor-pointer pt-0.5"
+                >
+                  <Plus className="w-3 h-3" /> Add Co-Driver / Reliever
+                </button>
+              )}
             </div>
           )}
 
@@ -613,7 +639,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 <Building2 className="w-4 h-4 text-purple-600" />
                 <span>3PL Provider Configuration</span>
               </h5>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
                 <div>
                   <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
                     3PL Partner
@@ -641,6 +667,19 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                     value={thirdPartyDriverName}
                     onChange={(e) => setThirdPartyDriverName?.(e.target.value)}
                     placeholder="Driver Name..."
+                    className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                    Provider Driver Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={thirdPartyDriverPhone}
+                    onChange={(e) => setThirdPartyDriverPhone?.(e.target.value)}
+                    placeholder="Driver Phone..."
                     className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
                   />
                 </div>

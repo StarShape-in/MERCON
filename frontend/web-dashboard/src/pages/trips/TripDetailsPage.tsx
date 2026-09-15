@@ -281,7 +281,9 @@ export default function TripDetailsPage() {
 
   const pickupCityName = pickup ? resolveStopName(pickup, 'Riyadh') : 'Riyadh';
   const dropoffCityName = dropoff ? resolveStopName(dropoff, 'Al Abha') : 'Al Abha';
-  const routeLabel = `${pickupCityName} → ${dropoffCityName}`;
+  const routeLabel = tripType === 'Round Trip'
+    ? `${pickupCityName} → ${dropoffCityName} · Round Trip`
+    : `${pickupCityName} → ${dropoffCityName}`;
 
   // Status Badge Helper
   const getStatusBadgeProps = (statusRaw: string) => {

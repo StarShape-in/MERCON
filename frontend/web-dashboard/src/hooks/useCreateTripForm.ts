@@ -164,7 +164,10 @@ export function useCreateTripForm() {
     }));
   }, [customers]);
 
-  const [assignmentType, setAssignmentType] = useState<'own' | 'third_party'>('own');
+  const [searchParams] = useSearchParams();
+  const urlAssignmentInit = searchParams.get('assignment');
+  const initialAssignment = (urlAssignmentInit?.toLowerCase() === 'third_party' || urlAssignmentInit?.toLowerCase() === '3pl') ? 'third_party' : 'own';
+  const [assignmentType, setAssignmentType] = useState<'own' | 'third_party'>(initialAssignment);
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
@@ -320,20 +323,34 @@ export function useCreateTripForm() {
     return [assignLaterDriverOption, ...mapped];
   }, [drivers, vehicles, recommendedDriversRes]);
 
-  const [searchParams] = useSearchParams();
   const urlStepParam = searchParams.get('step');
   const initialStep = (urlStepParam && [1, 2, 3].includes(Number(urlStepParam))) ? (Number(urlStepParam) as 1 | 2 | 3) : 1;
 
   const urlMode = searchParams.get('mode');
   const urlBillingType = searchParams.get('billingType');
   const urlMonth = searchParams.get('month');
+  const urlAssignment = searchParams.get('assignment');
   const isMonthlyUrl = urlMode?.toLowerCase() === 'monthly' || urlBillingType?.toLowerCase() === 'monthly' || !!urlMonth;
+  const is3PLUrl = urlAssignment?.toLowerCase() === 'third_party' || urlAssignment?.toLowerCase() === '3pl';
 
   const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
   const [contractCustomer, setContractCustomerRaw] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
   const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
+
+  useEffect(() => {
+    if (urlBillingType || urlMode || urlMonth) {
+      const isMonthly = urlMode?.toLowerCase() === 'monthly' || urlBillingType?.toLowerCase() === 'monthly' || !!urlMonth;
+      setContractBillingType(isMonthly ? 'Monthly' : 'Extra');
+    }
+    if (urlAssignment) {
+      const is3PL = urlAssignment.toLowerCase() === 'third_party' || urlAssignment.toLowerCase() === '3pl';
+      setAssignmentType(is3PL ? 'third_party' : 'own');
+    }
+  }, [urlBillingType, urlMode, urlMonth, urlAssignment]);
+
+  const explicitBillingType = urlBillingType || (isMonthlyUrl ? 'Monthly' : null);
 
   const {
     customerRateCards,
@@ -345,7 +362,8 @@ export function useCreateTripForm() {
     contractVehicleType,
     contractRateCategory,
     contractBillingType,
-    contractStep
+    contractStep,
+    explicitBillingType
   );
 
   const contractSlotsRef = useRef(contractSlots);
@@ -837,21 +855,36 @@ export function useCreateTripForm() {
         });
       }
 
-      // Mandatory Fleet & Driver Assignment Validation
-      if (assignmentType === 'third_party') {
-        if (!thirdPartyProviderId && !thirdPartyDriverName) {
-          errors.push('3PL Logistics Partner selection is required');
-        }
-      } else {
-        const hasDriverSelection = Boolean(masterDriver);
-        const hasVehicleSelection = Boolean(masterVehicle);
-        if (!hasDriverSelection && !hasVehicleSelection) {
-          errors.push('Select an assignment choice: Driver & Vehicle or Assign Later');
+      // Mandatory Fleet & Driver Assignment Validation for Daily/Spot (Monthly handles assignment on Page 2)
+      if (contractBillingType !== 'Monthly') {
+        if (assignmentType === 'third_party') {
+          if (!thirdPartyProviderId && !thirdPartyDriverName) {
+            errors.push('3PL Logistics Partner selection is required');
+          }
+        } else {
+          const hasDriverSelection = Boolean(masterDriver);
+          const hasVehicleSelection = Boolean(masterVehicle);
+          if (!hasDriverSelection && !hasVehicleSelection) {
+            errors.push('Select an assignment choice: Driver & Vehicle or Assign Later');
+          }
         }
       }
     } else if (step === 2) {
-      if (contractBillingType === 'Monthly' && selectedDates.length === 0) {
-        errors.push('Select at least 1 operating date on the calendar');
+      if (contractBillingType === 'Monthly') {
+        if (selectedDates.length === 0) {
+          errors.push('Select at least 1 operating date on the calendar');
+        }
+        if (assignmentType === 'third_party') {
+          if (!thirdPartyProviderId && !thirdPartyDriverName) {
+            errors.push('3PL Logistics Partner selection is required');
+          }
+        } else {
+          const hasDriverSelection = Boolean(masterDriver);
+          const hasVehicleSelection = Boolean(masterVehicle);
+          if (!hasDriverSelection && !hasVehicleSelection) {
+            errors.push('Select an assignment choice: Driver & Vehicle or Assign Later');
+          }
+        }
       }
     }
 

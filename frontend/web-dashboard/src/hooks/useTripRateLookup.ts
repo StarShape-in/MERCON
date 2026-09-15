@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { quotationService, RateCard } from '@/services/quotationService';
@@ -9,7 +9,8 @@ export function useTripRateLookup(
   contractVehicleType: string,
   contractRateCategory: string,
   contractBillingType: string,
-  contractStep: number
+  contractStep: number,
+  explicitBillingType?: string | null
 ) {
   const navigate = useNavigate();
 
@@ -20,9 +21,22 @@ export function useTripRateLookup(
   });
 
   const allRateCards: RateCard[] = rateCardsRes?.data ?? [];
-  const customerRateCards: RateCard[] = contractCustomer
-    ? allRateCards.filter((rc) => rc.customerId === contractCustomer || (rc as any).customer_id === contractCustomer)
-    : allRateCards;
+
+  const targetBillingType = explicitBillingType ? normalizeBillingType(explicitBillingType) : null;
+
+  const customerRateCards: RateCard[] = useMemo(() => {
+    let baseCards = allRateCards;
+    if (contractCustomer) {
+      baseCards = baseCards.filter((rc) => rc.customerId === contractCustomer || (rc as any).customer_id === contractCustomer);
+    }
+    if (targetBillingType) {
+      baseCards = baseCards.filter((rc) => {
+        const rcBilling = normalizeBillingType((rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type);
+        return rcBilling === targetBillingType;
+      });
+    }
+    return baseCards;
+  }, [allRateCards, contractCustomer, targetBillingType]);
 
   const handleOpenCreateQuotation = (slot?: any) => {
     const originId = slot?.originLocationId || '';
@@ -185,7 +199,7 @@ export function useTripRateLookup(
     const hasOrigin = Boolean(orig || origLocId);
     const hasDestination = Boolean(dest || destLocId);
     if (!hasOrigin && !hasDestination) {
-      return allRateCards.length > 0 ? allRateCards : customerRateCards;
+      return customerRateCards;
     }
 
     const targetCategory = norm(rCat);
