@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "driver_devices" (
+CREATE TABLE IF NOT EXISTS "driver_devices" (
     "id" UUID NOT NULL,
     "driverId" UUID NOT NULL,
     "token" TEXT NOT NULL,
@@ -13,10 +13,15 @@ CREATE TABLE "driver_devices" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "driver_devices_token_key" ON "driver_devices"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "driver_devices_token_key" ON "driver_devices"("token");
 
 -- CreateIndex
-CREATE INDEX "driver_devices_driverId_isActive_idx" ON "driver_devices"("driverId", "isActive");
+CREATE INDEX IF NOT EXISTS "driver_devices_driverId_isActive_idx" ON "driver_devices"("driverId", "isActive");
 
 -- AddForeignKey
-ALTER TABLE "driver_devices" ADD CONSTRAINT "driver_devices_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'driver_devices_driverId_fkey') THEN
+        ALTER TABLE "driver_devices" ADD CONSTRAINT "driver_devices_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
+
