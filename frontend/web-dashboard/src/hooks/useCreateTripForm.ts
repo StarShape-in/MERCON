@@ -250,8 +250,8 @@ export function useCreateTripForm() {
           ? `Truck: Fleet Available${capacityLabel ? ` • ${capacityLabel}` : ''}`
           : 'Truck: Unassigned';
 
-        const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
-        const statusTag = isNotAvailable
+        const isNotAvailable = Boolean(d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available' && d.id !== masterDriver);
+        const statusTag = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available'
           ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
           : '';
 
@@ -280,6 +280,7 @@ export function useCreateTripForm() {
           value: d.id,
           label,
           selectedLabel: fullName,
+          disabled: isNotAvailable,
           keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
@@ -566,6 +567,7 @@ export function useCreateTripForm() {
         hint = 'Allowed alternative';
       }
 
+      const isVehNotAvailable = Boolean(v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' && v.id !== masterVehicle);
       const statusClean = v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' ? v.status : '';
       const vehDetailsStr = [typeLabel, statusClean, hint].filter(Boolean).join(' • ');
 
@@ -591,6 +593,7 @@ export function useCreateTripForm() {
         group,
         label,
         selectedLabel: v.plate_number || typeLabel,
+        disabled: isVehNotAvailable,
         keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${vClass} ${actualCapLabel} ${group} ${hint}`,
       };
     });
