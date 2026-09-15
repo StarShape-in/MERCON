@@ -86,6 +86,22 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     });
   }, [effectiveRateCards, contractBillingType]);
 
+  // Compute live card counts per operation type for segment tab badges
+  const { monthlyCount, extraCount } = React.useMemo(() => {
+    if (!effectiveRateCards || effectiveRateCards.length === 0) {
+      return { monthlyCount: 0, extraCount: 0 };
+    }
+    let m = 0;
+    let e = 0;
+    effectiveRateCards.forEach((rc) => {
+      const rcRaw = (rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
+      const rcBt = normalizeBillingType(rcRaw);
+      if (rcBt === 'Monthly') m++;
+      else e++;
+    });
+    return { monthlyCount: m, extraCount: e };
+  }, [effectiveRateCards]);
+
   // Default to showing saved rate cards if available; only show inline form if explicitly toggled or customer has 0 cards
   const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
 
@@ -281,76 +297,94 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {/* STAGE 2: CUSTOMER IS SELECTED */}
       {Boolean(contractCustomer) && (
         <div className="space-y-2.5">
-          {/* PROMINENT BILLING MODE SWITCHER (MONTHLY CONTRACT VS EXTRA SPOT TRIP VS ALL) */}
+          {/* SLEEK SINGLE-ROW OPERATIONAL TOOLBAR (OPERATION TYPE SEGMENTS + SEARCH INPUT) */}
           {setContractBillingType && (
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                {/* MODE SELECTOR BUTTONS */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
-                    OPERATION TYPE:
-                  </span>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* SEGMENTED TAB CONTROL WITH LIVE COUNT BADGES */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">
+                  OPERATION TYPE:
+                </span>
+                
+                <div className="p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Monthly')}
-                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() === 'monthly'
-                        ? 'bg-purple-600 text-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-purple-300'
-                    }`}
+                        ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 font-extrabold shadow-2xs border border-purple-200/80 dark:border-purple-800/60"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-bold border border-transparent"
+                    )}
                   >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Monthly Contract
+                    <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>Monthly Contract</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-md font-mono text-[10px] font-bold transition-colors",
+                      contractBillingType?.toLowerCase() === 'monthly'
+                        ? "bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60"
+                        : "bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    )}>
+                      {monthlyCount}
+                    </span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setContractBillingType('Extra')}
-                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() !== 'monthly'
-                        ? 'bg-[#FA634E] text-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#FA634E]/40'
-                    }`}
+                        ? "bg-white dark:bg-slate-900 text-[#FA634E] dark:text-rose-400 font-extrabold shadow-2xs border border-[#FFD4C4] dark:border-rose-900/60"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-bold border border-transparent"
+                    )}
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    Extra / Spot Trip
+                    <Zap className="w-3.5 h-3.5 text-[#FA634E] dark:text-rose-400" />
+                    <span>Extra / Spot Trip</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-md font-mono text-[10px] font-bold transition-colors",
+                      contractBillingType?.toLowerCase() !== 'monthly'
+                        ? "bg-orange-50 dark:bg-rose-950/80 text-[#FA634E] dark:text-rose-300 border border-orange-200/60 dark:border-rose-900/60"
+                        : "bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    )}>
+                      {extraCount}
+                    </span>
                   </button>
                 </div>
               </div>
 
-              {/* SEARCH INPUT ROW */}
+              {/* INTEGRATED SEARCH INPUT */}
               {!showInlineForm && (
-                <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <div className="relative w-full flex items-center">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={quotationSearchQuery}
-                      onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          setQuotationSearchQuery('');
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                      placeholder="Search quotations by route, rate, vehicle class..."
-                      className="h-8.5 w-full pl-9 pr-24 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
-                    />
-                    {quotationSearchQuery && (
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 select-none">
-                          {displayedRateCards.length} {displayedRateCards.length === 1 ? 'match' : 'matches'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQuotationSearchQuery('')}
-                          className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                          title="Clear search (Esc)"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="relative flex-1 min-w-[240px] max-w-md flex items-center">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={quotationSearchQuery}
+                    onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setQuotationSearchQuery('');
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    placeholder="Search quotations by route, rate, vehicle class..."
+                    className="h-8.5 w-full pl-9 pr-20 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                  />
+                  {quotationSearchQuery && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                        {displayedRateCards.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuotationSearchQuery('')}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                        title="Clear search (Esc)"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
