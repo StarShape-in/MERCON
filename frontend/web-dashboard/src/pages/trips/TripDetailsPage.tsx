@@ -249,7 +249,8 @@ export default function TripDetailsPage() {
   const subcontractCost = trip.third_party_cost;
 
   const fin = computeTripFinancials({
-    customerBilling: rawBilling,
+    customerBilling: trip.billing_amount,
+    monthlyRate: tAny.quotation?.rate,
     driverPayout: rawDriverPayout,
     is3PL,
     subcontractCost,
@@ -640,6 +641,9 @@ export default function TripDetailsPage() {
               tripType={tripType}
               quotationName={(trip as any).quotation?.name || (trip as any).rateCard?.name || tAny.quotation_name || null}
               quotationId={(trip as any).quotation?.id || (trip as any).rateCard?.id || trip.quotationId || null}
+              isMonthlyContract={fin.isMonthly}
+              monthlyContractRate={fin.monthlyRate}
+              pricingBasis={tAny.quotation?.pricing_basis || tAny.pricing_basis}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

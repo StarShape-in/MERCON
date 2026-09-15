@@ -440,9 +440,14 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                     {/* 1. REVENUE BILLING */}
                     <div className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/70 dark:border-slate-700">
                       <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Customer Billing</span>
-                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white">
-                        SAR {grandTotalBilling.toLocaleString()}
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white block">
+                        SAR {fin.resolvedBilling.toLocaleString()}
                       </span>
+                      {fin.isMonthly && (
+                        <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold">
+                          {totalOperatingDays} day{totalOperatingDays > 1 ? 's' : ''} @ SAR {fin.dailyRate}/day
+                        </span>
+                      )}
                     </div>
 
                     {/* 2. DRIVER PAYOUT / 3PL COST */}

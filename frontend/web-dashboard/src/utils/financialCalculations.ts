@@ -3,7 +3,7 @@
  * 
  * Unifies Customer Billing, Driver Payout, 3PL Subcontract Cost,
  * Operational N-Days Scheduling, Multi-Driver Rotations, Balance Margin,
- * and Dual-Rate (Monthly / Daily) formatting across all frontend components.
+ * and Per-Trip Billing Rate resolution across all frontend components.
  */
 
 export interface DriverRotationPayoutInput {
@@ -38,8 +38,8 @@ export interface ComputedTripFinancials {
   monthlyRate: number;            // Full contract rate (SAR/mo)
   dailyRate: number;              // Daily breakdown rate: monthlyRate / 30 (SAR/day)
   perTripBreakdown: number;       // Equivalent daily/per-trip rate (SAR)
-  resolvedBilling: number;        // Base billing rate for active context (SAR)
-  resolvedDriverPayout: number;   // Total Driver Payout or 3PL cost (SAR) — NEVER divided by 30
+  resolvedBilling: number;        // Per-trip or schedule customer billing rate (SAR)
+  resolvedDriverPayout: number;   // Driver payout or 3PL carrier cost (SAR) — NEVER divided by 30
   perDriverPayout: number;        // Single driver per-trip payout rate (SAR)
   driverCount: number;            // Number of assigned rotation drivers
   additionalChargesTotal: number; // Itemized extra charges sum (SAR)
@@ -68,25 +68,36 @@ export function computeTripFinancials(inputs: TripFinancialInputs): ComputedTrip
   const isMonthly = pb === 'PER_MONTH' || pb === 'PER MONTH' || bt.includes('monthly');
 
   // 2. Resolve Customer Billing Rates
-  const rawBillingInput = parseMoney(inputs.monthlyRate ?? inputs.customerBilling ?? inputs.billingAmount ?? inputs.baseRate ?? 0);
-  const baseBillingVal = Math.max(0, rawBillingInput);
+  const rawBillingInput = parseMoney(inputs.customerBilling ?? inputs.billingAmount ?? inputs.baseRate ?? 0);
+  const explicitMonthlyRate = inputs.monthlyRate ? parseMoney(inputs.monthlyRate) : 0;
 
   let monthlyRate = 0;
-  let dailyRate = baseBillingVal;
-  let resolvedBilling = baseBillingVal;
+  let dailyRate = Math.max(0, rawBillingInput);
+  let resolvedBilling = Math.max(0, rawBillingInput);
 
   const operatingDays = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0
     ? inputs.selectedOperatingDays
     : 1;
 
   if (isMonthly) {
-    monthlyRate = baseBillingVal;
-    dailyRate = Number((monthlyRate / 30).toFixed(2));
-    
-    // If operating days specified (> 1 or explicit schedule), billing is dailyRate * operatingDays
-    resolvedBilling = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0
-      ? Number((dailyRate * inputs.selectedOperatingDays).toFixed(2))
-      : monthlyRate;
+    if (explicitMonthlyRate > 0) {
+      monthlyRate = explicitMonthlyRate;
+      dailyRate = Number((monthlyRate / 30).toFixed(2));
+    } else if (rawBillingInput > 3000) {
+      // Input is the monthly contract rate (e.g. SAR 15,000)
+      monthlyRate = rawBillingInput;
+      dailyRate = Number((monthlyRate / 30).toFixed(2));
+    } else {
+      // Input is already the per-trip daily breakdown rate (e.g. SAR 500)
+      dailyRate = rawBillingInput;
+      monthlyRate = Number((dailyRate * 30).toFixed(2));
+    }
+
+    // Per-trip customer billing is ALWAYS dailyRate (Monthly Rate / 30).
+    // If selectedOperatingDays is > 1 (multi-day schedule), total customer billing = dailyRate * operatingDays.
+    resolvedBilling = operatingDays > 1
+      ? Number((dailyRate * operatingDays).toFixed(2))
+      : dailyRate;
   }
 
   // 3. Resolve Driver Payout (NEVER DIVIDED BY 30)
@@ -124,14 +135,14 @@ export function computeTripFinancials(inputs: TripFinancialInputs): ComputedTrip
     ? Number(((balanceMargin / totalCustomerBilling) * 100).toFixed(1))
     : 0;
 
-  // 7. Formatted UI Labels for Dual-Rate Display Standard
+  // 7. Formatted UI Labels
   const monthlyLabel = `SAR ${monthlyRate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/mo`;
   const dailyLabel = `SAR ${dailyRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day`;
   const driverPayoutLabel = driverCount > 1
     ? `SAR ${resolvedDriverPayout.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} (${driverCount} Drivers)`
     : `SAR ${perDriverPayout.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/trip`;
   
-  const scheduleBillingLabel = isMonthly && inputs.selectedOperatingDays
+  const scheduleBillingLabel = isMonthly && inputs.selectedOperatingDays && inputs.selectedOperatingDays > 1
     ? `SAR ${resolvedBilling.toLocaleString()} (${inputs.selectedOperatingDays} days @ ${dailyLabel})`
     : `SAR ${resolvedBilling.toLocaleString()}`;
 

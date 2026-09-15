@@ -111,16 +111,28 @@ export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs)
   const isMonthly = pb === 'PER_MONTH' || pb === 'PER MONTH' || bt.includes('monthly');
 
   const rawBaseBilling = computeTripBaseBilling(trip);
+  const quotationRate = trip.quotation?.rate ? asNumber(trip.quotation.rate) : 0;
+
   let monthlyRate = 0;
   let dailyRate = rawBaseBilling;
   let perTripBilling = rawBaseBilling;
 
   const days = asNumber(trip.selected_operating_days);
+  const operatingDays = days > 0 ? days : 1;
 
   if (isMonthly) {
-    monthlyRate = rawBaseBilling;
-    dailyRate = Number((monthlyRate / 30).toFixed(2));
-    perTripBilling = days > 0 ? Number((dailyRate * days).toFixed(2)) : monthlyRate;
+    if (quotationRate > 0) {
+      monthlyRate = quotationRate;
+      dailyRate = Number((monthlyRate / 30).toFixed(2));
+    } else if (rawBaseBilling > 3000) {
+      monthlyRate = rawBaseBilling;
+      dailyRate = Number((monthlyRate / 30).toFixed(2));
+    } else {
+      dailyRate = rawBaseBilling;
+      monthlyRate = Number((dailyRate * 30).toFixed(2));
+    }
+
+    perTripBilling = days > 1 ? Number((dailyRate * days).toFixed(2)) : dailyRate;
   }
 
   const chargesTotal = trip.charges_total !== undefined && trip.charges_total !== null

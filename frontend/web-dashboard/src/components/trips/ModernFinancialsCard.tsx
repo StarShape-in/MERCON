@@ -42,17 +42,20 @@ export default function ModernFinancialsCard({
   balanceDue,
   quotationName,
   quotationId,
+  isMonthlyContract,
+  monthlyContractRate,
   pricingBasis,
   onAddCharge,
 }: ModernFinancialsCardProps) {
   const fin = computeTripFinancials({
     customerBilling,
     baseRate,
+    monthlyRate: monthlyContractRate,
     driverPayout,
     is3PL,
     extraDriverPayment,
     additionalCharges,
-    pricingBasis,
+    pricingBasis: pricingBasis || (isMonthlyContract ? 'Per Month' : undefined),
   });
 
   const billingVal = fin.resolvedBilling;
@@ -88,9 +91,16 @@ export default function ModernFinancialsCard({
         <div className="space-y-1">
           {/* ROW 1: CUSTOMER BILLING */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Customer Billing
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Customer Billing
+              </span>
+              {fin.isMonthly && (
+                <span className="text-[9px] font-bold text-slate-400">
+                  Per-trip ({fin.formattedLabels.monthlyLabel})
+                </span>
+              )}
+            </div>
             <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white">
               SAR {billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
