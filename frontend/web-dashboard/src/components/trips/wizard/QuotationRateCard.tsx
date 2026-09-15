@@ -109,27 +109,20 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
       type="button"
       onClick={() => onApplyRateCard(rc, rCat, vClass, origName, destName, rateVal)}
       className={cn(
-        "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none min-h-[110px]",
+        "p-2.5 rounded-xl transition-all text-left flex flex-col justify-between space-y-1.5 cursor-pointer select-none min-h-[110px]",
         isSelected
           ? isMonthlyCard
-            ? "border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20"
-            : "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
-          : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700",
+            ? "border-2 border-purple-600 bg-purple-50/60 dark:bg-purple-950/30 shadow-2xs"
+            : "border-2 border-brand bg-orange-50/60 dark:bg-amber-950/30 shadow-2xs"
+          : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700",
         className
       )}
     >
-      {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
+      {/* TOP ROW: QUOTATION ID + PRICE BADGE (ZERO COLLISION) */}
       <div className="flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
-            {rc.quotation_number || `QUO-${idx + 1}`}
-          </span>
-          {isSelected && (
-            <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
-              Applied ✓
-            </span>
-          )}
-        </div>
+        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
+          {rc.quotation_number || `QUO-${idx + 1}`}
+        </span>
 
         {/* PRICE BADGE */}
         <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
@@ -159,10 +152,14 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
         <span
           className={cn(
             "font-black shrink-0",
-            isSelected ? (isMonthlyCard ? "text-purple-600" : "text-brand") : "text-slate-400 hover:text-slate-600"
+            isSelected
+              ? isMonthlyCard
+                ? "text-purple-600"
+                : "text-brand"
+              : "text-slate-400 hover:text-slate-600"
           )}
         >
-          {isSelected ? 'Active' : 'Apply →'}
+          {isSelected ? '✓ Selected' : 'Apply →'}
         </span>
       </div>
     </button>
