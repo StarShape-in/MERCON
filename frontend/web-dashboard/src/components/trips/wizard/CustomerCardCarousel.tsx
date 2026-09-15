@@ -109,7 +109,7 @@ export const CustomerCardCarousel: React.FC<CustomerCardCarouselProps> = ({
               key={c.id || idx}
               type="button"
               onClick={() => onSelectCustomer(c.id)}
-              className="p-3 rounded-xl border transition-all duration-200 text-left flex flex-col justify-between h-[104px] w-[calc(33.333%-8px)] min-w-[210px] shrink-0 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-orange-50/50 dark:hover:bg-slate-700/80 group"
+              className="p-3 rounded-xl border transition-all duration-200 text-left flex flex-col justify-between h-[104px] w-[260px] sm:w-[calc(33.333%-8px)] min-w-[220px] shrink-0 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-orange-50/50 dark:hover:bg-slate-700/80 group"
             >
               <div className="flex items-center gap-2.5">
                 {c.logo_url ? (

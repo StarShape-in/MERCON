@@ -966,7 +966,7 @@ export default function DashboardPage() {
       ),
     },
     {
-      header: 'Rate (SAR)',
+      header: 'Rate',
       className: 'w-[110px] text-right shrink-0',
       headerClassName: 'text-right',
       accessor: (row: any) => {

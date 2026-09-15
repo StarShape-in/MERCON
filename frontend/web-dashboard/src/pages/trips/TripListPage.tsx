@@ -143,8 +143,8 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Payload Capacity', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-  'Driver Charge (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+  'Line Type', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Driver Charge', 'Billing Rate', 'Carrier / Provider',
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
@@ -158,10 +158,35 @@ const getPickupInfo = (trip: Trip) => {
 };
 
 const getDropoffInfo = (trip: Trip) => {
-  const dropoff = (trip.stops && trip.stops.length > 1) ? trip.stops[trip.stops.length - 1] : (trip.stops?.find((s) => s.stop_type === 'Dropoff'));
+  const stops = trip.stops || [];
+  if (!stops.length) {
+    const fallback = trip.rateCard?.route_destination || (trip as any).quotation?.route_destination || (trip as any).route_destination || '—';
+    return { name: fallback, address: null };
+  }
+
+  const pickupStop = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+  const pickupName = (pickupStop?.location_name || pickupStop?.location?.name || '').toLowerCase().trim();
+
+  const outboundStops = stops.filter((s: any) => ((s as any).leg_index ?? 0) === 0);
+  let dropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : null;
+
+  if (!dropoff || (outboundStops.length > 1 && (dropoff.location_name || dropoff.location?.name || '').toLowerCase().trim() === pickupName)) {
+    const distinctStop = stops.find((s) => {
+      const sName = (s.location_name || s.location?.name || '').toLowerCase().trim();
+      return sName && sName !== pickupName;
+    });
+    if (distinctStop) {
+      dropoff = distinctStop;
+    }
+  }
+
+  if (!dropoff && stops.length > 1) dropoff = stops[stops.length - 1];
+  if (!dropoff && stops.length > 0) dropoff = stops[0];
   if (!dropoff) return { name: '—', address: null };
+
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
-  name = name.replace(/🔁\s*/g, '').trim();
+  name = name.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
   return { name, address };
 };
@@ -186,15 +211,15 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
       ? (t.third_party_vehicle_plate || '3PL Vehicle')
       : (t.vehicle?.plate_number || 'Unassigned')
   },
-  { id: 'capacity', label: 'Payload Capacity', accessor: (t) => getTripPayloadCapacity(t) },
-  { id: 'category', label: 'Vehicle Class', accessor: (t) => getTripRateCategory(t) },
+  { id: 'line_type', label: 'Line Type', accessor: (t) => getTripRateCategory(t) },
+  { id: 'category', label: 'Vehicle Class', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t) },
   { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
   { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
   { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
   { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
-  { id: 'trip_charges', label: 'Driver Charge (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
-  { id: 'billing_amount', label: 'Billing Rate (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
+  { id: 'trip_charges', label: 'Driver Charge', accessor: (t) => Number(t.trip_charges || 0) },
+  { id: 'billing_amount', label: 'Billing Rate', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
   { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
       ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
       : (t.carrier_name || 'MERCON LOGISTICS')
@@ -1655,196 +1680,176 @@ export default function TripListPage() {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         const stops = row.stops || [];
-        const stopsCount = stops.length;
-        
-        let legBadge: string | null = null;
-        if (stopsCount > 2) {
-          const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
-          const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
-          const isRound = stops.some((s: any) => s.leg_index === 1) ||
-            Boolean(row.line_type?.name && /round/i.test(row.line_type.name)) ||
-            Boolean(firstLoc && lastLoc && firstLoc === lastLoc);
-          
-          const activeIdx = stops.findIndex((s) => !s.actual_departure);
-          const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
-          const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
-          const stopName = (currentStop?.location_name || currentStop?.location?.name || '—').replace(/🔁\s*/g, '').trim();
 
-          legBadge = isRound
-            ? `Leg ${currentStopNum}/${stopsCount} (Return) · ${stopName}`
-            : `Stop ${currentStopNum}/${stopsCount} · ${stopName}`;
+        const stopNames = stops
+          .map((s) => {
+            const n = s.location_name || s.location?.name || s.location_address || s.location?.address || '';
+            return n.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+          })
+          .filter(Boolean);
+
+        const firstStop = stopNames[0] || pickup.name || '—';
+        const lastStop = stopNames.length > 1 ? stopNames[stopNames.length - 1] : dropoff.name || '—';
+
+        let intermediateList: string[] = [];
+        if (stopNames.length > 2) {
+          intermediateList = stopNames.slice(1, stopNames.length - 1);
+        } else if (firstStop.toLowerCase() === lastStop.toLowerCase() && dropoff.name && dropoff.name.toLowerCase() !== firstStop.toLowerCase()) {
+          intermediateList = [dropoff.name];
         }
 
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}${legBadge ? '\n' + legBadge : ''}`}>
-            {/* Pickup (From) */}
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={stopNames.join(' → ') || `${firstStop} → ${lastStop}`}>
+            {/* Origin (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                {pickup.name || '—'}
-              </span>
-            </div>
-            {/* Connecting visual line */}
-            <div className="pl-[2.5px] -my-0.5">
-              <div className="w-px h-2.5 border-l border-dashed border-slate-300 dark:border-slate-700" />
-            </div>
-            {/* Dropoff (To) */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate flex items-center gap-1">
-                {(() => {
-                  const raw = dropoff.name || '—';
-                  // Strip 🔁 emoji, then extract destination from "[RETURN: From → To]" or "RETURN: From → To" patterns
-                  const clean = raw.replace(/🔁\s*/g, '').trim();
-                  const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
-                  if (match) {
-                    // Return trip: show only the final destination city
-                    const dest = match[2].includes('→') ? match[2].split('→').pop()?.trim() : match[2].trim();
-                    return <span className="truncate">{dest || match[1].trim()}</span>;
-                  }
-                  // Also handle "RETURN: From → To" without brackets
-                  if (/^RETURN:/i.test(clean)) {
-                    const dest = clean.includes('→') ? clean.split('→').pop()?.trim() : clean.replace(/^RETURN:\s*/i, '').trim();
-                    return <span className="truncate">{dest}</span>;
-                  }
-                  return clean;
-                })()}
+                {firstStop}
               </span>
             </div>
 
-            {/* Active Leg / Multi-stop Progress Pill */}
-            {legBadge && (
-              <div className="pt-0.5">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-tight bg-amber-50 text-amber-800 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/80 truncate max-w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-                  <span className="truncate">{legBadge}</span>
-                </span>
-              </div>
+            {/* In-Between Stop(s) */}
+            {intermediateList.length > 0 && (
+              <>
+                <div className="pl-[2.5px] -my-0.5">
+                  <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 truncate">
+                    {intermediateList.join(' → ')}
+                  </span>
+                </div>
+              </>
             )}
+
+            {/* Connecting visual line */}
+            <div className="pl-[2.5px] -my-0.5">
+              <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
+            </div>
+
+            {/* Final Destination / Return (To) */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                {lastStop}
+              </span>
+            </div>
           </div>
         );
       },
     },
     {
-      header: 'Driver',
-      className: 'max-w-[165px]',
+      header: 'Driver / Vehicle',
+      className: 'min-w-[160px] max-w-[190px]',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
-          const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
-          const initial = name[0]?.toUpperCase() || '3P';
+        const renderDriver = () => {
+          if (row.is_third_party) {
+            const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
+            const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
+            const initial = name[0]?.toUpperCase() || '3P';
 
-          return (
-            <div
-              className="flex items-center gap-1.5 max-w-[165px] cursor-pointer group"
-              title={`3PL Driver: ${name}\nProvider: ${providerName}`}
-              onClick={(e) => {
-                if (row.thirdPartyProvider) {
-                  e.stopPropagation();
-                  setPreviewThirdParty(row.thirdPartyProvider);
-                }
-              }}
-            >
-              <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
-                {initial}
-              </div>
-              <div className="flex flex-col min-w-0 truncate leading-tight">
+            return (
+              <div
+                className="flex items-center gap-1.5 cursor-pointer group min-w-0"
+                title={`3PL Driver: ${name}\nProvider: ${providerName}`}
+                onClick={(e) => {
+                  if (row.thirdPartyProvider) {
+                    e.stopPropagation();
+                    setPreviewThirdParty(row.thirdPartyProvider);
+                  }
+                }}
+              >
+                <div className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[8px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                  {initial}
+                </div>
                 <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:underline truncate">
                   {name}
                 </span>
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
-                  3PL: {providerName}
-                </span>
               </div>
-            </div>
-          );
-        }
+            );
+          }
 
-        return (
-          <div className="flex items-center gap-1.5 max-w-[165px] overflow-hidden">
-            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
-              {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
-            </div>
-            {row.driver ? (
-              <div className="overflow-hidden whitespace-nowrap min-w-0 flex-1">
+          return (
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
+              <div className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[8px] flex items-center justify-center shrink-0">
+                {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
+              </div>
+              {row.driver ? (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setPreviewDriver(row.driver);
                   }}
-                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block truncate"
+                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer truncate"
                   title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
                 >
                   {row.driver.first_name} {row.driver.last_name}
                 </button>
-              </div>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
-            {row.driver?.deletedAt && <DeletedBadge />}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Vehicle',
-      className: 'w-[95px] shrink-0',
-      mobilePriority: 'meta' as const,
-      accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const plate = row.third_party_vehicle_plate || '3PL Truck';
-          return (
-            <div className="flex items-center gap-1">
-              <Truck size={12} className="text-purple-500 shrink-0" />
-              <span
-                className="font-mono text-[11px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1.5 py-0.5 rounded truncate"
-                title={`3PL Vehicle Plate: ${plate}`}
-              >
-                {plate}
-              </span>
+              ) : (
+                <span className="text-xs text-slate-400 italic">Unassigned</span>
+              )}
+              {row.driver?.deletedAt && <DeletedBadge />}
             </div>
           );
-        }
+        };
+
+        const renderVehicle = () => {
+          if (row.is_third_party) {
+            const plate = row.third_party_vehicle_plate || '3PL Truck';
+            return (
+              <div className="flex items-center gap-1 min-w-0">
+                <Truck size={11} className="text-purple-500 shrink-0" />
+                <span
+                  className="font-mono text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1 py-0.2 rounded truncate"
+                  title={`3PL Vehicle Plate: ${plate}`}
+                >
+                  {plate}
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-1 min-w-0">
+              <Truck size={11} className="text-slate-400 shrink-0" />
+              {row.vehicle?.plate_number ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVehicle(row.vehicle);
+                    }}
+                    className="font-mono text-[10px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1 py-0.2 rounded truncate transition-colors cursor-pointer"
+                    title={`Preview Vehicle ${row.vehicle.plate_number}`}
+                  >
+                    {row.vehicle.plate_number}
+                  </button>
+                  {row.vehicle?.deletedAt && <DeletedBadge />}
+                </>
+              ) : (
+                <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+              )}
+            </div>
+          );
+        };
 
         return (
-          <div className="flex items-center gap-1">
-            <Truck size={12} className="text-slate-400 shrink-0" />
-            {row.vehicle?.plate_number ? (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewVehicle(row.vehicle);
-                  }}
-                  className="font-mono text-[11px] text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded truncate transition-colors cursor-pointer"
-                  title={`Preview Vehicle ${row.vehicle.plate_number}`}
-                >
-                  {row.vehicle.plate_number}
-                </button>
-                {row.vehicle?.deletedAt && <DeletedBadge />}
-              </>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
+          <div className="flex flex-col space-y-1 py-0.5">
+            {renderDriver()}
+            {renderVehicle()}
           </div>
         );
       },
     },
     {
-      header: 'Payload Cap.',
-      className: 'w-[110px] shrink-0',
+      header: 'Line Type',
+      className: 'w-[120px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cap = getTripPayloadCapacity(row);
-        return (
-          <Badge
-            variant="outline"
-            className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 px-1.5 py-0.5"
-          >
-            {cap}
-          </Badge>
-        );
+        const lineType = getTripRateCategory(row);
+        return <TaxonomyBadge category="LINE_TYPE" value={lineType} fallbackText="Single Trip" />;
       },
     },
     {
@@ -1852,12 +1857,12 @@ export default function TripListPage() {
       className: 'w-[130px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cat = row.quotation_vehicle_class || row.vehicle_type || getTripRateCategory(row);
-        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} />;
+        const cat = row.quotation_vehicle_class || row.financials?.quotation_vehicle_class || row.vehicle_type || getTripPayloadCapacity(row);
+        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} fallbackText="10 TON" />;
       },
     },
     {
-      header: 'Rate (SAR)',
+      header: 'Rate',
       className: 'w-[100px] shrink-0',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
@@ -1874,15 +1879,15 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Driver Charge (SAR)',
+      header: 'Driver Charge',
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const charge = row.trip_charges;
+        const charge = row.driver_payout ?? row.driver_charge ?? row.trip_charges ?? row.third_party_cost;
         return (
           <div className="flex items-center font-mono text-xs" title="What MERCON pays the driver/subcontractor — not the customer-billed amount">
             <span className="font-bold text-slate-500 dark:text-slate-400">
-              {charge !== undefined && charge !== null && charge > 0
+              {charge !== undefined && charge !== null && Number(charge) > 0
                 ? `SAR ${Number(charge).toLocaleString('en-US')}`
                 : '—'}
             </span>

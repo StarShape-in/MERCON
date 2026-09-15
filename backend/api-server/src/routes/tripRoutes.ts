@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getTrips, getTripById, createTrip, updateTripStatus,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
-  bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
+  bulkDeleteTrips, bulkUpdateTripStatus, bulkAssignTrips, getUnsettledCompletedTrips, updateTripFinancials,
   logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard, shareTripMediaToWhatsApp
 } from '../controllers/tripController';
 import { exportTrips } from '../controllers/tripExportController';
@@ -25,6 +25,7 @@ router.get('/unsettled', getUnsettledCompletedTrips);
 router.get('/monthly', getMonthlyTripBoard);
 router.post('/bulk-delete', bulkDeleteTrips);
 router.post('/bulk-update-status', bulkUpdateTripStatus);
+router.post('/bulk-assign', bulkAssignTrips);
 router.post('/bulk-import', validate({ body: bulkImportTripsBody }), bulkImportTrips);
 
 

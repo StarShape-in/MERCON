@@ -11,7 +11,7 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials } from '../utils/tripFinancials';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 import { whatsappService } from '../services/whatsappService';
@@ -555,32 +555,19 @@ export const getTripById = async (req: Request, res: Response) => {
       }
     }
 
-    const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const perTripBilling = (trip as any).financials?.applied_rate != null
-      ? Number((trip as any).financials.applied_rate)
-      : (trip.billing_amount != null ? Number(trip.billing_amount) : Number((trip as any).quotation?.rate ?? 0));
-    const totalAmount = perTripBilling + chargesTotal;
-    const paidAmount = Number((trip as any).paid_amount || 0);
-    const balanceDue = totalAmount - paidAmount;
-
-    const baseDriverPayout = trip.is_third_party
-      ? Number((trip as any).subcontract?.cost ?? (trip as any).third_party_cost ?? 0)
-      : Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
-    const totalDriverPayout = baseDriverPayout;
-    const balanceMargin = totalAmount - totalDriverPayout;
-    const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
+    const fin = calculateBackendTripFinancials(trip as any);
 
     const tripData = {
       ...trip,
-      paid_amount: paidAmount,
-      balance_due: balanceDue,
-      total_amount: totalAmount,
-      charges_total: chargesTotal,
-      per_trip_billing: perTripBilling,
-      driver_payout: totalDriverPayout,
-      driver_charge: totalDriverPayout,
-      balance_margin: balanceMargin,
-      margin_percent: marginPercent,
+      paid_amount: fin.paidAmount,
+      balance_due: fin.balanceDue,
+      total_amount: fin.totalCustomerBilling,
+      charges_total: fin.chargesTotal,
+      per_trip_billing: fin.perTripBilling,
+      driver_payout: fin.totalDriverPayout,
+      driver_charge: fin.totalDriverPayout,
+      balance_margin: fin.balanceMargin,
+      margin_percent: fin.marginPercent,
       vehicle: trip.vehicle
         ? {
             ...trip.vehicle,
@@ -2172,6 +2159,63 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update trips` } });
+  }
+};
+
+export const bulkAssignTrips = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { trip_ids, driver_id, vehicle_id, status } = req.body;
+
+    if (!Array.isArray(trip_ids) || trip_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'trip_ids array is required and must not be empty' },
+      });
+    }
+
+    const updateData: any = {
+      ...(userId ? { updated_by: userId } : {}),
+    };
+
+    if (driver_id !== undefined) {
+      if (driver_id && driver_id !== 'unassigned') {
+        updateData.driverId = driver_id;
+      } else {
+        updateData.driverId = null;
+      }
+    }
+
+    if (vehicle_id !== undefined) {
+      if (vehicle_id && vehicle_id !== 'unassigned') {
+        updateData.vehicleId = vehicle_id;
+      } else {
+        updateData.vehicleId = null;
+      }
+    }
+
+    if (status && Object.values(TripStatus).includes(status)) {
+      updateData.status = status;
+    }
+
+    await prisma.trip.updateMany({
+      where: { id: { in: trip_ids }, deletedAt: null },
+      data: updateData,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        message: `Successfully updated ${trip_ids.length} trip(s)`,
+        count: trip_ids.length,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to bulk assign trips');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message || 'Failed to bulk assign trips' },
+    });
   }
 };
 

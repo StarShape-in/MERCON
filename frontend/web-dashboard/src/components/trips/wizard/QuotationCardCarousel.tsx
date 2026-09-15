@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import QuotationRateCard, { RateCardItem } from './QuotationRateCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import QuotationRateCard, { RateCardItem, getCardId } from './QuotationRateCard';
 
 interface QuotationCardCarouselProps {
   rateCards: RateCardItem[];
@@ -8,7 +9,7 @@ interface QuotationCardCarouselProps {
   primarySlotMatchedId?: string | null;
   contractRateCategory?: string;
   contractVehicleType?: string;
-  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number) => void;
+  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number, isCurrentlySelected: boolean) => void;
 }
 
 export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
@@ -20,12 +21,6 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
   onApplyRateCard,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (activeSelectedId && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-    }
-  }, [activeSelectedId]);
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -47,25 +42,28 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
     );
   }
 
+  const targetActiveId = activeSelectedId || primarySlotMatchedId;
+  const canonicalActiveId = targetActiveId ? getCardId({ id: targetActiveId }) : null;
+
   if (rateCards.length <= 3) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
         {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+          const rcId = getCardId(rc);
+          const isSelected = Boolean(rcId && canonicalActiveId && rcId === canonicalActiveId);
 
           return (
-            <QuotationRateCard
-              key={rc.id || idx}
-              rc={rc}
-              idx={idx}
-              isSelected={isSelected}
-              contractRateCategory={contractRateCategory}
-              contractVehicleType={contractVehicleType}
-              onApplyRateCard={onApplyRateCard}
-              className="w-full"
-            />
+            <div key={rcId || `card-${idx}`} className="w-full">
+              <QuotationRateCard
+                rc={rc}
+                idx={idx}
+                isSelected={isSelected}
+                contractRateCategory={contractRateCategory}
+                contractVehicleType={contractVehicleType}
+                onApplyRateCard={onApplyRateCard}
+                className="w-full"
+              />
+            </div>
           );
         })}
       </div>
@@ -88,21 +86,24 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
         className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+          const rcId = getCardId(rc);
+          const isSelected = Boolean(rcId && canonicalActiveId && rcId === canonicalActiveId);
 
           return (
-            <QuotationRateCard
-              key={rc.id || idx}
-              rc={rc}
-              idx={idx}
-              isSelected={isSelected}
-              contractRateCategory={contractRateCategory}
-              contractVehicleType={contractVehicleType}
-              onApplyRateCard={onApplyRateCard}
-              className="w-[calc(33.333%-8px)] min-w-[210px] shrink-0"
-            />
+            <div
+              key={rcId || `card-${idx}`}
+              className="w-[260px] sm:w-[calc(33.333%-8px)] min-w-[220px] shrink-0"
+            >
+              <QuotationRateCard
+                rc={rc}
+                idx={idx}
+                isSelected={isSelected}
+                contractRateCategory={contractRateCategory}
+                contractVehicleType={contractVehicleType}
+                onApplyRateCard={onApplyRateCard}
+                className="w-full"
+              />
+            </div>
           );
         })}
       </div>

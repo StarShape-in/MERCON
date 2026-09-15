@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 import { DefineQuotationInlineForm } from './DefineQuotationInlineForm';
 import CustomerCardCarousel from './CustomerCardCarousel';
 import QuotationCardCarousel from './QuotationCardCarousel';
+import { getCardId } from './QuotationRateCard';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -68,29 +69,56 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     if (customerRateCards && customerRateCards.length > 0) {
       return customerRateCards;
     }
-    if (availableRateCards && availableRateCards.length > 0) {
-      return availableRateCards;
-    }
-    return getAvailableRateCardsForLane({}) || [];
-  }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
+    return primarySlot ? getAvailableRateCardsForLane(primarySlot) || [] : [];
+  }, [customerRateCards, getAvailableRateCardsForLane, primarySlot]);
+
+  const matchedRateCard = (primarySlot.rateMatched || primarySlot.matchedRateCard) ? primarySlot.matchedRateCard : null;
+  const activeSelectedId = (primarySlot.rateMatched || primarySlot.matchedRateCard)
+    ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
+    : null;
+
+  const isSelectedQuotation = Boolean(
+    (primarySlot.rateMatched || primarySlot.matchedRateCard) && (primarySlot.matchedRateCard || primarySlot.rateCardId)
+  );
 
   // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
     const targetBt = normalizeBillingType(contractBillingType);
 
-    return effectiveRateCards.filter((rc) => {
+    const filtered = effectiveRateCards.filter((rc) => {
       const rcRaw = (rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
       const rcBt = normalizeBillingType(rcRaw);
       return rcBt === targetBt;
     });
+
+    return filtered.sort((a, b) => {
+      const aNum = (a as any).quotation_number != null ? Number((a as any).quotation_number) : Infinity;
+      const bNum = (b as any).quotation_number != null ? Number((b as any).quotation_number) : Infinity;
+      if (aNum !== bNum) return aNum - bNum;
+
+      return String(a.name || a.id).localeCompare(String(b.name || b.id));
+    });
   }, [effectiveRateCards, contractBillingType]);
+
+  // Compute live card counts per operation type for segment tab badges
+  const { monthlyCount, extraCount } = React.useMemo(() => {
+    if (!effectiveRateCards || effectiveRateCards.length === 0) {
+      return { monthlyCount: 0, extraCount: 0 };
+    }
+    let m = 0;
+    let e = 0;
+    effectiveRateCards.forEach((rc) => {
+      const rcRaw = (rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
+      const rcBt = normalizeBillingType(rcRaw);
+      if (rcBt === 'Monthly') m++;
+      else e++;
+    });
+    return { monthlyCount: m, extraCount: e };
+  }, [effectiveRateCards]);
 
   // Default to showing saved rate cards if available; only show inline form if explicitly toggled or customer has 0 cards
   const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
-
-  const matchedRateCard = primarySlot.matchedRateCard || null;
-  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -104,12 +132,26 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }
   };
 
-  // Auto-scroll to left position 0 whenever customer or selected quotation changes
+  // Auto-scroll to left position 0 when customer changes, reset inline mode, and clear search
   React.useEffect(() => {
+    setIsInlineMode(false);
+    setQuotationSearchQuery('');
+
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
-  }, [contractCustomer, activeSelectedId]);
+  }, [contractCustomer]);
+
+  // Auto-switch billing type tab if current tab has 0 cards but alternative tab has cards
+  React.useEffect(() => {
+    if (!setContractBillingType) return;
+    const currentBt = normalizeBillingType(contractBillingType);
+    if (currentBt === 'Monthly' && monthlyCount === 0 && extraCount > 0) {
+      setContractBillingType('Extra');
+    } else if (currentBt === 'Extra' && extraCount === 0 && monthlyCount > 0) {
+      setContractBillingType('Monthly');
+    }
+  }, [monthlyCount, extraCount]);
 
   const derivedCustomerOptions = React.useMemo(() => {
     if (customerOptions && customerOptions.length > 0) return customerOptions;
@@ -152,9 +194,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       .slice(0, 50);
   }, [effectiveRateCards, activeSelectedId]);
 
-  // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
-    const cards = matchingCardsForSpec.length > 0 ? matchingCardsForSpec : sortedRateCards;
+    const cards = matchingCardsForSpec;
 
     if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
@@ -252,7 +293,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           )}
         </div>
 
-        {/* RIGHT: CREATE QUOTATION BUTTON / TOGGLE */}
+        {/* RIGHT: CREATE / EDIT QUOTATION BUTTON TOGGLE */}
         <div className="flex items-center gap-1.5 shrink-0">
           {contractCustomer && (
             <Button
@@ -262,10 +303,22 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               onClick={() => setIsInlineMode(!showInlineForm)}
               className="h-8 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
             >
-              <Plus className="w-3.5 h-3.5" />
-              {showInlineForm && effectiveRateCards.length > 0
-                ? `Saved Cards (${effectiveRateCards.length})`
-                : 'Define Quotation'}
+              {showInlineForm ? (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  {effectiveRateCards.length > 0 ? `Saved Cards (${effectiveRateCards.length})` : 'View Cards'}
+                </>
+              ) : isSelectedQuotation ? (
+                <>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit Quotation
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  Define Quotation
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -282,76 +335,104 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       {/* STAGE 2: CUSTOMER IS SELECTED */}
       {Boolean(contractCustomer) && (
         <div className="space-y-2.5">
-          {/* PROMINENT BILLING MODE SWITCHER (MONTHLY CONTRACT VS EXTRA SPOT TRIP VS ALL) */}
+          {/* SLEEK SINGLE-ROW OPERATIONAL TOOLBAR (OPERATION TYPE SEGMENTS + SEARCH INPUT) */}
           {setContractBillingType && (
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                {/* MODE SELECTOR BUTTONS */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
-                    BILLING TYPE:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setContractBillingType('Monthly')}
-                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* SEGMENTED TAB CONTROL WITH LIVE COUNT BADGES */}
+              <div className="p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContractBillingType('Monthly');
+                    if (primarySlot.matchedRateCard) {
+                      const rcBType = normalizeBillingType(primarySlot.matchedRateCard.billing_type || primarySlot.matchedRateCard.operation_type || primarySlot.matchedRateCard.billingType);
+                      if (rcBType !== 'Monthly') {
+                        handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null, rateCardId: undefined, rateMatched: false, billingAmount: '', driverPayout: '' });
+                      }
+                    }
+                  }}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() === 'monthly'
-                        ? 'bg-purple-600 text-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-purple-300'
-                    }`}
+                        ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 font-extrabold shadow-2xs border border-purple-200/80 dark:border-purple-800/60"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-bold border border-transparent"
+                    )}
                   >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Monthly Contract
+                    <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <span>Monthly Contract</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-md font-mono text-[10px] font-bold transition-colors",
+                      contractBillingType?.toLowerCase() === 'monthly'
+                        ? "bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60"
+                        : "bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    )}>
+                      {monthlyCount}
+                    </span>
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => setContractBillingType('Extra')}
-                    className={`px-3.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    onClick={() => {
+                      setContractBillingType('Extra');
+                      if (primarySlot.matchedRateCard) {
+                        const rcBType = normalizeBillingType(primarySlot.matchedRateCard.billing_type || primarySlot.matchedRateCard.operation_type || primarySlot.matchedRateCard.billingType);
+                        if (rcBType === 'Monthly') {
+                          handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null, rateCardId: undefined, rateMatched: false, billingAmount: '', driverPayout: '' });
+                        }
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() !== 'monthly'
-                        ? 'bg-[#FA634E] text-white shadow-2xs'
-                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#FA634E]/40'
-                    }`}
+                        ? "bg-white dark:bg-slate-900 text-[#FA634E] dark:text-rose-400 font-extrabold shadow-2xs border border-[#FFD4C4] dark:border-rose-900/60"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-bold border border-transparent"
+                    )}
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    Extra / Spot Trip
+                    <Zap className="w-3.5 h-3.5 text-[#FA634E] dark:text-rose-400" />
+                    <span>Extra / Spot Trip</span>
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-md font-mono text-[10px] font-bold transition-colors",
+                      contractBillingType?.toLowerCase() !== 'monthly'
+                        ? "bg-orange-50 dark:bg-rose-950/80 text-[#FA634E] dark:text-rose-300 border border-orange-200/60 dark:border-rose-900/60"
+                        : "bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    )}>
+                      {extraCount}
+                    </span>
                   </button>
                 </div>
-              </div>
 
-              {/* SEARCH INPUT ROW */}
+              {/* INTEGRATED SEARCH INPUT */}
               {!showInlineForm && (
-                <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <div className="relative w-full flex items-center">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={quotationSearchQuery}
-                      onChange={(e) => setQuotationSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          setQuotationSearchQuery('');
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                      placeholder="Search quotations by route, rate, vehicle class..."
-                      className="h-8.5 w-full pl-9 pr-24 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
-                    />
-                    {quotationSearchQuery && (
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 select-none">
-                          {displayedRateCards.length} {displayedRateCards.length === 1 ? 'match' : 'matches'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQuotationSearchQuery('')}
-                          className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                          title="Clear search (Esc)"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="relative flex-1 min-w-[240px] max-w-md flex items-center">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={quotationSearchQuery}
+                    onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setQuotationSearchQuery('');
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    placeholder="Search quotations by route, rate, vehicle class..."
+                    className="h-8.5 w-full pl-9 pr-20 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                  />
+                  {quotationSearchQuery && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                        {displayedRateCards.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuotationSearchQuery('')}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                        title="Clear search (Esc)"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -380,42 +461,55 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               primarySlotMatchedId={primarySlot.matchedRateCard?.id}
               contractRateCategory={contractRateCategory}
               contractVehicleType={contractVehicleType}
-              onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
-                const isAlreadySelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
+              onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal, isCurrentlySelected) => {
+                const clickedId = getCardId(rc);
+                const activeId = (primarySlot.rateMatched || primarySlot.matchedRateCard)
+                  ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
+                  : null;
+                const isAlreadySelected = isCurrentlySelected || Boolean(clickedId && activeId && clickedId === activeId);
 
-                if (isAlreadySelected) {
-                  // Toggle Deselect / Clear selection
+                React.startTransition(() => {
+                  if (isAlreadySelected) {
+                    // Deselect / Clear card on second click
+                    handleUpdateTripSlot(primarySlot.id, {
+                      matchedRateCard: null,
+                      rateCardId: undefined,
+                      rateMatched: false,
+                      billingAmount: '',
+                      driverPayout: '',
+                      saveAsQuotation: false,
+                      saveAsRateCard: false,
+                    });
+                    return;
+                  }
+
+                  const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+                  const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
+
+                  if (targetCategory && setContractRateCategory) {
+                    setContractRateCategory(targetCategory);
+                  }
+                  if (targetVehicleClass && setContractVehicleType) {
+                    setContractVehicleType(targetVehicleClass);
+                  }
+
+                  // Single unified slot patch to prevent multi-render race conditions
                   handleUpdateTripSlot(primarySlot.id, {
-                    matchedRateCard: null,
-                    rateCardId: null,
-                    billingAmount: '0',
+                    rateMatched: true,
+                    matchedRateCard: rc,
+                    rateCardId: clickedId || undefined,
+                    billingAmount: String(rateVal),
+                    driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                    driverPayoutModified: false,
+                    updateQuotationPayout: false,
+                    rateCategory: targetCategory,
+                    vehicleType: targetVehicleClass,
+                    pricingBasis: rc.pricing_basis || (normalizeBillingType(rc.operation_type || rc.billing_type) === 'Monthly' ? 'Per Month' : 'Per Trip'),
+                    origin: origName || primarySlot.origin,
+                    destination: destName || primarySlot.destination,
+                    originLocationId: rc.originLocation?.id || firstStop?.location?.id || firstStop?.location_id || primarySlot.originLocationId,
+                    destinationLocationId: rc.destinationLocation?.id || lastStop?.location?.id || lastStop?.location_id || primarySlot.destinationLocationId,
                   });
-                  return;
-                }
-
-                const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
-                const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
-
-                if (origName && handleSlotLocationChange) {
-                  handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                }
-                if (destName && handleSlotLocationChange) {
-                  handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                }
-                if (targetCategory && setContractRateCategory) {
-                  setContractRateCategory(targetCategory);
-                }
-                if (targetVehicleClass && setContractVehicleType) {
-                  setContractVehicleType(targetVehicleClass);
-                }
-                handleUpdateTripSlot(primarySlot.id, {
-                  matchedRateCard: rc,
-                  billingAmount: String(rateVal),
-                  driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
-                  driverPayoutModified: false,
-                  updateQuotationPayout: false,
-                  rateCategory: targetCategory,
-                  vehicleType: targetVehicleClass,
                 });
               }}
             />
@@ -439,17 +533,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                     No active commercial quotation rates found for <span className="font-bold text-slate-800 dark:text-slate-100">{selectedCust?.name || 'this customer'}</span>.
                   </p>
-                  {handleOpenCreateQuotation && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenCreateQuotation}
-                      className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 gap-1 mx-auto cursor-pointer rounded-lg"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Create Quotation for {selectedCust?.name?.split(' ')[0] || 'Customer'}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsInlineMode(true)}
+                    className="h-7 text-xs font-bold border-[#FA634E] text-[#FA634E] hover:bg-orange-50 dark:hover:bg-orange-950/30 gap-1 mx-auto cursor-pointer rounded-lg shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Define Quotation for {selectedCust?.name?.split(' ')[0] || 'Customer'}
+                  </Button>
                 </>
               )}
             </div>

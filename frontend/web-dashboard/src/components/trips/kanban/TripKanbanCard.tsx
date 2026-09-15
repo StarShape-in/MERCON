@@ -233,11 +233,6 @@ export default function TripKanbanCard({
           )}>
             {tripType}
           </span>
-          {legInfo?.badgeText && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded border tracking-tight uppercase bg-amber-50 text-amber-700 border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 shrink-0">
-              {legInfo.badgeText}
-            </span>
-          )}
         </div>
 
         {/* Right cluster: ref_id + actions menu */}

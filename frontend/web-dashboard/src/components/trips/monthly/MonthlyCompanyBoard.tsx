@@ -9,12 +9,15 @@ import {
   Clock,
   AlertCircle,
   XCircle,
+  Edit3,
+  TableProperties,
 } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import type { MonthlyBoardCompany, MonthlyBoardTrip } from '@/services/tripService';
 import { formatDayHeading, formatMoney, formatTime, initialsOf, isUnassigned, formatLocationClean } from './monthlyBoardUtils';
 import { computeMonthlyTripSearchRelevance } from './MonthlyCompanyCard';
+import MonthlyGroupLedgerModal from './MonthlyGroupLedgerModal';
 
 interface MonthlyCompanyBoardProps {
   companies: MonthlyBoardCompany[];
@@ -23,6 +26,7 @@ interface MonthlyCompanyBoardProps {
   onToggleTrip?: (id: string) => void;
   onToggleCompany?: (tripIds: string[]) => void;
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
+  onRefresh?: () => void;
 }
 
 export default function MonthlyCompanyBoard({
@@ -32,23 +36,46 @@ export default function MonthlyCompanyBoard({
   onToggleTrip,
   onToggleCompany,
   onSelectTrip,
+  onRefresh,
 }: MonthlyCompanyBoardProps) {
+  const [activeLedgerGroup, setActiveLedgerGroup] = useState<TemplateGroup | null>(null);
+  const [activeCompanyName, setActiveCompanyName] = useState<string>('');
+  const [activeCompanyLogo, setActiveCompanyLogo] = useState<string | null | undefined>(null);
+
+  const handleOpenLedger = (group: TemplateGroup, company: MonthlyBoardCompany) => {
+    setActiveLedgerGroup(group);
+    setActiveCompanyName(company.customer.name);
+    setActiveCompanyLogo(company.customer.logo_url);
+  };
+
   return (
-    <div className="w-full overflow-x-auto pb-6">
-      <div className="flex gap-4 min-w-max items-start">
-        {companies.map((company) => (
-          <CompanyColumn
-            key={company.customer.id}
-            company={company}
-            selectedTripIds={selectedTripIds}
-            search={search}
-            onToggleTrip={onToggleTrip}
-            onToggleCompany={onToggleCompany}
-            onSelectTrip={onSelectTrip}
-          />
-        ))}
+    <>
+      <div className="w-full overflow-x-auto pb-6">
+        <div className="flex gap-4 min-w-max items-start">
+          {companies.map((company) => (
+            <CompanyColumn
+              key={company.customer.id}
+              company={company}
+              selectedTripIds={selectedTripIds}
+              search={search}
+              onToggleTrip={onToggleTrip}
+              onToggleCompany={onToggleCompany}
+              onSelectTrip={onSelectTrip}
+              onOpenLedger={(group) => handleOpenLedger(group, company)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+
+      <MonthlyGroupLedgerModal
+        isOpen={Boolean(activeLedgerGroup)}
+        onClose={() => setActiveLedgerGroup(null)}
+        group={activeLedgerGroup}
+        companyName={activeCompanyName}
+        companyLogo={activeCompanyLogo}
+        onRefresh={onRefresh}
+      />
+    </>
   );
 }
 
@@ -158,6 +185,7 @@ const CompanyColumn = memo(function CompanyColumn({
   onToggleTrip,
   onToggleCompany,
   onSelectTrip,
+  onOpenLedger,
 }: {
   company: MonthlyBoardCompany;
   selectedTripIds?: string[];
@@ -165,6 +193,7 @@ const CompanyColumn = memo(function CompanyColumn({
   onToggleTrip?: (id: string) => void;
   onToggleCompany?: (tripIds: string[]) => void;
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
+  onOpenLedger?: (group: TemplateGroup) => void;
 }) {
   const navigate = useNavigate();
   const handleSelectTrip = onSelectTrip || ((t: MonthlyBoardTrip) => navigate(`/trips/${t.id}`));
@@ -290,6 +319,7 @@ const CompanyColumn = memo(function CompanyColumn({
               selectedTripIds={selectedTripIds}
               onToggleTrip={onToggleTrip}
               onSelectTrip={handleSelectTrip}
+              onOpenLedger={onOpenLedger}
             />
           ))
         )}
@@ -305,12 +335,14 @@ function TemplateBigCard({
   selectedTripIds = [],
   onToggleTrip,
   onSelectTrip,
+  onOpenLedger,
 }: {
   group: TemplateGroup;
   index?: number;
   selectedTripIds?: string[];
   onToggleTrip?: (id: string) => void;
   onSelectTrip: (trip: MonthlyBoardTrip) => void;
+  onOpenLedger?: (group: TemplateGroup) => void;
 }) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -332,7 +364,7 @@ function TemplateBigCard({
 
   return (
     <div className={`rounded-xl border ${palette.border} bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md transition-all flex flex-col p-2.5 gap-2`}>
-      {/* ── 1. Top Row: Line Type Badge + Vehicle Class (Left) & Monthly Rate (Right) ── */}
+      {/* ── 1. Top Row: Line Type Badge + Vehicle Class (Left) & Monthly Rate + Edit Button (Right) ── */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${palette.badge}`}>
@@ -342,9 +374,20 @@ function TemplateBigCard({
             {group.vehicleClass}
           </span>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Monthly Rate</p>
-          <p className="text-xs font-black text-[#3E3C3D] dark:text-slate-100 mt-0.5">{group.rateStr}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-right">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Monthly Rate</p>
+            <p className="text-xs font-black text-[#3E3C3D] dark:text-slate-100 mt-0.5">{group.rateStr}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenLedger?.(group)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-extrabold text-[#FA634E] bg-[#FA634E]/10 hover:bg-[#FA634E]/20 border border-[#FA634E]/30 transition-all cursor-pointer shadow-3xs"
+            title="Open full ledger to edit drivers, vehicles and status"
+          >
+            <Edit3 className="w-3 h-3" />
+            <span>Edit</span>
+          </button>
         </div>
       </div>
 
@@ -396,23 +439,28 @@ function TemplateBigCard({
       )}
 
       {/* ── 6. Bottom Footer Link ── */}
-      {hasMoreTrips ? (
+      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80">
+        {hasMoreTrips ? (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-left text-xs font-extrabold text-purple-700 dark:text-purple-300 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>{isExpanded ? 'Show less ▴' : `+ ${hiddenCount} more trips`}</span>
+          </button>
+        ) : (
+          <span className="text-[10px] font-semibold text-slate-400">All trips shown</span>
+        )}
+
         <button
           type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-left text-xs font-extrabold text-purple-700 dark:text-purple-300 hover:underline pt-0.5 cursor-pointer flex items-center gap-1"
+          onClick={() => onOpenLedger?.(group)}
+          className="text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:text-[#FA634E] dark:hover:text-[#FA634E] hover:underline cursor-pointer flex items-center gap-1 ml-auto"
         >
-          <span>{isExpanded ? 'Show less ▴' : `+ ${hiddenCount} more trips`}</span>
+          <TableProperties className="w-3.5 h-3.5 text-slate-400" />
+          <span>Edit Ledger ↗</span>
         </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => navigate(`/trips?company=${group.origin}`)}
-          className="text-left text-xs font-extrabold text-purple-700 dark:text-purple-300 hover:underline pt-0.5 cursor-pointer flex items-center gap-1"
-        >
-          <span>View Schedule →</span>
-        </button>
-      )}
+      </div>
     </div>
   );
 }

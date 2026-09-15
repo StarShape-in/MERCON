@@ -156,6 +156,7 @@ export default function CreateTripPage() {
             contractBillingType={form.contractBillingType}
             submissionResult={form.submissionResult}
             isStepValid={form.isStepValid}
+            getStepValidationErrors={form.getStepValidationErrors}
             canNavigateToStep={form.canNavigateToStep}
             setContractStep={form.setContractStep}
             handleContractSubmit={() => {

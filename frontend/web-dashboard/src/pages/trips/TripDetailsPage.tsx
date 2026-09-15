@@ -28,6 +28,7 @@ import TripChargeLineEditor from '@/components/trips/TripChargeLineEditor';
 import { ReassignTripModal, ReassignMode } from '@/components/trips/ReassignTripModal';
 import { documentService, type DocType } from '@/services/documentService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 
 // Subcomponents for the Image 2 Layout
 import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
@@ -238,69 +239,45 @@ export default function TripDetailsPage() {
   const nextStatusOption = getNextStatus(trip.status) || 'AtDelivery';
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
 
-  // Financials & Economics (matching Trip Creation Page)
+  // Financials & Economics (Single Source of Truth)
   const tAny = trip as any;
-  const rawBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate ?? 0);
-
-  const rawPricingBasis = 
-    tAny.quotation_pricing_basis ||
-    tAny.financials?.quotation_pricing_basis ||
-    tAny.quotation?.pricing_basis ||
-    tAny.rateCard?.pricing_basis ||
-    null;
-
-  const rawOperationType = 
-    tAny.quotation_operation_type ||
-    tAny.operation_type ||
-    tAny.billing_type ||
-    tAny.quotation?.operation_type ||
-    tAny.quotation?.billing_type ||
-    '';
-
-  const isMonthlyContract = 
-    rawPricingBasis === 'PER_MONTH' ||
-    rawPricingBasis === 'Per Month' ||
-    (String(rawOperationType).toLowerCase().includes('monthly') && rawPricingBasis !== 'PER_TRIP' && rawPricingBasis !== 'Per Trip');
-
-  const pricingBasis: 'Per Trip' | 'Per Month' = isMonthlyContract ? 'Per Month' : 'Per Trip';
-
-  const monthlyContractRate = Number(tAny.quotation?.rate ?? tAny.rateCard?.base_price ?? rawBilling);
-
-  // Derive per-trip customer billing for single trip details
-  let customerBilling = rawBilling;
-  if (isMonthlyContract) {
-    if (tAny.financials?.applied_rate != null) {
-      customerBilling = Number(tAny.financials.applied_rate);
-    } else if (rawBilling > 0 && monthlyContractRate > 0 && rawBilling === monthlyContractRate) {
-      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
-    } else if (rawBilling > 0) {
-      customerBilling = rawBilling;
-    } else if (monthlyContractRate > 0) {
-      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
-    }
-  }
-
+  const rawBilling = trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate;
+  const rawDriverPayout = (trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout;
   const chargesList = trip.charges || [];
-  const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c) => sum + Number(c.amount || 0), 0));
-  const totalAmount = customerBilling + chargesTotal;
+  const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c: any) => sum + Number(c.amount || 0), 0));
+  const is3PL = Boolean(trip.is_third_party);
+  const subcontractCost = trip.third_party_cost;
+
+  const fin = computeTripFinancials({
+    customerBilling: trip.billing_amount,
+    monthlyRate: tAny.quotation?.rate,
+    driverPayout: rawDriverPayout,
+    is3PL,
+    subcontractCost,
+    extraDriverPayment: tAny.extra_driver_payment,
+    additionalCharges: chargesTotal,
+    pricingBasis: tAny.quotation?.pricing_basis || tAny.pricing_basis,
+  });
+
+  const customerBilling = fin.resolvedBilling;
+  const driverPayout = fin.resolvedDriverPayout;
+  const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
+  const totalAmount = fin.totalCustomerBilling;
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
-
-  // Driver charge / 3PL cost
-  const is3PL = Boolean(trip.is_third_party);
-  const driverPayout = is3PL
-    ? Number(trip.third_party_cost ?? 0)
-    : Number((trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0);
-  const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
-
-  const balanceMargin = totalAmount - driverPayout;
-  const marginPercent = totalAmount > 0 ? ((balanceMargin / totalAmount) * 100).toFixed(1) : '0.0';
+  const balanceMargin = fin.balanceMargin;
+  const marginPercent = `${fin.marginPercent.toFixed(1)}`;
 
   // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
   const tripType = deriveTripType(trip);
 
-  const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
-  const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
+  const stopsArr = trip.stops || [];
+  const pickup = stopsArr.length > 0 ? stopsArr[0] : undefined;
+  const outboundStops = stopsArr.filter((s: any) => (s.leg_index ?? 0) === 0);
+
+  const dropoff = outboundStops.length > 1
+    ? outboundStops[outboundStops.length - 1]
+    : (stopsArr.length > 1 ? stopsArr[stopsArr.length - 1] : undefined);
 
   const pickupCityName = pickup ? resolveStopName(pickup, 'Riyadh') : 'Riyadh';
   const dropoffCityName = dropoff ? resolveStopName(dropoff, 'Al Abha') : 'Al Abha';
@@ -669,9 +646,9 @@ export default function TripDetailsPage() {
               tripType={tripType}
               quotationName={(trip as any).quotation?.name || (trip as any).rateCard?.name || tAny.quotation_name || null}
               quotationId={(trip as any).quotation?.id || (trip as any).rateCard?.id || trip.quotationId || null}
-              isMonthlyContract={isMonthlyContract}
-              monthlyContractRate={monthlyContractRate}
-              pricingBasis={pricingBasis}
+              isMonthlyContract={fin.isMonthly}
+              monthlyContractRate={fin.monthlyRate}
+              pricingBasis={tAny.quotation?.pricing_basis || tAny.pricing_basis}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

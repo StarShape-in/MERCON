@@ -5,6 +5,7 @@ import { cn, isUuid } from '@/lib/utils';
 import { surchargeRuleService, SurchargeRule } from '@/services/quotationService';
 import { TripChargeInput } from '@/services/tripService';
 import { Button } from '@/components/ui/button';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 import {
   Dialog,
   DialogContent,
@@ -59,27 +60,50 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
 
   const [chargeLines, setChargeLines] = useState<TripChargeInput[]>(primarySlot.chargeLines || []);
 
-  const activeCardRate = matchedRateCard?.rate ?? matchedRateCard?.base_price;
-  const billingAmountNum = Number(activeCardRate !== undefined && activeCardRate !== null ? activeCardRate : (primarySlot.billingAmount || 0));
-  const is3PL = assignmentType === 'third_party' || assignmentType === '3pl';
-  const thirdPartyCostNum = is3PL && thirdPartyCost ? Number(thirdPartyCost) : 0;
-  const slotPayoutRaw = primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : (matchedRateCard?.driver_payout ?? matchedRateCard?.default_trip_charge ?? 0);
-  const driverPayoutNum = is3PL ? thirdPartyCostNum : Number(slotPayoutRaw || 0);
-
   const totalAdditionalCharges = chargeLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
-  const totalCost = driverPayoutNum + totalAdditionalCharges;
-  const balanceMarginNum = billingAmountNum - totalCost;
-  const marginPercent = billingAmountNum > 0 ? ((balanceMarginNum / billingAmountNum) * 100).toFixed(1) : '0.0';
+  const is3PL = assignmentType === 'third_party' || assignmentType === '3pl';
+  const activeCardRate = matchedRateCard?.rate ?? matchedRateCard?.base_price;
+  const rawBilling = activeCardRate !== undefined && activeCardRate !== null ? activeCardRate : primarySlot.billingAmount;
+  const slotPayoutRaw = primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : (matchedRateCard?.driver_payout ?? matchedRateCard?.default_trip_charge);
 
-  // Sync calculated total additional charges & itemized sub-charges to primary slot
+  const fin = computeTripFinancials({
+    customerBilling: rawBilling,
+    driverPayout: slotPayoutRaw,
+    is3PL,
+    subcontractCost: thirdPartyCost,
+    additionalCharges: totalAdditionalCharges,
+    pricingBasis: primarySlot.pricingBasis || matchedRateCard?.pricing_basis,
+  });
+
+  const billingAmountNum = fin.resolvedBilling;
+  const driverPayoutNum = fin.resolvedDriverPayout;
+  const balanceMarginNum = fin.balanceMargin;
+  const marginPercent = `${fin.marginPercent.toFixed(1)}`;
+
   useEffect(() => {
-    if (primarySlot?.id && handleUpdateTripSlot) {
+    if (primarySlot?.chargeLines) {
+      setChargeLines(primarySlot.chargeLines);
+    } else {
+      setChargeLines([]);
+    }
+  }, [primarySlot?.id]);
+
+  // Sync calculated total additional charges & itemized sub-charges to primary slot only when values change
+  useEffect(() => {
+    if (!primarySlot?.id || !handleUpdateTripSlot) return;
+
+    const currentChargesStr = (primarySlot.additionalCharges ?? '0').toString();
+    const newChargesStr = totalAdditionalCharges.toString();
+    const currentLinesJson = JSON.stringify(primarySlot.chargeLines || []);
+    const newLinesJson = JSON.stringify(chargeLines || []);
+
+    if (currentChargesStr !== newChargesStr || currentLinesJson !== newLinesJson) {
       handleUpdateTripSlot(primarySlot.id, {
-        additionalCharges: totalAdditionalCharges.toString(),
+        additionalCharges: newChargesStr,
         chargeLines: chargeLines,
       });
     }
-  }, [totalAdditionalCharges, chargeLines, primarySlot?.id]);
+  }, [totalAdditionalCharges, chargeLines, primarySlot?.id, primarySlot?.additionalCharges, primarySlot?.chargeLines]);
 
   const togglePresetRule = (rule: SurchargeRule) => {
     setChargeLines((prev) => {

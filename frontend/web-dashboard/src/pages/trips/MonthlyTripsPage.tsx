@@ -28,6 +28,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -316,6 +317,7 @@ export default function MonthlyTripsPage() {
     Boolean(vehicleType),
     Boolean(billingType),
     Boolean(status),
+    Boolean(search.trim()),
     dateFilter !== 'All',
   ].filter(Boolean).length;
 
@@ -592,6 +594,7 @@ export default function MonthlyTripsPage() {
             search={search}
             onToggleTrip={handleToggleTrip}
             onToggleCompany={handleToggleCompany}
+            onRefresh={refetch}
           />
         )}
       </div>

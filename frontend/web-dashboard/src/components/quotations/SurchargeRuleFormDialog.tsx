@@ -183,11 +183,17 @@ export default function SurchargeRuleFormDialog({
                   <SelectItem value={ANY_LANE} className="text-xs font-medium">
                     Every lane for this customer
                   </SelectItem>
-                  {rateCards.map((rc) => (
-                    <SelectItem key={rc.id} value={rc.id} className="text-xs font-medium">
-                      {rc.route_origin} → {rc.route_destination}
-                    </SelectItem>
-                  ))}
+                  {rateCards.map((rc) => {
+                    const stops = rc.stops || [];
+                    const origin = stops[0]?.source_label || stops[0]?.location?.name || (rc as any).origin_name || rc.route_origin;
+                    const dest = stops[stops.length - 1]?.source_label || stops[stops.length - 1]?.location?.name || (rc as any).destination_name || rc.route_destination;
+                    const label = origin && dest ? `${origin} → ${dest}` : rc.name || 'Untitled Lane';
+                    return (
+                      <SelectItem key={rc.id} value={rc.id} className="text-xs font-medium">
+                        {label}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

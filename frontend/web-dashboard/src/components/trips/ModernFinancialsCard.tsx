@@ -2,6 +2,7 @@ import React from 'react';
 import { DollarSign, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 
 export interface ModernFinancialsCardProps {
   customerBilling?: number;
@@ -46,35 +47,25 @@ export default function ModernFinancialsCard({
   pricingBasis,
   onAddCharge,
 }: ModernFinancialsCardProps) {
-  const isMonthly = pricingBasis === 'Per Month' || Boolean(isMonthlyContract);
+  const fin = computeTripFinancials({
+    customerBilling,
+    baseRate,
+    monthlyRate: monthlyContractRate,
+    driverPayout,
+    is3PL,
+    extraDriverPayment,
+    additionalCharges,
+    pricingBasis: pricingBasis || (isMonthlyContract ? 'Per Month' : undefined),
+  });
 
-  // Resolve raw customer billing amount
-  const rawBilling = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
+  const billingVal = fin.resolvedBilling;
+  const driverPayoutVal = fin.resolvedDriverPayout;
+  const addChargesVal = fin.additionalChargesTotal;
+  const resolvedMargin = balanceMargin !== undefined ? balanceMargin : fin.balanceMargin;
+  const resolvedMarginPercent = marginPercent !== undefined ? String(marginPercent) : `${fin.marginPercent.toFixed(1)}`;
 
-  // Calculate monthly reference rate and per-trip share if monthly basis
-  let billingVal = rawBilling;
-  let effectiveMonthlyRate = monthlyContractRate ?? 0;
-
-  if (isMonthly) {
-    if (effectiveMonthlyRate > 0 && (rawBilling === effectiveMonthlyRate || rawBilling === 0)) {
-      billingVal = Math.round((effectiveMonthlyRate / 30) * 100) / 100;
-    } else if (effectiveMonthlyRate === 0 && rawBilling > 0) {
-      effectiveMonthlyRate = rawBilling;
-      billingVal = Math.round((rawBilling / 30) * 100) / 100;
-    }
-  }
-
-  const addChargesVal = additionalCharges ?? 0;
-  const driverPayoutVal = driverPayout ?? 0;
-
-  // Resolve total amount for THIS single trip (Customer Billing + Extras)
-  const resolvedTotal = totalAmount !== undefined ? totalAmount : (billingVal + addChargesVal);
-
-  // Margin math for this single trip
-  const resolvedMargin = balanceMargin !== undefined ? balanceMargin : (resolvedTotal - driverPayoutVal);
-  const resolvedMarginPercent = marginPercent !== undefined
-    ? String(marginPercent)
-    : (resolvedTotal > 0 ? ((resolvedMargin / resolvedTotal) * 100).toFixed(1) : '0.0');
+  const isMonthly = fin.isMonthly;
+  const effectiveMonthlyRate = fin.monthlyRate ?? 0;
 
   const driverPayoutLabel = is3PL ? '3PL Payout' : 'Driver Payout';
 
@@ -126,8 +117,8 @@ export default function ModernFinancialsCard({
                 {isMonthly ? 'Single Trip Billing' : 'Customer Billing'}
               </span>
               {isMonthly && (
-                <span className="text-[9px] font-semibold text-slate-400">
-                  Per-trip duty rate (1/30)
+                <span className="text-[9px] font-bold text-slate-400">
+                  Per-trip ({fin.formattedLabels?.monthlyLabel ?? 'Per-trip duty rate (1/30)'})
                 </span>
               )}
             </div>

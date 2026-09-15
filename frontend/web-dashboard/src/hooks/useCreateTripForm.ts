@@ -250,8 +250,8 @@ export function useCreateTripForm() {
           ? `Truck: Fleet Available${capacityLabel ? ` • ${capacityLabel}` : ''}`
           : 'Truck: Unassigned';
 
-        const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
-        const statusTag = isNotAvailable
+        const isNotAvailable = Boolean(d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available' && d.id !== masterDriver);
+        const statusTag = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available'
           ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
           : '';
 
@@ -280,6 +280,7 @@ export function useCreateTripForm() {
           value: d.id,
           label,
           selectedLabel: fullName,
+          disabled: isNotAvailable,
           keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
@@ -329,137 +330,10 @@ export function useCreateTripForm() {
   const isMonthlyUrl = urlMode?.toLowerCase() === 'monthly' || urlBillingType?.toLowerCase() === 'monthly' || !!urlMonth;
 
   const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
-  const [contractCustomer, setContractCustomer] = useState('');
+  const [contractCustomer, setContractCustomerRaw] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
   const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
-
-  const vehicleOptions = useMemo<ComboboxOption[]>(() => {
-    const rule = getCompatibilityRuleForClass(contractVehicleType);
-    const isRuleConfigured = Boolean(rule && rule.isActive !== false && rule.allowedVehicleClassCodes.length > 0);
-
-    const preferredCodes = isRuleConfigured && rule ? rule.preferredVehicleClassCodes.map((c) => c.toLowerCase()) : [];
-    const allowedCodes = isRuleConfigured && rule ? rule.allowedVehicleClassCodes.map((c) => c.toLowerCase()) : [];
-
-    const selDriver = drivers.find((d) => d.id === masterDriver);
-    const driverVehId = selDriver ? (selDriver.assignedVehicleId || (selDriver.assignedVehicle as any)?.id) : null;
-
-    const getVehicleClass = (v: any): string => {
-      if (v.capacity_kg && v.capacity_kg > 0) {
-        return getVehicleTypeFromCapacity(v.capacity_kg);
-      }
-      return normalizeVehicleClass(v.asset_type);
-    };
-
-    let filtered = vehicles.filter((v) => {
-      if (v.isActive === false) return false;
-      if (v.id === masterVehicle) return true; // Keep currently selected vehicle visible
-
-      if (!isRuleConfigured) return true; // If rule not configured, keep all vehicles available
-
-      const vClass = getVehicleClass(v);
-      const isAllowed = allowedCodes.some((c) => c === vClass.toLowerCase());
-      return isAllowed;
-    });
-
-    let isFallback = false;
-    if (filtered.length === 0) {
-      filtered = vehicles.filter((v) => v.isActive !== false);
-      isFallback = true;
-    }
-
-    const mapped = filtered.map((v) => {
-      const vClass = getVehicleClass(v);
-      const actualCapLabel = getActualCapacityLabel(v.capacity_kg ?? 0);
-      const typeLabel = v.asset_type && actualCapLabel ? `${v.asset_type} • ${actualCapLabel}` : (v.asset_type || actualCapLabel || vClass);
-
-      const isDriverUsual = Boolean(driverVehId && driverVehId === v.id);
-      const isPreferred = !isRuleConfigured || preferredCodes.some((c) => c === vClass.toLowerCase());
-      const isAllowed = !isRuleConfigured || allowedCodes.some((c) => c === vClass.toLowerCase());
-
-      let group = 'Compatible';
-      let hint = '';
-
-      if (isFallback) {
-        group = 'Available Vehicles';
-        hint = `Class: ${vClass}`;
-      } else if (isDriverUsual && isAllowed) {
-        group = 'Recommended';
-        hint = `Usual vehicle for ${selDriver?.first_name || 'driver'}`;
-      } else if (isPreferred) {
-        group = 'Compatible';
-        hint = 'Preferred class';
-      } else if (isAllowed) {
-        group = 'Allowed Alternatives';
-        hint = 'Allowed alternative';
-      }
-
-      const statusClean = v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' ? v.status : '';
-      const vehDetailsStr = [typeLabel, statusClean, hint].filter(Boolean).join(' • ');
-
-      const label = React.createElement(
-        'div',
-        { className: 'flex flex-col text-left leading-tight py-0.5 min-w-0 truncate' },
-        React.createElement(
-          'span',
-          { className: 'font-bold text-slate-900 dark:text-slate-100 text-xs truncate' },
-          v.plate_number
-        ),
-        vehDetailsStr
-          ? React.createElement(
-              'span',
-              { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate pt-0.5' },
-              vehDetailsStr
-            )
-          : null
-      );
-
-      return {
-        value: v.id,
-        group,
-        label,
-        selectedLabel: v.plate_number || typeLabel,
-        keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${vClass} ${actualCapLabel} ${group} ${hint}`,
-      };
-    });
-
-    const groupPriority: Record<string, number> = {
-      'Recommended': 0,
-      'Compatible': 1,
-      'Allowed Alternatives': 2,
-      'Available Vehicles': 3,
-    };
-
-    const sorted = mapped.sort((a, b) => {
-      const pA = groupPriority[a.group] ?? 99;
-      const pB = groupPriority[b.group] ?? 99;
-      return pA - pB;
-    });
-
-    const assignLaterVehicleOption: ComboboxOption = {
-      value: 'unassigned',
-      group: 'Assign Later',
-      label: React.createElement(
-        'div',
-        { className: 'flex flex-col text-left leading-tight py-0.5' },
-        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
-        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending truck assignment')
-      ),
-      selectedLabel: 'Assign Later',
-      keywords: 'unassigned assign later pending null none',
-    };
-
-    return [assignLaterVehicleOption, ...sorted];
-  }, [vehicles, masterVehicle, contractVehicleType, masterDriver, drivers]);
-
-  useEffect(() => {
-    if (urlStepParam) {
-      const parsed = Number(urlStepParam);
-      if ([1, 2].includes(parsed)) {
-        setContractStep(parsed as 1 | 2);
-      }
-    }
-  }, [urlStepParam]);
 
   const {
     customerRateCards,
@@ -474,113 +348,13 @@ export function useCreateTripForm() {
     contractStep
   );
 
-  const handleSlotLocationChange = (
-    slotId: string,
-    field: 'origin' | 'destination',
-    locIdOrName: string,
-    locObj: any
-  ) => {
-    const locationId = locObj?.id ?? (isUuid(locIdOrName) ? locIdOrName : null);
-    const displayName = locObj?.name || locObj?.address || (isUuid(locIdOrName) ? '' : locIdOrName);
-    const isOrigin = field === 'origin';
-    const locPrecision = locObj?.coordinate_precision || (locObj?.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
-
-    handleUpdateTripSlot(slotId, {
-      [field]: displayName,
-      [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
-      [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
-      [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
-      [isOrigin ? 'originName' : 'destinationName']: displayName,
-      [isOrigin ? 'originAddress' : 'destinationAddress']: locObj?.address || displayName,
-      [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
-      [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
-      rateMatched: false,
-    });
-
-    setTimeout(() => {
-      triggerRateLookupForSlots();
-    }, 100);
-  };
-
-  const handleDriverChange = (driverId: string) => {
-    setMasterDriver(driverId);
-    if (!driverId || driverId === 'unassigned') {
-      setMasterVehicle('unassigned');
-      return;
-    }
-
-    const selectedDriver = drivers.find((d) => d.id === driverId);
-    if (!selectedDriver) return;
-
-    const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
-      ? selectedDriver.assignedVehicle as any
-      : null;
-
-    let vehicleId =
-      selectedDriver.assignedVehicleId ||
-      embeddedVehicle?.id ||
-      (selectedDriver as any).assigned_vehicle_id;
-
-    // Fallback 1: Search vehicles list for one assigned to this driver
-    if (!vehicleId) {
-      const vAssigned = vehicles.find((v: any) =>
-        v.assignedDriverId === driverId ||
-        v.assigned_driver_id === driverId ||
-        (v.assignedDriver && v.assignedDriver.id === driverId)
-      );
-      if (vAssigned) vehicleId = vAssigned.id;
-    }
-
-    // Fallback 2: Check driverOptions for vehiclePlate or raw assignedVehicleId
-    if (!vehicleId) {
-      const opt = driverOptions.find((o) => o.value === driverId) as (ComboboxOption & Record<string, any>) | undefined;
-      if (opt?.raw?.assignedVehicleId) {
-        vehicleId = opt.raw.assignedVehicleId;
-      } else if (opt?.vehiclePlate) {
-        const vByPlate = vehicles.find((v) => v.plate_number === opt.vehiclePlate);
-        if (vByPlate) vehicleId = vByPlate.id;
-      }
-    }
-
-    if (!vehicleId) return;
-
-    const matchedVehicle = vehicles.find((v) => v.id === vehicleId) || embeddedVehicle;
-    if (!matchedVehicle) return;
-
-    const vClass = (matchedVehicle.capacity_kg && matchedVehicle.capacity_kg > 0)
-      ? getVehicleTypeFromCapacity(matchedVehicle.capacity_kg)
-      : normalizeVehicleClass(matchedVehicle.asset_type);
-
-    setMasterVehicle(matchedVehicle.id);
-    toast.success(`Auto-selected driver's truck: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
-  };
-
-  const {
-    recentTrips,
-    recentRoutesList,
-    handleApplyRecentRoute,
-    recentDriversList,
-    handleApplyRecentDriver,
-  } = useTripAccelerators(
-    contractCustomer,
-    customerRateCards,
-    contractSlots,
-    drivers,
-    vehicles,
-    contractVehicleType,
-    handleSlotLocationChange,
-    handleDriverChange,
-    masterVehicle,
-    setMasterVehicle
-  );
-
   const contractSlotsRef = useRef(contractSlots);
   useEffect(() => {
     contractSlotsRef.current = contractSlots;
   }, [contractSlots]);
 
   const triggerRateLookupForSlots = useCallback(
-    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string) => {
+    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string, forceRelookup = false) => {
       const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
       const vType = overrideVehicleType !== undefined ? overrideVehicleType : contractVehicleType;
       const rCat = overrideRateCategory !== undefined ? overrideRateCategory : contractRateCategory;
@@ -594,19 +368,9 @@ export function useCreateTripForm() {
         .then(async ({ quotationService }) => {
           const updatedSlots = await Promise.all(
             currentSlots.map(async (slot) => {
-              // Preserve manually selected quotation card ONLY if it matches the current line_type and vehicle_class
-              if (slot.matchedRateCard) {
-                const cardLT = String(slot.matchedRateCard.line_type || slot.matchedRateCard.rate_category || '').toUpperCase().replace(/_/g, ' ');
-                const targetLT = String(rCat || '').toUpperCase().replace(/_/g, ' ');
-                const cardVC = String(slot.matchedRateCard.vehicle_class || slot.matchedRateCard.source_vehicle_label || slot.matchedRateCard.vehicle_type || '').toUpperCase().replace(/_/g, ' ');
-                const targetVC = String(vType || '').toUpperCase().replace(/_/g, ' ');
-
-                const ltMatch = !rCat || !cardLT || (cardLT.includes('10') && targetLT.includes('10')) || (cardLT.includes('12') && targetLT.includes('12')) || (cardLT.includes('ROUND') && targetLT.includes('ROUND')) || (cardLT.includes('SINGLE') && targetLT.includes('SINGLE')) || cardLT === targetLT;
-                const vcMatch = !vType || !cardVC || cardVC === targetVC;
-
-                if (ltMatch && vcMatch) {
-                  return slot;
-                }
+              // Only preserve matchedRateCard if NOT forceRelookup
+              if (!forceRelookup && slot.matchedRateCard && slot.rateMatched) {
+                return slot;
               }
 
               if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;
@@ -710,27 +474,277 @@ export function useCreateTripForm() {
             })
           );
 
-          // Only update if slots actually changed to avoid unnecessary re-renders
-          const hasChanges = updatedSlots.some((s, idx) => {
-            const orig = currentSlots[idx];
-            if (!orig) return true;
-            return (
-              s.billingAmount !== orig.billingAmount ||
-              s.tripCharges !== orig.tripCharges ||
-              s.rateMatched !== orig.rateMatched ||
-              s.rateCardId !== orig.rateCardId ||
-              s.rateCardBasePrice !== orig.rateCardBasePrice
-            );
-          });
-          if (hasChanges) {
+          if (JSON.stringify(updatedSlots) !== JSON.stringify(contractSlotsRef.current)) {
             setContractSlots(updatedSlots);
           }
         })
-        .catch((err) => {
-          console.error('Quotation service import error:', err);
-        });
+        .catch((err) => console.error('Quotation service import error:', err));
     },
     [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard, setContractSlots]
+  );
+
+  const setContractCustomer = useCallback(
+    (newCustId: string) => {
+      setContractCustomerRaw(newCustId);
+
+      setContractSlots((prev) =>
+        prev.map((s) => ({
+          ...s,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          rateMatched: false,
+          billingAmount: '',
+          driverPayout: '',
+          saveAsQuotation: false,
+          saveAsRateCard: false,
+        }))
+      );
+
+      setTimeout(() => {
+        triggerRateLookupForSlots(undefined, undefined, newCustId, undefined, true);
+      }, 100);
+    },
+    [setContractSlots, triggerRateLookupForSlots]
+  );
+
+  const vehicleOptions = useMemo<ComboboxOption[]>(() => {
+    const rule = getCompatibilityRuleForClass(contractVehicleType);
+    const isRuleConfigured = Boolean(rule && rule.isActive !== false && rule.allowedVehicleClassCodes.length > 0);
+
+    const preferredCodes = isRuleConfigured && rule ? rule.preferredVehicleClassCodes.map((c) => c.toLowerCase()) : [];
+    const allowedCodes = isRuleConfigured && rule ? rule.allowedVehicleClassCodes.map((c) => c.toLowerCase()) : [];
+
+    const selDriver = drivers.find((d) => d.id === masterDriver);
+    const driverVehId = selDriver ? (selDriver.assignedVehicleId || (selDriver.assignedVehicle as any)?.id) : null;
+
+    const getVehicleClass = (v: any): string => {
+      if (v.capacity_kg && v.capacity_kg > 0) {
+        return getVehicleTypeFromCapacity(v.capacity_kg);
+      }
+      return normalizeVehicleClass(v.asset_type);
+    };
+
+    let filtered = vehicles.filter((v) => {
+      if (v.isActive === false) return false;
+      if (v.id === masterVehicle) return true; // Keep currently selected vehicle visible
+
+      if (!isRuleConfigured) return true; // If rule not configured, keep all vehicles available
+
+      const vClass = getVehicleClass(v);
+      const isAllowed = allowedCodes.some((c) => c === vClass.toLowerCase());
+      return isAllowed;
+    });
+
+    let isFallback = false;
+    if (filtered.length === 0) {
+      filtered = vehicles.filter((v) => v.isActive !== false);
+      isFallback = true;
+    }
+
+    const mapped = filtered.map((v) => {
+      const vClass = getVehicleClass(v);
+      const actualCapLabel = getActualCapacityLabel(v.capacity_kg ?? 0);
+      const typeLabel = v.asset_type && actualCapLabel ? `${v.asset_type} • ${actualCapLabel}` : (v.asset_type || actualCapLabel || vClass);
+
+      const isDriverUsual = Boolean(driverVehId && driverVehId === v.id);
+      const isPreferred = !isRuleConfigured || preferredCodes.some((c) => c === vClass.toLowerCase());
+      const isAllowed = !isRuleConfigured || allowedCodes.some((c) => c === vClass.toLowerCase());
+
+      let group = 'Compatible';
+      let hint = '';
+
+      if (isFallback) {
+        group = 'Available Vehicles';
+        hint = `Class: ${vClass}`;
+      } else if (isDriverUsual && isAllowed) {
+        group = 'Recommended';
+        hint = `Usual vehicle for ${selDriver?.first_name || 'driver'}`;
+      } else if (isPreferred) {
+        group = 'Compatible';
+        hint = 'Preferred class';
+      } else if (isAllowed) {
+        group = 'Allowed Alternatives';
+        hint = 'Allowed alternative';
+      }
+
+      const isVehNotAvailable = Boolean(v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' && v.id !== masterVehicle);
+      const statusClean = v.status && v.status !== 'Available' && v.status.toLowerCase() !== 'available' ? v.status : '';
+      const vehDetailsStr = [typeLabel, statusClean, hint].filter(Boolean).join(' • ');
+
+      const label = React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5 min-w-0 truncate' },
+        React.createElement(
+          'span',
+          { className: 'font-bold text-slate-900 dark:text-slate-100 text-xs truncate' },
+          v.plate_number
+        ),
+        vehDetailsStr
+          ? React.createElement(
+              'span',
+              { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate pt-0.5' },
+              vehDetailsStr
+            )
+          : null
+      );
+
+      return {
+        value: v.id,
+        group,
+        label,
+        selectedLabel: v.plate_number || typeLabel,
+        disabled: isVehNotAvailable,
+        keywords: `${v.plate_number || ''} ${v.asset_type || ''} ${v.ref_id || ''} ${vClass} ${actualCapLabel} ${group} ${hint}`,
+      };
+    });
+
+    const groupPriority: Record<string, number> = {
+      'Recommended': 0,
+      'Compatible': 1,
+      'Allowed Alternatives': 2,
+      'Available Vehicles': 3,
+    };
+
+    const sorted = mapped.sort((a, b) => {
+      const pA = groupPriority[a.group] ?? 99;
+      const pB = groupPriority[b.group] ?? 99;
+      return pA - pB;
+    });
+
+    const assignLaterVehicleOption: ComboboxOption = {
+      value: 'unassigned',
+      group: 'Assign Later',
+      label: React.createElement(
+        'div',
+        { className: 'flex flex-col text-left leading-tight py-0.5' },
+        React.createElement('span', { className: 'font-bold text-amber-700 dark:text-amber-300 text-xs' }, '⏳ Assign Later'),
+        React.createElement('span', { className: 'text-[10px] text-amber-600 dark:text-amber-400' }, 'Pending truck assignment')
+      ),
+      selectedLabel: 'Assign Later',
+      keywords: 'unassigned assign later pending null none',
+    };
+
+    return [assignLaterVehicleOption, ...sorted];
+  }, [vehicles, masterVehicle, contractVehicleType, masterDriver, drivers]);
+
+  useEffect(() => {
+    if (urlStepParam) {
+      const parsed = Number(urlStepParam);
+      if ([1, 2].includes(parsed)) {
+        setContractStep(parsed as 1 | 2);
+      }
+    }
+  }, [urlStepParam]);
+
+  const handleSlotLocationChange = (
+    slotId: string,
+    field: 'origin' | 'destination',
+    locIdOrName: string,
+    locObj: any
+  ) => {
+    const locationId = locObj?.id ?? (isUuid(locIdOrName) ? locIdOrName : null);
+    const displayName = locObj?.name || locObj?.address || (isUuid(locIdOrName) ? '' : locIdOrName);
+    const isOrigin = field === 'origin';
+    const locPrecision = locObj?.coordinate_precision || (locObj?.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
+
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          [field]: displayName,
+          [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+          [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
+          [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
+          [isOrigin ? 'originName' : 'destinationName']: displayName,
+          [isOrigin ? 'originAddress' : 'destinationAddress']: locObj?.address || displayName,
+          [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
+          [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
+    );
+
+    setTimeout(() => {
+      triggerRateLookupForSlots(undefined, undefined, undefined, undefined, true);
+    }, 100);
+  };
+
+  const handleDriverChange = (driverId: string) => {
+    setMasterDriver(driverId);
+    if (!driverId || driverId === 'unassigned') {
+      setMasterVehicle('unassigned');
+      return;
+    }
+
+    const selectedDriver = drivers.find((d) => d.id === driverId);
+    if (!selectedDriver) return;
+
+    const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
+      ? selectedDriver.assignedVehicle as any
+      : null;
+
+    let vehicleId =
+      selectedDriver.assignedVehicleId ||
+      embeddedVehicle?.id ||
+      (selectedDriver as any).assigned_vehicle_id;
+
+    // Fallback 1: Search vehicles list for one assigned to this driver
+    if (!vehicleId) {
+      const vAssigned = vehicles.find((v: any) =>
+        v.assignedDriverId === driverId ||
+        v.assigned_driver_id === driverId ||
+        (v.assignedDriver && v.assignedDriver.id === driverId)
+      );
+      if (vAssigned) vehicleId = vAssigned.id;
+    }
+
+    // Fallback 2: Check driverOptions for vehiclePlate or raw assignedVehicleId
+    if (!vehicleId) {
+      const opt = driverOptions.find((o) => o.value === driverId) as (ComboboxOption & Record<string, any>) | undefined;
+      if (opt?.raw?.assignedVehicleId) {
+        vehicleId = opt.raw.assignedVehicleId;
+      } else if (opt?.vehiclePlate) {
+        const vByPlate = vehicles.find((v) => v.plate_number === opt.vehiclePlate);
+        if (vByPlate) vehicleId = vByPlate.id;
+      }
+    }
+
+    if (!vehicleId) return;
+
+    const matchedVehicle = vehicles.find((v) => v.id === vehicleId) || embeddedVehicle;
+    if (!matchedVehicle) return;
+
+    const vClass = (matchedVehicle.capacity_kg && matchedVehicle.capacity_kg > 0)
+      ? getVehicleTypeFromCapacity(matchedVehicle.capacity_kg)
+      : normalizeVehicleClass(matchedVehicle.asset_type);
+
+    setMasterVehicle(matchedVehicle.id);
+    toast.success(`Auto-selected driver's truck: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
+  };
+
+  const {
+    recentTrips,
+    recentRoutesList,
+    handleApplyRecentRoute,
+    recentDriversList,
+    handleApplyRecentDriver,
+  } = useTripAccelerators(
+    contractCustomer,
+    customerRateCards,
+    contractSlots,
+    drivers,
+    vehicles,
+    contractVehicleType,
+    handleSlotLocationChange,
+    handleDriverChange,
+    masterVehicle,
+    setMasterVehicle
   );
 
   useEffect(() => {
@@ -756,41 +770,96 @@ export function useCreateTripForm() {
   const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
   const [editDriver, setEditDriver] = useState<any | null>(null);
 
-  const isStepValid = (step: number): boolean => {
+  const getStepValidationErrors = (step: number): string[] => {
+    const errors: string[] = [];
     const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
+
     if (step === 1) {
-      return (
-        Boolean(contractCustomer) &&
-        contractSlots.length > 0 &&
-        contractSlots.every((slot) => {
-          if (!slot.origin?.trim() || !slot.destination?.trim() || (!isMonthly && !slot.date) || !slot.pickupTime || !slot.dropoffTime) {
-            return false;
-          }
-          if (isMonthly) return true;
-          const dropoffDate = slot.dropoffDate || slot.date;
-          if (dropoffDate < slot.date) return false;
-          try {
-            const pStartIso = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
-            const pEndIso = localDateTimeToUtcIso(dropoffDate, slot.dropoffTime, tz);
-            const pStartMs = new Date(pStartIso).getTime();
-            const pEndMs = new Date(pEndIso).getTime();
-            if (isNaN(pStartMs) || isNaN(pEndMs) || pEndMs <= pStartMs) {
-              return false;
-            }
-          } catch {
-            return false;
-          }
-          return true;
-        })
-      );
-    }
-    if (step === 2) {
-      if (contractBillingType === 'Monthly') {
-        return selectedDates.length > 0;
+      if (!contractCustomer) {
+        errors.push('Customer is required');
       }
-      return true;
+      if (!contractSlots || contractSlots.length === 0) {
+        errors.push('At least 1 route slot is required');
+      } else {
+        contractSlots.forEach((slot, idx) => {
+          const laneLabel =
+            slot.origin && slot.destination ? `${slot.origin} → ${slot.destination}` : `Slot #${idx + 1}`;
+          if (!slot.origin?.trim()) {
+            errors.push(`${laneLabel}: Select an origin location`);
+          }
+          if (!slot.destination?.trim()) {
+            errors.push(`${laneLabel}: Select a destination location`);
+          }
+          if (!isMonthly && !slot.date) {
+            errors.push(`${laneLabel}: Select a trip date`);
+          }
+          if (!slot.pickupTime) {
+            errors.push(`${laneLabel}: Select pickup time`);
+          }
+          if (!slot.dropoffTime) {
+            errors.push(`${laneLabel}: Select drop-off time`);
+          }
+
+          if (!isMonthly && slot.date && slot.pickupTime && slot.dropoffTime) {
+            const dropoffDate = slot.dropoffDate || slot.date;
+            if (dropoffDate < slot.date) {
+              errors.push(`${laneLabel}: Drop-off date cannot be before trip date`);
+            } else {
+              try {
+                const pStartIso = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
+                const pEndIso = localDateTimeToUtcIso(dropoffDate, slot.dropoffTime, tz);
+                const pStartMs = new Date(pStartIso).getTime();
+                const pEndMs = new Date(pEndIso).getTime();
+                if (isNaN(pStartMs) || isNaN(pEndMs) || pEndMs <= pStartMs) {
+                  errors.push(`${laneLabel}: Drop-off time must be strictly after pickup time`);
+                }
+              } catch {
+                errors.push(`${laneLabel}: Invalid pickup or drop-off time format`);
+              }
+            }
+          }
+
+          // Commercial Pricing & Rate Validation
+          const hasRateMatched = Boolean(slot.matchedRateCard || slot.rateMatched);
+          const hasBillingInput = slot.billingAmount !== undefined && slot.billingAmount !== null && slot.billingAmount !== '' && Number(slot.billingAmount) > 0;
+
+          if (!hasRateMatched && !hasBillingInput) {
+            errors.push(`${laneLabel}: Select a Commercial Quotation card or enter Customer Billing Rate`);
+          }
+
+          const hasTripChargeInput = slot.tripCharges !== undefined && slot.tripCharges !== null && slot.tripCharges !== '';
+          const hasDriverPayoutProp = slot.driverPayout !== undefined && slot.driverPayout !== null && slot.driverPayout !== '';
+          const hasMatchedPayout = slot.matchedRateCard?.driver_payout != null || slot.matchedRateCard?.default_trip_charge != null;
+
+          if (!hasTripChargeInput && !hasDriverPayoutProp && !hasMatchedPayout) {
+            errors.push(`${laneLabel}: Enter Driver Payout / Charge`);
+          }
+        });
+      }
+
+      // Mandatory Fleet & Driver Assignment Validation
+      if (assignmentType === 'third_party') {
+        if (!thirdPartyProviderId && !thirdPartyDriverName) {
+          errors.push('3PL Logistics Partner selection is required');
+        }
+      } else {
+        const hasDriverSelection = Boolean(masterDriver);
+        const hasVehicleSelection = Boolean(masterVehicle);
+        if (!hasDriverSelection && !hasVehicleSelection) {
+          errors.push('Select an assignment choice: Driver & Vehicle or Assign Later');
+        }
+      }
+    } else if (step === 2) {
+      if (contractBillingType === 'Monthly' && selectedDates.length === 0) {
+        errors.push('Select at least 1 operating date on the calendar');
+      }
     }
-    return true;
+
+    return errors;
+  };
+
+  const isStepValid = (step: number): boolean => {
+    return getStepValidationErrors(step).length === 0;
   };
 
   const canNavigateToStep = (targetStep: number): boolean => {
@@ -1218,6 +1287,7 @@ export function useCreateTripForm() {
     handleUpdateSlotReturnIntermediate,
     handleUpdateSlotReturnIntermediateFee,
     isStepValid,
+    getStepValidationErrors,
     canNavigateToStep,
     handleDriverChange,
     handleVehicleChange,

@@ -416,6 +416,7 @@ export interface TripStopDTO {
 
 export interface Quotation {
   id: string;
+  quotation_number?: number | string | null;
   name: string;
   customerId: string;
   customer?: { id: string; name: string } | null;

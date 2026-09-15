@@ -4,13 +4,14 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, Calculator, Files, FileBarChart,
   Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
-  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
 
 import { settingsService } from '@/services/settingsService';
 import type { ModuleKey } from '@mercon/shared-types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface SidebarProps {
   active?: string;
@@ -29,9 +30,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
-  const isAdmin = user?.role === 'Admin';
-  const isSuperAdmin = user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
+  const { can, isSuperAdmin, userRole } = usePermissions();
+  const isAdmin = userRole === 'Admin';
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ME';
 
   const isItemActive = (itemPath: string, itemEnd?: boolean) => {
     const currentPath = location.pathname;
@@ -85,6 +86,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     label: string;
     path: string;
     moduleKey?: ModuleKey;
+    permissionKey?: string;
     end?: boolean;
     badge?: number;
   }
@@ -99,36 +101,37 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     {
       label: 'FINANCE',
       items: [
-        { icon: Calculator, label: 'Quotations', path: '/quotations', moduleKey: 'quotations' },
-        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses' },
-        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials', moduleKey: 'vehicles' },
+        { icon: Calculator, label: 'Quotations', path: '/quotations', moduleKey: 'quotations', permissionKey: 'quotations.view' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses', permissionKey: 'reports.view' },
+        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials', moduleKey: 'vehicles', permissionKey: 'fleet.financials' },
       ],
     },
     {
       label: 'COMPLIANCE & REPORTS',
       items: [
         { icon: Files, label: 'Documents', path: '/documents', moduleKey: 'documents' },
-        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports' },
-        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder', moduleKey: 'report-builder' },
+        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports', permissionKey: 'reports.view' },
+        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder', moduleKey: 'report-builder', permissionKey: 'reports.view' },
       ],
     },
     {
       label: 'MASTER DATA',
       items: [
-        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations' },
-        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy', moduleKey: 'taxonomy' },
+        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations', permissionKey: 'settings.view' },
+        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy', moduleKey: 'taxonomy', permissionKey: 'settings.view' },
       ],
     },
     {
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
-        ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance' }] : []),
-        ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
+        ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance', permissionKey: 'settings.deployment' }] : []),
+        ...(can('users.view') ? [{ icon: Users, label: 'User Management', path: '/settings/users', permissionKey: 'users.view' }] : []),
         { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents', moduleKey: 'aprodac-documents' },
       ],
     },
   ];
+
 
   const checkIsDisabled = (item: NavItem) => {
     return item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);

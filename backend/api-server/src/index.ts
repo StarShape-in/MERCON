@@ -59,6 +59,7 @@ import trashRoutes from './routes/trashRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import thirdPartyRoutes from './routes/thirdPartyRoutes';
 import geocodingRoutes from './routes/geocodingRoutes';
+import vehicleCompatibilityRoutes from './routes/vehicleCompatibilityRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 import { initTripDelayMonitor } from './services/tracking/tripDelayMonitor';
@@ -135,6 +136,7 @@ apiRouter.use('/trash', trashRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/third-party-providers', thirdPartyRoutes);
 apiRouter.use('/geocoding', geocodingRoutes);
+apiRouter.use('/vehicle-compatibility', vehicleCompatibilityRoutes);
 
 // Mount router on both /api and root for maximum proxy compatibility
 app.use('/api', apiRouter);
@@ -244,7 +246,7 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 async function startServer() {
-  httpServer.listen(port, () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
   });
 
@@ -259,6 +261,10 @@ async function startServer() {
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
+    'CREATE SEQUENCE IF NOT EXISTS "Quotation_quotation_number_seq"',
+    'ALTER TABLE "Quotation" ADD COLUMN IF NOT EXISTS "quotation_number" INTEGER DEFAULT nextval(\'"Quotation_quotation_number_seq"\')',
+    'UPDATE "Quotation" SET "quotation_number" = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn FROM "Quotation") sub WHERE "Quotation".id = sub.id AND "Quotation"."quotation_number" IS NULL',
+    'SELECT setval(\'"Quotation_quotation_number_seq"\', COALESCE((SELECT MAX("quotation_number") FROM "Quotation"), 1))',
   ];
 
   for (const sql of sqlCommands) {

@@ -752,11 +752,19 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
 
                       const handleUpdateDateDriver = (newDriverId: string) => {
                         if (!setDayAssignments) return;
+                        const dObj = drivers.find((d: any) => d.id === newDriverId || d.ref_id === newDriverId);
+                        const embeddedVeh = dObj?.assignedVehicle && typeof dObj.assignedVehicle === 'object' ? (dObj.assignedVehicle as any) : null;
+                        let autoVehId = dObj?.assignedVehicleId || (dObj as any)?.assigned_vehicle_id || embeddedVeh?.id;
+                        if (!autoVehId && newDriverId && newDriverId !== 'unassigned') {
+                          const matchedVeh = vehicles.find((v: any) => v.assigned_driver_id === newDriverId || v.driverId === newDriverId || v.assignedDriverId === newDriverId || (v.assignedDriver && v.assignedDriver.id === newDriverId));
+                          if (matchedVeh) autoVehId = matchedVeh.id;
+                        }
+
                         setDayAssignments((prev) => ({
                           ...prev,
                           [dateStr]: {
                             driverId: newDriverId,
-                            vehicleId: prev[dateStr]?.vehicleId || activeStrategyVehicle,
+                            vehicleId: autoVehId || prev[dateStr]?.vehicleId || activeStrategyVehicle,
                           },
                         }));
                       };

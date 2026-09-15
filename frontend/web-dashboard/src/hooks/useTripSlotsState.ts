@@ -82,8 +82,8 @@ export function useTripSlotsState() {
       intermediateStopFees: [],
       returnOrigin: '',
       returnDestination: '',
-      returnPickupTime: '16:00',
-      returnDropoffTime: '22:00',
+      returnPickupTime: '',
+      returnDropoffTime: '',
       returnIsOvernight: false,
       returnIntermediateLocations: [],
       returnIntermediateStopFees: [],
@@ -99,39 +99,38 @@ export function useTripSlotsState() {
   ]);
 
   const handleAddTripSlot = () => {
-    const nextNum = contractSlots.length + 1;
-    const defaultTime = '';
-    setContractSlots((prev) => [
-      ...prev,
-      {
-        id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        origin: prev[0]?.origin || '',
-        destination: prev[0]?.destination || '',
-        originLocationId: prev[0]?.originLocationId || null,
-        destinationLocationId: prev[0]?.destinationLocationId || null,
-        pickupTime: defaultTime,
-        dropoffTime: '',
-        date: prev[0]?.date || new Date().toISOString().slice(0, 10),
-        dropoffDate: '',
-        billingAmount: prev[0]?.billingAmount || '',
-        tripCharges: prev[0]?.tripCharges || '',
-        rateMatched: prev[0]?.rateMatched || false,
-        rateCardId: prev[0]?.rateCardId,
-        rateCardName: prev[0]?.rateCardName,
-        rateCardBasePrice: prev[0]?.rateCardBasePrice,
-        rateCardDefaultTripCharge: prev[0]?.rateCardDefaultTripCharge,
-        isOvernight: false,
-        intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
-        intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
-        returnOrigin: prev[0]?.returnOrigin || '',
-        returnDestination: prev[0]?.returnDestination || '',
-        returnPickupTime: '16:00',
-        returnDropoffTime: '22:00',
-        returnIsOvernight: false,
-        returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
-        returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
-      },
-    ]);
+    setContractSlots((prev) => {
+      const defaultPickup = prev[0]?.pickupTime || '';
+      const defaultDropoff = prev[0]?.dropoffTime || '';
+      return [
+        ...prev,
+        {
+          id: `slot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          origin: prev[0]?.origin || '',
+          destination: prev[0]?.destination || '',
+          originLocationId: prev[0]?.originLocationId || null,
+          destinationLocationId: prev[0]?.destinationLocationId || null,
+          pickupTime: defaultPickup,
+          dropoffTime: defaultDropoff,
+          date: prev[0]?.date || new Date().toISOString().slice(0, 10),
+          dropoffDate: '',
+          billingAmount: prev[0]?.billingAmount || '',
+          tripCharges: prev[0]?.tripCharges || '',
+          rateMatched: prev[0]?.rateMatched || false,
+          rateCardId: prev[0]?.rateCardId,
+          rateCardName: prev[0]?.rateCardName,
+          rateCardBasePrice: prev[0]?.rateCardBasePrice,
+          rateCardDefaultTripCharge: prev[0]?.rateCardDefaultTripCharge,
+          isOvernight: false,
+          intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
+          intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
+          returnOrigin: prev[0]?.returnOrigin || '',
+          returnDestination: prev[0]?.returnDestination || '',
+          returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
+          returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
+        },
+      ];
+    });
   };
 
   const handleRemoveTripSlot = (id: string) => {
@@ -147,37 +146,41 @@ export function useTripSlotsState() {
 
   const handleAddSlotIntermediate = (slotId: string) => {
     setContractSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? {
-              ...s,
-              intermediateLocations: [...s.intermediateLocations, ''],
-              intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
-              intermediateStopFees: [...(s.intermediateStopFees || []), ''],
-              rateMatched: false,
-              matchedRateCard: null,
-              rateCardId: undefined,
-            }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          intermediateLocations: [...s.intermediateLocations, ''],
+          intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
+          intermediateStopFees: [...(s.intermediateStopFees || []), ''],
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
     );
   };
 
   const handleRemoveSlotIntermediate = (slotId: string, idx: number) => {
     setContractSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? {
-              ...s,
-              intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
-              intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
-              intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
-              rateMatched: false,
-              matchedRateCard: null,
-              rateCardId: undefined,
-            }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
+          intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
+          intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
     );
   };
 
@@ -189,6 +192,7 @@ export function useTripSlotsState() {
         const newIds = [...(s.intermediateLocationIds || [])];
         newLocs[idx] = val;
         newIds[idx] = locObj?.id ?? null;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
         return {
           ...s,
           intermediateLocations: newLocs,
@@ -196,6 +200,8 @@ export function useTripSlotsState() {
           rateMatched: false,
           matchedRateCard: null,
           rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
         };
       })
     );

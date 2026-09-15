@@ -73,6 +73,7 @@ export interface DataTableProps<T> {
   isSelectionMode?: boolean;
   onSelectionModeChange?: (active: boolean) => void;
   hideSelectButton?: boolean;
+  rowClassName?: (row: T) => string;
 }
 
 export default function DataTable<T>({
@@ -114,6 +115,7 @@ export default function DataTable<T>({
   isSelectionMode: controlledSelectionMode,
   onSelectionModeChange,
   hideSelectButton = false,
+  rowClassName,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
   const [internalPage, setInternalPage] = useState(1);
@@ -270,12 +272,12 @@ export default function DataTable<T>({
       
       {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-3 w-full">
           
-          {/* Title Header (when present) */}
-          {title && (
-            <div className="flex flex-wrap items-center justify-between gap-3 w-full pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+          {/* Left Side: Title, Search & Filters */}
+          <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+            {title && (
+              <div className="flex items-center gap-2 shrink-0">
                 {typeof title === 'string' ? (
                   <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     {title}
@@ -289,73 +291,68 @@ export default function DataTable<T>({
                   </Badge>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Search, Filters, and Right-Aligned Actions (Select, Custom Actions, Export) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-              {/* Search Bar */}
-              {onSearchChange !== undefined && (
-                <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    type="text"
-                    placeholder={searchPlaceholder}
-                    value={activeSearchValue}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
-                    aria-label="Search Table"
-                  />
-                  {activeSearchValue && (
-                    <button
-                      onClick={() => handleSearchChange('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                      aria-label="Clear search"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Filters element */}
-              {filterElement && (
-                <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
-                  {filterElement}
-                </div>
-              )}
-            </div>
-
-            {/* Actions Group (Select, Custom Actions, Export) */}
-            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
-              {enableSelection && !hideSelectButton && (
-                <Button
-                  variant={isSelectionMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleSelectionMode}
-                  className={cn(
-                    "h-9 text-xs font-semibold px-3.5 rounded-xl shadow-2xs gap-1.5 transition-colors cursor-pointer",
-                    isSelectionMode
-                      ? "bg-brand hover:bg-brand-hover text-white border-brand"
-                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-                  )}
-                >
-                  <CheckSquare className="w-3.5 h-3.5" />
-                  <span>{isSelectionMode ? `Selecting (${selectedKeys.size})` : "Select"}</span>
-                </Button>
-              )}
-              {actionsElement}
-              {onExport && (
-                <Btn
-                  label="Export"
-                  variant="secondary"
-                  size="sm"
-                  icon={<Download size={13} />}
-                  onClick={onExport}
+            {/* Search Bar */}
+            {onSearchChange !== undefined && (
+              <div className="relative w-full sm:w-64 lg:w-72 shrink-0">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder={searchPlaceholder}
+                  value={activeSearchValue}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
+                  aria-label="Search Table"
                 />
-              )}
-            </div>
+                {activeSearchValue && (
+                  <button
+                    onClick={() => handleSearchChange('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    aria-label="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Filters element */}
+            {filterElement && (
+              <div className="flex items-center flex-wrap gap-2 shrink-0 max-w-full">
+                {filterElement}
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: Actions Group (Select, Custom Actions, Export) */}
+          <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+            {enableSelection && !hideSelectButton && (
+              <Button
+                variant={isSelectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleSelectionMode}
+                className={cn(
+                  "h-9 text-xs font-semibold px-3.5 rounded-xl shadow-2xs gap-1.5 transition-colors cursor-pointer",
+                  isSelectionMode
+                    ? "bg-brand hover:bg-brand-hover text-white border-brand"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                )}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span>{isSelectionMode ? `Selecting (${selectedKeys.size})` : "Select"}</span>
+              </Button>
+            )}
+            {actionsElement}
+            {onExport && (
+              <Btn
+                label="Export"
+                variant="secondary"
+                size="sm"
+                icon={<Download size={13} />}
+                onClick={onExport}
+              />
+            )}
           </div>
 
         </div>
@@ -446,7 +443,8 @@ export default function DataTable<T>({
                         ? "bg-indigo-50/25 dark:bg-indigo-950/20 hover:bg-indigo-50/45 dark:hover:bg-indigo-950/30" 
                         : (isSelectionMode || onRowClick)
                           ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" 
-                          : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                          : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40",
+                      rowClassName?.(row)
                     )}
                     style={{ animationDelay: `${rowIndex * 0.02}s` }}
                     tabIndex={(isSelectionMode || onRowClick) ? 0 : undefined}

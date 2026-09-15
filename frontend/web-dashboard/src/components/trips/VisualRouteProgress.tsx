@@ -68,8 +68,24 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
   const rawProgress = isTripFullyCompleted ? 100 : Math.round((completedCount / totalStops) * 100);
   const progressPercent = rawProgress > 0 ? rawProgress : 78; // Default ~78% matching image when in transit
 
-  const originCity = normalizedStops[0]?.city || 'Riyadh';
-  const destCity = normalizedStops[normalizedStops.length - 1]?.city || 'Riyadh';
+  // Position vehicle marker along progress track
+  const truckPositionPercent = useMemo(() => {
+    if (totalStops <= 1) return 50;
+    if (completedCount === totalStops) return 98;
+    if (completedCount === 0) return 2;
+    const segmentWidth = 100 / (totalStops - 1);
+    const completedRatio = (completedCount - 0.5) * segmentWidth;
+    return Math.min(96, Math.max(2, completedRatio));
+  }, [completedCount, totalStops]);
+
+  const outboundStops = stops && stops.length >= 2 ? stops.filter((st) => (st.leg_index ?? 0) === 0) : [];
+  const targetDropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : (stops && stops.length > 1 ? stops[stops.length - 1] : undefined);
+
+  const originCity = normalizedStops[0]?.city || 'Origin';
+  const destCity = targetDropoff
+    ? String(targetDropoff.location?.city || targetDropoff.location?.name || targetDropoff.location_name || targetDropoff.name || '').replace(/\s*\(\s*\)$/, '').trim()
+    : (normalizedStops[normalizedStops.length - 1]?.city || 'Destination');
+
   const routeTitle = `${originCity} → ${destCity} Corridor`;
 
   // Display origin and destination points at the ends of the line

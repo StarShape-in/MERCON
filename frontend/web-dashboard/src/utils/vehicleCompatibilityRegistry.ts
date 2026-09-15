@@ -1,3 +1,4 @@
+import { api } from '@/lib/api';
 import { getAllTaxonomyOptions, TaxonomyOption, TAXONOMY_UPDATED_EVENT } from './taxonomyRegistry';
 
 export interface VehicleCompatibilityRule {
@@ -170,7 +171,40 @@ export function saveCompatibilityRule(inputRule: Partial<VehicleCompatibilityRul
     console.error('Failed to save vehicle compatibility rule', e);
   }
 
+  // Asynchronously sync with backend API database
+  saveCompatibilityRuleToApi(normalized).catch(() => {});
+
   return normalized;
+}
+
+export async function fetchCompatibilityRulesFromApi(): Promise<VehicleCompatibilityRule[]> {
+  try {
+    const res = await api.get('/vehicle-compatibility');
+    if (res.data?.data && Array.isArray(res.data.data)) {
+      const apiRules = res.data.data.map(normalizeCompatibilityRule);
+      localStorage.setItem(COMPATIBILITY_STORAGE_KEY, JSON.stringify(apiRules));
+      window.dispatchEvent(new CustomEvent(COMPATIBILITY_UPDATED_EVENT));
+      return apiRules;
+    }
+  } catch (e) {
+    console.warn('Backend vehicle compatibility API un-reachable, using cached rules.', e);
+  }
+  return getAllCompatibilityRules();
+}
+
+export async function saveCompatibilityRuleToApi(rule: Partial<VehicleCompatibilityRule>): Promise<VehicleCompatibilityRule> {
+  const normalized = normalizeCompatibilityRule(rule);
+  try {
+    const res = await api.post('/vehicle-compatibility', normalized);
+    if (res.data?.data) {
+      const saved = normalizeCompatibilityRule(res.data.data);
+      saveCompatibilityRule(saved);
+      return saved;
+    }
+  } catch (e) {
+    console.error('Failed to save vehicle compatibility rule to backend API', e);
+  }
+  return saveCompatibilityRule(normalized);
 }
 
 /**

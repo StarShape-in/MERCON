@@ -197,7 +197,14 @@ export function getTripPayloadCapacity(trip: Partial<Trip>): string {
 }
 
 export function getTripRateCategory(trip: Partial<Trip>): string {
-  return trip.rate_category || trip.rateCard?.rate_category || '—';
+  return (
+    trip.rate_category ||
+    trip.quotation_line_type ||
+    trip.financials?.quotation_line_type ||
+    trip.rateCard?.rate_category ||
+    trip.line_type?.name ||
+    '—'
+  );
 }
 
 export function getTripBillingType(trip: Partial<Trip>): string {
@@ -207,6 +214,7 @@ export function getTripBillingType(trip: Partial<Trip>): string {
 export interface TripStop {
   id: string;
   stop_sequence: number;
+  leg_index?: number;
   stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_lat: number;
   location_lng: number;
@@ -502,6 +510,12 @@ export const tripService = {
   /** Assign a driver and/or vehicle to a trip that was created with "assign later". */
   async dispatch(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/dispatch`, payload);
+    return res.data.data;
+  },
+
+  /** Bulk assign driver, vehicle, and/or status to multiple trips in a single transaction. */
+  async bulkAssign(payload: { trip_ids: string[]; driver_id?: string; vehicle_id?: string; status?: string }): Promise<{ count: number; message: string }> {
+    const res = await api.post<ApiResponse<{ count: number; message: string }>>('/trips/bulk-assign', payload);
     return res.data.data;
   },
 

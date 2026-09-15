@@ -119,9 +119,11 @@ export function CustomerSurchargesSection({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                 {rules.map((rule) => {
-                  const laneText = rule.rateCard
-                    ? `${rule.rateCard.route_origin} → ${rule.rateCard.route_destination}`
-                    : 'Applies to all lanes';
+                  const rc = rule.rateCard as any;
+                  const stops = rc?.stops || [];
+                  const origin = stops[0]?.source_label || stops[0]?.location?.name || rc?.origin_name || rc?.route_origin;
+                  const dest = stops[stops.length - 1]?.source_label || stops[stops.length - 1]?.location?.name || rc?.destination_name || rc?.route_destination;
+                  const laneText = rc ? (origin && dest ? `${origin} → ${dest}` : rc.name || 'Specific lane') : 'Applies to all lanes';
                   const vehicleText = rule.vehicle_type ? ` · ${rule.vehicle_type}` : '';
 
                   return (

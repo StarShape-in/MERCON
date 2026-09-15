@@ -197,8 +197,8 @@ export default function QuotationDocsPage() {
             </div>
 
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Billing</span>
-              <span className="font-semibold text-amber-700 dark:text-amber-400 block">{quotation.billing_type || 'EXTRA'}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Operation Type</span>
+              <span className="font-semibold text-amber-700 dark:text-amber-400 block">{quotation.operation_type || quotation.billing_type || 'EXTRA'}</span>
             </div>
 
             <div>
@@ -207,10 +207,31 @@ export default function QuotationDocsPage() {
             </div>
 
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Current Rate</span>
-              <span className="font-black text-slate-900 dark:text-slate-100 block">
-                {quotation.currency || 'SAR'} {currentRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
+              {(() => {
+                const pbRaw = String(quotation.pricing_basis || '').toUpperCase();
+                const opRaw = String(quotation.operation_type || quotation.billing_type || '').toUpperCase();
+                const isMonthlyRate = pbRaw === 'PER_MONTH' || pbRaw === 'PER MONTH' || (pbRaw === '' && opRaw.includes('MONTH'));
+                const dailyBreakdown = isMonthlyRate ? currentRate / 30 : null;
+
+                return (
+                  <>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                      {isMonthlyRate ? 'Monthly Contract Rate' : 'Customer Billing Rate'}
+                    </span>
+                    <span className="font-black text-slate-900 dark:text-slate-100 block font-mono">
+                      {quotation.currency || 'SAR'} {currentRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <span className="text-[10px] font-bold text-slate-400 font-sans ml-0.5">
+                        {isMonthlyRate ? '/mo' : '/trip'}
+                      </span>
+                    </span>
+                    {isMonthlyRate && currentRate > 0 && (
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block font-sans">
+                        ≈ SAR {dailyBreakdown?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
