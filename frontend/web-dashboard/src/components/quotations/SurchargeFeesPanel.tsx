@@ -72,11 +72,20 @@ const SURCHARGE_EXPORT_HEADERS = [
   'Customer', 'Charge Type', 'Unit', 'Applies To Lane', 'Vehicle Type', 'Rate (SAR)', 'Status'
 ];
 
+export function getSurchargeLaneLabel(rateCard?: any): string {
+  if (!rateCard) return 'Every lane';
+  const stops = rateCard.stops || [];
+  const origin = stops[0]?.source_label || stops[0]?.location?.name || rateCard.origin_name || rateCard.route_origin;
+  const dest = stops[stops.length - 1]?.source_label || stops[stops.length - 1]?.location?.name || rateCard.destination_name || rateCard.route_destination;
+  if (origin && dest) return `${origin} → ${dest}`;
+  return rateCard.name || 'Specific Lane';
+}
+
 const surchargeRulesToExportRows = (rulesList: SurchargeRule[]) => rulesList.map((r) => [
   r.customer?.name || 'Customer',
   r.charge_type,
   r.unit || '—',
-  r.rateCard ? `${r.rateCard.route_origin} → ${r.rateCard.route_destination}` : 'Every lane',
+  getSurchargeLaneLabel(r.rateCard),
   r.vehicle_type || 'All Vehicles',
   Number(r.rate || 0),
   r.is_active ? 'Active' : 'Inactive'
@@ -148,7 +157,7 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
         const type = (r.charge_type || '').toLowerCase();
         const unit = (r.unit || '').toLowerCase();
         const vehicle = (r.vehicle_type || '').toLowerCase();
-        const route = r.rateCard ? `${r.rateCard.route_origin} ${r.rateCard.route_destination}`.toLowerCase() : 'every lane';
+        const route = getSurchargeLaneLabel(r.rateCard).toLowerCase();
         
         return custName.includes(q) || type.includes(q) || unit.includes(q) || vehicle.includes(q) || route.includes(q);
       }
@@ -606,9 +615,7 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {rule.rateCard ? (
                         <div className="flex items-center gap-1 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/60 dark:border-slate-700 w-fit">
-                          <span>{rule.rateCard.route_origin}</span>
-                          <ArrowRight className="w-3 h-3 text-brand" />
-                          <span>{rule.rateCard.route_destination}</span>
+                          <span>{getSurchargeLaneLabel(rule.rateCard)}</span>
                         </div>
                       ) : (
                         <Badge variant="outline" className="text-[10px] font-semibold bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
