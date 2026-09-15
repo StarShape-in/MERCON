@@ -1,3 +1,6 @@
+-- Ensure pgcrypto extension is active for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "VehicleCompatibilityRule" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
