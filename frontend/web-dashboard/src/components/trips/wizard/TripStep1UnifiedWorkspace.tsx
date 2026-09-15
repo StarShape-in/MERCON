@@ -171,6 +171,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             customers={customers}
             customerOptions={customerOptions}
             fieldErrors={fieldErrors}
+            assignmentType={assignmentType}
           />
 
           {/* ROUTE WORKSPACE (ALWAYS 100% INTERACTIVE) */}

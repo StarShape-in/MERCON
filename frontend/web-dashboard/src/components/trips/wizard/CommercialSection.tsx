@@ -30,6 +30,7 @@ interface CommercialSectionProps {
   customers?: any[];
   customerOptions?: ComboboxOption[];
   fieldErrors?: Record<string, boolean>;
+  assignmentType?: string;
 }
 
 export const CommercialSection: React.FC<CommercialSectionProps> = ({
@@ -50,6 +51,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   customers = [],
   customerOptions = [],
   fieldErrors = {},
+  assignmentType = 'own',
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [isInlineMode, setIsInlineMode] = React.useState(false);
@@ -340,6 +342,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               setContractRateCategory={setContractRateCategory}
               handleUpdateTripSlot={handleUpdateTripSlot}
               fieldErrors={fieldErrors}
+              assignmentType={assignmentType}
             />
           ) : displayedRateCards.length > 0 ? (
             <QuotationCardCarousel

@@ -18,6 +18,7 @@ interface DefineQuotationInlineFormProps {
   setContractRateCategory?: (rCat: string) => void;
   handleUpdateTripSlot: (slotId: string, patch: any) => void;
   fieldErrors?: Record<string, boolean>;
+  assignmentType?: string;
 }
 
 export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps> = ({
@@ -34,9 +35,11 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
   setContractRateCategory,
   handleUpdateTripSlot,
   fieldErrors = {},
+  assignmentType = 'own',
 }) => {
   const vehicleClassOptions = React.useMemo(() => getAllTaxonomyOptions('VEHICLE_CLASS'), []);
   const lineTypeOptions = React.useMemo(() => getAllTaxonomyOptions('LINE_TYPE'), []);
+  const is3PL = assignmentType === 'third_party' || assignmentType === '3pl';
 
   return (
     <div className="p-3.5 rounded-xl bg-orange-50/40 dark:bg-slate-800/60 border border-orange-200/80 dark:border-slate-700 space-y-3">
@@ -71,7 +74,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
             onApplyRate={(bRate, dPayout) => {
               handleUpdateTripSlot(primarySlot.id, {
                 billingAmount: bRate,
-                ...(dPayout != null ? { driverPayout: dPayout, driverPayoutModified: true } : {}),
+                ...(!is3PL && dPayout != null ? { driverPayout: dPayout, driverPayoutModified: true } : {}),
                 saveAsQuotation: true,
                 saveAsRateCard: true,
               });
@@ -152,10 +155,10 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         </div>
       </div>
 
-      {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT + PRICING BASIS DROPDOWN */}
+      {/* INPUT FIELDS: BILLING AMOUNT + DRIVER PAYOUT (OWN FLEET ONLY) + PRICING BASIS DROPDOWN */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
         {/* CUSTOMER BILLING AMOUNT */}
-        <div id={`field-billing-amount-${primarySlot?.id}`} className="sm:col-span-5 space-y-1">
+        <div id={`field-billing-amount-${primarySlot?.id}`} className={`${is3PL ? 'sm:col-span-9' : 'sm:col-span-5'} space-y-1`}>
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span></span>
             {(fieldErrors?.[`billingAmount-${primarySlot?.id}`] || fieldErrors?.['billingAmount']) && (
@@ -188,40 +191,42 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
           </div>
         </div>
 
-        {/* DRIVER PAYOUT */}
-        <div id={`field-driver-payout-${primarySlot?.id}`} className="sm:col-span-4 space-y-1">
-          <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Driver Payout (SAR) <span className="text-[#FA634E]">*</span></span>
-            {(fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout']) && (
-              <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
-            )}
-          </label>
-          <div className="relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              placeholder="e.g. 400"
-              value={primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                handleUpdateTripSlot(primarySlot.id, {
-                  driverPayout: val,
-                  driverPayoutModified: true,
-                  saveAsQuotation: true,
-                  saveAsRateCard: true,
-                  pricingBasis: inlinePricingBasis,
-                });
-              }}
-              className={`h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs ${
-                (fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout'])
-                  ? 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20'
-                  : 'border-slate-300 dark:border-slate-700'
-              }`}
-            />
+        {/* DRIVER PAYOUT — OWN FLEET ONLY */}
+        {!is3PL && (
+          <div id={`field-driver-payout-${primarySlot?.id}`} className="sm:col-span-4 space-y-1">
+            <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Driver Payout (SAR) <span className="text-[#FA634E]">*</span></span>
+              {(fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout']) && (
+                <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+              )}
+            </label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="e.g. 400"
+                value={primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleUpdateTripSlot(primarySlot.id, {
+                    driverPayout: val,
+                    driverPayoutModified: true,
+                    saveAsQuotation: true,
+                    saveAsRateCard: true,
+                    pricingBasis: inlinePricingBasis,
+                  });
+                }}
+                className={`h-8.5 w-full pl-11 pr-3 text-xs font-mono font-black rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FA634E] shadow-2xs ${
+                  (fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout'])
+                    ? 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20'
+                    : 'border-slate-300 dark:border-slate-700'
+                }`}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* PRICING BASIS SELECT DROPDOWN */}
         <div className="sm:col-span-3 space-y-1">
@@ -249,7 +254,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
           <span className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-purple-600 shrink-0" /> Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round(((Number(primarySlot.billingAmount) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip</strong> (30-day contract duty)
           </span>
-          {Number(primarySlot.driverPayout) > 0 && (
+          {!is3PL && Number(primarySlot.driverPayout) > 0 && (
             <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
               Driver Payout: <strong>SAR {Number(primarySlot.driverPayout).toLocaleString()} / trip</strong>
             </span>

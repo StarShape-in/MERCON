@@ -212,7 +212,7 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
           <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-800/40 gap-2">
             <div className="flex flex-col">
               <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {is3PL ? '3PL Payout' : 'Driver Payout'}
+                {is3PL ? '3PL Cost' : 'Driver Payout'}
               </span>
               {!is3PL && primarySlot.driverPayoutModified && (
                 <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">

@@ -277,7 +277,8 @@ export function useTripSubmission(
             { sequence: intermediateStops.length + 2, location_id: destId || null, source_label: slot.destination.trim() || null, stop_type: 'Dropoff' },
           ];
 
-          const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || null);
+          const is3PLAssignment = assignmentType === 'third_party' || assignmentType === '3pl';
+          const slotDriverPayout = !is3PLAssignment && slot.driverPayout !== undefined ? Number(slot.driverPayout) : (!is3PLAssignment ? (Number(slot.tripCharges) || null) : null);
           return quotationService
             .create({
               name: `${slot.origin.trim() || 'Origin'} → ${slot.destination.trim() || 'Destination'}`,
