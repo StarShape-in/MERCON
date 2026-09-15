@@ -244,37 +244,10 @@ app.use((err: Error, req: Request, res: Response, next: express.NextFunction) =>
 initFleetTracking();
 initTripDelayMonitor();
 
-// Self-healing database column verification on startup
 async function startServer() {
   httpServer.listen(port, '0.0.0.0', () => {
     logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
   });
-
-  const sqlCommands = [
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
-    'ALTER TABLE "Trip" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
-    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "billing_amount" DECIMAL(12,2)',
-    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "paid_amount" DECIMAL(12,2) NOT NULL DEFAULT 0.0',
-    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
-    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
-    'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
-    'CREATE SEQUENCE IF NOT EXISTS "Quotation_quotation_number_seq"',
-    'ALTER TABLE "Quotation" ADD COLUMN IF NOT EXISTS "quotation_number" INTEGER DEFAULT nextval(\'"Quotation_quotation_number_seq"\')',
-    'UPDATE "Quotation" SET "quotation_number" = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn FROM "Quotation") sub WHERE "Quotation".id = sub.id AND "Quotation"."quotation_number" IS NULL',
-    'SELECT setval(\'"Quotation_quotation_number_seq"\', COALESCE((SELECT MAX("quotation_number") FROM "Quotation"), 1))',
-  ];
-
-  for (const sql of sqlCommands) {
-    try {
-      await prisma.$executeRawUnsafe(sql);
-      logger.info(`✅ Executed DB migration statement: ${sql}`);
-    } catch (err: any) {
-      logger.warn({ errMessage: err?.message, sql }, 'Self-healing DB column statement warning');
-    }
-  }
 }
 
 startServer();
