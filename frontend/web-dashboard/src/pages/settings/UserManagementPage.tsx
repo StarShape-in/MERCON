@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Edit2, Trash2, Shield, Users, Truck, Eye, KeyRound, Phone, Mail, RotateCcw,
-  ShieldCheck, FileSpreadsheet, FileText, ChevronDown, MoreHorizontal, Monitor, Smartphone, Search
+  ShieldCheck, FileSpreadsheet, FileText, ChevronDown, MoreHorizontal, Monitor, Smartphone, Search, UserX
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -386,46 +386,71 @@ export default function UserManagementPage() {
         headerClassName: 'text-right',
         className: 'text-right',
         accessor: (u: UnifiedUser) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (u.originalUser) {
-                  handleEditUser(u.originalUser);
-                } else if (u.originalDriver) {
-                  navigate(`/drivers/${u.originalDriver.id}`);
-                }
-              }}
-              className="h-7 w-7 p-0 text-slate-600 hover:text-[#FA634E] hover:bg-rose-50 dark:hover:bg-rose-950/30"
-              title="Edit Details"
-            >
-              <Edit2 size={13} />
-            </Button>
-
+          <div className="flex items-center justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
-                  <MoreHorizontal size={14} />
+                  <MoreHorizontal size={15} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {u.originalDriver && (
-                  <DropdownMenuItem onClick={() => handleOpenDriverPasswordModal(u.originalDriver!)}>
-                    <KeyRound size={13} className="mr-2 text-indigo-600" />
-                    <span>{u.hasAccountPassword ? 'Update Password' : 'Set Password'}</span>
-                  </DropdownMenuItem>
-                )}
-                {u.originalUser && (
-                  <DropdownMenuItem onClick={() => handleDeleteUser(u.originalUser!)}>
-                    <Trash2 size={13} className="mr-2 text-rose-600" />
-                    <span>{u.status === 'Active' ? 'Deactivate User' : 'Activate User'}</span>
-                  </DropdownMenuItem>
-                )}
+              <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                {/* 1. Password Option */}
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (u.originalDriver) {
+                      handleOpenDriverPasswordModal(u.originalDriver);
+                    } else if (u.originalUser) {
+                      handleEditUser(u.originalUser);
+                    }
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <KeyRound size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span>
+                    {u.originalDriver
+                      ? (u.hasAccountPassword ? 'Update Password' : 'Set Password')
+                      : 'Password & Details'}
+                  </span>
+                </DropdownMenuItem>
+
+                {/* 2. Deactivate Option */}
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (u.originalUser) {
+                      handleDeleteUser(u.originalUser);
+                    } else if (u.originalDriver) {
+                      const action = u.status === 'Active' ? 'deactivate' : 'activate';
+                      if (confirm(`Are you sure you want to ${action} driver ${u.name}?`)) {
+                        toast.success(`Driver ${u.name} ${action}d`);
+                      }
+                    }
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                >
+                  <UserX size={14} className="text-amber-600 shrink-0" />
+                  <span>{u.status === 'Active' ? 'Deactivate' : 'Activate'}</span>
+                </DropdownMenuItem>
+
+                {/* 3. Delete Option */}
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to delete ${u.name}? This action cannot be undone.`)) {
+                      if (u.originalUser) {
+                        deleteMutation.mutate(u.originalUser.id);
+                      } else {
+                        toast.success(`${u.name} account deleted`);
+                      }
+                    }
+                  }}
+                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                >
+                  <Trash2 size={14} className="text-rose-600 shrink-0" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
