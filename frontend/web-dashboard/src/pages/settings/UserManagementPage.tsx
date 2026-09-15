@@ -331,30 +331,27 @@ export default function UserManagementPage() {
       },
     },
     {
-      header: 'Account Type',
-      accessor: (u: UnifiedUser) => (
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-lg border ${
-          u.accountType === 'Driver App'
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-            : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'
-        }`}>
-          {u.accountType === 'Driver App' ? <Smartphone size={12} /> : <Monitor size={12} />}
-          {u.accountType}
-        </span>
-      ),
-    },
-    {
-      header: 'Status',
-      accessor: (u: UnifiedUser) => (
-        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-          u.status === 'Active'
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400'
-            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-          {u.status}
-        </span>
-      ),
+      header: 'Mobile Password Status',
+      accessor: (u: UnifiedUser) => {
+        if (u.accountType === 'Driver App' || u.originalDriver) {
+          return u.hasAccountPassword ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <KeyRound size={11} className="text-emerald-600 shrink-0" />
+              Password Set
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
+              <KeyRound size={11} className="text-amber-600 shrink-0" />
+              Pending Setup
+            </span>
+          );
+        }
+        return (
+          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            Web Auth
+          </span>
+        );
+      },
     },
     {
       header: 'Last Login ↕',
