@@ -586,6 +586,7 @@ export default function MonthlyTripsPage() {
             search={search}
             onToggleTrip={handleToggleTrip}
             onToggleCompany={handleToggleCompany}
+            onRefresh={refetch}
           />
         )}
       </div>

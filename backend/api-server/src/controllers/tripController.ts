@@ -2138,6 +2138,63 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
   }
 };
 
+export const bulkAssignTrips = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { trip_ids, driver_id, vehicle_id, status } = req.body;
+
+    if (!Array.isArray(trip_ids) || trip_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'trip_ids array is required and must not be empty' },
+      });
+    }
+
+    const updateData: any = {
+      ...(userId ? { updated_by: userId } : {}),
+    };
+
+    if (driver_id !== undefined) {
+      if (driver_id && driver_id !== 'unassigned') {
+        updateData.driverId = driver_id;
+      } else {
+        updateData.driverId = null;
+      }
+    }
+
+    if (vehicle_id !== undefined) {
+      if (vehicle_id && vehicle_id !== 'unassigned') {
+        updateData.vehicleId = vehicle_id;
+      } else {
+        updateData.vehicleId = null;
+      }
+    }
+
+    if (status && Object.values(TripStatus).includes(status)) {
+      updateData.status = status;
+    }
+
+    await prisma.trip.updateMany({
+      where: { id: { in: trip_ids }, deletedAt: null },
+      data: updateData,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        message: `Successfully updated ${trip_ids.length} trip(s)`,
+        count: trip_ids.length,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to bulk assign trips');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message || 'Failed to bulk assign trips' },
+    });
+  }
+};
+
 /**
  * Get all completed trips pending post-trip financial settlement / waiting-labor check
  */

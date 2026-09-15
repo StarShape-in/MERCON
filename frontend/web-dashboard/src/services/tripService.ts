@@ -505,6 +505,12 @@ export const tripService = {
     return res.data.data;
   },
 
+  /** Bulk assign driver, vehicle, and/or status to multiple trips in a single transaction. */
+  async bulkAssign(payload: { trip_ids: string[]; driver_id?: string; vehicle_id?: string; status?: string }): Promise<{ count: number; message: string }> {
+    const res = await api.post<ApiResponse<{ count: number; message: string }>>('/trips/bulk-assign', payload);
+    return res.data.data;
+  },
+
   /** Reassign driver and/or vehicle on a trip. */
   async reassign(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/reassign`, payload);
