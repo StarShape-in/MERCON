@@ -19,6 +19,7 @@ import {
   VehicleCompatibilityRule,
   getAllCompatibilityRules,
   saveCompatibilityRule,
+  fetchCompatibilityRulesFromApi,
   auditRuleAgainstTaxonomy,
   COMPATIBILITY_UPDATED_EVENT,
 } from '@/utils/vehicleCompatibilityRegistry';
@@ -47,6 +48,11 @@ export default function VehicleCompatibilitySection({
 
   useEffect(() => {
     loadRules();
+    fetchCompatibilityRulesFromApi().then((apiRules) => {
+      if (apiRules && apiRules.length > 0) {
+        setRules(apiRules);
+      }
+    });
     window.addEventListener(COMPATIBILITY_UPDATED_EVENT, loadRules);
     return () => {
       window.removeEventListener(COMPATIBILITY_UPDATED_EVENT, loadRules);

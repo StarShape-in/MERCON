@@ -1340,3 +1340,20 @@ model ScheduledReport {
   @@index([savedReportId])
   @@index([deletedAt])
 }
+
+// -----------------------------------------
+// 22. MASTER DATA TAXONOMY & VEHICLE COMPATIBILITY
+// -----------------------------------------
+model VehicleCompatibilityRule {
+  id                         String   @id @default(uuid()) @db.Uuid
+  serviceVehicleClassId      String
+  serviceVehicleClassCode    String   @unique
+  preferredVehicleClassCodes String[]
+  allowedVehicleClassCodes   String[]
+  isActive                   Boolean  @default(true)
+  createdAt                  DateTime @default(now()) @db.Timestamptz
+  updatedAt                  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  @@index([serviceVehicleClassCode])
+}
+
