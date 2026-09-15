@@ -31,7 +31,10 @@ export const getCustomers = async (req: Request, res: Response) => {
           where: whereClause,
           skip,
           take: limit,
-          orderBy: { name: 'asc' },
+          orderBy: [
+            { trips: { _count: 'desc' } },
+            { name: 'asc' },
+          ],
           select: {
             id: true,
             name: true,
@@ -46,6 +49,7 @@ export const getCustomers = async (req: Request, res: Response) => {
             driver_workflow: true,
             isActive: true,
             createdAt: true,
+            _count: { select: { trips: true } },
           },
         }),
         prisma.customer.count({ where: whereClause }),
@@ -68,7 +72,10 @@ export const getCustomers = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: { name: 'asc' },
+        orderBy: [
+          { trips: { _count: 'desc' } },
+          { name: 'asc' },
+        ],
         include: { _count: { select: { trips: true } } },
       }),
       prisma.customer.count({ where: whereClause }),

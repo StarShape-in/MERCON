@@ -36,7 +36,12 @@ export const CustomerSelectionCard: React.FC<CustomerSelectionCardProps> = ({
   );
 
   const sortedCustomers = useMemo(() => {
-    return [...customers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return [...customers].sort((a, b) => {
+      const aTrips = (a as any)._count?.trips ?? (a as any).trip_count ?? (a as any).tripsCount ?? 0;
+      const bTrips = (b as any)._count?.trips ?? (b as any).trip_count ?? (b as any).tripsCount ?? 0;
+      if (bTrips !== aTrips) return bTrips - aTrips;
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [customers]);
 
   const derivedCustomerOptions: ComboboxOption[] = useMemo(() => {
