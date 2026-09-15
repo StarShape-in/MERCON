@@ -481,17 +481,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                     No active commercial quotation rates found for <span className="font-bold text-slate-800 dark:text-slate-100">{selectedCust?.name || 'this customer'}</span>.
                   </p>
-                  {handleOpenCreateQuotation && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenCreateQuotation}
-                      className="h-7 text-xs font-bold border-brand text-brand hover:bg-orange-50 gap-1 mx-auto cursor-pointer rounded-lg"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Create Quotation for {selectedCust?.name?.split(' ')[0] || 'Customer'}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsInlineMode(true)}
+                    className="h-7 text-xs font-bold border-[#FA634E] text-[#FA634E] hover:bg-orange-50 dark:hover:bg-orange-950/30 gap-1 mx-auto cursor-pointer rounded-lg shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Define Quotation for {selectedCust?.name?.split(' ')[0] || 'Customer'}
+                  </Button>
                 </>
               )}
             </div>

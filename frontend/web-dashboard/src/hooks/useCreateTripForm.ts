@@ -796,6 +796,19 @@ export function useCreateTripForm() {
           }
         });
       }
+
+      // Mandatory Fleet & Driver Assignment Validation
+      if (assignmentType === 'third_party') {
+        if (!thirdPartyProviderId && !thirdPartyDriverName) {
+          errors.push('3PL Logistics Partner selection is required');
+        }
+      } else {
+        const hasDriverSelection = Boolean(masterDriver);
+        const hasVehicleSelection = Boolean(masterVehicle);
+        if (!hasDriverSelection && !hasVehicleSelection) {
+          errors.push('Select an assignment choice: Driver & Vehicle or Assign Later');
+        }
+      }
     } else if (step === 2) {
       if (contractBillingType === 'Monthly' && selectedDates.length === 0) {
         errors.push('Select at least 1 operating date on the calendar');
