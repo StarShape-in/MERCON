@@ -343,11 +343,11 @@ export default function MonthlyGroupLedgerModal({
                 {companyName}
               </h2>
               
-              <div className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100 mt-1">
-                <MapPin className="w-3.5 h-3.5 fill-slate-900 text-slate-900 dark:fill-white dark:text-white shrink-0" />
+              <div className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100 mt-1 capitalize">
+                <MapPin className="w-4 h-4 text-slate-700 dark:text-slate-300 stroke-[2.2] shrink-0" />
                 <span>{formatLocationClean(group.origin)}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <MapPin className="w-3.5 h-3.5 fill-slate-900 text-slate-900 dark:fill-white dark:text-white shrink-0" />
+                <MapPin className="w-4 h-4 text-slate-700 dark:text-slate-300 stroke-[2.2] shrink-0" />
                 <span>{formatLocationClean(group.destination)}</span>
               </div>
               <span className="text-[11px] font-medium text-slate-400 block mt-0.5">
