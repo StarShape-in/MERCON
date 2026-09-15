@@ -80,15 +80,30 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
   const balanceMarginNum = fin.balanceMargin;
   const marginPercent = `${fin.marginPercent.toFixed(1)}`;
 
-  // Sync calculated total additional charges & itemized sub-charges to primary slot
   useEffect(() => {
-    if (primarySlot?.id && handleUpdateTripSlot) {
+    if (primarySlot?.chargeLines) {
+      setChargeLines(primarySlot.chargeLines);
+    } else {
+      setChargeLines([]);
+    }
+  }, [primarySlot?.id]);
+
+  // Sync calculated total additional charges & itemized sub-charges to primary slot only when values change
+  useEffect(() => {
+    if (!primarySlot?.id || !handleUpdateTripSlot) return;
+
+    const currentChargesStr = (primarySlot.additionalCharges ?? '0').toString();
+    const newChargesStr = totalAdditionalCharges.toString();
+    const currentLinesJson = JSON.stringify(primarySlot.chargeLines || []);
+    const newLinesJson = JSON.stringify(chargeLines || []);
+
+    if (currentChargesStr !== newChargesStr || currentLinesJson !== newLinesJson) {
       handleUpdateTripSlot(primarySlot.id, {
-        additionalCharges: totalAdditionalCharges.toString(),
+        additionalCharges: newChargesStr,
         chargeLines: chargeLines,
       });
     }
-  }, [totalAdditionalCharges, chargeLines, primarySlot?.id]);
+  }, [totalAdditionalCharges, chargeLines, primarySlot?.id, primarySlot?.additionalCharges, primarySlot?.chargeLines]);
 
   const togglePresetRule = (rule: SurchargeRule) => {
     setChargeLines((prev) => {
