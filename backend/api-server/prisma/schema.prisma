@@ -177,6 +177,7 @@ model User {
   tripStopDelayLogs    TripStop[]            @relation("TripStopDelayLogger")
   tripAssignmentEvents TripAssignmentEvent[]
   quotationHistories   QuotationHistory[]
+  auditLogs            AuditLog[]
 }
 
 model Customer {
@@ -1342,6 +1343,28 @@ model ScheduledReport {
 }
 
 // -----------------------------------------
+// 11. AUDIT LOGGING ENGINE
+// -----------------------------------------
+// Records sensitive operations (role changes, credential resets, account activation/deactivation/deletion, SuperAdmin operations).
+// STRICT SECURITY RULE: Passwords, PINs, tokens, and raw secrets are NEVER logged in metadata or text.
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g. "USER_ROLE_UPDATED", "DRIVER_PIN_RESET", "USER_DEACTIVATED", "USER_DELETED"
+  entityType String   // e.g. "User", "Driver", "Trip", "Quotation"
+  entityId   String?
+  metadata   Json?    @db.JsonB // Context metadata (IP address, user-agent, affected fields - NO SECRETS)
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// -----------------------------------------
 // 22. MASTER DATA TAXONOMY & VEHICLE COMPATIBILITY
 // -----------------------------------------
 model VehicleCompatibilityRule {
@@ -1356,4 +1379,5 @@ model VehicleCompatibilityRule {
 
   @@index([serviceVehicleClassCode])
 }
+
 

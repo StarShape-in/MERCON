@@ -2,7 +2,43 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth';
 import { prisma } from '../db';
 import { getEnabledModules } from '../controllers/settingsController';
+import { hasPermission } from '../config/permissions';
 
+/**
+ * Express middleware to enforce granular permissions (e.g. 'quotations.edit', 'users.manage').
+ * SuperAdmin role automatically bypasses specific permission checks.
+ */
+export const requirePermission = (permissionKey: string) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'User not authenticated or role missing' },
+      });
+    }
+
+    const isSuperAdminUser =
+      req.user.role === 'SuperAdmin' ||
+      String(req.user.role).toLowerCase() === 'super_admin' ||
+      (req.user as any).isSuperAdmin === true;
+
+    if (isSuperAdminUser || hasPermission(req.user.role, permissionKey)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: `Access denied: permission "${permissionKey}" required`,
+      },
+    });
+  };
+};
+
+/**
+ * Backward-compatible role check middleware.
+ */
 export const authorizeRoles = (...allowedRoles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user || !req.user.role) {
@@ -23,9 +59,10 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
   };
 };
 
-// Re-reads isSuperAdmin / SuperAdmin role from the database on every request rather than trusting
-// the JWT — revoking the flag must take effect immediately, not after the
-// token's 7-day expiry.
+/**
+ * Re-reads isSuperAdmin / SuperAdmin role from the database on every request rather than trusting
+ * the JWT — revoking the flag must take effect immediately.
+ */
 export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   if (!req.user?.id) {
     return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } });
@@ -42,11 +79,12 @@ export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-// Gates an optional module's routes on this deployment's enabledModules list.
+/**
+ * Gates an optional module's routes on this deployment's enabledModules list.
+ */
 export const requireModuleEnabled = (moduleKey: string) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      // SuperAdmins bypass backend module locks to configure and test endpoints
       const roleLower = (req.user?.role || '').toLowerCase();
       const isSuperAdminUser = roleLower === 'superadmin' || roleLower === 'super_admin' || (req.user as any)?.isSuperAdmin === true;
       if (isSuperAdminUser) {

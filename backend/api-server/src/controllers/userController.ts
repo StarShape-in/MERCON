@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { prisma } from '../db';
 import bcrypt from 'bcrypt';
+import { logAuditEvent } from '../services/auditService';
 
 // Get all users (except drivers if we only want dashboard users, but let's just return all non-drivers for now, or all)
 export const getUsers = async (req: Request, res: Response) => {
@@ -82,6 +83,14 @@ export const createUser = async (req: Request, res: Response) => {
       }
     });
 
+    await logAuditEvent({
+      req,
+      action: 'USER_CREATED',
+      entityType: 'User',
+      entityId: newUser.id,
+      metadata: { name: newUser.name, role: newUser.role, status: newUser.isActive ? 'Active' : 'Inactive' }
+    });
+
     res.json({
       success: true,
       data: { id: newUser.id, name: newUser.name, username: newUser.username, phone: newUser.phone, email: newUser.email, role: newUser.role, status: newUser.isActive ? 'Active' : 'Inactive', isSuperAdmin: newUser.isSuperAdmin }
@@ -144,6 +153,24 @@ export const updateUser = async (req: Request, res: Response) => {
       data: dataToUpdate
     });
 
+    const auditAction = isSuperAdmin !== undefined
+      ? 'SUPERADMIN_STATUS_CHANGED'
+      : role
+      ? 'USER_ROLE_UPDATED'
+      : password
+      ? 'USER_PASSWORD_RESET'
+      : status !== undefined
+      ? (status === 'Active' ? 'USER_ACTIVATED' : 'USER_DEACTIVATED')
+      : 'USER_UPDATED';
+
+    await logAuditEvent({
+      req,
+      action: auditAction,
+      entityType: 'User',
+      entityId: updatedUser.id,
+      metadata: { role: updatedUser.role, status: updatedUser.isActive ? 'Active' : 'Inactive', isSuperAdmin: updatedUser.isSuperAdmin }
+    });
+
     res.json({
       success: true,
       data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role, status: updatedUser.isActive ? 'Active' : 'Inactive', isSuperAdmin: updatedUser.isSuperAdmin }
@@ -164,6 +191,13 @@ export const deleteUser = async (req: Request, res: Response) => {
        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Cannot delete your own account' } });
     }
 
+    await logAuditEvent({
+      req,
+      action: 'USER_DELETED',
+      entityType: 'User',
+      entityId: id as string
+    });
+
     // Hard delete user record
     await prisma.$transaction([
       prisma.document.updateMany({ where: { verified_by: id as string }, data: { verified_by: null } }),
@@ -178,3 +212,4 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
+
