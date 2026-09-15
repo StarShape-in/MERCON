@@ -185,11 +185,18 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
         <div className="space-y-1">
           {/* ROW 1: CUSTOMER BILLING */}
           <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-800/40">
-            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Customer Billing
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Customer Billing
+              </span>
+              {fin.isMonthly && (
+                <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
+                  {fin.formattedLabels.dailyLabel} (Daily / 30 Rate)
+                </span>
+              )}
+            </div>
             <span className="text-xs font-black font-mono text-[#3E3C3D] dark:text-white">
-              SAR {billingAmountNum.toLocaleString()}
+              {fin.isMonthly ? fin.formattedLabels.monthlyLabel : `SAR ${billingAmountNum.toLocaleString()}`}
             </span>
           </div>
 
