@@ -56,19 +56,36 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'trips.workflow.arrive',
     'trips.workflow.complete',
     'trips.workflow.pod_upload',
+    'trips.rates.edit',
+    'trips.delete',
 
-    // Read-Only Views
+    // Quotations
     'quotations.view',
-    'customers.view',
-    'fleet.view',
+    'quotations.edit',
+    'quotations.delete',
 
-    // Operational Driver Actions
+    // Customers
+    'customers.view',
+    'customers.manage',
+
+    // Fleet
+    'fleet.view',
+    'fleet.manage',
+    'fleet.financials',
+
+    // Drivers & Security
     'drivers.view',
+    'drivers.manage',
     'drivers.security.reset',
 
-    // Settings Read
+    // Users
+    'users.view',
+    'users.manage',
+
+    // Master Data & Reports
     'settings.view',
     'reports.view',
+    'audit.view',
   ],
   Driver: [
     // Driver Assigned Scope Only

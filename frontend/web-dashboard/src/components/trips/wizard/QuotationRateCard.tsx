@@ -112,7 +112,8 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
   const quotationDisplayCode =
     qNum ||
     (rc as any).agreement_ref ||
-    (rc.name && rc.name.startsWith('QT-') ? rc.name : null) ||
+    rc.quotation_number ||
+    ((rc as any).name && (rc as any).name.startsWith('QT-') ? (rc as any).name : null) ||
     (rc.id ? `QT-${rc.id.substring(0, 6).toUpperCase()}` : `QT-${idx + 1}`);
 
   return (
