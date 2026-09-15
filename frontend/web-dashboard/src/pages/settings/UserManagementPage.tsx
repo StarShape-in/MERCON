@@ -57,7 +57,7 @@ export default function UserManagementPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('all');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('web');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
@@ -453,17 +453,6 @@ export default function UserManagementPage() {
         <div className="pt-1 flex items-center justify-start overflow-x-auto scrollbar-none">
           <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)}>
             <TabsList className="h-auto p-0 bg-transparent border-none gap-2 inline-flex justify-start">
-              <TabsTrigger
-                value="all"
-                className="text-xs font-semibold px-3.5 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 data-[state=active]:border-[#FA634E]/40 data-[state=active]:bg-rose-50/60 dark:data-[state=active]:bg-rose-950/30 data-[state=active]:text-[#FA634E] dark:data-[state=active]:text-rose-400 data-[state=active]:shadow-2xs cursor-pointer gap-1.5 transition-all"
-              >
-                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 data-[state=active]:text-[#FA634E]" />
-                <span>All Users</span>
-                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-                  {combinedUsers.length}
-                </span>
-              </TabsTrigger>
-
               <TabsTrigger
                 value="web"
                 className="text-xs font-semibold px-3.5 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 data-[state=active]:border-[#FA634E]/40 data-[state=active]:bg-rose-50/60 dark:data-[state=active]:bg-rose-950/30 data-[state=active]:text-[#FA634E] dark:data-[state=active]:text-rose-400 data-[state=active]:shadow-2xs cursor-pointer gap-1.5 transition-all"
