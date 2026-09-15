@@ -376,17 +376,17 @@ export default function TripLocationField({
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
                         {locPrec === 'EXACT' && (
                           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
-                            ✓ Exact
+                            Exact
                           </Badge>
                         )}
                         {locPrec === 'APPROXIMATE' && (
                           <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold">
-                            ≈ Area
+                            Area
                           </Badge>
                         )}
                         {locPrec === 'UNKNOWN' && (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
-                            ○ Not Pinned
+                            Not Pinned
                           </Badge>
                         )}
                         {locationId === loc.id && <Check className="w-4 h-4 text-brand shrink-0" />}
@@ -429,7 +429,7 @@ export default function TripLocationField({
         <div className="p-2.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 text-xs text-indigo-900 dark:text-indigo-200 flex items-start gap-2">
           <Info className="w-4 h-4 shrink-0 text-indigo-600 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <span className="font-bold block">≈ Area location</span>
+            <span className="font-bold block">Area location</span>
             <span className="text-[11px] text-indigo-800 dark:text-indigo-300">
               Approximate location — navigation will take the driver to the known area. Confirm the facility on arrival.
             </span>
@@ -441,7 +441,7 @@ export default function TripLocationField({
         <div className="p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <span className="font-bold block">⚠ Coordinates unavailable</span>
+            <span className="font-bold block">Coordinates unavailable</span>
             <span className="text-[11px] text-amber-800 dark:text-amber-300">
               Coordinates unavailable — navigation is not available for this stop.
             </span>

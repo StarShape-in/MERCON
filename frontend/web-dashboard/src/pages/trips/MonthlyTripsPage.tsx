@@ -8,9 +8,9 @@ import {
   Truck, User, Wrench, Users
 } from 'lucide-react';
 
-import { format } from 'date-fns';
+import { format, subDays, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import DateRangePicker from '@/components/ui/date-range-picker';
+import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyBoard from '@/components/trips/monthly/MonthlyCompanyBoard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -104,12 +104,29 @@ export default function MonthlyTripsPage() {
 
   const [month, setMonth] = useState(currentMonthKey());
   const [search, setSearch] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [customerId, setCustomerId] = useState('All');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
+
+  const effectiveDateRange = useMemo<DateRange | undefined>(() => {
+    const today = new Date();
+    if (dateFilter === 'Today') return { from: today, to: today };
+    if (dateFilter === 'Yesterday') {
+      const y = subDays(today, 1);
+      return { from: y, to: y };
+    }
+    if (dateFilter === '3Days') return { from: subDays(today, 1), to: addDays(today, 1) };
+    if (dateFilter === 'ThisWeek') return { from: startOfWeek(today, { weekStartsOn: 0 }), to: endOfWeek(today, { weekStartsOn: 0 }) };
+    if (dateFilter === 'Last7Days') return { from: subDays(today, 6), to: today };
+    if (dateFilter === 'ThisMonth') return { from: startOfMonth(today), to: endOfMonth(today) };
+    if (dateFilter === 'Last30Days') return { from: subDays(today, 29), to: today };
+    if (dateFilter === 'Custom') return customDateRange;
+    return undefined;
+  }, [dateFilter, customDateRange]);
 
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
@@ -161,9 +178,9 @@ export default function MonthlyTripsPage() {
     let fromStr: string | null = null;
     let toStr: string | null = null;
 
-    if (dateRange?.from) {
-      fromStr = format(dateRange.from, 'yyyy-MM-dd');
-      toStr = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : fromStr;
+    if (effectiveDateRange?.from) {
+      fromStr = format(effectiveDateRange.from, 'yyyy-MM-dd');
+      toStr = effectiveDateRange.to ? format(effectiveDateRange.to, 'yyyy-MM-dd') : fromStr;
     }
 
     if (!search.trim() && !fromStr) return rawCompanies;
@@ -211,7 +228,7 @@ export default function MonthlyTripsPage() {
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.total_trips - a.total_trips;
     });
-  }, [rawCompanies, search, dateRange]);
+  }, [rawCompanies, search, effectiveDateRange]);
 
   const allVisibleTripIds = useMemo(
     () => companies.flatMap((c) => c.days.flatMap((d) => d.trips.map((t) => t.id))),
@@ -289,7 +306,8 @@ export default function MonthlyTripsPage() {
     setBillingType('');
     setStatus('');
     setSearch('');
-    setDateRange(undefined);
+    setDateFilter('All');
+    setCustomDateRange(undefined);
   };
 
   const appliedFiltersCount = [
@@ -298,7 +316,7 @@ export default function MonthlyTripsPage() {
     Boolean(vehicleType),
     Boolean(billingType),
     Boolean(status),
-    Boolean(dateRange?.from),
+    dateFilter !== 'All',
   ].filter(Boolean).length;
 
   const exportRows: MonthlyExportRow[] = useMemo(
@@ -395,12 +413,14 @@ export default function MonthlyTripsPage() {
               )}
             </div>
 
-            {/* Date Filter Button */}
-            <div className="w-auto min-w-[170px]">
-              <DateRangePicker
-                value={dateRange}
-                onChange={(newRange) => {
-                  setDateRange(newRange);
+            {/* Date Filter Button from Trip Ledger */}
+            <div className="w-auto">
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={(newRange) => {
+                  setCustomDateRange(newRange);
                   if (newRange?.from) {
                     const newMonthKey = format(newRange.from, 'yyyy-MM');
                     if (newMonthKey !== month) {
@@ -408,10 +428,6 @@ export default function MonthlyTripsPage() {
                     }
                   }
                 }}
-                placeholder="Filter by Date"
-                showPresets={true}
-                className="w-auto"
-                buttonClassName="h-9 text-xs font-bold rounded-xl border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 shadow-2xs"
               />
             </div>
 

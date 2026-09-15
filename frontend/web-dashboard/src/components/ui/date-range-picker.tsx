@@ -108,34 +108,99 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-3.5 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden space-y-3" align={align}>
+        <PopoverContent
+          className="w-[330px] p-3.5 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999] overflow-hidden space-y-3"
+          align={align}
+          sideOffset={6}
+        >
           {/* Quick Preset Shortcut Buttons Bar */}
           {showPresets && (
-            <div className="flex flex-wrap items-center gap-1.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-              {presets.map((p, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    onChange?.(p.range);
-                    setOpen(false);
-                  }}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-[#FA634E] hover:text-white text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="space-y-1.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Quick Filters
+                </span>
+                {value?.from && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange?.(undefined);
+                    }}
+                    className="text-[10px] font-bold text-slate-400 hover:text-[#FA634E] transition-colors cursor-pointer"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 px-0.5 scrollbar-none no-scrollbar">
+                {presets.map((p, idx) => {
+                  const isSelected =
+                    value?.from &&
+                    value?.to &&
+                    format(value.from, 'yyyy-MM-dd') === format(p.range.from, 'yyyy-MM-dd') &&
+                    format(value.to, 'yyyy-MM-dd') === format(p.range.to, 'yyyy-MM-dd');
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        onChange?.(p.range);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border",
+                        isSelected
+                          ? "bg-[#FA634E] text-white border-[#FA634E] shadow-2xs"
+                          : "bg-slate-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-700"
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          <Calendar
-            mode="range"
-            selected={value}
-            onSelect={handleSelect}
-            numberOfMonths={1}
-            captionLayout="dropdown"
-            autoFocus
-          />
+          <div className="flex justify-center w-full">
+            <Calendar
+              mode="range"
+              selected={value}
+              onSelect={handleSelect}
+              numberOfMonths={1}
+              captionLayout="dropdown"
+              autoFocus
+            />
+          </div>
+
+          {/* Footer with Selected Range Text & Actions */}
+          <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 px-1">
+            <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 truncate">
+              {value?.from ? (
+                value.to ? (
+                  `${format(value.from, 'dd MMM')} – ${format(value.to, 'dd MMM yyyy')}`
+                ) : (
+                  `${format(value.from, 'dd MMM yyyy')}`
+                )
+              ) : (
+                'Select date range'
+              )}
+            </span>
+
+            {value?.from && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setOpen(false)}
+                className="h-7 text-xs px-3 rounded-lg bg-[#FA634E] hover:bg-[#e5533e] text-white font-bold shadow-xs cursor-pointer"
+              >
+                Apply
+              </Button>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
     </div>

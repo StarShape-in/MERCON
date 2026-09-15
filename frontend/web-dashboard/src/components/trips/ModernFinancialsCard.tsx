@@ -41,18 +41,36 @@ export default function ModernFinancialsCard({
   balanceDue,
   quotationName,
   quotationId,
+  isMonthlyContract,
+  monthlyContractRate,
   pricingBasis,
   onAddCharge,
 }: ModernFinancialsCardProps) {
-  // Resolve customer billing amount
-  const billingVal = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
+  const isMonthly = pricingBasis === 'Per Month' || Boolean(isMonthlyContract);
+
+  // Resolve raw customer billing amount
+  const rawBilling = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
+
+  // Calculate monthly reference rate and per-trip share if monthly basis
+  let billingVal = rawBilling;
+  let effectiveMonthlyRate = monthlyContractRate ?? 0;
+
+  if (isMonthly) {
+    if (effectiveMonthlyRate > 0 && (rawBilling === effectiveMonthlyRate || rawBilling === 0)) {
+      billingVal = Math.round((effectiveMonthlyRate / 30) * 100) / 100;
+    } else if (effectiveMonthlyRate === 0 && rawBilling > 0) {
+      effectiveMonthlyRate = rawBilling;
+      billingVal = Math.round((rawBilling / 30) * 100) / 100;
+    }
+  }
+
   const addChargesVal = additionalCharges ?? 0;
   const driverPayoutVal = driverPayout ?? 0;
 
-  // Resolve total amount for this trip (Customer Billing + Extras)
+  // Resolve total amount for THIS single trip (Customer Billing + Extras)
   const resolvedTotal = totalAmount !== undefined ? totalAmount : (billingVal + addChargesVal);
 
-  // Margin math matching trip creation
+  // Margin math for this single trip
   const resolvedMargin = balanceMargin !== undefined ? balanceMargin : (resolvedTotal - driverPayoutVal);
   const resolvedMarginPercent = marginPercent !== undefined
     ? String(marginPercent)
@@ -81,27 +99,45 @@ export default function ModernFinancialsCard({
           </span>
         </div>
 
-        {/* METRIC ROWS — MATCHING TRIP CREATION PAGE */}
+        {/* METRIC ROWS — SINGLE TRIP & MONTHLY CONTRACT FINANCIALS */}
         <div className="space-y-1">
-          {/* ROW 1: CUSTOMER BILLING */}
-          <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Customer Billing
+          {/* ROW 1: TOTAL MONTHLY CONTRACT BILLING (If Monthly Contract) */}
+          {isMonthly && effectiveMonthlyRate > 0 && (
+            <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-purple-50/60 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                  Total Monthly Contract
+                </span>
+                <span className="text-[9px] font-semibold text-purple-600/80 dark:text-purple-400/80">
+                  30-day duty agreement
+                </span>
+              </div>
+              <span className="text-xs font-black font-mono text-purple-950 dark:text-purple-200">
+                SAR {effectiveMonthlyRate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                <span className="text-[9px] font-normal text-purple-600 dark:text-purple-400 ml-0.5">/mo</span>
               </span>
-              {pricingBasis === 'Per Month' && (
-                <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
-                  SAR {(Math.round((billingVal / 30) * 100) / 100).toLocaleString()}/trip (Monthly Basis)
+            </div>
+          )}
+
+          {/* ROW 2: SINGLE TRIP BILLING */}
+          <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+            <div className="flex flex-col min-w-0 pr-2">
+              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {isMonthly ? 'Single Trip Billing' : 'Customer Billing'}
+              </span>
+              {isMonthly && (
+                <span className="text-[9px] font-semibold text-slate-400">
+                  Per-trip duty rate (1/30)
                 </span>
               )}
             </div>
-            <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white">
+            <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white shrink-0">
               SAR {billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              {pricingBasis === 'Per Month' && <span className="text-[9px] font-normal text-slate-400">/mo</span>}
+              {isMonthly && <span className="text-[9px] font-semibold text-slate-400 ml-0.5">/trip</span>}
             </span>
           </div>
 
-          {/* ROW 2: DRIVER PAYOUT / DRIVER CHARGE (DEDUCTED WITH MINUS SIGN) */}
+          {/* ROW 3: DRIVER PAYOUT / DRIVER CHARGE (DEDUCTED WITH MINUS SIGN) */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 gap-2">
             <div className="flex flex-col">
               <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -120,7 +156,7 @@ export default function ModernFinancialsCard({
             </span>
           </div>
 
-          {/* ROW 3: ADDITIONAL CHARGES */}
+          {/* ROW 4: ADDITIONAL CHARGES */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
             <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Additional Charges
@@ -132,7 +168,7 @@ export default function ModernFinancialsCard({
             </span>
           </div>
 
-          {/* ROW 4: BALANCE */}
+          {/* ROW 5: BALANCE */}
           <div className="flex items-center justify-between py-2 px-2.5 rounded-lg bg-orange-50/40 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-900/50 mt-1">
             <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Balance
@@ -147,7 +183,7 @@ export default function ModernFinancialsCard({
               <span className={cn(
                 "text-[10px] font-extrabold px-1.5 py-0.2 rounded-full border",
                 resolvedMargin >= 0
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                  ? "bg-[#10B981]/10 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                   : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
               )}>
                 {resolvedMarginPercent}%

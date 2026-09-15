@@ -118,10 +118,10 @@ export default function TripDetailsPage() {
   const { data: trip, isLoading, isError, refetch } = useQuery({
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
     refetchInterval: 10000,
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404 || error?.response?.status === 400) return false;
       return failureCount < 1;
     },
   });
@@ -240,11 +240,49 @@ export default function TripDetailsPage() {
 
   // Financials & Economics (matching Trip Creation Page)
   const tAny = trip as any;
-  const customerBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate ?? 0);
+  const rawBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate ?? 0);
+
+  const rawPricingBasis = 
+    tAny.quotation_pricing_basis ||
+    tAny.financials?.quotation_pricing_basis ||
+    tAny.quotation?.pricing_basis ||
+    tAny.rateCard?.pricing_basis ||
+    null;
+
+  const rawOperationType = 
+    tAny.quotation_operation_type ||
+    tAny.operation_type ||
+    tAny.billing_type ||
+    tAny.quotation?.operation_type ||
+    tAny.quotation?.billing_type ||
+    '';
+
+  const isMonthlyContract = 
+    rawPricingBasis === 'PER_MONTH' ||
+    rawPricingBasis === 'Per Month' ||
+    (String(rawOperationType).toLowerCase().includes('monthly') && rawPricingBasis !== 'PER_TRIP' && rawPricingBasis !== 'Per Trip');
+
+  const pricingBasis: 'Per Trip' | 'Per Month' = isMonthlyContract ? 'Per Month' : 'Per Trip';
+
+  const monthlyContractRate = Number(tAny.quotation?.rate ?? tAny.rateCard?.base_price ?? rawBilling);
+
+  // Derive per-trip customer billing for single trip details
+  let customerBilling = rawBilling;
+  if (isMonthlyContract) {
+    if (tAny.financials?.applied_rate != null) {
+      customerBilling = Number(tAny.financials.applied_rate);
+    } else if (rawBilling > 0 && monthlyContractRate > 0 && rawBilling === monthlyContractRate) {
+      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
+    } else if (rawBilling > 0) {
+      customerBilling = rawBilling;
+    } else if (monthlyContractRate > 0) {
+      customerBilling = Math.round((monthlyContractRate / 30) * 100) / 100;
+    }
+  }
 
   const chargesList = trip.charges || [];
   const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c) => sum + Number(c.amount || 0), 0));
-  const totalAmount = Number(tAny.total_amount ?? (customerBilling + chargesTotal));
+  const totalAmount = customerBilling + chargesTotal;
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
 
@@ -631,6 +669,9 @@ export default function TripDetailsPage() {
               tripType={tripType}
               quotationName={(trip as any).quotation?.name || (trip as any).rateCard?.name || tAny.quotation_name || null}
               quotationId={(trip as any).quotation?.id || (trip as any).rateCard?.id || trip.quotationId || null}
+              isMonthlyContract={isMonthlyContract}
+              monthlyContractRate={monthlyContractRate}
+              pricingBasis={pricingBasis}
               onAddCharge={() => setIsLaborModalOpen(true)}
               onViewBreakdown={() => setIsLaborModalOpen(true)}
             />

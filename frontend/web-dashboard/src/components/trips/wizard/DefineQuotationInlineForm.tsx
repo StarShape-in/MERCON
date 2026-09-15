@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles, DollarSign, Truck, Zap } from 'lucide-react';
 import { getAllTaxonomyOptions, normalizeCode } from '@/utils/taxonomyRegistry';
 import { normalizeRateCategory } from '@/hooks/useCreateTripForm';
 import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
@@ -43,7 +44,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
       <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-orange-200/60 dark:border-slate-700">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1">
-            ✨ Rate Card
+            <Sparkles className="w-3.5 h-3.5" /> Rate Card
           </span>
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
             for {selectedCustName || 'Customer'}
@@ -156,7 +157,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         {/* CUSTOMER BILLING AMOUNT */}
         <div id={`field-billing-amount-${primarySlot?.id}`} className="sm:col-span-5 space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>💵 Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span></span>
+            <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Customer Billing Rate (SAR) <span className="text-[#FA634E]">*</span></span>
             {(fieldErrors?.[`billingAmount-${primarySlot?.id}`] || fieldErrors?.['billingAmount']) && (
               <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
             )}
@@ -190,7 +191,7 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         {/* DRIVER PAYOUT */}
         <div id={`field-driver-payout-${primarySlot?.id}`} className="sm:col-span-4 space-y-1">
           <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>🚛 Driver Payout (SAR) <span className="text-[#FA634E]">*</span></span>
+            <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Driver Payout (SAR) <span className="text-[#FA634E]">*</span></span>
             {(fieldErrors?.[`driverPayout-${primarySlot?.id}`] || fieldErrors?.['driverPayout']) && (
               <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
             )}
@@ -245,8 +246,8 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
       {/* PER-MONTH SPLITTER BREAKDOWN HELPER */}
       {inlinePricingBasis === 'Per Month' && Number(primarySlot.billingAmount) > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-1 text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900">
-          <span>
-            ⚡ Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round(((Number(primarySlot.billingAmount) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip</strong> (30-day contract duty)
+          <span className="flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-purple-600 shrink-0" /> Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round(((Number(primarySlot.billingAmount) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip</strong> (30-day contract duty)
           </span>
           {Number(primarySlot.driverPayout) > 0 && (
             <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400">
