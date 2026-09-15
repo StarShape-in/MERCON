@@ -329,10 +329,34 @@ export function useCreateTripForm() {
   const isMonthlyUrl = urlMode?.toLowerCase() === 'monthly' || urlBillingType?.toLowerCase() === 'monthly' || !!urlMonth;
 
   const [contractStep, setContractStep] = useState<1 | 2 | 3>(initialStep);
-  const [contractCustomer, setContractCustomer] = useState('');
+  const [contractCustomer, setContractCustomerRaw] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
   const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
+
+  const setContractCustomer = useCallback(
+    (newCustId: string) => {
+      setContractCustomerRaw(newCustId);
+
+      setContractSlots((prev) =>
+        prev.map((s) => ({
+          ...s,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          rateMatched: false,
+          billingAmount: '',
+          driverPayout: '',
+          saveAsQuotation: false,
+          saveAsRateCard: false,
+        }))
+      );
+
+      setTimeout(() => {
+        triggerRateLookupForSlots(undefined, undefined, newCustId, undefined, true);
+      }, 100);
+    },
+    [setContractSlots, triggerRateLookupForSlots]
+  );
 
   const vehicleOptions = useMemo<ComboboxOption[]>(() => {
     const rule = getCompatibilityRuleForClass(contractVehicleType);
