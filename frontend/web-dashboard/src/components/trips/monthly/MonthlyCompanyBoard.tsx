@@ -105,25 +105,6 @@ function getThreeDayDateStrings(): string[] {
   return dates;
 }
 
-function getTodayDateString(): string {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function shouldShowTripOnMonthlyBoard(trip: MonthlyBoardTrip, todayStr: string): boolean {
-  const status = (trip.status || '').toLowerCase().trim();
-  const isTerminalCompleted =
-    status === 'completed' || status === 'invoiced' || status === 'delivered' || status === 'cancelled';
-
-  if (isTerminalCompleted) {
-    return trip.date.startsWith(todayStr);
-  }
-  return true;
-}
-
 function CompanyProfileLogo({ customer }: { customer: { name: string; logo_url?: string | null } }) {
   const logoUrl = customer.logo_url;
   if (logoUrl) {
@@ -199,13 +180,10 @@ const CompanyColumn = memo(function CompanyColumn({
   const handleSelectTrip = onSelectTrip || ((t: MonthlyBoardTrip) => navigate(`/trips/${t.id}`));
 
   const allCompanyTrips = useMemo(() => {
-    const todayStr = getTodayDateString();
     const list = company.days.flatMap((day) => day.trips);
 
-    const filteredTrips = list.filter((t) => shouldShowTripOnMonthlyBoard(t, todayStr));
-
-    if (!search || !search.trim()) return filteredTrips;
-    return filteredTrips.filter((t) => computeMonthlyTripSearchRelevance(t, search) > 0);
+    if (!search || !search.trim()) return list;
+    return list.filter((t) => computeMonthlyTripSearchRelevance(t, search) > 0);
   }, [company, search]);
 
   const companyTripIds = useMemo(() => allCompanyTrips.map((t) => t.id), [allCompanyTrips]);
