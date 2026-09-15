@@ -122,12 +122,12 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
       type="button"
       onClick={() => onApplyRateCard(rc, rCat, vClass, origName, destName, rateVal)}
       className={cn(
-        "p-2.5 rounded-xl transition-all text-left flex flex-col justify-between space-y-1.5 cursor-pointer select-none min-h-[110px]",
+        "p-2.5 rounded-xl transition-all duration-200 text-left flex flex-col justify-between space-y-1.5 cursor-pointer select-none min-h-[110px]",
         isSelected
           ? isMonthlyCard
-            ? "border-2 border-purple-600 bg-purple-50/60 dark:bg-purple-950/30 shadow-2xs"
-            : "border-2 border-brand bg-orange-50/60 dark:bg-amber-950/30 shadow-2xs"
-          : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700",
+            ? "border-2 border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/70 dark:bg-purple-950/40 shadow-xs"
+            : "border-2 border-[#FA634E] ring-2 ring-[#FA634E]/20 bg-orange-50/70 dark:bg-amber-950/40 shadow-xs"
+          : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#FA634E]/60 hover:bg-slate-50 dark:hover:bg-slate-700/80",
         className
       )}
     >

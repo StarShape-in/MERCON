@@ -22,12 +22,6 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (activeSelectedId && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-    }
-  }, [activeSelectedId]);
-
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
@@ -57,12 +51,7 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
           );
 
           return (
-            <motion.div
-              key={rc.id || `card-${idx}`}
-              layout
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="w-full"
-            >
+            <div key={rc.id || `card-${idx}`} className="w-full">
               <QuotationRateCard
                 rc={rc}
                 idx={idx}
@@ -72,7 +61,7 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
                 onApplyRateCard={onApplyRateCard}
                 className="w-full"
               />
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -100,10 +89,8 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
           );
 
           return (
-            <motion.div
+            <div
               key={rc.id || `card-${idx}`}
-              layout
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               className="w-[260px] sm:w-[calc(33.333%-8px)] min-w-[220px] shrink-0"
             >
               <QuotationRateCard
@@ -115,7 +102,7 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
                 onApplyRateCard={onApplyRateCard}
                 className="w-full"
               />
-            </motion.div>
+            </div>
           );
         })}
       </div>
