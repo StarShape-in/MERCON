@@ -370,6 +370,18 @@ export default function MonthlyGroupLedgerModal({
     });
   };
 
+  const handleGroupCategoryChange = (newCat: string) => {
+    if (!newCat) return;
+    const tripIdsToUpdate = allTrips.map((t) => t.id);
+    if (tripIdsToUpdate.length > 0) {
+      assignMutation.mutate({
+        trip_ids: tripIdsToUpdate,
+        rate_category: newCat,
+      });
+      setCategoryFilter(newCat);
+    }
+  };
+
   const getStatusBadgeStyle = (status: string) => {
     const s = (status || '').toLowerCase();
     if (s === 'completed' || s === 'invoiced') {
@@ -453,15 +465,32 @@ export default function MonthlyGroupLedgerModal({
                 <span>{group.vehicleClass}</span>
               </div>
 
-              {/* Line Type Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 font-bold text-xs shadow-3xs">
-                <Clock className="w-3.5 h-3.5 text-rose-500" />
-                <span>
-                  {categoryFilter === 'ALL'
-                    ? 'ALL CATEGORIES'
-                    : categoryFilter.replace(/_/g, ' ').toUpperCase()}
-                </span>
-              </div>
+              {/* Interactive Line Type / Category Badge */}
+              <Select
+                value={categoryFilter !== 'ALL' ? categoryFilter : (group.lineType || '10 Hours Duty')}
+                onValueChange={handleGroupCategoryChange}
+              >
+                <SelectTrigger className="h-7 px-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 font-bold text-xs shadow-3xs hover:bg-rose-100 dark:hover:bg-rose-900/50 cursor-pointer flex items-center gap-1.5 focus:ring-0">
+                  <Clock className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span className="uppercase">
+                    {categoryFilter !== 'ALL'
+                      ? categoryFilter.replace(/_/g, ' ')
+                      : (group.lineType || 'Category').replace(/_/g, ' ')}
+                  </span>
+                </SelectTrigger>
+                <SelectContent align="end" className="bg-white dark:bg-slate-900 z-50">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">
+                      Change Category (All {allTrips.length} Trips)
+                    </SelectLabel>
+                    {availableCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="text-xs font-semibold">
+                        {cat.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
