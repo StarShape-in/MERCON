@@ -3,13 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-const getProxyTarget = (url?: string) => {
+const getProxyTarget = () => {
   if (process.env.VITE_BACKEND_URL) return process.env.VITE_BACKEND_URL;
-  if (!url || url.startsWith('/')) return 'https://dev.mercon.tech';
-  return url.replace(/\/api\/?$/, '');
+  if (process.env.VITE_API_URL) return process.env.VITE_API_URL.replace(/\/api\/?$/, '');
+  return 'http://127.0.0.1:3000';
 };
 
-const proxyTarget = getProxyTarget(process.env.VITE_BACKEND_URL || process.env.VITE_API_URL);
+const proxyTarget = getProxyTarget();
 
 export default defineConfig({
   plugins: [
