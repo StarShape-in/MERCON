@@ -28,6 +28,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -301,6 +302,14 @@ export default function MonthlyTripsPage() {
     Boolean(dateRange?.from),
   ].filter(Boolean).length;
 
+  const activeFiltersCount = [
+    customerId !== 'All',
+    Boolean(status),
+    Boolean(rateCategory),
+    Boolean(vehicleType),
+    Boolean(billingType),
+  ].filter(Boolean).length;
+
   const exportRows: MonthlyExportRow[] = useMemo(
     () =>
       companies.flatMap((company) =>
@@ -394,6 +403,123 @@ export default function MonthlyTripsPage() {
                 </button>
               )}
             </div>
+
+            {/* Multi-Filter Dropdown Menu (Matches TripListPage) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-bold bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs cursor-pointer rounded-xl px-3 shrink-0"
+                >
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Filters</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black leading-none">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+                  Filter Trips
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+                
+                <div className="space-y-2.5">
+                  {/* Status Group / Exact State Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
+                    <select
+                      value={status || 'All'}
+                      onChange={(e) => setStatus(e.target.value === 'All' ? '' : e.target.value)}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Statuses</option>
+                      <option value="Draft">Scheduled / Draft</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="AtPickup">At Pickup</option>
+                      <option value="InTransit">In Transit</option>
+                      <option value="AtDelivery">At Delivery</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Invoiced">Invoiced</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  {/* Company Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+                    <select
+                      value={customerId}
+                      onChange={(e) => setCustomerId(e.target.value)}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Companies</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Vehicle Class / Rate Category Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Category / Class</label>
+                    <select
+                      value={rateCategory || 'All'}
+                      onChange={(e) => setRateCategory(e.target.value === 'All' ? '' : e.target.value)}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Categories</option>
+                      {RATE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Billing Type Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Type</label>
+                    <select
+                      value={billingType || 'All'}
+                      onChange={(e) => setBillingType(e.target.value === 'All' ? '' : e.target.value)}
+                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Billing Types</option>
+                      {BILLING_TYPES.map((bt) => (
+                        <option key={bt} value={bt}>
+                          {bt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {activeFiltersCount > 0 && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerId('All');
+                        setStatus('');
+                        setRateCategory('');
+                        setVehicleType('');
+                        setBillingType('');
+                      }}
+                      className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Date Filter Button */}
             <div className="w-auto min-w-[170px]">
