@@ -86,22 +86,27 @@ export default function ModernFinancialsCard({
 
         {/* METRIC ROWS — MATCHING TRIP CREATION PAGE */}
         <div className="space-y-1">
-          {/* ROW 1: CUSTOMER BILLING */}
+          {/* ROW 1: CUSTOMER BILLING / MONTHLY BILLING */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Customer Billing
-              </span>
-              {fin.isMonthly && (
-                <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
-                  {fin.formattedLabels.dailyLabel} (Daily / 30 Rate)
-                </span>
-              )}
-            </div>
+            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {fin.isMonthly ? 'Monthly Billing' : 'Customer Billing'}
+            </span>
             <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white">
               {fin.isMonthly ? fin.formattedLabels.monthlyLabel : `SAR ${billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
             </span>
           </div>
+
+          {/* ROW 1B: DAILY RATE BREAKDOWN (SEPARATE DEDICATED ROW) */}
+          {fin.isMonthly && (
+            <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-purple-50/50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40">
+              <span className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                Daily Rate (1/30)
+              </span>
+              <span className="text-xs font-black font-mono text-purple-700 dark:text-purple-300">
+                {fin.formattedLabels.dailyLabel}
+              </span>
+            </div>
+          )}
 
           {/* ROW 2: DRIVER PAYOUT / DRIVER CHARGE (DEDUCTED WITH MINUS SIGN) */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 gap-2">
