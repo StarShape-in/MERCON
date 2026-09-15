@@ -41,11 +41,13 @@ export default function MonthlyCompanyBoard({
   const [activeLedgerGroup, setActiveLedgerGroup] = useState<TemplateGroup | null>(null);
   const [activeCompanyName, setActiveCompanyName] = useState<string>('');
   const [activeCompanyLogo, setActiveCompanyLogo] = useState<string | null | undefined>(null);
+  const [activeCompanyAllTrips, setActiveCompanyAllTrips] = useState<MonthlyBoardTrip[]>([]);
 
-  const handleOpenLedger = (group: TemplateGroup, company: MonthlyBoardCompany) => {
+  const handleOpenLedger = (group: TemplateGroup, company: MonthlyBoardCompany, allTrips: MonthlyBoardTrip[]) => {
     setActiveLedgerGroup(group);
     setActiveCompanyName(company.customer.name);
     setActiveCompanyLogo(company.customer.logo_url);
+    setActiveCompanyAllTrips(allTrips);
   };
 
   return (
@@ -61,7 +63,7 @@ export default function MonthlyCompanyBoard({
               onToggleTrip={onToggleTrip}
               onToggleCompany={onToggleCompany}
               onSelectTrip={onSelectTrip}
-              onOpenLedger={(group) => handleOpenLedger(group, company)}
+              onOpenLedger={(group, trips) => handleOpenLedger(group, company, trips)}
             />
           ))}
         </div>
@@ -73,6 +75,7 @@ export default function MonthlyCompanyBoard({
         group={activeLedgerGroup}
         companyName={activeCompanyName}
         companyLogo={activeCompanyLogo}
+        allCompanyTrips={activeCompanyAllTrips}
         onRefresh={onRefresh}
       />
     </>
@@ -174,7 +177,7 @@ const CompanyColumn = memo(function CompanyColumn({
   onToggleTrip?: (id: string) => void;
   onToggleCompany?: (tripIds: string[]) => void;
   onSelectTrip?: (trip: MonthlyBoardTrip) => void;
-  onOpenLedger?: (group: TemplateGroup) => void;
+  onOpenLedger?: (group: TemplateGroup, allTrips: MonthlyBoardTrip[]) => void;
 }) {
   const navigate = useNavigate();
   const handleSelectTrip = onSelectTrip || ((t: MonthlyBoardTrip) => navigate(`/trips/${t.id}`));
@@ -297,7 +300,7 @@ const CompanyColumn = memo(function CompanyColumn({
               selectedTripIds={selectedTripIds}
               onToggleTrip={onToggleTrip}
               onSelectTrip={handleSelectTrip}
-              onOpenLedger={onOpenLedger}
+              onOpenLedger={(g) => onOpenLedger?.(g, allCompanyTrips)}
             />
           ))
         )}

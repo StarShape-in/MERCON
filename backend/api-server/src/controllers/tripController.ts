@@ -2166,7 +2166,7 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
 export const bulkAssignTrips = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
-    const { trip_ids, driver_id, vehicle_id, status } = req.body;
+    const { trip_ids, driver_id, vehicle_id, status, rate_category } = req.body;
 
     if (!Array.isArray(trip_ids) || trip_ids.length === 0) {
       return res.status(400).json({
@@ -2197,6 +2197,10 @@ export const bulkAssignTrips = async (req: Request, res: Response) => {
 
     if (status && Object.values(TripStatus).includes(status)) {
       updateData.status = status;
+    }
+
+    if (rate_category !== undefined && typeof rate_category === 'string') {
+      updateData.rate_category = rate_category;
     }
 
     await prisma.trip.updateMany({

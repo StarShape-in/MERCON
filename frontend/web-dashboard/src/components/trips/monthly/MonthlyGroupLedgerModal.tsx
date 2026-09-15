@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -44,7 +44,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import type { TemplateGroup } from './MonthlyCompanyBoard';
-import { tripService } from '@/services/tripService';
+import { tripService, type MonthlyBoardTrip } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { formatDayHeading, formatMoney, formatTime, initialsOf, isUnassigned, formatLocationClean } from './monthlyBoardUtils';
@@ -58,12 +58,15 @@ const STATUS_LIST = [
   'Cancelled',
 ];
 
+const CORE_CATEGORIES = ['Single Trip', 'Round Trip', '10 Hours Duty', '12 Hours Duty'];
+
 interface MonthlyGroupLedgerModalProps {
   isOpen: boolean;
   onClose: () => void;
   group: TemplateGroup | null;
   companyName: string;
   companyLogo?: string | null;
+  allCompanyTrips?: MonthlyBoardTrip[];
   onRefresh?: () => void;
 }
 
@@ -73,6 +76,7 @@ export default function MonthlyGroupLedgerModal({
   group,
   companyName,
   companyLogo,
+  allCompanyTrips = [],
   onRefresh,
 }: MonthlyGroupLedgerModalProps) {
   const queryClient = useQueryClient();
@@ -80,8 +84,29 @@ export default function MonthlyGroupLedgerModal({
   // Search, Filter & Sort state
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Unassigned' | 'Completed' | 'Scheduled' | 'InTransit'>('All');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'driver' | 'vehicle'>('latest');
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (group?.lineType) {
+      setCategoryFilter(group.lineType);
+    } else {
+      setCategoryFilter('ALL');
+    }
+  }, [group?.key, group?.lineType]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>(CORE_CATEGORIES);
+    if (group?.lineType) set.add(group.lineType);
+    if (allCompanyTrips) {
+      allCompanyTrips.forEach((t) => {
+        const cat = t.rate_category || t.billing_type;
+        if (cat) set.add(cat);
+      });
+    }
+    return Array.from(set);
+  }, [group, allCompanyTrips]);
 
   // Bulk assignment staging state
   const [bulkDriverId, setBulkDriverId] = useState<string>('');
@@ -151,7 +176,7 @@ export default function MonthlyGroupLedgerModal({
 
   // Bulk / single assign mutation
   const assignMutation = useMutation({
-    mutationFn: (payload: { trip_ids: string[]; driver_id?: string; vehicle_id?: string; status?: string }) =>
+    mutationFn: (payload: { trip_ids: string[]; driver_id?: string; vehicle_id?: string; status?: string; rate_category?: string }) =>
       tripService.bulkAssign(payload),
     onSuccess: (data, vars) => {
       toast.success(
@@ -202,7 +227,38 @@ export default function MonthlyGroupLedgerModal({
     },
   });
 
-  const allTrips = group?.trips || [];
+  const baseTrips = useMemo(() => {
+    if (allCompanyTrips && allCompanyTrips.length > 0) {
+      if (group?.origin && group?.destination) {
+        const routeTrips = allCompanyTrips.filter((t) => {
+          const o = formatLocationClean(t.origin);
+          const d = formatLocationClean(t.destination);
+          return o === group.origin && d === group.destination;
+        });
+        return routeTrips.length > 0 ? routeTrips : allCompanyTrips;
+      }
+      return allCompanyTrips;
+    }
+    return group?.trips || [];
+  }, [allCompanyTrips, group]);
+
+  const normalizeCat = (c: string) => (c || '').toLowerCase().replace(/[\s_-]+/g, '');
+
+  const allTrips = useMemo(() => {
+    if (categoryFilter === 'ALL') return baseTrips;
+    const target = normalizeCat(categoryFilter);
+    return baseTrips.filter((trip) => {
+      const tripCat = trip.rate_category || trip.billing_type || 'Single Trip';
+      const norm = normalizeCat(tripCat);
+      return (
+        norm === target ||
+        (target.includes('10hour') && norm.includes('10hour')) ||
+        (target.includes('12hour') && norm.includes('12hour')) ||
+        (target.includes('round') && norm.includes('round')) ||
+        (target.includes('single') && norm.includes('single'))
+      );
+    });
+  }, [baseTrips, categoryFilter]);
 
   // Filtered & Sorted trips
   const filteredTrips = useMemo(() => {
@@ -251,6 +307,13 @@ export default function MonthlyGroupLedgerModal({
     return allTrips.reduce((sum, t) => sum + (t.billing_amount ?? 0), 0);
   }, [allTrips]);
 
+  const activeRateStr = useMemo(() => {
+    if (allTrips.length > 0 && allTrips[0].billing_amount != null) {
+      return formatMoney(allTrips[0].billing_amount, allTrips[0].currency);
+    }
+    return group?.rateStr;
+  }, [allTrips, group?.rateStr]);
+
   const allVisibleIds = filteredTrips.map((t) => t.id);
   const isAllSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedTripIds.includes(id));
   const isSomeSelected = !isAllSelected && allVisibleIds.some((id) => selectedTripIds.includes(id));
@@ -296,6 +359,14 @@ export default function MonthlyGroupLedgerModal({
     assignMutation.mutate({
       trip_ids: selectedTripIds,
       status: val,
+    });
+  };
+
+  const handleApplyBulkCategory = (val: string) => {
+    if (!val || selectedTripIds.length === 0) return;
+    assignMutation.mutate({
+      trip_ids: selectedTripIds,
+      rate_category: val,
     });
   };
 
@@ -367,9 +438,9 @@ export default function MonthlyGroupLedgerModal({
                 <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400 leading-none">
                   {formatMoney(totalAmount)}
                 </span>
-                {group.rateStr && group.rateStr !== '—' && (
+                {activeRateStr && activeRateStr !== '—' && (
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40 whitespace-nowrap shadow-3xs">
-                    ({group.rateStr} / trip)
+                    ({activeRateStr} / trip)
                   </span>
                 )}
               </div>
@@ -385,18 +456,22 @@ export default function MonthlyGroupLedgerModal({
               {/* Line Type Badge */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 font-bold text-xs shadow-3xs">
                 <Clock className="w-3.5 h-3.5 text-rose-500" />
-                <span>{group.lineType.replace(/_/g, ' ').toUpperCase()}</span>
+                <span>
+                  {categoryFilter === 'ALL'
+                    ? 'ALL CATEGORIES'
+                    : categoryFilter.replace(/_/g, ' ').toUpperCase()}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── 2. Toolbar: Search Bar, Filter Chips & Sort Select ── */}
+        {/* ── 2. Toolbar: Search Bar, Filter Chips, Category Select & Sort Select ── */}
         <div className="p-3.5 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
           
-          {/* Left / Center: Search Input + Status Filter Chips */}
+          {/* Left / Center: Search Input + Status Filter Chips + Category Filter */}
           <div className="flex items-center flex-wrap gap-3 min-w-0">
-            <div className="relative w-64 sm:w-80">
+            <div className="relative w-56 sm:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search by trip ref, driver, vehicle, or plate..."
@@ -441,6 +516,29 @@ export default function MonthlyGroupLedgerModal({
                 );
               })}
             </div>
+
+            {/* Trip Category / Line Type Filter Dropdown */}
+            <Select value={categoryFilter} onValueChange={(val) => setCategoryFilter(val)}>
+              <SelectTrigger className="h-10 text-xs font-bold min-w-[145px] max-w-[190px] rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer">
+                <Clock className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+                <span className="truncate">
+                  {categoryFilter === 'ALL' ? 'All Categories' : categoryFilter.replace(/_/g, ' ')}
+                </span>
+              </SelectTrigger>
+              <SelectContent align="start" className="bg-white dark:bg-slate-900 z-50">
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">Trip Category</SelectLabel>
+                  <SelectItem value="ALL" className="text-xs font-semibold">
+                    All Categories
+                  </SelectItem>
+                  {availableCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat} className="text-xs font-semibold">
+                      {cat.replace(/_/g, ' ')}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Right: Quick Selection Count / Sort dropdown */}
@@ -541,12 +639,29 @@ export default function MonthlyGroupLedgerModal({
                 />
               </div>
 
+              {/* Bulk Category Selector */}
+              <Select onValueChange={handleApplyBulkCategory}>
+                <SelectTrigger className="h-8 w-36 text-xs bg-white dark:bg-slate-900 border-slate-300 text-[#3E3C3D] dark:text-white font-bold rounded-lg">
+                  <SelectValue placeholder="Set Category..." />
+                </SelectTrigger>
+                <SelectContent align="end" className="bg-white dark:bg-slate-900 z-50">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">Change Category</SelectLabel>
+                    {availableCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="text-xs font-semibold">
+                        {cat.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
               {/* Bulk Status Selector */}
               <Select onValueChange={handleApplyBulkStatus}>
                 <SelectTrigger className="h-8 w-36 text-xs bg-white dark:bg-slate-900 border-slate-300 text-[#3E3C3D] dark:text-white font-bold rounded-lg">
                   <SelectValue placeholder="Set Status..." />
                 </SelectTrigger>
-                <SelectContent align="end" className="bg-white dark:bg-slate-900">
+                <SelectContent align="end" className="bg-white dark:bg-slate-900 z-50">
                   <SelectGroup>
                     <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">Change Status</SelectLabel>
                     {STATUS_LIST.map((st) => (
