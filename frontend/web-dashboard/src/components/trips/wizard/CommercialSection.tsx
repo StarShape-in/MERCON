@@ -132,12 +132,17 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     });
   }, [customers, contractCustomer]);
 
-  // Stable rate cards sorting: Natural, predictable sequence based on usage & ID (no shuffling on selection)
+  // Sort quotations: Active selected quotation pinned FIRST to position 0 (leftmost)
   const sortedRateCards = React.useMemo(() => {
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
 
     return [...effectiveRateCards]
       .sort((a, b) => {
+        const aIsSelected = a.id === activeSelectedId;
+        const bIsSelected = b.id === activeSelectedId;
+        if (aIsSelected && !bIsSelected) return -1;
+        if (!aIsSelected && bIsSelected) return 1;
+
         const aUsage = Number(a.usage_count || 0) + (a.driver_name || a.recent_driver ? 10 : 0);
         const bUsage = Number(b.usage_count || 0) + (b.driver_name || b.recent_driver ? 10 : 0);
 
@@ -145,7 +150,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         return String(a.quotation_number || a.id).localeCompare(String(b.quotation_number || b.id));
       })
       .slice(0, 50);
-  }, [effectiveRateCards]);
+  }, [effectiveRateCards, activeSelectedId]);
 
   // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
