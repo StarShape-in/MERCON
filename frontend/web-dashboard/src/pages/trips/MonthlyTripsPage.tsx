@@ -318,6 +318,11 @@ export default function MonthlyTripsPage() {
     setCustomDateRange(undefined);
   };
 
+  const appliedFiltersCount = [
+    Boolean(search.trim()),
+    dateFilter !== 'All',
+  ].filter(Boolean).length;
+
   const exportRows: MonthlyExportRow[] = useMemo(
     () =>
       companies.flatMap((company) =>
