@@ -60,30 +60,16 @@ export const getVehicleTypeFromCapacity = (capacityKg?: number | null): string =
   return '40 FEET';
 };
 
-export const normalizeBillingType = (val?: string | null): string => {
-  if (!val) return 'Monthly';
-  const s = String(val).toUpperCase();
-  if (s.includes('EXTRA') || s.includes('SPOT')) return 'Extra';
-  return 'Monthly';
-};
+import {
+  normalizeBillingType,
+  normalizeRateCategory,
+  normalizeVehicleClass,
+} from '@/utils/taxonomyRegistry';
 
-export const normalizeRateCategory = (val?: string | null): string => {
-  if (!val) return 'Single Trip';
-  const s = String(val).toUpperCase().replace(/_/g, ' ');
-  if (s.includes('ROUND')) return 'Round Trip';
-  if (s.includes('10')) return '10 Hours Duty';
-  if (s.includes('12')) return '12 Hours Duty';
-  return 'Single Trip';
-};
-
-export const normalizeVehicleClass = (val?: string | null): string => {
-  if (!val) return '10 TON';
-  const s = String(val).toUpperCase().replace(/_/g, ' ');
-  if (s.includes('3') || s.includes('4')) return '3-4 TON';
-  if (s.includes('5')) return '5 TON';
-  if (s.includes('20')) return '20 TON';
-  if (s.includes('40') || s.includes('FEET')) return '40 FEET';
-  return '10 TON';
+export {
+  normalizeBillingType,
+  normalizeRateCategory,
+  normalizeVehicleClass,
 };
 
 export const getActualCapacityLabel = (capacityKg?: number | null): string => {
@@ -685,12 +671,13 @@ export function useCreateTripForm() {
                     const perTripAmount = isMonthlyRate ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
                     return {
                       ...slot,
-                      billingAmount: String(perTripAmount),
+                      matchedRateCard: card,
+                      billingAmount: String(cardRate),
                       tripCharges: driverPayout != null ? String(driverPayout) : '',
                       rateMatched: true,
                       rateCardId: card.id,
                       rateCardName: card.name,
-                      rateCardBasePrice: perTripAmount,
+                      rateCardBasePrice: cardRate,
                       rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
                       saveAsQuotation: false,
                       saveAsRateCard: false,

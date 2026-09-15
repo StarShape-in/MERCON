@@ -59,7 +59,8 @@ export const TripEconomicsSection: React.FC<TripEconomicsSectionProps> = ({
 
   const [chargeLines, setChargeLines] = useState<TripChargeInput[]>(primarySlot.chargeLines || []);
 
-  const billingAmountNum = Number(primarySlot.billingAmount || matchedRateCard?.rate || matchedRateCard?.base_price || 0);
+  const activeCardRate = matchedRateCard?.rate ?? matchedRateCard?.base_price;
+  const billingAmountNum = Number(activeCardRate !== undefined && activeCardRate !== null ? activeCardRate : (primarySlot.billingAmount || 0));
   const is3PL = assignmentType === 'third_party' || assignmentType === '3pl';
   const thirdPartyCostNum = is3PL && thirdPartyCost ? Number(thirdPartyCost) : 0;
   const slotPayoutRaw = primarySlot.driverPayout !== undefined ? primarySlot.driverPayout : (matchedRateCard?.driver_payout ?? matchedRateCard?.default_trip_charge ?? 0);
