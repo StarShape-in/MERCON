@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Truck, User, ShieldAlert, Plus, Trash2, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Truck, User, ShieldAlert, Plus, Trash2, TrendingUp, Tag } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import { thirdPartyService, ProviderRateCard } from '@/services/thirdPartyService';
 
 interface ExecutionAssignmentSectionProps {
   assignmentType: 'own' | 'third_party' | '3pl';
@@ -55,6 +56,49 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
 }) => {
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
+  const [matchedRate, setMatchedRate] = useState<ProviderRateCard | null>(null);
+
+  useEffect(() => {
+    if (assignmentType !== 'third_party' && assignmentType !== '3pl') {
+      setMatchedRate(null);
+      return;
+    }
+    if (!thirdPartyProviderId) {
+      setMatchedRate(null);
+      return;
+    }
+
+    const primarySlot = contractSlots && contractSlots.length > 0 ? contractSlots[0] : null;
+    const origin = primarySlot?.originLocationName || primarySlot?.origin || '';
+    const destination = primarySlot?.destinationLocationName || primarySlot?.destination || '';
+    const vehicleClass = contractVehicleType || '10 TON';
+    const lineType = primarySlot?.contractRateCategory || 'Single Trip';
+    const opType = primarySlot?.contractBillingType || '';
+    const pricingBasis = opType?.toLowerCase().includes('month') ? 'Per Month' : 'Per Trip';
+
+    thirdPartyService
+      .matchRate({
+        providerId: thirdPartyProviderId,
+        origin,
+        destination,
+        vehicle_class: vehicleClass,
+        line_type: lineType,
+        operation_type: opType,
+        pricing_basis: pricingBasis,
+      })
+      .then((matched) => {
+        setMatchedRate(matched);
+        if (matched && matched.cost !== undefined && matched.cost !== null) {
+          if (!thirdPartyCost || thirdPartyCost === '0') {
+            setThirdPartyCost?.(String(matched.cost));
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Provider rate matching error:', err);
+        setMatchedRate(null);
+      });
+  }, [thirdPartyProviderId, contractSlots, contractVehicleType, assignmentType]);
 
   const selectedDriverObj = driverOptions.find((d) => d.value === masterDriver);
   const selectedVehicleObj = vehicleOptions.find((v) => v.value === masterVehicle);
@@ -401,9 +445,21 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider">
-                3PL COST (SAR) *
-              </label>
+              <div className="flex items-center justify-between min-w-0">
+                <label className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider truncate">
+                  3PL COST (SAR) *
+                </label>
+                {matchedRate && (
+                  <button
+                    type="button"
+                    onClick={() => setThirdPartyCost?.(String(matchedRate.cost))}
+                    className="text-[9px] font-extrabold text-purple-700 bg-purple-50 dark:bg-purple-950/60 dark:text-purple-300 px-1.5 py-0.2 rounded border border-purple-200 dark:border-purple-800 cursor-pointer hover:bg-purple-100 flex items-center gap-1 shrink-0"
+                    title="Click to auto-fill suggested baseline rate card cost"
+                  >
+                    <Tag className="w-2.5 h-2.5 text-purple-600" /> Rate: SAR {Number(matchedRate.cost).toLocaleString()}
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="number"

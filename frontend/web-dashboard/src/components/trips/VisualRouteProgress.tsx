@@ -187,8 +187,6 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
             </h3>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
               {totalStops} Milestones • {isRoundTrip ? 'Round Trip Transit' : 'Direct Commercial Transit'}
-              {totalStops} Milestones • Direct Commercial Transit
->>>>>>> ba9138272b7294e0f56b4f49631c668a92b997e5
             </p>
           </div>
         </div>

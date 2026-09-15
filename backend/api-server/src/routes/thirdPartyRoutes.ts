@@ -7,6 +7,11 @@ import {
   deleteThirdPartyProvider,
   bulkImportThirdPartyProviders,
   getThirdPartyStats,
+  getProviderRates,
+  createProviderRateCard,
+  updateProviderRateCard,
+  deleteProviderRateCard,
+  matchProviderRateCard,
 } from '../controllers/thirdPartyController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -20,6 +25,11 @@ router.use(authorizeRoles('Admin', 'Operator'));
 router.get('/', getThirdPartyProviders);
 // Before `/:id` so the literal path isn't captured as an id.
 router.get('/stats', getThirdPartyStats);
+router.post('/rates/match', matchProviderRateCard);
+router.put('/rates/:id', updateProviderRateCard);
+router.delete('/rates/:id', deleteProviderRateCard);
+router.get('/:providerId/rates', getProviderRates);
+router.post('/:providerId/rates', createProviderRateCard);
 router.get('/:id', getThirdPartyProviderById);
 router.post('/', createThirdPartyProvider);
 router.post('/import', bulkImportThirdPartyProviders);
