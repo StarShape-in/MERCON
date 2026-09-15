@@ -197,7 +197,14 @@ export function getTripPayloadCapacity(trip: Partial<Trip>): string {
 }
 
 export function getTripRateCategory(trip: Partial<Trip>): string {
-  return trip.rate_category || trip.rateCard?.rate_category || '—';
+  return (
+    trip.rate_category ||
+    trip.quotation_line_type ||
+    trip.financials?.quotation_line_type ||
+    trip.rateCard?.rate_category ||
+    trip.line_type?.name ||
+    '—'
+  );
 }
 
 export function getTripBillingType(trip: Partial<Trip>): string {

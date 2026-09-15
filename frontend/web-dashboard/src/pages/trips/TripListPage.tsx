@@ -143,7 +143,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Payload Capacity', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Line Type', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
   'Driver Charge (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
@@ -186,8 +186,8 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
       ? (t.third_party_vehicle_plate || '3PL Vehicle')
       : (t.vehicle?.plate_number || 'Unassigned')
   },
-  { id: 'capacity', label: 'Payload Capacity', accessor: (t) => getTripPayloadCapacity(t) },
-  { id: 'category', label: 'Vehicle Class', accessor: (t) => getTripRateCategory(t) },
+  { id: 'line_type', label: 'Line Type', accessor: (t) => getTripRateCategory(t) },
+  { id: 'category', label: 'Vehicle Class', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t) },
   { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
   { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
@@ -1832,19 +1832,12 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Payload Cap.',
-      className: 'w-[110px] shrink-0',
+      header: 'Line Type',
+      className: 'w-[120px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cap = getTripPayloadCapacity(row);
-        return (
-          <Badge
-            variant="outline"
-            className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 px-1.5 py-0.5"
-          >
-            {cap}
-          </Badge>
-        );
+        const lineType = getTripRateCategory(row);
+        return <TaxonomyBadge category="LINE_TYPE" value={lineType} fallbackText="Single Trip" />;
       },
     },
     {
@@ -1852,8 +1845,8 @@ export default function TripListPage() {
       className: 'w-[130px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cat = row.quotation_vehicle_class || row.vehicle_type || getTripRateCategory(row);
-        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} />;
+        const cat = row.quotation_vehicle_class || row.financials?.quotation_vehicle_class || row.vehicle_type || getTripPayloadCapacity(row);
+        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} fallbackText="10 TON" />;
       },
     },
     {
