@@ -143,24 +143,26 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }
   };
 
-  // Auto-scroll to left position 0 when customer changes, reset inline mode, clear search, and auto-select active cards tab
+  // Auto-scroll to left position 0 when customer changes, reset inline mode, and clear search
   React.useEffect(() => {
     setIsInlineMode(false);
     setQuotationSearchQuery('');
 
-    if (setContractBillingType && (monthlyCount > 0 || extraCount > 0)) {
-      const currentBt = normalizeBillingType(contractBillingType);
-      if (currentBt === 'Monthly' && monthlyCount === 0 && extraCount > 0) {
-        setContractBillingType('Extra');
-      } else if (currentBt === 'Extra' && extraCount === 0 && monthlyCount > 0) {
-        setContractBillingType('Monthly');
-      }
-    }
-
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
-  }, [contractCustomer, monthlyCount, extraCount, contractBillingType, setContractBillingType]);
+  }, [contractCustomer]);
+
+  // Auto-switch billing type tab if current tab has 0 cards but alternative tab has cards
+  React.useEffect(() => {
+    if (!setContractBillingType) return;
+    const currentBt = normalizeBillingType(contractBillingType);
+    if (currentBt === 'Monthly' && monthlyCount === 0 && extraCount > 0) {
+      setContractBillingType('Extra');
+    } else if (currentBt === 'Extra' && extraCount === 0 && monthlyCount > 0) {
+      setContractBillingType('Monthly');
+    }
+  }, [monthlyCount, extraCount]);
 
   const derivedCustomerOptions = React.useMemo(() => {
     if (customerOptions && customerOptions.length > 0) return customerOptions;
