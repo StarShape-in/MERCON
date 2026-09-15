@@ -106,6 +106,12 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
     rc.to,
   ]);
 
+  const quotationDisplayCode =
+    (rc as any).agreement_ref ||
+    rc.quotation_number ||
+    (rc.name && rc.name.startsWith('QT-') ? rc.name : null) ||
+    (rc.id ? `QT-${rc.id.substring(0, 6).toUpperCase()}` : `QT-${idx + 1}`);
+
   return (
     <button
       key={rc.id || idx}
@@ -124,7 +130,7 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
       {/* TOP ROW: QUOTATION ID + PRICE BADGE (ZERO COLLISION) */}
       <div className="flex items-center justify-between gap-1">
         <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
-          {rc.quotation_number || `QUO-${idx + 1}`}
+          {quotationDisplayCode}
         </span>
 
         {/* PRICE BADGE */}

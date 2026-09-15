@@ -152,9 +152,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       .slice(0, 50);
   }, [effectiveRateCards, activeSelectedId]);
 
-  // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
-    const cards = matchingCardsForSpec.length > 0 ? matchingCardsForSpec : sortedRateCards;
+    const cards = matchingCardsForSpec;
 
     if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
@@ -289,7 +288,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 {/* MODE SELECTOR BUTTONS */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
-                    BILLING TYPE:
+                    OPERATION TYPE:
                   </span>
                   <button
                     type="button"
