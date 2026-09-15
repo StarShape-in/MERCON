@@ -42,8 +42,8 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
       {/* HEADER BADGE & LANE DETAILS */}
       <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-orange-200/60 dark:border-slate-700">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1">
-            ✨ Rate Card
+          <span className="text-[11px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200/80 flex items-center gap-1 shadow-2xs">
+            {primarySlot.rateMatched || primarySlot.matchedRateCard ? '✏️ Edit Selected Quotation' : '✨ Define Quotation'}
           </span>
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
             for {selectedCustName || 'Customer'}

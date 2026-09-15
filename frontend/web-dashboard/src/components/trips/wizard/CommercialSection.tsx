@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
@@ -87,6 +87,10 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   const activeSelectedId = primarySlot.rateMatched && (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
     ? (primarySlot.matchedRateCard?.id || primarySlot.rateCardId)
     : null;
+
+  const isSelectedQuotation = Boolean(
+    primarySlot.rateMatched && (primarySlot.matchedRateCard || primarySlot.rateCardId)
+  );
 
   // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {
@@ -286,7 +290,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
           )}
         </div>
 
-        {/* RIGHT: CREATE QUOTATION BUTTON / TOGGLE */}
+        {/* RIGHT: CREATE / EDIT QUOTATION BUTTON TOGGLE */}
         <div className="flex items-center gap-1.5 shrink-0">
           {contractCustomer && (
             <Button
@@ -296,10 +300,22 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               onClick={() => setIsInlineMode(!showInlineForm)}
               className="h-8 text-xs font-bold border-brand text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 gap-1.5 cursor-pointer shrink-0 rounded-lg px-2.5"
             >
-              <Plus className="w-3.5 h-3.5" />
-              {showInlineForm && effectiveRateCards.length > 0
-                ? `Saved Cards (${effectiveRateCards.length})`
-                : 'Define Quotation'}
+              {showInlineForm ? (
+                <>
+                  <Layers className="w-3.5 h-3.5" />
+                  {effectiveRateCards.length > 0 ? `Saved Cards (${effectiveRateCards.length})` : 'View Cards'}
+                </>
+              ) : isSelectedQuotation ? (
+                <>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit Quotation
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  Define Quotation
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -428,16 +444,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               contractVehicleType={contractVehicleType}
               onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
                 const clickedId = getCardId(rc);
-                const currentId = getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId });
-                const isAlreadySelected = Boolean(clickedId && currentId && clickedId === currentId);
+                const activeId = primarySlot.rateMatched && (primarySlot.matchedRateCard || primarySlot.rateCardId)
+                  ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
+                  : null;
+                const isAlreadySelected = Boolean(clickedId && activeId && clickedId === activeId);
 
                 React.startTransition(() => {
                   if (isAlreadySelected) {
-                    // Deselect / Clear card
+                    // Deselect / Clear card on second click
                     handleUpdateTripSlot(primarySlot.id, {
                       matchedRateCard: null,
-                      rateCardId: null,
-                      billingAmount: '0',
+                      rateCardId: undefined,
+                      rateMatched: false,
+                      billingAmount: '',
+                      driverPayout: '',
                     });
                     return;
                   }
