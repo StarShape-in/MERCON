@@ -9,6 +9,7 @@ import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 import { DefineQuotationInlineForm } from './DefineQuotationInlineForm';
 import CustomerCardCarousel from './CustomerCardCarousel';
 import QuotationCardCarousel from './QuotationCardCarousel';
+import { getCardId } from './QuotationRateCard';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -416,11 +417,13 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               contractRateCategory={contractRateCategory}
               contractVehicleType={contractVehicleType}
               onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
-                const isAlreadySelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
+                const clickedId = getCardId(rc);
+                const currentId = getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId });
+                const isAlreadySelected = Boolean(clickedId && currentId && clickedId === currentId);
 
                 React.startTransition(() => {
                   if (isAlreadySelected) {
-                    // Toggle Deselect / Clear selection
+                    // Deselect / Clear card
                     handleUpdateTripSlot(primarySlot.id, {
                       matchedRateCard: null,
                       rateCardId: null,
@@ -432,26 +435,28 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                   const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
                   const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
 
-                  if (origName && handleSlotLocationChange) {
-                    handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                  }
-                  if (destName && handleSlotLocationChange) {
-                    handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                  }
                   if (targetCategory && setContractRateCategory) {
                     setContractRateCategory(targetCategory);
                   }
                   if (targetVehicleClass && setContractVehicleType) {
                     setContractVehicleType(targetVehicleClass);
                   }
+
+                  // Single unified slot patch to prevent multi-render race conditions
                   handleUpdateTripSlot(primarySlot.id, {
                     matchedRateCard: rc,
+                    rateCardId: clickedId || undefined,
                     billingAmount: String(rateVal),
                     driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
                     driverPayoutModified: false,
                     updateQuotationPayout: false,
                     rateCategory: targetCategory,
                     vehicleType: targetVehicleClass,
+                    pricingBasis: rc.pricing_basis || (normalizeBillingType(rc.operation_type || rc.billing_type) === 'Monthly' ? 'Per Month' : 'Per Trip'),
+                    origin: origName || primarySlot.origin,
+                    destination: destName || primarySlot.destination,
+                    originLocationId: rc.originLocation?.id || firstStop?.location?.id || firstStop?.location_id || primarySlot.originLocationId,
+                    destinationLocationId: rc.destinationLocation?.id || lastStop?.location?.id || lastStop?.location_id || primarySlot.destinationLocationId,
                   });
                 });
               }}

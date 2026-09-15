@@ -594,19 +594,9 @@ export function useCreateTripForm() {
         .then(async ({ quotationService }) => {
           const updatedSlots = await Promise.all(
             currentSlots.map(async (slot) => {
-              // Preserve manually selected quotation card ONLY if it matches the current line_type and vehicle_class
+              // Always preserve selected quotation card on slot to prevent background lookup overwrites
               if (slot.matchedRateCard) {
-                const cardLT = String(slot.matchedRateCard.line_type || slot.matchedRateCard.rate_category || '').toUpperCase().replace(/_/g, ' ');
-                const targetLT = String(rCat || '').toUpperCase().replace(/_/g, ' ');
-                const cardVC = String(slot.matchedRateCard.vehicle_class || slot.matchedRateCard.source_vehicle_label || slot.matchedRateCard.vehicle_type || '').toUpperCase().replace(/_/g, ' ');
-                const targetVC = String(vType || '').toUpperCase().replace(/_/g, ' ');
-
-                const ltMatch = !rCat || !cardLT || (cardLT.includes('10') && targetLT.includes('10')) || (cardLT.includes('12') && targetLT.includes('12')) || (cardLT.includes('ROUND') && targetLT.includes('ROUND')) || (cardLT.includes('SINGLE') && targetLT.includes('SINGLE')) || cardLT === targetLT;
-                const vcMatch = !vType || !cardVC || cardVC === targetVC;
-
-                if (ltMatch && vcMatch) {
-                  return slot;
-                }
+                return slot;
               }
 
               if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;

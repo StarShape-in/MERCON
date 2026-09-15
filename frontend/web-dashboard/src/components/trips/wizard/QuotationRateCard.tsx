@@ -37,9 +37,15 @@ export interface RateCardItem {
   route_destination?: string;
   destination_name?: string;
   destinationLocation?: { id?: string; name?: string };
-  destination_city?: string;
   destination?: string;
   to?: string;
+}
+
+export function getCardId(rc: any): string | null {
+  if (!rc) return null;
+  const rawId = rc.id || rc.quotation_id || rc.quotationId || rc.rateCardId || rc.rate_card_id || rc.agreement_ref;
+  if (rawId == null) return null;
+  return String(rawId).trim();
 }
 
 export function extractEndpointName(stop: any, fallbackFields: (string | undefined)[]): string {

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import QuotationRateCard, { RateCardItem } from './QuotationRateCard';
+import QuotationRateCard, { RateCardItem, getCardId } from './QuotationRateCard';
 
 interface QuotationCardCarouselProps {
   rateCards: RateCardItem[];
@@ -42,16 +42,18 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
     );
   }
 
+  const targetActiveId = activeSelectedId || primarySlotMatchedId;
+  const canonicalActiveId = targetActiveId ? getCardId({ id: targetActiveId }) : null;
+
   if (rateCards.length <= 3) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
         {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+          const rcId = getCardId(rc);
+          const isSelected = Boolean(rcId && canonicalActiveId && rcId === canonicalActiveId);
 
           return (
-            <div key={rc.id || `card-${idx}`} className="w-full">
+            <div key={rcId || `card-${idx}`} className="w-full">
               <QuotationRateCard
                 rc={rc}
                 idx={idx}
@@ -84,13 +86,12 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
         className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+          const rcId = getCardId(rc);
+          const isSelected = Boolean(rcId && canonicalActiveId && rcId === canonicalActiveId);
 
           return (
             <div
-              key={rc.id || `card-${idx}`}
+              key={rcId || `card-${idx}`}
               className="w-[260px] sm:w-[calc(33.333%-8px)] min-w-[220px] shrink-0"
             >
               <QuotationRateCard
