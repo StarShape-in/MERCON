@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "VehicleCompatibilityRule" (
+CREATE TABLE IF NOT EXISTS "VehicleCompatibilityRule" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "serviceVehicleClassId" TEXT NOT NULL,
     "serviceVehicleClassCode" TEXT NOT NULL,
@@ -13,7 +13,8 @@ CREATE TABLE "VehicleCompatibilityRule" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VehicleCompatibilityRule_serviceVehicleClassCode_key" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
+CREATE UNIQUE INDEX IF NOT EXISTS "VehicleCompatibilityRule_serviceVehicleClassCode_key" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
 
 -- CreateIndex
-CREATE INDEX "VehicleCompatibilityRule_serviceVehicleClassCode_idx" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
+CREATE INDEX IF NOT EXISTS "VehicleCompatibilityRule_serviceVehicleClassCode_idx" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
+
