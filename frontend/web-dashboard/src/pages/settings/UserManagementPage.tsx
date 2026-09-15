@@ -439,20 +439,10 @@ export default function UserManagementPage() {
       <div className="p-6 max-w-[1600px] mx-auto w-full flex flex-col gap-5 bg-slate-50/50 dark:bg-slate-950">
 
         {/* ── Page Header & Split Create Button ── */}
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <div className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1">
-              <span>Account</span>
-              <span>&gt;</span>
-              <span className="text-slate-600 dark:text-slate-300 font-semibold">User Management</span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              User Management
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Manage platform users, driver accounts and their access permissions.
-            </p>
-          </div>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            User Management
+          </h1>
 
           <div className="flex items-center gap-2">
             <DropdownMenu>
