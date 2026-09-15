@@ -794,6 +794,22 @@ export function useCreateTripForm() {
               }
             }
           }
+
+          // Commercial Pricing & Rate Validation
+          const hasRateMatched = Boolean(slot.matchedRateCard || slot.rateMatched);
+          const hasBillingInput = slot.billingAmount !== undefined && slot.billingAmount !== null && slot.billingAmount !== '' && Number(slot.billingAmount) > 0;
+
+          if (!hasRateMatched && !hasBillingInput) {
+            errors.push(`${laneLabel}: Select a Commercial Quotation card or enter Customer Billing Rate`);
+          }
+
+          const hasTripChargeInput = slot.tripCharges !== undefined && slot.tripCharges !== null && slot.tripCharges !== '';
+          const hasDriverPayoutProp = slot.driverPayout !== undefined && slot.driverPayout !== null && slot.driverPayout !== '';
+          const hasMatchedPayout = slot.matchedRateCard?.driver_payout != null || slot.matchedRateCard?.default_trip_charge != null;
+
+          if (!hasTripChargeInput && !hasDriverPayoutProp && !hasMatchedPayout) {
+            errors.push(`${laneLabel}: Enter Driver Payout / Charge`);
+          }
         });
       }
 
