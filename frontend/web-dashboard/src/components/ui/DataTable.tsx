@@ -270,11 +270,11 @@ export default function DataTable<T>({
       
       {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3">
           
-          {/* Row 1: Title Header & Primary Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-            {title && (
+          {/* Title Header (when present) */}
+          {title && (
+            <div className="flex flex-wrap items-center justify-between gap-3 w-full pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
               <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                 {typeof title === 'string' ? (
                   <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -289,43 +289,12 @@ export default function DataTable<T>({
                   </Badge>
                 )}
               </div>
-            )}
-
-            {/* Actions Group (Select, Custom Actions, Export) */}
-            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
-              {enableSelection && !hideSelectButton && (
-                <Button
-                  variant={isSelectionMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleSelectionMode}
-                  className={cn(
-                    "h-8 text-xs font-semibold px-3 shadow-xs gap-1.5 transition-colors",
-                    isSelectionMode
-                      ? "bg-brand hover:bg-brand-hover text-white border-brand"
-                      : "border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
-                  )}
-                >
-                  <CheckSquare className="w-3.5 h-3.5" />
-                  <span>{isSelectionMode ? `Selecting (${selectedKeys.size})` : "Select"}</span>
-                </Button>
-              )}
-              {actionsElement}
-              {onExport && (
-                <Btn
-                  label="Export"
-                  variant="secondary"
-                  size="sm"
-                  icon={<Download size={13} />}
-                  onClick={onExport}
-                />
-              )}
             </div>
-          </div>
+          )}
 
-          {/* Row 2: Search Input & Filter Controls */}
-          {(onSearchChange !== undefined || filterElement !== undefined) && (
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60">
-              
+          {/* Search, Filters, and Right-Aligned Actions (Select, Custom Actions, Export) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
               {/* Search Bar */}
               {onSearchChange !== undefined && (
                 <div className="relative w-full sm:w-72 lg:w-80 shrink-0">
@@ -356,9 +325,38 @@ export default function DataTable<T>({
                   {filterElement}
                 </div>
               )}
-
             </div>
-          )}
+
+            {/* Actions Group (Select, Custom Actions, Export) */}
+            <div className="flex items-center flex-wrap gap-2 shrink-0 ml-auto">
+              {enableSelection && !hideSelectButton && (
+                <Button
+                  variant={isSelectionMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleToggleSelectionMode}
+                  className={cn(
+                    "h-9 text-xs font-semibold px-3.5 rounded-xl shadow-2xs gap-1.5 transition-colors cursor-pointer",
+                    isSelectionMode
+                      ? "bg-brand hover:bg-brand-hover text-white border-brand"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
+                  )}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span>{isSelectionMode ? `Selecting (${selectedKeys.size})` : "Select"}</span>
+                </Button>
+              )}
+              {actionsElement}
+              {onExport && (
+                <Btn
+                  label="Export"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Download size={13} />}
+                  onClick={onExport}
+                />
+              )}
+            </div>
+          </div>
 
         </div>
       )}

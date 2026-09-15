@@ -60,8 +60,6 @@ export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('all');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [accountTypeFilter, setAccountTypeFilter] = useState('all');
 
   const currentUser = authStore.getUser();
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.isSuperAdmin;
@@ -156,26 +154,9 @@ export default function UserManagementPage() {
         if (roleFilter !== 'SuperAdmin' && item.role !== roleFilter) return false;
       }
 
-      // Status filter
-      if (statusFilter !== 'all' && item.status !== statusFilter) {
-        return false;
-      }
-
-      // Account Type filter
-      if (accountTypeFilter !== 'all' && item.accountType !== accountTypeFilter) {
-        return false;
-      }
-
       return true;
     });
-  }, [combinedUsers, activeTab, search, roleFilter, statusFilter, accountTypeFilter]);
-
-  const resetFilters = () => {
-    setSearch('');
-    setRoleFilter('all');
-    setStatusFilter('all');
-    setAccountTypeFilter('all');
-  };
+  }, [combinedUsers, activeTab, search, roleFilter]);
 
   const handleExportUsers = (rows: UnifiedUser[], format: 'excel' | 'pdf') => {
     if (!rows.length) return;
@@ -519,7 +500,7 @@ export default function UserManagementPage() {
           isError={isUsersError || isDriversError}
           errorMessage={(usersError || driversError as Error)?.message || 'Failed to load user records.'}
           filterElement={
-            <div className="flex items-center gap-2 flex-wrap w-full">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Search Bar */}
               <div className="relative w-full sm:w-72 shrink-0">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -528,14 +509,14 @@ export default function UserManagementPage() {
                   placeholder="Search users by name, email or phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-8.5 pr-4 h-9 text-xs bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                  className="w-full pl-8.5 pr-4 h-9 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-xl font-medium shadow-2xs"
                 />
               </div>
 
               {/* Role Dropdown */}
               <div className="w-36">
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="h-9 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200">
+                  <SelectTrigger className="h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xs">
                     <SelectValue placeholder="Role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -547,45 +528,6 @@ export default function UserManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Status Dropdown */}
-              <div className="w-36">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Account Type Dropdown */}
-              <div className="w-36">
-                <Select value={accountTypeFilter} onValueChange={setAccountTypeFilter}>
-                  <SelectTrigger className="h-9 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200">
-                    <SelectValue placeholder="Account Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="Web">Web</SelectItem>
-                    <SelectItem value="Driver App">Driver App</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Reset Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetFilters}
-                className="h-9 px-3 text-xs font-semibold rounded-xl border-slate-200 bg-white dark:bg-slate-900 text-slate-600 hover:text-slate-900"
-              >
-                <RotateCcw size={13} className="mr-1.5 text-slate-500" />
-                Reset
-              </Button>
             </div>
           }
           bulkActions={[
