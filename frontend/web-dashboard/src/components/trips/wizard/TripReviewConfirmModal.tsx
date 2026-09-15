@@ -120,18 +120,21 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   const primaryVehiclePlate = resolveVehicleDisplay(masterVehicle);
   const thirdPartyProviderObj = thirdPartyProviders.find((p) => p.id === thirdPartyProviderId);
 
-  // Resolve Roster / Rotation Pairs if dayAssignments exist
-  const assignedPairsMap = new Map<string, { driverId: string; vehicleId: string }>();
+  // Resolve Roster / Rotation Pairs & Operating Days per Driver
+  const rosterMap = new Map<string, { driverId: string; vehicleId: string; daysCount: number }>();
   Object.values(dayAssignments).forEach((a: any) => {
     if (a?.driverId || a?.vehicleId) {
       const key = `${a.driverId || ''}_${a.vehicleId || ''}`;
-      if (!assignedPairsMap.has(key)) {
-        assignedPairsMap.set(key, { driverId: a.driverId, vehicleId: a.vehicleId });
+      const existing = rosterMap.get(key);
+      if (existing) {
+        existing.daysCount += 1;
+      } else {
+        rosterMap.set(key, { driverId: a.driverId, vehicleId: a.vehicleId, daysCount: 1 });
       }
     }
   });
 
-  const rosterPairs = Array.from(assignedPairsMap.values());
+  const rosterPairs = Array.from(rosterMap.values());
 
   // Validate that all slots satisfy planned_start < planned_end
   const scheduleErrors = React.useMemo(() => {
@@ -324,9 +327,11 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                 {rosterPairs.map((pair, idx) => {
                   const dInfo = resolveDriverDisplay(pair.driverId);
                   const vPlate = resolveVehicleDisplay(pair.vehicleId);
+                  const singleDriverRate = parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0;
+                  const driverPayoutTotal = singleDriverRate * pair.daysCount;
 
                   return (
-                    <div key={idx} className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
+                    <div key={idx} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
                       <DriverAvatar
                         src={dInfo.avatar}
                         firstName={dInfo.firstName}
@@ -337,9 +342,12 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                         <span className="font-black text-slate-900 dark:text-white truncate block text-[11px]">
                           {dInfo.name}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500 font-bold block truncate">
-                          {vPlate}
-                        </span>
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold mt-0.5">
+                          <span className="font-mono text-slate-600 dark:text-slate-300">{vPlate}</span>
+                          <span className="text-[#FA634E] font-mono font-black">
+                            {pair.daysCount} Day{pair.daysCount > 1 ? 's' : ''} {singleDriverRate > 0 ? `(SAR ${driverPayoutTotal.toLocaleString()})` : ''}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
