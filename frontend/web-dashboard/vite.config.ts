@@ -5,8 +5,10 @@ import path from 'path'
 
 const getProxyTarget = () => {
   if (process.env.VITE_BACKEND_URL) return process.env.VITE_BACKEND_URL;
-  if (process.env.VITE_API_URL) return process.env.VITE_API_URL.replace(/\/api\/?$/, '');
-  return 'https://dev.mercon.tech';
+  if (process.env.VITE_API_URL && process.env.VITE_API_URL.startsWith('http')) {
+    return process.env.VITE_API_URL.replace(/\/api\/?$/, '');
+  }
+  return 'http://localhost:3000';
 };
 
 const proxyTarget = getProxyTarget();
