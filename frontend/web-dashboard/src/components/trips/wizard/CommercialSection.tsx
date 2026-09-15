@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { getAllTaxonomyOptions, normalizeCode } from '@/utils/taxonomyRegistry';
-import { normalizeRateCategory, normalizeVehicleClass } from '@/hooks/useCreateTripForm';
+import { normalizeRateCategory, normalizeVehicleClass, normalizeBillingType } from '@/utils/taxonomyRegistry';
 import { LaneRateHistoryPopover } from './LaneRateHistoryPopover';
 import { DefineQuotationInlineForm } from './DefineQuotationInlineForm';
 import CustomerCardCarousel from './CustomerCardCarousel';
+import QuotationCardCarousel from './QuotationCardCarousel';
 
 interface CommercialSectionProps {
   contractSlots: any[];
@@ -76,29 +77,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
-    const targetBt = (contractBillingType || '').toLowerCase().trim();
+    const targetBt = normalizeBillingType(contractBillingType);
 
     return effectiveRateCards.filter((rc) => {
-      const rcBt = String(
-        rc.billing_type ||
-        rc.billingType ||
-        (rc as any).pricing_basis ||
-        (rc as any).quotation_billing_type ||
-        ''
-      ).toLowerCase().trim();
-
-      // Check billing type match:
-      // If target is "Monthly", match if rcBt is monthly, per month, contract, or default
-      // If target is "Extra", match if rcBt is extra, spot, single, per trip, or default
-      if (targetBt.includes('monthly') || targetBt.includes('contract')) {
-        if (rcBt.includes('spot') || rcBt.includes('extra')) return false;
-        return true;
-      } else if (targetBt.includes('extra') || targetBt.includes('spot')) {
-        if (rcBt.includes('monthly') || rcBt.includes('month')) return false;
-        return true;
-      }
-
-      return true;
+      const rcRaw = rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
+      const rcBt = normalizeBillingType(rcRaw);
+      return rcBt === targetBt;
     });
   }, [effectiveRateCards, contractBillingType]);
 
@@ -383,276 +367,39 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               fieldErrors={fieldErrors}
             />
           ) : displayedRateCards.length > 0 ? (
-            displayedRateCards.length <= 3 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-                {displayedRateCards.map((rc, idx) => {
-                  const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
-                  const rateVal = rc.rate ?? rc.base_price ?? 0;
-                  const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
-                  const rCat = rc.rate_category || rc.line_type || contractRateCategory;
-                  const hasHistory = Boolean(rc.driver_name || rc.recent_driver || rc.vehicle_plate || rc.recent_vehicle);
+            <QuotationCardCarousel
+              rateCards={displayedRateCards}
+              activeSelectedId={activeSelectedId}
+              primarySlotMatchedId={primarySlot.matchedRateCard?.id}
+              contractRateCategory={contractRateCategory}
+              contractVehicleType={contractVehicleType}
+              onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
+                const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+                const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
 
-                  const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
-                  const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
-
-                  const origName = String(
-                    firstStop?.source_label ||
-                    firstStop?.location?.name ||
-                    (firstStop as any)?.location_name ||
-                    rc.route_origin ||
-                    rc.origin_name ||
-                    rc.originLocation?.name ||
-                    rc.origin_city ||
-                    rc.origin ||
-                    rc.from ||
-                    ''
-                  );
-
-                  const destName = String(
-                    lastStop?.source_label ||
-                    lastStop?.location?.name ||
-                    (lastStop as any)?.location_name ||
-                    rc.route_destination ||
-                    rc.destination_name ||
-                    rc.destinationLocation?.name ||
-                    rc.destination_city ||
-                    rc.destination ||
-                    rc.to ||
-                    ''
-                  );
-
-                  const cardBType = (rc.quotation_billing_type || rc.billing_type || (rc as any).pricing_basis || '').toLowerCase();
-                  const isMonthlyCard = cardBType.includes('monthly') || cardBType.includes('month');
-
-                  return (
-                    <button
-                      key={rc.id || idx}
-                      type="button"
-                      onClick={() => {
-                        const rawCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
-                        const targetCategory = normalizeRateCategory(rawCategory);
-                        const targetVehicleClass = normalizeVehicleClass(rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType);
-
-                        if (origName && handleSlotLocationChange) {
-                          handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                        }
-                        if (destName && handleSlotLocationChange) {
-                          handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                        }
-                        if (targetCategory && setContractRateCategory) {
-                          setContractRateCategory(targetCategory);
-                        }
-                        if (targetVehicleClass && setContractVehicleType) {
-                          setContractVehicleType(targetVehicleClass);
-                        }
-                        handleUpdateTripSlot(primarySlot.id, {
-                          matchedRateCard: rc,
-                          billingAmount: String(rateVal),
-                          driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
-                          driverPayoutModified: false,
-                          updateQuotationPayout: false,
-                          rateCategory: targetCategory,
-                          vehicleType: targetVehicleClass,
-                        });
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-full min-h-[110px]",
-                        isSelected
-                          ? isMonthlyCard
-                            ? "border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20"
-                            : "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
-                          : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
-                      )}
-                    >
-                      {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
-                            {rc.quotation_number || `QUO-${idx + 1}`}
-                          </span>
-                          {isSelected && (
-                            <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                              Applied ✓
-                            </span>
-                          )}
-                        </div>
-
-                        {/* PRICE BADGE */}
-                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
-                          SAR {Number(rateVal).toLocaleString()} <span className="text-[9px] font-bold font-sans text-slate-500">{isMonthlyCard ? '/mo' : '/trip'}</span>
-                        </span>
-                      </div>
-
-                      {/* HERO CENTER: PROMINENT LOCATION ROUTE LANE */}
-                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-1.5 my-0.5">
-                        <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[45%]" title={origName}>
-                          {origName || 'Origin'}
-                        </span>
-                        <span className="text-[#FA634E] font-bold text-xs shrink-0">→</span>
-                        <span className="text-xs font-black text-[#FA634E] truncate max-w-[45%]" title={destName}>
-                          {destName || 'Destination'}
-                        </span>
-                      </div>
-
-                      {/* BOTTOM ROW: LINE TYPE & VEHICLE CLASS + ACTION */}
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold pt-0.5">
-                        <span className="truncate">
-                          {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
-                        </span>
-                        <span className={cn("font-black shrink-0", isSelected ? (isMonthlyCard ? "text-purple-600" : "text-brand") : "text-slate-400 hover:text-slate-600")}>
-                          {isSelected ? 'Active' : 'Apply →'}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="relative group/carousel w-full flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleScrollLeft}
-                  className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-brand hover:text-white hover:border-brand grid place-items-center transition-all cursor-pointer shrink-0 z-10"
-                  title="Scroll Left"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                <div
-                  ref={scrollContainerRef}
-                  className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                >
-                  {displayedRateCards.map((rc, idx) => {
-                    const isSelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
-                    const rateVal = rc.rate ?? rc.base_price ?? 0;
-                    const vClass = rc.vehicle_class || rc.vehicle_type || 'Standard';
-                    const rCat = rc.rate_category || rc.line_type || contractRateCategory;
-                    const cardBType = (rc.quotation_billing_type || rc.billing_type || (rc as any).pricing_basis || '').toLowerCase();
-                    const isMonthlyCard = cardBType.includes('monthly') || cardBType.includes('month');
-
-                    const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
-                    const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
-
-                    const origName = String(
-                      firstStop?.source_label ||
-                      firstStop?.location?.name ||
-                      (firstStop as any)?.location_name ||
-                      rc.route_origin ||
-                      rc.origin_name ||
-                      rc.originLocation?.name ||
-                      rc.origin_city ||
-                      rc.origin ||
-                      rc.from ||
-                      ''
-                    );
-
-                    const destName = String(
-                      lastStop?.source_label ||
-                      lastStop?.location?.name ||
-                      (lastStop as any)?.location_name ||
-                      rc.route_destination ||
-                      rc.destination_name ||
-                      rc.destinationLocation?.name ||
-                      rc.destination_city ||
-                      rc.destination ||
-                      rc.to ||
-                      ''
-                    );
-
-                    return (
-                      <button
-                        key={rc.id || idx}
-                        type="button"
-                        onClick={() => {
-                          const rawCategory = rc.rate_category || rc.line_type || rc.lineType || contractRateCategory;
-                          const targetCategory = normalizeRateCategory(rawCategory);
-                          const targetVehicleClass = normalizeVehicleClass(rc.vehicle_class || rc.vehicle_type || rc.vehicleClass || contractVehicleType);
-
-                          if (origName && handleSlotLocationChange) {
-                            handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                          }
-                          if (destName && handleSlotLocationChange) {
-                            handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                          }
-                          if (targetCategory && setContractRateCategory) {
-                            setContractRateCategory(targetCategory);
-                          }
-                          if (targetVehicleClass && setContractVehicleType) {
-                            setContractVehicleType(targetVehicleClass);
-                          }
-                          handleUpdateTripSlot(primarySlot.id, {
-                            matchedRateCard: rc,
-                            billingAmount: String(rateVal),
-                            driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
-                            driverPayoutModified: false,
-                            updateQuotationPayout: false,
-                            rateCategory: targetCategory,
-                            vehicleType: targetVehicleClass,
-                          });
-                        }}
-                        className={cn(
-                          "p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between space-y-1.5 bg-white dark:bg-slate-800 shadow-2xs cursor-pointer select-none w-[calc(33.333%-8px)] min-w-[210px] shrink-0 min-h-[110px]",
-                          isSelected
-                            ? isMonthlyCard
-                              ? "border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20"
-                              : "border-brand ring-2 ring-brand/20 bg-orange-50/40 dark:bg-amber-950/20"
-                            : "border-slate-200 dark:border-slate-700 hover:border-brand/60 hover:bg-slate-50 dark:hover:bg-slate-700"
-                        )}
-                      >
-                        {/* TOP ROW: QUOTATION ID + PRICE BADGE */}
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-600 shrink-0">
-                              {rc.quotation_number || `QUO-${idx + 1}`}
-                            </span>
-                            {isSelected && (
-                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                                Applied ✓
-                              </span>
-                            )}
-                          </div>
-
-                          {/* PRICE BADGE */}
-                          <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
-                            SAR {Number(rateVal).toLocaleString()} <span className="text-[9px] font-bold font-sans text-slate-500">{isMonthlyCard ? '/mo' : '/trip'}</span>
-                          </span>
-                        </div>
-
-                        {/* HERO CENTER: PROMINENT LOCATION ROUTE LANE */}
-                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-1.5 my-0.5">
-                          <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[45%]" title={origName}>
-                            {origName || 'Origin'}
-                          </span>
-                          <span className="text-[#FA634E] font-bold text-xs shrink-0">→</span>
-                          <span className="text-xs font-black text-[#FA634E] truncate max-w-[45%]" title={destName}>
-                            {destName || 'Destination'}
-                          </span>
-                        </div>
-
-                        {/* BOTTOM ROW: LINE TYPE & VEHICLE CLASS + ACTION */}
-                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold pt-0.5">
-                          <span className="truncate">
-                            {rCat} • <span className="text-slate-800 dark:text-slate-200">{vClass}</span>
-                          </span>
-                          <span className={cn("font-black shrink-0", isSelected ? "text-brand" : "text-slate-400 hover:text-slate-600")}>
-                            {isSelected ? 'Active' : 'Apply →'}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleScrollRight}
-                  className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-brand hover:text-white hover:border-brand grid place-items-center transition-all cursor-pointer shrink-0 z-10"
-                  title="Scroll Right"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )
+                if (origName && handleSlotLocationChange) {
+                  handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
+                }
+                if (destName && handleSlotLocationChange) {
+                  handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
+                }
+                if (targetCategory && setContractRateCategory) {
+                  setContractRateCategory(targetCategory);
+                }
+                if (targetVehicleClass && setContractVehicleType) {
+                  setContractVehicleType(targetVehicleClass);
+                }
+                handleUpdateTripSlot(primarySlot.id, {
+                  matchedRateCard: rc,
+                  billingAmount: String(rateVal),
+                  driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                  driverPayoutModified: false,
+                  updateQuotationPayout: false,
+                  rateCategory: targetCategory,
+                  vehicleType: targetVehicleClass,
+                });
+              }}
+            />
           ) : (
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-center space-y-1.5">
               {quotationSearchQuery ? (
