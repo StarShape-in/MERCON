@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authStore } from '@/store/authStore';
 import { userService, UserDTO } from '@/services/userService';
 import { driverService, Driver } from '@/services/driverService';
@@ -440,14 +441,14 @@ export default function UserManagementPage() {
 
         {/* ── Page Header & Split Create Button ── */}
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl font-black text-[#3E3C3D] dark:text-white tracking-tight">
             User Management
           </h1>
 
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-10 px-4 bg-[#501920] hover:bg-[#3d1318] text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-2 transition-all cursor-pointer">
+                <Button className="h-9 px-3.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer border-none">
                   <Plus className="w-4 h-4" />
                   <span>Create User</span>
                   <ChevronDown className="w-3.5 h-3.5 opacity-80" />
@@ -467,70 +468,44 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* ── Main Navigation Underlined Tabs ── */}
-        <div className="flex items-center gap-6 sm:gap-8 border-b border-slate-200/90 dark:border-slate-800 pt-1 px-1 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
-              activeTab === 'all'
-                ? 'text-[#3E3C3D] dark:text-white'
-                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-            }`}
-          >
-            <Users className={`w-4 h-4 ${activeTab === 'all' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
-            <span>All Users</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
-              activeTab === 'all' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-            }`}>
-              {combinedUsers.length}
-            </span>
-            {activeTab === 'all' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
-            )}
-          </button>
+        {/* ── Main Navigation Tabs ── */}
+        <div className="pt-1 px-1 overflow-x-auto">
+          <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)}>
+            <TabsList className="h-9 p-1 bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-xl gap-1 w-full sm:w-auto inline-flex">
+              <TabsTrigger
+                value="all"
+                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+              >
+                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <span>All Users</span>
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                  {combinedUsers.length}
+                </span>
+              </TabsTrigger>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('web')}
-            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
-              activeTab === 'web'
-                ? 'text-[#3E3C3D] dark:text-white'
-                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-            }`}
-          >
-            <Monitor className={`w-4 h-4 ${activeTab === 'web' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
-            <span>Web Platform Users</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
-              activeTab === 'web' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-            }`}>
-              {users.length}
-            </span>
-            {activeTab === 'web' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
-            )}
-          </button>
+              <TabsTrigger
+                value="web"
+                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+              >
+                <Monitor className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <span>Web Platform Users</span>
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                  {users.length}
+                </span>
+              </TabsTrigger>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('driver')}
-            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
-              activeTab === 'driver'
-                ? 'text-[#3E3C3D] dark:text-white'
-                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-            }`}
-          >
-            <Smartphone className={`w-4 h-4 ${activeTab === 'driver' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
-            <span>Driver Accounts</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
-              activeTab === 'driver' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-            }`}>
-              {driversList.length}
-            </span>
-            {activeTab === 'driver' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
-            )}
-          </button>
+              <TabsTrigger
+                value="driver"
+                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <span>Driver Accounts</span>
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                  {driversList.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* ── Table Ledger Workspace ── */}
