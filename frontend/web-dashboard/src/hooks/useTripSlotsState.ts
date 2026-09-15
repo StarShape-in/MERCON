@@ -146,41 +146,41 @@ export function useTripSlotsState() {
 
   const handleAddSlotIntermediate = (slotId: string) => {
     setContractSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? {
-              ...s,
-              intermediateLocations: [...s.intermediateLocations, ''],
-              intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
-              intermediateStopFees: [...(s.intermediateStopFees || []), ''],
-              rateMatched: false,
-              matchedRateCard: null,
-              rateCardId: undefined,
-              billingAmount: '',
-              driverPayout: '',
-            }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          intermediateLocations: [...s.intermediateLocations, ''],
+          intermediateLocationIds: [...(s.intermediateLocationIds || []), null],
+          intermediateStopFees: [...(s.intermediateStopFees || []), ''],
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
     );
   };
 
   const handleRemoveSlotIntermediate = (slotId: string, idx: number) => {
     setContractSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? {
-              ...s,
-              intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
-              intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
-              intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
-              rateMatched: false,
-              matchedRateCard: null,
-              rateCardId: undefined,
-              billingAmount: '',
-              driverPayout: '',
-            }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
+          intermediateLocationIds: (s.intermediateLocationIds || []).filter((_, i) => i !== idx),
+          intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
     );
   };
 
@@ -192,6 +192,7 @@ export function useTripSlotsState() {
         const newIds = [...(s.intermediateLocationIds || [])];
         newLocs[idx] = val;
         newIds[idx] = locObj?.id ?? null;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
         return {
           ...s,
           intermediateLocations: newLocs,
@@ -199,8 +200,8 @@ export function useTripSlotsState() {
           rateMatched: false,
           matchedRateCard: null,
           rateCardId: undefined,
-          billingAmount: '',
-          driverPayout: '',
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
         };
       })
     );

@@ -644,21 +644,28 @@ export function useCreateTripForm() {
     const isOrigin = field === 'origin';
     const locPrecision = locObj?.coordinate_precision || (locObj?.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
 
-    handleUpdateTripSlot(slotId, {
-      [field]: displayName,
-      [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
-      [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
-      [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
-      [isOrigin ? 'originName' : 'destinationName']: displayName,
-      [isOrigin ? 'originAddress' : 'destinationAddress']: locObj?.address || displayName,
-      [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
-      [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
-      rateMatched: false,
-      matchedRateCard: null,
-      rateCardId: undefined,
-      billingAmount: '',
-      driverPayout: '',
-    });
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const isUserTypedRate = Boolean(s.saveAsQuotation || s.saveAsRateCard || s.driverPayoutModified);
+        return {
+          ...s,
+          [field]: displayName,
+          [isOrigin ? 'originLocationId' : 'destinationLocationId']: locationId,
+          [isOrigin ? 'originLat' : 'destinationLat']: locObj?.lat ?? null,
+          [isOrigin ? 'originLng' : 'destinationLng']: locObj?.lng ?? null,
+          [isOrigin ? 'originName' : 'destinationName']: displayName,
+          [isOrigin ? 'originAddress' : 'destinationAddress']: locObj?.address || displayName,
+          [isOrigin ? 'originPrecision' : 'destinationPrecision']: locPrecision,
+          [isOrigin ? 'updateCanonicalOrigin' : 'updateCanonicalDestination']: false,
+          rateMatched: false,
+          matchedRateCard: null,
+          rateCardId: undefined,
+          billingAmount: isUserTypedRate ? s.billingAmount : '',
+          driverPayout: isUserTypedRate ? s.driverPayout : '',
+        };
+      })
+    );
 
     setTimeout(() => {
       triggerRateLookupForSlots(undefined, undefined, undefined, undefined, true);
