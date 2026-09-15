@@ -12,12 +12,14 @@ import {
   X,
   ArrowRight,
   Edit3,
+  Trash2,
 } from 'lucide-react';
 
 import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -84,6 +86,10 @@ export default function MonthlyGroupLedgerModal({
   // Active inline popover trip tracking
   const [activeDriverTripId, setActiveDriverTripId] = useState<string | null>(null);
   const [activeVehicleTripId, setActiveVehicleTripId] = useState<string | null>(null);
+
+  // Deletion confirmation state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState<string | null>(null);
 
   // Fetch all available drivers
   const { data: driversRes } = useQuery({
@@ -159,6 +165,36 @@ export default function MonthlyGroupLedgerModal({
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error?.message || err.message || 'Failed to update trip assignments');
+    },
+  });
+
+  // Delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => tripService.bulkDelete(ids),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips', 'monthly-board'] });
+      onRefresh?.();
+      setSelectedTripIds([]);
+      setIsDeleteConfirmOpen(false);
+      setTripToDelete(null);
+
+      if (res?.skippedCount > 0) {
+        if (res.deletedCount > 0) {
+          toast.warning(`Deleted ${res.deletedCount} trip(s). ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+        } else {
+          toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or completed.`);
+        }
+      } else {
+        toast.success(
+          res.deletedCount === 1
+            ? 'Trip deleted successfully'
+            : `Deleted ${res.deletedCount} trip(s)`
+        );
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error?.message || err.message || 'Failed to delete trips');
     },
   });
 
@@ -351,16 +387,33 @@ export default function MonthlyGroupLedgerModal({
             </div>
           </div>
 
-          {/* Right: Quick Selection Count */}
+          {/* Right: Quick Selection Count & Delete Action */}
           <div className="flex items-center gap-2 text-xs">
             {selectedTripIds.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setSelectedTripIds([])}
-                className="text-[#FA634E] font-bold hover:underline"
-              >
-                Clear Selection ({selectedTripIds.length})
-              </button>
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setTripToDelete(null);
+                    setIsDeleteConfirmOpen(true);
+                  }}
+                  disabled={bulkDeleteMutation.isPending}
+                  className="h-7 px-2.5 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-lg"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete ({selectedTripIds.length})</span>
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTripIds([])}
+                  className="text-[#FA634E] font-bold hover:underline"
+                >
+                  Clear Selection ({selectedTripIds.length})
+                </button>
+              </>
             )}
             <span className="text-slate-400 font-medium">
               Showing {filteredTrips.length} of {allTrips.length} trips
@@ -437,6 +490,22 @@ export default function MonthlyGroupLedgerModal({
                   </SelectGroup>
                 </SelectContent>
               </Select>
+
+              {/* Bulk Delete Button */}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setTripToDelete(null);
+                  setIsDeleteConfirmOpen(true);
+                }}
+                disabled={bulkDeleteMutation.isPending}
+                className="h-8 px-3 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-md"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Selected ({selectedTripIds.length})</span>
+              </Button>
             </div>
           </div>
         )}
@@ -653,17 +722,31 @@ export default function MonthlyGroupLedgerModal({
                         {trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}
                       </TableCell>
 
-                      {/* Action: Open Trip Details */}
+                      {/* Action: Open Trip Details & Delete Trip */}
                       <TableCell className="py-2.5 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(`/trips/${trip.id}`, '_blank')}
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-[#FA634E] hover:bg-[#FA634E]/10"
-                          title="Open trip details in new tab"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`/trips/${trip.id}`, '_blank')}
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-[#FA634E] hover:bg-[#FA634E]/10 rounded-md"
+                            title="Open trip details in new tab"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setTripToDelete(trip.id);
+                              setIsDeleteConfirmOpen(true);
+                            }}
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-md"
+                            title="Delete this trip"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -688,6 +771,29 @@ export default function MonthlyGroupLedgerModal({
           </Button>
         </div>
       </DialogContent>
+
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => {
+          setIsDeleteConfirmOpen(false);
+          setTripToDelete(null);
+        }}
+        onConfirm={() => {
+          const idsToDelete = tripToDelete ? [tripToDelete] : selectedTripIds;
+          if (idsToDelete.length > 0) {
+            bulkDeleteMutation.mutate(idsToDelete);
+          }
+        }}
+        title={tripToDelete ? 'Delete Trip?' : `Delete ${selectedTripIds.length} Selected Trip(s)?`}
+        message={
+          tripToDelete
+            ? 'Are you sure you want to permanently delete this trip? This action cannot be undone.'
+            : `Are you sure you want to delete ${selectedTripIds.length} selected trip(s)? Completed or invoiced trips will be protected.`
+        }
+        confirmLabel={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        isDestructive
+        isLoading={bulkDeleteMutation.isPending}
+      />
     </Dialog>
   );
 }
