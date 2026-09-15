@@ -66,21 +66,10 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   );
 
   const effectiveRateCards = React.useMemo(() => {
-    const laneCards = primarySlot ? getAvailableRateCardsForLane(primarySlot) || [] : [];
-    const hasRouteSpec = Boolean(
-      (primarySlot?.origin && primarySlot.origin.trim()) ||
-      (primarySlot?.destination && primarySlot.destination.trim()) ||
-      primarySlot?.originLocationId ||
-      primarySlot?.destinationLocationId
-    );
-
-    if (hasRouteSpec) {
-      return laneCards;
-    }
     if (customerRateCards && customerRateCards.length > 0) {
       return customerRateCards;
     }
-    return laneCards;
+    return primarySlot ? getAvailableRateCardsForLane(primarySlot) || [] : [];
   }, [customerRateCards, getAvailableRateCardsForLane, primarySlot]);
 
   const matchedRateCard = (primarySlot.rateMatched || primarySlot.matchedRateCard) ? primarySlot.matchedRateCard : null;
