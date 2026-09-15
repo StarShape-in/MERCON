@@ -161,7 +161,7 @@ const getDropoffInfo = (trip: Trip) => {
   const stops = trip.stops || [];
   if (!stops.length) return { name: '—', address: null };
 
-  const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+  const outboundStops = stops.filter((s: any) => ((s as any).leg_index ?? 0) === 0);
   const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
   const lastLoc = (stops[stops.length - 1]?.location_name || stops[stops.length - 1]?.location?.name || '').toLowerCase().trim();
   const isRound = stops.some((s: any) => s.leg_index === 1) ||
@@ -1741,107 +1741,105 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Driver',
-      className: 'max-w-[165px]',
+      header: 'Driver / Vehicle',
+      className: 'min-w-[160px] max-w-[190px]',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
-          const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
-          const initial = name[0]?.toUpperCase() || '3P';
+        const renderDriver = () => {
+          if (row.is_third_party) {
+            const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
+            const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
+            const initial = name[0]?.toUpperCase() || '3P';
 
-          return (
-            <div
-              className="flex items-center gap-1.5 max-w-[165px] cursor-pointer group"
-              title={`3PL Driver: ${name}\nProvider: ${providerName}`}
-              onClick={(e) => {
-                if (row.thirdPartyProvider) {
-                  e.stopPropagation();
-                  setPreviewThirdParty(row.thirdPartyProvider);
-                }
-              }}
-            >
-              <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
-                {initial}
-              </div>
-              <div className="flex flex-col min-w-0 truncate leading-tight">
+            return (
+              <div
+                className="flex items-center gap-1.5 cursor-pointer group min-w-0"
+                title={`3PL Driver: ${name}\nProvider: ${providerName}`}
+                onClick={(e) => {
+                  if (row.thirdPartyProvider) {
+                    e.stopPropagation();
+                    setPreviewThirdParty(row.thirdPartyProvider);
+                  }
+                }}
+              >
+                <div className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[8px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                  {initial}
+                </div>
                 <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:underline truncate">
                   {name}
                 </span>
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
-                  3PL: {providerName}
-                </span>
               </div>
-            </div>
-          );
-        }
+            );
+          }
 
-        return (
-          <div className="flex items-center gap-1.5 max-w-[165px] overflow-hidden">
-            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
-              {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
-            </div>
-            {row.driver ? (
-              <div className="overflow-hidden whitespace-nowrap min-w-0 flex-1">
+          return (
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
+              <div className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[8px] flex items-center justify-center shrink-0">
+                {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
+              </div>
+              {row.driver ? (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setPreviewDriver(row.driver);
                   }}
-                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block truncate"
+                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer truncate"
                   title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
                 >
                   {row.driver.first_name} {row.driver.last_name}
                 </button>
-              </div>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
-            {row.driver?.deletedAt && <DeletedBadge />}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Vehicle',
-      className: 'w-[95px] shrink-0',
-      mobilePriority: 'meta' as const,
-      accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const plate = row.third_party_vehicle_plate || '3PL Truck';
-          return (
-            <div className="flex items-center gap-1">
-              <Truck size={12} className="text-purple-500 shrink-0" />
-              <span
-                className="font-mono text-[11px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1.5 py-0.5 rounded truncate"
-                title={`3PL Vehicle Plate: ${plate}`}
-              >
-                {plate}
-              </span>
+              ) : (
+                <span className="text-xs text-slate-400 italic">Unassigned</span>
+              )}
+              {row.driver?.deletedAt && <DeletedBadge />}
             </div>
           );
-        }
+        };
+
+        const renderVehicle = () => {
+          if (row.is_third_party) {
+            const plate = row.third_party_vehicle_plate || '3PL Truck';
+            return (
+              <div className="flex items-center gap-1 min-w-0">
+                <Truck size={11} className="text-purple-500 shrink-0" />
+                <span
+                  className="font-mono text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1 py-0.2 rounded truncate"
+                  title={`3PL Vehicle Plate: ${plate}`}
+                >
+                  {plate}
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-1 min-w-0">
+              <Truck size={11} className="text-slate-400 shrink-0" />
+              {row.vehicle?.plate_number ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVehicle(row.vehicle);
+                    }}
+                    className="font-mono text-[10px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1 py-0.2 rounded truncate transition-colors cursor-pointer"
+                    title={`Preview Vehicle ${row.vehicle.plate_number}`}
+                  >
+                    {row.vehicle.plate_number}
+                  </button>
+                  {row.vehicle?.deletedAt && <DeletedBadge />}
+                </>
+              ) : (
+                <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+              )}
+            </div>
+          );
+        };
 
         return (
-          <div className="flex items-center gap-1">
-            <Truck size={12} className="text-slate-400 shrink-0" />
-            {row.vehicle?.plate_number ? (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewVehicle(row.vehicle);
-                  }}
-                  className="font-mono text-[11px] text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded truncate transition-colors cursor-pointer"
-                  title={`Preview Vehicle ${row.vehicle.plate_number}`}
-                >
-                  {row.vehicle.plate_number}
-                </button>
-                {row.vehicle?.deletedAt && <DeletedBadge />}
-              </>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
+          <div className="flex flex-col space-y-1 py-0.5">
+            {renderDriver()}
+            {renderVehicle()}
           </div>
         );
       },

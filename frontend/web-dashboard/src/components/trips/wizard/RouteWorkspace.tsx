@@ -58,14 +58,16 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   const pickupIsoValue = React.useMemo(() => {
     if (!slot.date || !slot.pickupTime) return null;
     const time = slot.pickupTime;
-    const cleanTime = time.includes(':') ? time.split(' ')[0] : '08:00';
+    const cleanTime = time.includes(':') ? time.split(' ')[0] : '';
+    if (!cleanTime) return null;
     return `${slot.date}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
   }, [slot.date, slot.pickupTime]);
 
   const dropoffIsoValue = React.useMemo(() => {
-    if (!slot.dropoffDate) return null;
-    const time = slot.dropoffTime || '';
-    const cleanTime = time.includes(':') ? time.split(' ')[0] : '14:00';
+    if (!slot.dropoffDate || !slot.dropoffTime) return null;
+    const time = slot.dropoffTime;
+    const cleanTime = time.includes(':') ? time.split(' ')[0] : '';
+    if (!cleanTime) return null;
     return `${slot.dropoffDate}T${cleanTime.length === 4 ? '0' + cleanTime : cleanTime}`;
   }, [slot.dropoffDate, slot.dropoffTime]);
 

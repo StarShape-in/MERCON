@@ -68,8 +68,8 @@ export function useTripSlotsState() {
       originLocationId: null,
       destinationLocationId: null,
       rateMatched: false,
-      pickupTime: '08:00',
-      dropoffTime: '14:00',
+      pickupTime: '',
+      dropoffTime: '',
       date: new Date().toISOString().slice(0, 10),
       dropoffDate: '',
       billingAmount: '',
@@ -82,8 +82,8 @@ export function useTripSlotsState() {
       intermediateStopFees: [],
       returnOrigin: '',
       returnDestination: '',
-      returnPickupTime: '16:00',
-      returnDropoffTime: '22:00',
+      returnPickupTime: '',
+      returnDropoffTime: '',
       returnIsOvernight: false,
       returnIntermediateLocations: [],
       returnIntermediateStopFees: [],
@@ -100,8 +100,8 @@ export function useTripSlotsState() {
 
   const handleAddTripSlot = () => {
     setContractSlots((prev) => {
-      const defaultPickup = prev[0]?.pickupTime || '08:00';
-      const defaultDropoff = prev[0]?.dropoffTime || '14:00';
+      const defaultPickup = prev[0]?.pickupTime || '';
+      const defaultDropoff = prev[0]?.dropoffTime || '';
       return [
         ...prev,
         {

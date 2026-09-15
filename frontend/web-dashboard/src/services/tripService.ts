@@ -214,6 +214,7 @@ export function getTripBillingType(trip: Partial<Trip>): string {
 export interface TripStop {
   id: string;
   stop_sequence: number;
+  leg_index?: number;
   stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_lat: number;
   location_lng: number;
