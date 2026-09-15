@@ -365,3 +365,46 @@ export function getTaxonomyIconComponent(iconName?: string) {
     default: return Tag;
   }
 }
+
+/**
+ * Strict Billing Type Normalizer.
+ * Replaces risky substring matching with word-boundary token regex.
+ */
+export function normalizeBillingType(val?: string | null): string {
+  if (!val) return 'Monthly';
+  const s = String(val).toUpperCase().trim();
+  if (/\b(EXTRA|SPOT|ADHOC)\b/i.test(s)) return 'Extra';
+  return 'Monthly';
+}
+
+/**
+ * Strict Rate Category Normalizer.
+ * Replaces fuzzy substring matching with precise line type regex.
+ */
+export function normalizeRateCategory(val?: string | null): string {
+  if (!val) return 'Single Trip';
+  const s = String(val).toUpperCase().replace(/_/g, ' ').trim();
+  if (/\bROUND(\s*TRIP)?\b/i.test(s)) return 'Round Trip';
+  if (/\b10\s*(HRS|HOURS)(\s*DUTY|\s*SHIFT)?\b/i.test(s)) return '10 Hours Duty';
+  if (/\b12\s*(HRS|HOURS)(\s*DUTY|\s*SHIFT)?\b/i.test(s)) return '12 Hours Duty';
+  return 'Single Trip';
+}
+
+/**
+ * Strict Vehicle Class Normalizer.
+ * Evaluated in strict order (e.g. 40 FEET before 3-4 TON) to prevent '4' in 40 FEET from matching 3-4 TON.
+ */
+export function normalizeVehicleClass(val?: string | null): string {
+  if (!val) return '10 TON';
+  const s = String(val).toUpperCase().replace(/_/g, ' ').trim();
+  
+  if (/\b(40\s*FEET|40\s*FT|CONTAINER)\b/i.test(s)) return '40 FEET';
+  if (/\b(20\s*TON|24\s*TON|13\.5M[-_]20TON)\b/i.test(s)) return '20 TON';
+  if (/\b(10\s*TON|6\.5M[-_]10TON)\b/i.test(s)) return '10 TON';
+  if (/\b(8\s*TON)\b/i.test(s)) return '8 TON';
+  if (/\b(5\s*TON|5M[-_]5TON)\b/i.test(s)) return '5 TON';
+  if (/\b(3[-–]?4\s*TON|3TON\/4TON|3\s*TON|4\s*TON)\b/i.test(s)) return '3-4 TON';
+
+  return '10 TON';
+}
+
