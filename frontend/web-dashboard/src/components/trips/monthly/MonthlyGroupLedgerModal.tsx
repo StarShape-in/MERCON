@@ -247,6 +247,10 @@ export default function MonthlyGroupLedgerModal({
     });
   }, [allTrips, statusFilter, search, sortBy]);
 
+  const totalAmount = useMemo(() => {
+    return allTrips.reduce((sum, t) => sum + (t.billing_amount ?? 0), 0);
+  }, [allTrips]);
+
   const allVisibleIds = filteredTrips.map((t) => t.id);
   const isAllSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedTripIds.includes(id));
   const isSomeSelected = !isAllSelected && allVisibleIds.some((id) => selectedTripIds.includes(id));
@@ -356,15 +360,22 @@ export default function MonthlyGroupLedgerModal({
             </div>
           </div>
 
-          {/* Right: Monthly Rate & Feature Badges */}
+          {/* Right: Total Amount & Per-Trip Rate with Feature Badges */}
           <div className="flex flex-col items-end gap-2 shrink-0">
             <div className="text-right">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                MONTHLY RATE
+                TOTAL AMOUNT
               </span>
-              <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400">
-                {group.rateStr}
-              </span>
+              <div className="flex items-baseline justify-end gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400 leading-none">
+                  {formatMoney(totalAmount)}
+                </span>
+                {group.rateStr && group.rateStr !== '—' && (
+                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                    ({group.rateStr} / trip)
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap justify-end">
