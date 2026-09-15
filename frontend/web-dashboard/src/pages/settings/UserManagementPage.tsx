@@ -436,24 +436,24 @@ export default function UserManagementPage() {
         </div>
       }
     >
-      <div className="p-4 max-w-[1600px] mx-auto w-full flex flex-col gap-3.5 bg-[#EEF1F6]/50 dark:bg-slate-950">
+      <div className="p-4 max-w-[1600px] mx-auto w-full flex flex-col gap-4 bg-[#EEF1F6]/50 dark:bg-slate-950">
 
-        {/* ── 1. TOP HEADER PILL BAR WITH TABS & CREATE ACTION ── */}
-        <div className="p-2.5 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3 shadow-2xs">
+        {/* ── 1. UNIFIED WORKSPACE HEADER (Tabs & Primary Create Button) ── */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3 px-4 flex items-center justify-between flex-wrap gap-3 shadow-2xs">
           
-          {/* Left: Tab Selector Segmented Bar */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+          {/* Left: Tab Switcher */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setActiveTab('users')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'users'
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <Users className="w-3.5 h-3.5 text-slate-500" />
                 <span>Web Platform Users</span>
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   {users.length}
@@ -463,10 +463,10 @@ export default function UserManagementPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('drivers')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'drivers'
-                    ? 'bg-[#FA634E] text-white shadow-md shadow-rose-500/20'
-                    : 'bg-rose-50/90 text-[#FA634E] border border-rose-200/90 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-300'
+                    ? 'bg-[#FA634E] text-white shadow-sm'
+                    : 'bg-rose-50 text-[#FA634E] border border-rose-200/80 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-900'
                 }`}
               >
                 <Truck className="w-3.5 h-3.5" />
@@ -483,16 +483,16 @@ export default function UserManagementPage() {
               </button>
             </div>
 
-            {/* Sub-filter pills when on drivers tab */}
+            {/* Driver Filter Sub-Pills */}
             {activeTab === 'drivers' && (
-              <div className="flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 ml-1">
                 <button
                   type="button"
                   onClick={() => setDriverPassFilter('all')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                     driverPassFilter === 'all'
                       ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   All ({totalDrivers})
@@ -500,10 +500,10 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setDriverPassFilter('has_password')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                     driverPassFilter === 'has_password'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Active ({driversWithPassword})
@@ -511,10 +511,10 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setDriverPassFilter('no_password')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                     driverPassFilter === 'no_password'
-                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Pending ({driversWithoutPassword})
@@ -523,12 +523,12 @@ export default function UserManagementPage() {
             )}
           </div>
 
-          {/* Right: Clean Prominent Create Action Button */}
+          {/* Right: Primary Create Button */}
           <div>
             {activeTab === 'users' ? (
               <Button
                 size="sm"
-                className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                className="h-8.5 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -537,7 +537,7 @@ export default function UserManagementPage() {
             ) : (
               <Button
                 size="sm"
-                className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl flex items-center gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+                className="h-8.5 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                 onClick={() => navigate('/drivers/new')}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -547,9 +547,8 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* ── 2. DATA TABLE LEDGER WORKSPACE ── */}
+        {/* ── 2. MAIN LEDGER WORKSPACE ── */}
         <div className="w-full">
-          {/* Tab 1: Web Users Table */}
           {activeTab === 'users' && (
             <DataTable
               title={
@@ -588,7 +587,6 @@ export default function UserManagementPage() {
             />
           )}
 
-          {/* Tab 2: Driver Accounts & Password Management Table */}
           {activeTab === 'drivers' && (
             <DataTable
               title={
