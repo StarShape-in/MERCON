@@ -412,9 +412,24 @@ export default function CustomerQuotationsTab({
                   header: 'Rate',
                   accessor: (q: Quotation) => {
                     const rateVal = Number(q.rate ?? q.base_price ?? 0);
+                    const pbRaw = String(q.pricing_basis || '').toUpperCase();
+                    const opRaw = String(q.operation_type || q.billing_type || '').toUpperCase();
+                    const isMonthlyRate = pbRaw === 'PER_MONTH' || pbRaw === 'PER MONTH' || (pbRaw === '' && opRaw.includes('MONTH'));
+                    const dailyBreakdownVal = isMonthlyRate ? Number((rateVal / 30).toFixed(2)) : rateVal;
+
                     return (
-                      <div className="font-mono font-extrabold text-xs text-indigo-600 dark:text-indigo-400">
-                        {q.currency || 'SAR'} {rateVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div className="font-mono text-xs">
+                        <div className="font-extrabold text-slate-900 dark:text-slate-100">
+                          {q.currency || 'SAR'} {rateVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="text-[10px] font-bold text-slate-400 font-sans ml-0.5">
+                            {isMonthlyRate ? '/mo' : '/trip'}
+                          </span>
+                        </div>
+                        {isMonthlyRate && rateVal > 0 && (
+                          <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 font-sans mt-0.5">
+                            ≈ SAR {dailyBreakdownVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                          </div>
+                        )}
                       </div>
                     );
                   },

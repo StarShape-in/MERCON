@@ -376,57 +376,77 @@ export function QuotationRouteDrawer({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Class</div>
-                <div>
-                  <TaxonomyBadge category="VEHICLE_CLASS" value={quotation.vehicle_class} fallbackText="Standard" />
-                </div>
-              </div>
+            {(() => {
+              const pbRaw = String(quotation.pricing_basis || '').toUpperCase();
+              const opRaw = String(quotation.operation_type || quotation.billing_type || '').toUpperCase();
+              const isMonthlyRateBasis = pbRaw === 'PER_MONTH' || pbRaw === 'PER MONTH' || (pbRaw === '' && opRaw.includes('MONTH'));
+              const rawRateVal = Number(quotation.rate ?? quotation.base_price ?? 0);
+              const dailyBreakdownVal = isMonthlyRateBasis ? Number((rawRateVal / 30).toFixed(2)) : rawRateVal;
 
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
-                <div>
-                  <TaxonomyBadge category="OPERATION_TYPE" value={quotation.operation_type || quotation.billing_type} fallbackText="Extra" />
-                </div>
-              </div>
+              return (
+                <div className="grid grid-cols-2 gap-2.5 text-xs">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Class</div>
+                    <div>
+                      <TaxonomyBadge category="VEHICLE_CLASS" value={quotation.vehicle_class} fallbackText="Standard" />
+                    </div>
+                  </div>
 
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Line Type</div>
-                <div>
-                  <TaxonomyBadge category="LINE_TYPE" value={quotation.line_type || quotation.rate_category} fallbackText="Single Trip" />
-                </div>
-              </div>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Operation Type</div>
+                    <div>
+                      <TaxonomyBadge category="OPERATION_TYPE" value={quotation.operation_type || quotation.billing_type} fallbackText="Extra" />
+                    </div>
+                  </div>
 
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">
-                  {(quotation.pricing_basis === 'PER_MONTH' || (quotation.billing_type || '').toLowerCase().includes('monthly')) ? 'Monthly Billing Rate' : 'Billing Rate / Trip'}
-                </div>
-                <div className="font-mono font-black text-[#3E3C3D] dark:text-slate-100 text-sm">
-                  SAR {Number(quotation.rate ?? quotation.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  {(quotation.pricing_basis === 'PER_MONTH' || (quotation.billing_type || '').toLowerCase().includes('monthly')) && (
-                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block font-sans">
-                      ≈ SAR {(Number(quotation.rate ?? quotation.base_price ?? 0) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
-                    </span>
-                  )}
-                </div>
-              </div>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Line Type</div>
+                    <div>
+                      <TaxonomyBadge category="LINE_TYPE" value={quotation.line_type || quotation.rate_category} fallbackText="Single Trip" />
+                    </div>
+                  </div>
 
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Driver Charge</div>
-                <div className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                  {driverPayoutText}
-                </div>
-              </div>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Rate Basis</div>
+                    <div className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                      {isMonthlyRateBasis ? 'Per Month' : 'Per Trip'}
+                    </div>
+                  </div>
 
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Validity Period</div>
-                <div className="font-semibold text-slate-700 dark:text-slate-300 text-[11px] truncate">
-                  {quotation.valid_from ? new Date(quotation.valid_from).toLocaleDateString() : 'Immediate'} →{' '}
-                  {quotation.valid_to ? new Date(quotation.valid_to).toLocaleDateString() : 'Ongoing'}
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">
+                      {isMonthlyRateBasis ? 'Monthly Contract Rate' : 'Customer Billing Rate'}
+                    </div>
+                    <div className="font-mono font-black text-[#3E3C3D] dark:text-slate-100 text-sm">
+                      SAR {rawRateVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      <span className="text-[10px] font-bold font-sans text-slate-400 ml-0.5">
+                        {isMonthlyRateBasis ? '/mo' : '/trip'}
+                      </span>
+                      {isMonthlyRateBasis && rawRateVal > 0 && (
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block font-sans mt-0.5">
+                          ≈ SAR {dailyBreakdownVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Driver Charge</div>
+                    <div className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                      {driverPayoutText} {driverPayoutText !== '—' ? '/ trip' : ''}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1 col-span-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Validity Period</div>
+                    <div className="font-semibold text-slate-700 dark:text-slate-300 text-[11px] truncate">
+                      {quotation.valid_from ? new Date(quotation.valid_from).toLocaleDateString() : 'Immediate'} →{' '}
+                      {quotation.valid_to ? new Date(quotation.valid_to).toLocaleDateString() : 'Ongoing'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {/* SECTION 3: SURCHARGE RULES */}
