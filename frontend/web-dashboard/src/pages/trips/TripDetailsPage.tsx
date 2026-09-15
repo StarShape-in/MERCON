@@ -28,6 +28,7 @@ import TripChargeLineEditor from '@/components/trips/TripChargeLineEditor';
 import { ReassignTripModal, ReassignMode } from '@/components/trips/ReassignTripModal';
 import { documentService, type DocType } from '@/services/documentService';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 
 // Subcomponents for the Image 2 Layout
 import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
@@ -238,25 +239,33 @@ export default function TripDetailsPage() {
   const nextStatusOption = getNextStatus(trip.status) || 'AtDelivery';
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
 
-  // Financials & Economics (matching Trip Creation Page)
+  // Financials & Economics (Single Source of Truth)
   const tAny = trip as any;
-  const customerBilling = Number(trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate ?? 0);
-
+  const rawBilling = trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate;
+  const rawDriverPayout = (trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout;
   const chargesList = trip.charges || [];
-  const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c) => sum + Number(c.amount || 0), 0));
-  const totalAmount = Number(tAny.total_amount ?? (customerBilling + chargesTotal));
+  const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c: any) => sum + Number(c.amount || 0), 0));
+  const is3PL = Boolean(trip.is_third_party);
+  const subcontractCost = trip.third_party_cost;
+
+  const fin = computeTripFinancials({
+    customerBilling: rawBilling,
+    driverPayout: rawDriverPayout,
+    is3PL,
+    subcontractCost,
+    extraDriverPayment: tAny.extra_driver_payment,
+    additionalCharges: chargesTotal,
+    pricingBasis: tAny.quotation?.pricing_basis || tAny.pricing_basis,
+  });
+
+  const customerBilling = fin.resolvedBilling;
+  const driverPayout = fin.resolvedDriverPayout;
+  const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
+  const totalAmount = fin.totalCustomerBilling;
   const paidAmount = Number(tAny.paid_amount ?? 0);
   const balanceDue = Number(tAny.balance_due ?? (totalAmount - paidAmount));
-
-  // Driver charge / 3PL cost
-  const is3PL = Boolean(trip.is_third_party);
-  const driverPayout = is3PL
-    ? Number(trip.third_party_cost ?? 0)
-    : Number((trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? 0);
-  const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
-
-  const balanceMargin = totalAmount - driverPayout;
-  const marginPercent = totalAmount > 0 ? ((balanceMargin / totalAmount) * 100).toFixed(1) : '0.0';
+  const balanceMargin = fin.balanceMargin;
+  const marginPercent = `${fin.marginPercent.toFixed(1)}`;
 
   // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
   const tripType = deriveTripType(trip);

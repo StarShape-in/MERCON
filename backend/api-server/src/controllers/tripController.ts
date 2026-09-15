@@ -11,7 +11,7 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials } from '../utils/tripFinancials';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 import { whatsappService } from '../services/whatsappService';
@@ -531,32 +531,19 @@ export const getTripById = async (req: Request, res: Response) => {
       }
     }
 
-    const chargesTotal = ((trip as any).charges || []).reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
-    const perTripBilling = (trip as any).financials?.applied_rate != null
-      ? Number((trip as any).financials.applied_rate)
-      : (trip.billing_amount != null ? Number(trip.billing_amount) : Number((trip as any).quotation?.rate ?? 0));
-    const totalAmount = perTripBilling + chargesTotal;
-    const paidAmount = Number((trip as any).paid_amount || 0);
-    const balanceDue = totalAmount - paidAmount;
-
-    const baseDriverPayout = trip.is_third_party
-      ? Number((trip as any).subcontract?.cost ?? (trip as any).third_party_cost ?? 0)
-      : Number(trip.driver_payout ?? (trip as any).driver_charge ?? (trip as any).quotation?.driver_payout ?? 0);
-    const totalDriverPayout = baseDriverPayout;
-    const balanceMargin = totalAmount - totalDriverPayout;
-    const marginPercent = totalAmount > 0 ? Number(((balanceMargin / totalAmount) * 100).toFixed(1)) : 0;
+    const fin = calculateBackendTripFinancials(trip as any);
 
     const tripData = {
       ...trip,
-      paid_amount: paidAmount,
-      balance_due: balanceDue,
-      total_amount: totalAmount,
-      charges_total: chargesTotal,
-      per_trip_billing: perTripBilling,
-      driver_payout: totalDriverPayout,
-      driver_charge: totalDriverPayout,
-      balance_margin: balanceMargin,
-      margin_percent: marginPercent,
+      paid_amount: fin.paidAmount,
+      balance_due: fin.balanceDue,
+      total_amount: fin.totalCustomerBilling,
+      charges_total: fin.chargesTotal,
+      per_trip_billing: fin.perTripBilling,
+      driver_payout: fin.totalDriverPayout,
+      driver_charge: fin.totalDriverPayout,
+      balance_margin: fin.balanceMargin,
+      margin_percent: fin.marginPercent,
       vehicle: trip.vehicle
         ? {
             ...trip.vehicle,

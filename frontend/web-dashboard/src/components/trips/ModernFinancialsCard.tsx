@@ -2,6 +2,7 @@ import React from 'react';
 import { DollarSign, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 
 export interface ModernFinancialsCardProps {
   customerBilling?: number;
@@ -44,19 +45,21 @@ export default function ModernFinancialsCard({
   pricingBasis,
   onAddCharge,
 }: ModernFinancialsCardProps) {
-  // Resolve customer billing amount
-  const billingVal = customerBilling !== undefined ? customerBilling : (baseRate ?? 0);
-  const addChargesVal = additionalCharges ?? 0;
-  const driverPayoutVal = driverPayout ?? 0;
+  const fin = computeTripFinancials({
+    customerBilling,
+    baseRate,
+    driverPayout,
+    is3PL,
+    extraDriverPayment,
+    additionalCharges,
+    pricingBasis,
+  });
 
-  // Resolve total amount for this trip (Customer Billing + Extras)
-  const resolvedTotal = totalAmount !== undefined ? totalAmount : (billingVal + addChargesVal);
-
-  // Margin math matching trip creation
-  const resolvedMargin = balanceMargin !== undefined ? balanceMargin : (resolvedTotal - driverPayoutVal);
-  const resolvedMarginPercent = marginPercent !== undefined
-    ? String(marginPercent)
-    : (resolvedTotal > 0 ? ((resolvedMargin / resolvedTotal) * 100).toFixed(1) : '0.0');
+  const billingVal = fin.resolvedBilling;
+  const driverPayoutVal = fin.resolvedDriverPayout;
+  const addChargesVal = fin.additionalChargesTotal;
+  const resolvedMargin = balanceMargin !== undefined ? balanceMargin : fin.balanceMargin;
+  const resolvedMarginPercent = marginPercent !== undefined ? String(marginPercent) : `${fin.marginPercent.toFixed(1)}`;
 
   const driverPayoutLabel = is3PL ? '3PL Payout' : 'Driver Payout';
 

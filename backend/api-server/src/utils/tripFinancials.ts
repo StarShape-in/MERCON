@@ -1,70 +1,129 @@
 /**
- * One definition of what a trip is worth, shared by invoicing and reporting.
+ * MERCON Single Source of Truth — Backend Financial Calculation Engine
  *
- * This used to be copy-pasted in four places (invoiceController twice,
- * reportsController, and the xlsx trip report), and the copies had already
- * started to drift. Since all of them had to change when the flat
- * waiting_labor_charges / additional_stop_charges columns became the itemised
- * TripCharge relation, they were collapsed into these two functions instead.
- *
- * The distinction that keeps getting lost, and the reason this file has
- * comments at all:
- *
- *   billing_amount + charges  = what the CUSTOMER owes    (revenue)
- *   trip_charges              = what MERCON pays the driver or subcontractor
- *                               for running it            (cost)
- *   the difference            = what MERCON keeps         (balance)
- *
- * trip_charges is deliberately NOT part of the customer total. It is a cost,
- * and adding it to an invoice would bill the customer for MERCON's own payroll.
+ * Handles Customer Billing, Driver Payout, 3PL Subcontract Cost,
+ * Additional Itemised Charges, Balance Margin (Profit), and Margin Percentage.
  */
 
-// Prisma rows carry these as Decimal at runtime, not number — accept either
-// so callers can pass a Trip/TripCharge straight through unconverted.
-type Money = number | { toNumber(): number };
-const asNumber = (v: Money | null | undefined): number => (v == null ? 0 : typeof v === 'number' ? v : v.toNumber());
+type Money = number | string | null | undefined | { toNumber(): number };
 
-/** Just the amount fields; callers pass Prisma rows or plain objects alike. */
+export const asNumber = (v: Money): number => {
+  if (v == null) return 0;
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  if (typeof v === 'object' && typeof v.toNumber === 'function') return v.toNumber();
+  const num = parseFloat(String(v).replace(/[^0-9.-]+/g, ''));
+  return isNaN(num) ? 0 : num;
+};
+
 export interface ChargeLike {
   amount: Money;
 }
 
-/** What a trip carries that these sums read. */
-export interface TripFinancialsLike {
-  billing_amount: Money | null;
+export interface BackendTripFinancialInputs {
+  billing_amount?: Money;
+  applied_rate?: Money;
+  rateCard?: { base_price?: Money; driver_payout?: Money };
+  quotation?: { rate?: Money; driver_payout?: Money; pricing_basis?: string };
+
   driver_payout?: Money;
   driver_charge?: Money;
   trip_charges?: Money;
+  extra_driver_payment?: Money;
+
+  is_third_party?: boolean;
+  third_party_cost?: Money;
+  subcontract?: { cost?: Money };
+
+  charges?: ChargeLike[] | null;
+  charges_total?: Money;
+
+  paid_amount?: Money;
+  pricing_basis?: string;
 }
 
-/** Sum of the itemised customer-billable extras on a trip. */
+export interface ComputedBackendFinancials {
+  perTripBilling: number;        // Base customer rate
+  chargesTotal: number;          // Additional billable charges
+  totalCustomerBilling: number;  // perTripBilling + chargesTotal
+  totalDriverPayout: number;     // Driver payout or 3PL subcontract cost
+  extraDriverPayment: number;    // Extra driver allowance
+  balanceMargin: number;         // totalCustomerBilling - totalDriverPayout
+  marginPercent: number;         // Margin percentage (%)
+  paidAmount: number;            // Amount already paid
+  balanceDue: number;            // totalCustomerBilling - paidAmount
+}
+
+/** Sum of itemised customer-billable extras on a trip. */
 export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined): number {
   if (!charges || charges.length === 0) return 0;
   return charges.reduce((sum, c) => sum + asNumber(c.amount), 0);
 }
 
-/**
- * The base price the customer is billed, before extras.
- */
-export function computeTripBaseBilling(trip: TripFinancialsLike): number {
-  return trip.billing_amount != null ? asNumber(trip.billing_amount) : asNumber(trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges);
+/** Base billing price for the customer. */
+export function computeTripBaseBilling(trip: BackendTripFinancialInputs): number {
+  const billing = trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? trip.quotation?.rate;
+  return Math.max(0, asNumber(billing));
 }
 
-/** Full amount owed by the customer: base price plus every itemised extra. */
+/** Full amount owed by customer: base price plus itemised extras. */
 export function computeTripTotalAmount(
-  trip: TripFinancialsLike,
-  charges: ChargeLike[] | null | undefined
+  trip: BackendTripFinancialInputs,
+  charges?: ChargeLike[] | null
 ): number {
-  return computeTripBaseBilling(trip) + computeTripChargesTotal(charges);
+  const base = computeTripBaseBilling(trip);
+  const extra = charges !== undefined ? computeTripChargesTotal(charges) : asNumber(trip.charges_total ?? computeTripChargesTotal(trip.charges));
+  return base + extra;
 }
 
-/** What MERCON keeps: customer total minus (additional charges + driver charge/payout). */
+/** Driver Payout or 3PL Subcontract Cost. */
+export function computeTripDriverPayout(trip: BackendTripFinancialInputs): number {
+  const extraDriver = asNumber(trip.extra_driver_payment);
+  if (trip.is_third_party) {
+    const cost = trip.subcontract?.cost ?? trip.third_party_cost;
+    return Math.max(0, asNumber(cost) + extraDriver);
+  }
+  const payout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
+  return Math.max(0, asNumber(payout) + extraDriver);
+}
+
+/** Balance profit kept by MERCON: customer total minus driver payout. */
 export function computeTripBalance(
-  trip: TripFinancialsLike,
-  charges: ChargeLike[] | null | undefined
+  trip: BackendTripFinancialInputs,
+  charges?: ChargeLike[] | null
 ): number {
   const totalAmt = computeTripTotalAmount(trip, charges);
-  const extraCharges = computeTripChargesTotal(charges);
-  const driverPayout = asNumber(trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges);
-  return totalAmt - (extraCharges + driverPayout);
+  const driverCost = computeTripDriverPayout(trip);
+  return totalAmt - driverCost;
+}
+
+/** Comprehensive financial calculation for trip controllers and reports. */
+export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs): ComputedBackendFinancials {
+  const perTripBilling = computeTripBaseBilling(trip);
+  const chargesTotal = trip.charges_total !== undefined && trip.charges_total !== null
+    ? asNumber(trip.charges_total)
+    : computeTripChargesTotal(trip.charges);
+  
+  const totalCustomerBilling = perTripBilling + chargesTotal;
+  const totalDriverPayout = computeTripDriverPayout(trip);
+  const extraDriverPayment = asNumber(trip.extra_driver_payment);
+
+  const balanceMargin = totalCustomerBilling - totalDriverPayout;
+  const marginPercent = totalCustomerBilling > 0
+    ? Number(((balanceMargin / totalCustomerBilling) * 100).toFixed(1))
+    : 0;
+
+  const paidAmount = asNumber(trip.paid_amount);
+  const balanceDue = totalCustomerBilling - paidAmount;
+
+  return {
+    perTripBilling,
+    chargesTotal,
+    totalCustomerBilling,
+    totalDriverPayout,
+    extraDriverPayment,
+    balanceMargin,
+    marginPercent,
+    paidAmount,
+    balanceDue,
+  };
 }
