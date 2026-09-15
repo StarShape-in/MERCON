@@ -246,7 +246,7 @@ initTripDelayMonitor();
 
 // Self-healing database column verification on startup
 async function startServer() {
-  httpServer.listen(port, () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
   });
 
