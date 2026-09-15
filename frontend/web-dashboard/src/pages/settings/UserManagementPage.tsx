@@ -338,15 +338,35 @@ export default function UserManagementPage() {
         header: 'Mobile Password Status',
         accessor: (u: UnifiedUser) => (
           u.hasAccountPassword ? (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
-              <KeyRound size={11} className="text-emerald-600 shrink-0" />
-              Password Set
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (u.originalDriver) {
+                  handleOpenDriverPasswordModal(u.originalDriver);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs group"
+              title="Click to update driver mobile app password"
+            >
+              <KeyRound size={11} className="text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <span>Password Set</span>
+            </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
-              <KeyRound size={11} className="text-amber-600 shrink-0" />
-              Pending Setup
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (u.originalDriver) {
+                  handleOpenDriverPasswordModal(u.originalDriver);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/60 transition-all cursor-pointer shadow-2xs group"
+              title="Click to set driver mobile app password"
+            >
+              <KeyRound size={11} className="text-amber-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <span>Pending Setup</span>
+            </button>
           )
         ),
       });
