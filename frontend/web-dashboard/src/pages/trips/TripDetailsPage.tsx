@@ -271,8 +271,16 @@ export default function TripDetailsPage() {
   // Trip Type (pure derivation — preserves invariant 22 hook count across all renders)
   const tripType = deriveTripType(trip);
 
-  const pickup = trip.stops && trip.stops.length > 0 ? trip.stops[0] : undefined;
-  const dropoff = trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined;
+  const stopsArr = trip.stops || [];
+  const pickup = stopsArr.length > 0 ? stopsArr[0] : undefined;
+  const outboundStops = stopsArr.filter((s: any) => (s.leg_index ?? 0) === 0);
+  const firstLocName = String(stopsArr[0]?.location_name || stopsArr[0]?.location?.name || '').toLowerCase().trim();
+  const lastLocName = String(stopsArr[stopsArr.length - 1]?.location_name || stopsArr[stopsArr.length - 1]?.location?.name || '').toLowerCase().trim();
+  const isRoundTrip = tripType === 'Round Trip' || (firstLocName && lastLocName && firstLocName === lastLocName);
+
+  const dropoff = (isRoundTrip && outboundStops.length > 1)
+    ? outboundStops[outboundStops.length - 1]
+    : (stopsArr.length > 1 ? stopsArr[stopsArr.length - 1] : undefined);
 
   const pickupCityName = pickup ? resolveStopName(pickup, 'Riyadh') : 'Riyadh';
   const dropoffCityName = dropoff ? resolveStopName(dropoff, 'Al Abha') : 'Al Abha';

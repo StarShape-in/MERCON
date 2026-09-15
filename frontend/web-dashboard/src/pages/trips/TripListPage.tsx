@@ -158,8 +158,23 @@ const getPickupInfo = (trip: Trip) => {
 };
 
 const getDropoffInfo = (trip: Trip) => {
-  const dropoff = (trip.stops && trip.stops.length > 1) ? trip.stops[trip.stops.length - 1] : (trip.stops?.find((s) => s.stop_type === 'Dropoff'));
+  const stops = trip.stops || [];
+  if (!stops.length) return { name: '—', address: null };
+
+  const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+  const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+  const lastLoc = (stops[stops.length - 1]?.location_name || stops[stops.length - 1]?.location?.name || '').toLowerCase().trim();
+  const isRound = stops.some((s: any) => s.leg_index === 1) ||
+    Boolean(trip.line_type?.name && /round/i.test(trip.line_type.name)) ||
+    Boolean(firstLoc && lastLoc && firstLoc === lastLoc);
+
+  let dropoff = (isRound && outboundStops.length > 1)
+    ? outboundStops[outboundStops.length - 1]
+    : (stops.length > 1 ? stops[stops.length - 1] : stops.find((s) => s.stop_type === 'Dropoff'));
+
+  if (!dropoff && stops.length > 0) dropoff = stops[stops.length - 1];
   if (!dropoff) return { name: '—', address: null };
+
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
   name = name.replace(/🔁\s*/g, '').trim();
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
