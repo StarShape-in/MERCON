@@ -70,7 +70,7 @@ interface QuotationRateCardProps {
   isSelected: boolean;
   contractRateCategory?: string;
   contractVehicleType?: string;
-  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number) => void;
+  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number, isCurrentlySelected: boolean) => void;
   className?: string;
 }
 
@@ -127,7 +127,7 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
     <button
       key={rc.id || idx}
       type="button"
-      onClick={() => onApplyRateCard(rc, rCat, vClass, origName, destName, rateVal)}
+      onClick={() => onApplyRateCard(rc, rCat, vClass, origName, destName, rateVal, isSelected)}
       className={cn(
         "p-2.5 rounded-xl transition-all duration-200 text-left flex flex-col justify-between space-y-1.5 cursor-pointer select-none min-h-[110px]",
         isSelected

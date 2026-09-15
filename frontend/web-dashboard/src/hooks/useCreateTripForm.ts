@@ -334,6 +334,154 @@ export function useCreateTripForm() {
   const [contractRateCategory, setContractRateCategory] = useState<string>('Single Trip');
   const [contractBillingType, setContractBillingType] = useState<string>(isMonthlyUrl ? 'Monthly' : 'Extra');
 
+  const {
+    customerRateCards,
+    handleOpenCreateQuotation,
+    getMatchingRateCard,
+    getAvailableRateCardsForLane,
+  } = useTripRateLookup(
+    contractCustomer,
+    contractVehicleType,
+    contractRateCategory,
+    contractBillingType,
+    contractStep
+  );
+
+  const contractSlotsRef = useRef(contractSlots);
+  useEffect(() => {
+    contractSlotsRef.current = contractSlots;
+  }, [contractSlots]);
+
+  const triggerRateLookupForSlots = useCallback(
+    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string, forceRelookup = false) => {
+      const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
+      const vType = overrideVehicleType !== undefined ? overrideVehicleType : contractVehicleType;
+      const rCat = overrideRateCategory !== undefined ? overrideRateCategory : contractRateCategory;
+      const bType = overrideBillingType !== undefined ? overrideBillingType : contractBillingType;
+
+      if (!custId) return;
+
+      const currentSlots = contractSlotsRef.current;
+
+      import('@/services/quotationService')
+        .then(async ({ quotationService }) => {
+          const updatedSlots = await Promise.all(
+            currentSlots.map(async (slot) => {
+              // Only preserve matchedRateCard if NOT forceRelookup
+              if (!forceRelookup && slot.matchedRateCard && slot.rateMatched) {
+                return slot;
+              }
+
+              if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;
+
+              const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
+                const locId = slot.intermediateLocationIds?.[idx] || (isUuid(locVal) ? locVal : null);
+                return {
+                  location_id: locId || null,
+                  location_name: locVal,
+                  stop_type: 'Dropoff',
+                  sequence: idx + 2,
+                };
+              });
+
+              const slotStops = [
+                { location_id: slot.originLocationId, stop_type: 'Pickup', sequence: 1 },
+                ...intermediateStops,
+                { location_id: slot.destinationLocationId, stop_type: 'Dropoff', sequence: intermediateStops.length + 2 },
+              ];
+
+              try {
+                let card: RateCard | null = null;
+                if (slot.originLocationId && slot.destinationLocationId) {
+                  const exactRes = await quotationService.lookup({
+                    customer_id: custId,
+                    origin_location_id: slot.originLocationId,
+                    destination_location_id: slot.destinationLocationId,
+                    vehicle_type: vType || undefined,
+                    line_type: rCat || undefined,
+                    billing_type: bType || undefined,
+                    planned_start: slot.date || undefined,
+                    stops: slotStops,
+                  });
+                  card = exactRes?.quotation || exactRes?.candidate_quotation || exactRes?.candidateQuotation || exactRes?.rate_card || null;
+                }
+
+                if (!card) {
+                  card = getMatchingRateCard(
+                    slot.origin,
+                    slot.destination,
+                    vType,
+                    rCat,
+                    bType,
+                    slot.date,
+                    slot.originLocationId,
+                    slot.destinationLocationId
+                  );
+                }
+
+                if (card) {
+                  const cardRate = Number(card.rate ?? card.base_price ?? 0);
+                  const driverPayout = card.driver_payout ?? (card as any).driver_charge;
+                  if (cardRate > 0) {
+                    const isMonthlyRate = card.pricing_basis === 'PER_TRIP'
+                      ? false
+                      : card.pricing_basis === 'PER_MONTH'
+                      ? true
+                      : (card.line_type || card.rate_category || '').toLowerCase().includes('single') || (card.line_type || card.rate_category || '').toLowerCase().includes('extra')
+                      ? false
+                      : (card.billing_type || '').toLowerCase().includes('monthly');
+
+                    const perTripAmount = isMonthlyRate ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
+                    return {
+                      ...slot,
+                      matchedRateCard: card,
+                      billingAmount: String(cardRate),
+                      tripCharges: driverPayout != null ? String(driverPayout) : '',
+                      rateMatched: true,
+                      rateCardId: card.id,
+                      rateCardName: card.name,
+                      rateCardBasePrice: cardRate,
+                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
+                      saveAsQuotation: false,
+                      saveAsRateCard: false,
+                    };
+                  }
+                }
+              } catch (err) {
+                console.error('Quotation rate lookup error:', err);
+              }
+
+              // No matching rate card found: preserve manually entered pricing if user typed billing or payout
+              const isUserDefined = !slot.rateMatched || slot.saveAsQuotation || slot.saveAsRateCard || slot.driverPayoutModified;
+              const keepBilling = isUserDefined && slot.billingAmount ? slot.billingAmount : '';
+              const keepTripCharges = isUserDefined && slot.tripCharges ? slot.tripCharges : '';
+              const keepDriverPayout = isUserDefined && slot.driverPayout !== undefined ? slot.driverPayout : undefined;
+
+              return {
+                ...slot,
+                billingAmount: keepBilling,
+                tripCharges: keepTripCharges,
+                ...(keepDriverPayout !== undefined ? { driverPayout: keepDriverPayout } : {}),
+                rateMatched: false,
+                rateCardId: undefined,
+                rateCardName: undefined,
+                rateCardBasePrice: undefined,
+                rateCardDefaultTripCharge: undefined,
+                saveAsQuotation: true,
+                saveAsRateCard: true,
+              };
+            })
+          );
+
+          if (JSON.stringify(updatedSlots) !== JSON.stringify(contractSlotsRef.current)) {
+            setContractSlots(updatedSlots);
+          }
+        })
+        .catch((err) => console.error('Quotation service import error:', err));
+    },
+    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard, setContractSlots]
+  );
+
   const setContractCustomer = useCallback(
     (newCustId: string) => {
       setContractCustomerRaw(newCustId);
@@ -485,19 +633,6 @@ export function useCreateTripForm() {
     }
   }, [urlStepParam]);
 
-  const {
-    customerRateCards,
-    handleOpenCreateQuotation,
-    getMatchingRateCard,
-    getAvailableRateCardsForLane,
-  } = useTripRateLookup(
-    contractCustomer,
-    contractVehicleType,
-    contractRateCategory,
-    contractBillingType,
-    contractStep
-  );
-
   const handleSlotLocationChange = (
     slotId: string,
     field: 'origin' | 'destination',
@@ -600,155 +735,6 @@ export function useCreateTripForm() {
     handleDriverChange,
     masterVehicle,
     setMasterVehicle
-  );
-
-  const contractSlotsRef = useRef(contractSlots);
-  useEffect(() => {
-    contractSlotsRef.current = contractSlots;
-  }, [contractSlots]);
-
-  const triggerRateLookupForSlots = useCallback(
-    (overrideVehicleType?: string, overrideRateCategory?: string, overrideCustomer?: string, overrideBillingType?: string, forceRelookup = false) => {
-      const custId = overrideCustomer !== undefined ? overrideCustomer : contractCustomer;
-      const vType = overrideVehicleType !== undefined ? overrideVehicleType : contractVehicleType;
-      const rCat = overrideRateCategory !== undefined ? overrideRateCategory : contractRateCategory;
-      const bType = overrideBillingType !== undefined ? overrideBillingType : contractBillingType;
-
-      if (!custId) return;
-
-      const currentSlots = contractSlotsRef.current;
-
-      import('@/services/quotationService')
-        .then(async ({ quotationService }) => {
-          const updatedSlots = await Promise.all(
-            currentSlots.map(async (slot) => {
-              // Only preserve matchedRateCard if NOT forceRelookup
-              if (!forceRelookup && slot.matchedRateCard && slot.rateMatched) {
-                return slot;
-              }
-
-              if ((!slot.origin && !slot.originLocationId) || (!slot.destination && !slot.destinationLocationId)) return slot;
-
-              const intermediateStops = (slot.intermediateLocations || []).map((locVal, idx) => {
-                const locId = slot.intermediateLocationIds?.[idx] || (isUuid(locVal) ? locVal : null);
-                return {
-                  location_id: locId || null,
-                  location_name: locVal,
-                  stop_type: 'Dropoff',
-                  sequence: idx + 2,
-                };
-              });
-
-              const slotStops = [
-                { location_id: slot.originLocationId, stop_type: 'Pickup', sequence: 1 },
-                ...intermediateStops,
-                { location_id: slot.destinationLocationId, stop_type: 'Dropoff', sequence: intermediateStops.length + 2 },
-              ];
-
-              try {
-                let card: RateCard | null = null;
-                if (slot.originLocationId && slot.destinationLocationId) {
-                  const exactRes = await quotationService.lookup({
-                    customer_id: custId,
-                    origin_location_id: slot.originLocationId,
-                    destination_location_id: slot.destinationLocationId,
-                    vehicle_type: vType || undefined,
-                    line_type: rCat || undefined,
-                    billing_type: bType || undefined,
-                    planned_start: slot.date || undefined,
-                    stops: slotStops,
-                  });
-                  card = exactRes?.quotation || exactRes?.candidate_quotation || exactRes?.candidateQuotation || exactRes?.rate_card || null;
-                }
-
-                if (!card) {
-                  card = getMatchingRateCard(
-                    slot.origin,
-                    slot.destination,
-                    vType,
-                    rCat,
-                    bType,
-                    slot.date,
-                    slot.originLocationId,
-                    slot.destinationLocationId
-                  );
-                }
-
-                if (card) {
-                  const cardRate = Number(card.rate ?? card.base_price ?? 0);
-                  const driverPayout = card.driver_payout ?? (card as any).driver_charge;
-                  if (cardRate > 0) {
-                    const isMonthlyRate = card.pricing_basis === 'PER_TRIP'
-                      ? false
-                      : card.pricing_basis === 'PER_MONTH'
-                      ? true
-                      : (card.line_type || card.rate_category || '').toLowerCase().includes('single') || (card.line_type || card.rate_category || '').toLowerCase().includes('extra')
-                      ? false
-                      : (card.billing_type || '').toLowerCase().includes('monthly');
-
-                    const perTripAmount = isMonthlyRate ? Math.round((cardRate / 30) * 100) / 100 : cardRate;
-                    return {
-                      ...slot,
-                      matchedRateCard: card,
-                      billingAmount: String(cardRate),
-                      tripCharges: driverPayout != null ? String(driverPayout) : '',
-                      rateMatched: true,
-                      rateCardId: card.id,
-                      rateCardName: card.name,
-                      rateCardBasePrice: cardRate,
-                      rateCardDefaultTripCharge: driverPayout != null ? Number(driverPayout) : null,
-                      saveAsQuotation: false,
-                      saveAsRateCard: false,
-                    };
-                  }
-                }
-              } catch (err) {
-                console.error('Quotation rate lookup error:', err);
-              }
-
-              // No matching rate card found: preserve manually entered pricing if user typed billing or payout
-              const isUserDefined = !slot.rateMatched || slot.saveAsQuotation || slot.saveAsRateCard || slot.driverPayoutModified;
-              const keepBilling = isUserDefined && slot.billingAmount ? slot.billingAmount : '';
-              const keepTripCharges = isUserDefined && slot.tripCharges ? slot.tripCharges : '';
-              const keepDriverPayout = isUserDefined && slot.driverPayout !== undefined ? slot.driverPayout : undefined;
-
-              return {
-                ...slot,
-                billingAmount: keepBilling,
-                tripCharges: keepTripCharges,
-                ...(keepDriverPayout !== undefined ? { driverPayout: keepDriverPayout } : {}),
-                rateMatched: false,
-                rateCardId: undefined,
-                rateCardName: undefined,
-                rateCardBasePrice: undefined,
-                rateCardDefaultTripCharge: undefined,
-                saveAsQuotation: true,
-                saveAsRateCard: true,
-              };
-            })
-          );
-
-          // Only update if slots actually changed to avoid unnecessary re-renders
-          const hasChanges = updatedSlots.some((s, idx) => {
-            const orig = currentSlots[idx];
-            if (!orig) return true;
-            return (
-              s.billingAmount !== orig.billingAmount ||
-              s.tripCharges !== orig.tripCharges ||
-              s.rateMatched !== orig.rateMatched ||
-              s.rateCardId !== orig.rateCardId ||
-              s.rateCardBasePrice !== orig.rateCardBasePrice
-            );
-          });
-          if (hasChanges) {
-            setContractSlots(updatedSlots);
-          }
-        })
-        .catch((err) => {
-          console.error('Quotation service import error:', err);
-        });
-    },
-    [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType, getMatchingRateCard, setContractSlots]
   );
 
   useEffect(() => {

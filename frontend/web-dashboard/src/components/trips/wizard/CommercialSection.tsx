@@ -454,12 +454,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               primarySlotMatchedId={primarySlot.matchedRateCard?.id}
               contractRateCategory={contractRateCategory}
               contractVehicleType={contractVehicleType}
-              onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
+              onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal, isCurrentlySelected) => {
                 const clickedId = getCardId(rc);
                 const activeId = primarySlot.rateMatched && (primarySlot.matchedRateCard || primarySlot.rateCardId)
                   ? getCardId(primarySlot.matchedRateCard || { id: primarySlot.rateCardId })
                   : null;
-                const isAlreadySelected = Boolean(clickedId && activeId && clickedId === activeId);
+                const isAlreadySelected = isCurrentlySelected || Boolean(clickedId && activeId && clickedId === activeId);
 
                 React.startTransition(() => {
                   if (isAlreadySelected) {
@@ -470,6 +470,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       rateMatched: false,
                       billingAmount: '',
                       driverPayout: '',
+                      saveAsQuotation: false,
+                      saveAsRateCard: false,
                     });
                     return;
                   }

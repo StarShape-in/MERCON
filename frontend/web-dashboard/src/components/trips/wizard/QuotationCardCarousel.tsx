@@ -9,7 +9,7 @@ interface QuotationCardCarouselProps {
   primarySlotMatchedId?: string | null;
   contractRateCategory?: string;
   contractVehicleType?: string;
-  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number) => void;
+  onApplyRateCard: (rc: RateCardItem, targetCategory: string, targetVehicleClass: string, origName: string, destName: string, rateVal: number, isCurrentlySelected: boolean) => void;
 }
 
 export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({

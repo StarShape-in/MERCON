@@ -197,33 +197,31 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             fieldErrors={fieldErrors}
           />
 
-          {/* PROGRESSIVE LOCK CONTAINER FOR ROUTE WORKSPACE */}
-          <div className="relative">
-            <div className={cn("space-y-3 transition-opacity duration-200", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
-              {contractSlots.map((slot) => (
-                <RouteWorkspace
-                  key={slot.id}
-                  slot={slot}
-                  contractCustomer={contractCustomer}
-                  isRoundTrip={isRoundTrip}
-                  canRemoveSlot={contractSlots.length > 1}
-                  contractRateCategory={contractRateCategory}
-                  contractBillingType={contractBillingType}
-                  setContractRateCategory={setContractRateCategory}
-                  triggerRateLookupForSlots={triggerRateLookupForSlots}
-                  handleAddSlotIntermediate={handleAddSlotIntermediate}
-                  handleRemoveTripSlot={handleRemoveTripSlot}
-                  handleSlotLocationChange={handleSlotLocationChange}
-                  handleUpdateTripSlot={handleUpdateTripSlot}
-                  handleRemoveSlotIntermediate={handleRemoveSlotIntermediate}
-                  handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
-                  handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
-                  handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
-                  handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
-                  fieldErrors={fieldErrors}
-                />
-              ))}
-            </div>
+          {/* ROUTE WORKSPACE (ALWAYS 100% INTERACTIVE) */}
+          <div className="space-y-3">
+            {contractSlots.map((slot) => (
+              <RouteWorkspace
+                key={slot.id}
+                slot={slot}
+                contractCustomer={contractCustomer}
+                isRoundTrip={isRoundTrip}
+                canRemoveSlot={contractSlots.length > 1}
+                contractRateCategory={contractRateCategory}
+                contractBillingType={contractBillingType}
+                setContractRateCategory={setContractRateCategory}
+                triggerRateLookupForSlots={triggerRateLookupForSlots}
+                handleAddSlotIntermediate={handleAddSlotIntermediate}
+                handleRemoveTripSlot={handleRemoveTripSlot}
+                handleSlotLocationChange={handleSlotLocationChange}
+                handleUpdateTripSlot={handleUpdateTripSlot}
+                handleRemoveSlotIntermediate={handleRemoveSlotIntermediate}
+                handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
+                handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
+                handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
+                handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
+                fieldErrors={fieldErrors}
+              />
+            ))}
           </div>
         </div>
 
