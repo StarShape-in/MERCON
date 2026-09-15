@@ -154,11 +154,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
-    let cards = quotationSearchQuery.trim()
-      ? sortedRateCards
-      : matchingCardsForSpec.length > 0
-      ? matchingCardsForSpec
-      : sortedRateCards;
+    const cards = matchingCardsForSpec.length > 0 ? matchingCardsForSpec : sortedRateCards;
 
     if (!quotationSearchQuery.trim()) return cards;
     const q = quotationSearchQuery.toLowerCase().trim();
@@ -325,24 +321,35 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               {/* SEARCH INPUT ROW */}
               {!showInlineForm && (
                 <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <div className="relative w-full">
+                  <div className="relative w-full flex items-center">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={quotationSearchQuery}
                       onChange={(e) => setQuotationSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setQuotationSearchQuery('');
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
                       placeholder="Search quotations by route, rate, vehicle class..."
-                      className="h-8.5 w-full pl-9 pr-8 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
+                      className="h-8.5 w-full pl-9 pr-24 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
                     />
                     {quotationSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setQuotationSearchQuery('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        title="Clear search"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 select-none">
+                          {displayedRateCards.length} {displayedRateCards.length === 1 ? 'match' : 'matches'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setQuotationSearchQuery('')}
+                          className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                          title="Clear search (Esc)"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
