@@ -414,3 +414,57 @@ workflow > template
 business correctness > visual polish
 ```
 MERCON should feel like a serious, efficient logistics operating system — clean, dense, predictable, and easy to operate.
+
+---
+
+## 38. 502 Bad Gateway Troubleshooting & Prevention Rules
+
+A **502 Bad Gateway** on `dev.mercon.tech` occurs when Nginx cannot proxy requests to the backend API container running on host port `3051`. Below are the 5 specific root causes, their official names, how they were resolved, and strict prevention rules.
+
+### 38.1 Root Causes & Resolution Reference
+
+#### 1. TypeScript Strict Compilation Failure (`Docker Container Build Crash`)
+- **Name**: `Docker Container Build Failure (TypeScript Strict Mode)`
+- **Cause**: Pushing code with TypeScript type errors (e.g. invalid type assignments in `mobileTripController.ts` or missing properties in `whatsappService.ts`) causes `RUN npm run build -w @mercon/api-server` to crash during Docker image build.
+- **Symptom**: Docker fails to spawn container `mercon-dev-api`. Nginx gets connection refused on port `3051` -> **502 Bad Gateway**.
+- **Fix**: Run `npx tsc --noEmit` locally in `backend/api-server` before pushing.
+- **Prevention**: **Never push to `origin/dev` without verifying `npx tsc --noEmit` passes cleanly.**
+
+#### 2. PostgreSQL Auto-Increment Sequence Desynchronization (`Sequence Desync`)
+- **Name**: `PostgreSQL Auto-Increment Sequence Desynchronization`
+- **Cause**: Adding `@default(autoincrement())` sequence columns (e.g. `quotation_number`) and backfilling existing records (`1..N`) without advancing the sequence pointer via `SELECT setval(...)`.
+- **Symptom**: New `INSERT` queries try to use `nextval = 1`, resulting in duplicate key errors or container crash on startup -> **502 Bad Gateway**.
+- **Fix**: Always append sequence synchronization to the migration file:
+  `SELECT setval('"Quotation_quotation_number_seq"', COALESCE((SELECT MAX("quotation_number") FROM "Quotation"), 1));`
+- **Prevention**: **Always call `setval()` after any SQL backfill on auto-increment columns.**
+
+#### 3. Container Network Interface Isolation (`Loopback Binding`)
+- **Name**: `Container Network Interface Isolation (127.0.0.1 Binding)`
+- **Cause**: `httpServer.listen(port)` bound to `127.0.0.1` inside Docker container instead of `0.0.0.0`.
+- **Symptom**: Container starts, but host Nginx proxy cannot connect to container port `3051` -> **502 Bad Gateway**.
+- **Fix**: Bind Express server to `0.0.0.0`: `httpServer.listen(port, '0.0.0.0', ...)` in `src/index.ts`.
+- **Prevention**: **All Dockerized Node servers MUST listen on `'0.0.0.0'`.**
+
+#### 4. Ignored Prisma Migration SQL Files (`Dockerignore Exclusion`)
+- **Name**: `Missing Prisma Migration SQL Artifacts (.dockerignore Exclusion)`
+- **Cause**: `.dockerignore` ignoring `*.sql` files or migration folders, preventing container startup `npx prisma migrate deploy` from finding schema migrations.
+- **Symptom**: Container crashes on startup when attempting to query missing columns -> **502 Bad Gateway**.
+- **Fix**: Ensure `.dockerignore` contains `!**/prisma/migrations/**/*.sql` and strip UTF-8 BOM encoding from SQL files.
+- **Prevention**: **Always verify migration folder is committed and un-ignored in `.dockerignore`.**
+
+#### 5. Unused Variables breaking Build (`TS6133 Unused Parameter`)
+- **Name**: `Strict TypeScript Build Failure (TS6133 Unused Parameter)`
+- **Cause**: Unused function parameters (e.g. `url` in `getProxyTarget`) breaking `tsc -b` during workspace build.
+- **Symptom**: Frontend build step fails in CI pipeline -> **502 Bad Gateway**.
+- **Fix**: Remove unused parameters/imports and run `npx tsc -b` locally.
+- **Prevention**: **Run `npx tsc -b` in `frontend/web-dashboard` before committing.**
+
+---
+
+### 38.2 Mandatory Pre-Push Verification Checklist
+Before pushing any commit to `origin/dev`:
+1. `cd backend/api-server && npx tsc --noEmit` (Must pass with 0 errors)
+2. `cd frontend/web-dashboard && npx tsc -b` (Must pass with 0 errors)
+3. Check `git status` for new Prisma migration SQL files and verify they are committed.
+4. If modifying auto-increment sequence columns, ensure `SELECT setval(...)` is included.
+
