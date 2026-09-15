@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Edit2, Trash2, Shield, Users, Truck, Eye, KeyRound, Phone, Mail, RotateCcw,
-  ShieldCheck, FileSpreadsheet, FileText, ChevronDown, MoreHorizontal, Monitor, Smartphone, Search, UserX
+  ShieldCheck, FileSpreadsheet, FileText, MoreHorizontal, Monitor, Smartphone, Search, UserX
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -531,32 +531,20 @@ export default function UserManagementPage() {
     <DashboardLayout active="Settings" title="User Management">
       <div className="p-6 max-w-[1600px] mx-auto w-full flex flex-col gap-5 bg-slate-50/50 dark:bg-slate-950">
 
-        {/* ── Page Header & Split Create Button ── */}
+        {/* ── Page Header & Create Button ── */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <h1 className="text-2xl font-black text-[#3E3C3D] dark:text-white tracking-tight">
             User Management
           </h1>
 
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="h-9 px-3.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer border-none">
-                  <Plus className="w-4 h-4" />
-                  <span>Create User</span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => { setEditingUser(null); setIsModalOpen(true); }} className="cursor-pointer">
-                  <Users className="w-4 h-4 mr-2 text-rose-500" />
-                  <span>Add Web User</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer">
-                  <Truck className="w-4 h-4 mr-2 text-indigo-500" />
-                  <span>Add Driver Account</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
+              className="h-9 px-3.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer border-none"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create User</span>
+            </Button>
           </div>
         </div>
 
