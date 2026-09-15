@@ -192,11 +192,15 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
 
 /** Fetch details for a specific trip by ID for the logged-in driver. */
 export const getMobileTripDetails = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+
   const idStr = String(req.params.id || '');
 
   try {
     const trip = await prisma.trip.findFirst({
       where: {
+        driverId,
         OR: [
           { id: idStr },
           { ref_id: idStr },
