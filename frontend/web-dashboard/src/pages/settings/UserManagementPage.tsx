@@ -449,85 +449,22 @@ export default function UserManagementPage() {
     >
       <div className="p-4 max-w-[1600px] mx-auto w-full flex flex-col gap-4 bg-[#EEF1F6]/40 dark:bg-slate-950">
 
-        {/* ── 1. KPI INSTRUMENT PANEL (4 Cards) ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Card 1: Web Users */}
-          <div
-            onClick={() => setActiveTab('users')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-indigo-400 transition-colors shadow-2xs"
-          >
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Web Users</span>
-              <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{totalUsersCount}</div>
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{operatorUsersCount} Operators</span>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* Card 2: Administrative Access */}
-          <div
-            onClick={() => setActiveTab('users')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-rose-400 transition-colors shadow-2xs"
-          >
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Admins & Privileged</span>
-              <div className="text-xl font-black text-[#FA634E] dark:text-rose-400 mt-0.5">{adminUsersCount}</div>
-              <span className="text-[10px] font-bold text-slate-500">Full System Access</span>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-[#FA634E] flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* Card 3: Driver Roster */}
-          <div
-            onClick={() => setActiveTab('drivers')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-blue-400 transition-colors shadow-2xs"
-          >
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Driver Accounts</span>
-              <div className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5">{totalDrivers}</div>
-              <span className="text-[10px] font-bold text-slate-500">Mobile App Roster</span>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center shrink-0">
-              <Truck className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* Card 4: Mobile Password Readiness */}
-          <div
-            onClick={() => setActiveTab('drivers')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-emerald-400 transition-colors shadow-2xs"
-          >
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mobile App Login</span>
-              <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{driverSetupRatio}%</div>
-              <span className="text-[10px] font-bold text-emerald-600">{driversWithPassword} / {totalDrivers} Configured</span>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
-              <KeyRound className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        {/* ── 2. UNIFIED WORKSPACE & TAB CONTROL ── */}
+        {/* ── UNIFIED WORKSPACE & TAB CONTROL ── */}
         <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs space-y-4">
 
-          {/* Tab Selector Segmented Bar */}
+          {/* Tab Selector Segmented Bar with Highlighted Driver App Button */}
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setActiveTab('users')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'users'
-                    ? 'bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Users className="w-3.5 h-3.5" />
+                <Users className="w-4 h-4" />
                 <span>Web Platform Users</span>
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   {users.length}
@@ -538,15 +475,21 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('drivers')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
                     activeTab === 'drivers'
-                      ? 'bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-[#FA634E] text-white shadow-md shadow-rose-500/20 ring-2 ring-[#FA634E]/30'
+                      : 'bg-rose-50 text-[#FA634E] border border-rose-200/90 hover:bg-rose-100 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-300'
                   }`}
                 >
-                  <Truck className="w-3.5 h-3.5" />
+                  <Truck className="w-4 h-4" />
                   <span>Driver Mobile App Accounts</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <Badge
+                    className={`text-[10px] px-2 py-0.5 font-mono font-black rounded-full transition-colors ${
+                      activeTab === 'drivers'
+                        ? 'bg-white text-[#FA634E]'
+                        : 'bg-[#FA634E] text-white'
+                    }`}
+                  >
                     {totalDrivers}
                   </Badge>
                 </button>
@@ -603,7 +546,7 @@ export default function UserManagementPage() {
                 </span>
               }
               columns={userColumns}
-              data={filteredUsers}
+              data={users}
               pageSize={10}
               pageSizeOptions={[10, 25, 50]}
               compact={true}
@@ -629,9 +572,6 @@ export default function UserManagementPage() {
               isLoading={isUsersLoading}
               isError={isUsersError}
               errorMessage={(usersError as Error)?.message || 'Failed to load platform users.'}
-              searchPlaceholder="Search user by name, phone, email, handle..."
-              searchValue={search}
-              onSearchChange={setSearch}
             />
           )}
 
@@ -671,9 +611,6 @@ export default function UserManagementPage() {
               isLoading={isDriversLoading}
               isError={isDriversError}
               errorMessage={(driversError as Error)?.message || 'Failed to load drivers.'}
-              searchPlaceholder="Search driver by name, phone, license, ref ID..."
-              searchValue={search}
-              onSearchChange={setSearch}
             />
           )}
 
