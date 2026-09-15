@@ -11,8 +11,11 @@ import {
   Search,
   X,
   ArrowRight,
-  Edit3,
   Trash2,
+  MapPin,
+  SlidersHorizontal,
+  Lightbulb,
+  ChevronDown,
 } from 'lucide-react';
 
 import {
@@ -74,9 +77,10 @@ export default function MonthlyGroupLedgerModal({
 }: MonthlyGroupLedgerModalProps) {
   const queryClient = useQueryClient();
 
-  // Search & Filter state
+  // Search, Filter & Sort state
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Unassigned' | 'Completed' | 'Scheduled' | 'InTransit'>('All');
+  const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'driver' | 'vehicle'>('latest');
   const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
 
   // Bulk assignment staging state
@@ -200,9 +204,9 @@ export default function MonthlyGroupLedgerModal({
 
   const allTrips = group?.trips || [];
 
-  // Filtered trips
+  // Filtered & Sorted trips
   const filteredTrips = useMemo(() => {
-    return allTrips.filter((trip) => {
+    const list = allTrips.filter((trip) => {
       // Status filter
       if (statusFilter === 'Unassigned' && !isUnassigned(trip)) return false;
       if (statusFilter === 'Completed' && trip.status !== 'Completed' && trip.status !== 'Invoiced') return false;
@@ -221,14 +225,27 @@ export default function MonthlyGroupLedgerModal({
 
       return true;
     });
-  }, [allTrips, statusFilter, search]);
 
-  const totalCount = allTrips.length;
-  const completedCount = allTrips.filter(
-    (t) => (t.status || '').toLowerCase() === 'completed' || (t.status || '').toLowerCase() === 'invoiced'
-  ).length;
-  const remainingCount = Math.max(0, totalCount - completedCount);
-  const unassignedCount = allTrips.filter(isUnassigned).length;
+    return list.sort((a, b) => {
+      if (sortBy === 'latest') {
+        const dCompare = b.date.localeCompare(a.date);
+        if (dCompare !== 0) return dCompare;
+        return (b.planned_start || '').localeCompare(a.planned_start || '');
+      }
+      if (sortBy === 'oldest') {
+        const dCompare = a.date.localeCompare(b.date);
+        if (dCompare !== 0) return dCompare;
+        return (a.planned_start || '').localeCompare(b.planned_start || '');
+      }
+      if (sortBy === 'driver') {
+        return (a.driver?.name || 'zzz').localeCompare(b.driver?.name || 'zzz');
+      }
+      if (sortBy === 'vehicle') {
+        return (a.vehicle?.plate_number || 'zzz').localeCompare(b.vehicle?.plate_number || 'zzz');
+      }
+      return 0;
+    });
+  }, [allTrips, statusFilter, search, sortBy]);
 
   const allVisibleIds = filteredTrips.map((t) => t.id);
   const isAllSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedTripIds.includes(id));
@@ -278,119 +295,150 @@ export default function MonthlyGroupLedgerModal({
     });
   };
 
+  const getStatusBadgeStyle = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'completed' || s === 'invoiced') {
+      return 'bg-emerald-50 text-emerald-600 border border-emerald-200/80 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-400';
+    }
+    if (s === 'intransit' || s === 'loading') {
+      return 'bg-blue-50 text-blue-600 border border-blue-200/80 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-400';
+    }
+    if (s === 'scheduled' || s === 'draft') {
+      return 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300';
+    }
+    if (s === 'cancelled') {
+      return 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800/60 dark:text-rose-400';
+    }
+    return 'bg-slate-100 text-slate-600 border border-slate-200';
+  };
+
   if (!group) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
-        {/* ── Modal Header: Template Route & Metadata ── */}
-        <div className="p-4 sm:p-5 bg-[#3E3C3D] text-white border-b border-white/10 flex flex-col gap-3 shrink-0">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              {companyLogo ? (
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="h-10 w-10 shrink-0 rounded-xl object-contain bg-white p-1 border border-white/20 shadow-sm"
-                />
-              ) : (
-                <div className="h-10 w-10 shrink-0 rounded-xl bg-[#FA634E] text-white font-black text-sm flex items-center justify-center shadow-sm">
-                  {initialsOf(companyName)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#FA634E]/20 text-[#FA634E] border border-[#FA634E]/40">
-                    {group.lineType}
-                  </span>
-                  <span className="text-xs font-black text-slate-200 uppercase tracking-wide">
-                    {group.vehicleClass}
-                  </span>
-                  <span className="text-xs text-slate-300 font-bold">· {companyName}</span>
-                </div>
-                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2 mt-1 truncate">
-                  <span>{formatLocationClean(group.origin)}</span>
-                  <ArrowRight className="h-4 w-4 text-[#FA634E] shrink-0" />
-                  <span>{formatLocationClean(group.destination)}</span>
-                </h2>
+      <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-[24px] border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl [&>button]:right-6 [&>button]:top-6 [&>button]:text-slate-400 [&>button]:hover:text-slate-600">
+        
+        {/* ── 1. Top Header Area (Clean Light Design matching reference) ── */}
+        <div className="p-6 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
+          
+          {/* Left: Company Partner Logo, Title & Route */}
+          <div className="flex items-center gap-4 min-w-0">
+            {companyLogo ? (
+              <img
+                src={companyLogo}
+                alt={companyName}
+                className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full object-contain p-1 border border-slate-200/80 dark:border-slate-800 shadow-sm bg-white"
+              />
+            ) : (
+              <div className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full bg-blue-600 text-white font-black text-xl flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900">
+                {initialsOf(companyName)}
               </div>
-            </div>
+            )}
 
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block">Monthly Rate</span>
-                <span className="text-sm sm:text-base font-black text-emerald-400">{group.rateStr}</span>
+            <div className="min-w-0">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">
+                DELIVERY PARTNER
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+                {companyName}
+              </h2>
+              
+              <div className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100 mt-1">
+                <MapPin className="w-3.5 h-3.5 fill-slate-900 text-slate-900 dark:fill-white dark:text-white shrink-0" />
+                <span>{formatLocationClean(group.origin)}</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <MapPin className="w-3.5 h-3.5 fill-slate-900 text-slate-900 dark:fill-white dark:text-white shrink-0" />
+                <span>{formatLocationClean(group.destination)}</span>
               </div>
+              <span className="text-[11px] font-medium text-slate-400 block mt-0.5">
+                Kingdom of Saudi Arabia
+              </span>
             </div>
           </div>
 
-          {/* KPI Summary Metric Pills */}
-          <div className="flex items-center flex-wrap gap-2 pt-1 border-t border-white/10 text-xs">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 text-white font-bold">
-              <Calendar className="w-3.5 h-3.5 text-slate-300" />
-              <span>{totalCount} Total Trips</span>
+          {/* Right: Monthly Rate & Feature Badges */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="text-right">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                MONTHLY RATE
+              </span>
+              <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400">
+                {group.rateStr}
+              </span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{completedCount} Completed</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-950/70 border border-amber-500/40 text-amber-300 font-bold">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>{remainingCount} Remaining</span>
-            </div>
-            {unassignedCount > 0 && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-950/70 border border-rose-500/40 text-rose-300 font-bold animate-pulse">
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                <span>{unassignedCount} Unassigned Resource(s)</span>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Vehicle Class Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-3xs">
+                <Truck className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                <span>{group.vehicleClass}</span>
               </div>
-            )}
+
+              {/* Line Type Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 font-bold text-xs shadow-3xs">
+                <Clock className="w-3.5 h-3.5 text-rose-500" />
+                <span>{group.lineType.replace(/_/g, ' ').toUpperCase()}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ── Toolbar: Search, Filters & Bulk Action Bar ── */}
-        <div className="p-3 sm:px-5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-          {/* Left: Search input + Status Filter Chips */}
-          <div className="flex items-center flex-wrap gap-2 min-w-0">
-            <div className="relative w-52 sm:w-60">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        {/* ── 2. Toolbar: Search Bar, Filter Chips & Sort Select ── */}
+        <div className="p-3.5 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          
+          {/* Left / Center: Search Input + Status Filter Chips */}
+          <div className="flex items-center flex-wrap gap-3 min-w-0">
+            <div className="relative w-64 sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search ref, driver, plate..."
+                placeholder="Search by trip ref, driver, vehicle, or plate..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-xs bg-white dark:bg-slate-950 rounded-lg border-slate-200 dark:border-slate-700"
+                className="pl-9 h-10 text-xs bg-slate-50/80 dark:bg-slate-900 rounded-xl border-slate-200 dark:border-slate-800 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <X size={12} />
+                  <X size={13} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-0.5 text-xs font-semibold">
-              {(['All', 'Unassigned', 'Scheduled', 'InTransit', 'Completed'] as const).map((filterOpt) => (
-                <button
-                  key={filterOpt}
-                  type="button"
-                  onClick={() => setStatusFilter(filterOpt)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                    statusFilter === filterOpt
-                      ? 'bg-[#FA634E] text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {filterOpt}
-                </button>
-              ))}
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1">
+              {(['All', 'Unassigned', 'Scheduled', 'InTransit', 'Completed'] as const).map((filterOpt) => {
+                const isActive = statusFilter === filterOpt;
+                return (
+                  <button
+                    key={filterOpt}
+                    type="button"
+                    onClick={() => setStatusFilter(filterOpt)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-[#FA634E] text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{filterOpt}</span>
+                    {filterOpt === 'All' && (
+                      <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                        isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                      }`}>
+                        {allTrips.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Right: Quick Selection Count & Delete Action */}
-          <div className="flex items-center gap-2 text-xs">
+          {/* Right: Quick Selection Count / Sort dropdown */}
+          <div className="flex items-center gap-3">
             {selectedTripIds.length > 0 && (
-              <>
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="destructive"
@@ -400,32 +448,43 @@ export default function MonthlyGroupLedgerModal({
                     setIsDeleteConfirmOpen(true);
                   }}
                   disabled={bulkDeleteMutation.isPending}
-                  className="h-7 px-2.5 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-lg"
+                  className="h-8 px-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-xl"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete ({selectedTripIds.length})</span>
                 </Button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedTripIds([])}
-                  className="text-[#FA634E] font-bold hover:underline"
+                  className="text-xs font-bold text-[#FA634E] hover:underline cursor-pointer"
                 >
-                  Clear Selection ({selectedTripIds.length})
+                  Clear Selection
                 </button>
-              </>
+              </div>
             )}
-            <span className="text-slate-400 font-medium">
-              Showing {filteredTrips.length} of {allTrips.length} trips
-            </span>
+
+            {/* Sort Dropdown */}
+            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+              <SelectTrigger className="h-10 text-xs font-bold w-36 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end" className="bg-white dark:bg-slate-900">
+                <SelectItem value="latest" className="text-xs font-semibold">Latest First</SelectItem>
+                <SelectItem value="oldest" className="text-xs font-semibold">Oldest First</SelectItem>
+                <SelectItem value="driver" className="text-xs font-semibold">By Driver</SelectItem>
+                <SelectItem value="vehicle" className="text-xs font-semibold">By Vehicle</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        {/* ── Sticky Bulk Actions Bar (Visible when >= 1 trips selected) ── */}
+        {/* ── 3. Sticky Bulk Actions Bar (When >= 1 trips selected) ── */}
         {selectedTripIds.length > 0 && (
-          <div className="px-4 py-2.5 bg-[#FA634E]/10 dark:bg-[#FA634E]/15 border-b border-[#FA634E]/30 flex flex-wrap items-center justify-between gap-3 shrink-0 animate-in fade-in duration-150">
+          <div className="px-6 py-2.5 bg-[#FA634E]/10 dark:bg-[#FA634E]/15 border-b border-[#FA634E]/30 flex flex-wrap items-center justify-between gap-3 shrink-0 animate-in fade-in duration-150">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-[#3E3C3D] dark:text-white bg-[#FA634E]/20 px-2.5 py-0.5 rounded-md border border-[#FA634E]/30">
+              <span className="text-xs font-black text-[#3E3C3D] dark:text-white bg-[#FA634E]/20 px-2.5 py-0.5 rounded-lg border border-[#FA634E]/30">
                 {selectedTripIds.length} Selected
               </span>
               <span className="text-xs text-slate-700 dark:text-slate-200 font-semibold hidden sm:inline">
@@ -450,7 +509,7 @@ export default function MonthlyGroupLedgerModal({
                   }}
                   placeholder="Set Driver for all..."
                   searchPlaceholder="Search drivers..."
-                  className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-300"
+                  className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-300 rounded-lg"
                 />
               </div>
 
@@ -470,13 +529,13 @@ export default function MonthlyGroupLedgerModal({
                   }}
                   placeholder="Set Vehicle for all..."
                   searchPlaceholder="Search vehicles..."
-                  className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-300"
+                  className="h-8 text-xs bg-white dark:bg-slate-900 border-slate-300 rounded-lg"
                 />
               </div>
 
               {/* Bulk Status Selector */}
               <Select onValueChange={handleApplyBulkStatus}>
-                <SelectTrigger className="h-8 w-36 text-xs bg-white dark:bg-slate-900 border-slate-300 text-[#3E3C3D] dark:text-white font-bold">
+                <SelectTrigger className="h-8 w-36 text-xs bg-white dark:bg-slate-900 border-slate-300 text-[#3E3C3D] dark:text-white font-bold rounded-lg">
                   <SelectValue placeholder="Set Status..." />
                 </SelectTrigger>
                 <SelectContent align="end" className="bg-white dark:bg-slate-900">
@@ -501,7 +560,7 @@ export default function MonthlyGroupLedgerModal({
                   setIsDeleteConfirmOpen(true);
                 }}
                 disabled={bulkDeleteMutation.isPending}
-                className="h-8 px-3 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-md"
+                className="h-8 px-3 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-2xs cursor-pointer rounded-lg"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete Selected ({selectedTripIds.length})</span>
@@ -510,43 +569,43 @@ export default function MonthlyGroupLedgerModal({
           </div>
         )}
 
-        {/* ── Main Ledger Table ── */}
+        {/* ── 4. Main Ledger Table ── */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <Table>
-            <TableHeader className="sticky top-0 bg-slate-100 dark:bg-slate-900 z-10 shadow-xs border-b border-slate-200 dark:border-slate-800">
-              <TableRow className="hover:bg-slate-100">
-                <TableHead className="w-10 px-4">
+            <TableHeader className="sticky top-0 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur z-10 shadow-xs border-y border-slate-100 dark:border-slate-800">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-6 py-3">
                   <Checkbox
                     checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
                     onCheckedChange={handleToggleSelectAll}
                     className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#FA634E] data-[state=checked]:border-[#FA634E]"
                   />
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 w-36">
-                  Date & Time
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 w-40">
+                  DATE & TIME
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 w-28">
-                  Trip Ref
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 w-28">
+                  TRIP REF
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Assigned Driver
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  ASSIGNED DRIVER
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                  Assigned Vehicle
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  ASSIGNED VEHICLE
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 w-32">
-                  Status
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 w-32">
+                  STATUS
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 text-right w-24">
-                  Amount
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-right w-24">
+                  AMOUNT
                 </TableHead>
-                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 text-center w-20">
-                  Action
+                <TableHead className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center w-24">
+                  ACTION
                 </TableHead>
               </TableRow>
             </TableHeader>
 
-            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {filteredTrips.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-40 text-center text-xs text-slate-400 font-medium">
@@ -565,12 +624,12 @@ export default function MonthlyGroupLedgerModal({
                         isSelected
                           ? 'bg-[#FA634E]/5 dark:bg-[#FA634E]/10'
                           : isMissingResource
-                          ? 'bg-amber-50/40 dark:bg-amber-950/10 hover:bg-amber-50/70'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                          ? 'bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-50/60'
+                          : 'hover:bg-slate-50/80 dark:hover:bg-slate-900/50'
                       }`}
                     >
                       {/* Checkbox */}
-                      <TableCell className="px-4 py-2.5">
+                      <TableCell className="px-6 py-3">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => handleToggleTrip(trip.id)}
@@ -579,25 +638,25 @@ export default function MonthlyGroupLedgerModal({
                       </TableCell>
 
                       {/* Date & Time */}
-                      <TableCell className="py-2.5">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-slate-100 whitespace-nowrap">
                           <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{formatDayHeading(trip.date)}</span>
-                          <span className="text-[10px] font-normal text-slate-400">
+                          <span className="text-[11px] font-medium text-slate-400">
                             {formatTime(trip.planned_start)}
                           </span>
                         </div>
                       </TableCell>
 
                       {/* Trip Ref ID */}
-                      <TableCell className="py-2.5">
-                        <span className="font-mono text-xs font-bold text-[#3E3C3D] dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md shadow-3xs">
+                      <TableCell className="py-3">
+                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md shadow-3xs">
                           {trip.ref_id || 'TRP-NEW'}
                         </span>
                       </TableCell>
 
                       {/* Driver Column: Inline Combobox Popover */}
-                      <TableCell className="py-2.5">
+                      <TableCell className="py-3">
                         <Popover
                           open={activeDriverTripId === trip.id}
                           onOpenChange={(open) => setActiveDriverTripId(open ? trip.id : null)}
@@ -631,7 +690,7 @@ export default function MonthlyGroupLedgerModal({
                                   No Driver
                                 </span>
                               )}
-                              <Edit3 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
+                              <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
@@ -653,7 +712,7 @@ export default function MonthlyGroupLedgerModal({
                       </TableCell>
 
                       {/* Vehicle Column: Inline Combobox Popover */}
-                      <TableCell className="py-2.5">
+                      <TableCell className="py-3">
                         <Popover
                           open={activeVehicleTripId === trip.id}
                           onOpenChange={(open) => setActiveVehicleTripId(open ? trip.id : null)}
@@ -677,7 +736,7 @@ export default function MonthlyGroupLedgerModal({
                                   No Truck
                                 </span>
                               )}
-                              <Edit3 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
+                              <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
@@ -698,14 +757,19 @@ export default function MonthlyGroupLedgerModal({
                         </Popover>
                       </TableCell>
 
-                      {/* Status Column: Quick Status Select */}
-                      <TableCell className="py-2.5">
+                      {/* Status Column: Quick Status Select with Styled Pill Trigger */}
+                      <TableCell className="py-3">
                         <Select
                           value={trip.status}
                           onValueChange={(val) => handleSingleStatusChange(trip.id, val)}
                         >
-                          <SelectTrigger className="h-7 text-[11px] font-extrabold w-28 px-2 rounded-md border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-                            <SelectValue />
+                          <SelectTrigger className={`h-7 text-xs font-bold w-32 px-2.5 rounded-full shadow-3xs flex items-center justify-between ${getStatusBadgeStyle(trip.status)}`}>
+                            <div className="flex items-center gap-1.5 truncate">
+                              {(trip.status === 'Completed' || trip.status === 'Invoiced') && (
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                              )}
+                              <SelectValue />
+                            </div>
                           </SelectTrigger>
                           <SelectContent align="start" className="bg-white dark:bg-slate-900">
                             {STATUS_LIST.map((st) => (
@@ -718,12 +782,12 @@ export default function MonthlyGroupLedgerModal({
                       </TableCell>
 
                       {/* Billing Amount */}
-                      <TableCell className="py-2.5 text-right font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <TableCell className="py-3 text-right font-bold text-xs text-slate-900 dark:text-slate-100">
                         {trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}
                       </TableCell>
 
                       {/* Action: Open Trip Details & Delete Trip */}
-                      <TableCell className="py-2.5 text-center">
+                      <TableCell className="py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"
@@ -756,16 +820,17 @@ export default function MonthlyGroupLedgerModal({
           </Table>
         </div>
 
-        {/* ── Modal Footer ── */}
-        <div className="p-3.5 px-5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500 font-medium">
-            Click any Driver, Truck, or Status cell to update immediately.
+        {/* ── 5. Modal Footer (matching reference layout) ── */}
+        <div className="p-4 px-8 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <Lightbulb className="w-4 h-4 text-blue-500 shrink-0" />
+            <span>Click on any driver, vehicle, or status cell to update immediately.</span>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="h-8 px-4 text-xs font-bold rounded-lg border-slate-300"
+            className="h-9 px-6 text-xs font-bold rounded-xl border-slate-200 dark:border-slate-800 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-900"
           >
             Done
           </Button>
