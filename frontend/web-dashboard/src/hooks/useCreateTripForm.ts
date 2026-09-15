@@ -693,15 +693,15 @@ export function useCreateTripForm() {
     }, 100);
   };
 
-  const handleDriverChange = (driverId: string) => {
+  const handleDriverChange = (driverId: string): string | null => {
     setMasterDriver(driverId);
     if (!driverId || driverId === 'unassigned') {
       setMasterVehicle('unassigned');
-      return;
+      return 'unassigned';
     }
 
     const selectedDriver = drivers.find((d) => d.id === driverId);
-    if (!selectedDriver) return;
+    if (!selectedDriver) return null;
 
     const embeddedVehicle = selectedDriver.assignedVehicle && typeof selectedDriver.assignedVehicle === 'object'
       ? selectedDriver.assignedVehicle as any
@@ -733,17 +733,21 @@ export function useCreateTripForm() {
       }
     }
 
-    if (!vehicleId) return;
+    if (!vehicleId) return null;
 
     const matchedVehicle = vehicles.find((v) => v.id === vehicleId) || embeddedVehicle;
-    if (!matchedVehicle) return;
+    if (!matchedVehicle) return null;
 
     const vClass = (matchedVehicle.capacity_kg && matchedVehicle.capacity_kg > 0)
       ? getVehicleTypeFromCapacity(matchedVehicle.capacity_kg)
       : normalizeVehicleClass(matchedVehicle.asset_type);
 
     setMasterVehicle(matchedVehicle.id);
+    if (vClass) {
+      setContractVehicleType(vClass);
+    }
     toast.success(`Auto-selected driver's truck: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
+    return matchedVehicle.id;
   };
 
   const {

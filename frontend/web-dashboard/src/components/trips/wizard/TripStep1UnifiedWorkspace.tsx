@@ -207,7 +207,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
           <div className="sticky top-4 space-y-3">
             <div className={cn("transition-opacity duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
               {/* REQUIREMENT 3: For Monthly trips, DO NOT show Assignment on Page 1 */}
-              {contractBillingType !== 'Monthly' && (
+              {contractBillingType?.toLowerCase() !== 'monthly' && (
                 <ExecutionAssignmentSection
                   assignmentType={assignmentType}
                   setAssignmentType={setAssignmentType}
@@ -231,6 +231,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                   contractSlots={contractSlots}
                   contractVehicleType={contractVehicleType}
                   setContractVehicleType={setContractVehicleType}
+                  contractBillingType={contractBillingType}
                 />
               )}
 

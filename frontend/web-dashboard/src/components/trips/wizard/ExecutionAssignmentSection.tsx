@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, User, ShieldAlert, Plus, Trash2, TrendingUp, Tag } from 'lucide-react';
+import { Truck, User, Users, ShieldAlert, Plus, Trash2, TrendingUp, Tag } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DriverAvatar from '@/components/ui/DriverAvatar';
@@ -28,6 +28,7 @@ interface ExecutionAssignmentSectionProps {
   contractSlots?: any[];
   contractVehicleType?: string;
   setContractVehicleType?: (vType: string) => void;
+  contractBillingType?: string;
 }
 
 export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProps> = ({
@@ -53,6 +54,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   contractSlots = [],
   contractVehicleType = '10 TON',
   setContractVehicleType,
+  contractBillingType,
 }) => {
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
@@ -154,6 +156,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
       });
   }, [thirdPartyProviderId, contractSlots, contractVehicleType, assignmentType]);
 
+  const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
   const selectedDriverObj = driverOptions.find((d) => d.value === masterDriver);
   const selectedVehicleObj = vehicleOptions.find((v) => v.value === masterVehicle);
 
@@ -175,7 +178,44 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         </span>
       </div>
 
-      {assignmentType === 'own' ? (
+      {isMonthly ? (
+        <div className="space-y-2">
+          {/* VEHICLE CLASS */}
+          {setContractVehicleType && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                VEHICLE CLASS
+              </label>
+              <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
+                <SelectTrigger className="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs">
+                  <SelectValue placeholder="Select Vehicle Class..." />
+                </SelectTrigger>
+                <SelectContent className="z-[9999]">
+                  {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
+                    <SelectItem key={vClass} value={vClass} className="text-xs font-bold py-1.5 cursor-pointer">
+                      {vClass}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/60 flex items-start gap-2.5">
+            <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold text-purple-950 dark:text-purple-200 block">
+                Driver & Fleet Roster Assigned in Step 2
+              </span>
+              <span className="text-[11px] text-purple-700 dark:text-purple-300 font-medium block leading-snug">
+                For monthly contract duty, driver rotation models, truck pairs, and operating calendar dates are configured in <strong>Step 2 (Operating Month & Days)</strong> after clicking Next.
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : assignmentType === 'own' ? (
         /* 2-COLUMN ASSIGNMENT WORKSPACE */
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}

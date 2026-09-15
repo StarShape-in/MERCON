@@ -48,7 +48,7 @@ interface MonthlyDaysSelectorProps {
   contractSlotsCount?: number;
   masterDriver?: string;
   masterVehicle?: string;
-  handleDriverChange?: (val: string) => void;
+  handleDriverChange?: (val: string) => string | null | void;
   handleVehicleChange?: (val: string) => void;
   driverOptions?: ComboboxOption[];
   vehicleOptions?: ComboboxOption[];
@@ -129,11 +129,15 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
 
   // Sync primary driver/vehicle when master values change
   useEffect(() => {
-    if (masterDriver && !rotationDrivers[0]) {
+    if (masterDriver && rotationDrivers[0] !== masterDriver) {
       setRotationDrivers((prev) => [masterDriver, prev[1], prev[2], prev[3]]);
     }
-    if (masterVehicle && !rotationVehicles[0]) {
-      setRotationVehicles((prev) => [masterVehicle, prev[1], prev[2], prev[3]]);
+    if (masterVehicle && rotationVehicles[0] !== masterVehicle) {
+      setRotationVehicles((prev) => {
+        const nextV = [masterVehicle, prev[1], prev[2], prev[3]];
+        applyAssignmentStrategy(strategyMode, rotationCount, rotationDrivers, nextV);
+        return nextV;
+      });
     }
   }, [masterDriver, masterVehicle]);
 
@@ -204,11 +208,28 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
     nextDrivers[index] = newDriverId;
     setRotationDrivers(nextDrivers);
 
+    const nextVehicles = [...rotationVehicles];
+
     if (index === 0 && handleDriverChange) {
-      handleDriverChange(newDriverId);
+      const autoVehId = handleDriverChange(newDriverId);
+      if (autoVehId && autoVehId !== 'unassigned') {
+        nextVehicles[0] = autoVehId;
+        setRotationVehicles(nextVehicles);
+      }
+    } else if (newDriverId && newDriverId !== 'unassigned') {
+      const selD = drivers.find((d) => d.id === newDriverId);
+      let vId = selD?.assignedVehicleId || (selD?.assignedVehicle as any)?.id;
+      if (!vId) {
+        const vAssigned = vehicles.find((v: any) => v.assignedDriverId === newDriverId || v.assigned_driver_id === newDriverId);
+        if (vAssigned) vId = vAssigned.id;
+      }
+      if (vId) {
+        nextVehicles[index] = vId;
+        setRotationVehicles(nextVehicles);
+      }
     }
 
-    applyAssignmentStrategy(strategyMode, rotationCount, nextDrivers, rotationVehicles);
+    applyAssignmentStrategy(strategyMode, rotationCount, nextDrivers, nextVehicles);
   };
 
   // Update specific vehicle in rotation array
@@ -447,57 +468,78 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
             </span>
           </div>
 
-          {/* ASSIGNMENT STRATEGY MODE PILLS */}
+          {/* VEHICLE CLASS & ROTATION MODEL ROW */}
           {assignmentType === 'own' && (
             <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                ROTATION MODEL:
-              </span>
-              <div className="flex items-center gap-1 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => handleStrategyChange('single')}
-                  className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                    strategyMode === 'single'
-                      ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                  }`}
-                >
-                  Single Pair
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStrategyChange('rotation', 2)}
-                  className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                    strategyMode === 'rotation' && rotationCount === 2
-                      ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                  }`}
-                >
-                  2-Driver Rotation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStrategyChange('rotation', 3)}
-                  className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                    strategyMode === 'rotation' && rotationCount === 3
-                      ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                  }`}
-                >
-                  3-Driver Rotation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStrategyChange('rotation', 4)}
-                  className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                    strategyMode === 'rotation' && rotationCount === 4
-                      ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                  }`}
-                >
-                  4-Driver Rotation
-                </button>
+              {setContractVehicleType && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    VEHICLE CLASS:
+                  </span>
+                  <select
+                    value={contractVehicleType}
+                    onChange={(e) => setContractVehicleType(e.target.value)}
+                    className="text-xs font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-lg cursor-pointer hover:border-[#FA634E] focus:outline-none"
+                  >
+                    {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
+                      <option key={vClass} value={vClass}>
+                        {vClass}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  ROTATION MODEL:
+                </span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleStrategyChange('single')}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      strategyMode === 'single'
+                        ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    Single Pair
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStrategyChange('rotation', 2)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      strategyMode === 'rotation' && rotationCount === 2
+                        ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    2-Driver Rotation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStrategyChange('rotation', 3)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      strategyMode === 'rotation' && rotationCount === 3
+                        ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    3-Driver Rotation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStrategyChange('rotation', 4)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      strategyMode === 'rotation' && rotationCount === 4
+                        ? 'border-[#FA634E] bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs font-extrabold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                    }`}
+                  >
+                    4-Driver Rotation
+                  </button>
+                </div>
               </div>
             </div>
           )}
