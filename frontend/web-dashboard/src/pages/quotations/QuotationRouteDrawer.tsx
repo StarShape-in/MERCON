@@ -399,9 +399,16 @@ export function QuotationRouteDrawer({
               </div>
 
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Billing Rate</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">
+                  {(quotation.pricing_basis === 'PER_MONTH' || (quotation.billing_type || '').toLowerCase().includes('monthly')) ? 'Monthly Billing Rate' : 'Billing Rate / Trip'}
+                </div>
                 <div className="font-mono font-black text-[#3E3C3D] dark:text-slate-100 text-sm">
                   SAR {Number(quotation.rate ?? quotation.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {(quotation.pricing_basis === 'PER_MONTH' || (quotation.billing_type || '').toLowerCase().includes('monthly')) && (
+                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block font-sans">
+                      ≈ SAR {(Number(quotation.rate ?? quotation.base_price ?? 0) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                    </span>
+                  )}
                 </div>
               </div>
 
