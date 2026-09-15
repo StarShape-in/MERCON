@@ -320,7 +320,9 @@ export function useTripSubmission(
         const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
         const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum: number, f: string) => sum + (Number(f) || 0), 0);
         const baseAmount = Number(slot.billingAmount) || 0;
-        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+        const isMonthlySlot = (slot.pricingBasis === 'Per Month' || slot.pricingBasis === 'PER_MONTH' || (contractBillingType || '').toLowerCase().includes('monthly'));
+        const resolvedTripBilling = isMonthlySlot && baseAmount > 0 ? (baseAmount / 30) : baseAmount;
+        const totalAmount = resolvedTripBilling + outboundFeesSum + returnFeesSum;
 
         const isRound = isRoundTripCategory(contractRateCategory);
         let destString = slot.destination.trim();
