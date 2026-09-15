@@ -4,7 +4,9 @@ import { normalizeRateCategory, normalizeVehicleClass, normalizeBillingType } fr
 
 export interface RateCardItem {
   id: string;
-  quotation_number?: string;
+  name?: string;
+  agreement_ref?: string;
+  quotation_number?: string | number;
   rate?: number;
   base_price?: number;
   vehicle_class?: string;

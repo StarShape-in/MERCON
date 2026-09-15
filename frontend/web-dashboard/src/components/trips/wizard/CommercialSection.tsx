@@ -72,6 +72,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       return availableRateCards;
     }
     return getAvailableRateCardsForLane({}) || [];
+  }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
+
   const matchedRateCard = primarySlot.matchedRateCard || null;
   const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
