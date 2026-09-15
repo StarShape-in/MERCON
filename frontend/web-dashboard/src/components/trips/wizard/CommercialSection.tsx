@@ -162,7 +162,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     }));
   }, [customerOptions, customers]);
 
-  // Sort customers: Selected customer pinned FIRST to position 0 (leftmost)
+  // Sort customers: Selected customer pinned FIRST to position 0 (leftmost), then by total trip count descending, then name
   const sortedCustomers = React.useMemo(() => {
     if (!customers) return [];
     return [...customers].sort((a, b) => {
@@ -170,7 +170,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       const bIsSelected = b.id === contractCustomer;
       if (aIsSelected && !bIsSelected) return -1;
       if (!aIsSelected && bIsSelected) return 1;
-      return 0;
+
+      const aTrips = a._count?.trips ?? a.trip_count ?? a.tripsCount ?? 0;
+      const bTrips = b._count?.trips ?? b.trip_count ?? b.tripsCount ?? 0;
+      if (bTrips !== aTrips) return bTrips - aTrips;
+
+      return (a.name || '').localeCompare(b.name || '');
     });
   }, [customers, contractCustomer]);
 
