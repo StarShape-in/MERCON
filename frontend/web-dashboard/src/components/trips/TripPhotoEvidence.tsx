@@ -3,7 +3,7 @@ import {
   Clock, Eye, Camera, ChevronDown,
   ArrowUpRight, PackageCheck, Flag, FileText,
   Play, Video, AlertTriangle, UploadCloud,
-  MessageCircle, ListFilter, Share2, Sparkles, Filter, CheckCircle2
+  MessageCircle, ListFilter, Share2, Sparkles, Filter, CheckCircle2, MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -1125,8 +1125,9 @@ export default function TripPhotoEvidence({
                           <h4 className="font-extrabold text-xs text-slate-900 truncate">
                             {photo.title}
                           </h4>
-                          <p className="text-[11px] text-slate-600 truncate">
-                            📍 {photo.location} • <span className="font-mono text-slate-500">{photo.time}</span>
+                          <p className="text-[11px] text-slate-600 truncate flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{photo.location}</span> • <span className="font-mono text-slate-500">{photo.time}</span>
                           </p>
                           {photo.geotag?.latitude != null && photo.geotag?.longitude != null && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-mono">

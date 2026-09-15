@@ -244,7 +244,7 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
                         ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
                         : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
                 )}>
-                  {isExpiredOrMissing ? '✕' : '✓'}
+                  {isExpiredOrMissing ? <XCircle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
                 </div>
 
                 <span className={cn(isSelected ? "font-black" : "font-extrabold")}>

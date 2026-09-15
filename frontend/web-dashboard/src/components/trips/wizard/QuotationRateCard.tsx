@@ -186,7 +186,7 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
               : "text-slate-400 hover:text-slate-600"
           )}
         >
-          {isSelected ? '✓ Selected' : 'Apply →'}
+          {isSelected ? 'Selected' : 'Apply →'}
         </span>
       </div>
     </button>

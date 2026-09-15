@@ -272,7 +272,7 @@ export default function TripCenterMap({
 
         {/* Bottom Left Saudi Layer Pill */}
         <div className="absolute left-3 bottom-3 z-[1000] flex items-center gap-1.5 px-2.5 py-1 bg-white/90 backdrop-blur-xs rounded-lg shadow-sm border border-[#E5E7EB] text-[11px] font-semibold text-[#374151]">
-          <span>🗺️</span>
+          <MapPin className="w-3.5 h-3.5 text-slate-500" />
           <span>Saudi Arabia</span>
         </div>
       </div>

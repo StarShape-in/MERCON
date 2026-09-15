@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Calendar, User, RefreshCw, Plus, Trash2, DollarSign } from 'lucide-react';
+import { Calendar, User, RefreshCw, Plus, Trash2, DollarSign, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Driver } from '@/services/driverService';
@@ -265,8 +265,9 @@ export default function Step4Assignments({
                     return acc + oFees + rFees;
                   }, 0);
                   return totalStopFees > 0 ? (
-                    <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-300/80 shrink-0">
-                      🎯 SAR {totalStopFees.toFixed(2)} Stops
+                    <span className="text-[9px] font-bold text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-300/80 shrink-0 flex items-center gap-1">
+                      <Target className="w-3 h-3 text-amber-600 inline shrink-0" />
+                      <span>SAR {totalStopFees.toFixed(2)} Stops</span>
                     </span>
                   ) : null;
                 })()}

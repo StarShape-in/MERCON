@@ -218,7 +218,7 @@ export function getOwnerCardSummary(slots: Array<{ status?: string; document?: a
 
   if (issuesCount === 0) {
     return {
-      label: '✓ Compliant',
+      label: 'Compliant',
       isCompliant: true,
       issuesCount: 0,
       className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50',

@@ -1,4 +1,4 @@
-import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, CheckCircle2, ArrowRight, Sparkles, Truck, Moon, RotateCcw, AlertCircle } from 'lucide-react';
+import { MapPin, Plus, Trash2, Clock, RefreshCw, Tag, Check, CheckCircle2, ArrowRight, Sparkles, Truck, Moon, RotateCcw, AlertCircle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
@@ -682,7 +682,8 @@ export default function Step2RouteSlots({
                       </div>
 
                       <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-md flex items-center gap-1 shrink-0">
-                        📅 {(() => {
+                        <Calendar className="w-3.5 h-3.5 inline text-slate-500" />
+                        {(() => {
                           const fromStr = matchedRateCard.valid_from ? new Date(matchedRateCard.valid_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
                           const toStr = matchedRateCard.valid_to ? new Date(matchedRateCard.valid_to).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
                           if (fromStr && toStr) return `Valid: ${fromStr} → ${toStr}`;

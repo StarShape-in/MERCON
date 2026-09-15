@@ -63,7 +63,7 @@ export default function TripDelayNotificationModal({
 
   const handleNotifyWhatsApp = () => {
     const text = encodeURIComponent(
-      `⚠️ *Trip Delay Notification — MERCON Logistics*\n\n` +
+      `*Trip Delay Notification — MERCON Logistics*\n\n` +
       `• *Trip ID*: ${trip?.ref_id || trip?.id || '—'}\n` +
       `• *Vehicle Plate*: ${truckNo}\n` +
       `• *Driver*: ${driverName}\n` +

@@ -695,7 +695,7 @@ export default function AddLocationPage() {
                       <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold">✓ LOCATION FOUND</span>
+                          <span className="font-bold">LOCATION FOUND</span>
                           <span className="font-mono text-[11px] text-emerald-700 dark:text-emerald-400">({resolvedLocation.lat.toFixed(4)}, {resolvedLocation.lng.toFixed(4)})</span>
                         </div>
                         <span className="text-[11px] block font-normal text-emerald-800 dark:text-emerald-300 mt-0.5">
@@ -876,17 +876,17 @@ export default function AddLocationPage() {
                     </span>
                     {precision === 'EXACT' && (
                       <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
-                        ✓ Exact Facility Pin
+                        Exact Facility Pin
                       </Badge>
                     )}
                     {precision === 'APPROXIMATE' && (
                       <Badge className="bg-indigo-600 text-white text-[10px] font-bold">
-                        ≈ Area Pin
+                        Area Pin
                       </Badge>
                     )}
                     {precision === 'UNKNOWN' && (
                       <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
-                        ○ Not Pinned
+                        Not Pinned
                       </Badge>
                     )}
                   </div>
@@ -901,7 +901,7 @@ export default function AddLocationPage() {
                           : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
                       }`}
                     >
-                      ○ UNKNOWN
+                      UNKNOWN
                     </button>
                     <button
                       type="button"
@@ -912,7 +912,7 @@ export default function AddLocationPage() {
                           : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
                       }`}
                     >
-                      ≈ AREA
+                      AREA
                     </button>
                     <button
                       type="button"
@@ -923,7 +923,7 @@ export default function AddLocationPage() {
                           : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'
                       }`}
                     >
-                      ✓ EXACT
+                      EXACT
                     </button>
                   </div>
                 </div>
@@ -1002,39 +1002,51 @@ export default function AddLocationPage() {
 
                   <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={selectedCustomerId ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {selectedCustomerId ? '✓' : '○'}
-                      </span>
+                      {selectedCustomerId ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>Customer</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={code.trim() ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {code.trim() ? '✓' : '○'}
-                      </span>
+                      {code.trim() ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>Code</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={name.trim() ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {name.trim() ? '✓' : '○'}
-                      </span>
+                      {name.trim() ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>Name</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={address.trim() ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {address.trim() ? '✓' : '○'}
-                      </span>
+                      {address.trim() ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>Address</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={hasValidCoords ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {hasValidCoords ? '✓' : '○'}
-                      </span>
+                      {hasValidCoords ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>GPS Pin</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                      <span className={precision !== 'UNKNOWN' ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
-                        {precision !== 'UNKNOWN' ? '✓' : '○'}
-                      </span>
+                      {precision !== 'UNKNOWN' ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0 inline-block mx-0.5" />
+                      )}
                       <span>Precision</span>
                     </div>
                   </div>

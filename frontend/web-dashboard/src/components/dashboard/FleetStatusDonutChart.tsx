@@ -9,77 +9,67 @@ import { vehicleService, PhysicalGpsStatusSummary } from '@/services/vehicleServ
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; color: string; bg: string; dot: string; icon: string }
+  { label: string; color: string; bg: string; dot: string }
 > = {
   MOVING: {
     label: 'Moving',
     color: '#10B981',
     bg: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
     dot: 'bg-emerald-500 animate-pulse',
-    icon: '🟢',
   },
   IDLE: {
     label: 'Idle',
     color: '#3B82F6',
     bg: 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
     dot: 'bg-blue-500',
-    icon: '🔵',
   },
   STOPPED: {
     label: 'Stopped',
     color: '#EF4444',
     bg: 'bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
     dot: 'bg-red-500',
-    icon: '🔴',
   },
   DEVICE_NO_SIGNAL: {
     label: 'No GPS Signal',
     color: '#F59E0B',
     bg: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
     dot: 'bg-amber-500',
-    icon: '🟡',
   },
   DEVICE_NOT_WORKING: {
     label: 'Device Not Working',
     color: '#E11D48',
     bg: 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
     dot: 'bg-rose-600',
-    icon: '⚪',
   },
   TAMPER_WEIGHT: {
     label: 'Tamper / Weight Alert',
     color: '#8B5CF6',
     bg: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
     dot: 'bg-purple-500',
-    icon: '🔷',
   },
   COMMAND: {
     label: 'Command',
     color: '#64748B',
     bg: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     dot: 'bg-slate-400',
-    icon: '⚙️',
   },
   ALERT: {
     label: 'Alert',
     color: '#D97706',
     bg: 'bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800',
     dot: 'bg-orange-500',
-    icon: '⚠️',
   },
   ACCIDENT: {
     label: 'Accident',
     color: '#991B1B',
     bg: 'bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200 dark:border-red-800',
     dot: 'bg-red-800',
-    icon: '🚨',
   },
   UNKNOWN: {
     label: 'Unknown',
     color: '#94A3B8',
     bg: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
     dot: 'bg-slate-400',
-    icon: '❓',
   },
 };
 

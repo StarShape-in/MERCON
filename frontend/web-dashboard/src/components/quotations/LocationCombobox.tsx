@@ -374,11 +374,11 @@ export default function LocationCombobox({
                   )}
                   title="Click to edit exact address & map pin for this trip"
                 >
-                  {(precision || selected?.coordinate_precision || (selected?.lat != null ? 'APPROXIMATE' : 'UNKNOWN')) === 'EXACT' ? '✓ Exact' : '≈ Area (Edit)'}
+                  {(precision || selected?.coordinate_precision || (selected?.lat != null ? 'APPROXIMATE' : 'UNKNOWN')) === 'EXACT' ? 'Exact' : 'Area (Edit)'}
                 </button>
               ) : (
                 <Badge className={cn("text-[9px] font-bold px-1.5 py-0", (precision || selected?.coordinate_precision) === 'EXACT' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200")}>
-                  {(precision || selected?.coordinate_precision) === 'EXACT' ? '✓ Exact' : '≈ Area'}
+                  {(precision || selected?.coordinate_precision) === 'EXACT' ? 'Exact' : 'Area'}
                 </Badge>
               )}
             </div>
@@ -478,7 +478,7 @@ export default function LocationCombobox({
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
                         {prec === 'EXACT' && (
                           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
-                            ✓ Exact
+                            Exact
                           </Badge>
                         )}
                         {prec === 'APPROXIMATE' && (

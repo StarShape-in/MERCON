@@ -84,7 +84,7 @@ export default function MonthlyLedgerTable({
                 </TableCell>
               </TableRow>
             ) : (
-              allTripsWithCompany.map(({ trip, companyName }) => {
+              allTripsWithCompany.map((trip) => {
                 const isSelected = selectedTripIds.includes(trip.id);
                 const gap = isUnassigned(trip);
                 return (
@@ -112,7 +112,7 @@ export default function MonthlyLedgerTable({
                       {trip.ref_id || '—'}
                     </TableCell>
                     <TableCell className="px-4 py-3 whitespace-nowrap text-xs font-bold text-slate-900">
-                      {companyName}
+                      {trip.company_name}
                     </TableCell>
                     <TableCell className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-slate-700">
                       {formatDayHeading(trip.date)}

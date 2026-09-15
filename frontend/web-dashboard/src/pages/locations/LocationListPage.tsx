@@ -292,12 +292,12 @@ export default function LocationListPage() {
             {prec === 'EXACT' && (
               <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px] w-fit flex items-center gap-1">
                 <Check className="w-3 h-3 text-emerald-600" />
-                <span>✓ Exact ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
+                <span>Exact ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
               </Badge>
             )}
             {prec === 'APPROXIMATE' && (
               <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold text-[10px] w-fit flex items-center gap-1">
-                <span>≈ Area ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
+                <span>Area ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
               </Badge>
             )}
             {prec === 'UNKNOWN' && (
@@ -452,9 +452,9 @@ export default function LocationListPage() {
           <SelectGroup>
             <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Pin Status</SelectLabel>
             <SelectItem value="all"         className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Locations</SelectItem>
-            <SelectItem value="exact"       className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">✓ Exact Only</SelectItem>
-            <SelectItem value="approximate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">≈ Area Only</SelectItem>
-            <SelectItem value="unknown"     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">○ Not Pinned Only</SelectItem>
+            <SelectItem value="exact"       className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Exact Only</SelectItem>
+            <SelectItem value="approximate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Area Only</SelectItem>
+            <SelectItem value="unknown"     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Not Pinned Only</SelectItem>
           </SelectGroup>
           <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
           <SelectGroup>

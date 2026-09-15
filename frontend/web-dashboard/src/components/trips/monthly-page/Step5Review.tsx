@@ -396,7 +396,7 @@ export default function Step5Review({
                   )}
                   {slot?.rateMatched ? (
                     <span className="text-[9px] font-extrabold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-full">
-                      ✓ QUOTATION
+                      QUOTATION MATCHED
                     </span>
                   ) : (
                     <div className="flex items-center gap-1.5 flex-wrap">

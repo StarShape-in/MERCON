@@ -433,13 +433,19 @@ export default function WhatsappShareModal({
                         <div key={cust.id}>
                           {cust.whatsapp_group_link && (
                             <SelectItem value={cust.whatsapp_group_link} className="text-xs cursor-pointer">
-                              <span className="font-bold text-emerald-700 dark:text-emerald-400">👥 {cust.whatsapp_group_name || cust.name + ' Group'}</span>
+                              <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                <Users className="w-3.5 h-3.5" />
+                                {cust.whatsapp_group_name || cust.name + ' Group'}
+                              </span>
                               <span className="text-[10px] text-slate-400 block truncate max-w-[210px]">{cust.whatsapp_group_link}</span>
                             </SelectItem>
                           )}
                           {cust.whatsapp_number && (
                             <SelectItem value={cust.whatsapp_number} className="text-xs cursor-pointer">
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">💬 {cust.name} (WhatsApp)</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                {cust.name} (WhatsApp)
+                              </span>
                               <span className="text-[10px] font-mono text-slate-400 block">{cust.whatsapp_number}</span>
                             </SelectItem>
                           )}
