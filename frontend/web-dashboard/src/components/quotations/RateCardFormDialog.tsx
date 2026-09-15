@@ -397,6 +397,13 @@ export default function QuotationFormDialog({
               </div>
             </div>
 
+            {(pricingBasis === 'PER_MONTH' || billingType?.toLowerCase().includes('monthly')) && parseFloat(price || '0') > 0 && (
+              <div className="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
+                <span>Monthly Rate: <strong className="font-mono">SAR {parseFloat(price).toLocaleString()}/mo</strong></span>
+                <span>Daily Rate Breakdown (1/30): <strong className="font-mono">SAR {(parseFloat(price) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day</strong></span>
+              </div>
+            )}
+
             {/* Monthly Quotation Helper Text */}
             {billingType?.toLowerCase().includes('monthly') && price && !isNaN(Number(price)) && Number(price) > 0 && (
               <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 rounded-lg space-y-0.5">
