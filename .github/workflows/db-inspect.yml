@@ -150,13 +150,13 @@ jobs:
 
       - name: Inspect PROD database migration ledger
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'mercon_admin' }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: mercon_db
         run: |
           set -euo pipefail
           echo "=== PROD _prisma_migrations TARGETED ==="
-          docker compose -p mercon exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+          docker compose -p mercon exec -e PGPASSWORD="$POSTGRES_PASSWORD" -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
             SELECT migration_name, started_at, finished_at, applied_steps_count,
                    rolled_back_at, checksum, logs
             FROM _prisma_migrations
@@ -173,7 +173,7 @@ jobs:
 
           echo ""
           echo "=== PROD: LAST 10 MIGRATIONS ==="
-          docker compose -p mercon exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+          docker compose -p mercon exec -e PGPASSWORD="$POSTGRES_PASSWORD" -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
             SELECT migration_name, started_at, finished_at, applied_steps_count,
                    rolled_back_at, checksum
             FROM _prisma_migrations
