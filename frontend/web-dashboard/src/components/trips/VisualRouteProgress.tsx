@@ -75,10 +75,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
   }, [completedCount, totalStops]);
 
   const outboundStops = stops && stops.length >= 2 ? stops.filter((st) => (st.leg_index ?? 0) === 0) : [];
-  const firstCityName = String(stops?.[0]?.location_name || stops?.[0]?.location?.name || '').toLowerCase().trim();
-  const lastCityName = String(stops?.[stops.length - 1]?.location_name || stops?.[stops.length - 1]?.location?.name || '').toLowerCase().trim();
-  const isRoundTrip = stops && stops.length > 2 && (stops.some((st) => st.leg_index === 1) || (firstCityName && lastCityName && firstCityName === lastCityName));
-  const targetDropoff = (isRoundTrip && outboundStops.length > 1) ? outboundStops[outboundStops.length - 1] : (stops && stops.length > 1 ? stops[stops.length - 1] : undefined);
+  const targetDropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : (stops && stops.length > 1 ? stops[stops.length - 1] : undefined);
 
   const originCity = normalizedStops[0]?.city || 'Origin';
   const destCity = targetDropoff

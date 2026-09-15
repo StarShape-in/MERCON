@@ -274,11 +274,8 @@ export default function TripDetailsPage() {
   const stopsArr = trip.stops || [];
   const pickup = stopsArr.length > 0 ? stopsArr[0] : undefined;
   const outboundStops = stopsArr.filter((s: any) => (s.leg_index ?? 0) === 0);
-  const firstLocName = String(stopsArr[0]?.location_name || stopsArr[0]?.location?.name || '').toLowerCase().trim();
-  const lastLocName = String(stopsArr[stopsArr.length - 1]?.location_name || stopsArr[stopsArr.length - 1]?.location?.name || '').toLowerCase().trim();
-  const isRoundTrip = tripType === 'Round Trip' || (firstLocName && lastLocName && firstLocName === lastLocName);
 
-  const dropoff = (isRoundTrip && outboundStops.length > 1)
+  const dropoff = outboundStops.length > 1
     ? outboundStops[outboundStops.length - 1]
     : (stopsArr.length > 1 ? stopsArr[stopsArr.length - 1] : undefined);
 
