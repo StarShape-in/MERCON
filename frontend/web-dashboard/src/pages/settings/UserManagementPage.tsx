@@ -468,39 +468,39 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* ── Main Navigation Tabs ── */}
-        <div className="pt-1 px-1 overflow-x-auto">
+        {/* ── Main Navigation Tabs (Left-aligned, No BG Box Overlay) ── */}
+        <div className="pt-1 flex items-center justify-start overflow-x-auto scrollbar-none">
           <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)}>
-            <TabsList className="h-9 p-1 bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-xl gap-1 w-full sm:w-auto inline-flex">
+            <TabsList className="h-auto p-0 bg-transparent border-none gap-2 inline-flex justify-start">
               <TabsTrigger
                 value="all"
-                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+                className="text-xs font-semibold px-3.5 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 data-[state=active]:border-[#FA634E]/40 data-[state=active]:bg-rose-50/60 dark:data-[state=active]:bg-rose-950/30 data-[state=active]:text-[#FA634E] dark:data-[state=active]:text-rose-400 data-[state=active]:shadow-2xs cursor-pointer gap-1.5 transition-all"
               >
-                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 data-[state=active]:text-[#FA634E]" />
                 <span>All Users</span>
-                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                   {combinedUsers.length}
                 </span>
               </TabsTrigger>
 
               <TabsTrigger
                 value="web"
-                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+                className="text-xs font-semibold px-3.5 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 data-[state=active]:border-[#FA634E]/40 data-[state=active]:bg-rose-50/60 dark:data-[state=active]:bg-rose-950/30 data-[state=active]:text-[#FA634E] dark:data-[state=active]:text-rose-400 data-[state=active]:shadow-2xs cursor-pointer gap-1.5 transition-all"
               >
-                <Monitor className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <Monitor className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 data-[state=active]:text-[#FA634E]" />
                 <span>Web Platform Users</span>
-                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                   {users.length}
                 </span>
               </TabsTrigger>
 
               <TabsTrigger
                 value="driver"
-                className="text-xs font-semibold px-3.5 h-7 rounded-lg transition-all text-slate-600 dark:text-slate-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-[#3E3C3D] dark:data-[state=active]:text-white data-[state=active]:shadow-2xs cursor-pointer gap-1.5"
+                className="text-xs font-semibold px-3.5 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 data-[state=active]:border-[#FA634E]/40 data-[state=active]:bg-rose-50/60 dark:data-[state=active]:bg-rose-950/30 data-[state=active]:text-[#FA634E] dark:data-[state=active]:text-rose-400 data-[state=active]:shadow-2xs cursor-pointer gap-1.5 transition-all"
               >
-                <Smartphone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                <Smartphone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 data-[state=active]:text-[#FA634E]" />
                 <span>Driver Accounts</span>
-                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-200/70 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/40 dark:border-slate-700">
+                <span className="ml-1 px-2 py-0.5 text-[11px] font-mono font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
                   {driversList.length}
                 </span>
               </TabsTrigger>
