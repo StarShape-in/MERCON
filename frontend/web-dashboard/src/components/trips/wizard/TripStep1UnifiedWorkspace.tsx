@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Calendar, Zap, Layers } from 'lucide-react';
+import { Truck, Calendar, Zap, Layers, Tag, Lock } from 'lucide-react';
 import { CustomerSelectionHeader } from './CustomerSelectionHeader';
 import { RecentRoutesAccelerator } from './RecentRoutesAccelerator';
 import { RouteWorkspace } from './RouteWorkspace';
@@ -10,6 +10,7 @@ import { TripEconomicsSection } from './TripEconomicsSection';
 import { MonthlyDaysSelector } from './MonthlyDaysSelector';
 import TransitTimeBadge from '@/components/trips/TransitTimeBadge';
 import { ComboboxOption } from '@/components/ui/combobox';
+import { cn } from '@/lib/utils';
 
 interface TripStep1UnifiedWorkspaceProps {
   contractCustomer: string;
@@ -133,9 +134,14 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
 
+  const isQuotationDefinedOrSelected = Boolean(
+    primarySlot.matchedRateCard ||
+    primarySlot.rateMatched ||
+    (primarySlot.billingAmount && Number(primarySlot.billingAmount) > 0)
+  );
+
   return (
     <div className="space-y-4 animate-fade-in max-w-full text-[#3E3C3D]">
-      {/* PAGE TITLE DIRECTLY ABOVE WORKSPACE & CUSTOMER SELECTION */}
       {/* MODE-SPECIFIC WORKSPACE HEADER BANNER */}
       {contractBillingType?.toLowerCase() === 'monthly' ? (
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/90 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/80 shadow-2xs">
@@ -191,69 +197,88 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             fieldErrors={fieldErrors}
           />
 
-          <div className="space-y-3">
-            {contractSlots.map((slot) => (
-              <RouteWorkspace
-                key={slot.id}
-                slot={slot}
-                contractCustomer={contractCustomer}
-                isRoundTrip={isRoundTrip}
-                canRemoveSlot={contractSlots.length > 1}
-                contractRateCategory={contractRateCategory}
-                contractBillingType={contractBillingType}
-                setContractRateCategory={setContractRateCategory}
-                triggerRateLookupForSlots={triggerRateLookupForSlots}
-                handleAddSlotIntermediate={handleAddSlotIntermediate}
-                handleRemoveTripSlot={handleRemoveTripSlot}
-                handleSlotLocationChange={handleSlotLocationChange}
-                handleUpdateTripSlot={handleUpdateTripSlot}
-                handleRemoveSlotIntermediate={handleRemoveSlotIntermediate}
-                handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
-                handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
-                handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
-                handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
-                fieldErrors={fieldErrors}
-              />
-            ))}
+          {/* PROGRESSIVE LOCK CONTAINER FOR ROUTE WORKSPACE */}
+          <div className="relative">
+            {!isQuotationDefinedOrSelected && (
+              <div className="p-4 mb-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/80 shadow-2xs text-center space-y-1.5 animate-fade-in">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold mx-auto border border-amber-200 dark:border-amber-800">
+                  <Lock className="w-4 h-4 text-amber-600" />
+                </div>
+                <h4 className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
+                  Select a Quotation Card Above or Click "+ Define Quotation"
+                </h4>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 max-w-md mx-auto font-medium leading-relaxed">
+                  Selecting a commercial quotation locks in rate terms (Billing Rate, Driver Payout, Vehicle Class, Line Type) to configure route & fleet assignment.
+                </p>
+              </div>
+            )}
+
+            <div className={cn("space-y-3 transition-all duration-200", !isQuotationDefinedOrSelected && "opacity-55 pointer-events-none select-none filter blur-[0.3px]")}>
+              {contractSlots.map((slot) => (
+                <RouteWorkspace
+                  key={slot.id}
+                  slot={slot}
+                  contractCustomer={contractCustomer}
+                  isRoundTrip={isRoundTrip}
+                  canRemoveSlot={contractSlots.length > 1}
+                  contractRateCategory={contractRateCategory}
+                  contractBillingType={contractBillingType}
+                  setContractRateCategory={setContractRateCategory}
+                  triggerRateLookupForSlots={triggerRateLookupForSlots}
+                  handleAddSlotIntermediate={handleAddSlotIntermediate}
+                  handleRemoveTripSlot={handleRemoveTripSlot}
+                  handleSlotLocationChange={handleSlotLocationChange}
+                  handleUpdateTripSlot={handleUpdateTripSlot}
+                  handleRemoveSlotIntermediate={handleRemoveSlotIntermediate}
+                  handleUpdateSlotIntermediate={handleUpdateSlotIntermediate}
+                  handleAddSlotReturnIntermediate={handleAddSlotReturnIntermediate}
+                  handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
+                  handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
+                  fieldErrors={fieldErrors}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
         {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
-            <ExecutionAssignmentSection
-              assignmentType={assignmentType}
-              setAssignmentType={setAssignmentType}
-              masterVehicle={masterVehicle}
-              masterDriver={masterDriver}
-              handleVehicleChange={handleVehicleChange}
-              handleDriverChange={handleDriverChange}
-              vehicleOptions={vehicleOptions}
-              driverOptions={driverOptions}
-              thirdPartyProviderId={thirdPartyProviderId}
-              setThirdPartyProviderId={setThirdPartyProviderId}
-              thirdPartyProviders={thirdPartyProviders}
-              thirdPartyVehiclePlate={thirdPartyVehiclePlate}
-              setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
-              thirdPartyDriverName={thirdPartyDriverName}
-              setThirdPartyDriverName={setThirdPartyDriverName}
-              thirdPartyCost={thirdPartyCost}
-              setThirdPartyCost={setThirdPartyCost}
-              contractSlots={contractSlots}
-              contractVehicleType={contractVehicleType}
-              setContractVehicleType={setContractVehicleType}
-            />
+            <div className={cn("transition-all duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-55 pointer-events-none select-none filter blur-[0.3px]")}>
+              <ExecutionAssignmentSection
+                assignmentType={assignmentType}
+                setAssignmentType={setAssignmentType}
+                masterVehicle={masterVehicle}
+                masterDriver={masterDriver}
+                handleVehicleChange={handleVehicleChange}
+                handleDriverChange={handleDriverChange}
+                vehicleOptions={vehicleOptions}
+                driverOptions={driverOptions}
+                thirdPartyProviderId={thirdPartyProviderId}
+                setThirdPartyProviderId={setThirdPartyProviderId}
+                thirdPartyProviders={thirdPartyProviders}
+                thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                setThirdPartyVehiclePlate={setThirdPartyVehiclePlate}
+                thirdPartyDriverName={thirdPartyDriverName}
+                setThirdPartyDriverName={setThirdPartyDriverName}
+                thirdPartyCost={thirdPartyCost}
+                setThirdPartyCost={setThirdPartyCost}
+                contractSlots={contractSlots}
+                contractVehicleType={contractVehicleType}
+                setContractVehicleType={setContractVehicleType}
+              />
 
-            <TripEconomicsSection
-              contractSlots={contractSlots}
-              masterDriver={masterDriver}
-              assignmentType={assignmentType}
-              thirdPartyCost={thirdPartyCost}
-              marginMetrics={marginMetrics}
-              contractCustomer={contractCustomer}
-              customers={customers}
-              handleUpdateTripSlot={handleUpdateTripSlot}
-            />
+              <TripEconomicsSection
+                contractSlots={contractSlots}
+                masterDriver={masterDriver}
+                assignmentType={assignmentType}
+                thirdPartyCost={thirdPartyCost}
+                marginMetrics={marginMetrics}
+                contractCustomer={contractCustomer}
+                customers={customers}
+                handleUpdateTripSlot={handleUpdateTripSlot}
+              />
+            </div>
           </div>
         </div>
 
