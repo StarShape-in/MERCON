@@ -537,15 +537,17 @@ export default function UserManagementPage() {
             User Management
           </h1>
 
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
-              className="h-9 px-3.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer border-none"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create User</span>
-            </Button>
-          </div>
+          {activeTab === 'web' && (
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
+                className="h-9 px-3.5 bg-[#FA634E] hover:bg-[#FA634E]/90 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer border-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create User</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* ── Main Navigation Tabs (Left-aligned, No BG Box Overlay) ── */}
