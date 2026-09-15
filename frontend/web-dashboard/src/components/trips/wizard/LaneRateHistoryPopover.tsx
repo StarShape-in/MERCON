@@ -25,11 +25,13 @@ export const LaneRateHistoryPopover: React.FC<LaneRateHistoryPopoverProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
   const [historyItems, setHistoryItems] = React.useState<any[]>([]);
 
   const fetchHistory = React.useCallback(async () => {
     if (!origin || !destination) return;
     setIsLoading(true);
+    setHasError(false);
     try {
       const data = await quotationService.getLanePriceHistory({
         origin,
@@ -40,6 +42,7 @@ export const LaneRateHistoryPopover: React.FC<LaneRateHistoryPopoverProps> = ({
       setHistoryItems(data || []);
     } catch {
       setHistoryItems([]);
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +100,11 @@ export const LaneRateHistoryPopover: React.FC<LaneRateHistoryPopoverProps> = ({
               <Loader2 className="w-4 h-4 animate-spin text-brand" />
               <span>Fetching past rate records...</span>
             </div>
+          ) : hasError ? (
+            <div className="py-6 px-4 text-center text-xs text-rose-500 bg-rose-50/50 dark:bg-rose-950/20 space-y-1">
+              <p className="font-bold">Failed to load price history</p>
+              <p className="text-[10px] text-slate-500">A network error occurred. Click Rate History again to retry.</p>
+            </div>
           ) : historyItems.length === 0 ? (
             <div className="py-8 px-4 text-center text-xs text-slate-400 space-y-1">
               <p className="font-semibold text-slate-600 dark:text-slate-300">No past rate records found</p>
@@ -104,21 +112,29 @@ export const LaneRateHistoryPopover: React.FC<LaneRateHistoryPopoverProps> = ({
             </div>
           ) : (
             historyItems.map((item, idx) => {
-              const bRate = Number(item.rate || 0);
-              const dPayout = item.driver_payout != null ? Number(item.driver_payout) : null;
+              const rawBRate = Number(item.rate ?? item.base_price ?? 0);
+              const bRate = isNaN(rawBRate) ? 0 : rawBRate;
+
+              const rawDPayout = item.driver_payout != null ? Number(item.driver_payout) : null;
+              const dPayout = rawDPayout != null && !isNaN(rawDPayout) ? rawDPayout : null;
+
               const margin = dPayout != null ? bRate - dPayout : null;
               const marginPct = margin != null && bRate > 0 ? Math.round((margin / bRate) * 100) : null;
-              const formattedDate = new Date(item.updatedAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+
+              const parsedDate = item.updatedAt ? new Date(item.updatedAt) : null;
+              const formattedDate = parsedDate && !isNaN(parsedDate.getTime())
+                ? parsedDate.toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : 'N/A';
 
               return (
                 <div key={item.id || idx} className="p-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                      {item.quotation_number}
+                      {item.quotation_number ? `QT-${item.quotation_number}` : item.name || 'Quotation Rate'}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-400">{formattedDate}</span>
                   </div>

@@ -104,7 +104,7 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
               key={rc.id || `card-${idx}`}
               layout
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="w-[calc(33.333%-8px)] min-w-[210px] shrink-0"
+              className="w-[260px] sm:w-[calc(33.333%-8px)] min-w-[220px] shrink-0"
             >
               <QuotationRateCard
                 rc={rc}
