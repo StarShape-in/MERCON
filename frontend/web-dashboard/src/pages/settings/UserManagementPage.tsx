@@ -240,17 +240,47 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleEditUser = (user: UserDTO) => {
-    setEditingUser(user);
-    setIsModalOpen(true);
+  const handleToggleUserStatus = (u: UnifiedUser) => {
+    if (u.isSuperAdmin && !currentUser?.isSuperAdmin) {
+      toast.error('Only a SuperAdmin can modify a SuperAdmin account');
+      return;
+    }
+
+    const isCurrentlyActive = u.status === 'Active';
+    const newStatus = isCurrentlyActive ? 'Inactive' : 'Active';
+    const actionText = isCurrentlyActive ? 'deactivate' : 'activate';
+
+    if (confirm(`Are you sure you want to ${actionText} ${u.name}?`)) {
+      if (u.originalUser) {
+        updateMutation.mutate({ id: u.originalUser.id, data: { status: newStatus } });
+      } else if (u.originalDriver) {
+        toast.success(`Driver ${u.name} ${actionText}d`);
+      }
+    }
   };
 
-  const handleDeleteUser = (user: UserDTO) => {
-    const isActivating = user.status !== 'Active';
-    const actionName = isActivating ? 'activate' : 'deactivate';
-    if (confirm(`Are you sure you want to ${actionName} ${user.name}?`)) {
-      deleteMutation.mutate(user.id);
+  const handlePermanentDeleteUser = (u: UnifiedUser) => {
+    if (u.isSuperAdmin && !currentUser?.isSuperAdmin) {
+      toast.error('Only a SuperAdmin can delete a SuperAdmin account');
+      return;
     }
+
+    if (confirm(`Are you sure you want to PERMANENTLY DELETE ${u.name}? This action cannot be undone.`)) {
+      if (u.originalUser) {
+        deleteMutation.mutate(u.originalUser.id);
+      } else {
+        toast.success(`${u.name} account deleted`);
+      }
+    }
+  };
+
+  const handleEditUser = (user: UserDTO) => {
+    if (user.isSuperAdmin && !currentUser?.isSuperAdmin) {
+      toast.error('Only a SuperAdmin can edit a SuperAdmin account');
+      return;
+    }
+    setEditingUser(user);
+    setIsModalOpen(true);
   };
 
   const handleOpenDriverPasswordModal = (driver: Driver) => {
@@ -269,8 +299,9 @@ export default function UserManagementPage() {
         header: 'User ↕',
         accessor: (u: UnifiedUser) => {
           const initials = u.name?.substring(0, 2).toUpperCase() || 'U';
+          const isInactive = u.status === 'Inactive';
           return (
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 transition-opacity ${isInactive ? 'opacity-55' : ''}`}>
               {u.avatarUrl ? (
                 <img src={u.avatarUrl} alt={u.name} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-slate-200" />
               ) : (
@@ -279,9 +310,16 @@ export default function UserManagementPage() {
                 </div>
               )}
               <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
-                  {u.name}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`font-extrabold text-xs truncate ${isInactive ? 'line-through text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>
+                    {u.name}
+                  </span>
+                  {isInactive && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 shrink-0">
+                      Deactivated
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] text-slate-400 font-mono font-medium">@{u.username}</span>
               </div>
             </div>
@@ -290,24 +328,28 @@ export default function UserManagementPage() {
       },
       {
         header: 'Contact Details',
-        accessor: (u: UnifiedUser) => (
-          <div className="flex flex-col gap-0.5 text-xs">
-            <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <Phone size={11} className="text-slate-400 shrink-0" />
-              {u.phone}
-            </span>
-            {u.email && (
-              <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
-                <Mail size={11} className="text-slate-400 shrink-0" />
-                {u.email}
+        accessor: (u: UnifiedUser) => {
+          const isInactive = u.status === 'Inactive';
+          return (
+            <div className={`flex flex-col gap-0.5 text-xs ${isInactive ? 'opacity-50' : ''}`}>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Phone size={11} className="text-slate-400 shrink-0" />
+                {u.phone}
               </span>
-            )}
-          </div>
-        ),
+              {u.email && (
+                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                  <Mail size={11} className="text-slate-400 shrink-0" />
+                  {u.email}
+                </span>
+              )}
+            </div>
+          );
+        },
       },
       {
         header: 'Role & Access',
         accessor: (u: UnifiedUser) => {
+          const isInactive = u.status === 'Inactive';
           let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
           if (u.role === 'Admin' || u.isSuperAdmin) {
             badgeStyle = 'bg-rose-50 text-[#FA634E] border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900';
@@ -316,7 +358,7 @@ export default function UserManagementPage() {
           }
 
           return (
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className={`flex items-center gap-1.5 flex-wrap ${isInactive ? 'opacity-50' : ''}`}>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border inline-flex items-center gap-1 ${badgeStyle}`}>
                 <Shield size={10} />
                 {u.role}
@@ -376,7 +418,7 @@ export default function UserManagementPage() {
       {
         header: 'Last Login ↕',
         accessor: (u: UnifiedUser) => (
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono">
+          <span className={`text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono ${u.status === 'Inactive' ? 'opacity-50' : ''}`}>
             {u.lastLogin}
           </span>
         ),
@@ -385,76 +427,88 @@ export default function UserManagementPage() {
         header: 'Actions',
         headerClassName: 'text-right',
         className: 'text-right',
-        accessor: (u: UnifiedUser) => (
-          <div className="flex items-center justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <MoreHorizontal size={15} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-                {/* 1. Password Option */}
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (u.originalDriver) {
-                      handleOpenDriverPasswordModal(u.originalDriver);
-                    } else if (u.originalUser) {
-                      handleEditUser(u.originalUser);
-                    }
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <KeyRound size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <span>
-                    {u.originalDriver
-                      ? (u.hasAccountPassword ? 'Update Password' : 'Set Password')
-                      : 'Password & Details'}
-                  </span>
-                </DropdownMenuItem>
+        accessor: (u: UnifiedUser) => {
+          const isSuperAdminTarget = Boolean(u.isSuperAdmin);
+          const isProtectedFromRequester = isSuperAdminTarget && !currentUser?.isSuperAdmin;
 
-                {/* 2. Deactivate Option */}
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (u.originalUser) {
-                      handleDeleteUser(u.originalUser);
-                    } else if (u.originalDriver) {
-                      const action = u.status === 'Active' ? 'deactivate' : 'activate';
-                      if (confirm(`Are you sure you want to ${action} driver ${u.name}?`)) {
-                        toast.success(`Driver ${u.name} ${action}d`);
-                      }
-                    }
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
-                >
-                  <UserX size={14} className="text-amber-600 shrink-0" />
-                  <span>{u.status === 'Active' ? 'Deactivate' : 'Activate'}</span>
-                </DropdownMenuItem>
+          return (
+            <div className="flex items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <MoreHorizontal size={15} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                  {/* SuperAdmin protection notice if restricted */}
+                  {isProtectedFromRequester && (
+                    <div className="px-2.5 py-1.5 mb-1 text-[10px] font-semibold bg-amber-50 text-amber-800 rounded-lg border border-amber-200 flex items-center gap-1">
+                      <ShieldCheck size={11} className="shrink-0 text-amber-600" />
+                      <span>SuperAdmin Protected</span>
+                    </div>
+                  )}
 
-                {/* 3. Delete Option */}
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (confirm(`Are you sure you want to delete ${u.name}? This action cannot be undone.`)) {
-                      if (u.originalUser) {
-                        deleteMutation.mutate(u.originalUser.id);
-                      } else {
-                        toast.success(`${u.name} account deleted`);
+                  {/* 1. Password & Details Option */}
+                  <DropdownMenuItem
+                    disabled={isProtectedFromRequester}
+                    onClick={() => {
+                      if (u.originalDriver) {
+                        handleOpenDriverPasswordModal(u.originalDriver);
+                      } else if (u.originalUser) {
+                        handleEditUser(u.originalUser);
                       }
-                    }
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                >
-                  <Trash2 size={14} className="text-rose-600 shrink-0" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ),
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <KeyRound size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span>
+                      {u.originalDriver
+                        ? (u.hasAccountPassword ? 'Update Password' : 'Set Password')
+                        : 'Password & Details'}
+                    </span>
+                  </DropdownMenuItem>
+
+                  {/* 2. Activate / Deactivate Option */}
+                  <DropdownMenuItem
+                    disabled={isProtectedFromRequester}
+                    onClick={() => handleToggleUserStatus(u)}
+                    className={`cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      u.status === 'Active'
+                        ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                        : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                    }`}
+                  >
+                    {u.status === 'Active' ? (
+                      <>
+                        <UserX size={14} className="text-amber-600 shrink-0" />
+                        <span>Deactivate Account</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                        <span>Activate Account</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+
+                  {/* 3. Delete Option */}
+                  <DropdownMenuItem
+                    disabled={isProtectedFromRequester}
+                    onClick={() => handlePermanentDeleteUser(u)}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={14} className="text-rose-600 shrink-0" />
+                    <span>Delete Account</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
       }
     );
 

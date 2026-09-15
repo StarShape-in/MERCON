@@ -107,6 +107,21 @@ export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, username, phone, email, role, status, password, isSuperAdmin } = req.body;
 
+    const requesterId = (req as any).user?.id;
+    const requester = requesterId ? await prisma.user.findUnique({ where: { id: requesterId }, select: { role: true, isSuperAdmin: true } }) : null;
+    const isRequesterSuperAdmin = Boolean(requester?.isSuperAdmin || requester?.role === 'SuperAdmin');
+
+    const targetUser = await prisma.user.findUnique({ where: { id: id as string }, select: { id: true, role: true, isSuperAdmin: true } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+    }
+
+    // Protection rule: Only a SuperAdmin can edit a SuperAdmin account
+    const isTargetSuperAdmin = Boolean(targetUser.isSuperAdmin || targetUser.role === 'SuperAdmin');
+    if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can modify a SuperAdmin account' } });
+    }
+
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
     if (username) dataToUpdate.username = String(username).trim();
@@ -123,25 +138,15 @@ export const updateUser = async (req: Request, res: Response) => {
       dataToUpdate.password_hash = await bcrypt.hash(password, 10);
     }
 
-    // isSuperAdmin is a platform-level flag, not a Role — the route only
-    // requires Admin, so plain Admins could otherwise self-escalate by
-    // editing their own account. Field-level check instead of a route-level
-    // one so the rest of this endpoint (name/role/status/password) stays
-    // usable by any Admin.
     if (isSuperAdmin !== undefined) {
-      const requesterId = (req as any).user?.id;
-      const requester = await prisma.user.findUnique({ where: { id: requesterId }, select: { isSuperAdmin: true } });
-      if (!requester?.isSuperAdmin) {
-        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a superadmin can grant or revoke superadmin access' } });
+      if (!isRequesterSuperAdmin) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can grant or revoke SuperAdmin access' } });
       }
 
-      if (isSuperAdmin === false) {
-        const target = await prisma.user.findUnique({ where: { id: id as string }, select: { isSuperAdmin: true } });
-        if (target?.isSuperAdmin) {
-          const remaining = await prisma.user.count({ where: { isSuperAdmin: true, id: { not: id as string } } });
-          if (remaining === 0) {
-            return res.status(409).json({ success: false, error: { code: 'LAST_SUPERADMIN', message: 'Cannot revoke the last superadmin — grant it to someone else first' } });
-          }
+      if (isSuperAdmin === false && targetUser.isSuperAdmin) {
+        const remaining = await prisma.user.count({ where: { isSuperAdmin: true, id: { not: id as string } } });
+        if (remaining === 0) {
+          return res.status(409).json({ success: false, error: { code: 'LAST_SUPERADMIN', message: 'Cannot revoke the last SuperAdmin — grant it to someone else first' } });
         }
       }
 
@@ -181,14 +186,35 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 };
 
-// Delete (Hard delete or soft delete) a user
+// Delete a user
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+    const requesterId = (req as any).user?.id;
+
     // Check if it's the current user trying to delete themselves
-    if ((req as any).user?.id === id) {
+    if (requesterId === id) {
        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Cannot delete your own account' } });
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: id as string }, select: { id: true, isSuperAdmin: true, role: true } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+    }
+
+    const requester = requesterId ? await prisma.user.findUnique({ where: { id: requesterId }, select: { isSuperAdmin: true, role: true } }) : null;
+    const isRequesterSuperAdmin = Boolean(requester?.isSuperAdmin || requester?.role === 'SuperAdmin');
+    const isTargetSuperAdmin = Boolean(targetUser.isSuperAdmin || targetUser.role === 'SuperAdmin');
+
+    if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can delete a SuperAdmin account' } });
+    }
+
+    if (isTargetSuperAdmin) {
+      const remainingSuperAdmins = await prisma.user.count({ where: { isSuperAdmin: true, id: { not: id as string } } });
+      if (remainingSuperAdmins === 0) {
+        return res.status(409).json({ success: false, error: { code: 'LAST_SUPERADMIN', message: 'Cannot delete the last SuperAdmin account' } });
+      }
     }
 
     await logAuditEvent({
@@ -212,4 +238,5 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
+
 
