@@ -135,14 +135,21 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
   // Resolve Roster / Rotation Pairs & Operating Days per Driver
   const rosterMap = new Map<string, { driverId: string; vehicleId: string; daysCount: number }>();
-  Object.values(dayAssignments).forEach((a: any) => {
-    if (a?.driverId || a?.vehicleId) {
-      const key = `${a.driverId || ''}_${a.vehicleId || ''}`;
+  const datesList = selectedDates && selectedDates.length > 0
+    ? selectedDates
+    : (Object.keys(dayAssignments).length > 0 ? Object.keys(dayAssignments) : ['default']);
+
+  datesList.forEach((dStr) => {
+    const asgn = dayAssignments[dStr];
+    const dId = asgn?.driverId || masterDriver;
+    const vId = asgn?.vehicleId || masterVehicle;
+    if (dId || vId) {
+      const key = `${dId || ''}_${vId || ''}`;
       const existing = rosterMap.get(key);
       if (existing) {
         existing.daysCount += 1;
       } else {
-        rosterMap.set(key, { driverId: a.driverId, vehicleId: a.vehicleId, daysCount: 1 });
+        rosterMap.set(key, { driverId: dId, vehicleId: vId, daysCount: 1 });
       }
     }
   });

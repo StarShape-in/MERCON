@@ -159,14 +159,28 @@ const getPickupInfo = (trip: Trip) => {
 
 const getDropoffInfo = (trip: Trip) => {
   const stops = trip.stops || [];
-  if (!stops.length) return { name: '—', address: null };
+  const lineTypeName = (trip.line_type?.name || trip.quotation_line_type || trip.rate_category || '').toLowerCase();
+  const isDuty = lineTypeName.includes('duty') || lineTypeName.includes('hour');
+
+  if (!stops.length) {
+    if (isDuty) {
+      const dutyLabel = lineTypeName.includes('12') ? '12 Hours Duty (Local)' : '10 Hours Duty (Local)';
+      return { name: dutyLabel, address: null };
+    }
+    return { name: '—', address: null };
+  }
 
   const outboundStops = stops.filter((s: any) => ((s as any).leg_index ?? 0) === 0);
   const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
   const lastLoc = (stops[stops.length - 1]?.location_name || stops[stops.length - 1]?.location?.name || '').toLowerCase().trim();
   const isRound = stops.some((s: any) => s.leg_index === 1) ||
     Boolean(trip.line_type?.name && /round/i.test(trip.line_type.name)) ||
-    Boolean(firstLoc && lastLoc && firstLoc === lastLoc);
+    Boolean(firstLoc && lastLoc && firstLoc === lastLoc && !isDuty);
+
+  if (isDuty) {
+    const dutyLabel = lineTypeName.includes('12') ? '12 Hours Duty (Local)' : '10 Hours Duty (Local)';
+    return { name: dutyLabel, address: null };
+  }
 
   let dropoff = (isRound && outboundStops.length > 1)
     ? outboundStops[outboundStops.length - 1]
@@ -176,7 +190,12 @@ const getDropoffInfo = (trip: Trip) => {
   if (!dropoff) return { name: '—', address: null };
 
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
-  name = name.replace(/🔁\s*/g, '').trim();
+  name = name.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+
+  if (name.toLowerCase() === firstLoc && !isRound) {
+    name = 'Local Duty';
+  }
+
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
   return { name, address };
 };
@@ -1868,11 +1887,11 @@ export default function TripListPage() {
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const charge = row.trip_charges;
+        const charge = row.driver_payout ?? row.driver_charge ?? row.trip_charges ?? row.third_party_cost;
         return (
           <div className="flex items-center font-mono text-xs" title="What MERCON pays the driver/subcontractor — not the customer-billed amount">
             <span className="font-bold text-slate-500 dark:text-slate-400">
-              {charge !== undefined && charge !== null && charge > 0
+              {charge !== undefined && charge !== null && Number(charge) > 0
                 ? `SAR ${Number(charge).toLocaleString('en-US')}`
                 : '—'}
             </span>
