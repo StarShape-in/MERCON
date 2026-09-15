@@ -261,6 +261,10 @@ async function startServer() {
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "balance_due" DECIMAL(12,2)',
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "carrier_name" TEXT',
     'ALTER TABLE "trips" ADD COLUMN IF NOT EXISTS "is_post_trip_settled" BOOLEAN NOT NULL DEFAULT false',
+    'CREATE SEQUENCE IF NOT EXISTS "Quotation_quotation_number_seq"',
+    'ALTER TABLE "Quotation" ADD COLUMN IF NOT EXISTS "quotation_number" INTEGER DEFAULT nextval(\'"Quotation_quotation_number_seq"\')',
+    'UPDATE "Quotation" SET "quotation_number" = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY "createdAt" ASC) as rn FROM "Quotation") sub WHERE "Quotation".id = sub.id AND "Quotation"."quotation_number" IS NULL',
+    'SELECT setval(\'"Quotation_quotation_number_seq"\', COALESCE((SELECT MAX("quotation_number") FROM "Quotation"), 1))',
   ];
 
   for (const sql of sqlCommands) {
