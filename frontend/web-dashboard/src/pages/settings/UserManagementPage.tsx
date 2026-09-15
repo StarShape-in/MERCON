@@ -434,26 +434,24 @@ export default function UserManagementPage() {
             Refresh
           </Button>
 
-          {isAdmin && (
-            activeTab === 'users' ? (
-              <Button
-                size="sm"
-                className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
-                onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add User
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
-                onClick={() => navigate('/drivers/new')}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add Driver
-              </Button>
-            )
+          {activeTab === 'users' ? (
+            <Button
+              size="sm"
+              className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
+              onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add User
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
+              onClick={() => navigate('/drivers/new')}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Driver
+            </Button>
           )}
         </div>
       }
@@ -463,7 +461,7 @@ export default function UserManagementPage() {
         {/* ── UNIFIED WORKSPACE & TAB CONTROL ── */}
         <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs space-y-4">
 
-          {/* Tab Selector Segmented Bar with Highlighted Driver App Button */}
+          {/* Tab Selector Segmented Bar with Highlighted Driver App Button & Action Button */}
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
               <button
@@ -482,69 +480,89 @@ export default function UserManagementPage() {
                 </Badge>
               </button>
 
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('drivers')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+              <button
+                type="button"
+                onClick={() => setActiveTab('drivers')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+                  activeTab === 'drivers'
+                    ? 'bg-[#FA634E] text-white shadow-md shadow-rose-500/20 ring-2 ring-[#FA634E]/30'
+                    : 'bg-rose-50 text-[#FA634E] border border-rose-200/90 hover:bg-rose-100 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-300'
+                }`}
+              >
+                <Truck className="w-4 h-4" />
+                <span>Driver Mobile App Accounts</span>
+                <Badge
+                  className={`text-[10px] px-2 py-0.5 font-mono font-black rounded-full transition-colors ${
                     activeTab === 'drivers'
-                      ? 'bg-[#FA634E] text-white shadow-md shadow-rose-500/20 ring-2 ring-[#FA634E]/30'
-                      : 'bg-rose-50 text-[#FA634E] border border-rose-200/90 hover:bg-rose-100 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-300'
+                      ? 'bg-white text-[#FA634E]'
+                      : 'bg-[#FA634E] text-white'
                   }`}
                 >
-                  <Truck className="w-4 h-4" />
-                  <span>Driver Mobile App Accounts</span>
-                  <Badge
-                    className={`text-[10px] px-2 py-0.5 font-mono font-black rounded-full transition-colors ${
-                      activeTab === 'drivers'
-                        ? 'bg-white text-[#FA634E]'
-                        : 'bg-[#FA634E] text-white'
-                    }`}
-                  >
-                    {totalDrivers}
-                  </Badge>
-                </button>
-              )}
+                  {totalDrivers}
+                </Badge>
+              </button>
             </div>
 
-            {/* Sub-filter pills for Driver Password Status */}
-            {activeTab === 'drivers' && (
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setDriverPassFilter('all')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    driverPassFilter === 'all'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
+            {/* Right Side: Sub-filter pills or Direct Create Action Button */}
+            <div className="flex items-center gap-3">
+              {activeTab === 'drivers' && (
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setDriverPassFilter('all')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      driverPassFilter === 'all'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    All ({totalDrivers})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDriverPassFilter('has_password')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      driverPassFilter === 'has_password'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Active ({driversWithPassword})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDriverPassFilter('no_password')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      driverPassFilter === 'no_password'
+                        ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Pending ({driversWithoutPassword})
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'users' ? (
+                <Button
+                  size="sm"
+                  className="h-9 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-sm rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
                 >
-                  All ({totalDrivers})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDriverPassFilter('has_password')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    driverPassFilter === 'has_password'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
+                  <Plus className="w-4 h-4" />
+                  <span>+ Create User</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-9 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-sm rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => navigate('/drivers/new')}
                 >
-                  Password Active ({driversWithPassword})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDriverPassFilter('no_password')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    driverPassFilter === 'no_password'
-                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  Pending Setup ({driversWithoutPassword})
-                </button>
-              </div>
-            )}
+                  <Plus className="w-4 h-4" />
+                  <span>+ Create Driver</span>
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Tab 1: Web Users Table */}
