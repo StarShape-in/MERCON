@@ -144,7 +144,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
   'Line Type', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-  'Driver Charge (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+  'Driver Charge', 'Billing Rate', 'Carrier / Provider',
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
@@ -164,13 +164,24 @@ const getDropoffInfo = (trip: Trip) => {
     return { name: fallback, address: null };
   }
 
+  const pickupStop = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+  const pickupName = (pickupStop?.location_name || pickupStop?.location?.name || '').toLowerCase().trim();
+
   const outboundStops = stops.filter((s: any) => ((s as any).leg_index ?? 0) === 0);
+  let dropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : null;
 
-  let dropoff = outboundStops.length > 1
-    ? outboundStops[outboundStops.length - 1]
-    : (stops.length > 1 ? stops[stops.length - 1] : stops.find((s) => s.stop_type === 'Dropoff'));
+  if (!dropoff || (outboundStops.length > 1 && (dropoff.location_name || dropoff.location?.name || '').toLowerCase().trim() === pickupName)) {
+    const distinctStop = stops.find((s) => {
+      const sName = (s.location_name || s.location?.name || '').toLowerCase().trim();
+      return sName && sName !== pickupName;
+    });
+    if (distinctStop) {
+      dropoff = distinctStop;
+    }
+  }
 
-  if (!dropoff && stops.length > 0) dropoff = stops[stops.length - 1];
+  if (!dropoff && stops.length > 1) dropoff = stops[stops.length - 1];
+  if (!dropoff && stops.length > 0) dropoff = stops[0];
   if (!dropoff) return { name: '—', address: null };
 
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
@@ -207,8 +218,8 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
   { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
   { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
-  { id: 'trip_charges', label: 'Driver Charge (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
-  { id: 'billing_amount', label: 'Billing Rate (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
+  { id: 'trip_charges', label: 'Driver Charge', accessor: (t) => Number(t.trip_charges || 0) },
+  { id: 'billing_amount', label: 'Billing Rate', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
   { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
       ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
       : (t.carrier_name || 'MERCON LOGISTICS')
@@ -1669,56 +1680,61 @@ export default function TripListPage() {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         const stops = row.stops || [];
-        const stopsCount = stops.length;
-        
-        let legBadge: string | null = null;
-        if (stopsCount > 2) {
-          const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
-          const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
-          const isRound = stops.some((s: any) => s.leg_index === 1) ||
-            Boolean(row.line_type?.name && /round/i.test(row.line_type.name)) ||
-            Boolean(firstLoc && lastLoc && firstLoc === lastLoc);
-          
-          const activeIdx = stops.findIndex((s) => !s.actual_departure);
-          const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
-          const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
-          const stopName = (currentStop?.location_name || currentStop?.location?.name || '—').replace(/🔁\s*/g, '').trim();
 
-          legBadge = isRound
-            ? `Leg ${currentStopNum}/${stopsCount} (Return) · ${stopName}`
-            : `Stop ${currentStopNum}/${stopsCount} · ${stopName}`;
+        const stopNames = stops
+          .map((s) => {
+            const n = s.location_name || s.location?.name || s.location_address || s.location?.address || '';
+            return n.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+          })
+          .filter(Boolean);
+
+        const firstStop = stopNames[0] || pickup.name || '—';
+        const lastStop = stopNames.length > 1 ? stopNames[stopNames.length - 1] : dropoff.name || '—';
+
+        let intermediateList: string[] = [];
+        if (stopNames.length > 2) {
+          intermediateList = stopNames.slice(1, stopNames.length - 1);
+        } else if (firstStop.toLowerCase() === lastStop.toLowerCase() && dropoff.name && dropoff.name.toLowerCase() !== firstStop.toLowerCase()) {
+          intermediateList = [dropoff.name];
         }
 
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}${legBadge ? '\n' + legBadge : ''}`}>
-            {/* Pickup (From) */}
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={stopNames.join(' → ') || `${firstStop} → ${lastStop}`}>
+            {/* Origin (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                {pickup.name || '—'}
-              </span>
-            </div>
-            {/* Connecting visual line */}
-            <div className="pl-[2.5px] -my-0.5">
-              <div className="w-px h-2.5 border-l border-dashed border-slate-300 dark:border-slate-700" />
-            </div>
-            {/* Dropoff (To) */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
-                {(dropoff.name || '—').replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim()}
+                {firstStop}
               </span>
             </div>
 
-            {/* Active Leg / Multi-stop Progress Pill */}
-            {legBadge && (
-              <div className="pt-0.5">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-tight bg-amber-50 text-amber-800 border border-amber-300/80 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/80 truncate max-w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-                  <span className="truncate">{legBadge}</span>
-                </span>
-              </div>
+            {/* In-Between Stop(s) */}
+            {intermediateList.length > 0 && (
+              <>
+                <div className="pl-[2.5px] -my-0.5">
+                  <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 truncate">
+                    {intermediateList.join(' → ')}
+                  </span>
+                </div>
+              </>
             )}
+
+            {/* Connecting visual line */}
+            <div className="pl-[2.5px] -my-0.5">
+              <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
+            </div>
+
+            {/* Final Destination / Return (To) */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                {lastStop}
+              </span>
+            </div>
           </div>
         );
       },
@@ -1846,7 +1862,7 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Rate (SAR)',
+      header: 'Rate',
       className: 'w-[100px] shrink-0',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
@@ -1863,7 +1879,7 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Driver Charge (SAR)',
+      header: 'Driver Charge',
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
