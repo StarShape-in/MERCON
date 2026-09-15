@@ -423,39 +423,41 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
                 const isAlreadySelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
 
-                if (isAlreadySelected) {
-                  // Toggle Deselect / Clear selection
+                React.startTransition(() => {
+                  if (isAlreadySelected) {
+                    // Toggle Deselect / Clear selection
+                    handleUpdateTripSlot(primarySlot.id, {
+                      matchedRateCard: null,
+                      rateCardId: null,
+                      billingAmount: '0',
+                    });
+                    return;
+                  }
+
+                  const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
+                  const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
+
+                  if (origName && handleSlotLocationChange) {
+                    handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
+                  }
+                  if (destName && handleSlotLocationChange) {
+                    handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
+                  }
+                  if (targetCategory && setContractRateCategory) {
+                    setContractRateCategory(targetCategory);
+                  }
+                  if (targetVehicleClass && setContractVehicleType) {
+                    setContractVehicleType(targetVehicleClass);
+                  }
                   handleUpdateTripSlot(primarySlot.id, {
-                    matchedRateCard: null,
-                    rateCardId: null,
-                    billingAmount: '0',
+                    matchedRateCard: rc,
+                    billingAmount: String(rateVal),
+                    driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
+                    driverPayoutModified: false,
+                    updateQuotationPayout: false,
+                    rateCategory: targetCategory,
+                    vehicleType: targetVehicleClass,
                   });
-                  return;
-                }
-
-                const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
-                const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
-
-                if (origName && handleSlotLocationChange) {
-                  handleSlotLocationChange(primarySlot.id, 'origin', origName, rc.originLocation || firstStop?.location || null);
-                }
-                if (destName && handleSlotLocationChange) {
-                  handleSlotLocationChange(primarySlot.id, 'destination', destName, rc.destinationLocation || lastStop?.location || null);
-                }
-                if (targetCategory && setContractRateCategory) {
-                  setContractRateCategory(targetCategory);
-                }
-                if (targetVehicleClass && setContractVehicleType) {
-                  setContractVehicleType(targetVehicleClass);
-                }
-                handleUpdateTripSlot(primarySlot.id, {
-                  matchedRateCard: rc,
-                  billingAmount: String(rateVal),
-                  driverPayout: rc.driver_payout != null ? String(rc.driver_payout) : '0',
-                  driverPayoutModified: false,
-                  updateQuotationPayout: false,
-                  rateCategory: targetCategory,
-                  vehicleType: targetVehicleClass,
                 });
               }}
             />
