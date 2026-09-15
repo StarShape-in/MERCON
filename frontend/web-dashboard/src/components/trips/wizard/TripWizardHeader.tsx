@@ -1,4 +1,4 @@
-import React from 'react';
+import { toast } from 'sonner';
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,6 +19,7 @@ import {
   History,
   RotateCcw,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ interface TripWizardHeaderProps {
   contractBillingType?: string;
   submissionResult: any;
   isStepValid: (step: number) => boolean;
+  getStepValidationErrors?: (step: number) => string[];
   canNavigateToStep: (step: number) => boolean;
   setContractStep: React.Dispatch<React.SetStateAction<any>>;
   handleContractSubmit: () => void;
@@ -53,6 +55,7 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
   contractBillingType = 'Extra',
   submissionResult,
   isStepValid,
+  getStepValidationErrors,
   canNavigateToStep,
   setContractStep,
   handleContractSubmit,
@@ -247,38 +250,109 @@ export const TripWizardHeader: React.FC<TripWizardHeaderProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        {contractStep < maxSteps ? (
-          <Button
-            id="wizard-next-btn"
-            type="button"
-            disabled={!isStepValid(contractStep)}
-            onClick={() => setContractStep((prev: number) => (prev + 1) as any)}
-            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
-          >
-            Next
-            <ChevronRight className="w-3.5 h-3.5 ml-1" />
-            <KbdBadge keys="Ctrl+S" />
-          </Button>
-        ) : (
-          <Button
-            id="wizard-submit-btn"
-            type="button"
-            disabled={isPending || !isStepValid(1)}
-            onClick={handleContractSubmit}
-            className="h-8 rounded-xl px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                Review & Confirm <KbdBadge keys="Ctrl+Enter" />
-              </>
-            )}
-          </Button>
-        )}
+        {(() => {
+          const isValid = isStepValid(contractStep);
+          const errors = getStepValidationErrors ? getStepValidationErrors(contractStep) : [];
+
+          const handleNextClick = () => {
+            if (!isValid) {
+              if (errors.length > 0) {
+                toast.error('Required fields missing', {
+                  description: (
+                    <div className="space-y-1 py-0.5">
+                      <p className="font-bold text-xs">Please complete the following before proceeding:</p>
+                      <ul className="list-disc list-inside text-[11px] font-sans space-y-0.5">
+                        {errors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ),
+                  duration: 5000,
+                });
+              } else {
+                toast.error('Please complete all required fields on this step.');
+              }
+              return;
+            }
+            setContractStep((prev: number) => (prev + 1) as any);
+          };
+
+          const handleReviewSubmitClick = () => {
+            if (!isStepValid(1)) {
+              const step1Errors = getStepValidationErrors ? getStepValidationErrors(1) : [];
+              if (step1Errors.length > 0) {
+                toast.error('Cannot proceed to review', {
+                  description: (
+                    <div className="space-y-1 py-0.5">
+                      <p className="font-bold text-xs">Please complete Step 1 required fields:</p>
+                      <ul className="list-disc list-inside text-[11px] font-sans space-y-0.5">
+                        {step1Errors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ),
+                  duration: 5000,
+                });
+              } else {
+                toast.error('Please complete all required fields before reviewing.');
+              }
+              return;
+            }
+            handleContractSubmit();
+          };
+
+          if (contractStep < maxSteps) {
+            return (
+              <Button
+                id="wizard-next-btn"
+                type="button"
+                onClick={handleNextClick}
+                className={cn(
+                  "h-8 rounded-xl px-4 text-xs font-bold shadow-none gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none transition-all",
+                  isValid
+                    ? "bg-[#FA634E] hover:bg-[#d13d0d] text-white"
+                    : "bg-amber-500 hover:bg-amber-600 text-white shadow-2xs"
+                )}
+                title={!isValid && errors.length > 0 ? `Incomplete: ${errors.join(', ')}` : undefined}
+              >
+                {!isValid && <AlertTriangle className="w-3.5 h-3.5 text-white animate-pulse" />}
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                <KbdBadge keys="Ctrl+S" />
+              </Button>
+            );
+          }
+
+          return (
+            <Button
+              id="wizard-submit-btn"
+              type="button"
+              disabled={isPending}
+              onClick={handleReviewSubmitClick}
+              className={cn(
+                "h-8 rounded-xl px-4 text-xs font-bold shadow-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FA634E] focus-visible:outline-none transition-all",
+                isStepValid(1)
+                  ? "bg-[#FA634E] hover:bg-[#d13d0d] text-white"
+                  : "bg-amber-500 hover:bg-amber-600 text-white shadow-2xs"
+              )}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  {!isStepValid(1) && <AlertTriangle className="w-3.5 h-3.5 mr-1 text-white animate-pulse" />}
+                  <span>Review & Confirm</span>
+                  <KbdBadge keys="Ctrl+Enter" />
+                </>
+              )}
+            </Button>
+          );
+        })()}
 
         <button
           type="button"

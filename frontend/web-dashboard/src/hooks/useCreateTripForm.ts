@@ -746,41 +746,67 @@ export function useCreateTripForm() {
   const [editThirdParty, setEditThirdParty] = useState<any | null>(null);
   const [editDriver, setEditDriver] = useState<any | null>(null);
 
-  const isStepValid = (step: number): boolean => {
+  const getStepValidationErrors = (step: number): string[] => {
+    const errors: string[] = [];
     const isMonthly = contractBillingType?.toLowerCase() === 'monthly';
+
     if (step === 1) {
-      return (
-        Boolean(contractCustomer) &&
-        contractSlots.length > 0 &&
-        contractSlots.every((slot) => {
-          if (!slot.origin?.trim() || !slot.destination?.trim() || (!isMonthly && !slot.date) || !slot.pickupTime || !slot.dropoffTime) {
-            return false;
-          }
-          if (isMonthly) return true;
-          const dropoffDate = slot.dropoffDate || slot.date;
-          if (dropoffDate < slot.date) return false;
-          try {
-            const pStartIso = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
-            const pEndIso = localDateTimeToUtcIso(dropoffDate, slot.dropoffTime, tz);
-            const pStartMs = new Date(pStartIso).getTime();
-            const pEndMs = new Date(pEndIso).getTime();
-            if (isNaN(pStartMs) || isNaN(pEndMs) || pEndMs <= pStartMs) {
-              return false;
-            }
-          } catch {
-            return false;
-          }
-          return true;
-        })
-      );
-    }
-    if (step === 2) {
-      if (contractBillingType === 'Monthly') {
-        return selectedDates.length > 0;
+      if (!contractCustomer) {
+        errors.push('Customer is required');
       }
-      return true;
+      if (!contractSlots || contractSlots.length === 0) {
+        errors.push('At least 1 route slot is required');
+      } else {
+        contractSlots.forEach((slot, idx) => {
+          const laneLabel =
+            slot.origin && slot.destination ? `${slot.origin} → ${slot.destination}` : `Slot #${idx + 1}`;
+          if (!slot.origin?.trim()) {
+            errors.push(`${laneLabel}: Select an origin location`);
+          }
+          if (!slot.destination?.trim()) {
+            errors.push(`${laneLabel}: Select a destination location`);
+          }
+          if (!isMonthly && !slot.date) {
+            errors.push(`${laneLabel}: Select a trip date`);
+          }
+          if (!slot.pickupTime) {
+            errors.push(`${laneLabel}: Select pickup time`);
+          }
+          if (!slot.dropoffTime) {
+            errors.push(`${laneLabel}: Select drop-off time`);
+          }
+
+          if (!isMonthly && slot.date && slot.pickupTime && slot.dropoffTime) {
+            const dropoffDate = slot.dropoffDate || slot.date;
+            if (dropoffDate < slot.date) {
+              errors.push(`${laneLabel}: Drop-off date cannot be before trip date`);
+            } else {
+              try {
+                const pStartIso = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
+                const pEndIso = localDateTimeToUtcIso(dropoffDate, slot.dropoffTime, tz);
+                const pStartMs = new Date(pStartIso).getTime();
+                const pEndMs = new Date(pEndIso).getTime();
+                if (isNaN(pStartMs) || isNaN(pEndMs) || pEndMs <= pStartMs) {
+                  errors.push(`${laneLabel}: Drop-off time must be strictly after pickup time`);
+                }
+              } catch {
+                errors.push(`${laneLabel}: Invalid pickup or drop-off time format`);
+              }
+            }
+          }
+        });
+      }
+    } else if (step === 2) {
+      if (contractBillingType === 'Monthly' && selectedDates.length === 0) {
+        errors.push('Select at least 1 operating date on the calendar');
+      }
     }
-    return true;
+
+    return errors;
+  };
+
+  const isStepValid = (step: number): boolean => {
+    return getStepValidationErrors(step).length === 0;
   };
 
   const canNavigateToStep = (targetStep: number): boolean => {
@@ -1208,6 +1234,7 @@ export function useCreateTripForm() {
     handleUpdateSlotReturnIntermediate,
     handleUpdateSlotReturnIntermediateFee,
     isStepValid,
+    getStepValidationErrors,
     canNavigateToStep,
     handleDriverChange,
     handleVehicleChange,

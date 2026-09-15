@@ -68,8 +68,8 @@ export function useTripSlotsState() {
       originLocationId: null,
       destinationLocationId: null,
       rateMatched: false,
-      pickupTime: '',
-      dropoffTime: '',
+      pickupTime: '08:00',
+      dropoffTime: '14:00',
       date: new Date().toISOString().slice(0, 10),
       dropoffDate: '',
       billingAmount: '',
@@ -100,7 +100,8 @@ export function useTripSlotsState() {
 
   const handleAddTripSlot = () => {
     const nextNum = contractSlots.length + 1;
-    const defaultTime = '';
+    const defaultPickup = prev[0]?.pickupTime || '08:00';
+    const defaultDropoff = prev[0]?.dropoffTime || '14:00';
     setContractSlots((prev) => [
       ...prev,
       {
@@ -109,8 +110,8 @@ export function useTripSlotsState() {
         destination: prev[0]?.destination || '',
         originLocationId: prev[0]?.originLocationId || null,
         destinationLocationId: prev[0]?.destinationLocationId || null,
-        pickupTime: defaultTime,
-        dropoffTime: '',
+        pickupTime: defaultPickup,
+        dropoffTime: defaultDropoff,
         date: prev[0]?.date || new Date().toISOString().slice(0, 10),
         dropoffDate: '',
         billingAmount: prev[0]?.billingAmount || '',
