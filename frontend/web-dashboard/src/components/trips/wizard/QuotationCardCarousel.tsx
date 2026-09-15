@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import QuotationRateCard, { RateCardItem } from './QuotationRateCard';
 
 interface QuotationCardCarouselProps {
@@ -49,25 +50,36 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
 
   if (rateCards.length <= 3) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-        {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+      <div className="flex items-center gap-3 w-full">
+        <AnimatePresence mode="popLayout">
+          {rateCards.map((rc, idx) => {
+            const isSelected = Boolean(
+              activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
+            );
 
-          return (
-            <QuotationRateCard
-              key={rc.id || idx}
-              rc={rc}
-              idx={idx}
-              isSelected={isSelected}
-              contractRateCategory={contractRateCategory}
-              contractVehicleType={contractVehicleType}
-              onApplyRateCard={onApplyRateCard}
-              className="w-full"
-            />
-          );
-        })}
+            return (
+              <motion.div
+                key={rc.id || `card-${idx}`}
+                layout
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+                className="flex-1 min-w-0"
+              >
+                <QuotationRateCard
+                  rc={rc}
+                  idx={idx}
+                  isSelected={isSelected}
+                  contractRateCategory={contractRateCategory}
+                  contractVehicleType={contractVehicleType}
+                  onApplyRateCard={onApplyRateCard}
+                  className="w-full"
+                />
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     );
   }
@@ -87,24 +99,35 @@ export const QuotationCardCarousel: React.FC<QuotationCardCarouselProps> = ({
         ref={scrollContainerRef}
         className="flex items-center gap-3 overflow-x-auto scroll-smooth py-1 px-0.5 flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
-        {rateCards.map((rc, idx) => {
-          const isSelected = Boolean(
-            activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
-          );
+        <AnimatePresence mode="popLayout">
+          {rateCards.map((rc, idx) => {
+            const isSelected = Boolean(
+              activeSelectedId && (rc.id === activeSelectedId || primarySlotMatchedId === rc.id)
+            );
 
-          return (
-            <QuotationRateCard
-              key={rc.id || idx}
-              rc={rc}
-              idx={idx}
-              isSelected={isSelected}
-              contractRateCategory={contractRateCategory}
-              contractVehicleType={contractVehicleType}
-              onApplyRateCard={onApplyRateCard}
-              className="w-[calc(33.333%-8px)] min-w-[210px] shrink-0"
-            />
-          );
-        })}
+            return (
+              <motion.div
+                key={rc.id || `card-${idx}`}
+                layout
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+                className="w-[calc(33.333%-8px)] min-w-[210px] shrink-0"
+              >
+                <QuotationRateCard
+                  rc={rc}
+                  idx={idx}
+                  isSelected={isSelected}
+                  contractRateCategory={contractRateCategory}
+                  contractVehicleType={contractVehicleType}
+                  onApplyRateCard={onApplyRateCard}
+                  className="w-full"
+                />
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       <button

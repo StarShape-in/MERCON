@@ -72,7 +72,8 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
       return availableRateCards;
     }
     return getAvailableRateCardsForLane({}) || [];
-  }, [customerRateCards, availableRateCards, getAvailableRateCardsForLane]);
+  const matchedRateCard = primarySlot.matchedRateCard || null;
+  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
   // Filter rate cards matching current billing type specifications
   const matchingCardsForSpec = React.useMemo(() => {
@@ -117,9 +118,6 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
   // Default to showing saved rate cards if available; only show inline form if explicitly toggled or customer has 0 cards
   const showInlineForm = isInlineMode || (effectiveRateCards.length === 0 && !quotationSearchQuery);
-
-  const matchedRateCard = primarySlot.matchedRateCard || null;
-  const activeSelectedId = primarySlot.matchedRateCard?.id || primarySlot.rateCardId || null;
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
