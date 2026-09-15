@@ -54,12 +54,39 @@ export function useTripSubmission(
       queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] });
       queryClient.invalidateQueries({ queryKey: ['rate-cards-customer-lookup'] });
 
-      if (data.imported >= 1) {
+      if (data.imported >= 1 && (data.failed === 0 || !data.failed)) {
         toast.success(data.imported === 1 ? 'Trip created successfully' : `${data.imported} Trips created successfully`);
         navigate('/trips');
       } else {
-        const firstErr = data?.results?.find((r: any) => !r.success)?.error;
-        toast.error(firstErr || 'Failed to create trip');
+        const failedRows = (data?.results || []).filter((r: any) => !r.success);
+        const errDetails = failedRows.map((r: any) => `Row #${r.row}: ${r.error || 'Failed'}`).join(' • ');
+        toast.error(
+          data.imported > 0
+            ? `${data.imported} succeeded, ${data.failed} failed`
+            : `Trip creation failed (${data.failed || 1} rows)`,
+          {
+            description: errDetails || 'Check inputs and try again.',
+            duration: 10000,
+          }
+        );
+      }
+    },
+    onError: (err: any) => {
+      const errRes = err?.response?.data?.error;
+      const details = errRes?.details;
+
+      if (Array.isArray(details) && details.length > 0) {
+        const detailMsgs = details.map((d: any) => `${d.path ? `[${d.path}]: ` : ''}${d.message}`).join(' • ');
+        toast.error(`Validation Failed (${errRes?.code || '400'})`, {
+          description: detailMsgs,
+          duration: 10000,
+        });
+      } else {
+        const mainMsg = errRes?.message || err?.message || 'Server returned HTTP 400 Bad Request';
+        toast.error(`Trip Creation Failed`, {
+          description: mainMsg,
+          duration: 10000,
+        });
       }
     },
   });
