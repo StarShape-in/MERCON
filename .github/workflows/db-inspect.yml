@@ -2,10 +2,6 @@ name: DB Migration Ledger Inspect (Read-Only)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "dev" ]
-    paths:
-      - '.github/workflows/db-inspect.yml'
 
 jobs:
   inspect:
