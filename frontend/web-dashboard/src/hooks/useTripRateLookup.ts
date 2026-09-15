@@ -134,6 +134,7 @@ export function useTripRateLookup(
 
       const rcV = norm(rc.vehicle_type || rc.vehicle_class || rc.source_vehicle_label);
       const rcC = normalizeLineTypeToken(rc.rate_category || rc.line_type);
+      const targetC = normalizeLineTypeToken(rateCategory);
       const rcB = norm(normalizeBillingType((rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type));
       const targetB = norm(normalizeBillingType(contractBillingType));
 

@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { matchesSearch } from '@/lib/search';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import DataTable from '@/components/ui/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -262,79 +262,82 @@ export default function UserManagementPage() {
     setDriverPasswordMutation.mutate({ driverId, password });
   };
 
-  // Columns definition matching reference mockup
-  const columns = [
-    {
-      header: 'User ↕',
-      accessor: (u: UnifiedUser) => {
-        const initials = u.name?.substring(0, 2).toUpperCase() || 'U';
-        return (
-          <div className="flex items-center gap-3">
-            {u.avatarUrl ? (
-              <img src={u.avatarUrl} alt={u.name} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-slate-200" />
-            ) : (
-              <div className="w-8.5 h-8.5 rounded-full bg-[#1E293B] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                {initials}
+  // Columns definition matching reference mockup & active tab
+  const columns = useMemo(() => {
+    const baseCols: Column<UnifiedUser>[] = [
+      {
+        header: 'User ↕',
+        accessor: (u: UnifiedUser) => {
+          const initials = u.name?.substring(0, 2).toUpperCase() || 'U';
+          return (
+            <div className="flex items-center gap-3">
+              {u.avatarUrl ? (
+                <img src={u.avatarUrl} alt={u.name} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-slate-200" />
+              ) : (
+                <div className="w-8.5 h-8.5 rounded-full bg-[#1E293B] text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                  {initials}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                  {u.name}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono font-medium">@{u.username}</span>
               </div>
-            )}
-            <div className="flex flex-col min-w-0">
-              <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
-                {u.name}
-              </span>
-              <span className="text-[11px] text-slate-400 font-mono font-medium">@{u.username}</span>
             </div>
-          </div>
-        );
+          );
+        },
       },
-    },
-    {
-      header: 'Contact Details',
-      accessor: (u: UnifiedUser) => (
-        <div className="flex flex-col gap-0.5 text-xs">
-          <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <Phone size={11} className="text-slate-400 shrink-0" />
-            {u.phone}
-          </span>
-          {u.email && (
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
-              <Mail size={11} className="text-slate-400 shrink-0" />
-              {u.email}
+      {
+        header: 'Contact Details',
+        accessor: (u: UnifiedUser) => (
+          <div className="flex flex-col gap-0.5 text-xs">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Phone size={11} className="text-slate-400 shrink-0" />
+              {u.phone}
             </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: 'Role & Access',
-      accessor: (u: UnifiedUser) => {
-        let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
-        if (u.role === 'Admin' || u.isSuperAdmin) {
-          badgeStyle = 'bg-rose-50 text-[#FA634E] border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900';
-        } else if (u.role === 'Operator') {
-          badgeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900';
-        }
-
-        return (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border inline-flex items-center gap-1 ${badgeStyle}`}>
-              <Shield size={10} />
-              {u.role}
-            </span>
-            {u.isSuperAdmin && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                <ShieldCheck size={10} />
-                Superadmin
+            {u.email && (
+              <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                <Mail size={11} className="text-slate-400 shrink-0" />
+                {u.email}
               </span>
             )}
           </div>
-        );
+        ),
       },
-    },
-    {
-      header: 'Mobile Password Status',
-      accessor: (u: UnifiedUser) => {
-        if (u.accountType === 'Driver App' || u.originalDriver) {
-          return u.hasAccountPassword ? (
+      {
+        header: 'Role & Access',
+        accessor: (u: UnifiedUser) => {
+          let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
+          if (u.role === 'Admin' || u.isSuperAdmin) {
+            badgeStyle = 'bg-rose-50 text-[#FA634E] border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900';
+          } else if (u.role === 'Operator') {
+            badgeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900';
+          }
+
+          return (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border inline-flex items-center gap-1 ${badgeStyle}`}>
+                <Shield size={10} />
+                {u.role}
+              </span>
+              {u.isSuperAdmin && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                  <ShieldCheck size={10} />
+                  Superadmin
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+    ];
+
+    if (activeTab === 'driver') {
+      baseCols.push({
+        header: 'Mobile Password Status',
+        accessor: (u: UnifiedUser) => (
+          u.hasAccountPassword ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400">
               <KeyRound size={11} className="text-emerald-600 shrink-0" />
               Password Set
@@ -344,74 +347,74 @@ export default function UserManagementPage() {
               <KeyRound size={11} className="text-amber-600 shrink-0" />
               Pending Setup
             </span>
-          );
-        }
-        return (
-          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-            Web Auth
-          </span>
-        );
-      },
-    },
-    {
-      header: 'Last Login ↕',
-      accessor: (u: UnifiedUser) => (
-        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono">
-          {u.lastLogin}
-        </span>
-      ),
-    },
-    {
-      header: 'Actions',
-      headerClassName: 'text-right',
-      className: 'text-right',
-      accessor: (u: UnifiedUser) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (u.originalUser) {
-                handleEditUser(u.originalUser);
-              } else if (u.originalDriver) {
-                navigate(`/drivers/${u.originalDriver.id}`);
-              }
-            }}
-            className="h-7 w-7 p-0 text-slate-600 hover:text-[#FA634E] hover:bg-rose-50 dark:hover:bg-rose-950/30"
-            title="Edit Details"
-          >
-            <Edit2 size={13} />
-          </Button>
+          )
+        ),
+      });
+    }
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-              >
-                <MoreHorizontal size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {u.originalDriver && (
-                <DropdownMenuItem onClick={() => handleOpenDriverPasswordModal(u.originalDriver!)}>
-                  <KeyRound size={13} className="mr-2 text-indigo-600" />
-                  <span>{u.hasAccountPassword ? 'Update Password' : 'Set Password'}</span>
-                </DropdownMenuItem>
-              )}
-              {u.originalUser && (
-                <DropdownMenuItem onClick={() => handleDeleteUser(u.originalUser!)}>
-                  <Trash2 size={13} className="mr-2 text-rose-600" />
-                  <span>{u.status === 'Active' ? 'Deactivate User' : 'Activate User'}</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
-    },
-  ];
+    baseCols.push(
+      {
+        header: 'Last Login ↕',
+        accessor: (u: UnifiedUser) => (
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 font-mono">
+            {u.lastLogin}
+          </span>
+        ),
+      },
+      {
+        header: 'Actions',
+        headerClassName: 'text-right',
+        className: 'text-right',
+        accessor: (u: UnifiedUser) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (u.originalUser) {
+                  handleEditUser(u.originalUser);
+                } else if (u.originalDriver) {
+                  navigate(`/drivers/${u.originalDriver.id}`);
+                }
+              }}
+              className="h-7 w-7 p-0 text-slate-600 hover:text-[#FA634E] hover:bg-rose-50 dark:hover:bg-rose-950/30"
+              title="Edit Details"
+            >
+              <Edit2 size={13} />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  <MoreHorizontal size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {u.originalDriver && (
+                  <DropdownMenuItem onClick={() => handleOpenDriverPasswordModal(u.originalDriver!)}>
+                    <KeyRound size={13} className="mr-2 text-indigo-600" />
+                    <span>{u.hasAccountPassword ? 'Update Password' : 'Set Password'}</span>
+                  </DropdownMenuItem>
+                )}
+                {u.originalUser && (
+                  <DropdownMenuItem onClick={() => handleDeleteUser(u.originalUser!)}>
+                    <Trash2 size={13} className="mr-2 text-rose-600" />
+                    <span>{u.status === 'Active' ? 'Deactivate User' : 'Activate User'}</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+      }
+    );
+
+    return baseCols;
+  }, [activeTab, navigate]);
 
   return (
     <DashboardLayout active="Settings" title="User Management">
