@@ -127,19 +127,19 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               if (triggerRateLookupForSlots) triggerRateLookupForSlots(undefined, val);
             }}
           >
-            <SelectTrigger className="h-7.5 rounded-lg border-slate-200 bg-white text-xs font-bold text-slate-800 shadow-2xs w-[145px]">
-              <div className="flex items-center gap-1.5">
+            <SelectTrigger className="h-7.5 rounded-lg border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-auto min-w-[140px] max-w-[240px] px-2.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 {selectedTaxonomyOption ? (
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold border",
+                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-extrabold border shrink-0 whitespace-nowrap",
                       selectedTaxonomyOption.colorTheme.bg,
                       selectedTaxonomyOption.colorTheme.text,
                       selectedTaxonomyOption.colorTheme.border
                     )}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }} />
-                    <span>{selectedTaxonomyOption.label}</span>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: selectedTaxonomyOption.colorTheme.hex }} />
+                    <span className="whitespace-nowrap truncate">{selectedTaxonomyOption.label}</span>
                   </span>
                 ) : (
                   <SelectValue placeholder="Select Line Type" />
