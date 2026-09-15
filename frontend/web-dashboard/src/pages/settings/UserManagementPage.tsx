@@ -468,67 +468,67 @@ export default function UserManagementPage() {
         </div>
 
         {/* ── Main Navigation Underlined Tabs ── */}
-        <div className="flex items-center gap-8 border-b border-slate-200/90 dark:border-slate-800 pt-1 px-1">
+        <div className="flex items-center gap-6 sm:gap-8 border-b border-slate-200/90 dark:border-slate-800 pt-1 px-1 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-2.5 pb-3 text-sm font-bold transition-all relative cursor-pointer ${
+            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
               activeTab === 'all'
-                ? 'text-slate-900 dark:text-white'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                ? 'text-[#3E3C3D] dark:text-white'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
             }`}
           >
-            <Users className="w-4 h-4 text-slate-500" />
+            <Users className={`w-4 h-4 ${activeTab === 'all' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
             <span>All Users</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold transition-colors ${
-              activeTab === 'all' ? 'bg-[#501920] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
+              activeTab === 'all' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
             }`}>
               {combinedUsers.length}
             </span>
             {activeTab === 'all' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#501920] rounded-t-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('web')}
-            className={`flex items-center gap-2.5 pb-3 text-sm font-bold transition-all relative cursor-pointer ${
+            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
               activeTab === 'web'
-                ? 'text-slate-900 dark:text-white'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                ? 'text-[#3E3C3D] dark:text-white'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
             }`}
           >
-            <Monitor className="w-4 h-4 text-slate-500" />
+            <Monitor className={`w-4 h-4 ${activeTab === 'web' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
             <span>Web Platform Users</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold transition-colors ${
-              activeTab === 'web' ? 'bg-[#501920] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
+              activeTab === 'web' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
             }`}>
               {users.length}
             </span>
             {activeTab === 'web' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#501920] rounded-t-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('driver')}
-            className={`flex items-center gap-2.5 pb-3 text-sm font-bold transition-all relative cursor-pointer ${
+            className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition-all relative cursor-pointer shrink-0 ${
               activeTab === 'driver'
-                ? 'text-slate-900 dark:text-white'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                ? 'text-[#3E3C3D] dark:text-white'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
             }`}
           >
-            <Smartphone className="w-4 h-4 text-slate-500" />
+            <Smartphone className={`w-4 h-4 ${activeTab === 'driver' ? 'text-[#FA634E]' : 'text-slate-400'}`} />
             <span>Driver Accounts</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold transition-colors ${
-              activeTab === 'driver' ? 'bg-[#501920] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            <span className={`text-xs px-2 py-0.5 rounded-full font-mono font-extrabold transition-colors ${
+              activeTab === 'driver' ? 'bg-[#FA634E] text-white' : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
             }`}>
               {driversList.length}
             </span>
             {activeTab === 'driver' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#501920] rounded-t-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FA634E] rounded-t-full" />
             )}
           </button>
         </div>
