@@ -363,9 +363,6 @@ export default function MonthlyGroupLedgerModal({
           {/* Right: Total Amount & Per-Trip Rate with Feature Badges */}
           <div className="flex flex-col items-end gap-2 shrink-0">
             <div className="text-right">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                TOTAL AMOUNT
-              </span>
               <div className="flex items-baseline justify-end gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400 leading-none">
                   {formatMoney(totalAmount)}
