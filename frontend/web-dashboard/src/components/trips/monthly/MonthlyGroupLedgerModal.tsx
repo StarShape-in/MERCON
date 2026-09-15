@@ -363,12 +363,12 @@ export default function MonthlyGroupLedgerModal({
           {/* Right: Total Amount & Per-Trip Rate with Feature Badges */}
           <div className="flex flex-col items-end gap-2 shrink-0">
             <div className="text-right">
-              <div className="flex items-baseline justify-end gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-500 dark:text-emerald-400 leading-none">
                   {formatMoney(totalAmount)}
                 </span>
                 {group.rateStr && group.rateStr !== '—' && (
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40 whitespace-nowrap shadow-3xs">
                     ({group.rateStr} / trip)
                   </span>
                 )}
