@@ -132,25 +132,20 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     });
   }, [customers, contractCustomer]);
 
-  // Sort quotations: Selected quotation pinned FIRST to position 0 (leftmost), then usage count
+  // Stable rate cards sorting: Natural, predictable sequence based on usage & ID (no shuffling on selection)
   const sortedRateCards = React.useMemo(() => {
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
 
     return [...effectiveRateCards]
       .sort((a, b) => {
-        const aIsSelected = a.id === activeSelectedId;
-        const bIsSelected = b.id === activeSelectedId;
-        if (aIsSelected && !bIsSelected) return -1;
-        if (!aIsSelected && bIsSelected) return 1;
-
         const aUsage = Number(a.usage_count || 0) + (a.driver_name || a.recent_driver ? 10 : 0);
         const bUsage = Number(b.usage_count || 0) + (b.driver_name || b.recent_driver ? 10 : 0);
 
         if (aUsage !== bUsage) return bUsage - aUsage;
-        return 0;
+        return String(a.quotation_number || a.id).localeCompare(String(b.quotation_number || b.id));
       })
       .slice(0, 50);
-  }, [effectiveRateCards, activeSelectedId]);
+  }, [effectiveRateCards]);
 
   // Filter quotations based on matching spec + search query
   const displayedRateCards = React.useMemo(() => {
@@ -381,6 +376,18 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               contractRateCategory={contractRateCategory}
               contractVehicleType={contractVehicleType}
               onApplyRateCard={(rc, targetCategory, targetVehicleClass, origName, destName, rateVal) => {
+                const isAlreadySelected = Boolean(activeSelectedId && (rc.id === activeSelectedId || primarySlot.matchedRateCard?.id === rc.id));
+
+                if (isAlreadySelected) {
+                  // Toggle Deselect / Clear selection
+                  handleUpdateTripSlot(primarySlot.id, {
+                    matchedRateCard: null,
+                    rateCardId: null,
+                    billingAmount: '0',
+                  });
+                  return;
+                }
+
                 const firstStop = rc.stops && rc.stops.length > 0 ? rc.stops[0] : null;
                 const lastStop = rc.stops && rc.stops.length > 1 ? rc.stops[rc.stops.length - 1] : firstStop;
 
