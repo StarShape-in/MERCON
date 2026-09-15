@@ -372,10 +372,10 @@ export default function EditVehicleFinancialsModal({
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Available">🟢 Available</SelectItem>
-                      <SelectItem value="OnTrip">🔵 On Trip</SelectItem>
-                      <SelectItem value="Maintenance">🟡 In Workshop / Maintenance</SelectItem>
-                      <SelectItem value="Inactive">⚪ Inactive</SelectItem>
+                      <SelectItem value="Available">Available</SelectItem>
+                      <SelectItem value="OnTrip">On Trip</SelectItem>
+                      <SelectItem value="Maintenance">In Workshop / Maintenance</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

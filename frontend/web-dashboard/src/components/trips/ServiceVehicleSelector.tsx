@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, RefreshCw, Clock, Truck, Check, CheckCircle2, AlertTriangle, Tag } from 'lucide-react';
+import { ArrowRight, RefreshCw, Clock, Truck, Check, CheckCircle2, AlertTriangle, Tag, Calendar, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ServiceVehicleSelectorProps {
@@ -95,7 +95,10 @@ export default function ServiceVehicleSelector({
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                 )}
               >
-                <span>{type === 'Monthly' ? '📅 Monthly' : '⚡ Extra (Spot)'}</span>
+                <span className="flex items-center gap-1.5">
+                  {type === 'Monthly' ? <Calendar className="w-3.5 h-3.5 shrink-0" /> : <Zap className="w-3.5 h-3.5 shrink-0" />}
+                  <span>{type === 'Monthly' ? 'Monthly' : 'Extra (Spot)'}</span>
+                </span>
                 {isSelected && <Check className="w-3 h-3 text-white ml-0.5 shrink-0" />}
               </button>
             );

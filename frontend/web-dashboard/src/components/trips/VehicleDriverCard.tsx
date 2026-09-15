@@ -27,6 +27,14 @@ export default function VehicleDriverCard({ trip }: VehicleDriverCardProps) {
   const assetType = trip.vehicle?.asset_type || 'Volvo FH 500';
   const registrationCode = 'KSA 4821';
 
+  const rawTon = trip.financials?.quotation_vehicle_class
+    || trip.quotation_vehicle_class
+    || (trip.vehicle?.capacity_kg ? `${Math.round(trip.vehicle.capacity_kg / 1000)} TON` : null)
+    || trip.rateCard?.vehicle_type
+    || trip.vehicle_type
+    || '10 TON';
+  const truckTon = rawTon.toUpperCase().includes('TON') ? rawTon : `${rawTon} TON`;
+
   // Driver details
   const driverName = trip.is_third_party
     ? trip.third_party_driver_name || 'Khalid Ahmed'
@@ -41,33 +49,40 @@ export default function VehicleDriverCard({ trip }: VehicleDriverCardProps) {
   return (
     <div className="w-full h-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden">
       {/* Left: Vehicle Section */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        {/* Vehicle Thumbnail */}
-        <div className="w-16 h-12 rounded-lg bg-slate-50 border border-slate-200/70 flex items-center justify-center p-1 shrink-0 overflow-hidden">
-          <img
-            src="/truck_3d_orange_transparent.png"
-            alt={plateNumber}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
+      <div className="flex items-center justify-between gap-2.5 min-w-0 flex-1 pr-1">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Vehicle Thumbnail */}
+          <div className="w-14 h-11 rounded-lg bg-slate-50 border border-slate-200/70 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+            <img
+              src="/mercon_truck_3d.png"
+              alt={plateNumber}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          </div>
+
+          {/* Vehicle Metadata */}
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-[13px] text-[#1F2937] truncate font-mono">
+                {plateNumber}
+              </h3>
+            </div>
+            <p className="text-[11px] text-[#4B5563] truncate font-medium">{assetType}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#6B7280] font-mono">{registrationCode}</span>
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                On Trip
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Vehicle Metadata */}
-        <div className="min-w-0 space-y-0.5">
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-bold text-[13px] text-[#1F2937] truncate font-mono">
-              {plateNumber}
-            </h3>
-          </div>
-          <p className="text-[11px] text-[#4B5563] truncate font-medium">{assetType}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#6B7280] font-mono">{registrationCode}</span>
-            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              On Trip
-            </span>
-          </div>
+        {/* TON Tag aligned to the right side of the truck box */}
+        <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none shrink-0 self-center">
+          {truckTon}
         </div>
       </div>
 

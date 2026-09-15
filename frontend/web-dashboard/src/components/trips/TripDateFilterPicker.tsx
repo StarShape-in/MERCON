@@ -163,8 +163,8 @@ export function TripDateFilterPicker({
         align="start"
         sideOffset={6}
         className={cn(
-          "shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50 transition-all",
-          isCustomMode ? "w-76 p-2.5" : "w-56 p-1.5"
+          "shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl z-50 transition-all",
+          isCustomMode ? "w-[330px] p-3" : "w-56 p-1.5"
         )}
       >
         {!isCustomMode ? (
@@ -246,6 +246,7 @@ export function TripDateFilterPicker({
                 selected={tempRange}
                 onSelect={setTempRange}
                 numberOfMonths={1}
+                captionLayout="dropdown"
                 className="p-0 select-none"
               />
             </div>

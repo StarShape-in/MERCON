@@ -119,10 +119,10 @@ export default function TripDetailsPage() {
   const { data: trip, isLoading, isError, refetch } = useQuery({
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
     refetchInterval: 10000,
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404 || error?.response?.status === 400) return false;
       return failureCount < 1;
     },
   });

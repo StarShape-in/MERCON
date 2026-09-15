@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Truck, User, ArrowRight, Eye, Trash2 } from 'lucide-react';
+import { Truck, User, ArrowRight, Eye, Trash2, CalendarRange } from 'lucide-react';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -25,17 +25,18 @@ export default function MonthlyLedgerTable({
 }: MonthlyLedgerTableProps) {
   // Flatten all trips with company info
   const allTripsWithCompany = useMemo(() => {
-    return companies.flatMap((company) =>
-      company.days.flatMap((day) =>
-        day.trips.map((trip) => ({
-          trip,
-          companyName: company.customer.name,
-        }))
-      )
+    return companies.flatMap((c) =>
+      c.days.flatMap((d) =>
+        d.trips.map((t) => ({
+          ...t,
+          company_name: c.customer.name,
+          date: d.date,
+        })),
+      ),
     );
   }, [companies]);
 
-  const allTripIds = useMemo(() => allTripsWithCompany.map((t) => t.trip.id), [allTripsWithCompany]);
+  const allTripIds = useMemo(() => allTripsWithCompany.map((t) => t.id), [allTripsWithCompany]);
   const allSelected = allTripIds.length > 0 && allTripIds.every((id) => selectedTripIds.includes(id));
   const someSelected = !allSelected && allTripIds.some((id) => selectedTripIds.includes(id));
 
@@ -44,7 +45,8 @@ export default function MonthlyLedgerTable({
       {/* Ledger Header Bar */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-slate-50/80 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-900">🥞 Monthly Trip Ledger</span>
+          <CalendarRange className="w-4 h-4 text-[#FA634E]" />
+          <span className="text-sm font-extrabold text-slate-900">Monthly Trip Ledger</span>
         </div>
         <span className="text-xs font-semibold text-slate-500">
           {allTripsWithCompany.length} {allTripsWithCompany.length === 1 ? 'record' : 'records'}
@@ -82,7 +84,7 @@ export default function MonthlyLedgerTable({
                 </TableCell>
               </TableRow>
             ) : (
-              allTripsWithCompany.map(({ trip, companyName }) => {
+              allTripsWithCompany.map((trip) => {
                 const isSelected = selectedTripIds.includes(trip.id);
                 const gap = isUnassigned(trip);
                 return (
@@ -110,7 +112,7 @@ export default function MonthlyLedgerTable({
                       {trip.ref_id || '—'}
                     </TableCell>
                     <TableCell className="px-4 py-3 whitespace-nowrap text-xs font-bold text-slate-900">
-                      {companyName}
+                      {trip.company_name}
                     </TableCell>
                     <TableCell className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-slate-700">
                       {formatDayHeading(trip.date)}

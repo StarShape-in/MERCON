@@ -303,8 +303,9 @@ function DashboardLocationCell({ rawTrip }: { rawTrip?: any }) {
     <div className="flex flex-col gap-0.5 py-0.5 max-w-[190px] truncate" title={`${statePrefix}: ${locationLabel}`}>
       <div className="flex items-center gap-1 min-w-0">
         <Navigation className={cn("w-3 h-3 shrink-0", isCurrent ? "text-emerald-500" : "text-amber-500")} />
-        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-          📍 {locationLabel}
+        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1">
+          <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
+          <span className="truncate">{locationLabel}</span>
         </span>
       </div>
       <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 pl-4 truncate">

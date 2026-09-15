@@ -171,11 +171,11 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
 
   return (
     <>
-    <div className="w-full bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.04)] grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E5E7EB] overflow-hidden">
+    <div className="w-full bg-white dark:bg-slate-900 rounded-2xl border border-[#E5E7EB] dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#E5E7EB] dark:divide-slate-800 overflow-hidden">
       
       {/* ── COL 1: COMPANY (NAME & LOGO ONLY) — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 text-[#374151] shrink-0 overflow-hidden shadow-2xs">
+      <div className="p-3.5 sm:px-5 sm:py-4 flex items-center gap-3.5 min-w-0 min-h-[76px]">
+        <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center p-1.5 text-[#374151] dark:text-slate-300 shrink-0 overflow-hidden shadow-2xs">
           {companyLogo ? (
             <img
               src={resolveFileUrl(companyLogo)}
@@ -186,40 +186,40 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
               }}
             />
           ) : (
-            <Building2 size={20} className="text-[#374151]" />
+            <Building2 size={22} className="text-[#374151] dark:text-slate-300" />
           )}
         </div>
 
         <div className="min-w-0 flex-1 space-y-0.5">
-          <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
+          <span className="text-[10px] uppercase font-black text-slate-400 block tracking-widest">
             COMPANY
           </span>
           <h3
             onClick={() => trip.customer?.id && navigate(`/customers/${trip.customer.id}`)}
-            className="font-extrabold text-[13px] text-[#111827] truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
+            className="font-black text-[14px] text-[#111827] dark:text-white truncate cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1 leading-tight"
             title={companyName}
           >
             <span className="truncate">{companyName}</span>
-            <ExternalLink size={11} className="text-[#9CA3AF] shrink-0" />
+            <ExternalLink size={12} className="text-[#9CA3AF] shrink-0" />
           </h3>
         </div>
       </div>
 
       {/* ── COL 2: DRIVER (NAME, PHOTO & DIRECT CALL BUTTON) — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center justify-between gap-2.5 min-w-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar className="w-10 h-10 rounded-full border-2 border-emerald-100 bg-slate-100 shrink-0 shadow-2xs">
+      <div className="p-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 min-w-0 min-h-[76px]">
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar className="w-11 h-11 rounded-full border-2 border-emerald-100 dark:border-emerald-950 bg-slate-100 dark:bg-slate-800 shrink-0 shadow-2xs">
             {driverAvatar && <AvatarImage src={resolveFileUrl(driverAvatar)} alt={driverName} className="object-cover" />}
-            <AvatarFallback className="text-xs font-black bg-slate-200 text-slate-800">
+            <AvatarFallback className="text-xs font-black bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
               {driverName.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <div className="min-w-0 space-y-0.5">
-            <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
+            <span className="text-[10px] uppercase font-black text-slate-400 block tracking-widest">
               {trip.is_third_party ? '3PL DRIVER' : 'DRIVER'}
             </span>
-            <h4 className="font-extrabold text-[13px] text-[#111827] truncate leading-tight">
+            <h4 className="font-black text-[14px] text-[#111827] dark:text-white truncate leading-tight">
               {driverName}
             </h4>
           </div>
@@ -229,43 +229,46 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
         {driverPhone ? (
           <a
             href={`tel:${driverPhone.replace(/[^0-9+]/g, '')}`}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition-all cursor-pointer shrink-0"
             title={`Call ${driverName}`}
           >
-            <Phone size={12} className="fill-white" />
+            <Phone size={13} className="fill-white" />
             <span className="font-black text-[11px]">Call</span>
           </a>
         ) : null}
       </div>
 
       {/* ── COL 3: TRUCK (TRUCK NO & TON) — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
-          <img
-            src="/truck_3d_orange_transparent.png"
-            alt={truckNo}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
+      <div className="p-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 min-w-0 min-h-[76px]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
+            <img
+              src="/mercon_truck_3d.png"
+              alt={truckNo}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          </div>
+
+          <div className="min-w-0 space-y-0.5">
+            <span className="text-[10px] uppercase font-black text-slate-400 block tracking-widest">
+              {trip.is_third_party ? '3PL TRUCK' : 'TRUCK'}
+            </span>
+            <h3 className="font-mono font-black text-[15px] text-[#111827] dark:text-white truncate leading-tight">
+              {truckNo}
+            </h3>
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <span className="text-[9.5px] uppercase font-black text-slate-400 block tracking-wider">
-            {trip.is_third_party ? '3PL TRUCK' : 'TRUCK'}
-          </span>
-          <h3 className="font-mono font-black text-sm text-[#111827] truncate leading-tight">
-            {truckNo}
-          </h3>
-          <div className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200/80 leading-none mt-0.5">
-            {truckTon}
-          </div>
+        <div className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 leading-none shrink-0 self-center">
+          {truckTon}
         </div>
       </div>
 
       {/* ── COL 4: DELAY ALERTS — 25% ── */}
-      <div className="p-2 sm:px-3.5 sm:py-2 flex items-center gap-2.5 min-w-0">
+      <div className="p-3.5 sm:px-5 sm:py-4 flex items-center gap-3 min-w-0 min-h-[76px]">
         {/* Status Icon Container */}
         <div
           onClick={() => {

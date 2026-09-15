@@ -46,6 +46,14 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields (Name, Phone/Email, Role, Password)' } });
     }
 
+    const requesterId = (req as any).user?.id;
+    const requester = requesterId ? await prisma.user.findUnique({ where: { id: requesterId }, select: { role: true, isSuperAdmin: true } }) : null;
+    const isRequesterSuperAdmin = Boolean(requester?.isSuperAdmin || requester?.role === 'SuperAdmin');
+
+    if (role === 'SuperAdmin' && !isRequesterSuperAdmin) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can create a SuperAdmin account' } });
+    }
+
     const cleanPhone = phone ? String(phone).trim() : null;
     const cleanEmail = email ? String(email).trim() : null;
     const cleanUsername = username ? String(username).trim() : (cleanPhone || cleanEmail || name.toLowerCase().replace(/\s+/g, ''));
@@ -120,6 +128,11 @@ export const updateUser = async (req: Request, res: Response) => {
     const isTargetSuperAdmin = Boolean(targetUser.isSuperAdmin || targetUser.role === 'SuperAdmin');
     if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can modify a SuperAdmin account' } });
+    }
+
+    // Protection rule: Only a SuperAdmin can assign or promote a user to SuperAdmin role
+    if (role === 'SuperAdmin' && !isRequesterSuperAdmin) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a SuperAdmin can assign the SuperAdmin role' } });
     }
 
     // Target hierarchy rule: Operators cannot modify Admin accounts

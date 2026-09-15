@@ -1567,7 +1567,7 @@ export default function TripListPage() {
         else if (trip.status === 'AtDelivery') statusDisplay = 'At Delivery';
         else if (trip.status === 'InTransit') statusDisplay = 'In Transit';
         
-        text = `🚛 Vehicle Status Update\n\n` +
+        text = `Vehicle Status Update\n\n` +
                `Truck: *${plate}*\n` +
                `Driver: ${driverName}\n` +
                `Route: ${pickupName}>>>${dropoffName}\n` +

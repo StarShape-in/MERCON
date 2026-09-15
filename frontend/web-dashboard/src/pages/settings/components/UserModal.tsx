@@ -5,18 +5,18 @@ import Btn from '@/components/ui/Btn';
 import { UserDTO } from '@/services/userService';
 
 const COUNTRY_CODES = [
-  { code: '+966', flag: '🇸🇦', country: 'SA', name: 'Saudi Arabia' },
-  { code: '+971', flag: '🇦🇪', country: 'AE', name: 'UAE' },
-  { code: '+965', flag: '🇰🇼', country: 'KW', name: 'Kuwait' },
-  { code: '+974', flag: '🇶🇦', country: 'QA', name: 'Qatar' },
-  { code: '+973', flag: '🇧🇭', country: 'BH', name: 'Bahrain' },
-  { code: '+968', flag: '🇴🇲', country: 'OM', name: 'Oman' },
-  { code: '+20',  flag: '🇪🇬', country: 'EG', name: 'Egypt' },
-  { code: '+962', flag: '🇯🇴', country: 'JO', name: 'Jordan' },
-  { code: '+91',  flag: '🇮🇳', country: 'IN', name: 'India' },
-  { code: '+92',  flag: '🇵🇰', country: 'PK', name: 'Pakistan' },
-  { code: '+44',  flag: '🇬🇧', country: 'GB', name: 'UK' },
-  { code: '+1',   flag: '🇺🇸', country: 'US', name: 'USA' },
+  { code: '+966', flag: 'SA', country: 'SA', name: 'Saudi Arabia' },
+  { code: '+971', flag: 'AE', country: 'AE', name: 'UAE' },
+  { code: '+965', flag: 'KW', country: 'KW', name: 'Kuwait' },
+  { code: '+974', flag: 'QA', country: 'QA', name: 'Qatar' },
+  { code: '+973', flag: 'BH', country: 'BH', name: 'Bahrain' },
+  { code: '+968', flag: 'OM', country: 'OM', name: 'Oman' },
+  { code: '+20',  flag: 'EG', country: 'EG', name: 'Egypt' },
+  { code: '+962', flag: 'JO', country: 'JO', name: 'Jordan' },
+  { code: '+91',  flag: 'IN', country: 'IN', name: 'India' },
+  { code: '+92',  flag: 'PK', country: 'PK', name: 'Pakistan' },
+  { code: '+44',  flag: 'GB', country: 'GB', name: 'UK' },
+  { code: '+1',   flag: 'US', country: 'US', name: 'USA' },
 ];
 
 interface UserModalProps {

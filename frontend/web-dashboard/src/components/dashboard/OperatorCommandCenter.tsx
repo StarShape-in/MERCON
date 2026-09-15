@@ -362,7 +362,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
           id: `pod-${t.id}`,
           category: 'pod',
           priority: 'attention',
-          badgeLabel: '📱 POD READY',
+          badgeLabel: 'POD READY',
           entityType: 'company',
           entityName: customerName,
           initials: getInitials(customerName),
@@ -701,7 +701,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
                           ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300"
                           : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300"
                       )}>
-                        {item.category === 'pod' ? '📱 POD READY' : item.badgeLabel}
+                        {item.category === 'pod' ? 'POD READY' : item.badgeLabel}
                       </span>
                     </div>
                   </div>
@@ -1107,7 +1107,7 @@ export default function OperatorCommandCenter({ trips: propTrips }: OperatorComm
               onClick={() => {
                 if (confirmItem) {
                   markItemHandled(confirmItem.id);
-                  toast.success(`Alert ${confirmItem.tripRef || confirmItem.entityName} marked as completed & verified ✓`);
+                  toast.success(`Alert ${confirmItem.tripRef || confirmItem.entityName} marked as completed & verified`);
                   setConfirmItem(null);
                 }
               }}

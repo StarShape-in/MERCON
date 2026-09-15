@@ -113,6 +113,22 @@ export default function MonthlyTripsPage() {
   const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
 
+  const effectiveDateRange = useMemo<DateRange | undefined>(() => {
+    const today = new Date();
+    if (dateFilter === 'Today') return { from: today, to: today };
+    if (dateFilter === 'Yesterday') {
+      const y = subDays(today, 1);
+      return { from: y, to: y };
+    }
+    if (dateFilter === '3Days') return { from: subDays(today, 1), to: addDays(today, 1) };
+    if (dateFilter === 'ThisWeek') return { from: startOfWeek(today, { weekStartsOn: 0 }), to: endOfWeek(today, { weekStartsOn: 0 }) };
+    if (dateFilter === 'Last7Days') return { from: subDays(today, 6), to: today };
+    if (dateFilter === 'ThisMonth') return { from: startOfMonth(today), to: endOfMonth(today) };
+    if (dateFilter === 'Last30Days') return { from: subDays(today, 29), to: today };
+    if (dateFilter === 'Custom') return customDateRange;
+    return undefined;
+  }, [dateFilter, customDateRange]);
+
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
       navigate(`/trips/new?mode=monthly&month=${month}`, { replace: true });
@@ -163,32 +179,9 @@ export default function MonthlyTripsPage() {
     let fromStr: string | null = null;
     let toStr: string | null = null;
 
-    const today = new Date();
-    if (dateFilter === '3Days') {
-      fromStr = format(subDays(today, 1), 'yyyy-MM-dd');
-      toStr = format(addDays(today, 1), 'yyyy-MM-dd');
-    } else if (dateFilter === 'Today') {
-      fromStr = format(today, 'yyyy-MM-dd');
-      toStr = fromStr;
-    } else if (dateFilter === 'Yesterday') {
-      const y = subDays(today, 1);
-      fromStr = format(y, 'yyyy-MM-dd');
-      toStr = fromStr;
-    } else if (dateFilter === 'ThisWeek') {
-      fromStr = format(startOfWeek(today, { weekStartsOn: 0 }), 'yyyy-MM-dd');
-      toStr = format(endOfWeek(today, { weekStartsOn: 0 }), 'yyyy-MM-dd');
-    } else if (dateFilter === 'Last7Days') {
-      fromStr = format(subDays(today, 6), 'yyyy-MM-dd');
-      toStr = format(today, 'yyyy-MM-dd');
-    } else if (dateFilter === 'ThisMonth') {
-      fromStr = format(startOfMonth(today), 'yyyy-MM-dd');
-      toStr = format(endOfMonth(today), 'yyyy-MM-dd');
-    } else if (dateFilter === 'Last30Days') {
-      fromStr = format(subDays(today, 29), 'yyyy-MM-dd');
-      toStr = format(today, 'yyyy-MM-dd');
-    } else if (dateFilter === 'Custom' && customDateRange?.from) {
-      fromStr = format(customDateRange.from, 'yyyy-MM-dd');
-      toStr = customDateRange.to ? format(customDateRange.to, 'yyyy-MM-dd') : fromStr;
+    if (effectiveDateRange?.from) {
+      fromStr = format(effectiveDateRange.from, 'yyyy-MM-dd');
+      toStr = effectiveDateRange.to ? format(effectiveDateRange.to, 'yyyy-MM-dd') : fromStr;
     }
 
     if (!search.trim() && !fromStr) return rawCompanies;
@@ -236,7 +229,7 @@ export default function MonthlyTripsPage() {
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.total_trips - a.total_trips;
     });
-  }, [rawCompanies, search, dateFilter, customDateRange]);
+  }, [rawCompanies, search, effectiveDateRange]);
 
   const allVisibleTripIds = useMemo(
     () => companies.flatMap((c) => c.days.flatMap((d) => d.trips.map((t) => t.id))),
@@ -319,6 +312,11 @@ export default function MonthlyTripsPage() {
   };
 
   const appliedFiltersCount = [
+    customerId !== 'All',
+    Boolean(rateCategory),
+    Boolean(vehicleType),
+    Boolean(billingType),
+    Boolean(status),
     Boolean(search.trim()),
     dateFilter !== 'All',
   ].filter(Boolean).length;
@@ -417,13 +415,23 @@ export default function MonthlyTripsPage() {
               )}
             </div>
 
-            {/* Trip Date Filter Picker (Exact same component as in Trips Session Page) */}
-            <TripDateFilterPicker
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-            />
+            {/* Date Filter Button from Trip Ledger */}
+            <div className="w-auto">
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={(newRange) => {
+                  setCustomDateRange(newRange);
+                  if (newRange?.from) {
+                    const newMonthKey = format(newRange.from, 'yyyy-MM');
+                    if (newMonthKey !== month) {
+                      setMonth(newMonthKey);
+                    }
+                  }
+                }}
+              />
+            </div>
 
           </div>
 

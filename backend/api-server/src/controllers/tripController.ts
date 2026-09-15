@@ -199,10 +199,10 @@ const findDriverByFullName = async (rawName: string) => {
 
 export async function resolveTripId(idOrRef: string, tx: Prisma.TransactionClient | typeof prisma = prisma): Promise<string | null> {
   if (!idOrRef || typeof idOrRef !== 'string') return null;
-  if (isUuid(idOrRef)) return idOrRef;
   const trip = await tx.trip.findFirst({
     where: {
       OR: [
+        ...(isUuid(idOrRef) ? [{ id: idOrRef }] : []),
         { ref_id: idOrRef },
         { ref_id: { equals: idOrRef, mode: 'insensitive' } },
       ],
@@ -476,33 +476,57 @@ export const getTrips = async (req: Request, res: Response) => {
 
 export const getTripById = async (req: Request, res: Response) => {
   try {
-    const idOrRef = req.params.id as string;
-    const whereClause: Prisma.TripWhereInput = isUuid(idOrRef)
-      ? { id: idOrRef, deletedAt: null }
-      : {
-          OR: [
-            { ref_id: idOrRef },
-            { ref_id: { equals: idOrRef, mode: 'insensitive' } },
-          ],
-          deletedAt: null,
-        };
+    const idOrRef = (req.params.id as string || '').trim();
+    if (!idOrRef || idOrRef === 'undefined' || idOrRef === 'null') {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
 
-    const trip = await prisma.trip.findFirst({
-      where: whereClause,
-      include: {
-        financials: true,
-        driver: true,
-        vehicle: true,
-        customer: true,
-        quotation: { include: { customer: true, stops: { include: { location: true } } } },
-        subcontract: { include: { provider: true } },
-        assignmentEvents: {
-          orderBy: { changedAt: 'desc' },
-        },
-        charges: true,
-        stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+    const whereClause: Prisma.TripWhereInput = {
+      OR: [
+        ...(isUuid(idOrRef) ? [{ id: idOrRef }] : []),
+        { ref_id: idOrRef },
+        { ref_id: { equals: idOrRef, mode: 'insensitive' } },
+      ],
+      deletedAt: null,
+    };
+
+    let trip: any = null;
+    try {
+      trip = await prisma.trip.findFirst({
+        where: whereClause,
+        include: {
+          financials: true,
+          driver: true,
+          vehicle: true,
+          customer: true,
+          quotation: { include: { customer: true, stops: { include: { location: true } } } },
+          subcontract: { include: { provider: true } },
+          assignmentEvents: {
+            orderBy: { changedAt: 'desc' },
+          },
+          charges: true,
+          stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+        }
+      });
+    } catch (err: any) {
+      logger.warn({ err }, 'Failed to fetch trip with assignmentEvents in getTripById, falling back without assignmentEvents');
+      trip = await prisma.trip.findFirst({
+        where: whereClause,
+        include: {
+          financials: true,
+          driver: true,
+          vehicle: true,
+          customer: true,
+          quotation: { include: { customer: true, stops: { include: { location: true } } } },
+          subcontract: { include: { provider: true } },
+          charges: true,
+          stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+        }
+      });
+      if (trip) {
+        trip.assignmentEvents = [];
       }
-    });
+    }
 
     if (!trip) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });

@@ -20,33 +20,33 @@ import { cn } from '@/lib/utils';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 
 const MAPPING_OPTIONS: ComboboxOption[] = [
-  { value: 'blank', label: '— Leave Blank (Empty Column) —', group: '⚙️ Special Actions' },
-  { value: 'formula', label: 'Keep Original Template Formula', group: '⚙️ Special Actions' },
-  { value: 'const', label: 'Fixed Text Constant...', group: '⚙️ Special Actions' },
+  { value: 'blank', label: '— Leave Blank (Empty Column) —', group: 'Special Actions' },
+  { value: 'formula', label: 'Keep Original Template Formula', group: 'Special Actions' },
+  { value: 'const', label: 'Fixed Text Constant...', group: 'Special Actions' },
 
   // Grouped MERCON Database Fields
-  { value: 'field:ref_id', label: 'Trip / Job Reference No.', group: '📋 Trip Details', keywords: 'waybill trip job reference number ref' },
-  { value: 'field:date', label: 'Trip Date', group: '📋 Trip Details', keywords: 'date time created' },
-  { value: 'field:status', label: 'Trip Duty Status', group: '📋 Trip Details', keywords: 'status state condition' },
-  { value: 'field:rate_category', label: 'Rate Category / Service Type', group: '📋 Trip Details', keywords: 'rate category type' },
-  { value: 'field:serial', label: 'Row Serial Number (1, 2, 3...)', group: '📋 Trip Details', keywords: 'serial index row number' },
+  { value: 'field:ref_id', label: 'Trip / Job Reference No.', group: 'Trip Details', keywords: 'waybill trip job reference number ref' },
+  { value: 'field:date', label: 'Trip Date', group: 'Trip Details', keywords: 'date time created' },
+  { value: 'field:status', label: 'Trip Duty Status', group: 'Trip Details', keywords: 'status state condition' },
+  { value: 'field:rate_category', label: 'Rate Category / Service Type', group: 'Trip Details', keywords: 'rate category type' },
+  { value: 'field:serial', label: 'Row Serial Number (1, 2, 3...)', group: 'Trip Details', keywords: 'serial index row number' },
 
-  { value: 'field:customer_name', label: 'Customer / Sender Company', group: '👤 Parties & Transport', keywords: 'customer sender company client' },
-  { value: 'field:receiver', label: 'Receiver / Consignee Name', group: '👤 Parties & Transport', keywords: 'receiver consignee recipient' },
-  { value: 'field:driver_name', label: 'Driver Full Name', group: '👤 Parties & Transport', keywords: 'driver captain name' },
-  { value: 'field:driver_phone', label: 'Driver Mobile / Phone', group: '👤 Parties & Transport', keywords: 'phone mobile contact' },
-  { value: 'field:vehicle_plate', label: 'Vehicle Plate Number', group: '👤 Parties & Transport', keywords: 'plate vehicle truck' },
-  { value: 'field:vehicle_type', label: 'Vehicle Class / Asset Type', group: '👤 Parties & Transport', keywords: 'type class capacity ton' },
-  { value: 'field:carrier_name', label: 'Carrier / 3rd Party Subcontractor', group: '👤 Parties & Transport', keywords: 'carrier vendor 3rd party subcontractor' },
+  { value: 'field:customer_name', label: 'Customer / Sender Company', group: 'Parties & Transport', keywords: 'customer sender company client' },
+  { value: 'field:receiver', label: 'Receiver / Consignee Name', group: 'Parties & Transport', keywords: 'receiver consignee recipient' },
+  { value: 'field:driver_name', label: 'Driver Full Name', group: 'Parties & Transport', keywords: 'driver captain name' },
+  { value: 'field:driver_phone', label: 'Driver Mobile / Phone', group: 'Parties & Transport', keywords: 'phone mobile contact' },
+  { value: 'field:vehicle_plate', label: 'Vehicle Plate Number', group: 'Parties & Transport', keywords: 'plate vehicle truck' },
+  { value: 'field:vehicle_type', label: 'Vehicle Class / Asset Type', group: 'Parties & Transport', keywords: 'type class capacity ton' },
+  { value: 'field:carrier_name', label: 'Carrier / 3rd Party Subcontractor', group: 'Parties & Transport', keywords: 'carrier vendor 3rd party subcontractor' },
 
-  { value: 'field:origin', label: 'Pickup Location (Origin)', group: '📍 Locations & Stops', keywords: 'pickup origin from location city' },
-  { value: 'field:destination', label: 'Dropoff Location (Destination)', group: '📍 Locations & Stops', keywords: 'dropoff destination to location city' },
+  { value: 'field:origin', label: 'Pickup Location (Origin)', group: 'Locations & Stops', keywords: 'pickup origin from location city' },
+  { value: 'field:destination', label: 'Dropoff Location (Destination)', group: 'Locations & Stops', keywords: 'dropoff destination to location city' },
 
-  { value: 'field:billing_amount', label: 'Billing Amount (Base Rate)', group: '💰 Billing & Financials', keywords: 'billing amount rate price base' },
-  { value: 'field:total_amount', label: 'Total Amount (Grand Total)', group: '💰 Billing & Financials', keywords: 'total amount sum grand' },
-  { value: 'field:trip_charges', label: 'Driver Charge', group: '💰 Billing & Financials', keywords: 'driver charge payout trip charge fee' },
-  { value: 'field:total_charges', label: 'Extra Surcharges (Waiting, Stops)', group: '💰 Billing & Financials', keywords: 'extra surcharge waiting detention stop' },
-  { value: 'field:balance_amount', label: 'Balance Amount', group: '💰 Billing & Financials', keywords: 'balance margin net' },
+  { value: 'field:billing_amount', label: 'Billing Amount (Base Rate)', group: 'Billing & Financials', keywords: 'billing amount rate price base' },
+  { value: 'field:total_amount', label: 'Total Amount (Grand Total)', group: 'Billing & Financials', keywords: 'total amount sum grand' },
+  { value: 'field:trip_charges', label: 'Driver Charge', group: 'Billing & Financials', keywords: 'driver charge payout trip charge fee' },
+  { value: 'field:total_charges', label: 'Extra Surcharges (Waiting, Stops)', group: 'Billing & Financials', keywords: 'extra surcharge waiting detention stop' },
+  { value: 'field:balance_amount', label: 'Balance Amount', group: 'Billing & Financials', keywords: 'balance margin net' },
 ];
 
 interface TemplateMappingEditorProps {
