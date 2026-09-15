@@ -351,7 +351,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               <div className="p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs shrink-0">
                 <button
                   type="button"
-                  onClick={() => setContractBillingType('Monthly')}
+                  onClick={() => {
+                    setContractBillingType('Monthly');
+                    if (primarySlot.matchedRateCard) {
+                      const rcBType = normalizeBillingType(primarySlot.matchedRateCard.billing_type || primarySlot.matchedRateCard.operation_type || primarySlot.matchedRateCard.billingType);
+                      if (rcBType !== 'Monthly') {
+                        handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null, rateCardId: undefined, rateMatched: false, billingAmount: '', driverPayout: '' });
+                      }
+                    }
+                  }}
                     className={cn(
                       "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() === 'monthly'
@@ -373,7 +381,15 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => setContractBillingType('Extra')}
+                    onClick={() => {
+                      setContractBillingType('Extra');
+                      if (primarySlot.matchedRateCard) {
+                        const rcBType = normalizeBillingType(primarySlot.matchedRateCard.billing_type || primarySlot.matchedRateCard.operation_type || primarySlot.matchedRateCard.billingType);
+                        if (rcBType === 'Monthly') {
+                          handleUpdateTripSlot(primarySlot.id, { matchedRateCard: null, rateCardId: undefined, rateMatched: false, billingAmount: '', driverPayout: '' });
+                        }
+                      }
+                    }}
                     className={cn(
                       "px-3 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none",
                       contractBillingType?.toLowerCase() !== 'monthly'
