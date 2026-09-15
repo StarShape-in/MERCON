@@ -242,15 +242,15 @@ export const DefineQuotationInlineForm: React.FC<DefineQuotationInlineFormProps>
         </div>
       </div>
 
-      {/* PER-MONTH SPLITTER BREAKDOWN HELPER */}
+      {/* PER-MONTH DUAL-RATE BREAKDOWN HELPER */}
       {inlinePricingBasis === 'Per Month' && Number(primarySlot.billingAmount) > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-1 text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-900">
           <span>
-            ⚡ Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round(((Number(primarySlot.billingAmount) || 0) / 30) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip</strong> (30-day contract duty)
+            ⚡ Monthly Rate: <strong className="font-mono">SAR {Number(primarySlot.billingAmount).toLocaleString()}/mo</strong> → Daily Rate: <strong className="font-mono">SAR {(Number(primarySlot.billingAmount) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day</strong>
           </span>
           {Number(primarySlot.driverPayout) > 0 && (
-            <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400">
-              Driver Payout: SAR {Number(primarySlot.driverPayout).toLocaleString('en-US', { minimumFractionDigits: 2 })} / trip
+            <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
+              Driver Payout: <strong>SAR {Number(primarySlot.driverPayout).toLocaleString()} / trip</strong>
             </span>
           )}
         </div>

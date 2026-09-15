@@ -138,12 +138,19 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
         </span>
 
         {/* PRICE BADGE */}
-        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60 shrink-0">
-          SAR {Number(rateVal).toLocaleString()}{' '}
-          <span className="text-[9px] font-bold font-sans text-slate-500">
-            {isMonthlyCard ? '/mo' : '/trip'}
+        <div className="flex flex-col items-end shrink-0">
+          <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/60">
+            SAR {Number(rateVal).toLocaleString()}{' '}
+            <span className="text-[9px] font-bold font-sans text-slate-500">
+              {isMonthlyCard ? '/mo' : '/trip'}
+            </span>
           </span>
-        </span>
+          {isMonthlyCard && rateVal > 0 && (
+            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 mt-0.5">
+              ≈ SAR {(rateVal / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day
+            </span>
+          )}
+        </div>
       </div>
 
       {/* HERO CENTER: PROMINENT LOCATION ROUTE LANE */}

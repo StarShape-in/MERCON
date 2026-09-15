@@ -2,34 +2,57 @@
  * MERCON Single Source of Truth — Financial Calculation Engine
  * 
  * Unifies Customer Billing, Driver Payout, 3PL Subcontract Cost,
- * Additional Charges, Balance Margin, and Margin Percentage math
- * across all frontend components (cards, forms, drawers, wizards).
+ * Operational N-Days Scheduling, Multi-Driver Rotations, Balance Margin,
+ * and Dual-Rate (Monthly / Daily) formatting across all frontend components.
  */
+
+export interface DriverRotationPayoutInput {
+  driverId?: string;
+  driverName?: string;
+  payout: number | string | null;
+}
 
 export interface TripFinancialInputs {
   customerBilling?: number | string | null;
   billingAmount?: number | string | null;
   baseRate?: number | string | null;
+  monthlyRate?: number | string | null;
 
   driverPayout?: number | string | null;
   driverCharge?: number | string | null;
+  driverPayoutsList?: DriverRotationPayoutInput[] | null;
 
   is3PL?: boolean;
   subcontractCost?: number | string | null;
   extraDriverPayment?: number | string | null;
 
   additionalCharges?: number | string | null;
-  pricingBasis?: 'Per Trip' | 'Per Month' | string | null;
+  pricingBasis?: 'Per Trip' | 'Per Month' | 'PER_TRIP' | 'PER_MONTH' | string | null;
+  billingType?: string | null;
+
+  selectedOperatingDays?: number | null; // N days selected in schedule
 }
 
 export interface ComputedTripFinancials {
-  resolvedBilling: number;        // Base customer billing rate (SAR)
-  resolvedDriverPayout: number;   // Driver payout or 3PL carrier cost (SAR)
+  isMonthly: boolean;
+  monthlyRate: number;            // Full contract rate (SAR/mo)
+  dailyRate: number;              // Daily breakdown rate: monthlyRate / 30 (SAR/day)
+  perTripBreakdown: number;       // Equivalent daily/per-trip rate (SAR)
+  resolvedBilling: number;        // Base billing rate for active context (SAR)
+  resolvedDriverPayout: number;   // Total Driver Payout or 3PL cost (SAR) — NEVER divided by 30
+  perDriverPayout: number;        // Single driver per-trip payout rate (SAR)
+  driverCount: number;            // Number of assigned rotation drivers
   additionalChargesTotal: number; // Itemized extra charges sum (SAR)
   totalCustomerBilling: number;   // Resolved billing + additional charges (SAR)
   balanceMargin: number;          // Total customer billing - driver payout (SAR)
-  marginPercent: number;          // Margin percentage (%) rounded to 1 decimal
-  perTripBreakdown: number;       // Daily breakdown for monthly basis (SAR)
+  marginPercent: number;          // Gross margin percentage (%) rounded to 1 decimal
+  operatingDays: number;          // Operating schedule days count
+  formattedLabels: {
+    monthlyLabel: string;         // e.g. "SAR 30,000/mo"
+    dailyLabel: string;           // e.g. "SAR 1,000/day"
+    driverPayoutLabel: string;    // e.g. "SAR 200/trip" or "SAR 400 (2 Drivers)"
+    scheduleBillingLabel: string; // e.g. "SAR 15,000 (15 days @ SAR 1,000/day)"
+  };
 }
 
 function parseMoney(val: number | string | null | undefined): number {
@@ -39,44 +62,98 @@ function parseMoney(val: number | string | null | undefined): number {
 }
 
 export function computeTripFinancials(inputs: TripFinancialInputs): ComputedTripFinancials {
-  // 1. Resolve Customer Base Billing Rate
-  const billingVal = parseMoney(inputs.customerBilling ?? inputs.billingAmount ?? inputs.baseRate ?? 0);
-  const resolvedBilling = Math.max(0, billingVal);
+  // 1. Detect Pricing Basis (Per Month vs Per Trip)
+  const pb = String(inputs.pricingBasis || '').trim().toUpperCase();
+  const bt = String(inputs.billingType || '').trim().toLowerCase();
+  const isMonthly = pb === 'PER_MONTH' || pb === 'PER MONTH' || bt.includes('monthly');
 
-  // 2. Resolve Driver Payout or 3PL Subcontractor Cost
+  // 2. Resolve Customer Billing Rates
+  const rawBillingInput = parseMoney(inputs.monthlyRate ?? inputs.customerBilling ?? inputs.billingAmount ?? inputs.baseRate ?? 0);
+  const baseBillingVal = Math.max(0, rawBillingInput);
+
+  let monthlyRate = 0;
+  let dailyRate = baseBillingVal;
+  let resolvedBilling = baseBillingVal;
+
+  const operatingDays = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0
+    ? inputs.selectedOperatingDays
+    : 1;
+
+  if (isMonthly) {
+    monthlyRate = baseBillingVal;
+    dailyRate = Number((monthlyRate / 30).toFixed(2));
+    
+    // If operating days specified (> 1 or explicit schedule), billing is dailyRate * operatingDays
+    resolvedBilling = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0
+      ? Number((dailyRate * inputs.selectedOperatingDays).toFixed(2))
+      : monthlyRate;
+  }
+
+  // 3. Resolve Driver Payout (NEVER DIVIDED BY 30)
   const extraDriver = parseMoney(inputs.extraDriverPayment ?? 0);
-  const basePayoutVal = inputs.is3PL
-    ? parseMoney(inputs.subcontractCost ?? 0)
-    : parseMoney(inputs.driverPayout ?? inputs.driverCharge ?? 0);
-  const resolvedDriverPayout = Math.max(0, basePayoutVal + extraDriver);
+  let perDriverPayout = 0;
+  let totalDriverPayout = 0;
+  let driverCount = 1;
 
-  // 3. Resolve Additional Billable Charges
-  const chargesVal = parseMoney(inputs.additionalCharges ?? 0);
-  const additionalChargesTotal = Math.max(0, chargesVal);
+  if (inputs.is3PL) {
+    perDriverPayout = Math.max(0, parseMoney(inputs.subcontractCost ?? 0));
+    totalDriverPayout = perDriverPayout * (inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0 ? inputs.selectedOperatingDays : 1);
+  } else if (inputs.driverPayoutsList && inputs.driverPayoutsList.length > 0) {
+    driverCount = inputs.driverPayoutsList.length;
+    perDriverPayout = inputs.driverPayoutsList.reduce((sum, d) => sum + parseMoney(d.payout), 0) / driverCount;
+    const basePayoutSum = inputs.driverPayoutsList.reduce((sum, d) => sum + parseMoney(d.payout), 0);
+    const scheduleDays = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0 ? inputs.selectedOperatingDays : 1;
+    totalDriverPayout = basePayoutSum * scheduleDays;
+  } else {
+    perDriverPayout = Math.max(0, parseMoney(inputs.driverPayout ?? inputs.driverCharge ?? 0));
+    const scheduleDays = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0 ? inputs.selectedOperatingDays : 1;
+    totalDriverPayout = perDriverPayout * scheduleDays;
+  }
 
-  // 4. Compute Total Customer Billing (Revenue)
+  const resolvedDriverPayout = Math.max(0, totalDriverPayout + extraDriver);
+
+  // 4. Resolve Additional Billable Charges
+  const additionalChargesTotal = Math.max(0, parseMoney(inputs.additionalCharges ?? 0));
+
+  // 5. Compute Total Customer Billing (Revenue)
   const totalCustomerBilling = resolvedBilling + additionalChargesTotal;
 
-  // 5. Compute Balance Margin (Gross Profit)
+  // 6. Compute Balance Margin & Margin Percentage
   const balanceMargin = totalCustomerBilling - resolvedDriverPayout;
-
-  // 6. Compute Margin Percentage (%)
   const marginPercent = totalCustomerBilling > 0
     ? Number(((balanceMargin / totalCustomerBilling) * 100).toFixed(1))
     : 0;
 
-  // 7. Compute Per Month Breakdown (30-day baseline contract duty)
-  const perTripBreakdown = inputs.pricingBasis === 'Per Month'
-    ? Number((resolvedBilling / 30).toFixed(2))
-    : resolvedBilling;
+  // 7. Formatted UI Labels for Dual-Rate Display Standard
+  const monthlyLabel = `SAR ${monthlyRate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/mo`;
+  const dailyLabel = `SAR ${dailyRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day`;
+  const driverPayoutLabel = driverCount > 1
+    ? `SAR ${resolvedDriverPayout.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} (${driverCount} Drivers)`
+    : `SAR ${perDriverPayout.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/trip`;
+  
+  const scheduleBillingLabel = isMonthly && inputs.selectedOperatingDays
+    ? `SAR ${resolvedBilling.toLocaleString()} (${inputs.selectedOperatingDays} days @ ${dailyLabel})`
+    : `SAR ${resolvedBilling.toLocaleString()}`;
 
   return {
+    isMonthly,
+    monthlyRate,
+    dailyRate,
+    perTripBreakdown: dailyRate,
     resolvedBilling,
     resolvedDriverPayout,
+    perDriverPayout,
+    driverCount,
     additionalChargesTotal,
     totalCustomerBilling,
     balanceMargin,
     marginPercent,
-    perTripBreakdown,
+    operatingDays,
+    formattedLabels: {
+      monthlyLabel,
+      dailyLabel,
+      driverPayoutLabel,
+      scheduleBillingLabel,
+    },
   };
 }

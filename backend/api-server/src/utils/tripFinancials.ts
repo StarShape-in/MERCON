@@ -2,7 +2,7 @@
  * MERCON Single Source of Truth — Backend Financial Calculation Engine
  *
  * Handles Customer Billing, Driver Payout, 3PL Subcontract Cost,
- * Additional Itemised Charges, Balance Margin (Profit), and Margin Percentage.
+ * Operational N-Days Scheduling, Balance Margin (Profit), and Margin Percentage.
  */
 
 type Money = number | string | null | undefined | { toNumber(): number };
@@ -39,13 +39,18 @@ export interface BackendTripFinancialInputs {
 
   paid_amount?: Money;
   pricing_basis?: string;
+  billing_type?: string;
+  selected_operating_days?: Money;
 }
 
 export interface ComputedBackendFinancials {
-  perTripBilling: number;        // Base customer rate
+  isMonthly: boolean;
+  monthlyRate: number;            // Full contract rate (SAR/mo)
+  dailyRate: number;              // Daily breakdown rate: monthlyRate / 30 (SAR/day)
+  perTripBilling: number;        // Base customer rate for active trip
   chargesTotal: number;          // Additional billable charges
   totalCustomerBilling: number;  // perTripBilling + chargesTotal
-  totalDriverPayout: number;     // Driver payout or 3PL subcontract cost
+  totalDriverPayout: number;     // Driver payout or 3PL subcontract cost (NEVER divided by 30)
   extraDriverPayment: number;    // Extra driver allowance
   balanceMargin: number;         // totalCustomerBilling - totalDriverPayout
   marginPercent: number;         // Margin percentage (%)
@@ -75,15 +80,18 @@ export function computeTripTotalAmount(
   return base + extra;
 }
 
-/** Driver Payout or 3PL Subcontract Cost. */
+/** Driver Payout or 3PL Subcontract Cost. NEVER DIVIDED BY 30. */
 export function computeTripDriverPayout(trip: BackendTripFinancialInputs): number {
   const extraDriver = asNumber(trip.extra_driver_payment);
+  const days = asNumber(trip.selected_operating_days);
+  const multiplier = days > 0 ? days : 1;
+
   if (trip.is_third_party) {
     const cost = trip.subcontract?.cost ?? trip.third_party_cost;
-    return Math.max(0, asNumber(cost) + extraDriver);
+    return Math.max(0, (asNumber(cost) * multiplier) + extraDriver);
   }
   const payout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
-  return Math.max(0, asNumber(payout) + extraDriver);
+  return Math.max(0, (asNumber(payout) * multiplier) + extraDriver);
 }
 
 /** Balance profit kept by MERCON: customer total minus driver payout. */
@@ -98,7 +106,23 @@ export function computeTripBalance(
 
 /** Comprehensive financial calculation for trip controllers and reports. */
 export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs): ComputedBackendFinancials {
-  const perTripBilling = computeTripBaseBilling(trip);
+  const pb = String(trip.pricing_basis || trip.quotation?.pricing_basis || '').toUpperCase();
+  const bt = String(trip.billing_type || '').toLowerCase();
+  const isMonthly = pb === 'PER_MONTH' || pb === 'PER MONTH' || bt.includes('monthly');
+
+  const rawBaseBilling = computeTripBaseBilling(trip);
+  let monthlyRate = 0;
+  let dailyRate = rawBaseBilling;
+  let perTripBilling = rawBaseBilling;
+
+  const days = asNumber(trip.selected_operating_days);
+
+  if (isMonthly) {
+    monthlyRate = rawBaseBilling;
+    dailyRate = Number((monthlyRate / 30).toFixed(2));
+    perTripBilling = days > 0 ? Number((dailyRate * days).toFixed(2)) : monthlyRate;
+  }
+
   const chargesTotal = trip.charges_total !== undefined && trip.charges_total !== null
     ? asNumber(trip.charges_total)
     : computeTripChargesTotal(trip.charges);
@@ -116,6 +140,9 @@ export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs)
   const balanceDue = totalCustomerBilling - paidAmount;
 
   return {
+    isMonthly,
+    monthlyRate,
+    dailyRate,
     perTripBilling,
     chargesTotal,
     totalCustomerBilling,

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { KbdBadge } from '@/components/ui/KbdBadge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { cn } from '@/lib/utils';
+import { computeTripFinancials } from '@/utils/financialCalculations';
 
 interface TripReviewConfirmModalProps {
   isOpen: boolean;
@@ -386,13 +387,21 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           </div>
 
           {/* FINANCIAL SUMMARY */}
+          {/* FINANCIAL SUMMARY */}
           {(() => {
-            const costValue = assignmentType === 'third_party'
-              ? (parseFloat(String(thirdPartyCost || 0)) || 0)
-              : (parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0);
-            const totalCost = costValue * (contractBillingType === 'Monthly' ? 1 : totalOperatingDays);
-            const netMargin = grandTotalBilling - totalCost;
-            const marginPct = grandTotalBilling > 0 ? (netMargin / grandTotalBilling) * 100 : 0;
+            const fin = computeTripFinancials({
+              customerBilling: grandTotalBilling,
+              driverPayout: assignmentType === 'third_party' ? thirdPartyCost : primarySlot.driverPayout,
+              is3PL: assignmentType === 'third_party',
+              subcontractCost: thirdPartyCost,
+              pricingBasis: contractBillingType === 'Monthly' ? 'Per Month' : 'Per Trip',
+              selectedOperatingDays: totalOperatingDays,
+            });
+
+            const costValue = fin.perDriverPayout;
+            const totalCost = fin.resolvedDriverPayout;
+            const netMargin = fin.balanceMargin;
+            const marginPct = fin.marginPercent;
 
             return (
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
@@ -413,10 +422,10 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
-                  {contractBillingType === 'Monthly' && grandTotalBilling > 0 && (
+                  {fin.isMonthly && grandTotalBilling > 0 && (
                     <div className="text-[10px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-900 flex items-center justify-between">
                       <span>Rate Basis: <strong>Monthly Contract</strong></span>
-                      <span>Per-Trip Breakdown: <strong className="font-mono">SAR {(Math.round((grandTotalBilling / 30) * 100) / 100).toLocaleString()} / trip</strong></span>
+                      <span>Daily Breakdown: <strong className="font-mono">{fin.formattedLabels.dailyLabel}</strong></span>
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">

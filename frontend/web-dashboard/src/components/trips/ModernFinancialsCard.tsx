@@ -92,15 +92,14 @@ export default function ModernFinancialsCard({
               <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Customer Billing
               </span>
-              {pricingBasis === 'Per Month' && (
+              {fin.isMonthly && (
                 <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
-                  SAR {(Math.round((billingVal / 30) * 100) / 100).toLocaleString()}/trip (Monthly Basis)
+                  {fin.formattedLabels.dailyLabel} (Daily / 30 Rate)
                 </span>
               )}
             </div>
             <span className="text-xs font-black font-mono text-[#1F2937] dark:text-white">
-              SAR {billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              {pricingBasis === 'Per Month' && <span className="text-[9px] font-normal text-slate-400">/mo</span>}
+              {fin.isMonthly ? fin.formattedLabels.monthlyLabel : `SAR ${billingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
             </span>
           </div>
 
