@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Calendar, Zap, Layers, Tag, Lock } from 'lucide-react';
+import { Truck, Calendar, Zap, Layers, Tag } from 'lucide-react';
 import { CustomerSelectionHeader } from './CustomerSelectionHeader';
 import { RecentRoutesAccelerator } from './RecentRoutesAccelerator';
 import { RouteWorkspace } from './RouteWorkspace';
@@ -199,21 +199,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
 
           {/* PROGRESSIVE LOCK CONTAINER FOR ROUTE WORKSPACE */}
           <div className="relative">
-            {!isQuotationDefinedOrSelected && (
-              <div className="p-4 mb-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/80 shadow-2xs text-center space-y-1.5 animate-fade-in">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold mx-auto border border-amber-200 dark:border-amber-800">
-                  <Lock className="w-4 h-4 text-amber-600" />
-                </div>
-                <h4 className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
-                  Select a Quotation Card Above or Click "+ Define Quotation"
-                </h4>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300 max-w-md mx-auto font-medium leading-relaxed">
-                  Selecting a commercial quotation locks in rate terms (Billing Rate, Driver Payout, Vehicle Class, Line Type) to configure route & fleet assignment.
-                </p>
-              </div>
-            )}
-
-            <div className={cn("space-y-3 transition-all duration-200", !isQuotationDefinedOrSelected && "opacity-55 pointer-events-none select-none filter blur-[0.3px]")}>
+            <div className={cn("space-y-3 transition-opacity duration-200", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
               {contractSlots.map((slot) => (
                 <RouteWorkspace
                   key={slot.id}
@@ -244,7 +230,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
-            <div className={cn("transition-all duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-55 pointer-events-none select-none filter blur-[0.3px]")}>
+            <div className={cn("transition-opacity duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
               <ExecutionAssignmentSection
                 assignmentType={assignmentType}
                 setAssignmentType={setAssignmentType}
