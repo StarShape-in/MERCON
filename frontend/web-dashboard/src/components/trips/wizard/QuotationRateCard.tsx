@@ -37,6 +37,7 @@ export interface RateCardItem {
   route_destination?: string;
   destination_name?: string;
   destinationLocation?: { id?: string; name?: string };
+  destination_city?: string;
   destination?: string;
   to?: string;
 }
