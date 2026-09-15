@@ -354,6 +354,8 @@ export function useTripSubmission(
         }> = [];
         let seq = 1;
 
+        const safeUuid = (id?: string | null) => (id && isUuid(id) ? id : null);
+
         // 1. Outbound Origin (leg 0)
         structuredStops.push({
           stop_sequence: seq++,
@@ -361,7 +363,7 @@ export function useTripSubmission(
           stop_type: 'Pickup',
           location_name: slot.originName || slot.origin.trim(),
           location_address: slot.originAddress || null,
-          location_id: slot.originLocationId || null,
+          location_id: safeUuid(slot.originLocationId),
           lat: slot.originLat ?? null,
           lng: slot.originLng ?? null,
           coordinate_precision: slot.originPrecision || (slot.originLat != null ? 'APPROXIMATE' : 'UNKNOWN'),
@@ -375,7 +377,7 @@ export function useTripSubmission(
             leg_index: 0,
             stop_type: 'Dropoff',
             location_name: stopName,
-            location_id: slot.intermediateLocationIds?.[idx] || null,
+            location_id: safeUuid(slot.intermediateLocationIds?.[idx]),
           });
         });
 
@@ -386,7 +388,7 @@ export function useTripSubmission(
           stop_type: 'Dropoff',
           location_name: slot.destinationName || slot.destination.trim(),
           location_address: slot.destinationAddress || null,
-          location_id: slot.destinationLocationId || null,
+          location_id: safeUuid(slot.destinationLocationId),
           lat: slot.destinationLat ?? null,
           lng: slot.destinationLng ?? null,
           coordinate_precision: slot.destinationPrecision || (slot.destinationLat != null ? 'APPROXIMATE' : 'UNKNOWN'),
@@ -401,7 +403,7 @@ export function useTripSubmission(
             leg_index: 1,
             stop_type: 'Pickup',
             location_name: returnStart,
-            location_id: slot.returnOriginLocationId || (returnStart === slot.destination.trim() ? slot.destinationLocationId : null),
+            location_id: safeUuid(slot.returnOriginLocationId || (returnStart === slot.destination.trim() ? slot.destinationLocationId : null)),
           });
 
           // Return Intermediate Stops (leg 1)
@@ -411,7 +413,7 @@ export function useTripSubmission(
               leg_index: 1,
               stop_type: 'Dropoff',
               location_name: stopName,
-              location_id: slot.returnIntermediateLocationIds?.[idx] || null,
+              location_id: safeUuid(slot.returnIntermediateLocationIds?.[idx]),
             });
           });
 
@@ -421,7 +423,7 @@ export function useTripSubmission(
             leg_index: 1,
             stop_type: 'Dropoff',
             location_name: returnEnd,
-            location_id: slot.returnDestinationLocationId || (returnEnd === slot.origin.trim() ? slot.originLocationId : null),
+            location_id: safeUuid(slot.returnDestinationLocationId || (returnEnd === slot.origin.trim() ? slot.originLocationId : null)),
           });
         }
 
@@ -439,7 +441,7 @@ export function useTripSubmission(
             planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
             planned_end: planned_end_val,
             is_third_party: true,
-            third_party_provider_id: thirdPartyProviderId || undefined,
+            third_party_provider_id: safeUuid(thirdPartyProviderId) || undefined,
             third_party_driver_name: thirdPartyDriverName.trim() || undefined,
             third_party_driver_phone: thirdPartyDriverPhone.trim() || undefined,
             third_party_vehicle_plate: thirdPartyVehiclePlate.trim() || undefined,
@@ -453,7 +455,7 @@ export function useTripSubmission(
             destination: destString || undefined,
             stops: structuredStops,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
-            rate_card_id: slot.rateCardId || undefined,
+            rate_card_id: safeUuid(slot.rateCardId) || undefined,
             status: 'Scheduled',
           });
         } else {
@@ -472,8 +474,8 @@ export function useTripSubmission(
             customer_id: contractCustomer,
             planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
             planned_end: planned_end_val,
-            driver_id: driverId,
-            vehicle_id: vehicleId,
+            driver_id: safeUuid(driverId) || undefined,
+            vehicle_id: safeUuid(vehicleId) || undefined,
             rate_category: contractRateCategory || undefined,
             billing_type: contractBillingType || undefined,
             vehicle_type: contractVehicleType || undefined,
@@ -485,7 +487,7 @@ export function useTripSubmission(
             driver_charge: slotDriverPayout,
             driver_payout: slotDriverPayout,
             update_quotation_driver_payout: shouldUpdateQuotation,
-            rate_card_id: slot.rateCardId || slot.matchedRateCard?.id || undefined,
+            rate_card_id: safeUuid(slot.rateCardId || slot.matchedRateCard?.id) || undefined,
             status: 'Scheduled',
           });
         }

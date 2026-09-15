@@ -354,7 +354,7 @@ export const bulkImportTripsBody = z.object({
     // board looking like an active dispatch.
     status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
     is_third_party: z.boolean().optional(),
-    third_party_provider_id: z.string().uuid().nullable().optional(),
+    third_party_provider_id: z.preprocess((val) => (val === '' ? null : val), z.string().uuid().nullable().optional()),
     third_party_driver_name: z.string().trim().optional(),
     third_party_driver_phone: z.string().trim().optional(),
     third_party_vehicle_plate: z.string().trim().optional(),
@@ -371,7 +371,7 @@ export const bulkImportTripsBody = z.object({
       stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']).optional(),
       location_name: z.string().trim().optional(),
       location_address: z.string().trim().optional(),
-      location_id: z.string().uuid().nullable().optional(),
+      location_id: z.preprocess((val) => (val === '' ? null : val), z.string().uuid().nullable().optional()),
       lat: z.coerce.number().nullable().optional(),
       lng: z.coerce.number().nullable().optional(),
       planned_arrival: z.string().optional(),
@@ -383,12 +383,12 @@ export const bulkImportTripsBody = z.object({
       const s = new Date(data.planned_start).getTime();
       const e = new Date(data.planned_end).getTime();
       if (!isNaN(s) && !isNaN(e)) {
-        return e > s;
+        return e >= s;
       }
     }
     return true;
   }, {
-    message: 'Drop-off date and time must be strictly later than start date and time',
+    message: 'Drop-off date and time must be later than or equal to start date and time',
     path: ['planned_end'],
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
 });
