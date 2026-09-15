@@ -79,12 +79,25 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     if (!effectiveRateCards || effectiveRateCards.length === 0) return [];
     const targetBt = normalizeBillingType(contractBillingType);
 
-    return effectiveRateCards.filter((rc) => {
+    const filtered = effectiveRateCards.filter((rc) => {
       const rcRaw = (rc as any).operation_type || (rc as any).quotation_operation_type || rc.billing_type || rc.billingType || (rc as any).pricing_basis || (rc as any).quotation_billing_type;
       const rcBt = normalizeBillingType(rcRaw);
       return rcBt === targetBt;
     });
-  }, [effectiveRateCards, contractBillingType]);
+
+    return filtered.sort((a, b) => {
+      const aIsSelected = a.id === activeSelectedId;
+      const bIsSelected = b.id === activeSelectedId;
+      if (aIsSelected && !bIsSelected) return -1;
+      if (!aIsSelected && bIsSelected) return 1;
+
+      const aNum = (a as any).quotation_number != null ? Number((a as any).quotation_number) : Infinity;
+      const bNum = (b as any).quotation_number != null ? Number((b as any).quotation_number) : Infinity;
+      if (aNum !== bNum) return aNum - bNum;
+
+      return String(a.name || a.id).localeCompare(String(b.name || b.id));
+    });
+  }, [effectiveRateCards, contractBillingType, activeSelectedId]);
 
   // Compute live card counts per operation type for segment tab badges
   const { monthlyCount, extraCount } = React.useMemo(() => {

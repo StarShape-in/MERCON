@@ -106,9 +106,10 @@ export const QuotationRateCard: React.FC<QuotationRateCardProps> = ({
     rc.to,
   ]);
 
+  const qNum = (rc as any).quotation_number != null && !isNaN(Number((rc as any).quotation_number)) ? `QT-${(rc as any).quotation_number}` : null;
   const quotationDisplayCode =
+    qNum ||
     (rc as any).agreement_ref ||
-    rc.quotation_number ||
     (rc.name && rc.name.startsWith('QT-') ? rc.name : null) ||
     (rc.id ? `QT-${rc.id.substring(0, 6).toUpperCase()}` : `QT-${idx + 1}`);
 

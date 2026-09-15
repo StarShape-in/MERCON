@@ -942,6 +942,7 @@ model Expense {
 // -----------------------------------------
 model Quotation {
   id                   String   @id @default(uuid()) @db.Uuid
+  quotation_number     Int?     @default(autoincrement())
   name                 String
   line_type            String?
   operation_type       String?
@@ -980,6 +981,7 @@ model Quotation {
   version              Int       @default(1)
 
   @@index([customerId])
+  @@index([quotation_number])
   @@index([deletedAt])
 }
 
