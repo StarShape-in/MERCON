@@ -434,15 +434,26 @@ export default function UserManagementPage() {
             Refresh
           </Button>
 
-          {isAdmin && activeTab === 'users' && (
-            <Button
-              size="sm"
-              className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl"
-              onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Add User
-            </Button>
+          {isAdmin && (
+            activeTab === 'users' ? (
+              <Button
+                size="sm"
+                className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
+                onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Add User
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="h-8 px-3.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-2xs rounded-xl cursor-pointer"
+                onClick={() => navigate('/drivers/new')}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Add Driver
+              </Button>
+            )
           )}
         </div>
       }
