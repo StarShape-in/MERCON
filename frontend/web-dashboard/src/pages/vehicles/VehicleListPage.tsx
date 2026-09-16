@@ -19,7 +19,6 @@ import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 import { io, Socket } from 'socket.io-client';
 import { authStore } from '@/store/authStore';
-import IccesStatusHeader from '@/components/fleet/IccesStatusHeader';
 import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
@@ -1351,9 +1350,6 @@ export default function VehicleListPage() {
             </Button>
           </div>
         </div>
-
-        {/* ── ICCES Hardware GPS Telemetry Status Strip ── */}
-        <IccesStatusHeader />
 
         {/* ── Standard Full-Width 4-Column Grid: 4 KPI Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
