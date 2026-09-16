@@ -85,6 +85,11 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   const scheduleError = React.useMemo(() => {
     if (isMonthly) return null;
     if (!slot.date) return null;
+    // Only check sequence errors if pickup time and dropoff time are both entered
+    if (!slot.pickupTime || !slot.dropoffTime) {
+      return null;
+    }
+
     const dropoffDate = slot.dropoffDate || slot.date;
     if (!dropoffDate) return null;
 
@@ -218,7 +223,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
-            <div className="md:col-span-4 space-y-1">
+            <div id={`field-pickup-${slot.id}`} className="md:col-span-4 space-y-1">
               <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
                 <span className="flex items-center gap-1 truncate">
                   {isMonthly ? (
@@ -231,6 +236,9 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                     </>
                   )}
                 </span>
+                {(fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && (
+                  <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
+                )}
                 {!isMonthly && isPastSchedule && (
                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-black border border-amber-200 dark:border-amber-900 shrink-0 animate-fade-in">
                     <Clock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" /> Past Time
@@ -247,11 +255,15 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                     });
                   }}
                   placeholder="Select pickup time..."
-                  buttonClassName="h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full"
+                  buttonClassName={cn(
+                    "h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full",
+                    (fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-1 ring-red-500"
+                  )}
                 />
               ) : (
                 <DateTimePicker
                   value={pickupIsoValue}
+                  error={Boolean(fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`])}
                   onChange={(isoStr) => {
                     if (!isoStr) {
                       handleUpdateTripSlot(slot.id, {
@@ -345,16 +357,21 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
 
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}
-            <div className="md:col-span-4 space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 truncate h-4">
-                {isMonthly ? (
-                  <>
-                    <Clock className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL TIME' : 'DROPOFF TIME'}
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
-                  </>
+            <div id={`field-dropoff-${slot.id}`} className="md:col-span-4 space-y-1">
+              <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between h-4">
+                <span className="flex items-center gap-1 truncate">
+                  {isMonthly ? (
+                    <>
+                      <Clock className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL TIME' : 'DROPOFF TIME'}
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-3 h-3 text-[#FA634E] shrink-0" /> {isRoundTrip ? 'OUTBOUND ARRIVAL' : 'DROPOFF SCHEDULE'}
+                    </>
+                  )}
+                </span>
+                {(scheduleError || fieldErrors?.[`dropoff-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && (
+                  <span className="text-[9px] font-bold text-red-500 animate-pulse">Required</span>
                 )}
               </label>
               {isMonthly ? (
@@ -366,13 +383,16 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                     });
                   }}
                   placeholder="Select dropoff time..."
-                  buttonClassName="h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full"
+                  buttonClassName={cn(
+                    "h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full",
+                    (scheduleError || fieldErrors?.[`dropoff-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-1 ring-red-500"
+                  )}
                 />
               ) : (
                 <DateTimePicker
                   value={dropoffIsoValue}
                   minDate={pickupDateObj}
-                  error={!!scheduleError}
+                  error={Boolean(scheduleError || fieldErrors?.[`dropoff-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`])}
                   onChange={(isoStr) => {
                     if (!isoStr) {
                       handleUpdateTripSlot(slot.id, { dropoffDate: '', dropoffTime: '' });
@@ -388,10 +408,10 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
                 />
               )}
-              {!isMonthly && scheduleError && (
+              {!isMonthly && (scheduleError || fieldErrors?.[`dropoff-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && (
                 <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{scheduleError}</span>
+                  <span>{scheduleError || 'Drop-off time must be after the start time.'}</span>
                 </div>
               )}
             </div>

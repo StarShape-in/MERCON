@@ -174,16 +174,33 @@ export function useTripSubmission(
         }
       }
 
-      const dropoffDateVal = slot.dropoffDate || slot.date;
-      if (!slot.date || !dropoffDateVal || !slot.pickupTime || !slot.dropoffTime) {
+      const isMissingPickup = !slot.date || !slot.pickupTime;
+      const isMissingDropoff = !slot.dropoffDate || !slot.dropoffTime;
+
+      if (isMissingPickup || isMissingDropoff) {
         errors[`schedule-${slot.id}`] = true;
         errors['schedule'] = true;
-        if (!firstErrId) {
-          firstErrId = `field-schedule-${slot.id}`;
-          firstErrMsg = `Slot #${i + 1}: Schedule date & times are required.`;
+
+        if (isMissingPickup) {
+          errors[`pickup-${slot.id}`] = true;
+          errors['pickup'] = true;
+          if (!firstErrId) {
+            firstErrId = `field-pickup-${slot.id}`;
+            firstErrMsg = `Slot #${i + 1}: Pickup schedule date & time are required.`;
+          }
+        }
+
+        if (isMissingDropoff) {
+          errors[`dropoff-${slot.id}`] = true;
+          errors['dropoff'] = true;
+          if (!firstErrId) {
+            firstErrId = `field-dropoff-${slot.id}`;
+            firstErrMsg = `Slot #${i + 1}: Drop-off time must be after the start time.`;
+          }
         }
       } else {
         try {
+          const dropoffDateVal = slot.dropoffDate || slot.date;
           const plannedStart = localDateTimeToUtcIso(slot.date, slot.pickupTime, tz);
           const plannedEnd = localDateTimeToUtcIso(dropoffDateVal, slot.dropoffTime, tz);
           const startMs = new Date(plannedStart).getTime();
@@ -191,16 +208,20 @@ export function useTripSubmission(
           if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
             errors[`schedule-${slot.id}`] = true;
             errors['schedule'] = true;
+            errors[`dropoff-${slot.id}`] = true;
+            errors['dropoff'] = true;
             if (!firstErrId) {
-              firstErrId = `field-schedule-${slot.id}`;
-              firstErrMsg = `Slot #${i + 1}: Drop-off schedule must be strictly after pickup time.`;
+              firstErrId = `field-dropoff-${slot.id}`;
+              firstErrMsg = `Slot #${i + 1}: Drop-off time must be after the start time.`;
             }
           }
         } catch (err) {
           errors[`schedule-${slot.id}`] = true;
           errors['schedule'] = true;
+          errors[`dropoff-${slot.id}`] = true;
+          errors['dropoff'] = true;
           if (!firstErrId) {
-            firstErrId = `field-schedule-${slot.id}`;
+            firstErrId = `field-dropoff-${slot.id}`;
             firstErrMsg = `Slot #${i + 1}: Invalid schedule format.`;
           }
         }
