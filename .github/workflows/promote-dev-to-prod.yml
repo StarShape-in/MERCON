@@ -288,16 +288,6 @@ jobs:
           echo "PROD_BACKUP_PATH=$PROD_BACKUP_PATH" >> "$GITHUB_ENV"
           echo "Production backup complete: $PROD_BACKUP_PATH ($(du -h "$PROD_BACKUP_PATH" | cut -f1))"
 
-      - name: Promote Main Branch to Release Target SHA (NO Force Push)
-        if: ${{ inputs.mode == 'promote' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "Promoting main branch to Release Target commit $RELEASE_TARGET_SHA..."
-          git push origin "${RELEASE_TARGET_SHA}:refs/heads/main"
-          echo "Branch main successfully updated to Release Target commit $RELEASE_TARGET_SHA."
-
       - name: Deploy Production Code & Apply Prisma Migrations to PROD Database
         if: ${{ inputs.mode == 'promote' }}
         env:
@@ -340,6 +330,16 @@ jobs:
           fi
           
           echo "Production API is HEALTHY."
+
+      - name: Promote Main Branch to Release Target SHA (NO Force Push)
+        if: ${{ inputs.mode == 'promote' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Promoting main branch to Release Target commit $RELEASE_TARGET_SHA..."
+          git push origin "${RELEASE_TARGET_SHA}:refs/heads/main"
+          echo "Branch main successfully updated to Release Target commit $RELEASE_TARGET_SHA."
 
       - name: Final Promotion Summary
         if: ${{ inputs.mode == 'promote' }}
