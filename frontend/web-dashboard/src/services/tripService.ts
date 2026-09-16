@@ -462,6 +462,7 @@ export const tripService = {
     badges: string[];
     vehiclePlate?: string | null;
     vehicleClass?: string | null;
+    rest_hours?: number | null;
   }>> {
     try {
       const res = await api.get<ApiResponse<any[]>>('/trips/recommendations/drivers', { params });

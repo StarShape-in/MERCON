@@ -24,6 +24,7 @@ export interface TripDriverRecommendationItem {
   badges: string[];
   vehiclePlate?: string | null;
   vehicleClass?: string | null;
+  rest_hours?: number | null;
 }
 
 export interface VehicleRecommendation {
@@ -99,6 +100,18 @@ export async function getRecommendedDriversForTrip(params: {
     }
 
     const driverTrips: any[] = (driver as any).trips || [];
+
+    let rest_hours: number | null = null;
+    const completedTrips = driverTrips.filter((t: any) => t.status === 'Completed');
+    if (completedTrips.length > 0) {
+      completedTrips.sort((a: any, b: any) => {
+        const timeA = new Date(a.actual_end || a.updatedAt).getTime();
+        const timeB = new Date(b.actual_end || b.updatedAt).getTime();
+        return timeB - timeA;
+      });
+      const lastTripTime = new Date(completedTrips[0].actual_end || completedTrips[0].updatedAt).getTime();
+      rest_hours = Math.round((now.getTime() - lastTripTime) / (1000 * 60 * 60));
+    }
 
     if (isAvailable) {
       const hasActiveConflict = driverTrips.some((t: any) => {
@@ -210,6 +223,9 @@ export async function getRecommendedDriversForTrip(params: {
     } else if (unavailabilityReason) {
       badges.push(`🔴 ${unavailabilityReason}`);
     }
+    if (rest_hours !== null) {
+      badges.push(`🕒 Rest: ${rest_hours} hrs`);
+    }
 
     recommendations.push({
       driverId: driver.id,
@@ -224,6 +240,7 @@ export async function getRecommendedDriversForTrip(params: {
       badges,
       vehiclePlate: assignedPlate,
       vehicleClass: assignedClass,
+      rest_hours,
     });
   }
 

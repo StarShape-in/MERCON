@@ -259,7 +259,7 @@ export function useCreateTripForm() {
           : '';
 
         const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [truckInfo, statusTag].filter(Boolean).join(' • ');
+        const detailsStr = [truckInfo, statusTag, badgesStr].filter(Boolean).join(' • ');
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
 
         const label = React.createElement(

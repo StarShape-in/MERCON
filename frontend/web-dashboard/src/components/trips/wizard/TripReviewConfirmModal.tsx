@@ -11,6 +11,7 @@ import {
   Tag,
   AlertCircle,
   Clock,
+  Scale,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KbdBadge } from '@/components/ui/KbdBadge';
@@ -46,6 +47,18 @@ interface TripReviewConfirmModalProps {
 
 const isUuidString = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+const getPayloadCapacityDisplay = (vType: string) => {
+  if (!vType) return '10,000 KG (10 TON)';
+  const clean = vType.toUpperCase();
+  if (clean.includes('3-4 TON') || clean.includes('3 TON') || clean.includes('4 TON')) return '3,500 KG (3.5 TON)';
+  if (clean.includes('5 TON')) return '5,000 KG (5 TON)';
+  if (clean.includes('10 TON')) return '10,000 KG (10 TON)';
+  if (clean.includes('20 TON')) return '20,000 KG (20 TON)';
+  if (clean.includes('25 TON')) return '25,000 KG (25 TON)';
+  if (clean.includes('40 FEET') || clean.includes('CONTAINER')) return '30,000 KG (30 TON / 40 FT)';
+  return `${vType} Payload`;
+};
 
 export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
   isOpen,
@@ -189,7 +202,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[999] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden text-[#3E3C3D] dark:text-slate-200 animate-scale-in flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 border-t-4 border-t-[#FA634E] rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden text-[#3E3C3D] dark:text-slate-200 animate-scale-in flex flex-col max-h-[90vh]">
         
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 shrink-0">
@@ -198,9 +211,14 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                Confirm Trip Dispatch
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                  Confirm Trip Dispatch
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                  Ready to Dispatch
+                </span>
+              </div>
               <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5">
                 <span>{totalTripsCount} Trip{totalTripsCount > 1 ? 's' : ''} Ready</span>
                 <span>•</span>
@@ -219,7 +237,7 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           </button>
         </div>
 
-        {/* MODAL BODY - 2-COLUMN BALANCED LAYOUT */}
+        {/* MODAL BODY */}
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
 
           {/* SCHEDULE ERROR BANNER */}
@@ -237,313 +255,244 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
             </div>
           )}
 
-          {/* MAIN 2-COLUMN GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-            
-            {/* LEFT COLUMN: ROUTE & OPERATIONAL CONTEXT (6 Cols) */}
-            <div className="md:col-span-6 space-y-4">
-              
-              {/* Commercial Lane Card */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
-                <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-[#FA634E]" /> Commercial Lane
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px] font-bold">
-                    {rateCategory}
-                  </span>
-                </div>
+          {/* HERO ROUTE BANNER */}
+          <div className="p-4.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[10px] font-extrabold">
+                  {rateCategory}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-extrabold text-[10px]">
+                  {customerName}
+                </span>
+              </div>
+              <span className="font-mono font-bold text-slate-500 text-[11px]">
+                DISPATCH DATE: {selectedMonth || (contractSlots[0]?.date ? contractSlots[0].date : new Date().toISOString().slice(0, 10))}
+              </span>
+            </div>
 
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span className="text-sm font-black text-slate-900 dark:text-white truncate">
-                      {originName}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 flex items-center justify-center px-2">
-                    <div className="w-full flex items-center gap-1.5">
-                      <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
-                      <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0" />
-                      <div className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm font-black text-slate-900 dark:text-white truncate">
-                      {destName}
-                    </span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#FA634E] shrink-0" />
-                  </div>
-                </div>
-
-                {intermediates.length > 0 && (
-                  <div className="flex items-center gap-1.5 pt-1 text-[11px] text-slate-500">
-                    <span className="font-bold text-slate-400">Via:</span>
-                    <div className="flex items-center gap-1 overflow-x-auto">
-                      {intermediates.map((stop, idx) => (
-                        <span key={idx} className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300 text-[10px]">
-                          {stop}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100 dark:ring-emerald-950/40" />
+                <span className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">
+                  {originName}
+                </span>
               </div>
 
-              {/* Operational Metadata Grid */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-slate-400" /> Customer
+              <div className="flex-1 flex items-center justify-center px-4">
+                <div className="w-full flex items-center gap-2">
+                  <div className="h-0.5 flex-1 bg-slate-300 dark:bg-slate-700" />
+                  <ArrowRight className="w-5 h-5 text-[#FA634E] shrink-0" />
+                  <div className="h-0.5 flex-1 bg-slate-300 dark:bg-slate-700" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">
+                  {destName}
+                </span>
+                <span className="w-3 h-3 rounded-full bg-[#FA634E] shrink-0 ring-4 ring-orange-100 dark:ring-orange-950/40" />
+              </div>
+            </div>
+
+            {intermediates.length > 0 && (
+              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60 mt-2">
+                <span className="font-bold text-slate-400">Via Stops:</span>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {intermediates.map((stop, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300 text-[10px]">
+                      {stop}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3-COLUMN DATA GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+            
+            {/* COLUMN 1: ASSIGNED DRIVER & FLEET */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Assigned Driver & Fleet
+              </span>
+
+              {assignmentType === 'third_party' ? (
+                <div className="space-y-1">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                    {thirdPartyProviderObj?.name || '3PL Partner'}
                   </span>
-                  <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5 text-xs">
-                    {customerName}
+                  <span className="font-mono text-[11px] text-slate-500 block">
+                    {thirdPartyDriverName || 'Driver: TBD'} • {thirdPartyVehiclePlate || 'Plate: TBD'}
                   </span>
                 </div>
+              ) : rosterPairs.length > 0 ? (
+                <div className="space-y-2">
+                  {rosterPairs.map((pair, idx) => {
+                    const dInfo = resolveDriverDisplay(pair.driverId);
+                    const vPlate = resolveVehicleDisplay(pair.vehicleId);
+                    const singleDriverRate = parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0;
+                    const driverPayoutTotal = singleDriverRate * pair.daysCount;
 
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                    <Tag className="w-3 h-3 text-slate-400" /> Contract Class
+                    return (
+                      <div key={idx} className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700">
+                        <DriverAvatar
+                          src={dInfo.avatar}
+                          firstName={dInfo.firstName}
+                          lastName={dInfo.lastName}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-black text-xs text-slate-900 dark:text-white truncate block">
+                            {dInfo.name}
+                          </span>
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 mt-0.5">
+                            <span className="font-mono text-slate-700 dark:text-slate-300">{vPlate}</span>
+                            <span className="text-[#FA634E] font-mono font-bold">
+                              {pair.daysCount}d {singleDriverRate > 0 ? `(SAR ${driverPayoutTotal.toLocaleString()})` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (!masterDriver || masterDriver === 'unassigned') && (!masterVehicle || masterVehicle === 'unassigned') ? (
+                <div className="p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900 space-y-1">
+                  <span className="font-bold text-amber-900 dark:text-amber-200 text-xs block">
+                    Assign Later
                   </span>
-                  <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5 text-xs">
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
+                    Pending fleet assignment prior to dispatch.
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700">
+                  <DriverAvatar
+                    src={primaryDriverInfo.avatar}
+                    firstName={primaryDriverInfo.firstName}
+                    lastName={primaryDriverInfo.lastName}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span className="font-black text-xs text-slate-900 dark:text-white truncate block">
+                      {primaryDriverInfo.name}
+                    </span>
+                    <span className="text-[11px] font-mono text-[#FA634E] font-bold block truncate mt-0.5">
+                      {primaryVehiclePlate}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* COLUMN 2: CONTRACT & CAPACITY */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                Contract & Capacity
+              </span>
+
+              <div className="space-y-2.5 text-xs">
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Class</span>
+                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
                     {contractBillingType} • {contractVehicleType}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-slate-400" /> Schedule
-                  </span>
-                  <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5 text-xs">
-                    {selectedMonth || 'Active Month'} ({totalOperatingDays} Day{totalOperatingDays > 1 ? 's' : ''})
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Payload Capacity</span>
+                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5 flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-[#FA634E]" />
+                    {getPayloadCapacityDisplay(contractVehicleType)}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                    <Truck className="w-3 h-3 text-slate-400" /> Fleet Model
-                  </span>
-                  <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5 text-xs">
-                    {assignmentType === 'third_party'
-                      ? '3PL Logistics Partner'
-                      : rosterPairs.length > 1
-                      ? `${rosterPairs.length}-Driver Rotation`
-                      : 'Dedicated Fleet Pair'}
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Dispatch Schedule</span>
+                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
+                    {selectedMonth || 'Active Month'} ({totalOperatingDays} Day{totalOperatingDays > 1 ? 's' : ''})
                   </span>
                 </div>
               </div>
-
             </div>
 
-            {/* RIGHT COLUMN: FLEET ROSTER & FINANCIALS (6 Cols) */}
-            <div className="md:col-span-6 space-y-4">
-              
-              {/* Assigned Fleet Roster */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                  Assigned Fleet & Driver
-                </span>
+            {/* COLUMN 3: FINANCIAL SUMMARY */}
+            {(() => {
+              const fin = computeTripFinancials({
+                customerBilling: grandTotalBilling,
+                driverPayout: assignmentType === 'third_party' ? thirdPartyCost : primarySlot.driverPayout,
+                is3PL: assignmentType === 'third_party',
+                subcontractCost: thirdPartyCost,
+                pricingBasis: contractBillingType === 'Monthly' ? 'Per Month' : 'Per Trip',
+                selectedOperatingDays: totalOperatingDays,
+              });
 
-                {assignmentType === 'third_party' ? (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {thirdPartyProviderObj?.name || '3PL Partner'}
-                    </span>
-                    <span className="font-mono text-slate-500">
-                      {thirdPartyDriverName || 'Driver: TBD'} • {thirdPartyVehiclePlate || 'Plate: TBD'}
-                    </span>
-                  </div>
-                ) : rosterPairs.length > 0 ? (
-                  <div className="space-y-2">
-                    {rosterPairs.map((pair, idx) => {
-                      const dInfo = resolveDriverDisplay(pair.driverId);
-                      const vPlate = resolveVehicleDisplay(pair.vehicleId);
-                      const singleDriverRate = parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0;
-                      const driverPayoutTotal = singleDriverRate * pair.daysCount;
+              const costValue = fin.perDriverPayout;
+              const totalCost = fin.resolvedDriverPayout;
+              const netMargin = fin.balanceMargin;
+              const marginPct = fin.marginPercent;
 
-                      return (
-                        <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
-                          <DriverAvatar
-                            src={dInfo.avatar}
-                            firstName={dInfo.firstName}
-                            lastName={dInfo.lastName}
-                            size="sm"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <span className="font-black text-slate-900 dark:text-white truncate block text-xs">
-                              {dInfo.name}
-                            </span>
-                            <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold mt-0.5">
-                              <span className="font-mono text-slate-600 dark:text-slate-300">{vPlate}</span>
-                              <span className="text-[#FA634E] font-mono font-black">
-                                {pair.daysCount} Day{pair.daysCount > 1 ? 's' : ''} {singleDriverRate > 0 ? `(SAR ${driverPayoutTotal.toLocaleString()})` : ''}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (!masterDriver || masterDriver === 'unassigned') && (!masterVehicle || masterVehicle === 'unassigned') ? (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900 text-xs">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold shrink-0 border border-amber-200 dark:border-amber-800">
-                      <Clock className="w-4 h-4 text-amber-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-extrabold text-amber-900 dark:text-amber-200 text-xs block">
-                        Assign Later (Pending Fleet Assignment)
-                      </span>
-                      <span className="text-[10px] text-amber-700 dark:text-amber-400 block mt-0.5">
-                        Driver and vehicle will be assigned prior to trip pickup dispatch.
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
-                    <DriverAvatar
-                      src={primaryDriverInfo.avatar}
-                      firstName={primaryDriverInfo.firstName}
-                      lastName={primaryDriverInfo.lastName}
-                      size="sm"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-slate-900 dark:text-white truncate block text-xs">
-                          {primaryDriverInfo.name}
-                        </span>
-                        {primaryDriverInfo.phone && (
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {primaryDriverInfo.phone}
-                          </span>
+              return (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                      Financial Summary
+                    </span>
+                    {costValue > 0 && (
+                      <span
+                        className={cn(
+                          "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
+                          netMargin >= 0
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
                         )}
-                      </div>
-                      <span className="text-[11px] font-mono text-[#FA634E] font-bold block truncate mt-0.5">
-                        {primaryVehiclePlate}
+                      >
+                        {netMargin >= 0 ? `+${marginPct.toFixed(1)}%` : `${marginPct.toFixed(1)}%`}
                       </span>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Financial Summary */}
-              {(() => {
-                const fin = computeTripFinancials({
-                  customerBilling: grandTotalBilling,
-                  driverPayout: assignmentType === 'third_party' ? thirdPartyCost : primarySlot.driverPayout,
-                  is3PL: assignmentType === 'third_party',
-                  subcontractCost: thirdPartyCost,
-                  pricingBasis: contractBillingType === 'Monthly' ? 'Per Month' : 'Per Trip',
-                  selectedOperatingDays: totalOperatingDays,
-                });
-
-                const costValue = fin.perDriverPayout;
-                const totalCost = fin.resolvedDriverPayout;
-                const netMargin = fin.balanceMargin;
-                const marginPct = fin.marginPercent;
-
-                return (
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                        Financial Summary
+                      <span className="text-slate-500 font-medium">Customer Billing</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-white">
+                        SAR {fin.resolvedBilling.toLocaleString()}
                       </span>
-                      {costValue > 0 && (
-                        <span
-                          className={cn(
-                            "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border",
-                            netMargin >= 0
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                              : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                          )}
-                        >
-                          {netMargin >= 0 ? `+${marginPct.toFixed(1)}% Net Margin` : `${marginPct.toFixed(1)}% Loss`}
-                        </span>
-                      )}
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
-                      {fin.isMonthly && grandTotalBilling > 0 && (
-                        <div className="text-[11px] font-extrabold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-3 py-2 rounded-lg border border-purple-200 dark:border-purple-900 flex items-center justify-between flex-wrap gap-1">
-                          <span className="flex items-center gap-1">
-                            Rate Basis: <strong>Monthly Contract</strong> ({fin.formattedLabels.monthlyLabel})
-                          </span>
-                          <span className="font-mono text-purple-800 dark:text-purple-200">
-                            Per-Trip Rate: <strong>{fin.formattedLabels.dailyLabel}</strong>
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">
+                        {assignmentType === 'third_party' ? '3PL Cost' : 'Driver Payout'}
+                      </span>
+                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        {/* 1. REVENUE BILLING */}
-                        <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-700 flex flex-col justify-center">
-                          <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Customer Billing</span>
-                          <span className="text-xs font-mono font-black text-slate-900 dark:text-white block mt-0.5">
-                            SAR {fin.resolvedBilling.toLocaleString()}
-                          </span>
-                          {fin.isMonthly ? (
-                            <span className="text-[9px] text-purple-600 dark:text-purple-400 block truncate font-sans font-semibold mt-0.5">
-                              {totalOperatingDays}d @ SAR {fin.dailyRate}/trip
-                            </span>
-                          ) : (
-                            <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
-                              {totalOperatingDays} Trip{totalOperatingDays > 1 ? 's' : ''}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 2. DRIVER PAYOUT / 3PL COST */}
-                        <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/70 dark:border-slate-700 flex flex-col justify-center">
-                          <span className="text-[9px] font-extrabold text-slate-400 uppercase block">
-                            {assignmentType === 'third_party' ? '3PL Cost' : 'Driver Charge'}
-                          </span>
-                          <span className="text-xs font-mono font-black text-slate-900 dark:text-white mt-0.5">
-                            {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
-                          </span>
-                          {costValue > 0 && (
-                            <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
-                              {totalOperatingDays}d @ SAR {costValue}/d
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 3. NET MARGIN */}
-                        <div
-                          className={cn(
-                            "p-2.5 rounded-lg border flex flex-col justify-center",
-                            netMargin >= 0
-                              ? "bg-emerald-50/60 border-emerald-200/80 dark:bg-emerald-950/30 dark:border-emerald-800"
-                              : "bg-rose-50/60 border-rose-200/80 dark:bg-rose-950/30 dark:border-rose-800"
-                          )}
-                        >
-                          <span className="text-[9px] font-extrabold text-slate-400 uppercase block">Net Margin</span>
-                          <span
-                            className={cn(
-                              "text-xs font-mono font-black mt-0.5",
-                              netMargin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
-                            )}
-                          >
-                            {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
-                          </span>
-                          <span className="text-[9px] text-slate-400 block truncate font-sans font-semibold mt-0.5">
-                            {marginPct >= 0 ? `+${marginPct.toFixed(1)}%` : `${marginPct.toFixed(1)}%`}
-                          </span>
-                        </div>
-                      </div>
+                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-700 flex items-center justify-between">
+                      <span className="font-extrabold text-slate-900 dark:text-white">Net Margin</span>
+                      <span
+                        className={cn(
+                          "font-mono font-black text-sm",
+                          netMargin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                        )}
+                      >
+                        {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
+                      </span>
                     </div>
                   </div>
-                );
-              })()}
-
-            </div>
+                </div>
+              );
+            })()}
 
           </div>
 
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 shrink-0">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 shrink-0">
           <Button
             type="button"
             variant="outline"
