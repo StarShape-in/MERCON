@@ -210,12 +210,7 @@ export async function getRecommendedDriversForTrip(params: {
     }
 
     const badges: string[] = [];
-    if (routeTripCount > 0 && capacityMatch) {
-      badges.push(`⭐ Lane Experienced (${routeTripCount} trips)`);
-    }
-    if (capacityMatch) {
-      badges.push(`✓ Capacity Match`);
-    } else if (capacityMismatchReason) {
+    if (!capacityMatch && capacityMismatchReason) {
       badges.push(`⚠️ ${capacityMismatchReason}`);
     }
     if (isAvailable) {

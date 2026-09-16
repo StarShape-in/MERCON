@@ -396,7 +396,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                       <div className="text-sm font-black text-slate-900 dark:text-slate-100 truncate" title={`${firstName} ${lastName}`}>
                         {firstName} {lastName}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate pt-0.5">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold pt-0.5 leading-tight px-2">
                         {optDetailsStr || 'Truck: Unassigned'}
                       </div>
                     </div>
@@ -465,7 +465,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                             {lastName && <div className="truncate max-w-full font-medium text-[11px] text-slate-600 dark:text-slate-300">{lastName}</div>}
                           </div>
 
-                          <div className="text-[10px] text-slate-500 font-medium truncate max-w-full">
+                          <div className="text-[10px] text-slate-500 font-medium leading-tight px-1 max-w-full">
                             {optDetailsStr || 'Truck: Unassigned'}
                           </div>
                         </button>

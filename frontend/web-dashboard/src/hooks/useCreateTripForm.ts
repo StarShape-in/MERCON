@@ -273,7 +273,7 @@ export function useCreateTripForm() {
           detailsStr
             ? React.createElement(
                 'span',
-                { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate pt-0.5' },
+                { className: 'text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight pt-0.5 max-w-full whitespace-normal' },
                 detailsStr
               )
             : null
