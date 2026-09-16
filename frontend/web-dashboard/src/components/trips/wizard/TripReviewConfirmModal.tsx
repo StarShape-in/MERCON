@@ -49,15 +49,17 @@ const isUuidString = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 const getPayloadCapacityDisplay = (vType: string) => {
-  if (!vType) return '10,000 KG (10 TON)';
+  if (!vType) return '10 TON';
   const clean = vType.toUpperCase();
-  if (clean.includes('3-4 TON') || clean.includes('3 TON') || clean.includes('4 TON')) return '3,500 KG (3.5 TON)';
-  if (clean.includes('5 TON')) return '5,000 KG (5 TON)';
-  if (clean.includes('10 TON')) return '10,000 KG (10 TON)';
-  if (clean.includes('20 TON')) return '20,000 KG (20 TON)';
-  if (clean.includes('25 TON')) return '25,000 KG (25 TON)';
-  if (clean.includes('40 FEET') || clean.includes('CONTAINER')) return '30,000 KG (30 TON / 40 FT)';
-  return `${vType} Payload`;
+  if (clean.includes('3-4 TON') || clean.includes('3 TON') || clean.includes('4 TON')) return '3.5 TON';
+  if (clean.includes('5 TON')) return '5 TON';
+  if (clean.includes('10 TON')) return '10 TON';
+  if (clean.includes('20 TON')) return '20 TON';
+  if (clean.includes('25 TON')) return '25 TON';
+  if (clean.includes('40 FEET') || clean.includes('CONTAINER')) return '30 TON';
+  const match = clean.match(/(\d+(?:\.\d+)?\s*TON)/);
+  if (match) return match[1];
+  return vType;
 };
 
 export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
@@ -313,107 +315,116 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
             
             {/* COLUMN 1: ASSIGNED DRIVER & FLEET */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Assigned Driver & Fleet
-              </span>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2.5">
+                  Assigned Driver & Fleet
+                </span>
 
-              {assignmentType === 'third_party' ? (
-                <div className="space-y-1">
-                  <span className="font-bold text-xs text-slate-900 dark:text-white block">
-                    {thirdPartyProviderObj?.name || '3PL Partner'}
-                  </span>
-                  <span className="font-mono text-[11px] text-slate-500 block">
-                    {thirdPartyDriverName || 'Driver: TBD'} • {thirdPartyVehiclePlate || 'Plate: TBD'}
-                  </span>
-                </div>
-              ) : rosterPairs.length > 0 ? (
-                <div className="space-y-2">
-                  {rosterPairs.map((pair, idx) => {
-                    const dInfo = resolveDriverDisplay(pair.driverId);
-                    const vPlate = resolveVehicleDisplay(pair.vehicleId);
-                    const singleDriverRate = parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0;
-                    const driverPayoutTotal = singleDriverRate * pair.daysCount;
-
-                    return (
-                      <div key={idx} className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700">
-                        <DriverAvatar
-                          src={dInfo.avatar}
-                          firstName={dInfo.firstName}
-                          lastName={dInfo.lastName}
-                          size="sm"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <span className="font-black text-xs text-slate-900 dark:text-white truncate block">
-                            {dInfo.name}
-                          </span>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 mt-0.5">
-                            <span className="font-mono text-slate-700 dark:text-slate-300">{vPlate}</span>
-                            <span className="text-[#FA634E] font-mono font-bold">
-                              {pair.daysCount}d {singleDriverRate > 0 ? `(SAR ${driverPayoutTotal.toLocaleString()})` : ''}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (!masterDriver || masterDriver === 'unassigned') && (!masterVehicle || masterVehicle === 'unassigned') ? (
-                <div className="p-3 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900 space-y-1">
-                  <span className="font-bold text-amber-900 dark:text-amber-200 text-xs block">
-                    Assign Later
-                  </span>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
-                    Pending fleet assignment prior to dispatch.
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700">
-                  <DriverAvatar
-                    src={primaryDriverInfo.avatar}
-                    firstName={primaryDriverInfo.firstName}
-                    lastName={primaryDriverInfo.lastName}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-black text-xs text-slate-900 dark:text-white truncate block">
-                      {primaryDriverInfo.name}
+                {assignmentType === 'third_party' ? (
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 space-y-1">
+                    <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                      {thirdPartyProviderObj?.name || '3PL Partner'}
                     </span>
-                    <span className="text-[11px] font-mono text-[#FA634E] font-bold block truncate mt-0.5">
-                      {primaryVehiclePlate}
+                    <span className="font-mono text-[11px] text-slate-500 block">
+                      {thirdPartyDriverName || 'Driver: TBD'} • {thirdPartyVehiclePlate || 'Plate: TBD'}
                     </span>
                   </div>
-                </div>
-              )}
+                ) : rosterPairs.length > 1 ? (
+                  <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                    {rosterPairs.map((pair, idx) => {
+                      const dInfo = resolveDriverDisplay(pair.driverId);
+                      const vPlate = resolveVehicleDisplay(pair.vehicleId);
+                      const singleDriverRate = parseFloat(String(primarySlot.driverPayout || primarySlot.driverTripCharge || primarySlot.tripCharges || 0)) || 0;
+                      const driverPayoutTotal = singleDriverRate * pair.daysCount;
+
+                      return (
+                        <div key={idx} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+                          <DriverAvatar
+                            src={dInfo.avatar}
+                            firstName={dInfo.firstName}
+                            lastName={dInfo.lastName}
+                            size="sm"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-black text-xs text-slate-900 dark:text-white truncate block">
+                              {dInfo.name}
+                            </span>
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 mt-0.5">
+                              <span className="font-mono text-slate-700 dark:text-slate-300">{vPlate}</span>
+                              <span className="text-[#FA634E] font-mono font-bold">
+                                {pair.daysCount}d {singleDriverRate > 0 ? `(SAR ${driverPayoutTotal.toLocaleString()})` : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (!masterDriver || masterDriver === 'unassigned') && (!masterVehicle || masterVehicle === 'unassigned') ? (
+                  <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900 space-y-1">
+                    <span className="font-bold text-amber-900 dark:text-amber-200 text-xs block">
+                      Assign Later
+                    </span>
+                    <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
+                      Pending fleet assignment prior to dispatch.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700">
+                    <DriverAvatar
+                      src={primaryDriverInfo.avatar}
+                      firstName={primaryDriverInfo.firstName}
+                      lastName={primaryDriverInfo.lastName}
+                      size="md"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-black text-xs text-slate-900 dark:text-white truncate block" title={primaryDriverInfo.name}>
+                        {primaryDriverInfo.name}
+                      </span>
+                      <div className="flex items-center justify-between gap-1 text-[11px] font-semibold text-slate-500 mt-0.5">
+                        <span className="font-mono text-slate-700 dark:text-slate-300 truncate">{primaryVehiclePlate}</span>
+                        {rosterPairs.length > 0 && rosterPairs[0]?.daysCount && (
+                          <span className="text-[#FA634E] font-mono font-bold shrink-0">
+                            {rosterPairs[0].daysCount}d {primarySlot.driverPayout ? `(SAR ${(parseFloat(String(primarySlot.driverPayout)) * rosterPairs[0].daysCount).toLocaleString()})` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* COLUMN 2: CONTRACT & CAPACITY */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                Contract & Capacity
-              </span>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2.5">
+                  Contract & Capacity
+                </span>
 
-              <div className="space-y-2.5 text-xs">
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Class</span>
-                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
-                    {contractBillingType} • {contractVehicleType}
-                  </span>
-                </div>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">CLASS</span>
+                    <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
+                      {contractBillingType} • {contractVehicleType}
+                    </span>
+                  </div>
 
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Payload Capacity</span>
-                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5 flex items-center gap-1.5">
-                    <Scale className="w-3.5 h-3.5 text-[#FA634E]" />
-                    {getPayloadCapacityDisplay(contractVehicleType)}
-                  </span>
-                </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">PAYLOAD CAPACITY</span>
+                    <span className="font-bold text-slate-900 dark:text-white block mt-0.5 flex items-center gap-1.5">
+                      <Scale className="w-3.5 h-3.5 text-[#FA634E]" />
+                      {getPayloadCapacityDisplay(contractVehicleType)}
+                    </span>
+                  </div>
 
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase block text-slate-400">Dispatch Schedule</span>
-                  <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
-                    {selectedMonth || 'Active Month'} ({totalOperatingDays} Day{totalOperatingDays > 1 ? 's' : ''})
-                  </span>
+                  <div>
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">DISPATCH SCHEDULE</span>
+                    <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
+                      {selectedMonth || 'Active Month'} ({totalOperatingDays} Day{totalOperatingDays > 1 ? 's' : ''})
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -435,53 +446,55 @@ export const TripReviewConfirmModal: React.FC<TripReviewConfirmModalProps> = ({
               const marginPct = fin.marginPercent;
 
               return (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                      Financial Summary
-                    </span>
-                    {costValue > 0 && (
-                      <span
-                        className={cn(
-                          "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
-                          netMargin >= 0
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                        )}
-                      >
-                        {netMargin >= 0 ? `+${marginPct.toFixed(1)}%` : `${marginPct.toFixed(1)}%`}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                        Financial Summary
                       </span>
-                    )}
+                      {costValue > 0 && (
+                        <span
+                          className={cn(
+                            "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
+                            netMargin >= 0
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                          )}
+                        >
+                          {netMargin >= 0 ? `+${marginPct.toFixed(1)}%` : `${marginPct.toFixed(1)}%`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Customer Billing</span>
+                        <span className="font-mono font-black text-slate-900 dark:text-white">
+                          SAR {fin.resolvedBilling.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">
+                          {assignmentType === 'third_party' ? '3PL Cost' : 'Driver Payout'}
+                        </span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                          {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Customer Billing</span>
-                      <span className="font-mono font-black text-slate-900 dark:text-white">
-                        SAR {fin.resolvedBilling.toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">
-                        {assignmentType === 'third_party' ? '3PL Cost' : 'Driver Payout'}
-                      </span>
-                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {costValue > 0 ? `SAR ${totalCost.toLocaleString()}` : '—'}
-                      </span>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-200/70 dark:border-slate-700 flex items-center justify-between">
-                      <span className="font-extrabold text-slate-900 dark:text-white">Net Margin</span>
-                      <span
-                        className={cn(
-                          "font-mono font-black text-sm",
-                          netMargin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                        )}
-                      >
-                        {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
-                      </span>
-                    </div>
+                  <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-700 flex items-center justify-between mt-3">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-xs">Net Margin</span>
+                    <span
+                      className={cn(
+                        "font-mono font-black text-sm",
+                        netMargin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                      )}
+                    >
+                      {netMargin >= 0 ? '+' : ''}SAR {netMargin.toLocaleString()}
+                    </span>
                   </div>
                 </div>
               );
