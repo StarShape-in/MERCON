@@ -471,24 +471,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
           {/* VEHICLE CLASS & ROTATION MODEL ROW */}
           {assignmentType === 'own' && (
             <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-              {setContractVehicleType && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    VEHICLE CLASS:
-                  </span>
-                  <select
-                    value={contractVehicleType}
-                    onChange={(e) => setContractVehicleType(e.target.value)}
-                    className="text-xs font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-lg cursor-pointer hover:border-[#FA634E] focus:outline-none"
-                  >
-                    {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
-                      <option key={vClass} value={vClass}>
-                        {vClass}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="flex-1"></div>
 
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
@@ -591,9 +574,27 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                       >
                         {/* Slot Badge & Duty Days */}
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300">
-                            {strategyMode === 'single' ? 'Primary Pair' : `Pair ${idx + 1}`}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300">
+                              {strategyMode === 'single' ? 'Primary Pair' : `Pair ${idx + 1}`}
+                            </span>
+                            {idx === 0 && setContractVehicleType && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-slate-400">CLASS:</span>
+                                <select
+                                  value={contractVehicleType}
+                                  onChange={(e) => setContractVehicleType(e.target.value)}
+                                  className="text-[9px] font-extrabold text-slate-700 dark:text-slate-300 bg-transparent border-b border-slate-300 dark:border-slate-600 focus:outline-none cursor-pointer"
+                                >
+                                  {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
+                                    <option key={vClass} value={vClass}>
+                                      {vClass}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
                           <span className="font-black text-slate-500">{dutyDaysCount} Days</span>
                         </div>
 
