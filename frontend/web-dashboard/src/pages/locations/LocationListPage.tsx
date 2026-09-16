@@ -27,7 +27,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
-import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
 
@@ -119,15 +118,6 @@ function MapBoundsController({ locations, selectedMapCenter, fitTrigger }: {
 // ─── sort options ──────────────────────────────────────────────────────────
 type LocationSortOption = 'latest' | 'oldest' | 'code_asc' | 'name_asc' | 'customer_asc' | 'status';
 
-const LOCATION_SORT_OPTIONS: SortOption<LocationSortOption>[] = [
-  { value: 'latest',       label: 'Newest Added',           icon: <ArrowDown  className="w-3.5 h-3.5 text-blue-600" /> },
-  { value: 'oldest',       label: 'Oldest Added',           icon: <ArrowUp    className="w-3.5 h-3.5 text-amber-600" /> },
-  { value: 'code_asc',     label: 'Code (A → Z)',           icon: <Building2  className="w-3.5 h-3.5 text-indigo-600" /> },
-  { value: 'name_asc',     label: 'Location Name (A → Z)',  icon: <MapPin     className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'customer_asc', label: 'Customer Name (A → Z)',  icon: <Building2  className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'status',       label: 'Status',                 icon: <Filter     className="w-3.5 h-3.5 text-slate-500" /> },
-];
-
 // ─── component ────────────────────────────────────────────────────────────
 export default function LocationListPage() {
   const navigate = useNavigate();
@@ -141,8 +131,8 @@ export default function LocationListPage() {
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
-  const [sortOrder, setSortOrder] = useState<LocationSortOption>('code_asc');
+  const [filter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
+  const [sortOrder] = useState<LocationSortOption>('code_asc');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -439,34 +429,6 @@ export default function LocationListPage() {
           </SelectGroup>
         </SelectContent>
       </Select>
-
-      {/* Precision filter */}
-      <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs">
-          <div className="flex items-center gap-2 truncate">
-            <Filter className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <SelectValue placeholder="Precision" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Pin Status</SelectLabel>
-            <SelectItem value="all"         className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Locations</SelectItem>
-            <SelectItem value="exact"       className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Exact Only</SelectItem>
-            <SelectItem value="approximate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Area Only</SelectItem>
-            <SelectItem value="unknown"     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Not Pinned Only</SelectItem>
-          </SelectGroup>
-          <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Active Status</SelectLabel>
-            <SelectItem value="active"   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 font-semibold">Active Only</SelectItem>
-            <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 font-semibold">Inactive Only</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {/* Sort */}
-      <SortDropdown value={sortOrder} onChange={setSortOrder} options={LOCATION_SORT_OPTIONS} triggerClassName="h-9" />
     </div>
   );
 
@@ -641,12 +603,6 @@ export default function LocationListPage() {
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-brand" />
-                  <span>Customer Locations Ledger</span>
-                </span>
-              }
               columns={columns}
               data={filteredData}
               enableSelection={true}
