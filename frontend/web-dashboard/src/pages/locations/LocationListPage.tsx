@@ -10,7 +10,7 @@ import {
   Download, FileSpreadsheet, FileText, UploadCloud,
   Building2, List, Map as MapIcon, Check,
   Search, Filter, X, ArrowDown, ArrowUp,
-  ChevronDown, Eye,
+  ChevronDown, Eye, MessageSquare,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -133,7 +133,6 @@ export default function LocationListPage() {
   const [search, setSearch] = useState('');
   const [filter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
   const [sortOrder] = useState<LocationSortOption>('code_asc');
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -169,14 +168,6 @@ export default function LocationListPage() {
     queryFn: () => locationService.getAll({ customerId: selectedCustomerId !== 'all' ? selectedCustomerId : undefined }),
   });
   const locations = response?.data || [];
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['locations'] });
-    setSelectionResetKey(k => k + 1);
-    setFitTrigger(k => k + 1);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const filteredData = useMemo(() => {
     return locations
@@ -224,22 +215,41 @@ export default function LocationListPage() {
     }
   };
 
+  const handleShareWhatsapp = (loc: Location) => {
+    const text = [
+      `📍 *MERCON Location Details*`,
+      `• *Location Name:* ${loc.name}`,
+      `• *Code:* ${loc.code}`,
+      `• *Customer:* ${loc.customer?.name || '—'}`,
+      `• *City:* ${loc.city || 'Saudi Arabia'}`,
+      loc.address ? `• *Address:* ${loc.address}` : '',
+      loc.lat != null && loc.lng != null
+        ? `• *Map Location:* https://maps.google.com/?q=${loc.lat},${loc.lng}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   // ── table columns ──────────────────────────────────────────────────────
   const columns = [
     {
       header: 'Customer',
       className: 'w-[13%] min-w-[110px]',
       accessor: (row: Location) => (
-        <Badge variant="outline" className="bg-indigo-50/80 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-bold text-xs">
+        <Badge variant="outline" className="bg-indigo-50/80 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-extrabold text-[10px] px-1.5 py-0.5 truncate">
           {row.customer?.name || '—'}
         </Badge>
       ),
     },
     {
       header: 'Code',
-      className: 'w-[90px]',
+      className: 'w-[85px]',
       accessor: (row: Location) => (
-        <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+        <span className="font-mono text-[10px] font-black text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
           {row.code}
         </span>
       ),
@@ -248,9 +258,9 @@ export default function LocationListPage() {
       header: 'Location Name',
       className: 'w-[22%] min-w-[150px]',
       accessor: (row: Location) => (
-        <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-4 h-4 text-brand shrink-0" />
-          <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.name}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
+          <span className="font-bold text-[11px] text-slate-900 dark:text-slate-100 truncate" title={row.name}>
             {row.name}
           </span>
         </div>
@@ -258,23 +268,23 @@ export default function LocationListPage() {
     },
     {
       header: 'City',
-      className: 'w-[11%] min-w-[90px]',
+      className: 'w-[11%] min-w-[85px]',
       accessor: (row: Location) => (
-        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{row.city || '—'}</span>
+        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{row.city || '—'}</span>
       ),
     },
     {
       header: 'Address',
-      className: 'w-[20%] min-w-[150px]',
+      className: 'w-[24%] min-w-[150px]',
       accessor: (row: Location) => (
-        <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1" title={row.address || ''}>
+        <span className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1" title={row.address || ''}>
           {row.address || '—'}
         </span>
       ),
     },
     {
       header: 'Precision / Map Pin',
-      className: 'w-[17%] min-w-[140px]',
+      className: 'w-[18%] min-w-[140px]',
       accessor: (row: Location) => {
         const prec = row.coordinate_precision || (row.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
         return (
@@ -300,16 +310,6 @@ export default function LocationListPage() {
       },
     },
     {
-      header: 'Usage',
-      className: 'w-[11%] min-w-[110px]',
-      accessor: (row: Location) => (
-        <div className="text-[11px] font-mono text-slate-500 flex flex-col gap-0.5">
-          <span>{quotationUses(row)} Quotations</span>
-          <span>{tripUses(row)} Trip Stops</span>
-        </div>
-      ),
-    },
-    {
       header: 'Status',
       className: 'w-[80px]',
       accessor: (row: Location) => (
@@ -326,7 +326,18 @@ export default function LocationListPage() {
       headerClassName: 'text-right',
       className: 'text-right whitespace-nowrap',
       accessor: (row: Location) => (
-        <div className="flex items-center justify-end gap-0.5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShareWhatsapp(row);
+            }}
+            title="Share Location via WhatsApp"
+            className="p-1 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors focus:outline-none cursor-pointer"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -337,7 +348,14 @@ export default function LocationListPage() {
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              <DropdownMenuItem
+                onClick={() => handleShareWhatsapp(row)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              >
+                <MessageSquare className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                Share on WhatsApp
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate(`/locations/${row.id}`)}
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
@@ -496,9 +514,6 @@ export default function LocationListPage() {
                   Master Data
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Manage canonical locations used across quotations and trips.
-              </p>
             </div>
           </div>
 
@@ -587,15 +602,6 @@ export default function LocationListPage() {
               <Plus className="h-4 w-4" />
               Add Location
             </Button>
-
-            {/* Refresh */}
-            <button
-              onClick={handleRefresh}
-              title="Refresh Locations"
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-            </button>
           </div>
         </div>
 
