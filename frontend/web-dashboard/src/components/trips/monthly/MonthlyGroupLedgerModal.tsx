@@ -18,6 +18,8 @@ import {
   ChevronDown,
   Edit3,
   HelpCircle,
+  Check,
+  User,
 } from 'lucide-react';
 
 import {
@@ -131,7 +133,9 @@ export default function MonthlyGroupLedgerModal({
 
   // Active inline popover trip tracking
   const [activeDriverTripId, setActiveDriverTripId] = useState<string | null>(null);
+  const [driverSearch, setDriverSearch] = useState<string>('');
   const [activeVehicleTripId, setActiveVehicleTripId] = useState<string | null>(null);
+  const [vehicleSearch, setVehicleSearch] = useState<string>('');
 
   // Deletion confirmation state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -190,6 +194,27 @@ export default function MonthlyGroupLedgerModal({
     });
     return opts;
   }, [rawVehicles]);
+
+  const filteredDriversList = useMemo(() => {
+    if (!driverSearch.trim()) return rawDrivers;
+    const q = driverSearch.trim().toLowerCase();
+    return rawDrivers.filter((d) => {
+      const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim().toLowerCase();
+      const customName = ((d as any).name || '').toLowerCase();
+      const phone = ((d as any).phone || d.phone_primary || '').toLowerCase();
+      return fullName.includes(q) || customName.includes(q) || phone.includes(q);
+    });
+  }, [rawDrivers, driverSearch]);
+
+  const filteredVehiclesList = useMemo(() => {
+    if (!vehicleSearch.trim()) return rawVehicles;
+    const q = vehicleSearch.trim().toLowerCase();
+    return rawVehicles.filter((v) => {
+      const plate = (v.plate_number || '').toLowerCase();
+      const typeStr = ((v as any).type || v.asset_type || '').toLowerCase();
+      return plate.includes(q) || typeStr.includes(q);
+    });
+  }, [rawVehicles, vehicleSearch]);
 
   // Bulk / single assign mutation
   const assignMutation = useMutation({
@@ -955,11 +980,14 @@ export default function MonthlyGroupLedgerModal({
                         </span>
                       </TableCell>
 
-                      {/* Driver Column: Inline Combobox Popover */}
+                      {/* Driver Column: Inline Direct Popover */}
                       <TableCell className="py-3">
                         <Popover
                           open={activeDriverTripId === trip.id}
-                          onOpenChange={(open) => setActiveDriverTripId(open ? trip.id : null)}
+                          onOpenChange={(open) => {
+                            setActiveDriverTripId(open ? trip.id : null);
+                            if (!open) setDriverSearch('');
+                          }}
                         >
                           <PopoverTrigger asChild>
                             <button
@@ -993,29 +1021,84 @@ export default function MonthlyGroupLedgerModal({
                               <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
                             </button>
                           </PopoverTrigger>
-                          <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 pb-1.5">
+                          <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                               Assign Driver for {trip.ref_id || 'Trip'}
                             </div>
-                            <Combobox
-                              options={driverOptions}
-                              value={trip.driver?.id || 'unassigned'}
-                              onChange={(val) => {
-                                handleSingleDriverChange(trip.id, val);
-                              }}
-                              placeholder="Select driver..."
-                              searchPlaceholder="Search driver name, phone..."
-                              className="h-8 text-xs"
-                            />
+                            <div className="relative my-1">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                              <Input
+                                placeholder="Search driver..."
+                                value={driverSearch}
+                                onChange={(e) => setDriverSearch(e.target.value)}
+                                className="h-8 pl-8 text-xs rounded-lg"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="max-h-56 overflow-y-auto space-y-0.5 mt-1.5 custom-scrollbar">
+                              <button
+                                type="button"
+                                onClick={() => handleSingleDriverChange(trip.id, 'unassigned')}
+                                className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg font-semibold flex items-center justify-between transition-colors ${
+                                  !trip.driver
+                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                    : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                                }`}
+                              >
+                                <span>— Unassign Driver —</span>
+                                {!trip.driver && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                              </button>
+                              {filteredDriversList.length === 0 ? (
+                                <div className="p-3 text-center text-xs text-slate-400 font-medium">
+                                  No drivers found
+                                </div>
+                              ) : (
+                                filteredDriversList.map((d) => {
+                                  const isSelected = trip.driver?.id === d.id;
+                                  const name = getDriverDisplayName(d);
+                                  const phone = (d as any).phone || d.phone_primary || '';
+                                  return (
+                                    <button
+                                      key={d.id}
+                                      type="button"
+                                      onClick={() => handleSingleDriverChange(trip.id, d.id)}
+                                      className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg font-semibold flex items-center justify-between transition-colors ${
+                                        isSelected
+                                          ? 'bg-[#FA634E]/10 text-[#FA634E] font-bold'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 truncate">
+                                        {d.avatar_url ? (
+                                          <img src={d.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                                        ) : (
+                                          <span className="h-5 w-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-[9px] flex items-center justify-center shrink-0">
+                                            {initialsOf(name)}
+                                          </span>
+                                        )}
+                                        <div className="truncate">
+                                          <div className="truncate">{name}</div>
+                                          {phone && <div className="text-[10px] text-slate-400 font-normal">{phone}</div>}
+                                        </div>
+                                      </div>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
                           </PopoverContent>
                         </Popover>
                       </TableCell>
 
-                      {/* Vehicle Column: Inline Combobox Popover */}
+                      {/* Vehicle Column: Inline Direct Popover */}
                       <TableCell className="py-3">
                         <Popover
                           open={activeVehicleTripId === trip.id}
-                          onOpenChange={(open) => setActiveVehicleTripId(open ? trip.id : null)}
+                          onOpenChange={(open) => {
+                            setActiveVehicleTripId(open ? trip.id : null);
+                            if (!open) setVehicleSearch('');
+                          }}
                         >
                           <PopoverTrigger asChild>
                             <button
@@ -1039,20 +1122,67 @@ export default function MonthlyGroupLedgerModal({
                               <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 shrink-0 ml-auto" />
                             </button>
                           </PopoverTrigger>
-                          <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-50">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 pb-1.5">
+                          <PopoverContent align="start" className="w-72 p-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                               Assign Truck for {trip.ref_id || 'Trip'}
                             </div>
-                            <Combobox
-                              options={vehicleOptions}
-                              value={trip.vehicle?.id || 'unassigned'}
-                              onChange={(val) => {
-                                handleSingleVehicleChange(trip.id, val);
-                              }}
-                              placeholder="Select truck..."
-                              searchPlaceholder="Search plate, type..."
-                              className="h-8 text-xs"
-                            />
+                            <div className="relative my-1">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                              <Input
+                                placeholder="Search plate or type..."
+                                value={vehicleSearch}
+                                onChange={(e) => setVehicleSearch(e.target.value)}
+                                className="h-8 pl-8 text-xs rounded-lg"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="max-h-56 overflow-y-auto space-y-0.5 mt-1.5 custom-scrollbar">
+                              <button
+                                type="button"
+                                onClick={() => handleSingleVehicleChange(trip.id, 'unassigned')}
+                                className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg font-semibold flex items-center justify-between transition-colors ${
+                                  !trip.vehicle
+                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                    : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                                }`}
+                              >
+                                <span>— Unassign Vehicle —</span>
+                                {!trip.vehicle && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                              </button>
+                              {filteredVehiclesList.length === 0 ? (
+                                <div className="p-3 text-center text-xs text-slate-400 font-medium">
+                                  No vehicles found
+                                </div>
+                              ) : (
+                                filteredVehiclesList.map((v) => {
+                                  const isSelected = trip.vehicle?.id === v.id;
+                                  const capTon = v.capacity_kg ? (v.capacity_kg / 1000).toFixed(0) + 'T' : '';
+                                  const typeStr = (v as any).type || v.asset_type || 'Truck';
+                                  const meta = [typeStr, capTon].filter(Boolean).join(' · ');
+                                  return (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      onClick={() => handleSingleVehicleChange(trip.id, v.id)}
+                                      className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg font-semibold flex items-center justify-between transition-colors ${
+                                        isSelected
+                                          ? 'bg-[#FA634E]/10 text-[#FA634E] font-bold'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 truncate">
+                                        <Truck className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <div className="truncate">
+                                          <span className="font-mono font-bold">{v.plate_number}</span>
+                                          {meta && <span className="text-[10px] text-slate-400 ml-1.5 font-normal">({meta})</span>}
+                                        </div>
+                                      </div>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
                           </PopoverContent>
                         </Popover>
                       </TableCell>
