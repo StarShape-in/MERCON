@@ -553,9 +553,9 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           )}
 
           {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-start">
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between min-h-[16px] mb-1">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                   3PL DRIVER NAME
                 </label>
@@ -583,9 +583,11 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                3PL DRIVER PHONE
-              </label>
+              <div className="flex items-center justify-between min-h-[16px] mb-1">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  3PL DRIVER PHONE
+                </label>
+              </div>
               <input
                 type="text"
                 value={thirdPartyDriverPhone}
@@ -596,7 +598,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between min-h-[16px] mb-1">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                   3PL VEHICLE PLATE
                 </label>
@@ -624,7 +626,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center justify-between min-w-0">
+              <div className="flex items-center justify-between min-h-[16px] mb-1 min-w-0">
                 <label className="text-[10px] font-extrabold text-[#FA634E] uppercase tracking-wider truncate">
                   3PL COST (SAR) *
                 </label>

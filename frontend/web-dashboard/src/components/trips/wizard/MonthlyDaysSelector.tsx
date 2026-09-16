@@ -682,9 +682,9 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 <Building2 className="w-4 h-4 text-purple-600" />
                 <span>3PL Provider Configuration</span>
               </h5>
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-start">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between min-h-[16px] mb-1">
                     <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
                       3PL Partner
                     </label>
@@ -722,7 +722,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between min-h-[16px] mb-1">
                     <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
                       Provider Driver Name
                     </label>
@@ -750,9 +750,11 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                    Provider Driver Phone
-                  </label>
+                  <div className="flex items-center justify-between min-h-[16px] mb-1">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                      Provider Driver Phone
+                    </label>
+                  </div>
                   <input
                     type="text"
                     value={thirdPartyDriverPhone}
@@ -763,7 +765,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between min-h-[16px] mb-1">
                     <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
                       Provider Truck Plate
                     </label>
