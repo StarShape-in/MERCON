@@ -482,14 +482,37 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         <div className="space-y-2.5">
           {/* 3PL PROVIDER */}
           <div className="space-y-1">
-            <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              3PL PROVIDER *
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                3PL PROVIDER *
+              </label>
+              {thirdPartyProviderId === 'unassigned' ? (
+                <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                  Assign Later
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setThirdPartyProviderId('unassigned');
+                    if (!thirdPartyDriverName) setThirdPartyDriverName('Assign Later');
+                    if (!thirdPartyVehiclePlate) setThirdPartyVehiclePlate('Assign Later');
+                  }}
+                  className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                  title="Mark 3PL Provider as assign later"
+                >
+                  Assign Later
+                </button>
+              )}
+            </div>
             <Select value={thirdPartyProviderId} onValueChange={setThirdPartyProviderId}>
               <SelectTrigger className="h-8 rounded-lg border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs">
-                <SelectValue placeholder="Select 3PL Partner..." />
+                <SelectValue placeholder="Select 3PL Partner or Assign Later..." />
               </SelectTrigger>
               <SelectContent className="z-[9999]">
+                <SelectItem value="unassigned" className="text-xs font-bold cursor-pointer text-amber-700 dark:text-amber-400 font-extrabold">
+                  Assign Later (TBD)
+                </SelectItem>
                 {thirdPartyProviders.map((p) => (
                   <SelectItem key={p.id} value={p.id} className="text-xs font-bold cursor-pointer">
                     {p.name}
@@ -532,14 +555,29 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
           {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                3PL DRIVER NAME
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  3PL DRIVER NAME
+                </label>
+                {thirdPartyDriverName === 'Assign Later' ? (
+                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                    Assign Later
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setThirdPartyDriverName('Assign Later')}
+                    className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                  >
+                    Assign Later
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={thirdPartyDriverName}
                 onChange={(e) => setThirdPartyDriverName(e.target.value)}
-                placeholder="Driver name..."
+                placeholder="Driver name or Assign Later..."
                 className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -558,14 +596,29 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                3PL VEHICLE PLATE
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                  3PL VEHICLE PLATE
+                </label>
+                {thirdPartyVehiclePlate === 'Assign Later' ? (
+                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                    Assign Later
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setThirdPartyVehiclePlate('Assign Later')}
+                    className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                  >
+                    Assign Later
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={thirdPartyVehiclePlate}
                 onChange={(e) => setThirdPartyVehiclePlate(e.target.value)}
-                placeholder="Plate number..."
+                placeholder="Plate number or Assign Later..."
                 className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 text-xs font-semibold w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
               />
             </div>

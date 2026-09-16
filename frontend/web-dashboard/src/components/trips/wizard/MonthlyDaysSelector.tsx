@@ -684,15 +684,35 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
               </h5>
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                    3PL Partner
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                      3PL Partner
+                    </label>
+                    {thirdPartyProviderId === 'unassigned' ? (
+                      <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                        Assign Later
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setThirdPartyProviderId?.('unassigned');
+                          if (!thirdPartyDriverName) setThirdPartyDriverName?.('Assign Later');
+                          if (!thirdPartyVehiclePlate) setThirdPartyVehiclePlate?.('Assign Later');
+                        }}
+                        className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                      >
+                        Assign Later
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={thirdPartyProviderId}
                     onChange={(e) => setThirdPartyProviderId?.(e.target.value)}
                     className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 cursor-pointer"
                   >
                     <option value="">Select Provider...</option>
+                    <option value="unassigned" className="font-bold text-amber-600">Assign Later (TBD)</option>
                     {thirdPartyProviders.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -702,14 +722,29 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                    Provider Driver Name
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                      Provider Driver Name
+                    </label>
+                    {thirdPartyDriverName === 'Assign Later' ? (
+                      <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                        Assign Later
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setThirdPartyDriverName?.('Assign Later')}
+                        className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                      >
+                        Assign Later
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={thirdPartyDriverName}
                     onChange={(e) => setThirdPartyDriverName?.(e.target.value)}
-                    placeholder="Driver Name..."
+                    placeholder="Driver Name or Assign Later..."
                     className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
                   />
                 </div>
@@ -728,14 +763,29 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                    Provider Truck Plate
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                      Provider Truck Plate
+                    </label>
+                    {thirdPartyVehiclePlate === 'Assign Later' ? (
+                      <span className="text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                        Assign Later
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setThirdPartyVehiclePlate?.('Assign Later')}
+                        className="text-[9px] font-bold text-slate-400 hover:text-amber-600 underline cursor-pointer"
+                      >
+                        Assign Later
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={thirdPartyVehiclePlate}
                     onChange={(e) => setThirdPartyVehiclePlate?.(e.target.value)}
-                    placeholder="Vehicle Plate..."
+                    placeholder="Vehicle Plate or Assign Later..."
                     className="w-full h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
                   />
                 </div>
