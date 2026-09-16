@@ -581,8 +581,9 @@ export default function MonthlyGroupLedgerModal({
   if (!group) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-[24px] border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl [&>button]:right-6 [&>button]:top-6 [&>button]:text-slate-400 [&>button]:hover:text-slate-600">
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-[24px] border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl [&>button]:right-6 [&>button]:top-6 [&>button]:text-slate-400 [&>button]:hover:text-slate-600">
         
         {/* ── 1. Top Header Area (Clean Light Design matching reference) ── */}
         <div className="p-6 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -1266,120 +1267,127 @@ export default function MonthlyGroupLedgerModal({
           </Button>
         </div>
       </DialogContent>
+    </Dialog>
 
-      <ConfirmModal
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => {
-          setIsDeleteConfirmOpen(false);
-          setTripToDelete(null);
-        }}
-        onConfirm={() => {
-          const idsToDelete = tripToDelete ? [tripToDelete] : selectedTripIds;
-          if (idsToDelete.length > 0) {
-            bulkDeleteMutation.mutate(idsToDelete);
-          }
-        }}
-        title={tripToDelete ? 'Delete Trip?' : `Delete ${selectedTripIds.length} Selected Trip(s)?`}
-        message={
-          tripToDelete
-            ? 'Are you sure you want to permanently delete this trip? This action cannot be undone.'
-            : `Are you sure you want to delete ${selectedTripIds.length} selected trip(s)? Completed or invoiced trips will be protected.`
+    <ConfirmModal
+      isOpen={isDeleteConfirmOpen}
+      onClose={() => {
+        setIsDeleteConfirmOpen(false);
+        setTripToDelete(null);
+      }}
+      onConfirm={() => {
+        const idsToDelete = tripToDelete ? [tripToDelete] : selectedTripIds;
+        if (idsToDelete.length > 0) {
+          bulkDeleteMutation.mutate(idsToDelete);
         }
-        confirmLabel={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
-        isDestructive
-        isLoading={bulkDeleteMutation.isPending}
-      />
+      }}
+      title={tripToDelete ? 'Delete Trip?' : `Delete ${selectedTripIds.length} Selected Trip(s)?`}
+      message={
+        tripToDelete
+          ? 'Are you sure you want to permanently delete this trip? This action cannot be undone.'
+          : `Are you sure you want to delete ${selectedTripIds.length} selected trip(s)? Completed or invoiced trips will be protected.`
+      }
+      confirmLabel={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
+      isDestructive
+      isLoading={bulkDeleteMutation.isPending}
+    />
 
-      {/* ── 6. Change Confirmation Diff Modal ── */}
-      <Dialog
-        open={Boolean(pendingChange)}
-        onOpenChange={(open) => {
-          if (!open && !assignMutation.isPending) {
-            setPendingChange(null);
-            setBulkDriverId('');
-            setBulkVehicleId('');
-          }
-        }}
-      >
-        <DialogContent className="max-w-md w-full rounded-[24px] p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl [&>button]:right-5 [&>button]:top-5 z-50">
-          <div className="flex flex-col gap-4">
-            {/* Icon + Title */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#FA634E]/10 dark:bg-[#FA634E]/20 text-[#FA634E] flex items-center justify-center shrink-0 shadow-3xs">
-                <Edit3 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                  {pendingChange?.title || 'Confirm Changes'}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Please review the proposed update before applying.
-                </p>
-              </div>
+    {/* ── 6. Change Confirmation Diff Modal (Clean, Centered, Constrained) ── */}
+    <Dialog
+      open={Boolean(pendingChange)}
+      onOpenChange={(open) => {
+        if (!open && !assignMutation.isPending) {
+          setPendingChange(null);
+          setBulkDriverId('');
+          setBulkVehicleId('');
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-[480px] w-[calc(100vw-2rem)] rounded-[24px] p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl [&>button]:right-5 [&>button]:top-5 z-50 overflow-hidden">
+        <div className="flex flex-col gap-4 w-full min-w-0">
+          {/* Icon + Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#FA634E]/10 dark:bg-[#FA634E]/20 text-[#FA634E] flex items-center justify-center shrink-0 shadow-3xs">
+              <Edit3 className="w-5 h-5" />
             </div>
-
-            {/* Trip context tag */}
-            {pendingChange?.tripContext && (
-              <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate">{pendingChange.tripContext}</span>
-              </div>
-            )}
-
-            {/* Visual Diff: Current -> New */}
-            <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                {pendingChange?.fieldLabel}
-              </span>
-              
-              <div className="flex items-center justify-between gap-3">
-                {/* Current / From */}
-                <div className="flex-1 min-w-0 p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">CURRENT</span>
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate block line-through decoration-slate-400">
-                    {pendingChange?.fromValue || '—'}
-                  </span>
-                </div>
-
-                <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0 stroke-[2.5]" />
-
-                {/* New / To */}
-                <div className="flex-1 min-w-0 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center shadow-3xs">
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-0.5">NEW</span>
-                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 truncate block">
-                    {pendingChange?.toValue || '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2.5 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setPendingChange(null);
-                  setBulkDriverId('');
-                  setBulkVehicleId('');
-                }}
-                disabled={assignMutation.isPending}
-                className="flex-1 h-10 text-xs font-bold rounded-xl cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleConfirmPendingChange}
-                disabled={assignMutation.isPending}
-                className="flex-1 h-10 text-xs font-bold bg-[#FA634E] hover:bg-[#e05440] text-white rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {assignMutation.isPending ? 'Updating...' : 'Confirm & Apply'}
-              </Button>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight truncate">
+                {pendingChange?.title || 'Confirm Changes'}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium truncate">
+                Please review the proposed update before applying.
+              </p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Trip context tag */}
+          {pendingChange?.tripContext && (
+            <div className="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 w-full min-w-0">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate flex-1">{pendingChange.tripContext}</span>
+            </div>
+          )}
+
+          {/* Visual Diff: Current -> New */}
+          <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col gap-2.5 w-full min-w-0">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              {pendingChange?.fieldLabel}
+            </span>
+            
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 w-full min-w-0">
+              {/* Current / From */}
+              <div className="min-w-0 w-full p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center overflow-hidden">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">CURRENT</span>
+                <span
+                  className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate block line-through decoration-slate-400"
+                  title={pendingChange?.fromValue || '—'}
+                >
+                  {pendingChange?.fromValue || '—'}
+                </span>
+              </div>
+
+              <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0 stroke-[2.5]" />
+
+              {/* New / To */}
+              <div className="min-w-0 w-full p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center shadow-3xs overflow-hidden">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-0.5">NEW</span>
+                <span
+                  className="text-xs font-black text-emerald-700 dark:text-emerald-300 truncate block"
+                  title={pendingChange?.toValue || '—'}
+                >
+                  {pendingChange?.toValue || '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2.5 pt-1 w-full min-w-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPendingChange(null);
+                setBulkDriverId('');
+                setBulkVehicleId('');
+              }}
+              disabled={assignMutation.isPending}
+              className="flex-1 h-10 text-xs font-bold rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmPendingChange}
+              disabled={assignMutation.isPending}
+              className="flex-1 h-10 text-xs font-bold bg-[#FA634E] hover:bg-[#e05440] text-white rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+            >
+              {assignMutation.isPending ? 'Updating...' : 'Confirm & Apply'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
     </Dialog>
+  </>
   );
 }
