@@ -587,6 +587,7 @@ export interface BulkImportTripRow {
   customer_name?: string;
   driver_id?: string;
   driver_name?: string;
+  co_driver_id?: string;
   vehicle_id?: string;
   vehicle_plate?: string;
   date?: string;
@@ -601,6 +602,7 @@ export interface BulkImportTripRow {
   trip_charges?: number;
   driver_charge?: number;
   driver_payout?: number;
+  co_driver_payout?: number;
   update_quotation_driver_payout?: boolean;
   origin?: string;
   destination?: string;

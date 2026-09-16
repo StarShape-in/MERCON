@@ -67,8 +67,6 @@ enum CoordinatePrecision {
   UNKNOWN
 }
 
-
-
 enum DocType {
   DriverLicense
   VehicleRegistration
@@ -143,7 +141,6 @@ enum AssignmentEntityType {
   VEHICLE
 }
 
-
 // -----------------------------------------
 // 1. ORGANIZATION (Simplified)
 // -----------------------------------------
@@ -181,20 +178,20 @@ model User {
 }
 
 model Customer {
-  id                      String   @id @default(uuid()) @db.Uuid
-  name                    String
-  contact_phone           String
-  logo_url                String?
-  primary_contact_person  String?
-  primary_contact_phone   String?
+  id                       String  @id @default(uuid()) @db.Uuid
+  name                     String
+  contact_phone            String
+  logo_url                 String?
+  primary_contact_person   String?
+  primary_contact_phone    String?
   secondary_contact_person String?
-  secondary_contact_phone String?
-  payment_terms           String?
-  whatsapp_number         String?
-  whatsapp_group_link     String?
-  whatsapp_group_name     String?
+  secondary_contact_phone  String?
+  payment_terms            String?
+  whatsapp_number          String?
+  whatsapp_group_link      String?
+  whatsapp_group_name      String?
 
-  driver_workflow         DriverWorkflow @default(NATIVE)
+  driver_workflow DriverWorkflow @default(NATIVE)
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -246,43 +243,43 @@ model Driver {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  trips              Trip[]                  @relation("TripPrimaryDriver")
-  originalTrips      Trip[]                  @relation("TripOriginalDriver")
+  trips              Trip[]                    @relation("TripPrimaryDriver")
+  coTrips            Trip[]                    @relation("TripCoDriver")
+  originalTrips      Trip[]                    @relation("TripOriginalDriver")
   vehicleAssignments DriverVehicleAssignment[]
   notifications      Notification[]
   devices            DriverDevice[]
   expenses           Expense[]
-  executedTripStops  TripStop[]              @relation("TripStopExecutorDriver")
-  executedDocuments  Document[]              @relation("DocumentExecutorDriver")
+  executedTripStops  TripStop[]                @relation("TripStopExecutorDriver")
+  executedDocuments  Document[]                @relation("DocumentExecutorDriver")
 
   @@index([status, deletedAt])
   @@index([deletedAt])
 }
 
 model DriverVehicleAssignment {
-  id             String         @id @default(uuid()) @db.Uuid
-  driverId       String         @db.Uuid
-  driver         Driver         @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicleId      String         @db.Uuid
-  vehicle        Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid()) @db.Uuid
+  driverId  String  @db.Uuid
+  driver    Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleId String  @db.Uuid
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   assignmentType AssignmentType @default(PRIMARY)
   priority       Int            @default(1)
 
-  isActive       Boolean        @default(true)
-  effectiveFrom  DateTime?      @db.Timestamptz
-  effectiveTo    DateTime?      @db.Timestamptz
+  isActive      Boolean   @default(true)
+  effectiveFrom DateTime? @db.Timestamptz
+  effectiveTo   DateTime? @db.Timestamptz
 
-  notes          String?        @db.Text
-  created_by     String?        @db.Uuid
-  createdAt      DateTime       @default(now()) @db.Timestamptz
-  updatedAt      DateTime       @default(now()) @updatedAt @db.Timestamptz
+  notes      String?  @db.Text
+  created_by String?  @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz
 
   @@unique([driverId, vehicleId, assignmentType])
   @@index([driverId, isActive])
   @@index([vehicleId, isActive])
 }
-
 
 model Vehicle {
   id                  String      @id @default(uuid()) @db.Uuid
@@ -345,19 +342,21 @@ model Vehicle {
   @@index([deletedAt])
 }
 
-
 // -----------------------------------------
 // 3. LOGISTICS ENGINE (Trips & Payments)
 // -----------------------------------------
 model Trip {
-  id         String   @id @default(uuid()) @db.Uuid
-  ref_id     String?  @unique
-  customerId String   @db.Uuid
-  customer   Customer @relation(fields: [customerId], references: [id])
-  driverId   String?  @db.Uuid
-  driver     Driver?  @relation("TripPrimaryDriver", fields: [driverId], references: [id])
-  vehicleId  String?  @db.Uuid
-  vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
+  id               String   @id @default(uuid()) @db.Uuid
+  ref_id           String?  @unique
+  customerId       String   @db.Uuid
+  customer         Customer @relation(fields: [customerId], references: [id])
+  driverId         String?  @db.Uuid
+  driver           Driver?  @relation("TripPrimaryDriver", fields: [driverId], references: [id])
+  co_driver_id     String?  @db.Uuid
+  co_driver_payout Decimal  @default(0.0) @db.Decimal(12, 2)
+  coDriver         Driver?  @relation("TripCoDriver", fields: [co_driver_id], references: [id])
+  vehicleId        String?  @db.Uuid
+  vehicle          Vehicle? @relation(fields: [vehicleId], references: [id])
 
   // Contingency & Replacement Audit Summary
   is_contingency_dispatch Boolean  @default(false)
@@ -377,35 +376,34 @@ model Trip {
   // Dedicated 1-to-1 Commercial Financials Snapshot
   financials TripFinancials?
 
-  vehicle_type  String?
-  rate_category String?
+  vehicle_type   String?
+  rate_category  String?
   operation_type String?
 
-  status           TripStatus @default(Scheduled)
+  status                TripStatus     @default(Scheduled)
   driver_workflow_state String?
-  driver_workflow  DriverWorkflow @default(NATIVE)
-  planned_distance Float?
+  driver_workflow       DriverWorkflow @default(NATIVE)
+  planned_distance      Float?
 
   planned_start DateTime? @db.Timestamptz
   actual_start  DateTime? @db.Timestamptz
   planned_end   DateTime? @db.Timestamptz
   actual_end    DateTime? @db.Timestamptz
 
-
   // Post-Trip Financial & Ledger Fields
   //
   // What MERCON pays out for this trip (own driver, or the subcontractor when
   // is_third_party). A cost, not revenue — deliberately excluded from the
   // customer invoice total.
-  driver_payout           Decimal  @default(0.0) @map("driver_payout") @db.Decimal(12, 2)
-  billing_amount          Decimal? @db.Decimal(12, 2)
-  paid_amount             Decimal  @default(0.0) @db.Decimal(12, 2)
-  balance_due             Decimal? @db.Decimal(12, 2)
+  driver_payout        Decimal  @default(0.0) @map("driver_payout") @db.Decimal(12, 2)
+  billing_amount       Decimal? @db.Decimal(12, 2)
+  paid_amount          Decimal  @default(0.0) @db.Decimal(12, 2)
+  balance_due          Decimal? @db.Decimal(12, 2)
   // No DB-level default — set from Settings.companyLegalName at create time
   // (see tripController.ts / getCompanyLegalName), since a hardcoded literal
   // here can't vary per deployment.
-  carrier_name            String?
-  is_post_trip_settled    Boolean @default(false)
+  carrier_name         String?
+  is_post_trip_settled Boolean  @default(false)
 
   // Third-Party / Rental Carrier Details
   is_third_party Boolean          @default(false)
@@ -420,10 +418,10 @@ model Trip {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  stops    TripStop[]
+  stops     TripStop[]
   // Itemised customer-billable extras for this trip. The trip's total bill is
   // billing_amount plus the sum of these.
-  charges  TripCharge[]
+  charges   TripCharge[]
   locations TripLocation[]
 
   @@index([vehicleId, driverId])
@@ -440,16 +438,16 @@ model Trip {
 }
 
 model TripAssignmentEvent {
-  id         String               @id @default(uuid()) @db.Uuid
-  tripId     String               @db.Uuid
-  trip       Trip                 @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  entityType AssignmentEntityType
-  fromId     String?              @db.Uuid
-  toId       String?              @db.Uuid
-  reason     String               @db.Text
-  changedBy  String?              @db.Uuid
-  changedByUser User?             @relation(fields: [changedBy], references: [id])
-  changedAt  DateTime             @default(now()) @db.Timestamptz
+  id            String               @id @default(uuid()) @db.Uuid
+  tripId        String               @db.Uuid
+  trip          Trip                 @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  entityType    AssignmentEntityType
+  fromId        String?              @db.Uuid
+  toId          String?              @db.Uuid
+  reason        String               @db.Text
+  changedBy     String?              @db.Uuid
+  changedByUser User?                @relation(fields: [changedBy], references: [id])
+  changedAt     DateTime             @default(now()) @db.Timestamptz
 
   @@index([tripId])
 }
@@ -474,7 +472,6 @@ model TripFinancials {
   @@index([quotationId])
 }
 
-
 // -----------------------------------------
 // 2B. THIRD-PARTY LOGISTICS (Subcontractors & Rental Fleet)
 // -----------------------------------------
@@ -489,7 +486,7 @@ model ThirdPartyProvider {
   rating         Float   @default(5.0)
   notes          String? @db.Text
 
-  subcontracts TripSubcontract[]
+  subcontracts      TripSubcontract[]
   providerRateCards ProviderRateCard[]
 
   created_by String?   @db.Uuid
@@ -522,90 +519,89 @@ model TripSubcontract {
 }
 
 model ProviderRateCard {
-  id                    String             @id @default(uuid()) @db.Uuid
-  providerId            String             @db.Uuid
-  provider              ThirdPartyProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  id         String             @id @default(uuid()) @db.Uuid
+  providerId String             @db.Uuid
+  provider   ThirdPartyProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   // Canonical Lane Corridor
   origin_city           String
   destination_city      String
-  originLocationId      String?            @db.Uuid
-  originLocation        Location?          @relation("ProviderRateOriginLocation", fields: [originLocationId], references: [id], onDelete: SetNull)
-  destinationLocationId String?            @db.Uuid
-  destinationLocation   Location?          @relation("ProviderRateDestinationLocation", fields: [destinationLocationId], references: [id], onDelete: SetNull)
+  originLocationId      String?   @db.Uuid
+  originLocation        Location? @relation("ProviderRateOriginLocation", fields: [originLocationId], references: [id], onDelete: SetNull)
+  destinationLocationId String?   @db.Uuid
+  destinationLocation   Location? @relation("ProviderRateDestinationLocation", fields: [destinationLocationId], references: [id], onDelete: SetNull)
 
   // Rate Taxonomy
-  vehicle_class         String             // "10 TON", "20 TON", "40 FEET", "3-4 TON", "5 TON"
-  line_type             String             // "Single Trip", "Round Trip", "10 Hours Duty", "12 Hours Duty"
-  operation_type        String?            // "Extra", "Monthly", or NULL (Applies to both)
-  pricing_basis         String             @default("Per Trip") // "Per Trip" vs "Per Month"
+  vehicle_class  String // "10 TON", "20 TON", "40 FEET", "3-4 TON", "5 TON"
+  line_type      String // "Single Trip", "Round Trip", "10 Hours Duty", "12 Hours Duty"
+  operation_type String? // "Extra", "Monthly", or NULL (Applies to both)
+  pricing_basis  String  @default("Per Trip") // "Per Trip" vs "Per Month"
 
   // Commercial Subcontract Cost
-  cost                  Decimal            @db.Decimal(12, 2) // Agreed baseline cost paid to provider
+  cost Decimal @db.Decimal(12, 2) // Agreed baseline cost paid to provider
 
   // Validity & Lifecycle Status
-  valid_from            DateTime?          @db.Timestamptz
-  valid_to              DateTime?          @db.Timestamptz
-  status                String             @default("active") // "active", "expired", "archived"
+  valid_from DateTime? @db.Timestamptz
+  valid_to   DateTime? @db.Timestamptz
+  status     String    @default("active") // "active", "expired", "archived"
 
-  created_by            String?            @db.Uuid
-  updated_by            String?            @db.Uuid
-  createdAt             DateTime           @default(now()) @db.Timestamptz
-  updatedAt             DateTime           @default(now()) @updatedAt @db.Timestamptz
-  deletedAt             DateTime?          @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
 
   @@index([providerId])
   @@index([origin_city, destination_city, vehicle_class, line_type, pricing_basis])
   @@index([status, deletedAt])
 }
 
-
 model TripStop {
-  id               String    @id @default(uuid()) @db.Uuid
-  tripId           String    @db.Uuid
-  trip             Trip      @relation(fields: [tripId], references: [id])
-  stop_sequence    Int
-  leg_index        Int       @default(0)
-  stop_type                      StopType
-  location_lat                   Float?
-  location_lng                   Float?
+  id                            String               @id @default(uuid()) @db.Uuid
+  tripId                        String               @db.Uuid
+  trip                          Trip                 @relation(fields: [tripId], references: [id])
+  stop_sequence                 Int
+  leg_index                     Int                  @default(0)
+  stop_type                     StopType
+  location_lat                  Float?
+  location_lng                  Float?
   location_coordinate_precision CoordinatePrecision?
   // What people call this place — "Khamis Sorting Center". Coordinates
   // identify a stop but cannot be read: a delay report grouped by raw lat/lng
   // has one row per pin dropped rather than one per real destination, so the
   // same site never accumulates a history. Free text, because these are the
   // customer's yards and depots, not a list we own.
-  location_name    String?
+  location_name                 String?
   // The full postal address of this stop, as returned by the address search.
   // location_name is the short label a report groups by ("Khamis Sorting
   // Center"); this is what a driver actually needs to find the place, and what
   // gets handed to a navigation app. Kept separate because truncating the
   // address down to a label is lossy and cannot be reversed.
-  location_address String?   @db.Text
+  location_address              String?              @db.Text
   // The lane endpoint this stop belongs to ("Riyadh"), as opposed to the exact
   // yard within it that location_name/lat/lng describe. This is what makes a
   // trip's lane recoverable after the fact, and what the rate lookup keys on.
-  locationId       String?   @db.Uuid
-  location         Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  planned_arrival  DateTime? @db.Timestamptz
-  actual_arrival   DateTime? @db.Timestamptz
+  locationId                    String?              @db.Uuid
+  location                      Location?            @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  planned_arrival               DateTime?            @db.Timestamptz
+  actual_arrival                DateTime?            @db.Timestamptz
   // When the driver left this stop. Paired with actual_arrival this is how
   // long they were held here — the difference between "arrived late" and
   // "arrived on time but waited three hours to be unloaded", which the two
   // are indistinguishable without it. Stamped by stampStopTransition().
-  actual_departure DateTime? @db.Timestamptz
+  actual_departure              DateTime?            @db.Timestamptz
 
   // Why this stop was late, filled in by an operator after the fact. Null on
   // a late stop means nobody has explained it yet — that is what the report's
   // "needs a reason" flag and the operator alert are driven from, so it must
   // stay distinguishable from Other.
-  delay_reason        DelayReason?
-  delay_note          String?      @db.Text
-  delay_logged_by     String?      @db.Uuid
-  delay_logged_by_user User?       @relation("TripStopDelayLogger", fields: [delay_logged_by], references: [id])
-  delay_logged_at     DateTime?    @db.Timestamptz
-  executorDriverId    String?      @db.Uuid
-  executorDriver      Driver?      @relation("TripStopExecutorDriver", fields: [executorDriverId], references: [id])
+  delay_reason         DelayReason?
+  delay_note           String?      @db.Text
+  delay_logged_by      String?      @db.Uuid
+  delay_logged_by_user User?        @relation("TripStopDelayLogger", fields: [delay_logged_by], references: [id])
+  delay_logged_at      DateTime?    @db.Timestamptz
+  executorDriverId     String?      @db.Uuid
+  executorDriver       Driver?      @relation("TripStopExecutorDriver", fields: [executorDriverId], references: [id])
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -736,7 +732,6 @@ model Document {
   version    Int       @default(1)
 
   @@index([documentTypeId])
-
   // Documents are looked up by their polymorphic owner — this is the index
   // behind every driver/vehicle document folder.
   @@index([entity_type, entity_id, deletedAt])
@@ -981,44 +976,44 @@ model Expense {
 // 7. PRICING & QUOTATIONS (Quotations)
 // -----------------------------------------
 model Quotation {
-  id                   String   @id @default(uuid()) @db.Uuid
-  quotation_number     Int?     @default(autoincrement())
-  name                 String
-  line_type            String?
-  operation_type       String?
-  pricing_basis        String?
-  rate                 Decimal  @db.Decimal(12, 2)
-  driver_payout        Decimal? @db.Decimal(12, 2)
-  currency             String   @default("SAR")
+  id               String   @id @default(uuid()) @db.Uuid
+  quotation_number Int?     @default(autoincrement())
+  name             String
+  line_type        String?
+  operation_type   String?
+  pricing_basis    String?
+  rate             Decimal  @db.Decimal(12, 2)
+  driver_payout    Decimal? @db.Decimal(12, 2)
+  currency         String   @default("SAR")
 
   vehicle_class        String?
   source_vehicle_label String?
 
-  stops                QuotationStop[]
+  stops QuotationStop[]
 
-  valid_from           DateTime? @db.Timestamptz
-  valid_to             DateTime? @db.Timestamptz
+  valid_from DateTime? @db.Timestamptz
+  valid_to   DateTime? @db.Timestamptz
 
-  source_type          String?
-  source_reference     String?
+  source_type      String?
+  source_reference String?
 
-  customerId           String   @db.Uuid
-  customer             Customer @relation(fields: [customerId], references: [id])
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
 
-  trips                Trip[]
-  tripFinancials       TripFinancials[]
-  surchargeRules       SurchargeRule[]
-  priceHistory         QuotationHistory[]
+  trips          Trip[]
+  tripFinancials TripFinancials[]
+  surchargeRules SurchargeRule[]
+  priceHistory   QuotationHistory[]
 
-  is_active            Boolean  @default(true)
+  is_active Boolean @default(true)
 
-  created_by           String?   @db.Uuid
-  updated_by           String?   @db.Uuid
-  deleted_by           String?   @db.Uuid
-  createdAt            DateTime  @default(now()) @db.Timestamptz
-  updatedAt            DateTime  @default(now()) @updatedAt @db.Timestamptz
-  deletedAt            DateTime? @db.Timestamptz
-  version              Int       @default(1)
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  version    Int       @default(1)
 
   @@index([customerId])
   @@index([quotation_number])
@@ -1026,20 +1021,20 @@ model Quotation {
 }
 
 model QuotationStop {
-  id           String    @id @default(uuid()) @db.Uuid
-  quotationId  String    @db.Uuid
-  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  quotationId String    @db.Uuid
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
-  sequence     Int
-  leg_index    Int       @default(0)
-  locationId   String?   @db.Uuid
-  location     Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  sequence   Int
+  leg_index  Int       @default(0)
+  locationId String?   @db.Uuid
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   stop_type    StopType
   source_label String?
 
-  createdAt    DateTime  @default(now()) @db.Timestamptz
-  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
 
   @@index([quotationId])
   @@index([quotationId, leg_index])
@@ -1047,25 +1042,25 @@ model QuotationStop {
 }
 
 model QuotationHistory {
-  id                 String    @id @default(uuid()) @db.Uuid
-  quotationId        String    @db.Uuid
-  quotation          Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid()) @db.Uuid
+  quotationId String    @db.Uuid
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 
-  old_rate           Decimal?  @db.Decimal(12, 2)
-  new_rate           Decimal?  @db.Decimal(12, 2)
-  old_driver_payout  Decimal?  @db.Decimal(12, 2)
-  new_driver_payout  Decimal?  @db.Decimal(12, 2)
+  old_rate          Decimal? @db.Decimal(12, 2)
+  new_rate          Decimal? @db.Decimal(12, 2)
+  old_driver_payout Decimal? @db.Decimal(12, 2)
+  new_driver_payout Decimal? @db.Decimal(12, 2)
 
   changed_by         String?
-  changed_by_user_id String?   @db.Uuid
-  changed_by_user    User?     @relation(fields: [changed_by_user_id], references: [id])
+  changed_by_user_id String? @db.Uuid
+  changed_by_user    User?   @relation(fields: [changed_by_user_id], references: [id])
   changed_by_name    String?
 
-  reason             String?
-  source             String    @default("QUOTATION_MODULE")
-  trip_id            String?   @db.Uuid
+  reason  String?
+  source  String  @default("QUOTATION_MODULE")
+  trip_id String? @db.Uuid
 
-  createdAt          DateTime  @default(now()) @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   @@index([quotationId])
   @@index([createdAt])
@@ -1096,7 +1091,7 @@ model SurchargeRule {
   // route, 100 SAR per stop" isn't tied to a route). Set means the fee only
   // applies on that one lane, and the lane's origin/destination come from the
   // rate card rather than being duplicated here.
-  quotationId String?      @db.Uuid
+  quotationId String?    @db.Uuid
   quotation   Quotation? @relation(fields: [quotationId], references: [id])
 
   // Free text, not an enum, for the same reason RateCard.vehicle_type is free
@@ -1115,7 +1110,7 @@ model SurchargeRule {
   vehicle_type String?
 
   rate     Decimal @db.Decimal(12, 2)
-  currency String @default("SAR")
+  currency String  @default("SAR")
 
   // Soft on/off, matching RateCard.is_active. There is deliberately no
   // effective-dating here: a renegotiated rate replaces the old one, and past
@@ -1189,20 +1184,20 @@ model TripCharge {
 // lat/lng are the default map pin for the place; a trip stop still stores its
 // own exact coordinates, since "Riyadh" is a city and the dock is a point in it.
 model Location {
-  id         String   @id @default(uuid()) @db.Uuid
-  customerId String   @db.Uuid
-  customer   Customer @relation(fields: [customerId], references: [id])
-  code       String
-  name       String
-  slug       String
-  address    String?  @db.Text
-  city       String?
-  postalCode String?
+  id                   String              @id @default(uuid()) @db.Uuid
+  customerId           String              @db.Uuid
+  customer             Customer            @relation(fields: [customerId], references: [id])
+  code                 String
+  name                 String
+  slug                 String
+  address              String?             @db.Text
+  city                 String?
+  postalCode           String?
   lat                  Float?
   lng                  Float?
   coordinate_precision CoordinatePrecision @default(UNKNOWN)
 
-  is_active  Boolean  @default(true)
+  is_active Boolean @default(true)
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -1212,8 +1207,8 @@ model Location {
   deletedAt  DateTime? @db.Timestamptz
   version    Int       @default(1)
 
-  quotationStops QuotationStop[]
-  tripStops      TripStop[]
+  quotationStops               QuotationStop[]
+  tripStops                    TripStop[]
   providerRateCardOrigins      ProviderRateCard[] @relation("ProviderRateOriginLocation")
   providerRateCardDestinations ProviderRateCard[] @relation("ProviderRateDestinationLocation")
 
@@ -1395,8 +1390,8 @@ model AuditLog {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String?  @db.Uuid
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String   // e.g. "USER_ROLE_UPDATED", "DRIVER_PIN_RESET", "USER_DEACTIVATED", "USER_DELETED"
-  entityType String   // e.g. "User", "Driver", "Trip", "Quotation"
+  action     String // e.g. "USER_ROLE_UPDATED", "DRIVER_PIN_RESET", "USER_DEACTIVATED", "USER_DELETED"
+  entityType String // e.g. "User", "Driver", "Trip", "Quotation"
   entityId   String?
   metadata   Json?    @db.JsonB // Context metadata (IP address, user-agent, affected fields - NO SECRETS)
   createdAt  DateTime @default(now()) @db.Timestamptz
@@ -1423,5 +1418,3 @@ model VehicleCompatibilityRule {
 
   @@index([serviceVehicleClassCode])
 }
-
-

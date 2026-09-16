@@ -528,14 +528,28 @@ export function useTripSubmission(
             ? assignment.vehicleId
             : (masterVehicle && masterVehicle !== 'unassigned' ? masterVehicle : undefined);
 
+          const coDriverId = (assignment.coDriverId && assignment.coDriverId !== 'unassigned')
+            ? assignment.coDriverId
+            : undefined;
+
           const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || 0);
           const shouldUpdateQuotation = Boolean(slot.updateQuotationPayout || slot.driverPayoutModified);
+
+          let finalDriverPayout = slotDriverPayout;
+          let finalCoDriverPayout = 0;
+
+          if (coDriverId) {
+            // Default 50/50 split if co-driver is present
+            finalDriverPayout = slotDriverPayout / 2;
+            finalCoDriverPayout = slotDriverPayout / 2;
+          }
 
           rows.push({
             customer_id: contractCustomer,
             planned_start: localDateTimeToUtcIso(date, slot.pickupTime, tz),
             planned_end: planned_end_val,
             driver_id: safeUuid(driverId) || undefined,
+            co_driver_id: safeUuid(coDriverId) || undefined,
             vehicle_id: safeUuid(vehicleId) || undefined,
             rate_category: contractRateCategory || undefined,
             billing_type: contractBillingType || undefined,
@@ -544,9 +558,10 @@ export function useTripSubmission(
             destination: destString || undefined,
             stops: structuredStops,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
-            trip_charges: slotDriverPayout,
-            driver_charge: slotDriverPayout,
-            driver_payout: slotDriverPayout,
+            trip_charges: slotDriverPayout, // total combined charges
+            driver_charge: finalDriverPayout, // alias for legacy
+            driver_payout: finalDriverPayout,
+            co_driver_payout: finalCoDriverPayout,
             update_quotation_driver_payout: shouldUpdateQuotation,
             rate_card_id: safeUuid(slot.rateCardId || slot.matchedRateCard?.id) || undefined,
             status: 'Scheduled',

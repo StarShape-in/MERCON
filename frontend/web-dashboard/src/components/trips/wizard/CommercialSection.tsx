@@ -39,9 +39,9 @@ function expandSearchTerm(term: string): string[] {
 
   for (const [canonical, aliases] of Object.entries(CITY_ALIASES)) {
     if (
-      canonical.includes(normalized) ||
-      normalized.includes(canonical) ||
-      aliases.some((a) => a.includes(normalized) || normalized.includes(a))
+      canonical === normalized ||
+      aliases.includes(normalized) ||
+      canonical.includes(normalized)
     ) {
       results.add(canonical);
       aliases.forEach((a) => results.add(a));
@@ -313,6 +313,9 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         const reverseOrigMatch = !destSubquery || matchesAnyTerm(orig, expandedDest);
         const reverseDestMatch = !originSubquery || matchesAnyTerm(dest, expandedOrig);
         if ((isRoundTripCard || reverseOrigMatch) && reverseOrigMatch && reverseDestMatch) return true;
+
+        // Directional queries MUST NOT fall through to loose single-term OR matching
+        return false;
       }
 
       // C) City Aliases / Airport Codes / Arabic Name Matching
