@@ -849,12 +849,19 @@ export function useCreateTripForm() {
             errors.push(`${laneLabel}: Select a Commercial Quotation card or enter Customer Billing Rate`);
           }
 
-          const hasTripChargeInput = slot.tripCharges !== undefined && slot.tripCharges !== null && slot.tripCharges !== '';
-          const hasDriverPayoutProp = slot.driverPayout !== undefined && slot.driverPayout !== null && slot.driverPayout !== '';
-          const hasMatchedPayout = slot.matchedRateCard?.driver_payout != null || slot.matchedRateCard?.default_trip_charge != null;
+          const is3PL = assignmentType === 'third_party' || (assignmentType as string) === '3pl';
+          if (!is3PL) {
+            const hasTripChargeInput = slot.tripCharges !== undefined && slot.tripCharges !== null && slot.tripCharges !== '';
+            const hasDriverPayoutProp = slot.driverPayout !== undefined && slot.driverPayout !== null && slot.driverPayout !== '';
+            const hasMatchedPayout = slot.matchedRateCard?.driver_payout != null || slot.matchedRateCard?.default_trip_charge != null;
 
-          if (!hasTripChargeInput && !hasDriverPayoutProp && !hasMatchedPayout) {
-            errors.push(`${laneLabel}: Enter Driver Payout / Charge`);
+            if (!hasTripChargeInput && !hasDriverPayoutProp && !hasMatchedPayout) {
+              errors.push(`${laneLabel}: Enter Driver Payout / Charge`);
+            }
+          } else {
+            if (!thirdPartyCost || Number(thirdPartyCost) <= 0) {
+              errors.push('3PL Cost (SAR) is required');
+            }
           }
         });
       }

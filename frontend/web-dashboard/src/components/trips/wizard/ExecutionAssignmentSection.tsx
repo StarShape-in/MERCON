@@ -29,6 +29,7 @@ interface ExecutionAssignmentSectionProps {
   contractVehicleType?: string;
   setContractVehicleType?: (vType: string) => void;
   contractBillingType?: string;
+  fieldErrors?: Record<string, boolean>;
 }
 
 export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProps> = ({
@@ -55,6 +56,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   contractVehicleType = '10 TON',
   setContractVehicleType,
   contractBillingType,
+  fieldErrors = {},
 }) => {
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
@@ -497,42 +499,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </Select>
           </div>
 
-          {/* 3PL DRIVER SELECTOR / MODE SWITCHER */}
-          <div className="space-y-1 bg-slate-50/70 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-200/80 dark:border-slate-800">
-            <div className="flex items-center justify-between">
+          {/* 3PL PREVIOUS DRIVER HISTORY (IF AVAILABLE FOR SELECTED PROVIDER) */}
+          {previousDrivers.length > 0 && (
+            <div className="space-y-1 bg-slate-50/70 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-200/80 dark:border-slate-800">
               <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3 h-3 text-indigo-600" /> 3PL DRIVER
+                <User className="w-3 h-3 text-indigo-600" /> SELECT PREVIOUS DRIVER
               </label>
 
-              <div className="flex items-center gap-1">
-                {previousDrivers.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setDriverInputMode('previous')}
-                    className={`text-[9px] font-extrabold px-2 py-0.5 rounded cursor-pointer transition-colors ${
-                      driverInputMode === 'previous'
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300'
-                    }`}
-                  >
-                    Select Previous Driver
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSwitchToNewDriver}
-                  className={`text-[9px] font-extrabold px-2 py-0.5 rounded cursor-pointer transition-colors flex items-center gap-1 ${
-                    driverInputMode === 'new'
-                      ? 'bg-[#FA634E] text-white shadow-2xs'
-                      : 'bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300'
-                  }`}
-                >
-                  <Plus className="w-2.5 h-2.5" /> Create New
-                </button>
-              </div>
-            </div>
-
-            {driverInputMode === 'previous' && previousDrivers.length > 0 && (
               <Select value={selectedDriverIndex} onValueChange={handleSelectPreviousDriver}>
                 <SelectTrigger className="h-8 rounded-lg border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs bg-white dark:bg-slate-900">
                   <SelectValue placeholder={isLoadingPreviousDrivers ? 'Loading history...' : 'Select Previous Driver...'} />
@@ -553,12 +526,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   })}
                 </SelectContent>
               </Select>
-            )}
-
-            {driverInputMode === 'previous' && previousDrivers.length === 0 && !isLoadingPreviousDrivers && thirdPartyProviderId && (
-              <p className="text-[10px] text-slate-400 italic">No previous driver history found for this provider.</p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -617,7 +586,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   </button>
                 )}
               </div>
-              <div className="relative">
+              <div id="field-3pl-cost" className="relative">
                 <input
                   type="number"
                   min="0"
@@ -625,7 +594,11 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                   value={thirdPartyCost}
                   onChange={(e) => setThirdPartyCost?.(e.target.value)}
                   placeholder="0"
-                  className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 pl-2.5 pr-8 text-xs font-mono font-black w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#FA634E]"
+                  className={`h-8 rounded-lg border pl-2.5 pr-8 text-xs font-mono font-black w-full shadow-2xs bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#FA634E] ${
+                    fieldErrors?.['thirdPartyCost']
+                      ? 'border-red-500 ring-2 ring-red-500/30 bg-red-50/20 dark:bg-red-950/20'
+                      : 'border-slate-200 dark:border-slate-700'
+                  }`}
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">SAR</span>
               </div>

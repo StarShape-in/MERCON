@@ -153,12 +153,24 @@ export function useTripSubmission(
         }
       }
 
-      if (slot.driverPayout === undefined || slot.driverPayout === null || slot.driverPayout === '' || Number(slot.driverPayout) <= 0) {
-        errors[`driverPayout-${slot.id}`] = true;
-        errors['driverPayout'] = true;
-        if (!firstErrId) {
-          firstErrId = `field-driver-payout-${slot.id}`;
-          firstErrMsg = `Slot #${i + 1}: Driver Payout Rate is required.`;
+      const is3PLAssignment = assignmentType === 'third_party' || assignmentType === '3pl';
+
+      if (is3PLAssignment) {
+        if (!thirdPartyCost || Number(thirdPartyCost) <= 0) {
+          errors['thirdPartyCost'] = true;
+          if (!firstErrId) {
+            firstErrId = 'field-3pl-cost';
+            firstErrMsg = '3PL Cost (SAR) is required.';
+          }
+        }
+      } else {
+        if (slot.driverPayout === undefined || slot.driverPayout === null || slot.driverPayout === '' || Number(slot.driverPayout) <= 0) {
+          errors[`driverPayout-${slot.id}`] = true;
+          errors['driverPayout'] = true;
+          if (!firstErrId) {
+            firstErrId = `field-driver-payout-${slot.id}`;
+            firstErrMsg = `Slot #${i + 1}: Driver Payout Rate is required.`;
+          }
         }
       }
 

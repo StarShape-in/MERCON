@@ -8,7 +8,7 @@ const getProxyTarget = () => {
   if (process.env.VITE_API_URL && process.env.VITE_API_URL.startsWith('http')) {
     return process.env.VITE_API_URL.replace(/\/api\/?$/, '');
   }
-  return 'http://localhost:3000';
+  return 'https://dev.mercon.tech';
 };
 
 const proxyTarget = getProxyTarget();

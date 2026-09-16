@@ -11,6 +11,72 @@ import CustomerCardCarousel from './CustomerCardCarousel';
 import QuotationCardCarousel from './QuotationCardCarousel';
 import { getCardId } from './QuotationRateCard';
 
+const CITY_ALIASES: Record<string, string[]> = {
+  riyadh: ['ruh', 'ryd', 'riyad', 'الرياض', 'رياض'],
+  dammam: ['dmm', 'damam', 'الدمام', 'دمام'],
+  jeddah: ['jed', 'jdd', 'jiddah', 'جدة', 'جده'],
+  jubail: ['jub', 'jbl', 'الجبيل', 'جبيل'],
+  abha: ['abh', 'ahb', 'أبها', 'ابها'],
+  khobar: ['khb', 'alkhobar', 'الخبر', 'خبر'],
+  hufuf: ['huf', 'hofuf', 'al hasa', 'al-hasa', 'hasa', 'الهفوف', 'الأحساء', 'احساء'],
+  medina: ['med', 'madinah', 'madina', 'المدينة', 'المدينة المنورة'],
+  mecca: ['makkah', 'mecca', 'مكة', 'مكة المكرمة'],
+  tabuk: ['tbk', 'tabouk', 'تبوك'],
+  jizan: ['gzan', 'jizan', 'jazan', 'جيزان', 'جازان'],
+  khamis: ['khamis mushait', 'khamis mushayt', 'خميس مشيط', 'خميس'],
+  yanbu: ['yen', 'yanbo', 'ينبع'],
+  buraidah: ['bur', 'qassim', 'القصيم', 'بريدة'],
+  rabigh: ['rabigh', 'رابغ'],
+  waad: ['waad al shamal', 'وعد الشمال'],
+  ras: ['ras al khair', 'رأس الخير', 'راس الخير'],
+};
+
+function expandSearchTerm(term: string): string[] {
+  const normalized = term.toLowerCase().trim();
+  if (!normalized) return [];
+
+  const results = new Set<string>([normalized]);
+
+  for (const [canonical, aliases] of Object.entries(CITY_ALIASES)) {
+    if (
+      canonical.includes(normalized) ||
+      normalized.includes(canonical) ||
+      aliases.some((a) => a.includes(normalized) || normalized.includes(a))
+    ) {
+      results.add(canonical);
+      aliases.forEach((a) => results.add(a));
+    }
+  }
+
+  return Array.from(results);
+}
+
+function matchesAnyTerm(targetText: string, searchTerms: string[]): boolean {
+  if (!targetText || searchTerms.length === 0) return false;
+  return searchTerms.some((term) => targetText.includes(term));
+}
+
+function parseBudgetFilter(rawQuery: string): ((price: number) => boolean) | null {
+  const rangeMatch = rawQuery.match(/^([<>]=?)\s*(\d+(?:\.\d+)?)$/);
+  if (rangeMatch) {
+    const op = rangeMatch[1];
+    const val = parseFloat(rangeMatch[2]);
+    if (op === '<') return (p) => p < val;
+    if (op === '<=') return (p) => p <= val;
+    if (op === '>') return (p) => p > val;
+    if (op === '>=') return (p) => p >= val;
+  }
+
+  const bandMatch = rawQuery.match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/);
+  if (bandMatch) {
+    const min = parseFloat(bandMatch[1]);
+    const max = parseFloat(bandMatch[2]);
+    return (p) => p >= min && p <= max;
+  }
+
+  return null;
+}
+
 interface CommercialSectionProps {
   contractSlots: any[];
   contractRateCategory: string;
@@ -54,8 +120,25 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   assignmentType = 'own',
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
   const [isInlineMode, setIsInlineMode] = React.useState(false);
   const [quotationSearchQuery, setQuotationSearchQuery] = React.useState('');
+
+  // Global '/' keyboard shortcut to focus quotation search input
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.getAttribute('contenteditable') === 'true');
+
+      if (e.key === '/' && !isInputFocused && contractCustomer && !isInlineMode) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [contractCustomer, isInlineMode]);
 
   const vehicleClassOptions = React.useMemo(() => getAllTaxonomyOptions('VEHICLE_CLASS'), []);
   const lineTypeOptions = React.useMemo(() => getAllTaxonomyOptions('LINE_TYPE'), []);
@@ -148,7 +231,32 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     const cards = matchingCardsForSpec;
 
     if (!quotationSearchQuery.trim()) return cards;
-    const q = quotationSearchQuery.toLowerCase().trim();
+    const rawQuery = quotationSearchQuery.toLowerCase().trim();
+
+    // 1. Budget Filter Match (< 2000, > 1500, 1500-2500)
+    const budgetEvaluator = parseBudgetFilter(rawQuery);
+
+    // 2. Directional Route Query ("riyadh to al abha", "ruh -> dmm", "riyadh - abha")
+    const directionalRegex = /\s*(?:\bto\b|->|–|-|>)\s*/i;
+    const isDirectional = directionalRegex.test(rawQuery);
+
+    let originSubquery = '';
+    let destSubquery = '';
+
+    if (isDirectional) {
+      const parts = rawQuery.split(directionalRegex);
+      if (parts.length >= 2) {
+        originSubquery = parts[0].trim();
+        destSubquery = parts.slice(1).join(' ').trim();
+      }
+    }
+
+    const expandedOrig = expandSearchTerm(originSubquery);
+    const expandedDest = expandSearchTerm(destSubquery);
+    const expandedSingleQuery = expandSearchTerm(rawQuery);
+
+    // 3. Multi-word Token Match
+    const queryTokens = rawQuery.split(/\s+/).filter(Boolean);
 
     return cards.filter((rc) => {
       const qNum = String(rc.quotation_number || '').toLowerCase();
@@ -183,18 +291,51 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
 
       const vClass = String(rc.vehicle_class || rc.vehicle_type || '').toLowerCase();
       const rCat = String(rc.rate_category || rc.line_type || '').toLowerCase();
-      const rateStr = String(rc.rate ?? rc.base_price ?? '').toLowerCase();
+      const numRate = Number(rc.rate ?? rc.base_price ?? 0);
+      const rateStr = String(numRate).toLowerCase();
 
-      return (
-        qNum.includes(q) ||
-        orig.includes(q) ||
-        dest.includes(q) ||
-        vClass.includes(q) ||
-        rCat.includes(q) ||
-        rateStr.includes(q)
-      );
+      const fullSearchableText = `${qNum} ${orig} ${dest} ${vClass} ${rCat} ${rateStr}`;
+
+      // A) Price / Budget Evaluator
+      if (budgetEvaluator) {
+        return budgetEvaluator(numRate);
+      }
+
+      // B) Directional Lane & Return / Round-Trip Auto-Match
+      if (isDirectional && (originSubquery || destSubquery)) {
+        // Forward Match: Origin matches originSubquery AND Dest matches destSubquery
+        const forwardOrigMatch = !originSubquery || matchesAnyTerm(orig, expandedOrig);
+        const forwardDestMatch = !destSubquery || matchesAnyTerm(dest, expandedDest);
+        if (forwardOrigMatch && forwardDestMatch) return true;
+
+        // Return / Round-Trip Auto-Match: If card is Round-Trip or reverse lane
+        const isRoundTripCard = rCat.includes('round') || Boolean((rc as any).is_round_trip);
+        const reverseOrigMatch = !destSubquery || matchesAnyTerm(orig, expandedDest);
+        const reverseDestMatch = !originSubquery || matchesAnyTerm(dest, expandedOrig);
+        if ((isRoundTripCard || reverseOrigMatch) && reverseOrigMatch && reverseDestMatch) return true;
+      }
+
+      // C) City Aliases / Airport Codes / Arabic Name Matching
+      if (matchesAnyTerm(orig, expandedSingleQuery) || matchesAnyTerm(dest, expandedSingleQuery)) {
+        return true;
+      }
+
+      // D) Standard Substring Match across metadata
+      if (qNum.includes(rawQuery) || orig.includes(rawQuery) || dest.includes(rawQuery) || vClass.includes(rawQuery) || rCat.includes(rawQuery) || rateStr.includes(rawQuery)) {
+        return true;
+      }
+
+      // E) Multi-word token match
+      if (queryTokens.length > 1) {
+        return queryTokens.every((token) => {
+          const expandedToken = expandSearchTerm(token);
+          return matchesAnyTerm(fullSearchableText, expandedToken);
+        });
+      }
+
+      return false;
     });
-  }, [sortedRateCards, matchingCardsForSpec, quotationSearchQuery]);
+  }, [matchingCardsForSpec, quotationSearchQuery]);
 
   const selectedCust = customers.find((c) => c.id === contractCustomer);
 
@@ -296,6 +437,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
               {/* SEARCH INPUT FIELD (ALIGNING WITH CUSTOMER COMBOBOX) */}
               <div className="relative w-full sm:w-[320px] shrink-0 flex items-center">
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={quotationSearchQuery}
                   onChange={(e) => setQuotationSearchQuery(e.target.value)}
@@ -305,7 +447,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
-                  placeholder="Search quotations by route, rate, vehicle class..."
+                  placeholder="Search route, city code, rate... (Press /)"
                   className="h-8.5 w-full px-3 pr-16 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand shadow-2xs transition-all"
                 />
                 {quotationSearchQuery && (
