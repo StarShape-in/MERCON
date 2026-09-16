@@ -468,30 +468,10 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
             </span>
           </div>
 
-          {/* VEHICLE CLASS & ROTATION MODEL ROW */}
+          {/* ROTATION MODEL TOOLBAR */}
           {assignmentType === 'own' && (
             <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-              {/* VEHICLE CLASS SELECTOR */}
-              {setContractVehicleType ? (
-                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    VEHICLE CLASS:
-                  </span>
-                  <select
-                    value={contractVehicleType}
-                    onChange={(e) => setContractVehicleType(e.target.value)}
-                    className="text-xs font-black text-[#FA634E] dark:text-orange-400 bg-transparent focus:outline-none cursor-pointer"
-                  >
-                    {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
-                      <option key={vClass} value={vClass} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold">
-                        {vClass}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex-1"></div>
-              )}
+              <div className="flex-1"></div>
 
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
