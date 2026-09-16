@@ -16,6 +16,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { LOCATION_COLUMNS } from '@/utils/importUtils';
@@ -334,9 +335,10 @@ export default function LocationListPage() {
               handleShareWhatsapp(row);
             }}
             title="Share Location via WhatsApp"
-            className="p-1 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors focus:outline-none cursor-pointer"
+            aria-label="Share via WhatsApp"
+            className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all focus:outline-none cursor-pointer group"
           >
-            <MessageSquare className="h-4 w-4" />
+            <WhatsAppIcon className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -353,7 +355,7 @@ export default function LocationListPage() {
                 onClick={() => handleShareWhatsapp(row)}
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
               >
-                <MessageSquare className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                <WhatsAppIcon className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                 Share on WhatsApp
               </DropdownMenuItem>
               <DropdownMenuItem
