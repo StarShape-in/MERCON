@@ -54,8 +54,8 @@ interface MonthlyDaysSelectorProps {
   vehicleOptions?: ComboboxOption[];
   drivers?: any[];
   vehicles?: any[];
-  dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
-  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
+  dayAssignments?: Record<string, { driverId: string; vehicleId: string; coDriverId?: string }>;
+  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string; coDriverId?: string }>>>;
   assignmentType?: 'own' | 'third_party';
   setAssignmentType?: (type: 'own' | 'third_party') => void;
   thirdPartyProviderId?: string;
@@ -471,7 +471,27 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
           {/* VEHICLE CLASS & ROTATION MODEL ROW */}
           {assignmentType === 'own' && (
             <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex-1"></div>
+              {/* VEHICLE CLASS SELECTOR */}
+              {setContractVehicleType ? (
+                <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    VEHICLE CLASS:
+                  </span>
+                  <select
+                    value={contractVehicleType}
+                    onChange={(e) => setContractVehicleType(e.target.value)}
+                    className="text-xs font-black text-[#FA634E] dark:text-orange-400 bg-transparent focus:outline-none cursor-pointer"
+                  >
+                    {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
+                      <option key={vClass} value={vClass} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold">
+                        {vClass}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex-1"></div>
+              )}
 
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
@@ -570,24 +590,24 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                     return (
                       <div
                         key={idx}
-                        className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-1.5"
+                        className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-2"
                       >
                         {/* Slot Badge & Duty Days */}
-                        <div className="flex items-center justify-between text-[10px]">
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300">
+                        <div className="flex items-center justify-between gap-2 text-[10px]">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-black uppercase px-2 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300 shrink-0 tracking-wider">
                               {strategyMode === 'single' ? 'Primary Pair' : `Pair ${idx + 1}`}
                             </span>
                             {idx === 0 && setContractVehicleType && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[9px] font-bold text-slate-400">CLASS:</span>
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+                                <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">CLASS:</span>
                                 <select
                                   value={contractVehicleType}
                                   onChange={(e) => setContractVehicleType(e.target.value)}
-                                  className="text-[9px] font-extrabold text-slate-700 dark:text-slate-300 bg-transparent border-b border-slate-300 dark:border-slate-600 focus:outline-none cursor-pointer"
+                                  className="text-[10px] font-black text-[#FA634E] dark:text-orange-400 bg-transparent focus:outline-none cursor-pointer"
                                 >
                                   {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
-                                    <option key={vClass} value={vClass}>
+                                    <option key={vClass} value={vClass} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold">
                                       {vClass}
                                     </option>
                                   ))}
@@ -595,7 +615,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               </div>
                             )}
                           </div>
-                          <span className="font-black text-slate-500">{dutyDaysCount} Days</span>
+                          <span className="font-black text-slate-500 shrink-0">{dutyDaysCount} Days</span>
                         </div>
 
                         {/* Compact Inline Avatar + Selects */}
@@ -882,7 +902,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                           </div>
 
                           {/* Driver Combobox (col-span-4) */}
-                          <div className="col-span-4 min-w-0">
+                          <div className="col-span-4 min-w-0 flex flex-col gap-1.5">
                             <Combobox
                               options={driverOptions}
                               value={activeDriver}
@@ -890,6 +910,47 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               placeholder="Select Driver"
                               className="h-7.5 text-xs font-medium"
                             />
+                            {assignment.coDriverId !== undefined && (
+                              <div className="flex items-center gap-1 animate-fade-in">
+                                <span className="text-[9px] font-bold text-slate-400 shrink-0 w-4">CO</span>
+                                <div className="flex-1 min-w-0">
+                                  <Combobox
+                                    options={driverOptions}
+                                    value={assignment.coDriverId}
+                                    onChange={(val) => {
+                                      if (!setDayAssignments) return;
+                                      setDayAssignments((prev) => ({
+                                        ...prev,
+                                        [dateStr]: {
+                                          ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
+                                          coDriverId: val,
+                                        },
+                                      }));
+                                    }}
+                                    placeholder="Select Co-Driver"
+                                    className="h-7 text-[11px] font-medium"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!setDayAssignments) return;
+                                    setDayAssignments((prev) => {
+                                      const next = { ...prev };
+                                      if (next[dateStr]) {
+                                        next[dateStr] = { ...next[dateStr] };
+                                        delete next[dateStr].coDriverId;
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="text-slate-300 hover:text-rose-500 transition-colors p-0.5"
+                                  title="Remove co-driver"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           {/* Vehicle Combobox (col-span-4) */}
@@ -904,7 +965,24 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                           </div>
 
                           {/* Action / Override State (col-span-1) */}
-                          <div className="col-span-1 flex justify-end shrink-0">
+                          <div className="col-span-1 flex items-center justify-end gap-1.5 shrink-0 pr-1">
+                            <button
+                              type="button"
+                              className="p-1 rounded-md text-slate-400 hover:text-[#FA634E] hover:bg-orange-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Add another driver for this day"
+                              onClick={() => {
+                                if (!setDayAssignments) return;
+                                setDayAssignments((prev) => ({
+                                  ...prev,
+                                  [dateStr]: {
+                                    ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
+                                    coDriverId: 'unassigned',
+                                  },
+                                }));
+                              }}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
                             {isCustom ? (
                               <button
                                 type="button"
@@ -916,13 +994,13 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                                     return next;
                                   });
                                 }}
-                                className="p-1 rounded-md text-amber-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                className="p-1 rounded-md text-amber-600 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors cursor-pointer"
                                 title="Reset date to strategy default"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             ) : (
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" title="Inherits strategy default" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-1" title="Inherits strategy default" />
                             )}
                           </div>
                         </div>
