@@ -878,7 +878,7 @@ export default function TripListPage() {
   const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('Today');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('3Days');
   const activeFiltersCount = (selectedStatus !== 'All' ? 1 : 0) + (selectedCustomerId !== 'All' ? 1 : 0);
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
