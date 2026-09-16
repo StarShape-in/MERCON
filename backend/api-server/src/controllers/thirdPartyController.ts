@@ -617,7 +617,7 @@ export const matchProviderRateCard = async (req: Request, res: Response) => {
       },
     });
 
-    const validCards = candidateCards.filter((rc) => {
+    const validCards = candidateCards.filter((rc: any) => {
       // 1. Date Validity Check
       if (rc.valid_from && new Date(rc.valid_from).getTime() > targetTime) return false;
       if (rc.valid_to && new Date(rc.valid_to).getTime() < targetTime) return false;
@@ -670,7 +670,7 @@ export const matchProviderRateCard = async (req: Request, res: Response) => {
     // Rank 2: City corridor match + exact operation_type match
     // Rank 3: Location ID exact match + operation_type IS NULL (wildcard)
     // Rank 4: City corridor match + operation_type IS NULL (wildcard)
-    const rankedCards = validCards.map((rc) => {
+    const rankedCards = validCards.map((rc: any) => {
       const locExact = Boolean(originLocationId && destinationLocationId && rc.originLocationId === originLocationId && rc.destinationLocationId === destinationLocationId);
       const opExact = Boolean(rc.operation_type && targetOp && normalizeBillingType(rc.operation_type) === targetOp);
 
@@ -683,7 +683,7 @@ export const matchProviderRateCard = async (req: Request, res: Response) => {
       return { card: rc, rank };
     });
 
-    rankedCards.sort((a, b) => {
+    rankedCards.sort((a: any, b: any) => {
       if (a.rank !== b.rank) return a.rank - b.rank;
       return new Date(b.card.updatedAt).getTime() - new Date(a.card.updatedAt).getTime();
     });

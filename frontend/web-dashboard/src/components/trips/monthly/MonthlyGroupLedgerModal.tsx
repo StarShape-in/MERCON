@@ -16,6 +16,8 @@ import {
   SlidersHorizontal,
   Lightbulb,
   ChevronDown,
+  Edit3,
+  HelpCircle,
 } from 'lucide-react';
 
 import {
@@ -59,6 +61,21 @@ const STATUS_LIST = [
 ];
 
 const CORE_CATEGORIES = ['Single Trip', 'Round Trip', '10 Hours Duty', '12 Hours Duty'];
+
+interface PendingChange {
+  title: string;
+  fieldLabel: string;
+  tripContext: string;
+  fromValue: string;
+  toValue: string;
+  payload: {
+    trip_ids: string[];
+    driver_id?: string;
+    vehicle_id?: string;
+    status?: string;
+    rate_category?: string;
+  };
+}
 
 interface MonthlyGroupLedgerModalProps {
   isOpen: boolean;
@@ -332,54 +349,191 @@ export default function MonthlyGroupLedgerModal({
     );
   };
 
+  // Pending Change Confirmation state
+  const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+
+  const getDriverDisplayName = (d?: any) => {
+    if (!d) return 'Unassigned';
+    return d.name || [d.first_name, d.last_name].filter(Boolean).join(' ') || d.ref_id || 'Driver';
+  };
+
   // Handlers for single trip inline updates
   const handleSingleDriverChange = (tripId: string, newDriverId: string) => {
-    assignMutation.mutate({
-      trip_ids: [tripId],
-      driver_id: newDriverId,
+    setActiveDriverTripId(null);
+    const trip = allTrips.find((t) => t.id === tripId);
+    const currentDriverName = getDriverDisplayName(trip?.driver);
+    const foundDriver = rawDrivers.find((d) => d.id === newDriverId);
+    const newDriverName =
+      newDriverId === 'unassigned' || !newDriverId
+        ? 'Unassigned'
+        : foundDriver
+        ? getDriverDisplayName(foundDriver)
+        : newDriverId;
+
+    if (currentDriverName === newDriverName) return;
+
+    setPendingChange({
+      title: 'Confirm Driver Change',
+      fieldLabel: 'Assigned Driver',
+      tripContext: `${trip?.ref_id || 'Trip'} · ${trip?.date ? formatDayHeading(trip.date) : ''} ${formatTime(trip?.planned_start ?? null)}`,
+      fromValue: currentDriverName,
+      toValue: newDriverName,
+      payload: {
+        trip_ids: [tripId],
+        driver_id: newDriverId,
+      },
     });
   };
 
   const handleSingleVehicleChange = (tripId: string, newVehicleId: string) => {
-    assignMutation.mutate({
-      trip_ids: [tripId],
-      vehicle_id: newVehicleId,
+    setActiveVehicleTripId(null);
+    const trip = allTrips.find((t) => t.id === tripId);
+    const currentVehiclePlate = trip?.vehicle?.plate_number || 'Unassigned';
+    const newVehiclePlate =
+      newVehicleId === 'unassigned' || !newVehicleId
+        ? 'Unassigned'
+        : rawVehicles.find((v) => v.id === newVehicleId)?.plate_number || newVehicleId;
+
+    if (currentVehiclePlate === newVehiclePlate) return;
+
+    setPendingChange({
+      title: 'Confirm Vehicle Change',
+      fieldLabel: 'Assigned Vehicle',
+      tripContext: `${trip?.ref_id || 'Trip'} · ${trip?.date ? formatDayHeading(trip.date) : ''} ${formatTime(trip?.planned_start ?? null)}`,
+      fromValue: currentVehiclePlate,
+      toValue: newVehiclePlate,
+      payload: {
+        trip_ids: [tripId],
+        vehicle_id: newVehicleId,
+      },
     });
   };
 
   const handleSingleStatusChange = (tripId: string, newStatus: string) => {
-    assignMutation.mutate({
-      trip_ids: [tripId],
-      status: newStatus,
+    const trip = allTrips.find((t) => t.id === tripId);
+    const currentStatus = trip?.status || 'Scheduled';
+    if (currentStatus === newStatus) return;
+
+    setPendingChange({
+      title: 'Confirm Status Change',
+      fieldLabel: 'Trip Status',
+      tripContext: `${trip?.ref_id || 'Trip'} · ${trip?.date ? formatDayHeading(trip.date) : ''} ${formatTime(trip?.planned_start ?? null)}`,
+      fromValue: currentStatus,
+      toValue: newStatus,
+      payload: {
+        trip_ids: [tripId],
+        status: newStatus,
+      },
+    });
+  };
+
+  const handleApplyBulkDriver = (val: string) => {
+    if (!val || selectedTripIds.length === 0) return;
+    const foundDriver = rawDrivers.find((d) => d.id === val);
+    const newDriverName =
+      val === 'unassigned'
+        ? 'Unassigned'
+        : foundDriver
+        ? getDriverDisplayName(foundDriver)
+        : val;
+
+    setPendingChange({
+      title: 'Confirm Bulk Driver Assignment',
+      fieldLabel: 'Assigned Driver',
+      tripContext: `${selectedTripIds.length} Selected Trips`,
+      fromValue: 'Current Assignments',
+      toValue: newDriverName,
+      payload: {
+        trip_ids: selectedTripIds,
+        driver_id: val,
+      },
+    });
+  };
+
+  const handleApplyBulkVehicle = (val: string) => {
+    if (!val || selectedTripIds.length === 0) return;
+    const newVehiclePlate =
+      val === 'unassigned'
+        ? 'Unassigned'
+        : rawVehicles.find((v) => v.id === val)?.plate_number || val;
+
+    setPendingChange({
+      title: 'Confirm Bulk Vehicle Assignment',
+      fieldLabel: 'Assigned Vehicle',
+      tripContext: `${selectedTripIds.length} Selected Trips`,
+      fromValue: 'Current Assignments',
+      toValue: newVehiclePlate,
+      payload: {
+        trip_ids: selectedTripIds,
+        vehicle_id: val,
+      },
     });
   };
 
   const handleApplyBulkStatus = (val: string) => {
     if (!val || selectedTripIds.length === 0) return;
-    assignMutation.mutate({
-      trip_ids: selectedTripIds,
-      status: val,
+
+    setPendingChange({
+      title: 'Confirm Bulk Status Change',
+      fieldLabel: 'Trip Status',
+      tripContext: `${selectedTripIds.length} Selected Trips`,
+      fromValue: 'Current Statuses',
+      toValue: val,
+      payload: {
+        trip_ids: selectedTripIds,
+        status: val,
+      },
     });
   };
 
   const handleApplyBulkCategory = (val: string) => {
     if (!val || selectedTripIds.length === 0) return;
-    assignMutation.mutate({
-      trip_ids: selectedTripIds,
-      rate_category: val,
+
+    setPendingChange({
+      title: 'Confirm Bulk Category Change',
+      fieldLabel: 'Trip Category (Line Type)',
+      tripContext: `${selectedTripIds.length} Selected Trips`,
+      fromValue: 'Current Categories',
+      toValue: val.replace(/_/g, ' '),
+      payload: {
+        trip_ids: selectedTripIds,
+        rate_category: val,
+      },
     });
   };
 
   const handleGroupCategoryChange = (newCat: string) => {
     if (!newCat) return;
+    const currentCat = (categoryFilter !== 'ALL' ? categoryFilter : (group?.lineType || 'Single Trip')).replace(/_/g, ' ');
+    const targetCat = newCat.replace(/_/g, ' ');
+    if (currentCat.toLowerCase() === targetCat.toLowerCase()) return;
+
     const tripIdsToUpdate = allTrips.map((t) => t.id);
-    if (tripIdsToUpdate.length > 0) {
-      assignMutation.mutate({
+    if (tripIdsToUpdate.length === 0) return;
+
+    setPendingChange({
+      title: 'Confirm Category Change',
+      fieldLabel: 'Trip Category (Line Type)',
+      tripContext: `All ${allTrips.length} Trips in this Group for ${companyName}`,
+      fromValue: currentCat,
+      toValue: targetCat,
+      payload: {
         trip_ids: tripIdsToUpdate,
         rate_category: newCat,
-      });
-      setCategoryFilter(newCat);
-    }
+      },
+    });
+  };
+
+  const handleConfirmPendingChange = () => {
+    if (!pendingChange) return;
+    assignMutation.mutate(pendingChange.payload, {
+      onSuccess: () => {
+        if (pendingChange.payload.rate_category) {
+          setCategoryFilter(pendingChange.payload.rate_category);
+        }
+        setPendingChange(null);
+      },
+    });
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -496,30 +650,30 @@ export default function MonthlyGroupLedgerModal({
         </div>
 
         {/* ── 2. Toolbar: Search Bar, Filter Chips, Category Select & Sort Select ── */}
-        <div className="p-3.5 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="p-3 sm:px-8 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 overflow-x-auto custom-scrollbar">
           
           {/* Left / Center: Search Input + Status Filter Chips + Category Filter */}
-          <div className="flex items-center flex-wrap gap-3 min-w-0">
-            <div className="relative w-56 sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+            <div className="relative w-48 sm:w-60 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <Input
-                placeholder="Search by trip ref, driver, vehicle, or plate..."
+                placeholder="Search ref, driver, vehicle..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-10 text-xs bg-slate-50/80 dark:bg-slate-900 rounded-xl border-slate-200 dark:border-slate-800 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
+                className="pl-8 h-9 text-xs bg-slate-50/80 dark:bg-slate-900 rounded-xl border-slate-200 dark:border-slate-800 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-[#FA634E]"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <X size={13} />
+                  <X size={12} />
                 </button>
               )}
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {(['All', 'Unassigned', 'Scheduled', 'InTransit', 'Completed'] as const).map((filterOpt) => {
                 const isActive = statusFilter === filterOpt;
                 return (
@@ -527,7 +681,7 @@ export default function MonthlyGroupLedgerModal({
                     key={filterOpt}
                     type="button"
                     onClick={() => setStatusFilter(filterOpt)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                       isActive
                         ? 'bg-[#FA634E] text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -548,7 +702,7 @@ export default function MonthlyGroupLedgerModal({
 
             {/* Trip Category / Line Type Filter Dropdown */}
             <Select value={categoryFilter} onValueChange={(val) => setCategoryFilter(val)}>
-              <SelectTrigger className="h-10 text-xs font-bold min-w-[145px] max-w-[190px] rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer">
+              <SelectTrigger className="h-9 text-xs font-bold min-w-[135px] max-w-[170px] rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer shrink-0">
                 <Clock className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
                 <span className="truncate">
                   {categoryFilter === 'ALL' ? 'All Categories' : categoryFilter.replace(/_/g, ' ')}
@@ -571,7 +725,7 @@ export default function MonthlyGroupLedgerModal({
           </div>
 
           {/* Right: Quick Selection Count / Sort dropdown */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             {selectedTripIds.length > 0 && (
               <div className="flex items-center gap-2">
                 <Button
@@ -594,14 +748,14 @@ export default function MonthlyGroupLedgerModal({
                   onClick={() => setSelectedTripIds([])}
                   className="text-xs font-bold text-[#FA634E] hover:underline cursor-pointer"
                 >
-                  Clear Selection
+                  Clear
                 </button>
               </div>
             )}
 
             {/* Sort Dropdown */}
             <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-              <SelectTrigger className="h-10 text-xs font-bold w-36 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs">
+              <SelectTrigger className="h-9 text-xs font-bold w-32 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-3xs shrink-0">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                 <SelectValue />
               </SelectTrigger>
@@ -636,10 +790,7 @@ export default function MonthlyGroupLedgerModal({
                   onChange={(val) => {
                     setBulkDriverId(val);
                     if (val) {
-                      assignMutation.mutate({
-                        trip_ids: selectedTripIds,
-                        driver_id: val,
-                      });
+                      handleApplyBulkDriver(val);
                     }
                   }}
                   placeholder="Set Driver for all..."
@@ -656,10 +807,7 @@ export default function MonthlyGroupLedgerModal({
                   onChange={(val) => {
                     setBulkVehicleId(val);
                     if (val) {
-                      assignMutation.mutate({
-                        trip_ids: selectedTripIds,
-                        vehicle_id: val,
-                      });
+                      handleApplyBulkVehicle(val);
                     }
                   }}
                   placeholder="Set Vehicle for all..."
@@ -1011,6 +1159,97 @@ export default function MonthlyGroupLedgerModal({
         isDestructive
         isLoading={bulkDeleteMutation.isPending}
       />
+
+      {/* ── 6. Change Confirmation Diff Modal ── */}
+      <Dialog
+        open={Boolean(pendingChange)}
+        onOpenChange={(open) => {
+          if (!open && !assignMutation.isPending) {
+            setPendingChange(null);
+            setBulkDriverId('');
+            setBulkVehicleId('');
+          }
+        }}
+      >
+        <DialogContent className="max-w-md w-full rounded-[24px] p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl [&>button]:right-5 [&>button]:top-5 z-50">
+          <div className="flex flex-col gap-4">
+            {/* Icon + Title */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#FA634E]/10 dark:bg-[#FA634E]/20 text-[#FA634E] flex items-center justify-center shrink-0 shadow-3xs">
+                <Edit3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  {pendingChange?.title || 'Confirm Changes'}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Please review the proposed update before applying.
+                </p>
+              </div>
+            </div>
+
+            {/* Trip context tag */}
+            {pendingChange?.tripContext && (
+              <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="truncate">{pendingChange.tripContext}</span>
+              </div>
+            )}
+
+            {/* Visual Diff: Current -> New */}
+            <div className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                {pendingChange?.fieldLabel}
+              </span>
+              
+              <div className="flex items-center justify-between gap-3">
+                {/* Current / From */}
+                <div className="flex-1 min-w-0 p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">CURRENT</span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate block line-through decoration-slate-400">
+                    {pendingChange?.fromValue || '—'}
+                  </span>
+                </div>
+
+                <ArrowRight className="w-4 h-4 text-[#FA634E] shrink-0 stroke-[2.5]" />
+
+                {/* New / To */}
+                <div className="flex-1 min-w-0 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center shadow-3xs">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-0.5">NEW</span>
+                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 truncate block">
+                    {pendingChange?.toValue || '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2.5 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPendingChange(null);
+                  setBulkDriverId('');
+                  setBulkVehicleId('');
+                }}
+                disabled={assignMutation.isPending}
+                className="flex-1 h-10 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmPendingChange}
+                disabled={assignMutation.isPending}
+                className="flex-1 h-10 text-xs font-bold bg-[#FA634E] hover:bg-[#e05440] text-white rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+              >
+                {assignMutation.isPending ? 'Updating...' : 'Confirm & Apply'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
