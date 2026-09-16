@@ -2525,7 +2525,7 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
         driver_payout: true,
         quotationId: true,
         customer: { select: { id: true, name: true, contact_phone: true, logo_url: true } },
-        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true } },
+        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true } },
         vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true } },
         quotation: {
           select: {
@@ -2567,7 +2567,6 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
               ref_id: trip.driver.ref_id,
               name: `${trip.driver.first_name} ${trip.driver.last_name}`.trim(),
               phone_primary: trip.driver.phone_primary,
-              avatar_url: trip.driver.avatar_url,
             }
           : null,
         vehicle: trip.vehicle,
