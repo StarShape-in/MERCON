@@ -4,9 +4,9 @@ import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tansta
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, FileSpreadsheet, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
-  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
+  RotateCw, Truck, Eye, Search, Filter, List, AlertTriangle, ShieldCheck,
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown, Layers,
-  ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, PieChart
+  ArrowDown, ArrowUp, Building2, MapPin, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -79,7 +79,6 @@ import SendToWorkshopDialog from '@/components/fleet/SendToWorkshopDialog';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import FleetStatusDonutChart from '@/components/dashboard/FleetStatusDonutChart';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
@@ -216,7 +215,6 @@ export default function VehicleListPage() {
   const [sortOrder, setSortOrder] = useState<VehicleSortOption>('latest');
   const [locationSortDir, setLocationSortDir] = useState<'asc' | 'desc' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [kpiSummaryMode, setKpiSummaryMode] = useState<'cards' | 'chart'>('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBatchTruckDocsOpen, setIsBatchTruckDocsOpen] = useState(false);
@@ -1271,37 +1269,6 @@ export default function VehicleListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* KPI Summary Switcher (Cards | GPS Chart) */}
-            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0">
-              <button
-                type="button"
-                onClick={() => setKpiSummaryMode('cards')}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  kpiSummaryMode === 'cards'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-                title="Standard KPI Summary Cards"
-              >
-                <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
-                <span>KPI Cards</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setKpiSummaryMode('chart')}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  kpiSummaryMode === 'chart'
-                    ? 'bg-white dark:bg-slate-900 text-brand shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-                title="Physical GPS Telemetry Donut Chart"
-              >
-                <PieChart className="w-3.5 h-3.5 text-emerald-500" />
-                <span>GPS Chart</span>
-              </button>
-            </div>
-
             {viewMode === 'map' && (
               <MapThemeSelector
                 currentThemeId={mapThemeId}
@@ -1388,14 +1355,8 @@ export default function VehicleListPage() {
         {/* ── ICCES Hardware GPS Telemetry Status Strip ── */}
         <IccesStatusHeader />
 
-        {/* ── Summary Cards & Physical GPS Fleet Status Donut Chart Panel ───────────────── */}
-        {kpiSummaryMode === 'chart' ? (
-          <div className="w-full shrink-0">
-            <FleetStatusDonutChart />
-          </div>
-        ) : (
-          /* ── Standard Full-Width 4-Column Grid: 4 KPI Cards ── */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        {/* ── Standard Full-Width 4-Column Grid: 4 KPI Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
             {/* Card 1: Total Fleet Assets */}
             <KpiCard
               title="TOTAL FLEET ASSETS"
@@ -1765,7 +1726,6 @@ export default function VehicleListPage() {
               }
             />
           </div>
-        )}
 
         {/* Control Toolbar (Search, Filter, View Switcher) - Only show in map view to prevent duplication with DataTable controls */}
         {viewMode === 'map' && (
