@@ -248,7 +248,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
           {/* Dossier Credentials Summary */}
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 bg-white dark:bg-slate-900 space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              <IdCard className="w-4 h-4 text-indigo-600" /> Driver Roster Dossier Summary
+              <IdCard className="w-4 h-4 text-indigo-600" /> Driver Dossier Summary
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">

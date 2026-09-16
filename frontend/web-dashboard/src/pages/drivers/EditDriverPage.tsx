@@ -385,7 +385,7 @@ export default function EditDriverPage() {
                           <SelectValue placeholder="Select status..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Available" className="text-xs">Available (On Roster)</SelectItem>
+                          <SelectItem value="Available" className="text-xs">Available</SelectItem>
                           <SelectItem value="OnTrip" className="text-xs">On Trip (Active)</SelectItem>
                           <SelectItem value="OffDuty" className="text-xs">Off Duty (Rest / Leave)</SelectItem>
                           <SelectItem value="Inactive" className="text-xs">Inactive (Decommissioned)</SelectItem>

@@ -325,10 +325,10 @@ export default function DriverDetailsPage() {
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
           <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
-            The requested driver profile does not exist or may have been deleted from the MERCON roster.
+            The requested driver profile does not exist or may have been deleted from MERCON.
           </p>
           <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-xs">
-            Return to Driver Roster
+            Return to Drivers
           </Button>
         </div>
       </DashboardLayout>
@@ -1172,7 +1172,7 @@ export default function DriverDetailsPage() {
                 <DialogTitle className="text-base font-extrabold">Delete Driver Account</DialogTitle>
               </div>
               <DialogDescription className="text-xs font-medium text-slate-500 mt-2">
-                Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive roster records. Enter admin password to proceed.
+                Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive driver records. Enter admin password to proceed.
                 {driverUsage && (
                   driverUsage.totalTrips > 0 || driverUsage.expenses > 0 ? (
                     <>

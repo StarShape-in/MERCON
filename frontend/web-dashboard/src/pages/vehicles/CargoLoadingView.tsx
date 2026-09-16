@@ -1,17 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
 import truckNewImg from '@/assets/truck-new.png';
+import truckExplodedImg from '@/assets/exploded view.png';
+import truckAnimation3sVideo from '@/assets/truck-animation-3s.mp4';
 import { maintenanceService } from '@/services/maintenanceService';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
-  History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings
+  History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
+  RotateCcw, Sparkles, ChevronRight, Info, Layers
 } from 'lucide-react';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -156,6 +165,150 @@ export default function CargoLoadingView() {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeMilestoneId, setActiveMilestoneId] = useState<string>('mnt-1');
+  const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
+  const [explodedImgSrc, setExplodedImgSrc] = useState<string>('/truck-exploded.png');
+
+  const serviceItems = [
+    {
+      id: 1,
+      date: '12 Aug 2026',
+      title: 'Engine Oil & Filter Service',
+      workshop: 'Zahid Heavy Equipment Workshop',
+      icon: Droplets,
+      isRecent: true,
+      odometer: '142,500 km',
+      cost: 'SAR 1,450',
+      status: 'Completed',
+      hotspot: { top: '38%', left: '22%' },
+      system: 'Engine & Lubrication',
+      partsReplaced: ['Synthetic Engine Oil 15W-40 (24L)', 'Heavy Duty Oil Filter Element', 'Drain Plug Seal Gasket'],
+      notes: 'Full engine oil flush & element replacement. Pressure and leak check verified clean.'
+    },
+    {
+      id: 2,
+      date: '25 Jun 2026',
+      title: 'Brake Pad Replacement',
+      workshop: 'Al-Refaei Truck Service Center',
+      icon: Disc,
+      isRecent: false,
+      odometer: '135,000 km',
+      cost: 'SAR 2,200',
+      status: 'Completed',
+      hotspot: { top: '56%', left: '48%' },
+      system: 'Braking & Axles',
+      partsReplaced: ['Front Axle Heavy Duty Brake Pads', 'Rear Drum Brake Linings', 'Caliper Pin Hardware Kit'],
+      notes: 'Front brake pads replaced at 15% wear remaining. Rear brake drums resurfaced and calibrated.'
+    },
+    {
+      id: 3,
+      date: '14 Mar 2026',
+      title: 'Air Filter Replacement',
+      workshop: 'Saudi Heavy Maintenance Hub',
+      icon: Wind,
+      isRecent: false,
+      odometer: '128,300 km',
+      cost: 'SAR 650',
+      status: 'Completed',
+      hotspot: { top: '28%', left: '32%' },
+      system: 'Air Intake & Filtration',
+      partsReplaced: ['Primary Heavy Air Filter Cartridge', 'Secondary Safety Inner Filter'],
+      notes: 'Cleaned intake manifold housing and replaced both primary and safety air filter cartridges.'
+    },
+  ];
+
+  const selectedService = serviceItems.find(s => s.id === selectedServiceId) || serviceItems[0];
+
+  const truckImageRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isFirstMount = useRef<boolean>(true);
+
+  // Play 3-second exploded video when Service History is triggered
+  useEffect(() => {
+    if (isExplodedView && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isExplodedView]);
+
+  // GSAP animation targeting ONLY the truck image element
+  useEffect(() => {
+    if (!truckImageRef.current) return;
+    const imgEl = truckImageRef.current;
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    gsap.killTweensOf(imgEl);
+
+    if (isExplodedView) {
+      const tl = gsap.timeline();
+      tl.to(imgEl, {
+        scale: 0.82,
+        opacity: 0.15,
+        rotationY: 18,
+        duration: 0.3,
+        ease: 'power2.in',
+        onComplete: () => {
+          imgEl.src = truckExplodedImg;
+        }
+      })
+      .to(imgEl, {
+        scale: 1.05,
+        opacity: 1,
+        rotationY: 0,
+        filter: 'drop-shadow(0 20px 30px rgba(250, 99, 78, 0.25))',
+        duration: 0.5,
+        ease: 'back.out(1.4)'
+      })
+      .to(imgEl, {
+        scale: 1,
+        duration: 0.2,
+        ease: 'power1.out'
+      });
+    } else {
+      const tl = gsap.timeline();
+      tl.to(imgEl, {
+        scale: 0.85,
+        opacity: 0.15,
+        rotationY: -18,
+        duration: 0.25,
+        ease: 'power2.in',
+        onComplete: () => {
+          imgEl.src = truckNewImg;
+        }
+      })
+      .to(imgEl, {
+        scale: 1,
+        opacity: 1,
+        rotationY: 0,
+        filter: 'none',
+        duration: 0.4,
+        ease: 'power2.out'
+      });
+    }
+  }, [isExplodedView]);
+
+  // GSAP ScrollTrigger entrance animation for truck image
+  useEffect(() => {
+    if (!truckImageRef.current) return;
+    const imgEl = truckImageRef.current;
+
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: imgEl,
+        start: 'top 85%',
+        end: 'bottom 15%',
+        onEnter: () => {
+          gsap.fromTo(imgEl, { opacity: 0.8, y: 15 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' });
+        }
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
 
   const getNorm = (status?: string) => (status || '').toLowerCase().replace(/[\s\-_]+/g, '');
 
@@ -402,7 +555,19 @@ export default function CargoLoadingView() {
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
           {renderStatusBadge(vehicleStatus)}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Button 
+            onClick={() => setIsExplodedView(prev => !prev)}
+            className={`font-bold text-xs gap-2 h-9 rounded-xl px-4 transition-all cursor-pointer shadow-xs ${
+              isExplodedView
+                ? 'bg-[#FA634E] hover:bg-[#e0533e] text-white'
+                : 'bg-[#3E3C3D] hover:bg-slate-900 text-white'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            <span>{isExplodedView ? 'Close Service History' : 'Service History'}</span>
+          </Button>
+
           <Button 
             onClick={() => navigate(`/vehicles/${vehicle?.id || id}/edit`)}
             className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-2 h-9 text-xs shadow-xs rounded-xl px-4 transition-colors"
@@ -638,59 +803,145 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* BOX 2: Vehicle Documents & Validity (Clean Vertically-Centered List + More Details Button) */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
-            <div className="flex items-center justify-between shrink-0 mb-1">
+          {/* BOX 2: White Sidebar - Documents & Validity OR Vehicle Service History */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+            {/* Box Header */}
+            <div className="flex items-center justify-between shrink-0 mb-2 pb-2 border-b border-slate-100">
               <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                Documents & Validity
+                {isExplodedView ? (
+                  <>
+                    <Wrench className="w-3.5 h-3.5 text-[#FA634E]" />
+                    Vehicle Service History
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    Documents &amp; Validity
+                  </>
+                )}
               </h2>
-              <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
+
+              <button
+                type="button"
+                onClick={() => setIsExplodedView(prev => !prev)}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                  isExplodedView
+                    ? 'bg-orange-50 border-orange-200 text-[#FA634E]'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {isExplodedView ? 'Documents' : 'Service History'}
+              </button>
             </div>
 
-            {/* Document list stretching vertically with equal centered slots */}
-            <div className="flex-1 my-1 flex flex-col rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30 min-h-0">
-              {/* 1. Istimara */}
-              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Istimara</span>
+            {isExplodedView ? (
+              /* SERVICE HISTORY WHITE SIDEBAR CONTENT */
+              <div className="flex-1 flex flex-col justify-between space-y-2.5 min-h-0 overflow-y-auto">
+                {/* Service Timeline Records List */}
+                <div className="space-y-1.5">
+                  {serviceItems.map((item) => {
+                    const isSelected = item.id === selectedServiceId;
+                    const IconComp = item.icon;
+                    return (
+                      <div
+                        key={`serv-side-${item.id}`}
+                        onClick={() => setSelectedServiceId(item.id)}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                          isSelected
+                            ? 'border-[#FA634E] bg-orange-50/40 ring-1 ring-orange-200 shadow-2xs'
+                            : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <div className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 border mt-0.5 ${
+                            isSelected ? 'bg-[#FA634E] text-white border-transparent' : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                            <IconComp className="w-3.5 h-3.5" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-[9.5px] font-bold text-slate-400">{item.date}</p>
+                              <span className="text-[9.5px] font-black text-[#FA634E]">{item.cost}</span>
+                            </div>
+                            <p className="text-xs font-black text-slate-900 leading-tight truncate">{item.title}</p>
+                            <p className="text-[9.5px] font-semibold text-slate-500 truncate mt-0.5">{item.workshop}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
-              </div>
-              {/* 2. Insurance */}
-              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Insurance</span>
+
+                {/* Selected Service Breakdown Card inside White Sidebar */}
+                <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200/80 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {selectedService.system}
+                    </span>
+                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                      {selectedService.status}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <p className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">Replaced Parts</p>
+                    <ul className="mt-0.5 space-y-0.5">
+                      {selectedService.partsReplaced.map((part, pIdx) => (
+                        <li key={pIdx} className="text-[10px] font-bold text-slate-700 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#FA634E] shrink-0"></span>
+                          <span className="truncate">{part}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[9.5px] font-bold text-slate-500">
+                    <span>Odometer: <strong className="text-slate-900 font-mono">{selectedService.odometer}</strong></span>
+                    <span>Cost: <strong className="text-[#FA634E] font-mono">{selectedService.cost}</strong></span>
+                  </div>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
               </div>
-              {/* 3. Operation Card */}
-              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
+            ) : (
+              /* DOCUMENTS & VALIDITY DEFAULT CONTENT */
+              <div className="flex-1 my-1 flex flex-col rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30 min-h-0">
+                <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-800">Istimara</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
                 </div>
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
-              </div>
-              {/* 4. SASO Plates */}
-              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
+                <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-800">Insurance</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
-              </div>
-              {/* 5. FAHAS */}
-              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
+                <div className="flex items-center justify-between px-3 py-1 flex-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (20 May 2027)</span>
+                <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (20 May 2027)</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Horizontal More Details Button at bottom */}
             <Button
@@ -708,149 +959,182 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-8 flex flex-col justify-start gap-3.5 min-w-0">
           
           {/* Truck Cargo Visualizer */}
-          <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
+          <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 min-h-[260px] sm:min-h-[300px] shadow-2xs">
             
-            {/* Inner wrapper starting flush near left sidebar and extending out right */}
             <div className="relative w-[110%] sm:w-[114%] max-w-none -ml-2 sm:-ml-3 transition-all">
-              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
               
-              {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
-              <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
-                
-                {/* ── LEFT SECTION: Odometer & Service Progress ── */}
-                <div className="w-[36%] flex flex-col justify-start gap-2 pt-0.5 shrink-0 min-w-0">
-                  
-                  {/* Top Header */}
-                  <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                        <Gauge className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight tracking-tight truncate">Odometer</h3>
+              {/* Truck Visualizer Element - Renders 3s Exploded Video when active, standard image when normal */}
+              {isExplodedView ? (
+                <video
+                  ref={videoRef}
+                  src={truckAnimation3sVideo}
+                  muted
+                  playsInline
+                  className="w-full h-auto object-contain block transform-gpu cursor-pointer rounded-xl shadow-xs transition-all duration-300"
+                  onClick={() => setIsExplodedView(false)}
+                  title="Click to exit Exploded View"
+                />
+              ) : (
+                <img 
+                  ref={truckImageRef}
+                  src={truckNewImg} 
+                  alt="Truck Visualizer" 
+                  className="w-full h-auto object-contain block transform-gpu cursor-pointer transition-all duration-300"
+                  onClick={() => setIsExplodedView(prev => !prev)}
+                  title="Click to toggle Exploded View"
+                />
+              )}
+
+              {/* Hotspot Markers over Exploded View when active */}
+              {isExplodedView && serviceItems.map((serv) => {
+                const isSelected = serv.id === selectedServiceId;
+                const IconComp = serv.icon;
+                return (
+                  <div
+                    key={`hotspot-${serv.id}`}
+                    style={{ top: serv.hotspot.top, left: serv.hotspot.left }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedServiceId(serv.id);
+                    }}
+                    className="absolute z-30 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <span className={`animate-ping absolute inline-flex h-7 w-7 rounded-full ${isSelected ? 'bg-[#FA634E] opacity-75' : 'bg-blue-400 opacity-40'}`}></span>
+                      <div className={`relative w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 transition-all ${
+                        isSelected 
+                          ? 'bg-[#FA634E] text-white border-white ring-4 ring-orange-500/30 scale-110' 
+                          : 'bg-slate-900 text-slate-200 border-slate-600 hover:border-slate-300 hover:scale-105'
+                      }`}>
+                        <IconComp className="w-3.5 h-3.5" />
                       </div>
                     </div>
 
-                    <Badge className="bg-slate-100 text-[#3E3C3D] dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold px-2 py-0.5 text-[9px] rounded-lg shadow-none flex items-center gap-1 shrink-0">
-                      <span className="w-1.5 h-1.5 bg-[#3E3C3D] dark:bg-slate-300 rounded-full"></span>
-                      Active
-                    </Badge>
+                    <div className={`absolute left-1/2 -translate-x-1/2 top-8 whitespace-nowrap px-2 py-0.5 rounded-md text-[9.5px] font-extrabold shadow-md border transition-all ${
+                      isSelected 
+                        ? 'bg-[#FA634E] text-white border-orange-400' 
+                        : 'bg-slate-900/90 text-slate-300 border-slate-700'
+                    }`}>
+                      {serv.system}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* Floating HUD Cards on Standard View */}
+              {!isExplodedView && (
+                <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
+                  
+                  {/* LEFT SECTION: Odometer */}
+                  <div className="w-[36%] flex flex-col justify-start gap-2 pt-0.5 shrink-0 min-w-0">
+                    <div className="flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-xl bg-slate-100 text-[#3E3C3D] flex items-center justify-center shrink-0 border border-slate-200">
+                          <Gauge className="w-4 h-4 text-[#3E3C3D]" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] leading-tight tracking-tight truncate">Odometer</h3>
+                        </div>
+                      </div>
+
+                      <Badge className="bg-slate-100 text-[#3E3C3D] border border-slate-200 font-bold px-2 py-0.5 text-[9px] rounded-lg shadow-none flex items-center gap-1 shrink-0">
+                        <span className="w-1.5 h-1.5 bg-[#3E3C3D] rounded-full"></span>
+                        Active
+                      </Badge>
+                    </div>
+
+                    <div className="pt-1">
+                      <div className="bg-slate-100 p-2 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-center gap-1">
+                        <div className="flex items-center gap-0.5 sm:gap-1">
+                          {(() => {
+                            const rawOdo = vehicle?.current_odometer || 7944500;
+                            const strOdo = String(rawOdo);
+                            const padLen = Math.max(7, strOdo.length);
+                            const digitArray = strOdo.padStart(padLen, '0').split('');
+
+                            return digitArray.map((digit, idx) => (
+                              <div
+                                key={idx}
+                                className="relative w-4.5 h-6.5 sm:w-5 sm:h-7 bg-white text-[#3E3C3D] font-mono font-black text-xs sm:text-sm rounded border border-slate-300 shadow-2xs flex items-center justify-center overflow-hidden shrink-0 select-none"
+                              >
+                                <span className="relative z-10">{digit}</span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                        <span className="text-xs font-black text-[#3E3C3D] ml-1 shrink-0">km</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Clean Subtle Odometer Wheel Box */}
-                  <div className="pt-1">
-                    <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center gap-1">
-                      <div className="flex items-center gap-0.5 sm:gap-1">
-                        {(() => {
-                          const rawOdo = vehicle?.current_odometer || 7944500;
-                          const strOdo = String(rawOdo);
-                          const padLen = Math.max(7, strOdo.length);
-                          const digitArray = strOdo.padStart(padLen, '0').split('');
+                  <div className="w-[1px] bg-slate-300 my-1 shrink-0" />
 
-                          return digitArray.map((digit, idx) => (
-                            <div
-                              key={idx}
-                              className="relative w-4.5 h-6.5 sm:w-5 sm:h-7 bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 font-mono font-black text-xs sm:text-sm rounded border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center justify-center overflow-hidden shrink-0 select-none"
-                            >
-                              <span className="relative z-10">
-                                {digit}
-                              </span>
-                            </div>
-                          ));
-                        })()}
+                  {/* RIGHT SECTION: Vehicle Service History Quick Overview */}
+                  <div 
+                    className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden space-y-1 group/serv cursor-pointer hover:bg-slate-50/50 p-1 rounded-xl transition-all"
+                    onClick={() => {
+                      setIsExplodedView(true);
+                      setSelectedServiceId(1);
+                    }}
+                    title="Click to view Exploded View & Service History"
+                  >
+                    <div className="flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-xl bg-slate-100 text-[#3E3C3D] flex items-center justify-center shrink-0 border border-slate-200 group-hover/serv:border-[#FA634E] group-hover/serv:text-[#FA634E] transition-colors">
+                          <Wrench className="w-4 h-4 text-[#3E3C3D] group-hover/serv:text-[#FA634E]" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] tracking-tight leading-tight truncate group-hover/serv:text-[#FA634E] transition-colors">Vehicle Service History</h3>
+                        </div>
                       </div>
-                      <span className="text-xs font-black text-[#3E3C3D] dark:text-slate-200 ml-1 shrink-0">
-                        km
+
+                      <span className="text-[10px] font-extrabold text-[#FA634E] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg shrink-0 flex items-center gap-1 group-hover/serv:bg-[#FA634E] group-hover/serv:text-white transition-all shadow-2xs">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Service History
                       </span>
                     </div>
-                  </div>
 
-                </div>
+                    <div className="relative flex-1 min-h-0 flex flex-col justify-between py-1 my-0.5">
+                      <div className="absolute left-[9px] top-2 bottom-2 w-[1.5px] bg-slate-300" />
 
-                {/* Vertical Divider Line between Left and Right sections */}
-                <div className="w-[1px] bg-slate-300 dark:bg-slate-700 my-1 shrink-0" />
+                      {serviceItems.map((item) => {
+                        const IconComp = item.icon;
+                        return (
+                          <div 
+                            key={item.id} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsExplodedView(true);
+                              setSelectedServiceId(item.id);
+                            }}
+                            className="relative flex items-center justify-between gap-2 pl-4 min-w-0 group/item hover:bg-slate-100/80 p-0.5 rounded-md transition-colors"
+                          >
+                            <div
+                              className={`absolute left-[6px] rounded-full z-10 ${
+                                item.isRecent
+                                  ? 'w-2.5 h-2.5 bg-[#FA634E] ring-2 ring-orange-100'
+                                  : 'w-2 h-2 bg-slate-400 ring-2 ring-slate-100'
+                              }`}
+                            />
 
-                {/* ── RIGHT SECTION: Vehicle Service History ── */}
-                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden space-y-1">
-                  
-                  {/* Header */}
-                  <div className="flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                        <Calendar className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight leading-tight truncate">Vehicle Service History</h3>
-                      </div>
+                            <div className="w-6 h-6 rounded-lg bg-slate-100 text-[#3E3C3D] border border-slate-200 flex items-center justify-center shrink-0 group-hover/item:border-[#FA634E] transition-colors">
+                              <IconComp className="w-3 h-3 text-[#3E3C3D]" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
+                              <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] leading-tight truncate group-hover/item:text-[#FA634E] transition-colors">{item.title}</p>
+                              <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <span className="text-[10px] font-extrabold text-[#3E3C3D] dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-lg shrink-0">
-                      3 Records
-                    </span>
-                  </div>
-
-                  {/* Service Timeline Entries */}
-                  <div className="relative flex-1 min-h-0 flex flex-col justify-between py-1 my-0.5">
-                    {/* Vertical Connector Line */}
-                    <div className="absolute left-[9px] top-2 bottom-2 w-[1.5px] bg-slate-300 dark:bg-slate-700" />
-
-                    {[
-                      {
-                        id: 1,
-                        date: '12 Aug 2026',
-                        title: 'Engine Oil & Filter Service',
-                        workshop: 'Zahid Heavy Equipment Workshop',
-                        icon: Droplets,
-                        isRecent: true,
-                      },
-                      {
-                        id: 2,
-                        date: '25 Jun 2026',
-                        title: 'Brake Pad Replacement',
-                        workshop: 'Al-Refaei Truck Service Center',
-                        icon: Disc,
-                        isRecent: false,
-                      },
-                      {
-                        id: 3,
-                        date: '14 Mar 2026',
-                        title: 'Air Filter Replacement',
-                        workshop: 'Saudi Heavy Maintenance Hub',
-                        icon: Wind,
-                        isRecent: false,
-                      },
-                    ].map((item) => {
-                      const IconComp = item.icon;
-                      return (
-                        <div key={item.id} className="relative flex items-center justify-between gap-2 pl-4 min-w-0">
-                          {/* Timeline node dot */}
-                          <div
-                            className={`absolute left-[6px] rounded-full z-10 ${
-                              item.isRecent
-                                ? 'w-2.5 h-2.5 bg-[#3E3C3D] dark:bg-slate-200 ring-2 ring-slate-200 dark:ring-slate-700'
-                                : 'w-2 h-2 bg-slate-400 ring-2 ring-slate-100 dark:ring-slate-800'
-                            }`}
-                          />
-
-                          {/* Item Icon */}
-                          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
-                            <IconComp className="w-3 h-3 text-[#3E3C3D] dark:text-slate-200" />
-                          </div>
-
-                          {/* Main Service Details */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
-                            <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 leading-tight truncate">{item.title}</p>
-                            <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
 
                 </div>
+              )}
 
-              </div>
             </div>
           </div>
 

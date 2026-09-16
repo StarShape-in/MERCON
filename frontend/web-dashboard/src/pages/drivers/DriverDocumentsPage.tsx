@@ -77,7 +77,7 @@ export default function DriverDocumentsPage() {
               onClick={() => navigate('/drivers')}
               className="h-7 text-xs font-medium border-slate-200 dark:border-slate-800 px-2.5"
             >
-              Driver Roster
+              Drivers
             </Button>
           </div>
         </div>
