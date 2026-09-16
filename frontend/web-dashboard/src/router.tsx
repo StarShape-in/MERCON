@@ -49,7 +49,6 @@ const DriverDetailsPage       = lazyWithRetry(() => import('@/pages/drivers/Driv
 const AddDriverPage           = lazyWithRetry(() => import('@/pages/drivers/AddDriverPage'));
 const EditDriverPage          = lazyWithRetry(() => import('@/pages/drivers/EditDriverPage'));
 const DriverDocumentsPage     = lazyWithRetry(() => import('@/pages/drivers/DriverDocumentsPage'));
-const DriverTripsPage          = lazyWithRetry(() => import('@/pages/drivers/DriverTripsPage'));
 
 // Vehicles
 const VehicleListPage         = lazyWithRetry(() => import('@/pages/vehicles/VehicleListPage'));
@@ -206,7 +205,6 @@ export default function AppRouter() {
             <Route path="/drivers/:id"              element={<RequireModule moduleKey="drivers"><WithIdKey Page={DriverDetailsPage} /></RequireModule>} />
             <Route path="/drivers/:id/edit"         element={<RequireModule moduleKey="drivers"><EditDriverPage /></RequireModule>} />
             <Route path="/drivers/:id/documents"    element={<RequireModule moduleKey="drivers"><DriverDocumentsPage /></RequireModule>} />
-            <Route path="/drivers/:id/trips"        element={<RequireModule moduleKey="drivers"><DriverTripsPage /></RequireModule>} />
 
             {/* Vehicles */}
             <Route path="/vehicles"                 element={<RequireModule moduleKey="vehicles"><VehicleListPage /></RequireModule>} />

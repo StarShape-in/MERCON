@@ -337,6 +337,7 @@ export default function DriverDetailsPage() {
 
   const trips = driver.trips || [];
   const assignedVehicle = driver.assignedVehicle;
+  const driverName = `${driver.first_name || ''} ${driver.last_name || ''}`.trim();
 
   // Active Live Trip (if currently on trip)
   const activeTrip = trips.find(t => {
@@ -504,7 +505,7 @@ export default function DriverDetailsPage() {
                       </div>
                       <div className="min-w-0">
                         <div
-                          onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
+                          onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                           className="flex items-center gap-1 cursor-pointer group/title mb-1"
                           title="View active dispatches"
                         >
@@ -642,7 +643,7 @@ export default function DriverDetailsPage() {
                       <span>Open Trip</span>
                     </Button>
                     <Button
-                      onClick={() => navigate(`/drivers/${driver.id}/trips`)}
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
                       variant="ghost"
                       className="flex-1 h-7 px-3 text-[10px] font-bold text-slate-700 hover:text-slate-900 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full flex items-center justify-center gap-1 transition-colors shadow-2xs cursor-pointer"
                     >
@@ -674,9 +675,9 @@ export default function DriverDetailsPage() {
               {/* Header Bar */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div
-                  onClick={() => navigate(`/drivers/${driver.id}/trips`)}
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
                   className="flex items-center gap-2.5 cursor-pointer group/title"
-                  title="Click to view detailed driver trips & delay analysis"
+                  title="Click to view driver trips"
                 >
                   <div className="w-8 h-8 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs group-hover/title:bg-[#FA634E] transition-colors">
                     <TrendingUp className="w-4 h-4 text-[#FA634E] group-hover/title:text-white" />
@@ -722,7 +723,7 @@ export default function DriverDetailsPage() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => navigate(`/drivers/${driver.id}/trips?status=Completed`)}
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Completed`)}
                       className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -730,7 +731,7 @@ export default function DriverDetailsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                       className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -738,7 +739,7 @@ export default function DriverDetailsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                       className="flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                     >
                       <span className="w-2 h-2 rounded-full bg-amber-500"></span>
@@ -747,7 +748,7 @@ export default function DriverDetailsPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate(`/drivers/${driver.id}/trips`)}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
                     className="text-slate-400 font-semibold hover:text-slate-700 hover:underline cursor-pointer"
                   >
                     {metrics.totalCount} Total Dispatches
@@ -760,19 +761,19 @@ export default function DriverDetailsPage() {
                     className="h-full bg-emerald-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ width: `${metrics.completedPct}%` }}
                     title={`${metrics.completedPct}% Delivered — click to view`}
-                    onClick={() => navigate(`/drivers/${driver.id}/trips?status=Completed`)}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Completed`)}
                   />
                   <div
                     className="h-full bg-blue-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ width: `${metrics.inTransitPct}%` }}
                     title={`${metrics.inTransitPct}% In Transit — click to view`}
-                    onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                   />
                   <div
                     className="h-full bg-amber-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ width: `${metrics.dispatchedPct}%` }}
                     title={`${metrics.dispatchedPct}% Dispatched — click to view`}
-                    onClick={() => navigate(`/drivers/${driver.id}/trips?status=Active`)}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                   />
                 </div>
               </div>
@@ -870,9 +871,9 @@ export default function DriverDetailsPage() {
               {/* Card Header */}
               <div className="flex items-center justify-between shrink-0 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <div
-                  onClick={() => navigate(`/drivers/${driver.id}/trips?status=Delayed`)}
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Delayed`)}
                   className="flex items-center gap-2.5 cursor-pointer group/title"
-                  title="Click to view driver work hours & delay analysis"
+                  title="Click to view driver trips"
                 >
                   <div className="w-7 h-7 rounded-lg bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center group-hover/title:bg-[#FA634E] transition-colors">
                     <Clock className="w-3.5 h-3.5 text-[#FA634E] group-hover/title:text-white" />
@@ -947,7 +948,7 @@ export default function DriverDetailsPage() {
               {/* Header Row */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div
-                  onClick={() => navigate(`/drivers/${driver.id}/trips?status=Delayed`)}
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Delayed`)}
                   className="flex items-center gap-2 cursor-pointer group/title"
                   title="Click to view driver performance & efficiency analysis"
                 >
