@@ -250,6 +250,8 @@ export default function CreateTripPage() {
                         setSelectedDates={form.setSelectedDates}
                         contractSlotsCount={form.contractSlots.length}
                         masterDriver={form.masterDriver}
+                        masterCoDriver={form.masterCoDriver}
+                        setMasterCoDriver={form.setMasterCoDriver}
                         masterVehicle={form.masterVehicle}
                         handleDriverChange={form.handleDriverChange}
                         handleVehicleChange={form.handleVehicleChange}

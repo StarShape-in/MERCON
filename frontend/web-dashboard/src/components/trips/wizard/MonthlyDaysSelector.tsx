@@ -47,6 +47,8 @@ interface MonthlyDaysSelectorProps {
   setSelectedDates: React.Dispatch<React.SetStateAction<string[]>>;
   contractSlotsCount?: number;
   masterDriver?: string;
+  masterCoDriver?: string;
+  setMasterCoDriver?: (val: string) => void;
   masterVehicle?: string;
   handleDriverChange?: (val: string) => string | null | void;
   handleVehicleChange?: (val: string) => void;
@@ -80,6 +82,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
   setSelectedDates,
   contractSlotsCount = 1,
   masterDriver = '',
+  masterCoDriver = '',
+  setMasterCoDriver,
   masterVehicle = '',
   handleDriverChange,
   handleVehicleChange,
@@ -105,7 +109,6 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
   contractVehicleType = '10 TON',
   setContractVehicleType,
 }) => {
-  const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
   const monthDates = useMemo(() => getMonthDates(selectedMonth), [selectedMonth]);
 
@@ -646,7 +649,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setCoDriver('');
+                        if (setMasterCoDriver) setMasterCoDriver('');
                         setShowCoDriver(false);
                       }}
                       className="text-slate-400 hover:text-rose-600 cursor-pointer"
@@ -656,8 +659,10 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                   </div>
                   <Combobox
                     options={driverOptions.filter((d) => d.value !== masterDriver)}
-                    value={coDriver}
-                    onChange={setCoDriver}
+                    value={masterCoDriver}
+                    onChange={(val) => {
+                      if (setMasterCoDriver) setMasterCoDriver(val);
+                    }}
                     placeholder="Select co-driver..."
                     searchPlaceholder="Search co-driver name..."
                     triggerClassName="h-7 text-xs font-semibold"

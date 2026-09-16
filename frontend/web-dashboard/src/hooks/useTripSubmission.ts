@@ -16,6 +16,7 @@ export function useTripSubmission(
   contractBillingType: string,
   assignmentType: string,
   masterDriver: string,
+  masterCoDriver: string,
   masterVehicle: string,
   thirdPartyProviderId: string,
   thirdPartyDriverName: string,
@@ -530,7 +531,7 @@ export function useTripSubmission(
 
           const coDriverId = (assignment.coDriverId && assignment.coDriverId !== 'unassigned')
             ? assignment.coDriverId
-            : undefined;
+            : (masterCoDriver && masterCoDriver !== 'unassigned' ? masterCoDriver : undefined);
 
           const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || 0);
           const shouldUpdateQuotation = Boolean(slot.updateQuotationPayout || slot.driverPayoutModified);

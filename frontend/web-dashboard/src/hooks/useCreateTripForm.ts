@@ -169,6 +169,7 @@ export function useCreateTripForm() {
   const initialAssignment = (urlAssignmentInit?.toLowerCase() === 'third_party' || urlAssignmentInit?.toLowerCase() === '3pl') ? 'third_party' : 'own';
   const [assignmentType, setAssignmentType] = useState<'own' | 'third_party'>(initialAssignment);
   const [masterDriver, setMasterDriver] = useState('');
+  const [masterCoDriver, setMasterCoDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
   const [isVehicleTypeEditable, setIsVehicleTypeEditable] = useState(false);
   const [isCustomThirdPartyVehicleType, setIsCustomThirdPartyVehicleType] = useState(false);
@@ -1009,6 +1010,7 @@ export function useCreateTripForm() {
     contractBillingType,
     assignmentType,
     masterDriver,
+    masterCoDriver,
     masterVehicle,
     thirdPartyProviderId,
     thirdPartyDriverName,
@@ -1272,6 +1274,8 @@ export function useCreateTripForm() {
     setAssignmentType,
     masterDriver,
     setMasterDriver,
+    masterCoDriver,
+    setMasterCoDriver,
     masterVehicle,
     setMasterVehicle,
     isVehicleTypeEditable,
