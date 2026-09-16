@@ -154,8 +154,12 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
 
   const totalStops = normalizedStops.length;
   const completedCount = normalizedStops.filter((s) => s.status === 'completed').length;
-  const rawProgress = isTripFullyCompleted ? 100 : Math.round((completedCount / totalStops) * 100);
-  const progressPercent = rawProgress > 0 ? rawProgress : 78; // Default ~78% matching image when in transit
+  const rawProgress = isTripFullyCompleted
+    ? 100
+    : totalStops > 1
+    ? Math.round((completedCount / (totalStops - 1)) * 100)
+    : 100;
+  const progressPercent = rawProgress > 0 ? Math.min(100, rawProgress) : 0;
 
   const originCity = normalizedStops[0]?.city || 'Origin';
   const turnaroundOrDestCity = useMemo(() => {
@@ -166,79 +170,106 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
     return normalizedStops[normalizedStops.length - 1]?.city || 'Destination';
   }, [isRoundTrip, normalizedStops]);
 
-  const routeTitle = isRoundTrip
-    ? `${originCity} → ${turnaroundOrDestCity} · Round Trip`
-    : `${originCity} → ${turnaroundOrDestCity} Corridor`;
-
-  // Display origin and destination points at the ends of the line
-  const displayStops = [normalizedStops[0], normalizedStops[normalizedStops.length - 1]];
+  const routeTitle = useMemo(() => {
+    if (normalizedStops.length <= 2) {
+      return isRoundTrip
+        ? `${originCity} → ${turnaroundOrDestCity} · Round Trip`
+        : `${originCity} → ${turnaroundOrDestCity} Corridor`;
+    }
+    const cities = normalizedStops.map((s) => s.city).filter(Boolean);
+    const chain = cities.join(' → ');
+    if (chain.length <= 48) return chain;
+    return `${originCity} → ... → ${cities[cities.length - 1]} (${totalStops} Stops)`;
+  }, [normalizedStops, originCity, turnaroundOrDestCity, isRoundTrip, totalStops]);
 
   return (
-    <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-5 sm:py-3.5 gap-2">
-      {/* ── 1. TOP HEADER: ROUTE SUMMARY & PROGRESS STATUS ── */}
-      <div className="flex items-center justify-between w-full">
+    <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-5 sm:py-3.5 gap-3">
+      {/* ── 1. TOP HEADER: ROUTE SUMMARY & INLINE TELEMETRY ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-orange-100/70 dark:bg-orange-950/60 flex items-center justify-center text-[#FA634E] shrink-0">
             <Navigation className="w-4 h-4 fill-current transform rotate-45" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm text-[#1F2937] dark:text-slate-100 tracking-tight leading-none">
+            <h3 className="font-extrabold text-sm text-[#1F2937] dark:text-slate-100 tracking-tight leading-none" title={routeTitle}>
               {routeTitle}
             </h3>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              {totalStops} Milestones • {isRoundTrip ? 'Round Trip Transit' : 'Direct Commercial Transit'}
+              {totalStops} {totalStops === 1 ? 'Milestone' : 'Milestones'} • {isRoundTrip ? 'Round Trip Transit' : totalStops > 2 ? 'Multi-Stop Commercial Route' : 'Direct Commercial Transit'}
             </p>
           </div>
         </div>
 
-        {/* Status Pill Badge */}
-        <div className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs",
-          isTripFullyCompleted || progressPercent === 100
-            ? "bg-[#E6F4EA] dark:bg-emerald-950/50 text-[#0F9D58] dark:text-emerald-400 border-[#CEEAD6] dark:border-emerald-800"
-            : isDelayed
-            ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200/80 dark:border-rose-900/60"
-            : "bg-orange-50 dark:bg-orange-950/50 text-[#FA634E] dark:text-orange-400 border-orange-200/80 dark:border-orange-900/60"
-        )}>
-          <span className={cn(
-            "w-2 h-2 rounded-full",
+        {/* Header Telemetry Pills & Status Badge */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {/* Status Metric */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50">
+            <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 capitalize">
+              {isTripFullyCompleted
+                ? 'Completed'
+                : tripStatus
+                ? String(tripStatus).replace(/([A-Z])/g, ' $1').trim()
+                : 'Scheduled'}
+            </span>
+          </div>
+
+          {/* Schedule Metric */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+            <Clock className={cn("w-3.5 h-3.5", isDelayed ? "text-rose-500" : "text-emerald-500")} />
+            <span className={cn("text-[11px] font-bold", isDelayed ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>
+              {isTripFullyCompleted ? 'On Time' : isDelayed ? 'Delayed' : 'On Time'}
+            </span>
+          </div>
+
+          {/* Main Status Pill Badge */}
+          <div className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs",
             isTripFullyCompleted || progressPercent === 100
-              ? "bg-[#0F9D58]"
+              ? "bg-[#E6F4EA] dark:bg-emerald-950/50 text-[#0F9D58] dark:text-emerald-400 border-[#CEEAD6] dark:border-emerald-800"
               : isDelayed
-              ? "bg-rose-500 animate-pulse"
-              : "bg-[#FA634E] animate-pulse"
-          )} />
-          <span>
-            {isTripFullyCompleted || progressPercent === 100
-              ? 'Delivered'
-              : isDelayed
-              ? 'Delayed'
-              : progressPercent > 0
-              ? 'In Transit'
-              : 'Scheduled'}
-          </span>
+              ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200/80 dark:border-rose-900/60"
+              : "bg-orange-50 dark:bg-orange-950/50 text-[#FA634E] dark:text-orange-400 border-orange-200/80 dark:border-orange-900/60"
+          )}>
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              isTripFullyCompleted || progressPercent === 100
+                ? "bg-[#0F9D58]"
+                : isDelayed
+                ? "bg-rose-500 animate-pulse"
+                : "bg-[#FA634E] animate-pulse"
+            )} />
+            <span>
+              {isTripFullyCompleted || progressPercent === 100
+                ? 'Delivered'
+                : isDelayed
+                ? 'Delayed'
+                : progressPercent > 0
+                ? 'In Transit'
+                : 'Scheduled'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── 2. VISUAL ROUTE TRACK, MILESTONES & INLINE TELEMETRY (ALL IN SAME ROW) ── */}
-      <div className="relative w-full pt-4 pb-0.5">
-        {/* Track Line & Stop Icons Container */}
-        <div className="relative w-full px-6 sm:px-12 flex items-start justify-between">
+      {/* ── 2. VISUAL ROUTE TRACK & MILESTONES (ALL STOPS RENDERED) ── */}
+      <div className="relative w-full pt-4 pb-1">
+        <div className="relative w-full px-6 sm:px-10 flex items-start justify-between">
           
           {/* Base Remaining Route Line (Orange) & Completed Route Line (Green) */}
-          <div className="absolute left-[64px] sm:left-[98px] right-[64px] sm:right-[98px] top-2.5 -translate-y-1/2 h-[2.5px] bg-[#FA634E] dark:bg-orange-600 rounded-full pointer-events-none z-0">
+          <div className="absolute left-[54px] sm:left-[82px] right-[54px] sm:right-[82px] top-2.5 -translate-y-1/2 h-[3px] bg-[#FA634E] dark:bg-orange-600 rounded-full pointer-events-none z-0">
             {/* Completed Route Line (Green) */}
             <div
               className="h-full bg-[#10B981] dark:bg-emerald-500 rounded-full transition-all duration-500 relative"
-              style={{ width: `${isTripFullyCompleted ? 100 : Math.min(95, Math.max(5, progressPercent))}%` }}
+              style={{ width: `${isTripFullyCompleted ? 100 : Math.min(100, Math.max(0, progressPercent))}%` }}
             >
               {/* Official MERCON 3D Truck Image with Operator Highlight */}
               <div className={cn(
-                "absolute right-0 top-1/2 -translate-y-[62%] z-50 pointer-events-none flex flex-col items-center transition-all duration-500",
+                "absolute right-0 top-1/2 -translate-y-[55%] z-40 pointer-events-none flex flex-col items-center transition-all duration-500",
                 isTripFullyCompleted ? "translate-x-[50%]" : "translate-x-[40%]"
               )}>
                 {/* Glowing Live GPS Target Halo & Radial Glow Backdrop (Active In-Transit Only) */}
-                {!isTripFullyCompleted && (
+                {!isTripFullyCompleted && progressPercent > 0 && (
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[35%] w-10 h-10 sm:w-12 sm:h-12 pointer-events-none z-0 flex items-center justify-center">
                     <div className={cn(
                       "w-full h-full rounded-full border-2 animate-ping",
@@ -259,7 +290,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                   src="/mercon_truck_3d.png"
                   alt="MERCON Logistics Truck"
                   className={cn(
-                    "h-11 sm:h-14 w-auto object-contain select-none pointer-events-none z-10 relative",
+                    "h-10 sm:h-12 w-auto object-contain select-none pointer-events-none z-40 relative drop-shadow-md",
                     !isTripFullyCompleted && (
                       isDelayed
                         ? "filter drop-shadow-[0_4px_10px_rgba(244,63,94,0.5)] dark:drop-shadow-[0_4px_12px_rgba(244,63,94,0.7)]"
@@ -271,132 +302,35 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
             </div>
           </div>
 
-          {/* Pickup Stop Column (Left) */}
-          {(() => {
-            const stop = displayStops[0];
-            const isDone = stop.status === 'completed' || isTripFullyCompleted || stop.isFirst;
+          {/* Render ALL Milestone Stops sequentially */}
+          {normalizedStops.map((stop, mIdx) => {
+            const isLastStop = mIdx === normalizedStops.length - 1;
+            const hideCheckmarkForLast = isLastStop && (isTripFullyCompleted || progressPercent >= 100);
+
+            const isDone = (stop.status === 'completed' || isTripFullyCompleted || (mIdx === 0 && (progressPercent > 0 || completedCount > 0))) && !hideCheckmarkForLast;
+            const isCurrent = stop.status === 'current' && !isTripFullyCompleted && !hideCheckmarkForLast;
+
             return (
-              <div key={`stop-col-${stop.id}`} className="relative z-10 flex flex-col items-center text-center min-w-[70px] sm:min-w-[90px]">
+              <div key={`stop-col-${stop.id}-${mIdx}`} className="relative z-10 flex flex-col items-center text-center min-w-[60px] sm:min-w-[85px] max-w-[120px]">
                 <div className="h-5 flex items-center justify-center">
-                  {isDone ? (
-                    <div className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center ring-4 ring-emerald-100 dark:ring-emerald-950/60 shadow-xs">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-900 border-2 border-[#FA634E] ring-4 ring-orange-100 dark:ring-orange-950/60 shadow-xs" />
-                  )}
-                </div>
-                <span className="font-extrabold text-xs sm:text-sm text-[#1F2937] dark:text-slate-100 tracking-tight truncate w-full text-center mt-1.5" title={stop.city}>
-                  {stop.city}
-                </span>
-                <span className="mt-0.5 px-2 py-0.5 rounded bg-slate-100/90 dark:bg-slate-800/90 text-[8.5px] sm:text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">
-                  {stop.label}
-                </span>
-                <span className="text-[10.5px] font-mono font-bold text-slate-400 dark:text-slate-500 mt-0.5">
-                  {stop.time}
-                </span>
-              </div>
-            );
-          })()}
-
-          {/* Middle Inline Telemetry Row (Positioned in exact same row between Pickup & Destination) */}
-          <div className="relative z-10 flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 mt-11.5 sm:mt-12.5 self-start max-w-[60%]">
-            {/* Metric 1: Trip Status */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-2xs">
-                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.4]" />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="font-black text-blue-700 dark:text-blue-300 tracking-tight text-xs sm:text-sm capitalize">
-                  {isTripFullyCompleted
-                    ? 'Completed'
-                    : tripStatus
-                    ? String(tripStatus).replace(/([A-Z])/g, ' $1').trim()
-                    : 'Scheduled'}
-                </span>
-                <span className="font-extrabold text-blue-600/70 dark:text-blue-400/70 text-[10px]">
-                  Status
-                </span>
-              </div>
-            </div>
-
-            <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-800 shrink-0" />
-
-            {/* Metric 2: Distance Remaining */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-orange-50 dark:bg-orange-950/60 flex items-center justify-center text-[#FA634E] dark:text-orange-400 shrink-0 shadow-2xs">
-                <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.4] transform rotate-45" />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="font-black text-[#1F2937] dark:text-slate-100 tracking-tight text-xs sm:text-sm">
-                  {isTripFullyCompleted ? '0 km' : '62 km'}
-                </span>
-                <span className="font-extrabold text-slate-500 dark:text-slate-400 text-[10px]">
-                  Remaining
-                </span>
-              </div>
-            </div>
-
-            <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-800 shrink-0" />
-
-            {/* Metric 3: On Time / Delayed */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className={cn(
-                "w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full flex items-center justify-center shrink-0 shadow-2xs",
-                isTripFullyCompleted
-                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-[#0F9D58] dark:text-emerald-400"
-                  : isDelayed
-                  ? "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
-                  : "bg-emerald-50 dark:bg-emerald-950/60 text-[#0F9D58] dark:text-emerald-400"
-              )}>
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.4]" />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className={cn(
-                  "font-black tracking-tight text-xs sm:text-sm",
-                  isTripFullyCompleted
-                    ? "text-[#0F9D58] dark:text-emerald-400"
-                    : isDelayed
-                    ? "text-rose-600 dark:text-rose-400"
-                    : "text-[#0F9D58] dark:text-emerald-400"
-                )}>
-                  {isTripFullyCompleted ? 'On Time' : isDelayed ? 'Delayed' : 'On Time'}
-                </span>
-                <span className={cn(
-                  "font-extrabold text-[10px]",
-                  isTripFullyCompleted
-                    ? "text-[#0F9D58]/70 dark:text-emerald-400/70"
-                    : isDelayed
-                    ? "text-rose-600/70 dark:text-rose-400/70"
-                    : "text-[#0F9D58]/70 dark:text-emerald-400/70"
-                )}>
-                  Schedule
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Destination Stop Column (Right) */}
-          {(() => {
-            const stop = displayStops[1];
-            const isDone = stop.status === 'completed';
-            return (
-              <div key={`stop-col-${stop.id}`} className="relative z-10 flex flex-col items-center text-center min-w-[70px] sm:min-w-[90px]">
-                <div className="h-5 flex items-center justify-center">
-                  {isTripFullyCompleted ? (
-                    <div className="w-5 h-5" />
+                  {hideCheckmarkForLast ? (
+                    <div className="w-5 h-5 rounded-full bg-transparent border-2 border-emerald-500/30" />
                   ) : isDone ? (
                     <div className="w-5 h-5 rounded-full bg-[#10B981] text-white flex items-center justify-center ring-4 ring-emerald-100 dark:ring-emerald-950/60 shadow-xs">
                       <Check className="w-3 h-3 stroke-[3]" />
                     </div>
+                  ) : isCurrent ? (
+                    <div className="w-5 h-5 rounded-full bg-[#FA634E] text-white flex items-center justify-center ring-4 ring-orange-100 dark:ring-orange-950/60 shadow-xs animate-pulse">
+                      <MapPin className="w-3 h-3 fill-current" />
+                    </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-900 border-2 border-[#FA634E] ring-4 ring-orange-100 dark:ring-orange-950/60 shadow-xs" />
+                    <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 ring-4 ring-slate-100 dark:ring-slate-800/60 shadow-xs" />
                   )}
                 </div>
                 <span className="font-extrabold text-xs sm:text-sm text-[#1F2937] dark:text-slate-100 tracking-tight truncate w-full text-center mt-1.5" title={stop.city}>
                   {stop.city}
                 </span>
-                <span className="mt-0.5 px-2 py-0.5 rounded bg-slate-100/90 dark:bg-slate-800/90 text-[8.5px] sm:text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">
+                <span className="mt-0.5 px-2 py-0.5 rounded bg-slate-100/90 dark:bg-slate-800/90 text-[8.5px] sm:text-[9px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                   {stop.label}
                 </span>
                 <span className="text-[10.5px] font-mono font-bold text-slate-400 dark:text-slate-500 mt-0.5">
@@ -404,7 +338,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                 </span>
               </div>
             );
-          })()}
+          })}
 
         </div>
       </div>
