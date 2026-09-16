@@ -1,16 +1,18 @@
 name: Promote Dev Checkpoint to Production
 
-# Safe DEV Checkpoint & Production Promotion System
+# Isolated Release-Candidate Checkpoint & Production Promotion System
 #
 # Architecture:
-# 1. DEV continuously receives development changes.
+# 1. DEV continuously receives development changes independently.
 # 2. Stable DEV is captured as an immutable CHECKPOINT (Git SHA + Metadata).
-# 3. Sentinel READ-ONLY Gate validates DEV ↔ MAIN code, schema, and migration drift.
-# 4. Production database is backed up BEFORE any promotion steps.
-# 5. Main branch is fast-forwarded to the Checkpoint Git SHA (NO force push).
-# 6. Version-controlled Prisma migrations are applied to production (mercon_db).
-# 7. Production business data (trips, users, settings, drivers) remains 100% INTACT.
-# 8. Production API container is restarted and verified with a FATAL health check.
+# 3. If MAIN has diverged, an isolated RELEASE CANDIDATE (release/chk-...) is created from MAIN + Checkpoint.
+# 4. DEV branch is NEVER modified or merged with MAIN.
+# 5. Sentinel READ-ONLY Gate validates the release candidate before touching production.
+# 6. Production database is backed up BEFORE any promotion steps.
+# 7. Main branch is updated safely to the Release Candidate SHA (NO force push).
+# 8. Version-controlled Prisma migrations are applied to production (mercon_db).
+# 9. Production business data (trips, users, settings, drivers) remains 100% INTACT.
+# 10. Production API container is restarted and verified with a FATAL health check.
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +22,7 @@ on:
         default: ''
         type: string
       mode:
-        description: 'Action mode: "promote" (full backup + promotion) or "validate_only" (creates checkpoint & validates without touching prod)'
+        description: 'Action mode: "promote" (full backup + promotion) or "validate_only" (creates candidate & validates without touching prod)'
         required: true
         default: 'promote'
         type: choice
@@ -34,7 +36,7 @@ concurrency:
 
 jobs:
   checkpoint-promote:
-    name: DEV Checkpoint & Production Promotion
+    name: Isolated Checkpoint & Production Promotion
     runs-on: self-hosted
 
     steps:
@@ -54,14 +56,17 @@ jobs:
             echo "Running in validate_only mode. Proceeding with Checkpoint creation and Sentinel validation."
           fi
 
-      - name: Native Git Checkout & Pinned SHA Extraction
+      - name: Native Git Checkout & Pinned Checkpoint SHA Extraction
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_COUNT=2
           export GIT_CONFIG_KEY_0=safe.directory
           export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+          export GIT_CONFIG_KEY_1=user.name
+          export GIT_CONFIG_VALUE_1="MERCON Checkpoint Bot"
+          
           REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           if [ -d .git ]; then
             git remote set-url origin "$REPO_URL"
@@ -85,7 +90,45 @@ jobs:
           echo "Checkpoint SHA: $CHECKPOINT_COMMIT_SHA"
           echo "Checkpoint ID:  $CHECKPOINT_ID"
 
-      - name: Sentinel READ-ONLY DEV ↔ MAIN / PROD Drift Analysis
+      - name: Prepare Isolated Release Candidate Branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "=========================================="
+          echo "PREPARING ISOLATED RELEASE CANDIDATE"
+          echo "=========================================="
+          
+          git fetch origin main || true
+          MAIN_SHA=$(git rev-parse origin/main 2>/dev/null || echo "NONE")
+          DEV_SHA="$CHECKPOINT_COMMIT_SHA"
+          
+          RELEASE_BRANCH="release/${CHECKPOINT_ID}"
+          
+          if [ "$MAIN_SHA" != "NONE" ]; then
+            if git merge-base --is-ancestor origin/main "$DEV_SHA"; then
+              echo "Branch Ancestry: MAIN ($MAIN_SHA) is a fast-forward ancestor of Checkpoint ($DEV_SHA)."
+              RELEASE_TARGET_SHA="$DEV_SHA"
+            else
+              echo "Branch Ancestry: MAIN ($MAIN_SHA) has diverged from Checkpoint ($DEV_SHA)."
+              echo "Creating isolated release candidate branch $RELEASE_BRANCH from MAIN..."
+              
+              git checkout -B "$RELEASE_BRANCH" origin/main
+              git merge "$DEV_SHA" -m "release: merge checkpoint $CHECKPOINT_ID into main"
+              
+              RELEASE_TARGET_SHA=$(git rev-parse HEAD)
+              echo "Isolated Release Candidate created with SHA: $RELEASE_TARGET_SHA"
+              echo "DEV branch remains 100% untouched and independent."
+            fi
+          else
+            echo "Branch Ancestry: Initializing MAIN from Checkpoint."
+            RELEASE_TARGET_SHA="$DEV_SHA"
+          fi
+          
+          echo "RELEASE_TARGET_SHA=$RELEASE_TARGET_SHA" >> "$GITHUB_ENV"
+          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> "$GITHUB_ENV"
+
+      - name: Sentinel READ-ONLY Release Candidate Drift Analysis
         env:
           DEV_POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER || secrets.POSTGRES_USER || 'mercon_dev_admin' }}
           DEV_POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD || secrets.POSTGRES_PASSWORD || 'mercon_dev_secure_pass_2026' }}
@@ -94,36 +137,17 @@ jobs:
         run: |
           set -euo pipefail
           echo "=========================================="
-          echo "SENTINEL READ-ONLY DEV ↔ MAIN DRIFT ANALYSIS"
+          echo "SENTINEL READ-ONLY DRIFT & AUDIT ANALYSIS"
           echo "=========================================="
           
-          # 1. CODE & BRANCH DRIFT
-          git fetch origin main || true
-          MAIN_SHA=$(git rev-parse origin/main 2>/dev/null || echo "NONE")
-          DEV_SHA="$CHECKPOINT_COMMIT_SHA"
+          git checkout "$RELEASE_TARGET_SHA"
           
-          echo "Checkpoint DEV SHA: $DEV_SHA"
-          echo "Current MAIN SHA:   $MAIN_SHA"
-          
-          IS_ANCESTOR=false
-          if [ "$MAIN_SHA" != "NONE" ]; then
-            if git merge-base --is-ancestor origin/main "$DEV_SHA"; then
-              IS_ANCESTOR=true
-              echo "Branch Ancestry: MAIN ($MAIN_SHA) is a valid ancestor of DEV Checkpoint ($DEV_SHA)."
-            else
-              echo "::error::Sentinel Drift Alert: Branch MAIN has diverged from DEV Checkpoint SHA ($DEV_SHA). Fast-forward update impossible without losing MAIN history." >&2
-            fi
-          else
-            IS_ANCESTOR=true
-            echo "Branch Ancestry: Initializing MAIN from DEV Checkpoint."
-          fi
-          
-          # 2. DEV MIGRATION LEDGER AUDIT
+          # 1. DEV MIGRATION LEDGER AUDIT
           DEV_FAILED_COUNT=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
             SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;
           " | tr -d '[:space:]' || echo "1")
           
-          # 3. PROD MIGRATION LEDGER AUDIT
+          # 2. PROD MIGRATION LEDGER AUDIT
           PROD_FAILED_COUNT=0
           if [ -n "$PROD_POSTGRES_PASSWORD" ]; then
             PROD_FAILED_COUNT=$(docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -t -c "
@@ -131,7 +155,7 @@ jobs:
             " | tr -d '[:space:]' 2>/dev/null || echo "0")
           fi
           
-          # 4. PHYSICAL SCHEMA COMPARISON (Table Count)
+          # 3. PHYSICAL SCHEMA COMPARISON (Table Count)
           DEV_TABLE_COUNT=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
             SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';
           " | tr -d '[:space:]' || echo "0")
@@ -143,16 +167,11 @@ jobs:
             " | tr -d '[:space:]' 2>/dev/null || echo "0")
           fi
           
-          echo "DEV Table Count:  $DEV_TABLE_COUNT"
-          echo "PROD Table Count: $PROD_TABLE_COUNT"
+          echo "Release Target SHA: $RELEASE_TARGET_SHA"
+          echo "DEV Table Count:    $DEV_TABLE_COUNT"
+          echo "PROD Table Count:   $PROD_TABLE_COUNT"
           
-          # 5. DETERMINATION OF SENTINEL PROMOTION VERDICT
           VERDICT="PROMOTION_SAFE"
-          
-          if [ "$IS_ANCESTOR" = "false" ]; then
-            VERDICT="PROMOTION_BLOCKED"
-            echo "::error::Verdict Reason: MAIN branch has diverged from DEV Checkpoint." >&2
-          fi
           
           if [ "$DEV_FAILED_COUNT" -ne 0 ]; then
             VERDICT="PROMOTION_BLOCKED"
@@ -168,7 +187,7 @@ jobs:
           echo "SENTINEL_VERDICT=$VERDICT" >> "$GITHUB_ENV"
           
           if [ "$VERDICT" = "PROMOTION_BLOCKED" ]; then
-            echo "::error::Sentinel Gate: Promotion BLOCKED due to critical branch divergence or ledger inconsistencies." >&2
+            echo "::error::Sentinel Gate: Promotion BLOCKED due to migration ledger inconsistencies." >&2
             exit 1
           fi
 
@@ -177,10 +196,11 @@ jobs:
         run: |
           echo "## Checkpoint Validation Successful (Dry-Run)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Checkpoint ID: \`$CHECKPOINT_ID\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Git SHA: \`$CHECKPOINT_COMMIT_SHA\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Main Ancestry: **PASSED (Fast-Forward Safe)**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Checkpoint SHA: \`$CHECKPOINT_COMMIT_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release Target SHA: \`$RELEASE_TARGET_SHA\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Sentinel Gate Verdict: **$SENTINEL_VERDICT**" >> "$GITHUB_STEP_SUMMARY"
           echo "- Production: **UNTOUCHED**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- DEV Branch: **UNTOUCHED & INDEPENDENT**" >> "$GITHUB_STEP_SUMMARY"
           echo "Validation mode complete. No changes made to Production."
 
       - name: Backup Production Database (Pre-Promotion Safety Gate)
@@ -211,15 +231,15 @@ jobs:
           echo "PROD_BACKUP_PATH=$PROD_BACKUP_PATH" >> "$GITHUB_ENV"
           echo "Production backup complete: $PROD_BACKUP_PATH ($(du -h "$PROD_BACKUP_PATH" | cut -f1))"
 
-      - name: Fast-Forward Main Branch to Checkpoint SHA (NO Force Push)
+      - name: Promote Main Branch to Release Target SHA (NO Force Push)
         if: ${{ inputs.mode == 'promote' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          echo "Fast-forwarding main branch to Checkpoint commit $CHECKPOINT_COMMIT_SHA..."
-          git push origin "${CHECKPOINT_COMMIT_SHA}:refs/heads/main"
-          echo "Branch main successfully updated to Checkpoint commit $CHECKPOINT_COMMIT_SHA."
+          echo "Promoting main branch to Release Target commit $RELEASE_TARGET_SHA..."
+          git push origin "${RELEASE_TARGET_SHA}:refs/heads/main"
+          echo "Branch main successfully updated to Release Target commit $RELEASE_TARGET_SHA."
 
       - name: Deploy Production Code & Apply Prisma Migrations to PROD Database
         if: ${{ inputs.mode == 'promote' }}
@@ -236,8 +256,8 @@ jobs:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         run: |
           set -euo pipefail
-          echo "Deploying production stack for Checkpoint SHA $CHECKPOINT_COMMIT_SHA..."
-          git checkout "$CHECKPOINT_COMMIT_SHA"
+          echo "Deploying production stack for Release Target SHA $RELEASE_TARGET_SHA..."
+          git checkout "$RELEASE_TARGET_SHA"
           
           echo "Building production Docker containers..."
           docker compose up -d --build
@@ -271,11 +291,13 @@ jobs:
             echo "## Dev Checkpoint → Production Promotion Complete"
             echo ""
             echo "- **Checkpoint ID**: \`$CHECKPOINT_ID\`"
-            echo "- **Pinned Git SHA**: \`$CHECKPOINT_COMMIT_SHA\`"
+            echo "- **Pinned Checkpoint SHA**: \`$CHECKPOINT_COMMIT_SHA\`"
+            echo "- **Release Target SHA**: \`$RELEASE_TARGET_SHA\`"
             echo "- **Production Pre-Backup**: \`$PROD_BACKUP_PATH\`"
-            echo "- **Main Branch**: Fast-forwarded to \`$CHECKPOINT_COMMIT_SHA\`"
+            echo "- **Main Branch**: Updated to \`$RELEASE_TARGET_SHA\`"
+            echo "- **DEV Branch**: **100% UNTOUCHED & INDEPENDENT**"
             echo "- **Production Business Data**: **100% INTACT & PRESERVED**"
-            echo "- **Sentinel Drift Analysis**: **$SENTINEL_VERDICT**"
+            echo "- **Sentinel Validation**: PASSED"
             echo "- **Production Health**: **HEALTHY (200 OK)**"
             echo ""
             echo "### Pre-Promotion Backup File"
