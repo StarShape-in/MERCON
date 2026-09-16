@@ -142,52 +142,109 @@ jobs:
           
           git checkout "$RELEASE_TARGET_SHA"
           
-          # 1. DEV MIGRATION LEDGER AUDIT
-          DEV_FAILED_COUNT=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
-            SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;
-          " | tr -d '[:space:]' || echo "1")
+          # Initialize default state as BLOCKED
+          VERDICT="PROMOTION_BLOCKED"
+          DEV_STATUS="VERIFICATION_FAILED"
+          PROD_STATUS="VERIFICATION_FAILED"
+          DEV_FAILED_COUNT="N/A"
+          PROD_FAILED_COUNT="N/A"
+          DEV_TABLE_COUNT="N/A"
+          PROD_TABLE_COUNT="N/A"
           
-          # 2. PROD MIGRATION LEDGER AUDIT
-          PROD_FAILED_COUNT=0
-          if [ -n "$PROD_POSTGRES_PASSWORD" ]; then
-            PROD_FAILED_COUNT=$(docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -t -c "
-              SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;
-            " | tr -d '[:space:]' 2>/dev/null || echo "0")
+          # 1. DEV DATABASE VERIFICATION
+          if [ -z "${DEV_POSTGRES_USER:-}" ] || [ -z "${DEV_POSTGRES_PASSWORD:-}" ]; then
+            echo "::error::DEV PostgreSQL credentials missing." >&2
+          else
+            if docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -c "SELECT 1;" >/dev/null 2>&1; then
+              DEV_RAW=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
+                SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;
+              " 2>/dev/null | tr -d '[:space:]' || echo "FAILED")
+              
+              if [[ "$DEV_RAW" =~ ^[0-9]+$ ]]; then
+                DEV_FAILED_COUNT="$DEV_RAW"
+                if [ "$DEV_FAILED_COUNT" -eq 0 ]; then
+                  DEV_STATUS="VERIFIED_CLEAN"
+                else
+                  DEV_STATUS="VERIFIED_PROBLEM"
+                fi
+              else
+                echo "::error::DEV migration query returned non-integer output: '$DEV_RAW'" >&2
+              fi
+              
+              DEV_TABLE_RAW=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
+                SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';
+              " 2>/dev/null | tr -d '[:space:]' || echo "N/A")
+              if [[ "$DEV_TABLE_RAW" =~ ^[0-9]+$ ]]; then
+                DEV_TABLE_COUNT="$DEV_TABLE_RAW"
+              fi
+            else
+              echo "::error::DEV PostgreSQL database unreachable or container unavailable." >&2
+            fi
           fi
           
-          # 3. PHYSICAL SCHEMA COMPARISON (Table Count)
-          DEV_TABLE_COUNT=$(docker exec -e PGPASSWORD="$DEV_POSTGRES_PASSWORD" dev-postgres psql -U "$DEV_POSTGRES_USER" -d mercon_dev_db -t -c "
-            SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';
-          " | tr -d '[:space:]' || echo "0")
-          
-          PROD_TABLE_COUNT=0
-          if [ -n "$PROD_POSTGRES_PASSWORD" ]; then
-            PROD_TABLE_COUNT=$(docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -t -c "
-              SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';
-            " | tr -d '[:space:]' 2>/dev/null || echo "0")
+          # 2. PROD DATABASE VERIFICATION (STRICT FAIL-CLOSED)
+          if [ -z "${PROD_POSTGRES_USER:-}" ] || [ -z "${PROD_POSTGRES_PASSWORD:-}" ]; then
+            echo "::error::PROD PostgreSQL secrets (POSTGRES_USER / POSTGRES_PASSWORD) missing or empty." >&2
+          else
+            if docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -c "SELECT 1;" >/dev/null 2>&1; then
+              PROD_RAW=$(docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -t -c "
+                SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;
+              " 2>/dev/null | tr -d '[:space:]' || echo "FAILED")
+              
+              if [[ "$PROD_RAW" =~ ^[0-9]+$ ]]; then
+                PROD_FAILED_COUNT="$PROD_RAW"
+                if [ "$PROD_FAILED_COUNT" -eq 0 ]; then
+                  PROD_STATUS="VERIFIED_CLEAN"
+                else
+                  PROD_STATUS="VERIFIED_PROBLEM"
+                fi
+              else
+                echo "::error::PROD migration query returned non-integer output: '$PROD_RAW'" >&2
+              fi
+              
+              PROD_TABLE_RAW=$(docker exec -e PGPASSWORD="$PROD_POSTGRES_PASSWORD" mercon-postgres psql -U "$PROD_POSTGRES_USER" -d mercon_db -t -c "
+                SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';
+              " 2>/dev/null | tr -d '[:space:]' || echo "N/A")
+              if [[ "$PROD_TABLE_RAW" =~ ^[0-9]+$ ]]; then
+                PROD_TABLE_COUNT="$PROD_TABLE_RAW"
+              fi
+
+              # 3. CANONICAL SENTINEL DOCTOR INTEGRITY AUDIT (Pending DDL Conflict & Schema Drift)
+              PROD_CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mercon-postgres 2>/dev/null | tr -d '[:space:]' || echo "")
+
+              if [ -n "$PROD_CONTAINER_IP" ]; then
+                PROD_DB_URL="postgresql://${PROD_POSTGRES_USER}:${PROD_POSTGRES_PASSWORD}@${PROD_CONTAINER_IP}:5432/mercon_db"
+                echo "Executing Canonical Sentinel Doctor audit against Production DB container 'mercon-postgres' ($PROD_CONTAINER_IP:5432)..."
+                if npm --prefix tools/sentinel run doctor -- --schema backend/api-server/prisma/schema.prisma --migrations backend/api-server/prisma/migrations --db-url "$PROD_DB_URL" --env PROD; then
+                  echo "Canonical Sentinel Doctor audit: PASSED (Zero critical/high integrity violations)."
+                else
+                  echo "::error::Canonical Sentinel Doctor audit detected critical/high schema, migration, or physical DB conflicts." >&2
+                  PROD_STATUS="VERIFIED_PROBLEM"
+                fi
+              else
+                echo "::error::Unable to resolve exact Production PostgreSQL container 'mercon-postgres' IP for Sentinel inspection." >&2
+                PROD_STATUS="VERIFICATION_FAILED"
+              fi
+            else
+              echo "::error::PROD PostgreSQL database unreachable or container unavailable." >&2
+            fi
           fi
           
           echo "Release Target SHA: $RELEASE_TARGET_SHA"
-          echo "DEV Table Count:    $DEV_TABLE_COUNT"
-          echo "PROD Table Count:   $PROD_TABLE_COUNT"
+          echo "DEV Status:         $DEV_STATUS (Unresolved Failed Migrations: $DEV_FAILED_COUNT, Base Tables: $DEV_TABLE_COUNT)"
+          echo "PROD Status:        $PROD_STATUS (Unresolved Failed Migrations: $PROD_FAILED_COUNT, Base Tables: $PROD_TABLE_COUNT)"
           
-          VERDICT="PROMOTION_SAFE"
-          
-          if [ "$DEV_FAILED_COUNT" -ne 0 ]; then
+          if [ "$DEV_STATUS" = "VERIFIED_CLEAN" ] && [ "$PROD_STATUS" = "VERIFIED_CLEAN" ]; then
+            VERDICT="PROMOTION_SAFE"
+          else
             VERDICT="PROMOTION_BLOCKED"
-            echo "::error::Verdict Reason: DEV migration ledger contains $DEV_FAILED_COUNT un-resolved failed migration(s)." >&2
-          fi
-          
-          if [ "$PROD_FAILED_COUNT" -ne 0 ]; then
-            VERDICT="PROMOTION_BLOCKED"
-            echo "::error::Verdict Reason: PROD migration ledger contains $PROD_FAILED_COUNT un-resolved failed migration(s)." >&2
           fi
           
           echo "SENTINEL PROMOTION VERDICT: $VERDICT"
           echo "SENTINEL_VERDICT=$VERDICT" >> "$GITHUB_ENV"
           
           if [ "$VERDICT" = "PROMOTION_BLOCKED" ]; then
-            echo "::error::Sentinel Gate: Promotion BLOCKED due to migration ledger inconsistencies." >&2
+            echo "::error::Sentinel Gate: Promotion BLOCKED due to database verification failure or unresolved migration ledger issues." >&2
             exit 1
           fi
 
