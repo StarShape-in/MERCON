@@ -418,25 +418,37 @@ export default function DriverDetailsPage() {
             {/* 1.1 DRIVER PROFILE CARD (Reference Layout Design) */}
             <div className="flex-1 rounded-[24px] bg-[#E8F0F8] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-4 pt-4 pb-1.5 flex flex-col justify-end shadow-2xs relative overflow-hidden min-h-0 group">
               
-              {/* Absolute Driver Image */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0">
-                {`${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK') ? (
-                  <img
-                    src="/driver-assets/abdul_malik_transparent.png"
-                    alt="Abdul Malik"
-                    className="w-[105%] max-w-[105%] h-auto absolute top-10 -left-[2.5%] drop-shadow-lg"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center pt-8">
-                    <DriverAvatar
-                      src={driver.avatar_url}
-                      firstName={driver.first_name}
-                      lastName={driver.last_name}
-                      size="2xl"
-                      className="w-40 h-40 rounded-full border-4 border-white shadow-xl"
+              {/* Absolute Driver Hero Portrait Image (Unified for ALL Drivers) */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0 flex items-center justify-center">
+                {(() => {
+                  const rawUrl = driver.avatar_url;
+                  const isAbdulMalik = `${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK');
+                  const photoUrl = isAbdulMalik
+                    ? '/driver-assets/abdul_malik_transparent.png'
+                    : rawUrl
+                    ? (rawUrl.startsWith('http') || rawUrl.startsWith('data:') || rawUrl.startsWith('/')
+                        ? rawUrl
+                        : `/${rawUrl}`)
+                    : '/driver-assets/abdul_malik_transparent.png';
+
+                  const isTransparentPng = photoUrl.includes('transparent') || photoUrl.endsWith('.png');
+
+                  return (
+                    <img
+                      src={photoUrl}
+                      alt={`${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Driver profile'}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/driver-assets/abdul_malik_transparent.png';
+                      }}
+                      className={cn(
+                        "drop-shadow-lg select-none pointer-events-none",
+                        isTransparentPng
+                          ? "w-[105%] max-w-[105%] h-auto absolute top-8 -left-[2.5%] object-contain"
+                          : "w-full h-full object-cover object-top"
+                      )}
                     />
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Header Status Row (Floating at Top) */}
