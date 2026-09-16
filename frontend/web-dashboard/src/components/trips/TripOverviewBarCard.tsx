@@ -222,6 +222,14 @@ export default function TripOverviewBarCard({ trip, documents = [], onViewAllAle
             <h4 className="font-black text-[14px] text-[#111827] dark:text-white truncate leading-tight">
               {driverName}
             </h4>
+            {trip.coDriver && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-[9px] font-bold text-slate-400">CO:</span>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+                  {`${trip.coDriver.first_name || ''} ${trip.coDriver.last_name || ''}`.trim()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

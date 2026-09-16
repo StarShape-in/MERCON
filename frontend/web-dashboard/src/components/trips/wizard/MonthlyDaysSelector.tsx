@@ -54,8 +54,8 @@ interface MonthlyDaysSelectorProps {
   vehicleOptions?: ComboboxOption[];
   drivers?: any[];
   vehicles?: any[];
-  dayAssignments?: Record<string, { driverId: string; vehicleId: string; coDriverId?: string }>;
-  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string; coDriverId?: string }>>>;
+  dayAssignments?: Record<string, { driverId: string; vehicleId: string; coDriverId?: string; driverPayoutOverride?: number; coDriverPayoutOverride?: number }>;
+  setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string; coDriverId?: string; driverPayoutOverride?: number; coDriverPayoutOverride?: number }>>>;
   assignmentType?: 'own' | 'third_party';
   setAssignmentType?: (type: 'own' | 'third_party') => void;
   thirdPartyProviderId?: string;
@@ -891,44 +891,78 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               className="h-7.5 text-xs font-medium"
                             />
                             {assignment.coDriverId !== undefined && (
-                              <div className="flex items-center gap-1 animate-fade-in">
-                                <span className="text-[9px] font-bold text-slate-400 shrink-0 w-4">CO</span>
-                                <div className="flex-1 min-w-0">
-                                  <Combobox
-                                    options={driverOptions}
-                                    value={assignment.coDriverId}
-                                    onChange={(val) => {
+                              <div className="flex flex-col gap-1.5 animate-fade-in">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px] font-bold text-slate-400 shrink-0 w-4">CO</span>
+                                  <div className="flex-1 min-w-0">
+                                    <Combobox
+                                      options={driverOptions}
+                                      value={assignment.coDriverId}
+                                      onChange={(val) => {
+                                        if (!setDayAssignments) return;
+                                        setDayAssignments((prev) => ({
+                                          ...prev,
+                                          [dateStr]: {
+                                            ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
+                                            coDriverId: val,
+                                          },
+                                        }));
+                                      }}
+                                      placeholder="Select Co-Driver"
+                                      className="h-7 text-[11px] font-medium"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
                                       if (!setDayAssignments) return;
-                                      setDayAssignments((prev) => ({
-                                        ...prev,
-                                        [dateStr]: {
-                                          ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
-                                          coDriverId: val,
-                                        },
-                                      }));
+                                      setDayAssignments((prev) => {
+                                        const next = { ...prev };
+                                        if (next[dateStr]) {
+                                          next[dateStr] = { ...next[dateStr] };
+                                          delete next[dateStr].coDriverId;
+                                          delete next[dateStr].driverPayoutOverride;
+                                          delete next[dateStr].coDriverPayoutOverride;
+                                        }
+                                        return next;
+                                      });
                                     }}
-                                    placeholder="Select Co-Driver"
-                                    className="h-7 text-[11px] font-medium"
-                                  />
+                                    className="text-slate-300 hover:text-rose-500 transition-colors p-0.5"
+                                    title="Remove co-driver"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!setDayAssignments) return;
-                                    setDayAssignments((prev) => {
-                                      const next = { ...prev };
-                                      if (next[dateStr]) {
-                                        next[dateStr] = { ...next[dateStr] };
-                                        delete next[dateStr].coDriverId;
-                                      }
-                                      return next;
-                                    });
-                                  }}
-                                  className="text-slate-300 hover:text-rose-500 transition-colors p-0.5"
-                                  title="Remove co-driver"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
+                                <div className="flex items-center gap-2 pl-5">
+                                  <div className="flex items-center gap-1">
+                                    <label className="text-[9px] text-slate-500 font-medium">Pri Cut:</label>
+                                    <input 
+                                      type="number"
+                                      className="w-14 h-5.5 px-1 text-[10px] bg-slate-50 border border-slate-200 rounded focus:border-blue-400 outline-none"
+                                      placeholder="Auto"
+                                      value={assignment.driverPayoutOverride ?? ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value ? Number(e.target.value) : undefined;
+                                        if (!setDayAssignments) return;
+                                        setDayAssignments(prev => ({ ...prev, [dateStr]: { ...prev[dateStr], driverPayoutOverride: val } }));
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <label className="text-[9px] text-slate-500 font-medium">Co Cut:</label>
+                                    <input 
+                                      type="number"
+                                      className="w-14 h-5.5 px-1 text-[10px] bg-slate-50 border border-slate-200 rounded focus:border-blue-400 outline-none"
+                                      placeholder="Auto"
+                                      value={assignment.coDriverPayoutOverride ?? ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value ? Number(e.target.value) : undefined;
+                                        if (!setDayAssignments) return;
+                                        setDayAssignments(prev => ({ ...prev, [dateStr]: { ...prev[dateStr], coDriverPayoutOverride: val } }));
+                                      }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>

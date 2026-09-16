@@ -776,7 +776,7 @@ export function useCreateTripForm() {
   }, [contractCustomer, contractVehicleType, contractRateCategory, contractBillingType]);
 
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string; coDriverId?: string }>>({});
+  const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string; coDriverId?: string; driverPayoutOverride?: number; coDriverPayoutOverride?: number }>>({});
 
   const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isCreateVehicleOpen, setIsCreateVehicleOpen] = useState(false);

@@ -540,8 +540,12 @@ export function useTripSubmission(
 
           if (coDriverId) {
             // Default 50/50 split if co-driver is present
-            finalDriverPayout = slotDriverPayout / 2;
-            finalCoDriverPayout = slotDriverPayout / 2;
+            finalDriverPayout = assignment.driverPayoutOverride !== undefined ? assignment.driverPayoutOverride : (slotDriverPayout / 2);
+            finalCoDriverPayout = assignment.coDriverPayoutOverride !== undefined ? assignment.coDriverPayoutOverride : (slotDriverPayout / 2);
+          } else {
+            if (assignment.driverPayoutOverride !== undefined) {
+               finalDriverPayout = assignment.driverPayoutOverride;
+            }
           }
 
           rows.push({

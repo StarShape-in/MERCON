@@ -497,6 +497,7 @@ export const getTripById = async (req: Request, res: Response) => {
         include: {
           financials: true,
           driver: true,
+          coDriver: true,
           vehicle: true,
           customer: true,
           quotation: { include: { customer: true, stops: { include: { location: true } } } },
@@ -515,6 +516,7 @@ export const getTripById = async (req: Request, res: Response) => {
         include: {
           financials: true,
           driver: true,
+          coDriver: true,
           vehicle: true,
           customer: true,
           quotation: { include: { customer: true, stops: { include: { location: true } } } },
@@ -599,11 +601,13 @@ export const createTrip = async (req: Request, res: Response) => {
     const {
       customer_id,
       driver_id,
+      co_driver_id,
       vehicle_id,
       planned_start,
       planned_end,
       billing_amount,
       trip_charges,
+      co_driver_payout,
       stops,
       rate_card_id,
       vehicle_type,
@@ -887,7 +891,9 @@ export const createTrip = async (req: Request, res: Response) => {
               customerId: customer_id,
               driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driver_id ? { driverId: driver_id } : {}),
+              ...(co_driver_id ? { co_driver_id: co_driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
+              co_driver_payout: co_driver_payout !== undefined ? Number(co_driver_payout) : 0,
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
@@ -1090,6 +1096,8 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         customer_name?: string;
         driver_id?: string;
         driver_name?: string;
+        co_driver_id?: string;
+        co_driver_payout?: number;
         vehicle_id?: string;
         vehicle_plate?: string;
         planned_start?: string;
@@ -1310,6 +1318,8 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               customerId: customer.id,
               driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driverId ? { driverId } : {}),
+              ...(row.co_driver_id ? { co_driver_id: row.co_driver_id } : {}),
+              ...(row.co_driver_payout !== undefined && !isNaN(Number(row.co_driver_payout)) ? { co_driver_payout: Number(row.co_driver_payout) } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               ...(appliedQuotation ? { quotationId: appliedQuotation.id } : {}),
               is_third_party: Boolean(row.is_third_party),
