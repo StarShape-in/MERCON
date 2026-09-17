@@ -142,10 +142,10 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 };
 
 const TRIP_EXPORT_HEADERS = [
-  'ref_id', 'status', 'customer', 'pickup_location', 'dropoff_location',
+  'ref_id', 'status', 'customer', 'pickup_location', 'stops', 'dropoff_location',
   'driver', 'vehicle', 'rate_category', 'vehicle_type', 'quotation',
   'planned_start', 'actual_start', 'planned_end', 'actual_end',
-  'driver_payout', 'billing_amount', 'carrier_name'
+  'driver_payout', 'additional_charge', 'billing_amount', 'carrier_name'
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
@@ -430,6 +430,7 @@ const tripsToExportRows = (trips: Trip[], tz: string = 'Asia/Riyadh') => trips.m
     t.status,
     t.customer?.name || 'Unassigned',
     pickup.name !== '—' ? pickup.name.split(/[\[(]/)[0].trim() : '—',
+    (t.stops || []).filter(s => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff').map(s => (s.location_name || s.location?.name || '').split(/[\[(]/)[0].trim() || '—').filter(s => s !== '—').join(', ') || '—',
     dropoff.name !== '—' ? dropoff.name.split(/[\[(]/)[0].trim() : '—',
     driverLabel,
     vehicleLabel,
@@ -440,7 +441,8 @@ const tripsToExportRows = (trips: Trip[], tz: string = 'Asia/Riyadh') => trips.m
     formatExportDate(t.actual_start, tz),
     formatExportDate(t.planned_end, tz),
     formatExportDate(t.actual_end, tz),
-    Number(t.trip_charges || 0),
+    Number(t.driver_payout || t.trip_charges || 0),
+    Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)),
     Number(t.billing_amount || t.rateCard?.base_price || 0),
     carrierLabel,
   ];
