@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import SlowScrollingDriverName from '@/components/ui/SlowScrollingDriverName';
 
 type SlotId = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' |
               'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' |
@@ -635,7 +636,7 @@ export default function CargoLoadingView() {
         
         {/* Card 1: DRIVER */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px]">
-          <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
             <DriverAvatar
               src={driverAvatar}
               firstName={driverFirstName}
@@ -643,11 +644,12 @@ export default function CargoLoadingView() {
               size="lg"
               className="w-12 h-12 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
             />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER</p>
-              <p className="text-xs sm:text-sm font-black text-slate-900 truncate leading-snug">
-                {assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() : 'ABDUL MALIK HABIB UR RAHMAN KHAN'}
-              </p>
+              <SlowScrollingDriverName
+                name={assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name : 'ABDUL MALIK HABIB UR RAHMAN KHAN'}
+                className="text-xs sm:text-sm font-black text-slate-900 leading-snug"
+              />
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -1143,10 +1145,10 @@ export default function CargoLoadingView() {
                         <img 
                           src={trip.customerLogo} 
                           alt={trip.customerName} 
-                          className="w-5.5 h-5.5 rounded-md object-contain border border-slate-200/90 bg-white p-0.5 shadow-2xs shrink-0" 
+                          className="w-8.5 h-8.5 rounded-lg object-contain border border-slate-200/90 bg-white p-1 shadow-2xs shrink-0" 
                         />
                       ) : (
-                        <div className="w-5.5 h-5.5 rounded-md bg-slate-900 text-white font-mono font-black text-[8px] flex items-center justify-center border border-slate-800 shadow-2xs shrink-0">
+                        <div className="w-8.5 h-8.5 rounded-lg bg-slate-900 text-white font-mono font-black text-[10px] flex items-center justify-center border border-slate-800 shadow-2xs shrink-0">
                           {trip.customerName.slice(0, 2).toUpperCase()}
                         </div>
                       )}
