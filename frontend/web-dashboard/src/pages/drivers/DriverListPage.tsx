@@ -63,7 +63,7 @@ import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 import { useDriverTableColumns } from './hooks/useDriverTableColumns';
-import { DriverFilterToolbar, DriverSortOption } from './components/DriverFilterToolbar';
+import { DriverFilterToolbar, DriverSortOption, DRIVER_SORT_OPTIONS } from './components/DriverFilterToolbar';
 import { DriverGridView } from './components/DriverGridView';
 import { DriverWhatsAppModal } from './components/DriverWhatsAppModal';
 import { DriverMotComplianceModal } from './components/DriverMotComplianceModal';
@@ -231,8 +231,6 @@ export default function DriverListPage() {
       license_status: licenseFilter,
       sort_by: sortOrder,
     }),
-    enabled: needsFullRoster,
-  });
     enabled: needsFullRoster,
   });
 
@@ -591,7 +589,6 @@ export default function DriverListPage() {
   const gridToIndex = totalCount === 0 ? 0 : gridFromIndex + filteredDrivers.length - 1;
 
   const bulkActions = useMemo(() => [
->>>>>>> f95b5cff (feat: performance indexes, driver image avatar updates and trip list export improvements)
     {
       label: 'Edit Selected Driver',
       icon: <Edit2 size={13} />,
