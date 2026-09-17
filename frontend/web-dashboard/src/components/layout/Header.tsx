@@ -279,13 +279,15 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
             })}
           </div>
 
-          {/* Notifications trigger */}
+          {/* Notifications trigger (temporarily hidden) */}
+          {/* 
           <Link to="/notifications" className="relative group shrink-0">
             <Bell className="w-5 h-5 text-slate-600 shrink-0" />
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
               8
             </span>
           </Link>
+          */}
         </div>
 
       </div>
