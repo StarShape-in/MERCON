@@ -831,36 +831,39 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* 2-Column Square Category Cards Grid (All 7 Fit Cleanly Inside Box) */}
-                <div className="grid grid-cols-2 gap-1.5 flex-1 content-center max-w-[155px] mx-auto w-full">
-                  {serviceItems.map((item) => {
+                {/* Full-Width Rectangular Category Cards Grid (Fills Service History Box) */}
+                <div className="grid grid-cols-2 gap-2 flex-1 content-center w-full">
+                  {serviceItems.map((item, idx) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
                     const theme = item.colorTheme;
+                    const isLastOdd = serviceItems.length % 2 !== 0 && idx === serviceItems.length - 1;
                     return (
                       <button 
-                        key={`cat-sq-${item.id}`}
+                        key={`cat-rec-${item.id}`}
                         onClick={() => {
                           setSelectedServiceId(item.id);
                           setActiveServiceView('detail');
                           if (!isExplodedView) handleToggleServiceHistory();
                         }}
-                        className={`col-span-1 aspect-square p-1 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center group ${
+                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2.5 px-3 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer text-left group ${
                           isSelected
-                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
-                            : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
+                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
+                            : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all shrink-0 ${
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
                           <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
                         </div>
-                        <span className={`text-[9.5px] font-black leading-tight truncate max-w-full px-0.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
-                          {item.categoryLabel}
-                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className={`text-xs font-bold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                            {item.categoryLabel}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
