@@ -787,11 +787,11 @@ export default function CargoLoadingView() {
               </div>
             )}
 
-            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - No Capsule Container, Direct Icons & Numbers) */}
+            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - Grouped Closer with Simple Vertical Dividers) */}
             {activeServiceView === 'categories' && (
-              <div className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-3.5 left-5 z-20 flex items-center gap-5 sm:gap-7 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
                 {/* 1. Latest Odometer */}
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Gauge className="w-4.5 h-4.5 text-[#FA634E] stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
@@ -803,8 +803,11 @@ export default function CargoLoadingView() {
                   </div>
                 </div>
 
+                {/* Divider Line 1 */}
+                <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
+
                 {/* 2. Next Service Due */}
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Clock className="w-4.5 h-4.5 text-blue-600 stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
@@ -816,8 +819,11 @@ export default function CargoLoadingView() {
                   </div>
                 </div>
 
+                {/* Divider Line 2 */}
+                <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
+
                 {/* 3. YTD Maintenance Spend */}
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Wrench className="w-4.5 h-4.5 text-indigo-600 stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
