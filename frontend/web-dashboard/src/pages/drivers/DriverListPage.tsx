@@ -63,11 +63,11 @@ import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import CreateDriverModal from '@/components/drivers/CreateDriverModal';
 import EditDriverModal from '@/components/drivers/EditDriverModal';
 import { useDriverTableColumns } from './hooks/useDriverTableColumns';
-import {
-  DriverFilterToolbar,
-  DriverSortOption,
-} from './components/DriverFilterToolbar';
+import { DriverFilterToolbar, DriverSortOption } from './components/DriverFilterToolbar';
 import { DriverGridView } from './components/DriverGridView';
+import { DriverWhatsAppModal } from './components/DriverWhatsAppModal';
+import { DriverMotComplianceModal } from './components/DriverMotComplianceModal';
+import { DriverKpiComplianceModal } from './components/DriverKpiComplianceModal';
 
 
 import { Input } from '@/components/ui/input';
@@ -835,192 +835,45 @@ export default function DriverListPage() {
         )}
 
         {/* WhatsApp Share Dialog */}
-        <Dialog open={!!whatsappDriver} onOpenChange={(open) => !open && setWhatsappDriver(null)}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <WhatsAppIcon className="h-4 w-4 text-emerald-600" />
-                Share to WhatsApp
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Send <span className="font-bold text-brand">{whatsappDriver?.first_name} {whatsappDriver?.last_name}</span>'s profile directly via WhatsApp web or mobile app.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="py-2 space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Recipient Phone Number (Optional)
-                </label>
-                <Input
-                  placeholder="e.g. 966512345678 (Leave blank to select chat inside WhatsApp)"
-                  value={whatsappCustomPhone}
-                  onChange={(e) => setWhatsappCustomPhone(e.target.value)}
-                  className="h-9 text-xs border-slate-200 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Message Preview:
-                </label>
-                <textarea
-                  value={whatsappMessageText}
-                  onChange={(e) => setWhatsappMessageText(e.target.value)}
-                  className="w-full h-36 p-3 rounded-xl border border-slate-200 text-xs font-medium font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 resize-none"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => setWhatsappDriver(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
-                onClick={handleWhatsappSend}
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
-                Open WhatsApp
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <DriverWhatsAppModal
+          driver={whatsappDriver}
+          isOpen={!!whatsappDriver}
+          onClose={() => setWhatsappDriver(null)}
+          messageText={whatsappMessageText}
+          onMessageTextChange={setWhatsappMessageText}
+          customPhone={whatsappCustomPhone}
+          onCustomPhoneChange={setWhatsappCustomPhone}
+          onSend={handleWhatsappSend}
+        />
 
         {/* MOT Compliance Verification Modal */}
-        <Dialog open={showMotModal} onOpenChange={setShowMotModal}>
-          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
-            <DialogHeader>
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                Saudi MOT & MOMRAH Compliance Status
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Ministry of Transport commercial heavy driver license verification ledger.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 my-4 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60">
-                <div>
-                  <div className="font-bold text-emerald-900 dark:text-emerald-300">Verified MOT Licenses</div>
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Active commercial heavy transport</div>
-                </div>
-                <Badge className="bg-emerald-600 text-white font-mono font-bold text-xs">{clearDriversCount}</Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60">
-                <div>
-                  <div className="font-bold text-amber-900 dark:text-amber-300">Pending Renewal / Expired</div>
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400">Action required with Ministry portal</div>
-                </div>
-                <Badge className="bg-amber-600 text-white font-mono font-bold text-xs">{expiredLicenseCount}</Badge>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs font-bold border-slate-200"
-                onClick={() => setShowMotModal(false)}
-              >
-                Close Verification Summary
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-
+        <DriverMotComplianceModal
+          isOpen={showMotModal}
+          onClose={() => setShowMotModal(false)}
+          clearDriversCount={clearDriversCount}
+          expiredLicenseCount={expiredLicenseCount}
+        />
 
         {/* Origin-Animated KPI Modal 4: Saudi MOT & MOMRAH Compliance Status */}
-        <KpiModal
+        <DriverKpiComplianceModal
           isOpen={activeKpiModal === 'expired'}
           onClose={() => setActiveKpiModal(null)}
           originRect={originRect}
-          title="Saudi MOT & MOMRAH Compliance Status"
-          subtitle="Ministry of Transport commercial heavy driver license verification ledger."
-          badge={
-            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
-              {expiredLicenseCount} Requiring Action
-            </Badge>
-          }
-        >
-          <div className="space-y-4 text-xs">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60">
-                <div>
-                  <div className="font-bold text-emerald-900 dark:text-emerald-300">Verified MOT Licenses</div>
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Active commercial heavy transport</div>
-                </div>
-                <Badge className="bg-emerald-600 text-white font-mono font-bold text-xs">{clearDriversCount}</Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60">
-                <div>
-                  <div className="font-bold text-amber-900 dark:text-amber-300">Pending Renewal / Expired</div>
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400">Action required with Ministry portal</div>
-                </div>
-                <Badge className="bg-amber-600 text-white font-mono font-bold text-xs">{expiredLicenseCount}</Badge>
-              </div>
-            </div>
-
-            {expiredLicenseCount > 0 && (
-              <div className="space-y-2">
-                <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">Expired License Drivers</div>
-                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
-                  {(rosterRes?.data || drivers).filter((d: Driver) => d.license_expiry && new Date(d.license_expiry) < new Date()).map((d: Driver) => (
-                    <div key={d.id} className="flex items-center justify-between p-2 bg-rose-50/50 dark:bg-rose-950/20 rounded-lg border border-rose-200/60 text-xs">
-                      <div>
-                        <span className="font-bold text-rose-900 dark:text-rose-300">{d.first_name} {d.last_name}</span>
-                        <span className="text-[10px] text-rose-700 dark:text-rose-400 font-mono block">Lic: {d.license_number || 'KSA-DL'} • Expired: {formatInDeploymentTz(d.license_expiry, tz, 'MM/dd/yyyy')}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-[10px] font-bold text-rose-700 border-rose-300 bg-white"
-                        onClick={() => {
-                          setActiveKpiModal(null);
-                          navigate(`/drivers/${d.id}/documents`);
-                        }}
-                      >
-                        Renew Docs
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold text-amber-800 border-amber-200 bg-amber-50"
-                onClick={() => {
-                  setLicenseFilter('Expired');
-                  setActiveKpiModal(null);
-                }}
-              >
-                Filter Expired in Table
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-xs font-semibold text-slate-500"
-                onClick={() => setActiveKpiModal(null)}
-              >
-                Close Summary
-              </Button>
-            </div>
-          </div>
-        </KpiModal>
+          clearDriversCount={clearDriversCount}
+          expiredLicenseCount={expiredLicenseCount}
+          expiredDrivers={(rosterRes?.data || drivers).filter(
+            (d: Driver) => d.license_expiry && new Date(d.license_expiry) < new Date()
+          )}
+          tz={tz}
+          onFilterExpiredInTable={() => {
+            setLicenseFilter('Expired');
+            setActiveKpiModal(null);
+          }}
+          onRenewDocs={(driverId) => {
+            setActiveKpiModal(null);
+            navigate(`/drivers/${driverId}/documents`);
+          }}
+        />
 
         <ConfirmModal
           isOpen={confirmModal.isOpen}
