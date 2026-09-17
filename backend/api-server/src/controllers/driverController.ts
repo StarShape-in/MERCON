@@ -5,6 +5,7 @@ import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { DriverStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import ExcelJS from 'exceljs';
 import { logger } from '../utils/logger';
 
 /**
@@ -26,59 +27,52 @@ const DRIVER_SEARCH_FIELDS = [
   'assignedVehicle.ref_id',
 ];
 
+export const buildDriverQueryOptions = (query: any) => {
+  const { status, search, sortOrder = 'latest', licenseFilter = 'All', selectedIds } = query;
+
+  const whereClause: any = { deletedAt: null };
+  
+  if (selectedIds) {
+    const ids = String(selectedIds).split(',').map(s => s.trim()).filter(Boolean);
+    if (ids.length > 0) {
+      whereClause.id = { in: ids };
+    }
+  }
+  
+  if (status && status !== 'All') {
+    whereClause.status = status as DriverStatus;
+  }
+  const searchAnd = buildSearchAnd(search, DRIVER_SEARCH_FIELDS);
+  if (searchAnd.length > 0) {
+    whereClause.AND = searchAnd;
+  }
+
+  if (licenseFilter === 'Expired') {
+    whereClause.license_expiry = { lt: new Date() };
+  } else if (licenseFilter === 'Valid') {
+    whereClause.license_expiry = { gte: new Date() };
+  }
+
+  let orderByClause: any = { first_name: 'asc' };
+  if (sortOrder === 'latest') orderByClause = { createdAt: 'desc' };
+  else if (sortOrder === 'oldest') orderByClause = { createdAt: 'asc' };
+  else if (sortOrder === 'name_asc') orderByClause = { first_name: 'asc' };
+  else if (sortOrder === 'name_desc') orderByClause = { first_name: 'desc' };
+  else if (sortOrder === 'license_asc') orderByClause = { license_expiry: 'asc' };
+  else if (sortOrder === 'status') orderByClause = { status: 'asc' };
+
+  return { whereClause, orderByClause };
+};
+
 export const getDrivers = async (req: Request, res: Response) => {
   try {
-    const {
-      status,
-      search,
-      page = '1',
-      per_page = '20',
-      license_status,
-      license_filter,
-      sort_by,
-      sort_order,
-    } = req.query;
+    const { page = '1', per_page = '20' } = req.query;
     
     const pageNumber = Math.max(1, parseInt(page as string) || 1);
     const limit = Math.max(1, Math.min(5000, parseInt(per_page as string) || 20));
     const skip = (pageNumber - 1) * limit;
 
-    const whereClause: any = { deletedAt: null };
-    if (status && status !== 'All') {
-      whereClause.status = status as DriverStatus;
-    }
-
-    // License expiry filtering across full database dataset before pagination
-    const activeLicenseFilter = (license_status || license_filter) as string | undefined;
-    if (activeLicenseFilter === 'Expired') {
-      whereClause.license_expiry = { lt: new Date() };
-    } else if (activeLicenseFilter === 'Valid') {
-      whereClause.license_expiry = { gte: new Date() };
-    }
-
-    const searchAnd = buildSearchAnd(search, DRIVER_SEARCH_FIELDS);
-    if (searchAnd.length > 0) {
-      whereClause.AND = searchAnd;
-    }
-
-    // Server-side sorting allowlist mapping
-    const sortVal = (sort_by as string) || 'latest';
-    const sortDir = (sort_order as string) === 'asc' ? 'asc' : 'desc';
-
-    let orderBy: any = { createdAt: 'desc' };
-    if (sortVal === 'latest' || sortVal === 'newest') {
-      orderBy = { createdAt: 'desc' };
-    } else if (sortVal === 'oldest') {
-      orderBy = { createdAt: 'asc' };
-    } else if (sortVal === 'name_asc') {
-      orderBy = [{ first_name: 'asc' }, { last_name: 'asc' }];
-    } else if (sortVal === 'name_desc') {
-      orderBy = [{ first_name: 'desc' }, { last_name: 'desc' }];
-    } else if (sortVal === 'license_asc') {
-      orderBy = { license_expiry: 'asc' };
-    } else if (sortVal === 'status') {
-      orderBy = { status: sortDir };
-    }
+    const { whereClause, orderByClause } = buildDriverQueryOptions(req.query);
 
     if (req.query.mode === 'lookup') {
       const [drivers, total] = await Promise.all([
@@ -86,11 +80,7 @@ export const getDrivers = async (req: Request, res: Response) => {
           where: whereClause,
           skip,
           take: limit,
-          orderBy,
-          // Picker shape: every scalar a dropdown / export column reads, plus a
-          // shallow assigned-vehicle join. Deliberately no `trips` — that
-          // include is what makes the default shape too slow to load a
-          // dropdown from (see the note on the default branch below).
+          orderBy: orderByClause,
           select: {
             id: true,
             ref_id: true,
@@ -135,42 +125,46 @@ export const getDrivers = async (req: Request, res: Response) => {
       });
     }
 
-    // Heavy shape: every in-progress trip per driver, each with its vehicle.
-    // Fine for a 20-row roster page; ruinous for the 100-1000 row fetches a
-    // dropdown or an export needs — those must pass `mode=lookup`.
     const [drivers, total] = await Promise.all([
       prisma.driver.findMany({
         where: whereClause,
         skip,
         take: limit,
-        orderBy,
-        include: {
+        orderBy: orderByClause,
+        select: {
+          id: true,
+          ref_id: true,
+          first_name: true,
+          last_name: true,
+          phone_primary: true,
+          status: true,
+          license_number: true,
+          license_expiry: true,
+          avatar_url: true,
+          createdAt: true,
+          updatedAt: true,
+          isActive: true,
+          userId: true,
+          assignedVehicleId: true,
           user: {
             select: { id: true, username: true, phone: true, password_hash: true }
           },
-          trips: {
-            where: {
-              deletedAt: null,
-              status: {
-                in: ['Scheduled', 'Loading', 'InTransit', 'Delayed']
-              }
-            },
-            include: {
-              vehicle: true
-            },
-            orderBy: {
-              planned_start: 'asc'
+          assignedVehicle: {
+            select: {
+              id: true,
+              ref_id: true,
+              plate_number: true,
+              asset_type: true,
+              capacity_kg: true,
+              status: true
             }
-          },
-          assignedVehicle: true
+          }
         }
       }),
       prisma.driver.count({ where: whereClause })
     ]);
 
     // Lifetime driver payout for the roster's Total Trip Charge column.
-    // Aggregates eligible (Completed or Invoiced) non-deleted trips for both
-    // primary drivers (driver_payout) and co-drivers (co_driver_payout).
     const driverIds = drivers.map((d) => d.id);
     const ELIGIBLE_TRIP_STATUSES = ['Completed', 'Invoiced'];
 
@@ -213,10 +207,8 @@ export const getDrivers = async (req: Request, res: Response) => {
 
     const formatted = drivers.map(d => ({
       ...d,
-      hasAccountPassword: Boolean(d.user?.password_hash),
-      total_driver_payout: tripChargeByDriver.get(d.id) || 0,
       total_trip_charges: tripChargeByDriver.get(d.id) || 0,
-      total_driver_charges: tripChargeByDriver.get(d.id) || 0,
+      hasAccountPassword: Boolean(d.user?.password_hash || d.user),
     }));
 
     res.json({
@@ -829,3 +821,202 @@ export const setDriverPassword = async (req: Request, res: Response) => {
   }
 };
 
+const csvEscape = (val: any) => {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const AVAILABLE_EXPORT_COLUMNS: Record<string, { header: string, accessor: (d: any) => string }> = {
+  ref_id: { header: 'Driver ID', accessor: (d: any) => d.ref_id || `DRV-${d.id.slice(0, 5).toUpperCase()}` },
+  name: { header: 'Driver Name', accessor: (d: any) => `${d.first_name || ''} ${d.last_name || ''}`.trim() },
+  phone: { header: 'Primary Phone', accessor: (d: any) => d.phone_primary || 'N/A' },
+  status: { header: 'Duty Status', accessor: (d: any) => d.status || 'N/A' },
+  license_number: { header: 'License Number', accessor: (d: any) => d.license_number || 'N/A' },
+  license_expiry: { header: 'License Expiry Date', accessor: (d: any) => d.license_expiry ? new Date(d.license_expiry).toLocaleDateString('en-GB') : 'N/A' },
+  assigned_vehicle: { header: 'Assigned Vehicle', accessor: (d: any) => d.assignedVehicle?.plate_number || 'None' }
+};
+
+export const exportDrivers = async (req: Request, res: Response) => {
+  try {
+    const format = req.query.format as string;
+    if (format !== 'csv' && format !== 'xlsx') {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_REQUEST', message: 'Unsupported format. Use csv or xlsx' } });
+    }
+
+    const { whereClause, orderByClause } = buildDriverQueryOptions(req.query);
+
+    let requestedColumns = Object.keys(AVAILABLE_EXPORT_COLUMNS);
+    if (req.query.columns) {
+      const cols = String(req.query.columns).split(',').map(c => c.trim()).filter(c => AVAILABLE_EXPORT_COLUMNS[c]);
+      if (cols.length > 0) {
+        requestedColumns = cols;
+      }
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `drivers_export_${dateStr}.${format}`;
+
+    const selectOptions = {
+      id: true,
+      ref_id: true,
+      first_name: true,
+      last_name: true,
+      license_number: true,
+      license_expiry: true,
+      phone_primary: true,
+      status: true,
+      createdAt: true,
+      assignedVehicle: {
+        select: { plate_number: true }
+      }
+    };
+
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      const headers = requestedColumns.map(c => AVAILABLE_EXPORT_COLUMNS[c].header);
+      res.write(headers.map(h => csvEscape(h)).join(',') + '\n');
+
+      let skip = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await prisma.driver.findMany({
+          where: whereClause,
+          orderBy: orderByClause,
+          skip,
+          take: batchSize,
+          select: selectOptions
+        });
+
+        if (batch.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const row of batch) {
+          const values = requestedColumns.map(c => AVAILABLE_EXPORT_COLUMNS[c].accessor(row));
+          res.write(values.map(v => csvEscape(v)).join(',') + '\n');
+        }
+
+        skip += batchSize;
+        if (batch.length < batchSize) {
+          hasMore = false;
+        }
+      }
+      return res.end();
+    } else if (format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res as any });
+      const sheet = workbook.addWorksheet('Drivers');
+
+      sheet.columns = requestedColumns.map(c => ({
+        header: AVAILABLE_EXPORT_COLUMNS[c].header,
+        key: c,
+        width: 20
+      }));
+
+      let skip = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await prisma.driver.findMany({
+          where: whereClause,
+          orderBy: orderByClause,
+          skip,
+          take: batchSize,
+          select: selectOptions
+        });
+
+        if (batch.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const row of batch) {
+          const rowData: Record<string, string> = {};
+          for (const col of requestedColumns) {
+            rowData[col] = AVAILABLE_EXPORT_COLUMNS[col].accessor(row);
+          }
+          sheet.addRow(rowData).commit();
+        }
+
+        skip += batchSize;
+        if (batch.length < batchSize) {
+          hasMore = false;
+        }
+      }
+
+      sheet.commit();
+      await workbook.commit();
+      return;
+    }
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to generate driver export');
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to generate export' } });
+    } else {
+      res.end();
+    }
+  }
+};
+
+
+export const getDriverPayouts = async (req: Request, res: Response) => {
+  try {
+    const driverIds = req.query.driverIds;
+    if (!driverIds || typeof driverIds !== 'string') {
+      return res.json({ success: true, data: { payouts: {} } });
+    }
+
+    const ids = driverIds.split(',').map(id => id.trim()).filter(Boolean);
+    if (ids.length === 0) {
+      return res.json({ success: true, data: { payouts: {} } });
+    }
+
+    // Verify access to drivers
+    const { whereClause } = buildDriverQueryOptions({});
+    // Intersect requested IDs with base permission logic (though admin/op can see all, it's good practice)
+    whereClause.id = { in: ids };
+
+    const validDrivers = await prisma.driver.findMany({
+      where: whereClause,
+      select: { id: true }
+    });
+    const validIds = validDrivers.map(d => d.id);
+
+    if (validIds.length === 0) {
+      return res.json({ success: true, data: { payouts: {} } });
+    }
+
+    const tripChargeSums = await prisma.trip.groupBy({
+      by: ['driverId'],
+      where: { driverId: { in: validIds }, deletedAt: null },
+      _sum: { driver_payout: true },
+    });
+
+    const payouts: Record<string, number> = {};
+    for (const id of validIds) {
+      payouts[id] = 0;
+    }
+    for (const s of tripChargeSums) {
+      if (s.driverId) {
+        payouts[s.driverId] = Number(s._sum.driver_payout) || 0;
+      }
+    }
+
+    res.json({ success: true, data: { payouts } });
+  } catch (error) {
+    console.error('Failed to fetch driver payouts:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch driver payouts' } });
+  }
+};

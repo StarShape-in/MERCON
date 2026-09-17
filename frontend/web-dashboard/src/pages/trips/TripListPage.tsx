@@ -240,7 +240,7 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
       ? (t.third_party_vehicle_plate || '3PL Vehicle')
       : (t.vehicle?.plate_number || 'Unassigned'), defaultSelected: false },
   { id: 'jd_vehicle_type', label: 'VEHICLE TYPE', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t), defaultSelected: false },
-  { id: 'jd_mobile', label: 'MOBILE NUMBER', accessor: (t) => t.driver?.phone_number || t.driver?.phone || t.third_party_driver_phone || '—', defaultSelected: false },
+  { id: 'jd_mobile', label: 'MOBILE NUMBER', accessor: (t) => t.driver?.phone_primary || t.third_party_driver_phone || '—', defaultSelected: false },
   { id: 'jd_provider', label: 'MERCON OR 3RD PARTY', accessor: (t) => t.is_third_party ? '3rd Party' : 'MERCON', defaultSelected: false },
   { id: 'jd_customer', label: 'SENDER/CUSTOMER', accessor: (t) => t.customer?.name || 'Unassigned', defaultSelected: false },
   { id: 'jd_receiver', label: 'RECEIVER', accessor: (t) => {

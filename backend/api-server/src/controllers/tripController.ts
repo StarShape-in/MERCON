@@ -1406,13 +1406,12 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                   }]
                 }
               } : {}),
-              carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {
                 stops: {
                   create: resolvedImportStops,
                 }
               } : {})
-            },
+            } as any,
           });
         });
 

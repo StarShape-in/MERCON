@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -203,10 +203,11 @@ export default function DriverListPage() {
       sort_by: sortOrder,
       page: currentPage,
       per_page: pageSize,
+      sortOrder,
+      licenseFilter: licenseFilter === 'All' ? undefined : licenseFilter,
     }),
-    // Keep the previous page's rows on screen while a new search/page loads,
-    // instead of tearing the table down to a skeleton on every keystroke pause.
     placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
   });
 
   // KPI cards only ever needed counts, so they ask for counts. This used to
@@ -216,6 +217,7 @@ export default function DriverListPage() {
   const { data: driverStats } = useQuery({
     queryKey: ['drivers', 'stats'],
     queryFn: () => driverService.getStats(),
+    staleTime: 60 * 1000,
   });
 
   // The full matching roster is fetched when export or expired-license modal is opened,
@@ -231,12 +233,40 @@ export default function DriverListPage() {
     }),
     enabled: needsFullRoster,
   });
+    enabled: needsFullRoster,
+  });
 
-  const drivers: Driver[] = driversRes?.data || [];
-  const totalDrivers = driversRes?.meta?.total ?? drivers.length;
+  // Fetch up to 5 expired drivers natively from the backend for the KPI drill-down modal,
+  // bypassing the need to load the full 1000-driver roster into browser memory.
+  const { data: expiredKpiRes } = useQuery({
+    queryKey: ['drivers', 'expired-kpi'],
+    queryFn: () => driverService.getAll({ licenseFilter: 'Expired', per_page: 5, mode: 'lookup' }),
+    enabled: activeKpiModal === 'expired',
+  });
+  const expiredKpiDrivers = expiredKpiRes?.data || [];
+
+  const baseDrivers: Driver[] = driversRes?.data || [];
+  const totalDrivers = driversRes?.meta?.total ?? baseDrivers.length;
   const totalPages = driversRes?.meta?.total_pages || Math.ceil(totalDrivers / pageSize) || 1;
 
-  // Driver dataset comes pre-filtered and pre-sorted from PostgreSQL across the entire fleet
+  const visibleDriverIds = useMemo(() => baseDrivers.map(d => d.id).sort(), [baseDrivers]);
+
+  const { data: payouts } = useQuery({
+    queryKey: ['driver-payouts', visibleDriverIds],
+    queryFn: () => driverService.getPayouts(visibleDriverIds),
+    enabled: visibleDriverIds.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  const drivers = useMemo(() => {
+    if (!payouts) return baseDrivers;
+    return baseDrivers.map(d => ({
+      ...d,
+      total_trip_charges: payouts[d.id] ?? 0,
+      total_driver_charges: payouts[d.id] ?? 0,
+    }));
+  }, [baseDrivers, payouts]);
+
   const filteredDrivers = drivers;
 
   // Roster data returned from getAllForExport is already server-side filtered and sorted across the entire dataset
@@ -267,7 +297,7 @@ export default function DriverListPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const openWhatsappShare = (driver: Driver) => {
+  const openWhatsappShare = React.useCallback((driver: Driver) => {
     setWhatsappDriver(driver);
     const text = `*MERCON LOGISTICS - Driver Profile*\n` +
                  `• *Name:* ${driver.first_name} ${driver.last_name}\n` +
@@ -277,7 +307,7 @@ export default function DriverListPage() {
                  `• *Profile:* ${window.location.origin}/drivers/${driver.id}`;
     setWhatsappMessageText(text);
     setWhatsappCustomPhone(driver.phone_primary || '');
-  };
+  }, []);
 
   const handleWhatsappSend = () => {
     const cleanPhone = whatsappCustomPhone.trim().replace(/\+/g, '').replace(/\D/g, '');
@@ -393,7 +423,6 @@ export default function DriverListPage() {
     setConfirmModal,
   });
 
-
   const filterToolbar = (
     <DriverFilterToolbar
       selectedStatus={selectedStatus}
@@ -414,7 +443,155 @@ export default function DriverListPage() {
     />
   );
 
-  const bulkActions = [
+
+  const inlineSearchInput = (
+    <div className="relative w-full sm:w-60 md:w-72 shrink-0">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <Input
+        placeholder="Search driver ID, name, phone..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setCurrentPage(1);
+        }}
+        className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+      />
+      {search && (
+        <button
+          onClick={() => {
+            setSearch('');
+            setCurrentPage(1);
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
+  const statusLicenseFilters = useMemo(() => (
+    <div className="flex items-center gap-3">
+      <Select
+        value={selectedStatus}
+        onValueChange={(val) => {
+          if (val) {
+            setSelectedStatus(val as DriverStatus | 'All');
+            setCurrentPage(1);
+          }
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+            <SelectValue placeholder="All Statuses" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Filter Duty Status
+            </SelectLabel>
+            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                All Statuses
+              </span>
+            </SelectItem>
+          </SelectGroup>
+          <SelectSeparator className="my-1 border-slate-100" />
+          <SelectGroup>
+            <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-emerald-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Available
+              </span>
+            </SelectItem>
+            <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-blue-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                On Trip
+              </span>
+            </SelectItem>
+            <SelectItem value="OffDuty" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                Off Duty
+              </span>
+            </SelectItem>
+            <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-rose-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Inactive
+              </span>
+            </SelectItem>
+            <SelectItem value="Suspended" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-rose-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Suspended
+              </span>
+            </SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={licenseFilter}
+        onValueChange={(val) => {
+          if (val) {
+            setLicenseFilter(val as 'All' | 'Valid' | 'Expired');
+            setCurrentPage(1);
+          }
+        }}
+      >
+        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <Layers className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <SelectValue placeholder="All Licenses" />
+          </div>
+        </SelectTrigger>
+        <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+          <SelectGroup>
+            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Filter License Status
+            </SelectLabel>
+            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-slate-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                All Licenses
+              </span>
+            </SelectItem>
+            <SelectItem value="Valid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-emerald-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Valid Licenses Only
+              </span>
+            </SelectItem>
+            <SelectItem value="Expired" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+              <span className="flex items-center gap-2 font-medium text-rose-700 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Expired Only
+              </span>
+            </SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <SortDropdown
+        value={sortOrder}
+        onChange={setSortOrder}
+        options={DRIVER_SORT_OPTIONS}
+      />
+    </div>
+  ), [selectedStatus, licenseFilter, sortOrder, viewMode]);
+
+  // Grid-view pagination summary (mirrors DataTable's footer math for the list view)
+  const gridPageSizeOptions = [10, 25, 50, 100];
+  const gridFromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const gridToIndex = totalCount === 0 ? 0 : gridFromIndex + filteredDrivers.length - 1;
+
+  const bulkActions = useMemo(() => [
+>>>>>>> f95b5cff (feat: performance indexes, driver image avatar updates and trip list export improvements)
     {
       label: 'Edit Selected Driver',
       icon: <Edit2 size={13} />,
@@ -511,7 +688,34 @@ export default function DriverListPage() {
         });
       }
     }
-  ];
+  ], [navigate, setConfirmModal, queryClient]);
+
+  const handleSearchChange = useCallback((val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handleRowClick = useCallback((row: Driver) => {
+    navigate(`/drivers/${row.id}`);
+  }, [navigate]);
+
+  const defaultSortAccessor = useCallback((row: Driver) => row.createdAt, []);
+
+  const tableTitle = useMemo(() => (
+    <span className="flex items-center gap-2">
+      <Users className="w-4 h-4 text-emerald-500" />
+      <span>Driver Ledger</span>
+    </span>
+  ), []);
 
   return (
     <DashboardLayout 
@@ -710,15 +914,10 @@ export default function DriverListPage() {
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-emerald-500" />
-                  <span>Driver Ledger</span>
-                </span>
-              }
+              title={tableTitle}
               data={filteredDrivers}
               columns={columns}
-              sortAccessor={(row: Driver) => row.createdAt}
+              sortAccessor={defaultSortAccessor}
               enableSelection={true}
               compact={true}
               isLoading={isLoading}
@@ -732,13 +931,10 @@ export default function DriverListPage() {
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
+              onPageSizeChange={handlePageSizeChange}
               totalRecords={totalCount}
-              onPageChange={(page) => setCurrentPage(page)}
-              onRowClick={(row) => navigate(`/drivers/${row.id}`)}
+              onPageChange={handlePageChange}
+              onRowClick={handleRowClick}
             />
           </div>
         ) : (
@@ -787,7 +983,6 @@ export default function DriverListPage() {
           expiredLicenseCount={expiredLicenseCount}
         />
 
-        {/* Origin-Animated KPI Modal 4: Saudi MOT & MOMRAH Compliance Status */}
         <DriverKpiComplianceModal
           isOpen={activeKpiModal === 'expired'}
           onClose={() => setActiveKpiModal(null)}

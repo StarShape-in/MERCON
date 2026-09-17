@@ -47,7 +47,9 @@ export interface DriverFilters {
   page?: number;
   per_page?: number;
   mode?: 'lookup';
+  licenseFilter?: 'All' | 'Valid' | 'Expired';
   license_status?: 'All' | 'Valid' | 'Expired';
+  sortOrder?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
 }
@@ -64,6 +66,14 @@ export interface DriverStats {
 }
 
 export const driverService = {
+  async getPayouts(driverIds: string[]): Promise<Record<string, number>> {
+    if (driverIds.length === 0) return {};
+    const res = await api.get<ApiResponse<{ payouts: Record<string, number> }>>('/drivers/payouts', {
+      params: { driverIds: driverIds.join(',') }
+    });
+    return res.data.data.payouts;
+  },
+
   async getStats(): Promise<DriverStats> {
     const res = await api.get<ApiResponse<DriverStats>>('/drivers/stats');
     return res.data.data;

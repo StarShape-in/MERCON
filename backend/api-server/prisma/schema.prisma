@@ -257,6 +257,8 @@ model Driver {
   @@index([deletedAt])
   @@index([license_expiry])
   @@index([first_name, last_name])
+  @@index([deletedAt, license_expiry])
+  @@index([deletedAt, createdAt])
 }
 
 model DriverVehicleAssignment {

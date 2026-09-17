@@ -76,7 +76,7 @@ export interface DataTableProps<T> {
   rowClassName?: (row: T) => string;
 }
 
-export default function DataTable<T>({
+export const DataTableContent = function DataTable<T>({
   title,
   subtitle,
   columns,
@@ -716,3 +716,6 @@ export default function DataTable<T>({
     </div>
   );
 }
+
+// Wrap with generic React.memo while preserving types
+export default React.memo(DataTableContent) as typeof DataTableContent;
