@@ -677,10 +677,8 @@ export default function CargoLoadingView() {
 
         {/* Card 2: ASSET & CAPACITY */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-orange-50/70 border border-orange-200/80 shadow-2xs flex items-center justify-center shrink-0">
-              <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75]" />
-            </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75] shrink-0" />
             <div className="min-w-0">
               <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">ASSET TYPE</p>
               <p className="text-xs sm:text-sm font-black text-slate-900 leading-snug truncate">
@@ -689,20 +687,18 @@ export default function CargoLoadingView() {
             </div>
           </div>
 
-          {/* Highlighted Capacity Ton Badge on Right Side */}
+          {/* Highlighted Capacity Ton Text on Right Side */}
           <div className="shrink-0 text-right">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#FA634E] border border-orange-200/90 text-xs sm:text-sm font-black shadow-2xs">
-              <Gauge className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-[#FA634E]">
+              <Gauge className="w-4 h-4 text-[#FA634E] shrink-0" />
               <span>{capacityFormatted}</span>
             </span>
           </div>
         </div>
 
         {/* Card 3: DRIVER CONTACT */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Phone className="w-6 h-6 text-blue-600 stroke-[1.75]" />
-          </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-3.5 min-h-[96px]">
+          <Phone className="w-6 h-6 text-blue-600 stroke-[1.75] shrink-0" />
           <div className="min-w-0">
             <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER CONTACT</p>
             <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug">{assignedDriver?.phone_primary || assignedDriver?.phone || '—'}</p>
@@ -711,10 +707,8 @@ export default function CargoLoadingView() {
         </div>
 
         {/* Card 4: GPS */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Navigation className="w-6 h-6 text-emerald-600 stroke-[1.75]" />
-          </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-3.5 min-h-[96px]">
+          <Navigation className="w-6 h-6 text-emerald-600 stroke-[1.75] shrink-0" />
           <div className="min-w-0">
             <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GPS</p>
             <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug flex items-center gap-2 truncate">
@@ -793,14 +787,12 @@ export default function CargoLoadingView() {
               </div>
             )}
 
-            {/* Bottom Telemetry Bar Overlay (Visible in Normal View inside Truck Box) */}
+            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - No Capsule Container, Direct Icons & Numbers) */}
             {activeServiceView === 'categories' && (
-              <div className="absolute bottom-3 left-3 right-3 z-20 bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-xl p-2.5 px-3.5 shadow-md flex items-center justify-between gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
                 {/* 1. Latest Odometer */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/80 flex items-center justify-center text-[#FA634E] shrink-0 shadow-2xs">
-                    <Gauge className="w-4 h-4 stroke-[2]" />
-                  </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Gauge className="w-4.5 h-4.5 text-[#FA634E] stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
                       LATEST ODOMETER
@@ -811,13 +803,9 @@ export default function CargoLoadingView() {
                   </div>
                 </div>
 
-                <div className="h-7 w-px bg-slate-200/80 shrink-0 hidden sm:block"></div>
-
                 {/* 2. Next Service Due */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
-                    <Clock className="w-4 h-4 stroke-[2]" />
-                  </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Clock className="w-4.5 h-4.5 text-blue-600 stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
                       NEXT SERVICE DUE
@@ -828,13 +816,9 @@ export default function CargoLoadingView() {
                   </div>
                 </div>
 
-                <div className="h-7 w-px bg-slate-200/80 shrink-0 hidden md:block"></div>
-
                 {/* 3. YTD Maintenance Spend */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
-                    <Wrench className="w-4 h-4 stroke-[2]" />
-                  </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Wrench className="w-4.5 h-4.5 text-indigo-600 stroke-[2.2] shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
                       YTD MAINTENANCE
@@ -886,13 +870,7 @@ export default function CargoLoadingView() {
                             : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
-                          isSelected
-                            ? 'bg-white border-orange-200 shadow-2xs'
-                            : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
-                        }`}>
-                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
-                        </div>
+                        <IconComp className={`w-4.5 h-4.5 stroke-[2.2] shrink-0 ${theme.text}`} />
                         <div className="min-w-0 flex-1">
                           <span className={`text-[11px] font-bold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                             {item.categoryLabel}
@@ -941,24 +919,20 @@ export default function CargoLoadingView() {
 
                     {totalRecs === 0 ? (
                       <div className="flex-1 bg-slate-50/70 rounded-xl p-4 border border-dashed border-slate-200 shadow-2xs flex flex-col items-center justify-center text-center">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center mb-2">
-                          {(() => {
-                            const IconComp = selectedService.icon;
-                            return <IconComp className="w-5 h-5 text-slate-400 stroke-[1.5]" />;
-                          })()}
-                        </div>
+                        {(() => {
+                          const IconComp = selectedService.icon;
+                          return <IconComp className="w-6 h-6 text-slate-400 stroke-[1.5] mb-2" />;
+                        })()}
                         <p className="text-xs font-bold text-slate-700">No Records Found</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">No maintenance records logged under {selectedService.categoryLabel}.</p>
                       </div>
                     ) : (
                       <div className="flex-1 bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
-                            {(() => {
-                              const IconComp = selectedService.icon;
-                              return <IconComp className={`w-4 h-4 stroke-[2] ${selectedService.colorTheme.text}`} />;
-                            })()}
-                          </div>
+                          {(() => {
+                            const IconComp = selectedService.icon;
+                            return <IconComp className={`w-5 h-5 stroke-[2.2] ${selectedService.colorTheme.text} shrink-0 mt-0.5`} />;
+                          })()}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between mb-0.5">
                               <span className="text-[9px] font-bold text-slate-400">{recDate}</span>
