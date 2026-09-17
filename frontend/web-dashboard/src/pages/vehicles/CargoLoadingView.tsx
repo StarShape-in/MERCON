@@ -805,7 +805,6 @@ export default function CargoLoadingView() {
                         }`}
                         title={item.categoryLabel}
                       >
-                        <span className={`absolute -inset-1 rounded-full animate-ping opacity-30 ${theme.ping}`} />
                         <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
                         <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
                           {item.categoryLabel}
