@@ -3,12 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import truckNewImg from '@/assets/truck-new.png';
-import truckExplodedImg from '@/assets/exploded view.png';
-import truckAnimation3sVideo from '@/assets/truck-animation-3s.mp4';
 import { maintenanceService } from '@/services/maintenanceService';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
@@ -17,10 +14,6 @@ import {
   History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
   RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu, Building2
 } from 'lucide-react';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +36,13 @@ interface CargoSlot {
 
 interface Shipment {
   id: string;
-  speed: 'Standard' | 'Express' | 'Same day';
-  route: string;
-  type: string;
-  quantity: string;
-  totalWeight: string;
-  dimension: string;
-  method: string;
+  ref_id?: string;
+  cargo_type?: string;
+  total_weight?: string;
+  customer?: { name: string };
+  origin_city?: string;
+  destination_city?: string;
+  status?: string;
 }
 
 const INITIAL_SLOTS: CargoSlot[] = [
@@ -61,15 +54,17 @@ const INITIAL_SLOTS: CargoSlot[] = [
   { id: 'A6', status: 'empty' },
 
   { id: 'B1', status: 'empty' },
-  { id: 'B2', status: 'empty', colSpan: 2 },
+  { id: 'B2', status: 'empty', colSpan: 2, hasBorder: true },
   { id: 'B3', status: 'empty' },
   { id: 'B4', status: 'empty' },
   { id: 'B5', status: 'empty' },
 
   { id: 'C1', status: 'empty' },
   { id: 'C2', status: 'empty' },
-  { id: 'C3', status: 'empty', colSpan: 2 },
-  { id: 'C4', status: 'empty', colSpan: 2 },
+  { id: 'C3', status: 'empty' },
+  { id: 'C4', status: 'empty' },
+  { id: 'C5', status: 'empty' },
+  { id: 'C6', status: 'empty' },
 ];
 
 interface VehicleTripDisplay {
@@ -122,7 +117,7 @@ export default function CargoLoadingView() {
     ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name
     : 'Unassigned Driver';
   const rawAvatarUrl = assignedDriver?.avatar_url || assignedDriver?.photo_url || assignedDriver?.image_url || (assignedDriver as any)?.avatar || null;
-  const driverAvatar = rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : '';
+  const driverAvatar = getDriverAvatar(rawAvatarUrl, driverName) || (rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : '');
   const capacityFormatted = vehicle?.capacity_kg ? `${(vehicle.capacity_kg / 1000).toLocaleString()} Ton` : '—';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 

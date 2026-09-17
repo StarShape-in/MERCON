@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import StatusBadge from '@/components/ui/StatusBadge';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Driver } from '@/services/driverService';
 import { cn } from '@/lib/utils';
@@ -177,7 +178,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, on
                   {driver.first_name} {driver.last_name} — Profile Photo
                 </h3>
                 <img
-                  src={isAbdulMalik ? '/driver-assets/abdul_malik.jpg' : driver.avatar_url!}
+                  src={getDriverAvatar(driver.avatar_url, `${driver.first_name} ${driver.last_name}`) || '/driver-assets/abdul_malik.jpg'}
                   alt={`${driver.first_name} ${driver.last_name}`}
                   className="max-h-[60vh] max-w-full object-contain mx-auto rounded-xl shadow-lg border border-slate-800"
                   style={{ transform: `rotate(${rotation}deg)` }}
