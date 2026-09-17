@@ -15,7 +15,7 @@ import {
   Clock, MapPin, Truck, FileText, ShieldCheck, 
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
   History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
-  RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu
+  RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu, Building2
 } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
@@ -1030,9 +1030,9 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Section: Trips Ledger (Positioned Directly Below the Three Middle Boxes) ── */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+      {/* ── Section: Trips Ledger (Fixed height min-h-[185px], zero height jump on tab switch) ── */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0 min-h-[185px] flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-4">
             <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Truck className="w-4.5 h-4.5 text-[#FA634E]" />
@@ -1092,31 +1092,46 @@ export default function CargoLoadingView() {
           </button>
         </div>
 
-        {/* Dynamic Vehicle Trips Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Dynamic Vehicle Trips Grid (Locked Height Container min-h-[110px]) */}
+        <div className="flex-1 flex flex-col justify-center min-h-[110px]">
           {activeDataset.length === 0 ? (
-            <div className="col-span-full p-6 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50">
-              <Truck className="w-6 h-6 text-slate-400 mx-auto mb-1.5 stroke-[1.5]" />
+            <div className="w-full min-h-[110px] p-4 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center">
+              <Truck className="w-5 h-5 text-slate-400 mx-auto mb-1 stroke-[1.5]" />
               <p className="text-xs font-bold text-slate-600">No Trips Found</p>
               <p className="text-[10px] text-slate-400 mt-0.5">No {tripTab} trip records for this vehicle.</p>
             </div>
           ) : (
-            activeDataset.slice(0, 4).map((trip) => (
-              <div 
-                key={trip.id}
-                onClick={() => trip.rawId && navigate(`/trips/${trip.rawId}`)}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-2xs transition-all cursor-pointer"
-              >
-                <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs sm:text-sm font-black text-slate-900 truncate">{trip.route}</p>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{trip.id} • {trip.customerName}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-stretch min-h-[110px]">
+              {activeDataset.slice(0, 4).map((trip) => (
+                <div 
+                  key={trip.id}
+                  onClick={() => trip.rawId && navigate(`/trips/${trip.rawId}`)}
+                  className="p-3 px-3.5 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/60 hover:shadow-2xs transition-all cursor-pointer flex flex-col justify-between gap-2 min-h-[105px] group"
+                >
+                  {/* Top Row: Trip ID & Status Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black text-[#FA634E] font-mono tracking-tight">{trip.id}</span>
+                    {renderTripCardBadge(trip.status)}
+                  </div>
+
+                  {/* Middle Row: Route */}
+                  <div>
+                    <p className="text-xs font-black text-slate-900 leading-snug truncate group-hover:text-[#FA634E] transition-colors">
+                      {trip.route}
+                    </p>
+                  </div>
+
+                  {/* Bottom Row: Company Name & Arrow */}
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px] text-slate-500">
+                    <span className="font-bold text-slate-600 truncate flex items-center gap-1">
+                      <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="truncate">{trip.customerName}</span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {renderTripCardBadge(trip.status)}
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
