@@ -1,0 +1,186 @@
+name: DB Migration Ledger Inspect (Read-Only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect _prisma_migrations and physical schema
+    runs-on: self-hosted
+
+    steps:
+      - name: Inspect DEV database migration ledger and physical schema
+        env:
+          POSTGRES_USER: ${{ secrets.DEV_POSTGRES_USER || secrets.POSTGRES_USER || 'mercon_dev_admin' }}
+          POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD || secrets.POSTGRES_PASSWORD || 'mercon_dev_secure_pass_2026' }}
+          POSTGRES_DB: mercon_dev_db
+          DB_TUNNEL_PORT: 15433
+        run: |
+          set -euo pipefail
+          echo "=== DEV _prisma_migrations FULL LEDGER ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT migration_name, started_at, finished_at, applied_steps_count,
+                   rolled_back_at, checksum, logs
+            FROM _prisma_migrations
+            ORDER BY started_at ASC;
+          " 2>&1 || echo "DEV ledger query failed"
+
+          echo ""
+          echo "=== DEV: TARGETED MIGRATIONS ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT migration_name, started_at, finished_at, applied_steps_count,
+                   rolled_back_at, checksum, logs
+            FROM _prisma_migrations
+            WHERE migration_name IN (
+              '20260914140000_add_driver_devices_table',
+              '20260915153000_add_vehicle_compatibility_rules',
+              '20260915153500_add_audit_log',
+              '20260915153500_add_quotation_number_sequence',
+              '20260915163000_add_trip_assignment_events_and_contingency',
+              '20260915220000_add_provider_rate_cards'
+            )
+            ORDER BY migration_name;
+          " 2>&1 || echo "DEV targeted query failed"
+
+          echo ""
+          echo "=== DEV: VehicleCompatibilityRule TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'VehicleCompatibilityRule'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "VehicleCompatibilityRule not found"
+
+          echo ""
+          echo "=== DEV: VehicleCompatibilityRule INDEXES ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT indexname, indexdef
+            FROM pg_indexes
+            WHERE tablename = 'VehicleCompatibilityRule';
+          " 2>&1 || echo "No indexes found"
+
+          echo ""
+          echo "=== DEV: audit_logs TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'audit_logs'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "audit_logs not found"
+
+          echo ""
+          echo "=== DEV: audit_logs INDEXES ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT indexname, indexdef
+            FROM pg_indexes
+            WHERE tablename = 'audit_logs';
+          " 2>&1 || echo "No indexes found"
+
+          echo ""
+          echo "=== DEV: audit_logs FOREIGN KEYS ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT conname, pg_get_constraintdef(oid)
+            FROM pg_constraint
+            WHERE conrelid = '\"audit_logs\"'::regclass AND contype = 'f';
+          " 2>&1 || echo "No FKs found"
+
+          echo ""
+          echo "=== DEV: driver_devices TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'driver_devices'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "driver_devices not found"
+
+          echo ""
+          echo "=== DEV: ProviderRateCard TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'ProviderRateCard'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "ProviderRateCard not found"
+
+          echo ""
+          echo "=== DEV: DriverVehicleAssignment TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'DriverVehicleAssignment'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "DriverVehicleAssignment not found"
+
+          echo ""
+          echo "=== DEV: TripAssignmentEvent TABLE ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'TripAssignmentEvent'
+            ORDER BY ordinal_position;
+          " 2>&1 || echo "TripAssignmentEvent not found"
+
+          echo ""
+          echo "=== DEV: Quotation quotation_number column ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT column_name, data_type, udt_name, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'Quotation' AND column_name = 'quotation_number';
+          " 2>&1 || echo "quotation_number column not found"
+
+          echo ""
+          echo "=== DEV: ALL TABLES IN public SCHEMA ==="
+          docker compose -p mercon-dev exec -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            ORDER BY table_name;
+          " 2>&1 || echo "Table list failed"
+
+          echo ""
+          echo "=== DEV: API CONTAINER LOGS (last 50 lines) ==="
+          docker compose -p mercon-dev logs --no-color --tail=50 mercon-api 2>&1 || echo "No dev API logs"
+
+          echo ""
+          echo "=== DEV: API CONTAINER STATUS ==="
+          docker compose -p mercon-dev ps mercon-api 2>&1 || echo "No dev API container"
+
+      - name: Inspect PROD database migration ledger
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER || 'mercon_admin' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: mercon_db
+        run: |
+          set -euo pipefail
+          echo "=== PROD _prisma_migrations TARGETED ==="
+          docker compose -p mercon exec -e PGPASSWORD="$POSTGRES_PASSWORD" -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT migration_name, started_at, finished_at, applied_steps_count,
+                   rolled_back_at, checksum, logs
+            FROM _prisma_migrations
+            WHERE migration_name IN (
+              '20260914140000_add_driver_devices_table',
+              '20260915153000_add_vehicle_compatibility_rules',
+              '20260915153500_add_audit_log',
+              '20260915153500_add_quotation_number_sequence',
+              '20260915163000_add_trip_assignment_events_and_contingency',
+              '20260915220000_add_provider_rate_cards'
+            )
+            ORDER BY migration_name;
+          " 2>&1 || echo "PROD targeted query failed"
+
+          echo ""
+          echo "=== PROD: LAST 10 MIGRATIONS ==="
+          docker compose -p mercon exec -e PGPASSWORD="$POSTGRES_PASSWORD" -T postgres-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
+            SELECT migration_name, started_at, finished_at, applied_steps_count,
+                   rolled_back_at, checksum
+            FROM _prisma_migrations
+            ORDER BY started_at DESC
+            LIMIT 10;
+          " 2>&1 || echo "PROD ledger query failed"
+
+          echo ""
+          echo "=== PROD: API CONTAINER LOGS (last 50 lines) ==="
+          docker compose -p mercon logs --no-color --tail=50 mercon-api 2>&1 || echo "No prod API logs"
+
+          echo ""
+          echo "=== PROD: API CONTAINER STATUS ==="
+          docker compose -p mercon ps mercon-api 2>&1 || echo "No prod API container"

@@ -10,6 +10,8 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { safeSecureStore as SecureStore } from './secure-store';
 import { router } from 'expo-router';
+import { translate } from './language-context';
+import { LanguageMode } from './translations';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra?.apiUrl as string);
 
@@ -24,17 +26,52 @@ if (!API_URL) {
 const KEY_PREFIX = `${Constants.expoConfig?.slug ?? 'mercon-app'}_`;
 export const TOKEN_KEY = `${KEY_PREFIX}token`;
 export const SESSION_KEY = `${KEY_PREFIX}session`;
+export const PUSH_TOKEN_KEY = `${KEY_PREFIX}push_token`;
 
 const LOGIN_PATHS = ['/auth/login', '/mobile/auth/login'];
+
+let inMemoryToken: string | null = null;
+let restorePromise: Promise<string | null> | null = null;
+
+export function setAuthToken(token: string | null) {
+  inMemoryToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return inMemoryToken;
+}
+
+/**
+ * Returns the cached in-memory token, or awaits an in-flight restoration from SecureStore.
+ * Prevents multiple simultaneous SecureStore disk I/O restoration calls during startup.
+ */
+export async function ensureAuthToken(): Promise<string | null> {
+  if (inMemoryToken) return inMemoryToken;
+  if (!restorePromise) {
+    restorePromise = (async () => {
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        inMemoryToken = token;
+        return token;
+      } finally {
+        restorePromise = null;
+      }
+    })();
+  }
+  return restorePromise;
+}
 
 export const api = axios.create({
   baseURL: API_URL,
   timeout: 15000,
 });
 
-// Attach the saved JWT to every request
+// Attach the saved JWT to every request — using in-memory cache first to eliminate disk I/O delay
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  let token = inMemoryToken;
+  if (!token) {
+    token = await ensureAuthToken();
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -53,6 +90,7 @@ api.interceptors.response.use(
   async (error) => {
     const isLoginRequest = LOGIN_PATHS.some((p) => error.config?.url?.includes(p));
     if (error.response?.status === 401 && !isLoginRequest) {
+      setAuthToken(null);
       await Promise.all([
         SecureStore.deleteItemAsync(TOKEN_KEY),
         SecureStore.deleteItemAsync(SESSION_KEY),
@@ -72,23 +110,31 @@ api.interceptors.response.use(
  * console log (visible in Metro) and the alert text itself carry the real
  * cause so the next occurrence is diagnosable on the spot.
  */
-export function getApiErrorMessage(err: unknown): string {
+export function getApiErrorMessage(err: unknown, lang?: LanguageMode): string {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 401) {
-      return err.response?.data?.error?.message || 'Invalid credentials. Please check your username/phone and password/license.';
+      return (
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        translate('err_invalid_credentials', 'Invalid credentials. Please check your username/phone and password/license.', lang)
+      );
     }
     if (err.response?.data?.error?.message) return err.response.data.error.message;
-    if (err.code === 'ECONNABORTED') return 'Request timed out. Check your connection.';
+    if (err.response?.data?.message) return err.response.data.message;
+    if (err.code === 'ECONNABORTED') {
+      return translate('err_network_timeout', 'Request timed out. Check your connection.', lang);
+    }
     if (!err.response) {
-      return `Cannot reach the server (${err.message || err.code || 'network error'}). Check your connection.`;
+      const details = err.message || err.code || 'network error';
+      return `${translate('err_cannot_reach_server', 'Cannot reach the server.', lang)} (${details})`;
     }
     console.error('[API error]', err);
-    return `Server error (HTTP ${err.response.status}). Please try again.`;
+    return `${translate('err_server_error', 'Server error. Please try again.', lang)} (HTTP ${err.response.status})`;
   }
 
   console.error('[API error]', err);
   if (err instanceof Error) {
-    return `Something went wrong: ${err.message}`;
+    return `${translate('err_something_went_wrong', 'Something went wrong. Please try again.', lang)}: ${err.message}`;
   }
-  return 'Something went wrong. Please try again.';
+  return translate('err_something_went_wrong', 'Something went wrong. Please try again.', lang);
 }

@@ -8,10 +8,15 @@ import {
   CalendarRange, 
   Car, 
   Building2, 
-  Wrench, 
+  Wrench,
+  Lock, 
 } from 'lucide-react';
 import { Link, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
+
+import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '@/services/settingsService';
+import type { ModuleKey } from '@mercon/shared-types';
 
 interface HeaderProps {
   title?: string;
@@ -22,10 +27,22 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
-const operationsItems = [
+interface OperationsItem {
+  label: string;
+  path: string;
+  icon: any;
+  moduleKey: ModuleKey;
+  iconColor: string;
+  activeClass: string;
+  hoverClass: string;
+  accentColor: string;
+}
+
+const rawOperationsItems: OperationsItem[] = [
   {
     label: 'Trips',
-    path: '/trips?view=kanban',
+    path: '/trips',
+    moduleKey: 'trips',
     icon: Truck,
     iconColor: 'text-orange-500 dark:text-orange-400',
     activeClass: 'text-orange-600 dark:text-orange-400 bg-orange-50/90 dark:bg-orange-950/40 font-extrabold',
@@ -35,6 +52,7 @@ const operationsItems = [
   {
     label: 'Monthly Trips',
     path: '/trips/monthly',
+    moduleKey: 'trips',
     icon: CalendarRange,
     iconColor: 'text-purple-600 dark:text-purple-400',
     activeClass: 'text-purple-600 dark:text-purple-400 bg-purple-50/90 dark:bg-purple-950/40 font-extrabold',
@@ -44,6 +62,7 @@ const operationsItems = [
   {
     label: 'Drivers',
     path: '/drivers',
+    moduleKey: 'drivers',
     icon: Users,
     iconColor: 'text-emerald-500 dark:text-emerald-400',
     activeClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/90 dark:bg-emerald-950/40 font-extrabold',
@@ -53,6 +72,7 @@ const operationsItems = [
   {
     label: 'Vehicles',
     path: '/vehicles',
+    moduleKey: 'vehicles',
     icon: Car,
     iconColor: 'text-blue-500 dark:text-blue-400',
     activeClass: 'text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/40 font-extrabold',
@@ -62,6 +82,7 @@ const operationsItems = [
   {
     label: '3rd Party Fleet',
     path: '/third-party',
+    moduleKey: 'third-party',
     icon: Building2,
     iconColor: 'text-teal-600 dark:text-teal-400',
     activeClass: 'text-teal-600 dark:text-teal-400 bg-teal-50/90 dark:bg-teal-950/40 font-extrabold',
@@ -71,6 +92,7 @@ const operationsItems = [
   {
     label: 'Maintenance',
     path: '/maintenance',
+    moduleKey: 'maintenance',
     icon: Wrench,
     iconColor: 'text-rose-500 dark:text-rose-400',
     activeClass: 'text-rose-600 dark:text-rose-400 bg-rose-50/90 dark:bg-rose-950/40 font-extrabold',
@@ -80,6 +102,7 @@ const operationsItems = [
   {
     label: 'Customers',
     path: '/customers',
+    moduleKey: 'customers',
     icon: Building2,
     iconColor: 'text-indigo-600 dark:text-indigo-400',
     activeClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/90 dark:bg-indigo-950/40 font-extrabold',
@@ -93,8 +116,25 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
   const location = useLocation();
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || (user as any)?.isSuperAdmin === true;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+    staleTime: 60000,
+  });
+
+  const enabledModules = settings?.enabledModules;
+
+  const checkIsDisabled = (item: OperationsItem) => {
+    return item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+  };
+
+  const enabledOps = rawOperationsItems.filter(item => !checkIsDisabled(item));
+  const disabledOps = rawOperationsItems.filter(item => checkIsDisabled(item));
+  const operationsItems = [...enabledOps, ...disabledOps];
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
@@ -201,6 +241,22 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
             {operationsItems.map((item) => {
               const isActive = isItemActive(item.path);
               const Icon = item.icon;
+              const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+              if (isDisabledModule) {
+                return (
+                  <div
+                    key={item.path}
+                    title={`${item.label} — Locked`}
+                    className="relative inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-2.5 text-xs font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50/80 dark:bg-slate-900/60"
+                  >
+                    <Icon size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                    <span>{item.label}</span>
+                    <Lock size={13} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                  </div>
+                );
+              }
+
               return (
                 <NavLink
                   key={item.path}
@@ -223,13 +279,15 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
             })}
           </div>
 
-          {/* Notifications trigger */}
+          {/* Notifications trigger (temporarily hidden) */}
+          {/* 
           <Link to="/notifications" className="relative group shrink-0">
             <Bell className="w-5 h-5 text-slate-600 shrink-0" />
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
               8
             </span>
           </Link>
+          */}
         </div>
 
       </div>
@@ -239,6 +297,22 @@ export default function Header({ title, breadcrumb, hideBackButton, onBackClick,
         {operationsItems.map((item) => {
           const isActive = isItemActive(item.path);
           const Icon = item.icon;
+          const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+          if (isDisabledModule) {
+            return (
+              <div
+                key={item.path}
+                title={`${item.label} — Locked`}
+                className="relative inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed select-none shrink-0 whitespace-nowrap bg-slate-50 dark:bg-slate-900"
+              >
+                <Icon size={12} className="text-slate-400 shrink-0" />
+                <span>{item.label}</span>
+                <Lock size={11} className="text-amber-500 dark:text-amber-400 shrink-0" />
+              </div>
+            );
+          }
+
           return (
             <NavLink
               key={item.path}

@@ -49,12 +49,12 @@ export const locationService = {
         ...(params?.coordinate_precision ? { coordinate_precision: params.coordinate_precision } : {}),
       },
     });
-    return res.data;
+    return res?.data ?? { success: false, data: [] };
   },
 
   async getById(id: string): Promise<Location> {
     const res = await api.get<ApiResponse<Location>>(`/locations/${id}`);
-    return res.data.data;
+    return res?.data?.data;
   },
 
   async create(payload: CreateLocationPayload): Promise<Location> {
@@ -67,8 +67,8 @@ export const locationService = {
     return res.data.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/locations/${id}`);
+  async delete(id: string, force?: boolean): Promise<void> {
+    await api.delete(`/locations/${id}${force ? '?force=true' : ''}`);
   },
 
   async importRows(rows: Record<string, any>[]): Promise<ImportSummary> {

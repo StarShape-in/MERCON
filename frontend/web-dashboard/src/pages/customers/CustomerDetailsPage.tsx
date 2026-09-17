@@ -4,16 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
-  DollarSign, Plus, RotateCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
+  Plus, RotateCw, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
-  Trash2, UploadCloud, User, Download, ChevronDown, Car, UserCheck, Copy, PhoneCall
+  Trash2, UploadCloud, User, Download, ChevronDown, Car, UserCheck, Copy, PhoneCall,
+  MoreVertical, Award, FolderOpen, Banknote, Gauge
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { customerService } from '@/services/customerService';
-import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { locationService, Location } from '@/services/locationService';
@@ -27,6 +27,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import DataTable from '@/components/ui/DataTable';
 
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -44,25 +47,6 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function getPrimaryContactPerson(name: string): string {
-  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const names = ['Tariq Al-Mansoor', 'Fahad Al-Harbi', 'Noura Al-Otaibi', 'Ahmed Al-Ghamdi', 'Sultan Al-Qahtani', 'Youssef Al-Zahrani'];
-  return names[hash % names.length];
-}
-
-function getSecondaryContactPerson(name: string): string {
-  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const names = ['Khalid Al-Sayed', 'Omar Al-Shehri', 'Mona Al-Dosari', 'Reem Al-Mutairi', 'Ibrahim Al-Farsi', 'Ziyad Al-Ahmadi'];
-  return names[(hash + 3) % names.length];
-}
-
-function getSecondaryContactPhone(phoneOrId?: string): string {
-  if (phoneOrId && phoneOrId.length >= 7 && phoneOrId.startsWith('+')) {
-    return phoneOrId.slice(0, -2) + '88';
-  }
-  return '+966 55 987 6543';
-}
-
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -77,11 +61,9 @@ export default function CustomerDetailsPage() {
   const [isImportLocationsOpen, setIsImportLocationsOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [ratesPage, setRatesPage] = useState(1);
-  const RATES_PER_PAGE = 5;
 
-  // Segmented Tab for Commercial & Operational Profile
-  const [activeTab, setActiveTab] = useState<'quotations' | 'dispatches' | 'invoices' | 'saved_places'>('quotations');
+  // Segmented Tab for Activity Ledger
+  const [activeTab, setActiveTab] = useState<'dispatches' | 'quotations' | 'saved_places' | 'governance'>('dispatches');
 
   // Fetch Customer details
   const { data: customer, isLoading, error } = useQuery({
@@ -97,21 +79,14 @@ export default function CustomerDetailsPage() {
     }
   }, [customer?.id, id, navigate]);
 
-  // Fetch Invoices for this customer
-  const { data: invoicesResponse } = useQuery({
-    queryKey: ['invoices', { customer_id: id }],
-    queryFn: () => invoiceService.getAll({ customer_id: id }),
-    enabled: !!id,
-  });
-
-  // This customer's negotiated price list.
+  // Customer rate cards
   const { data: rateCardsResponse } = useQuery({
     queryKey: ['rate-cards', 'customer', id],
     queryFn: () => rateCardService.getAll({ customerId: id! }),
     enabled: !!id,
   });
 
-  // This customer's canonical locations.
+  // Customer canonical locations
   const { data: locationsRes } = useQuery({
     queryKey: ['locations', id],
     queryFn: () => locationService.getAll({ customerId: id! }),
@@ -127,9 +102,8 @@ export default function CustomerDetailsPage() {
   const refreshCustomer = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['customer', id] });
-    await queryClient.invalidateQueries({ queryKey: ['invoices', { customer_id: id }] });
     await queryClient.invalidateQueries({ queryKey: ['rate-cards', 'customer', id] });
-    await queryClient.invalidateQueries({ queryKey: ['customer-saved-locations', id] });
+    await queryClient.invalidateQueries({ queryKey: ['locations', id] });
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -148,10 +122,11 @@ export default function CustomerDetailsPage() {
       <DashboardLayout active="Customers" title="Customer Details">
         <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-6 animate-pulse">
           <div className="h-36 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="h-[100px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[100px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[100px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-[100px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           </div>
           <div className="h-[400px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
         </div>
@@ -168,7 +143,7 @@ export default function CustomerDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             The requested corporate customer account does not exist or may have been archived from the MERCON roster.
           </p>
-          <Button onClick={() => navigate('/customers')} size="sm" className="mt-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+          <Button onClick={() => navigate('/customers')} size="sm" className="mt-2 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-sm">
             <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Return to Customers Directory
           </Button>
         </div>
@@ -176,31 +151,18 @@ export default function CustomerDetailsPage() {
     );
   }
 
-  // Filter invoices for this customer
-  const allInvoices = Array.isArray(invoicesResponse) 
-    ? invoicesResponse 
-    : (invoicesResponse as any)?.data || [];
-  const customerInvoices = allInvoices.filter((inv: any) => inv.customer?.id === id || inv.customer_id === id);
-
   const customerRateCards = rateCardsResponse?.data || [];
-  const totalRatesPages = Math.ceil(customerRateCards.length / RATES_PER_PAGE) || 1;
-  const paginatedRateCards = customerRateCards.slice((ratesPage - 1) * RATES_PER_PAGE, ratesPage * RATES_PER_PAGE);
-
-  // Calculations for Financial Exposure
-  const totalBilledInvoices = customerInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
-  const pendingInvoicesAmount = customerInvoices
-    .filter((inv: any) => inv.status === 'Pending' || inv.status === 'Overdue')
-    .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
-
-  const creditLimit = customer.credit_limit || 500000;
-  const utilizedCredit = pendingInvoicesAmount > 0 ? pendingInvoicesAmount : Math.round(creditLimit * 0.35);
-  const availableCredit = Math.max(0, creditLimit - utilizedCredit);
-  const creditPct = Math.min(100, Math.round((utilizedCredit / creditLimit) * 100));
-
-  // Trips data
   const customerTrips = customer.trips || [];
-  const activeTripsCount = customerTrips.filter(t => ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status)).length;
-  const completedTripsCount = customerTrips.filter(t => t.status === 'Completed' || t.status === 'Delivered').length;
+  const completedTripsCount = customerTrips.filter((t: any) => t.status === 'Completed' || t.status === 'Delivered').length;
+  const totalTripsCount = customerTrips.length || 0;
+
+  const onTimeTripsCount = customerTrips.filter((t: any) => !t.is_delayed && t.status !== 'Delayed').length;
+  const onTimeRatio = totalTripsCount > 0 ? Math.round((onTimeTripsCount / totalTripsCount) * 100) : 100;
+
+  const totalTripRevenue = customerTrips.reduce((acc: number, t: any) => {
+    const rate = Number(t.financials?.agreed_rate ?? t.agreed_rate ?? t.billing_rate ?? 0);
+    return acc + (isNaN(rate) ? 0 : rate);
+  }, 0);
 
   const handleExportLedger = async () => {
     if (!customerTrips || customerTrips.length === 0) return;
@@ -267,872 +229,455 @@ export default function CustomerDetailsPage() {
   return (
     <DashboardLayout 
       active="Customers" 
-      title={`Customer: ${customer.name}`}
-    >
-      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
-        
-        {/* Keyframe style for slow marquee text scrolling */}
-        <style>{`
-          @keyframes marqueeSlow {
-            0%, 20% { transform: translateX(0%); }
-            65%, 80% { transform: translateX(calc(-100% + 80px)); }
-            100% { transform: translateX(0%); }
-          }
-          .animate-marquee-slow {
-            display: inline-block;
-            white-space: nowrap;
-            animation: marqueeSlow 7s ease-in-out infinite;
-          }
-        `}</style>
+      title={customer.name}
+      breadcrumb="Customers"
+      actions={
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-xl border-slate-200 dark:border-slate-800">
+                <MoreVertical className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl z-50">
+              <DropdownMenuItem onClick={refreshCustomer} disabled={isRefreshing} className="font-semibold cursor-pointer text-xs">
+                <RotateCw className={cn("w-3.5 h-3.5 mr-2", isRefreshing && "animate-spin text-[#FA634E]")} />
+                Refresh Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportLedger} disabled={customerTrips.length === 0} className="font-semibold cursor-pointer text-xs">
+                <Download className="w-3.5 h-3.5 mr-2 text-slate-500" />
+                Export Ledger (Excel)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)} className="text-rose-600 font-semibold cursor-pointer text-xs">
+                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                Delete Account
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {/* ── 1. TOP HEADER BAR: Standalone Logo + Company Name + Tags & Un-encapsulated Contact Row ── */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
-          
-          {/* Left: Horizontal Logo + Company Name with Tags Underneath */}
-          <div className="flex items-start gap-4 min-w-0">
-            
-            {/* Standalone Logo */}
-            {customer.logo_url || customer.avatar_url ? (
-              <img
-                src={customer.logo_url || customer.avatar_url || ''}
-                alt={customer.name}
-                className="h-12 sm:h-14 max-w-[140px] object-contain shrink-0 mt-0.5"
-              />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/customers/${customer.id}/edit`)}
+            className="h-8 px-3 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit Profile
+          </Button>
+        </div>
+      }
+    >
+      <div className="p-4 max-w-[1600px] mx-auto w-full flex flex-col gap-4 bg-[#EEF1F6]/40 dark:bg-slate-950">
+        
+        {/* ── 1. CUSTOMER SUMMARY BANNER ── */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            {customer.logo_url ? (
+              <div className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white p-1 shrink-0 overflow-hidden flex items-center justify-center">
+                <img src={customer.logo_url} alt={customer.name} className="w-full h-full object-contain" />
+              </div>
             ) : (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5 shadow-2xs">
+              <div className="w-12 h-12 rounded-xl bg-[#3E3C3D] text-white flex items-center justify-center font-black text-xl shrink-0 shadow-2xs">
                 {customer.name?.[0]?.toUpperCase() || 'C'}
               </div>
             )}
 
-            {/* Company Name + Tags Directly Under Name */}
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none flex items-center gap-3">
-                <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                <span>{customer.name}</span>
-              </h1>
-
-              {/* Badges & Tags Under the Name */}
-              <div className="flex items-center gap-2 flex-wrap mt-2.5">
-                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                  <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  Customers Module
-                </Badge>
-                <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                  {`CUST-${customer.id.slice(0, 5).toUpperCase()}`}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-lg font-black text-[#3E3C3D] dark:text-white leading-tight truncate">
+                  {customer.name}
+                </h1>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border",
+                  customer.isActive !== false
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800"
+                    : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                )}>
+                  <span className={cn("w-1.5 h-1.5 rounded-full", customer.isActive !== false ? "bg-emerald-500" : "bg-slate-400")} />
+                  {customer.isActive !== false ? 'Active' : 'Inactive'}
                 </span>
-                <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-                {customer.isActive === false && <DeletedBadge />}
-                {customer.whatsapp_group_link && (
-                  <a
-                    href={customer.whatsapp_group_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
-                  >
-                    <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
-                    <span>WhatsApp Group</span>
-                  </a>
-                )}
+                <span className="font-mono text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                  CUST-{customer.id.slice(0, 8).toUpperCase()}
+                </span>
               </div>
 
-
-            </div>
-
-          </div>
-
-          {/* Right Action Buttons Group with Customers Indigo Base Accent */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshCustomer}
-              disabled={isRefreshing}
-              className="h-9 w-9 p-0 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs hover:border-indigo-200 hover:text-indigo-600"
-              title="Refresh Profile Data"
-            >
-              <RotateCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-indigo-600")} />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportLedger}
-              disabled={customerTrips.length === 0}
-              className="h-9 gap-1.5 text-xs font-semibold"
-              title="Export Customer Ledger"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-              title="Contracts & Rate Cards"
-            >
-              <FileText className="w-4 h-4" />
-              Contracts
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/customers/${customer.id}/edit`)}
-              className="h-9 gap-1.5 text-xs font-semibold"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-              Edit
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-              title="Delete Customer Account"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/new?customerId=${id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs rounded-lg px-4"
-            >
-              <Plus className="w-4 h-4" />
-              New Trip
-            </Button>
-          </div>
-        </div>
-
-        {/* ── 2. OVERVIEW STAT CARDS (Full Width 3-Column Instrument Panel) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-1">
-          
-          {/* Overview 1: Total Billed */}
-          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Total Billed
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              SAR {totalBilledInvoices.toLocaleString()}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {customerInvoices.length} Invoices Issued
-            </div>
-          </div>
-
-          {/* Overview 2: Credit Limit */}
-          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Limit
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              SAR {creditLimit.toLocaleString()}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {creditPct}% Utilized ({utilizedCredit.toLocaleString()} SAR)
-            </div>
-          </div>
-
-          {/* Overview 3: Freight Dispatches */}
-          <div className="px-4 py-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-0.5 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-indigo-600" /> Freight Dispatches
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              {completedTripsCount} / {customerTrips.length}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {activeTripsCount} Active In-Transit
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 3. CREDIT EXPOSURE ALERT BANNER (only when high credit utilization) ── */}
-        {creditPct >= 80 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <div>
-                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                  High Credit Limit Utilization ({creditPct}%)
-                </h4>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  Customer has utilized SAR {utilizedCredit.toLocaleString()} out of SAR {creditLimit.toLocaleString()} credit limit. Only SAR {availableCredit.toLocaleString()} credit available.
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate('/invoices')}
-              className="h-8 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              Review Pending Invoices
-            </Button>
-          </div>
-        )}
-
-        {/* ── 4. TWO-BOX GRID: CORPORATE PROFILE & OPERATIONAL CONTACT HUB ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* BOX 1: CORPORATE PROFILE & GOVERNANCE */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs p-5 flex flex-col justify-between space-y-4">
-            <div>
-              {/* Box Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
-                  <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                      Corporate Profile & Governance
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-medium">Account registration, tax & financial exposure</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <StatusBadge status={customer.isActive !== false ? 'Active' : 'Inactive'} />
-                  {creditLimit >= 100000 ? (
-                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 text-[10px] font-bold">
-                      Enterprise Tier
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold">
-                      Standard Tier
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Grid 1: Account Credentials & Metadata */}
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" /> Account Identifiers
-                </h4>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Corporate Entity</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate block" title={customer.company_name || customer.name}>
-                      {customer.company_name || customer.name}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">VAT / CR Registration</span>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                        {customer.tax_number || '310492810400003'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(customer.tax_number || '310492810400003');
-                          toast.success('CR / VAT Number copied to clipboard');
-                        }}
-                        className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                        title="Copy CR/VAT Number"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Account Code</span>
-                    <span className="font-mono text-xs font-extrabold text-indigo-600 dark:text-indigo-400 block">
-                      {`CUST-${customer.id.slice(0, 8).toUpperCase()}`}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Member Since</span>
-                    <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Credit Exposure & Terms Governance */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> Credit Terms & Exposure
-                  </h4>
-                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
-                    {customer.payment_terms || 'Net 30 Days'}
-                  </span>
-                </div>
-
-                {/* Credit Limit Visual Progress Bar */}
-                <div className="p-3 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/40 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Credit Limit Utilization</span>
-                    <span className={cn(
-                      "font-mono font-black text-xs px-2 py-0.5 rounded-full border",
-                      creditPct >= 80 
-                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900" 
-                        : creditPct >= 60 
-                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900" 
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900"
-                    )}>
-                      {creditPct}% Utilized
-                    </span>
-                  </div>
-
-                  {/* Progress Bar Track */}
-                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        creditPct >= 80 ? "bg-rose-500" : creditPct >= 60 ? "bg-amber-500" : "bg-indigo-600"
-                      )}
-                      style={{ width: `${creditPct}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] font-mono pt-0.5">
-                    <span className="text-slate-500">Utilized: <strong className="text-slate-900 dark:text-slate-100">SAR {utilizedCredit.toLocaleString()}</strong></span>
-                    <span className="text-slate-500">Available: <strong className="text-emerald-600 dark:text-emerald-400">SAR {availableCredit.toLocaleString()}</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Governance Footer Note */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Contract Status: Verified SLA
-              </span>
-              <button
-                type="button"
-                onClick={() => navigate(`/customers/${customer.id}/contracts`)}
-                className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 text-[11px]"
-              >
-                Manage Rates & SLA <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </Card>
-
-
-          {/* BOX 2: OPERATIONAL CONTACT HUB */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs p-5 flex flex-col justify-between space-y-4">
-            <div>
-              {/* Box Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                      Operational Contact Hub
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-medium">Designated personnel & escalation channels</p>
-                  </div>
-                </div>
-                
-                {customer.whatsapp_group_link && (
-                  <a
-                    href={customer.whatsapp_group_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors shadow-2xs"
-                  >
-                    <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-600" />
-                    <span>Operations Group</span>
-                  </a>
-                )}
-              </div>
-
-              {/* Contacts Directory Stack */}
-              <div className="space-y-3">
-
-                {/* Primary Contact Person Card */}
-                <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/80 dark:border-indigo-900/50 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">
-                        {(customer.primary_contact_person || getPrimaryContactPerson(customer.name))
-                          .split(' ')
-                          .map((n: string) => n[0])
-                          .slice(0, 2)
-                          .join('')}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                            {customer.primary_contact_person || getPrimaryContactPerson(customer.name)}
-                          </h4>
-                          <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 text-[9px] font-bold py-0 px-1.5">
-                            Primary Rep
-                          </Badge>
-                        </div>
-                        <span className="text-[10px] font-medium text-slate-500 block">Key Account & Logistics Manager</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-indigo-100/80 dark:border-indigo-900/40 flex items-center justify-between gap-2 text-xs">
-                    <PhoneDisplay
-                      phone={customer.primary_contact_phone || customer.contact_phone || customer.phone || '+966 50 123 4567'}
-                      variant="inline"
-                      showActions
-                    />
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+                {(customer as any).tax_number && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">CR/VAT:</span>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{(customer as any).tax_number}</span>
                     <button
                       type="button"
                       onClick={() => {
-                        const email = `logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
-                        navigator.clipboard.writeText(email);
-                        toast.success(`Copied contact email: ${email}`);
+                        navigator.clipboard.writeText((customer as any).tax_number);
+                        toast.success('CR / VAT Number copied');
                       }}
-                      className="text-[11px] font-mono text-slate-500 hover:text-indigo-600 flex items-center gap-1 truncate max-w-[160px]"
-                      title="Copy Email"
+                      className="text-slate-400 hover:text-[#FA634E]"
+                      title="Copy VAT/CR"
                     >
-                      <Mail className="w-3 h-3 shrink-0 text-slate-400" />
-                      <span className="truncate">{`logistics@${(customer.company_name || customer.name).toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}</span>
+                      <Copy className="w-3 h-3" />
                     </button>
                   </div>
-                </div>
-
-                {/* Secondary Contact Person Card */}
-                <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs flex items-center justify-center shadow-2xs">
-                        {(customer.secondary_contact_person || getSecondaryContactPerson(customer.name))
-                          .split(' ')
-                          .map((n: string) => n[0])
-                          .slice(0, 2)
-                          .join('')}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                            {customer.secondary_contact_person || getSecondaryContactPerson(customer.name)}
-                          </h4>
-                          <Badge variant="outline" className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[9px] font-bold py-0 px-1.5 border-slate-200">
-                            Dispatch Lead
-                          </Badge>
-                        </div>
-                        <span className="text-[10px] font-medium text-slate-500 block">Yard & Dispatch Escalations</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs">
-                    <PhoneDisplay
-                      phone={customer.secondary_contact_phone || getSecondaryContactPhone(customer.contact_phone || customer.id)}
-                      variant="inline"
-                      showActions
-                    />
-                    <span className="text-[10px] font-bold text-slate-400">24/7 Operations</span>
-                  </div>
-                </div>
-
+                )}
+                {customer.driver_workflow === 'EXTERNAL_APP' && (
+                  <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
+                    External App Workflow
+                  </Badge>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Bottom Communications Footer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end text-xs">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/customers/${customer.id}/edit`)}
-                className="h-6 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 p-1"
+          {/* Quick Contact & Action Pills */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {(customer.primary_contact_phone || customer.contact_phone || customer.phone) && (
+              <a
+                href={`tel:${customer.primary_contact_phone || customer.contact_phone || customer.phone}`}
+                className="h-8 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-[#3E3C3D] hover:text-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all border border-slate-200/80 dark:border-slate-700"
               >
-                Edit Contacts →
-              </Button>
-            </div>
-          </Card>
+                <Phone className="w-3.5 h-3.5 text-slate-500" />
+                <span>{customer.primary_contact_phone || customer.contact_phone || customer.phone}</span>
+              </a>
+            )}
 
+            {customer.whatsapp_group_link && (
+              <a
+                href={customer.whatsapp_group_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-8 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
+                <span>WhatsApp Group</span>
+              </a>
+            )}
+          </div>
         </div>
 
-        {/* ── 5. MAIN DASHBOARD 2-COLUMN GRID (Tabbed Activity Ledger + Rates Sidebar) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── 2. METRICS BAR (4 KPI Cards) ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* 1. Active Dispatches */}
+          <div
+            onClick={() => setActiveTab('dispatches')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-blue-400 transition-colors shadow-2xs"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Dispatches</span>
+              <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{totalTripsCount}</div>
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{completedTripsCount} Delivered</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center shrink-0">
+              <Truck className="w-4 h-4" />
+            </div>
+          </div>
 
-          {/* Left Column: Tabbed Activity Ledger (Dispatches, Invoices, Saved Places) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* 2. On-Time Rate */}
+          <div
+            onClick={() => setActiveTab('dispatches')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-emerald-400 transition-colors shadow-2xs"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">On-Time SLA</span>
+              <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{onTimeRatio}%</div>
+              <span className="text-[10px] font-bold text-slate-500">{onTimeTripsCount} / {totalTripsCount} On-Time</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
 
-            {/* Segmented Control Bar */}
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('quotations')}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                    activeTab === 'quotations'
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  )}
-                >
-                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Quotations</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                    {(rateCardsResponse?.data || []).filter((q: any) => q.is_active).length}
-                  </Badge>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('dispatches')}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                    activeTab === 'dispatches'
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  )}
-                >
-                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Dispatches</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                    {customerTrips.length}
-                  </Badge>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('invoices')}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                    activeTab === 'invoices'
-                      ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  )}
-                >
-                  <Receipt className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Invoices</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-                    {customerInvoices.length}
-                  </Badge>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('saved_places')}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                    activeTab === 'saved_places'
-                      ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  )}
-                >
-                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Locations</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-extrabold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                    {customerLocations.length}
-                  </Badge>
-                </button>
-
+          {/* 3. Total Commercial Revenue */}
+          <div
+            onClick={() => setActiveTab('dispatches')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-rose-400 transition-colors shadow-2xs"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Revenue</span>
+              <div className="text-lg font-black text-[#FA634E] dark:text-rose-400 mt-0.5 truncate max-w-[130px]">
+                SAR {totalTripRevenue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
               </div>
+              <span className="text-[10px] font-bold text-slate-500">{completedTripsCount} Trips Billed</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-[#FA634E] flex items-center justify-center shrink-0">
+              <Banknote className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* 4. Configured Lanes & Hubs */}
+          <div
+            onClick={() => setActiveTab('quotations')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:border-indigo-400 transition-colors shadow-2xs"
+          >
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lanes & Hubs</span>
+              <div className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">{customerRateCards.length}</div>
+              <span className="text-[10px] font-bold text-slate-500">{customerLocations.length} Saved Hubs</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center shrink-0">
+              <Layers className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. UNIFIED TABBED WORKSPACE ── */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs space-y-4">
+          
+          {/* Navigation Tabs Bar */}
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+              
+              <button
+                type="button"
+                onClick={() => setActiveTab('dispatches')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  activeTab === 'dispatches'
+                    ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>Dispatches</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {customerTrips.length}
+                </Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('quotations')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  activeTab === 'quotations'
+                    ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Quotations & Rates</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {customerRateCards.length}
+                </Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('saved_places')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  activeTab === 'saved_places'
+                    ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Locations</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {customerLocations.length}
+                </Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('governance')}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  activeTab === 'governance'
+                    ? "bg-white dark:bg-slate-900 text-[#FA634E] shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                )}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Account Info</span>
+              </button>
+
             </div>
 
-            {/* Tab 1: Commercial Quotations Profile */}
-            {activeTab === 'quotations' && (
-              <CustomerQuotationsTab
-                customerId={id!}
-                customerName={customer.name}
-                onOpenAddQuotation={() => setIsAddQuotationOpen(true)}
-                onOpenEditQuotation={(q) => setEditQuotationTarget(q)}
-              />
-            )}
+            {/* Quick Context Action based on Active Tab */}
+            <div className="flex items-center gap-2">
+              {activeTab === 'quotations' && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddQuotationOpen(true)}
+                  className="h-8 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-xl shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Quotation
+                </Button>
+              )}
 
-            {/* Tab 2: Dispatches Operational Ledger */}
-            {activeTab === 'dispatches' && (
-              <CustomerTripsTab
-                customerId={id!}
-                customerName={customer.name}
-              />
-            )}
+              {activeTab === 'saved_places' && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/customers/${customer.id}/locations/create`)}
+                  className="h-8 gap-1.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-xl shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Location
+                </Button>
+              )}
+            </div>
+          </div>
 
-            {/* Tab 2: Invoices Table */}
-            {activeTab === 'invoices' && (
-              <DataTable
-                title={
-                  <span className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-amber-500" />
-                    <span>Commercial Invoices & Billing Status</span>
-                  </span>
-                }
-                actionsElement={
+          {/* Tab 1: Dispatches Operational Ledger */}
+          {activeTab === 'dispatches' && (
+            <CustomerTripsTab
+              customerId={id!}
+              customerName={customer.name}
+            />
+          )}
+
+          {/* Tab 2: Commercial Quotations & Rates */}
+          {activeTab === 'quotations' && (
+            <CustomerQuotationsTab
+              customerId={id!}
+              customerName={customer.name}
+              onOpenAddQuotation={() => setIsAddQuotationOpen(true)}
+              onOpenEditQuotation={(q) => setEditQuotationTarget(q)}
+            />
+          )}
+
+          {/* Tab 3: Customer Locations */}
+          {activeTab === 'saved_places' && (
+            <div className="space-y-3">
+              {customerLocations.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <MapPin className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                  <p className="text-xs font-semibold">No saved operational hubs or locations for this customer yet.</p>
                   <Button
                     size="sm"
-                    variant="outline"
-                    onClick={() => navigate('/invoices/new')}
-                    className="h-8 text-xs font-bold border-slate-200 text-amber-600"
+                    onClick={() => navigate(`/customers/${customer.id}/locations/create`)}
+                    className="mt-3 text-xs bg-[#FA634E] hover:bg-[#e0523d] text-white font-bold"
                   >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> New Invoice
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add First Location
                   </Button>
-                }
-                columns={[
-                  {
-                    header: 'Invoice #',
-                    accessor: (inv: any) => (
-                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
-                    ),
-                  },
-                  {
-                    header: 'Date',
-                    accessor: (inv: any) => (
-                      <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
-                        {formatInDeploymentTz(inv.createdAt, tz, 'MM/dd/yyyy')}
-                      </span>
-                    ),
-                  },
-                  {
-                    header: 'Total Amount',
-                    accessor: (inv: any) => (
-                      <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-                        SAR {Number(inv.total_amount || 0).toLocaleString()}
-                      </span>
-                    ),
-                  },
-                  {
-                    header: 'Payment Status',
-                    accessor: (inv: any) => (
-                      <Badge 
-                        variant="outline" 
-                        className={`text-[9px] font-bold ${
-                          inv.status === 'Paid' 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                            : inv.status === 'Overdue' 
-                            ? 'bg-rose-50 text-rose-700 border-rose-200' 
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customerLocations.map((loc) => {
+                    const prec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
+                    return (
+                      <div
+                        key={loc.id}
+                        onClick={() => navigate(`/locations/${loc.id}`)}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 cursor-pointer hover:border-[#FA634E]/50 transition-colors"
                       >
-                        {inv.status || 'Pending'}
-                      </Badge>
-                    ),
-                  },
-                  {
-                    header: 'Action',
-                    headerClassName: 'text-right',
-                    className: 'text-right',
-                    accessor: (inv: any) => (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/invoices/${inv.id}`)}
-                        className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                        title="View Invoice"
-                      >
-                        <Eye size={13} />
-                      </Button>
-                    ),
-                  },
-                ]}
-                data={customerInvoices}
-                compact={true}
-                enableSelection={false}
-                emptyTitle="No Invoices Found"
-                emptyMessage="No billing invoices issued for this customer account yet."
-                onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
-              />
-            )}
-
-            {/* Tab 3: Locations Card */}
-            {activeTab === 'saved_places' && (
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-rose-600" /> Customer Locations
-                    </CardTitle>
-                    <CardDescription className="text-[11px] mt-0.5">
-                      Canonical operational hubs and pickup/dropoff points scoped to this customer.
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={() => navigate(`/customers/${customer.id}/locations/create`)}
-                      className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
-                    >
-                      <Plus className="w-3 h-3" /> Add Location
-                    </Button>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-4 space-y-2 text-xs">
-                  {customerLocations.length === 0 ? (
-                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No locations created for this customer account yet.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {customerLocations.map((loc) => {
-                        const prec = loc.coordinate_precision || (loc.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
-                        return (
-                          <div
-                            key={loc.id}
-                            onClick={() => navigate(`/locations/${loc.id}`)}
-                            className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1.5 flex items-center justify-between gap-2 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors"
-                          >
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-[10px] font-black text-slate-900 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                                  {loc.code}
-                                </span>
-                                <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{loc.name}</span>
-                              </div>
-                              {loc.address && (
-                                <div className="text-[10px] text-slate-500 line-clamp-1">{loc.address}</div>
-                              )}
-                              <div>
-                                {prec === 'EXACT' && (
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
-                                    ✓ Exact location ({loc.lat!.toFixed(3)}, {loc.lng!.toFixed(3)})
-                                  </Badge>
-                                )}
-                                {prec === 'APPROXIMATE' && (
-                                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold">
-                                    ≈ Area location ({loc.lat!.toFixed(3)}, {loc.lng!.toFixed(3)})
-                                  </Badge>
-                                )}
-                                {prec === 'UNKNOWN' && (
-                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
-                                    ○ Location not pinned
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/locations/${loc.id}`)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
-                                title="View Location Details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteLocationMutation.mutate(loc.id)}
-                                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-                                title="Delete location"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-black text-slate-900 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                              {loc.code}
+                            </span>
+                            <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">{loc.name}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-          </div>
-
-          {/* Right Column (Negotiated Lane Rates Sidebar Ledger) */}
-          <div className="space-y-6">
-
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-600" /> Negotiated Rates
-                  </CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">
-                    Prices negotiated for this customer.
-                  </CardDescription>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/quotations/new?customer_id=${id}&customer_name=${encodeURIComponent(customer?.name || '')}`)}
-                  className="h-7 gap-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
-                >
-                  <Plus className="w-3 h-3" /> Add
-                </Button>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-4 text-xs">
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Building2 className="w-3 h-3 text-indigo-600" /> Configured Lanes ({customerRateCards.length})
-                  </div>
-
-                  {customerRateCards.length === 0 ? (
-                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No rates negotiated for this customer yet.
-                    </p>
-                  ) : (
-                    paginatedRateCards.map((rc) => (
-                      <button
-                        key={rc.id}
-                        type="button"
-                        onClick={() => setEditRateTarget(rc)}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors space-y-1"
-                      >
-                        <div className="flex justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
-                          <span className="flex items-center gap-1 min-w-0">
-                            <span className="truncate">{rc.route_origin}</span>
-                            <ArrowRight className="w-3 h-3 shrink-0 text-indigo-600" />
-                            <span className="truncate">{rc.route_destination}</span>
-                          </span>
-                          <span className="font-mono text-indigo-600 shrink-0">
-                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
-                          </span>
+                          {loc.address && (
+                            <div className="text-[10px] text-slate-500 line-clamp-1">{loc.address}</div>
+                          )}
+                          <div>
+                            {prec === 'EXACT' && (
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
+                                Exact Location
+                              </Badge>
+                            )}
+                            {prec === 'APPROXIMATE' && (
+                              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold">
+                                Area Location
+                              </Badge>
+                            )}
+                            {prec === 'UNKNOWN' && (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
+                                Unpinned
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        {!rc.is_active && (
-                          <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
-                            Inactive
-                          </Badge>
-                        )}
-                      </button>
-                    ))
-                  )}
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/locations/${loc.id}`)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#FA634E] hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            title="View Location Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteLocationMutation.mutate(loc.id)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            title="Delete location"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+            </div>
+          )}
 
-                {totalRatesPages > 1 && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      Showing {((ratesPage - 1) * RATES_PER_PAGE) + 1}-{Math.min(ratesPage * RATES_PER_PAGE, customerRateCards.length)} of {customerRateCards.length}
+          {/* Tab 4: Account & Governance Details */}
+          {activeTab === 'governance' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Corporate Governance</h3>
+                <div className="space-y-2">
+                  <InfoRow label="Legal Name">{customer.name}</InfoRow>
+                  <InfoRow label="CR / VAT No.">
+                    <span className="font-mono font-bold">{(customer as any).tax_number || 'N/A'}</span>
+                  </InfoRow>
+                  <InfoRow label="Account Code">
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      CUST-{customer.id.slice(0, 8).toUpperCase()}
                     </span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={ratesPage === 1}
-                        onClick={() => setRatesPage(p => Math.max(1, p - 1))}
-                        className="h-6 w-6 p-0 text-xs"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </Button>
-                      <span className="text-[11px] font-bold px-1 text-slate-700 dark:text-slate-300">
-                        {ratesPage} / {totalRatesPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={ratesPage >= totalRatesPages}
-                        onClick={() => setRatesPage(p => Math.min(totalRatesPages, p + 1))}
-                        className="h-6 w-6 p-0 text-xs"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  </InfoRow>
+                  <InfoRow label="Roster Created">
+                    {formatInDeploymentTz(customer.createdAt, tz, 'dd MMM yyyy')}
+                  </InfoRow>
+                  <InfoRow label="Driver App Workflow">
+                    {customer.driver_workflow === 'EXTERNAL_APP' ? 'External App Screenshot AI' : 'Native CargoPod App'}
+                  </InfoRow>
+                </div>
+              </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate('/quotations')}
-                  className="w-full h-7 text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-                >
-                  All rates →
-                </Button>
-              </CardContent>
-            </Card>
-
-          </div>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Primary Contact</h3>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigate(`/customers/${customer.id}/edit`)}
+                    className="h-6 px-2 text-[10px] font-bold text-slate-600 hover:text-[#FA634E]"
+                  >
+                    Edit Contact
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <InfoRow label="Contact Name">
+                    {customer.primary_contact_person || customer.name}
+                  </InfoRow>
+                  <InfoRow label="Phone Number">
+                    {customer.primary_contact_phone || customer.contact_phone || customer.phone || '—'}
+                  </InfoRow>
+                  <InfoRow label="Email Address">
+                    {(customer as any).email || (customer as any).contact_email || '—'}
+                  </InfoRow>
+                  <InfoRow label="WhatsApp Operations">
+                    {customer.whatsapp_group_link ? (
+                      <a
+                        href={customer.whatsapp_group_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                      >
+                        Open WhatsApp Link
+                      </a>
+                    ) : (
+                      'Not Configured'
+                    )}
+                  </InfoRow>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 

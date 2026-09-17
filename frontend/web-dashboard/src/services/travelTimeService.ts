@@ -73,6 +73,13 @@ export const SAUDI_CITY_COORDS: Record<string, [number, number]> = {
   duwadmi: [24.5074, 44.3917],
   turaif: [31.6725, 38.6637],
   ula: [26.6158, 37.9248],
+  baha: [20.0129, 41.4677],
+  al_baha: [20.0129, 41.4677],
+  albaha: [20.0129, 41.4677],
+  hafr_al_batin: [28.4342, 45.9636],
+  hafr: [28.4342, 45.9636],
+  wadi_dawasir: [20.4468, 44.7504],
+  dawasir: [20.4468, 44.7504],
 };
 
 let googleApiUnavailable = false;
@@ -264,10 +271,16 @@ export async function estimateTravelTimeByName(
  * Also returns `isOvernight` if arrival time rolls over past midnight.
  */
 export function calculateArrivalDropoffTime(
-  pickupTimeStr: string = '08:00',
+  pickupTimeStr: string = '',
   durationMinutes: number
 ): { dropoffTime: string; isOvernight: boolean; formattedArrival: string } {
-  if (!pickupTimeStr) pickupTimeStr = '08:00';
+  if (!pickupTimeStr || !pickupTimeStr.trim()) {
+    return {
+      dropoffTime: '',
+      isOvernight: false,
+      formattedArrival: '',
+    };
+  }
 
   // Parse pickup time (e.g. "08:00" or "08:00 AM" or "14:30")
   let hours = 8;
@@ -301,6 +314,64 @@ export function calculateArrivalDropoffTime(
 
   return {
     dropoffTime: `${hh}:${mm}`,
+    isOvernight,
+    formattedArrival,
+  };
+}
+
+/**
+ * Calculates suggested Drop-off Date ("YYYY-MM-DD") and Drop-off Time ("HH:MM")
+ * given a pickup date, pickup time, and transit duration in minutes.
+ */
+export function calculateArrivalDropoffDateAndTime(
+  pickupDateStr: string = '',
+  pickupTimeStr: string = '',
+  durationMinutes: number
+): { dropoffDate: string; dropoffTime: string; isOvernight: boolean; formattedArrival: string } {
+  if (!pickupTimeStr || !pickupTimeStr.trim()) {
+    return {
+      dropoffDate: pickupDateStr || '',
+      dropoffTime: '',
+      isOvernight: false,
+      formattedArrival: '',
+    };
+  }
+
+  if (!pickupDateStr) pickupDateStr = new Date().toISOString().slice(0, 10);
+
+  let hours = 8;
+  let minutes = 0;
+
+  const match = pickupTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (match) {
+    hours = parseInt(match[1], 10);
+    minutes = parseInt(match[2], 10);
+    const ampm = match[3]?.toUpperCase();
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+  }
+
+  const [year, mon, day] = pickupDateStr.split('-').map(Number);
+  const pDate = new Date(year || new Date().getFullYear(), (mon ? mon - 1 : 0), day || 1, hours, minutes, 0);
+  const aDate = new Date(pDate.getTime() + (durationMinutes || 0) * 60000);
+
+  const arrYear = aDate.getFullYear();
+  const arrMon = String(aDate.getMonth() + 1).padStart(2, '0');
+  const arrDay = String(aDate.getDate()).padStart(2, '0');
+  const dropoffDate = `${arrYear}-${arrMon}-${arrDay}`;
+
+  const arrHours = String(aDate.getHours()).padStart(2, '0');
+  const arrMins = String(aDate.getMinutes()).padStart(2, '0');
+  const dropoffTime = `${arrHours}:${arrMins}`;
+
+  const isOvernight = dropoffDate > pickupDateStr;
+  const period = aDate.getHours() >= 12 ? 'PM' : 'AM';
+  const displayHours = aDate.getHours() % 12 || 12;
+  const formattedArrival = `${displayHours}:${arrMins} ${period}${isOvernight ? ` (+${Math.ceil((aDate.getTime() - pDate.getTime()) / (24 * 3600 * 1000))} Day)` : ''}`;
+
+  return {
+    dropoffDate,
+    dropoffTime,
     isOvernight,
     formattedArrival,
   };

@@ -3,6 +3,16 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+const getProxyTarget = () => {
+  if (process.env.VITE_BACKEND_URL) return process.env.VITE_BACKEND_URL;
+  if (process.env.VITE_API_URL && process.env.VITE_API_URL.startsWith('http')) {
+    return process.env.VITE_API_URL.replace(/\/api\/?$/, '');
+  }
+  return 'https://dev.mercon.tech';
+};
+
+const proxyTarget = getProxyTarget();
+
 export default defineConfig({
   plugins: [
     react(),
@@ -17,12 +27,23 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    // Proxy /api → live mercon.tech backend so local dev works without a local API server
+    // Proxy /api -> dev.mercon.tech server by default, or VITE_BACKEND_URL/VITE_API_URL if specified
     proxy: {
       '/api': {
-        target: 'https://dev.mercon.tech',
+        target: proxyTarget,
         changeOrigin: true,
         secure: false,
+      },
+      '/uploads': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/socket.io': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       },
     },
   },

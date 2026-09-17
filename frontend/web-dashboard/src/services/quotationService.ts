@@ -26,6 +26,7 @@ export interface CreateQuotationPayload {
   vehicle_type?: string | null;
   line_type?: string | null;
   rate_category?: string | null;
+  operation_type?: string | null;
   billing_type?: string | null;
   pricing_basis?: string | null;
   agreement_ref?: string | null;
@@ -161,20 +162,24 @@ export const quotationService = {
     trip_date?: string | null;
     stops?: any[] | null;
   }): Promise<QuotationLookupResult> {
-    const res = await api.get<ApiResponse<QuotationLookupResult>>('/quotations/lookup', {
-      params: {
-        ...(params.customer_id ? { customer_id: params.customer_id } : {}),
-        ...(params.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
-        ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
-        ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
-        ...(params.line_type !== undefined ? { line_type: params.line_type ?? '' } : {}),
-        ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
-        ...(params.planned_start ? { planned_start: params.planned_start } : {}),
-        ...(params.trip_date ? { trip_date: params.trip_date } : {}),
-        ...(params.stops ? { stops: JSON.stringify(params.stops) } : {}),
-      },
-    });
-    return res.data.data;
+    try {
+      const res = await api.get<ApiResponse<QuotationLookupResult>>('/quotations/lookup', {
+        params: {
+          ...(params.customer_id ? { customer_id: params.customer_id } : {}),
+          ...(params.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
+          ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
+          ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
+          ...(params.line_type !== undefined ? { line_type: params.line_type ?? '' } : {}),
+          ...(params.billing_type !== undefined ? { billing_type: params.billing_type ?? '' } : {}),
+          ...(params.planned_start ? { planned_start: params.planned_start } : {}),
+          ...(params.trip_date ? { trip_date: params.trip_date } : {}),
+          ...(params.stops ? { stops: JSON.stringify(params.stops) } : {}),
+        },
+      });
+      return res?.data?.data;
+    } catch {
+      return null as any;
+    }
   },
 
   async analyzeDocumentAi(fileOrDocId: File | string, customerId?: string): Promise<{
@@ -256,13 +261,39 @@ export const quotationService = {
   },
 
   async create(payload: CreateQuotationPayload): Promise<Quotation> {
-    const res = await api.post<ApiResponse<Quotation>>('/quotations', payload);
-    return res.data.data;
+    console.log('🚀 [quotationService.create] Sending payload:', payload);
+    try {
+      const res = await api.post<ApiResponse<Quotation>>('/quotations', payload);
+      console.log('✅ [quotationService.create] Success response:', res.data);
+      return res.data.data;
+    } catch (err: any) {
+      console.error('❌ [quotationService.create] Request failed:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        errorData: err.response?.data,
+        message: err.message,
+        payloadSent: payload,
+      });
+      throw err;
+    }
   },
 
   async update(id: string, payload: Partial<CreateQuotationPayload>): Promise<Quotation> {
-    const res = await api.put<ApiResponse<Quotation>>(`/quotations/${id}`, payload);
-    return res.data.data;
+    console.log(`🚀 [quotationService.update] Updating quotation ID ${id}:`, payload);
+    try {
+      const res = await api.put<ApiResponse<Quotation>>(`/quotations/${id}`, payload);
+      console.log('✅ [quotationService.update] Success response:', res.data);
+      return res.data.data;
+    } catch (err: any) {
+      console.error('❌ [quotationService.update] Request failed:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        errorData: err.response?.data,
+        message: err.message,
+        payloadSent: payload,
+      });
+      throw err;
+    }
   },
 
   async getHistory(id: string): Promise<QuotationHistory[]> {
@@ -270,8 +301,8 @@ export const quotationService = {
     return res.data.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/quotations/${id}`);
+  async delete(id: string, force?: boolean): Promise<void> {
+    await api.delete(`/quotations/${id}${force ? '?force=true' : ''}`);
   },
 
   async bulkDelete(ids: string[]): Promise<void> {
@@ -281,6 +312,39 @@ export const quotationService = {
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
     const res = await api.post<ApiResponse<ImportSummary>>('/quotations/import', { rows }, { timeout: 120_000 });
     return res.data.data;
+  },
+
+  async getLanePriceHistory(params: {
+    origin: string;
+    destination: string;
+    vehicleClass?: string;
+    customerId?: string;
+  }): Promise<Array<{
+    id: string;
+    quotation_number: string;
+    customer_name: string;
+    origin: string;
+    destination: string;
+    vehicle_class: string;
+    line_type: string;
+    billing_type: string;
+    rate: number;
+    driver_payout: number | null;
+    updatedAt: string;
+  }>> {
+    try {
+      const res = await api.get<ApiResponse<any[]>>('/quotations/lane-history', {
+        params: {
+          origin: params.origin,
+          destination: params.destination,
+          ...(params.vehicleClass ? { vehicleClass: params.vehicleClass } : {}),
+          ...(params.customerId ? { customerId: params.customerId } : {}),
+        },
+      });
+      return res.data.data || [];
+    } catch {
+      return [];
+    }
   },
 };
 

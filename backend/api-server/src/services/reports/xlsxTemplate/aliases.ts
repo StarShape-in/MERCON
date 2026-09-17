@@ -18,24 +18,24 @@ import type { TripReportFieldKey } from '@mercon/shared-types';
  */
 export const TRIP_FIELD_ALIASES: Record<TripReportFieldKey, string[]> = {
   serial: ['s l', 'sl', 'sl no', 'serial', 'sr no', 'no', 'row'],
-  ref_id: ['job', 'job no', 'ref', 'ref id', 'trip no', 'reference', 'reference no'],
+  ref_id: ['job', 'job no', 'ref', 'ref id', 'trip no', 'reference', 'reference no', 'uuid', 'uuid number', 'departure id', 'uuid departure id'],
   date: ['date', 'trip date', 'planned start', 'planned date', 'start date', 'scheduled date'],
   driver_name: ['driver', 'driver name', 'assigned driver', 'driver full name'],
   driver_phone: ['mobile', 'mobile number', 'driver phone', 'contact number', 'phone'],
-  vehicle_plate: ['vehicle no', 'vehicle plate', 'vehicle', 'plate', 'truck plate', 'plate number'],
-  vehicle_type: ['vehicle type', 'truck type', 'body type', 'asset type'],
-  carrier_name: ['carrier', 'carrier 3rd party', 'carrier name', '3rd party', 'provider'],
+  vehicle_plate: ['vehicle no', 'vehicle plate', 'vehicle', 'plate', 'truck plate', 'plate number', 'vehicle number', 'vehcile number', 'vehcile no', 'vehcile plate', 'vehcile'],
+  vehicle_type: ['vehicle type', 'truck type', 'body type', 'asset type', 'vehcile type'],
+  carrier_name: ['carrier', 'carrier 3rd party', 'carrier name', '3rd party', 'provider', 'vendor name', 'vendor'],
   customer_name: ['sender', 'sender customer', 'customer', 'customer name', 'company', 'company name', 'client'],
   receiver: ['receiver', 'consignee', 'destination party'],
   origin: ['origin', 'from', 'pickup', 'pickup city', 'starting point'],
   destination: ['destination', 'to', 'dropoff', 'drop off', 'delivery city'],
-  total_charges: ['total charges', 'extra charges', 'surcharges', 'additional charges', 'waiting labor charges', 'additional stops'],
-  billing_amount: ['billing amount', 'amount', 'price', 'rate', 'charges'],
-  total_amount: ['total amount', 'total'],
-  trip_charges: ['trip charges', 'trip charge'],
+  total_charges: ['total charges', 'extra charges', 'surcharges', 'additional charges', 'waiting labor charges', 'additional stops', 'vat', 'tax'],
+  billing_amount: ['billing amount', 'amount', 'price', 'rate', 'charges', 'charge', 'rental charges'],
+  total_amount: ['total amount', 'total', 'inc vat', 'total inc vat', 'inc tax', 'total inc tax'],
+  driver_payout: ['trip charges', 'trip charge', 'driver payout', 'driver charges'],
   balance_amount: ['balance amount', 'balance', 'net'],
   status: ['status', 'trip status'],
-  rate_category: ['rate category', 'category', 'rate type', 'trip type', 'trip category'],
+  rate_category: ['rate category', 'category', 'rate type', 'trip type', 'trip category', 'rental method', 'rental', 'method'],
 };
 
 export const normaliseHeader = (header: string): string =>

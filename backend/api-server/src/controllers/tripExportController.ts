@@ -25,7 +25,7 @@
 import { Request, Response } from 'express';
 import ExcelJS from 'exceljs';
 import { Prisma, TripStatus } from '@prisma/client';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { buildSearchAnd } from '../utils/search';
 import {
@@ -48,9 +48,9 @@ const TRIP_SEARCH_FIELDS = [
   'driver.ref_id',
   'vehicle.plate_number',
   'vehicle.ref_id',
-  'thirdPartyProvider.name',
-  'third_party_driver_name',
-  'third_party_vehicle_plate',
+  'subcontract.provider.name',
+  'subcontract.driverName',
+  'subcontract.vehiclePlate',
   'quotation.name',
   'stops[].location_name',
   'stops[].location_address',
@@ -74,16 +74,8 @@ const DELAY_REASON_LABELS: Record<string, string> = {
 
 // ─── Timezone-safe date boundaries ───────────────────────────────────────────
 
-/**
- * Converts a YYYY-MM-DD string (interpreted in the given IANA timezone) to
- * the UTC Date representing midnight or 23:59:59.999 of that calendar day.
- *
- * Uses Intl.DateTimeFormat.formatToParts — no external library required and
- * result is independent of the Node process timezone.
- */
 function localDateToUtc(dateStr: string, tz: string, endOfDay: boolean): Date {
   const time = endOfDay ? '23:59:59' : '00:00:00';
-  // Probe: treat the string as UTC so we can ask Intl what time it is in `tz`
   const probe = new Date(`${dateStr}T${time}Z`);
 
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -102,7 +94,6 @@ function localDateToUtc(dateStr: string, tz: string, endOfDay: boolean): Date {
     if (p.type !== 'literal') parts[p.type] = parseInt(p.value, 10);
   }
 
-  // Re-express the tz wall-clock values as a UTC epoch
   const tzMs = Date.UTC(
     parts['year'],
     parts['month'] - 1,
@@ -112,10 +103,8 @@ function localDateToUtc(dateStr: string, tz: string, endOfDay: boolean): Date {
     parts['second'],
   );
 
-  // offsetMs = how many ms tz is ahead of UTC at this moment
   const offsetMs = tzMs - probe.getTime();
 
-  // Actual UTC instant = wall-clock midnight-in-tz expressed in UTC
   const result = new Date(probe.getTime() - offsetMs);
   if (endOfDay) result.setUTCMilliseconds(999);
   return result;
@@ -179,7 +168,7 @@ function getFirstDelayReason(stops: StopLike[]): string {
 function getPayloadCapacity(t: any): string {
   if (t.vehicle_type) return t.vehicle_type;
   if (t.quotation?.source_vehicle_label || t.quotation?.vehicle_class) return t.quotation.source_vehicle_label || t.quotation.vehicle_class;
-  if (t.third_party_vehicle_type) return t.third_party_vehicle_type;
+  if (t.subcontract?.vehicleType || t.third_party_vehicle_type) return t.subcontract?.vehicleType || t.third_party_vehicle_type;
   if (t.vehicle?.capacity_kg) {
     const tons = t.vehicle.capacity_kg / 1000;
     return `${tons % 1 === 0 ? tons.toFixed(0) : tons.toFixed(1)} Tons`;
@@ -197,26 +186,27 @@ function getRateCategory(t: any): string {
 
 function getDriverLabel(t: any): string {
   if (t.is_third_party) {
-    return t.third_party_driver_name
-      ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name ?? '3PL'})`
-      : (t.thirdPartyProvider?.name ?? '3PL Driver');
+    const sc = t.subcontract;
+    const driverName = sc?.driverName || t.third_party_driver_name;
+    const providerName = sc?.provider?.name || t.thirdPartyProvider?.name || '3PL';
+    return driverName ? `${driverName} (${providerName})` : providerName;
   }
   return t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned';
 }
 
 function getDriverPhone(t: any): string {
-  if (t.is_third_party) return t.third_party_driver_phone ?? '';
+  if (t.is_third_party) return t.subcontract?.driverPhone || t.third_party_driver_phone || '';
   return t.driver?.phone_primary ?? '';
 }
 
 function getVehicleLabel(t: any): string {
-  if (t.is_third_party) return t.third_party_vehicle_plate ?? '3PL Vehicle';
+  if (t.is_third_party) return t.subcontract?.vehiclePlate || t.third_party_vehicle_plate || '3PL Vehicle';
   return t.vehicle?.plate_number ?? 'Unassigned';
 }
 
 function getCarrierLabel(t: any): string {
   if (t.is_third_party) {
-    return t.thirdPartyProvider?.name ?? t.carrier_name ?? '3PL Provider';
+    return t.subcontract?.provider?.name || t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider';
   }
   return t.carrier_name ?? 'MERCON LOGISTICS';
 }
@@ -245,7 +235,6 @@ function getHeaders(type: string): string[] {
         'Planned Time', 'Actual Time', 'Delayed', 'Customer', 'Type',
       ];
     default:
-      // all / 3pl / date-range — existing 17-column business-approved format
       return [
         'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location',
         'Driver', 'Vehicle', 'Payload Capacity', 'Rate Category', 'Quotation',
@@ -283,8 +272,8 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
           }
         }
       } else {
-        waitingCharge = Number(t.waiting_labor_charges ?? 0);
-        additionalCharge = Number(t.additional_stop_charges ?? 0);
+        waitingCharge = 0;
+        additionalCharge = 0;
       }
 
       return [
@@ -311,7 +300,7 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         getVehicleLabel(t),
         getPickupLabel(stops),
         getDropoffLabel(stops),
-        formatDate(t.planned_end, tz), // ETA = planned_end (same as TripDetailsPage)
+        formatDate(t.planned_end, tz),
         getPayloadCapacity(t),
       ];
 
@@ -323,7 +312,7 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         getVehicleLabel(t),
         formatDate(t.planned_start, tz),
         formatDate(t.actual_start, tz),
-        formatDate(t.planned_end, tz), // Estimated Arrival Time = planned_end
+        formatDate(t.planned_end, tz),
         getPickupLabel(stops),
         getDropoffLabel(stops),
         t.customer?.name ?? '',
@@ -344,7 +333,6 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
       ];
 
     default: {
-      // 17-column existing format preserved for all / 3pl / date-range
       return [
         t.ref_id ?? '',
         t.status ?? '',
@@ -360,7 +348,7 @@ function mapRow(type: string, t: any, tz: string): (string | number)[] {
         formatDate(t.actual_start, tz),
         formatDate(t.planned_end, tz),
         formatDate(t.actual_end, tz),
-        Number(t.trip_charges ?? 0),
+        Number(t.subcontract?.cost ?? t.driver_payout ?? t.driver_charge ?? 0),
         Number(t.billing_amount ?? t.quotation?.rate ?? 0),
         getCarrierLabel(t),
       ];
@@ -388,13 +376,12 @@ function getInclude(type: string): Prisma.TripInclude {
     driver: { select: { first_name: true, last_name: true, phone_primary: true, ref_id: true } },
     vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
     customer: { select: { name: true } },
-    thirdPartyProvider: { select: { name: true } },
+    subcontract: { select: { driverName: true, driverPhone: true, vehiclePlate: true, vehicleType: true, cost: true, provider: { select: { name: true } } } },
     stops: stopsSelect,
     quotation: { select: { name: true, source_vehicle_label: true, vehicle_class: true, line_type: true, rate: true } },
   };
 
   if (type === 'completed') {
-    // Need itemised TripCharge rows to compute total/balance correctly
     return { ...base, charges: { select: { amount: true, charge_type: true } } };
   }
 
@@ -409,7 +396,7 @@ function getStatusFilter(type: string): string[] | null {
     case 'loading':    return ['Loading'];
     case 'in-transit': return ['InTransit'];
     case 'delayed':    return ['Delayed'];
-    default: return null; // all / 3pl / date-range: no status filter
+    default: return null;
   }
 }
 
@@ -499,8 +486,6 @@ export const exportTrips = async (req: Request, res: Response): Promise<void> =>
   } = req.query as Record<string, string | undefined>;
 
   try {
-    // Read the deployment's configured timezone from Settings — never trust
-    // Node's process timezone for business-calendar date boundaries.
     const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
     const tz = settings?.timezone ?? FALLBACK_TZ;
 
@@ -509,11 +494,10 @@ export const exportTrips = async (req: Request, res: Response): Promise<void> =>
     const include = getInclude(type);
     const filename = buildFilename(type, format);
 
-    // ── CSV streaming ───────────────────────────────────────────────────────
     if (format === 'csv') {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.write('\uFEFF'); // UTF-8 BOM for Excel compatibility
+      res.write('\uFEFF');
       res.write(headers.map(csvCell).join(',') + '\r\n');
 
       let skip = 0;
@@ -537,7 +521,6 @@ export const exportTrips = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // ── XLSX via ExcelJS streaming WorkbookWriter ───────────────────────────
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

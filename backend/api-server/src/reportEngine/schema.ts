@@ -57,7 +57,6 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'drivers.status', label: 'Status', type: 'enum', enumValues: ['Available', 'OnTrip', 'OffDuty', 'Inactive'] },
       { key: 'drivers.createdAt', label: 'Joining Date', type: 'date' },
       { key: 'drivers.license_expiry', label: 'License Expiry', type: 'date' },
-      { key: 'drivers.ai_risk_score', label: 'Risk Score', type: 'number', aggregatable: true },
       { key: 'drivers.completed_trips', label: 'Completed Trips', type: 'number', aggregatable: true },
       { key: 'drivers.dispatched_trips', label: 'Dispatched Trips', type: 'number', aggregatable: true },
       { key: 'drivers.cancelled_trips', label: 'Cancelled Trips', type: 'number', aggregatable: true },
@@ -107,7 +106,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { toModule: 'drivers', via: 'Driver', relationField: 'driver', cardinality: 'toOne' },
       { toModule: 'vehicles', via: 'Vehicle', relationField: 'vehicle', cardinality: 'toOne' },
       { toModule: 'customers', via: 'Customer', relationField: 'customer', cardinality: 'toOne' },
-      { toModule: 'thirdParty', via: 'Third-Party Provider', relationField: 'thirdPartyProvider', cardinality: 'toOne' },
+      { toModule: 'thirdParty', via: 'Third-Party Provider', relationField: 'subcontract', cardinality: 'toOne' },
       { toModule: 'invoices', via: 'Trip Invoices', relationField: 'invoices', cardinality: 'toMany' },
     ],
   },
@@ -119,7 +118,6 @@ export const REPORT_SCHEMA: ReportModule[] = [
     fields: [
       { key: 'customers.name', label: 'Customer Name', type: 'string' },
       { key: 'customers.contact_phone', label: 'Contact', type: 'string' },
-      { key: 'customers.credit_limit', label: 'Credit Limit', type: 'money', aggregatable: true },
     ],
     joins: [
       { toModule: 'trips', via: 'Customer Trips', relationField: 'trips', cardinality: 'toMany' },
@@ -136,7 +134,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'thirdParty.contact_person', label: 'Contact Person', type: 'string' },
       { key: 'thirdParty.rating', label: 'Rating', type: 'number', aggregatable: true },
     ],
-    joins: [{ toModule: 'trips', via: 'Provider Trips', relationField: 'trips', cardinality: 'toMany' }],
+    joins: [{ toModule: 'trips', via: 'Provider Subcontracts', relationField: 'subcontracts', cardinality: 'toMany' }],
   },
   {
     key: 'maintenance',

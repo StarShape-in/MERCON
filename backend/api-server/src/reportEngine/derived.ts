@@ -10,27 +10,23 @@ type Money = number | { toNumber(): number } | null | undefined;
 
 export interface TripIncomeInput {
   billing_amount: Money;
-  trip_charges: Money;
+  driver_payout?: Money;
+  driver_charge?: Money;
+  trip_charges?: Money;
   invoices?: { total_amount: Money }[];
 }
 
 const asNumber = (v: Money): number => (v == null ? 0 : typeof v === 'number' ? v : v.toNumber());
 
 /**
- * Revenue recognised for a trip. Falls back down the chain because older trips
- * were captured before invoicing existed: explicit billing amount wins, then the
- * issued invoice total, then the quoted trip charges.
- *
- * `invoices` may be absent — the report engine only includes the `invoices`
- * relation on a trips fetch when the query spec actually references it, so
- * this must not assume the array is always populated.
+ * Revenue recognised for a trip.
  */
 export const tripIncome = (t: TripIncomeInput): number => {
   const billing = asNumber(t.billing_amount);
   if (billing > 0) return billing;
   const invoiceTotal = asNumber(t.invoices?.[0]?.total_amount);
   if (invoiceTotal > 0) return invoiceTotal;
-  return asNumber(t.trip_charges);
+  return asNumber(t.driver_payout ?? t.driver_charge ?? t.trip_charges);
 };
 
 /** Only completed/invoiced trips count as earned revenue. */

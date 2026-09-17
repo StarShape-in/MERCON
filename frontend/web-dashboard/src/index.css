@@ -58,7 +58,7 @@
   --font-sans: 'Geist Mono Numbers', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   /* Radius */
-  --radius-sm:   6px;
+  --radius-sm:   6px; /* CI/CD pipeline dev speed benchmark */
   --radius-md:   10px;
   --radius-lg:   14px;
   --radius-xl:   14px;
@@ -475,6 +475,15 @@ body {
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
 }
 
+@keyframes slowDriverNameScroll {
+  0%, 18% {
+    transform: translateX(0);
+  }
+  82%, 100% {
+    transform: translateX(var(--scroll-dist, 0px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   @keyframes entrance-standard {
     0% { opacity: 0; }
@@ -582,5 +591,10 @@ body {
   }
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ─── Smooth Vehicle Telemetry Marker Glide ─────────────────────────────── */
+.crisp-truck-marker {
+  transition: transform 0.8s linear !important;
 }
 

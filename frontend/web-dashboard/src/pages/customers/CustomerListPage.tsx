@@ -49,7 +49,6 @@ import PhoneDisplay from '@/components/ui/PhoneDisplay';
 const CUSTOMER_EXPORT_COLUMNS: ExportColumn<Customer>[] = [
   { id: 'name', label: 'Customer Name', accessor: (c) => c.name },
   { id: 'contact_phone', label: 'Contact Phone', accessor: (c) => c.contact_phone || c.phone || '—' },
-  { id: 'credit_limit', label: 'Credit Limit (SAR)', accessor: (c) => c.credit_limit ? `SAR ${c.credit_limit.toLocaleString()}` : 'SAR 0' },
   { id: 'status', label: 'Status', accessor: (c) => (c.isActive !== false ? 'Active' : 'Inactive') },
   { id: 'trips_count', label: 'Total Trips', accessor: (c) => c._count?.trips || c.trips?.length || 0 },
   { id: 'created_at', label: 'Created Date', accessor: (c) => (c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—') },
@@ -99,15 +98,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type CustomerSortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'credit_desc' | 'credit_asc' | 'status';
+type CustomerSortOption = 'latest' | 'oldest' | 'name_asc' | 'name_desc' | 'status';
 
 const CUSTOMER_SORT_OPTIONS: SortOption<CustomerSortOption>[] = [
   { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
   { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
   { value: 'name_asc', label: 'Company Name (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
   { value: 'name_desc', label: 'Company Name (Z → A)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'credit_desc', label: 'Credit Limit (High → Low)', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'credit_asc', label: 'Credit Limit (Low → High)', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> },
   { value: 'status', label: 'Account Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
 ];
 
@@ -160,38 +157,29 @@ export default function CustomerListPage() {
   const totalPages = customersRes?.meta?.total_pages || 1;
   const totalCount = customersRes?.meta?.total || rawCustomers.length;
 
-  // Filter local data based on status, credit tier, and sort order
+  // Filter local data based on status and sort order
   const filteredCustomers = useMemo(() => {
     return rawCustomers
       .filter((c) => {
         if (selectedStatus === 'Active' && !c.isActive) return false;
         if (selectedStatus === 'Inactive' && c.isActive) return false;
-        if (creditTierFilter === 'High' && (c.credit_limit || 0) < 100000) return false;
-        if (creditTierFilter === 'Standard' && (c.credit_limit || 0) >= 100000) return false;
         return true;
       })
       .sort((a, b) => {
         if (sortOrder === 'name_asc') return (a.name || '').localeCompare(b.name || '');
         if (sortOrder === 'name_desc') return (b.name || '').localeCompare(a.name || '');
-        if (sortOrder === 'credit_desc') return (Number(b.credit_limit) || 0) - (Number(a.credit_limit) || 0);
-        if (sortOrder === 'credit_asc') return (Number(a.credit_limit) || 0) - (Number(b.credit_limit) || 0);
         if (sortOrder === 'status') return (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
         return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
       });
-  }, [rawCustomers, selectedStatus, creditTierFilter, sortOrder]);
+  }, [rawCustomers, selectedStatus, sortOrder]);
 
   // Calculate real backend metric totals
   const activeCount = rawCustomers.filter(c => c.isActive).length;
   const inactiveCount = rawCustomers.filter(c => !c.isActive).length;
   const activePercentage = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
   
-  const highCreditCount = rawCustomers.filter(c => (c.credit_limit || 0) >= 100000).length;
-  const standardCreditCount = rawCustomers.filter(c => (c.credit_limit || 0) < 100000).length;
-  const enterpriseTierPct = totalCount > 0 ? Math.round((highCreditCount / totalCount) * 100) : 70;
-  const commercialTierPct = 100 - enterpriseTierPct;
-
   const pendingInvoicesCount = rawCustomers.reduce((acc, c) => {
     return acc + (c.trips ? c.trips.filter(t => t.status === 'Pending' || t.status === 'Dispatched').length : 1);
   }, 0) || Math.ceil(totalCount * 0.4) || 6;
@@ -209,8 +197,6 @@ export default function CustomerListPage() {
       'Primary Phone',
       'Contact Person',
       'Payment Terms',
-      'Tax Number',
-      'Credit Limit (SAR)',
       'Status'
     ];
 
@@ -220,8 +206,6 @@ export default function CustomerListPage() {
       c.contact_phone || c.phone || 'N/A',
       c.primary_contact_person || getPrimaryContactPerson(c.name),
       c.payment_terms || 'Standard',
-      c.tax_number || 'N/A',
-      c.credit_limit || 0,
       c.isActive ? 'Active' : 'Inactive'
     ]);
 
@@ -235,7 +219,6 @@ export default function CustomerListPage() {
       'Phone',
       'Contact Person',
       'Terms',
-      'Credit Limit (SAR)',
       'Status'
     ];
 
@@ -245,7 +228,6 @@ export default function CustomerListPage() {
       c.contact_phone || c.phone || 'N/A',
       c.primary_contact_person || getPrimaryContactPerson(c.name),
       c.payment_terms || 'Standard',
-      `SAR ${(c.credit_limit || 0).toLocaleString()}`,
       c.isActive ? 'Active' : 'Inactive'
     ]);
 
@@ -255,31 +237,16 @@ export default function CustomerListPage() {
   const handleExportCSV = (rowsToExport: Customer[]) => {
     const data = rowsToExport.map(c => ({
       customer_id: `CUST-${c.id.slice(0, 5).toUpperCase()}`,
-      company_name: c.name,
+      customer_name: c.name,
       phone: c.contact_phone || c.phone || '',
       contact_person: c.primary_contact_person || getPrimaryContactPerson(c.name),
       payment_terms: c.payment_terms || 'Standard',
-      tax_number: c.tax_number || '',
-      credit_limit: c.credit_limit || 0,
       status: c.isActive ? 'Active' : 'Inactive',
     }));
     downloadCSV(data, `customers_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
-  const getCreditTierBadge = (limit: number) => {
-    if (limit >= 100000) {
-      return (
-        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200/80 text-[10px] font-bold px-1.5 py-0 w-fit">
-          Enterprise Key Account
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-semibold px-1.5 py-0 w-fit">
-        Standard Commercial
-      </Badge>
-    );
-  };
+
 
 // Contact helper functions for fallback rendering
 function getPrimaryContactPerson(name: string): string {
@@ -319,9 +286,9 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Company Name',
       accessor: (row: Customer) => (
         <div className="flex items-center gap-3">
-          {row.logo_url || row.avatar_url ? (
+          {row.logo_url ? (
             <img
-              src={row.logo_url || row.avatar_url || ''}
+              src={row.logo_url}
               alt={row.name}
               className="w-8 h-8 object-contain shrink-0"
             />
@@ -399,9 +366,6 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}`)} className="text-xs font-semibold">
                 <Eye size={13} className="mr-2 text-indigo-500" /> View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}/contracts`)} className="text-xs font-semibold">
-                <FileText size={13} className="mr-2 text-purple-500" /> Contracts & Rates
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}/edit`)} className="text-xs font-semibold">
                 <Edit2 size={13} className="mr-2 text-amber-500" /> Edit Profile
               </DropdownMenuItem>
@@ -470,28 +434,6 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 Inactive
               </span>
             </SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={creditTierFilter}
-        onValueChange={(val) => { if (val) setCreditTierFilter(val as any); }}
-      >
-        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-            <SelectValue placeholder="Credit Tier" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Credit Limit Tier
-            </SelectLabel>
-            <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Credit Tiers</SelectItem>
-            <SelectItem value="High" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-indigo-700 font-semibold">Enterprise (&ge; 100K)</SelectItem>
-            <SelectItem value="Standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Standard (&lt; 100K)</SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -671,12 +613,8 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             trendValue="+8 Accounts"
             description="Corporate client accounts"
             icon={CustomerBuilding}
-            progressSegments={[
-              { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-emerald-500' },
-              { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-slate-400' },
-            ]}
-            isActive={selectedStatus === 'All' && creditTierFilter === 'All'}
-            onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
+            isActive={selectedStatus === 'All'}
+            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 
           {/* Card 2: Invoices Pending — Outstanding Invoice Track */}
@@ -718,30 +656,21 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
         </div>
 
         {/* Active Filter Indicator Banner */}
-        {(selectedStatus !== 'All' || creditTierFilter !== 'All') && (
+        {selectedStatus !== 'All' && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
               <span>
                 Filtered by:{' '}
-                {selectedStatus !== 'All' && (
-                  <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">
-                    {selectedStatus} Clients
-                  </strong>
-                )}
-                {selectedStatus !== 'All' && creditTierFilter !== 'All' && ' + '}
-                {creditTierFilter !== 'All' && (
-                  <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">
-                    {creditTierFilter === 'High' ? 'Enterprise' : 'Standard'} Tier
-                  </strong>
-                )}
+                <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">
+                  {selectedStatus} Clients
+                </strong>
                 {' '}({filteredCustomers.length} customer{filteredCustomers.length === 1 ? '' : 's'} matching)
               </span>
             </div>
             <button
               onClick={() => {
                 setSelectedStatus('All');
-                setCreditTierFilter('All');
                 setCurrentPage(1);
               }}
               className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
@@ -866,9 +795,9 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      {c.logo_url || c.avatar_url ? (
+                      {c.logo_url ? (
                         <img
-                          src={c.logo_url || c.avatar_url || ''}
+                          src={c.logo_url}
                           alt={c.name}
                           className="w-10 h-10 object-contain shrink-0"
                         />
@@ -894,10 +823,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                       <span className="font-medium text-slate-400 dark:text-slate-500">Phone:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{c.contact_phone}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                      <span className="font-medium text-slate-400 dark:text-slate-500">Account Tier:</span>
-                      {getCreditTierBadge(c.credit_limit || 0)}
-                    </div>
+
                   </div>
 
                   <div className="flex items-center justify-between pt-1">

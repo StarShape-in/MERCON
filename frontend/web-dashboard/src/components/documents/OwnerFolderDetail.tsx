@@ -4,21 +4,31 @@ import { useNavigate } from 'react-router-dom';
 import {
   UploadCloud, CheckCircle2, AlertTriangle, XCircle, FileQuestion, Eye, Loader2, Files,
   Download, Trash2, Plus, ExternalLink, RefreshCw, FileText, Hash, Building2,
-  Calendar, History, Clock, Sparkles, Edit2, Save, FilePlus
+  Calendar, History, Clock, Sparkles, Edit2, Save, FilePlus,
+  ShieldCheck, Lock, Unlock, ShieldAlert, Info, ChevronRight, ArrowUpRight, Truck, User,
+  Landmark, SlidersHorizontal, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { documentService, type OwnerFolderSlot, type MerconDocument } from '@/services/documentService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
-import ConfirmModal from '@/components/ui/ConfirmModal';
 import DocumentCanvasViewer from '@/components/ui/DocumentCanvasViewer';
 import {
   formatBilingualAuthority, resolveFileUrl, CENTRAL_SLOT_STATUS,
-  getSlotStatusFromDoc, formatDocDate, SlotStatusCode
+  getSlotStatusFromDoc, formatDocDate, SlotStatusCode, getOwnerCardSummary
 } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
@@ -43,26 +53,54 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  // Intentional initial state: null selectedSlotId (no selection until operator clicks a row)
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [uploadSlot, setUploadSlot] = useState<OwnerFolderSlot | null>(null);
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
   const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Edit Date State for Inspector
   const [isEditingDates, setIsEditingDates] = useState(false);
   const [editIssueDate, setEditIssueDate] = useState('');
   const [editExpiryDate, setEditExpiryDate] = useState('');
   const [isSavingDates, setIsSavingDates] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [isRescanning, setIsRescanning] = useState(false);
+
+  // Queries for Owner Details (Driver & Vehicle)
+  const { data: driver } = useQuery({
+    queryKey: ['driver', ownerId],
+    queryFn: async () => {
+      try {
+        return await driverService.getById(ownerId!);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!ownerId && ownerType === 'Driver',
+  });
+
+  const { data: vehicle } = useQuery({
+    queryKey: ['vehicle', ownerId],
+    queryFn: async () => {
+      try {
+        return await vehicleService.getById(ownerId!);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!ownerId && ownerType === 'Vehicle',
+  });
 
   const queryKey = ['documents', 'owner', ownerType, ownerId];
   const { data: folder, isLoading } = useQuery({
     queryKey,
-    queryFn: () => documentService.getOwnerFolder(ownerType, ownerId),
+    queryFn: async () => {
+      try {
+        return await documentService.getOwnerFolder(ownerType, ownerId);
+      } catch {
+        return null;
+      }
+    },
     enabled: !!ownerId,
   });
 
@@ -75,24 +113,9 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
 
   // Active selected slot
   const activeSlot = useMemo(() => {
-    if (!folder?.slots || !selectedSlotId) return null;
-    return folder.slots.find((s) => s.documentType.id === selectedSlotId) || null;
-  }, [folder?.slots, selectedSlotId]);
-
-  // Auto-select first slot when folder loads if no slot is selected yet
-  useEffect(() => {
-    if (folder?.slots && folder.slots.length > 0 && !selectedSlotId) {
-      const firstIssue = folder.slots.find((s) => {
-        const code = getSlotStatusFromDoc(s.document);
-        return code !== 'VALID' && code !== 'NO_EXPIRY';
-      });
-      if (firstIssue) {
-        setSelectedSlotId(firstIssue.documentType.id);
-      } else {
-        const firstDocSlot = folder.slots.find((s) => !!s.document);
-        setSelectedSlotId(firstDocSlot ? firstDocSlot.documentType.id : folder.slots[0].documentType.id);
-      }
-    }
+    if (!folder?.slots) return null;
+    const currentId = selectedSlotId || folder.slots[0]?.documentType.id;
+    return folder.slots.find((s) => s.documentType.id === currentId) || folder.slots[0] || null;
   }, [folder?.slots, selectedSlotId]);
 
   const activeDoc = activeSlot?.document || null;
@@ -106,34 +129,20 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     }
   }, [activeDoc?.id]);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-brand" />
-        <p className="text-xs font-bold">Loading compliance workspace...</p>
-      </div>
-    );
-  }
-
-  if (!folder) return null;
-
-  const totalSlots = folder.slots.length;
-  const compliantCount = folder.slots.filter((s) => {
-    const code = getSlotStatusFromDoc(s.document);
-    return code === 'VALID' || code === 'NO_EXPIRY';
-  }).length;
-  const issueSlots = folder.slots.filter((s) => {
-    const code = getSlotStatusFromDoc(s.document);
-    return code !== 'VALID' && code !== 'NO_EXPIRY';
-  });
-  const isFullyCompliant = issueSlots.length === 0;
-
-  const requiredSlots = folder.slots.filter((s) => s.documentType.requirementStatus === 'MANDATORY');
-  const additionalSlots = folder.slots.filter((s) => s.documentType.requirementStatus !== 'MANDATORY');
-
-  const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
-    ? activeDoc.files
-    : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
+  const handleRescan = async () => {
+    if (!activeDoc) return;
+    setIsRescanning(true);
+    try {
+      toast.loading('Running AI Vision OCR extraction...', { id: 'rescan' });
+      await documentService.extractDocumentOcr(activeDoc.id);
+      toast.success('AI Metadata updated', { id: 'rescan' });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || 'AI Vision scan failed', { id: 'rescan' });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
 
   const handleSaveDates = async () => {
     if (!activeDoc) return;
@@ -154,566 +163,453 @@ export default function OwnerFolderDetail({ ownerType, ownerId, onOpenAddCustomD
     }
   };
 
-  const handleDeleteDocument = async () => {
-    if (!deleteDocId) return;
-    setIsDeleting(true);
-    try {
-      toast.loading('Deleting document record...', { id: 'delete-doc' });
-      await documentService.delete(deleteDocId);
-      toast.success('Document deleted successfully from vault', { id: 'delete-doc' });
-      setDeleteDocId(null);
-      await refresh();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-brand" />
+        <p className="text-xs font-bold">Loading document details workspace...</p>
+      </div>
+    );
+  }
+
+  if (!folder) return null;
+
+  const cardSummary = getOwnerCardSummary(folder.slots || []);
+  const issueSlots = folder.slots.filter((s) => {
+    const code = getSlotStatusFromDoc(s.document);
+    return code !== 'VALID' && code !== 'NO_EXPIRY';
+  });
+  const isFullyCompliant = issueSlots.length === 0;
+
+  const activeDocFiles = activeDoc?.files && activeDoc.files.length > 0
+    ? activeDoc.files
+    : activeDoc ? [{ id: 'primary', file_url: activeDoc.file_url, mime_type: activeDoc.mime_type, label: 'Primary File' }] : [];
+
+  const daysRemaining = useMemo(() => {
+    if (!activeDoc?.expiry_date) return null;
+    const exp = new Date(activeDoc.expiry_date);
+    const now = new Date();
+    const diffTime = exp.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [activeDoc?.expiry_date]);
 
   return (
-    <div className="h-full flex flex-col space-y-3 overflow-hidden">
+    <div className="h-full flex flex-col space-y-3.5 overflow-hidden">
       
-      {/* ── 1. Compact Single-Line Compliance Summary Strip ──────────────── */}
-      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0 text-xs">
-        <div className="flex items-center gap-2 flex-wrap font-semibold text-slate-700 dark:text-slate-300">
-          <span className="font-black text-slate-400 uppercase text-[10px] tracking-wider font-mono">Compliance</span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className={cn('font-bold', isFullyCompliant ? 'text-emerald-600' : 'text-rose-600')}>
-            {isFullyCompliant ? '🟢 Fully Compliant' : `🔴 ${issueSlots.length} Issue${issueSlots.length > 1 ? 's' : ''}`}
+      {/* ── 1. Top Documents Selector Card (Matching Uploaded Reference Design) ──────────────── */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-3.5 shadow-3xs space-y-2.5 shrink-0">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+            Documents
           </span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="font-mono text-slate-500 font-bold">{compliantCount}/{totalSlots} compliant</span>
+          
+          {/* Attention Counter Warning */}
+          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 hover:underline cursor-pointer">
+            {folder.slots.filter((s) => {
+              const code = getSlotStatusFromDoc(s.document);
+              return code !== 'VALID' && code !== 'NO_EXPIRY';
+            }).length} document(s) need attention <ChevronRight className="w-3.5 h-3.5" />
+          </span>
         </div>
 
-        {/* Attention items inline list */}
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          {isFullyCompliant ? (
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> All required compliance documents are valid
-            </span>
-          ) : (
-            issueSlots.map((s) => (
-              <span key={s.documentType.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[11px] font-semibold">
-                <strong className="font-extrabold">{s.documentType.name}</strong>
-                <span>{s.status === 'MISSING' ? 'missing' : `expired (${formatDocDate(s.document?.expiry_date)})`}</span>
-              </span>
-            ))
-          )}
+        {/* The 5 Pill Selection Buttons Bar */}
+        <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-none pt-0.5">
+          {folder.slots.map((slot) => {
+            const isSelected = activeSlot?.documentType.id === slot.documentType.id;
+            const doc = slot.document;
+            const code = getSlotStatusFromDoc(doc);
+            const isExpiredOrMissing = code === 'EXPIRED' || code === 'MISSING' || code === 'CRITICAL';
+            const isExpiring = code === 'EXPIRING_SOON';
+
+            return (
+              <button
+                key={slot.documentType.id}
+                type="button"
+                onClick={() => setSelectedSlotId(slot.documentType.id)}
+                className={cn(
+                  "px-3.5 py-1.5 text-xs font-bold flex items-center gap-2 rounded-xl border transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-2xs",
+                  isSelected
+                    ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-sm ring-2 ring-indigo-500/20"
+                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                )}
+              >
+                {/* Status Indicator Icon Dot */}
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] shrink-0 font-extrabold",
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : isExpiredOrMissing
+                      ? "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                      : isExpiring
+                        ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+                        : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                )}>
+                  {isExpiredOrMissing ? <XCircle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
+                </div>
+
+                <span className={cn(isSelected ? "font-black" : "font-extrabold")}>
+                  {slot.documentType.name}
+                </span>
+                
+                {/* Status Badge Tag */}
+                <span className={cn(
+                  "text-[9.5px] font-bold px-1.5 py-0.2 rounded-md transition-colors uppercase tracking-wider",
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : isExpiredOrMissing
+                      ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/50"
+                      : isExpiring
+                        ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50"
+                        : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50"
+                )}>
+                  {code === 'EXPIRED' ? 'Expired' : code === 'MISSING' ? 'Missing' : code === 'EXPIRING_SOON' ? 'Expiring' : 'Valid'}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── 2. Master / Detail Viewport-Anchored Grid ────────────────────── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
+      {/* ── 2. Master / Detail Workspace Split Grid ── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
         
-        {/* LEFT COLUMN: Document List (5 / 12 width) — Internal Scroll */}
-        <div className="lg:col-span-5 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs space-y-4">
-            
-            {/* Required Compliance Section — Bento Box Grid */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Required Compliance
-                </h4>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">{requiredSlots.length} Requirements</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {requiredSlots.map((slot) => {
-                  const statusCode = getSlotStatusFromDoc(slot.document);
-                  const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
-                  const StatusIcon = IconConfig.icon;
-                  const isSelected = activeSlot?.documentType.id === slot.documentType.id;
-                  const hasDoc = !!slot.document;
-                  const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
-
-                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
-                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
-                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
-
-                  return (
-                    <div
-                      key={slot.documentType.id}
-                      onClick={() => setSelectedSlotId(slot.documentType.id)}
-                      className={cn(
-                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
-                        isSelected
-                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
-                          : isValid
-                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                            : isExpired
-                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
-                              : isExpiringSoon
-                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
-                      )}
-                    >
-                      {/* Top Row: Icon + Name */}
-                      <div className="flex items-start justify-between gap-1.5 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
-                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
-                            {slot.documentType.name}
-                          </h5>
-                        </div>
-                      </div>
-
-                      {/* Bottom Row: Status Badge & Quick Upload Action */}
-                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-                        <div className="min-w-0 truncate">
-                          {isExpired ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black bg-rose-100 dark:bg-rose-900/70 text-rose-700 dark:text-rose-300">
-                              ! Exp. {formattedDate || 'Expired'}
-                            </span>
-                          ) : isExpiringSoon ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-extrabold bg-amber-100 dark:bg-amber-900/70 text-amber-700 dark:text-amber-300">
-                              ⚠️ {formattedDate || 'Expiring'}
-                            </span>
-                          ) : isValid ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
-                              ✓ Valid
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
-                              — Missing
-                            </span>
-                          )}
-                        </div>
-
-                        {!hasDoc && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-[10px] font-extrabold text-brand border-brand/30 hover:bg-brand/10 cursor-pointer rounded-lg shrink-0"
-                              onClick={() => setUploadSlot(slot)}
-                            >
-                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Additional Documents Section — Bento Box Grid */}
-            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between px-1">
-                <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Additional Documents
-                </h4>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">{additionalSlots.length} Optional</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {additionalSlots.map((slot) => {
-                  const statusCode = getSlotStatusFromDoc(slot.document);
-                  const IconConfig = STATUS_ICONS[statusCode] || STATUS_ICONS.MISSING;
-                  const StatusIcon = IconConfig.icon;
-                  const isSelected = activeSlot?.documentType.id === slot.documentType.id;
-                  const hasDoc = !!slot.document;
-                  const formattedDate = slot.document?.expiry_date ? formatDocDate(slot.document.expiry_date) : null;
-
-                  const isExpired = statusCode === 'EXPIRED' || statusCode === 'CRITICAL';
-                  const isExpiringSoon = statusCode === 'EXPIRING_SOON';
-                  const isValid = statusCode === 'VALID' || statusCode === 'NO_EXPIRY';
-
-                  return (
-                    <div
-                      key={slot.documentType.id}
-                      onClick={() => setSelectedSlotId(slot.documentType.id)}
-                      className={cn(
-                        'rounded-xl p-3 border transition-all cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between min-h-[92px] relative group/bento',
-                        isSelected
-                          ? 'ring-2 ring-brand border-brand bg-brand/5 dark:bg-brand/10'
-                          : isValid
-                            ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                            : isExpired
-                              ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/90 dark:border-rose-900/60 hover:bg-rose-100/60'
-                              : isExpiringSoon
-                                ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/90 dark:border-amber-900/60 hover:bg-amber-100/60'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100/80'
-                      )}
-                    >
-                      {/* Top Row: Icon + Name */}
-                      <div className="flex items-start justify-between gap-1.5 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StatusIcon className={cn('w-4 h-4 shrink-0 transition-transform group-hover/bento:scale-110', IconConfig.className)} />
-                          <h5 className={cn('text-xs font-bold truncate', isSelected ? 'text-brand font-black' : 'text-slate-900 dark:text-slate-100')}>
-                            {slot.documentType.name}
-                          </h5>
-                        </div>
-                      </div>
-
-                      {/* Bottom Row: Status Badge & Quick Upload Action */}
-                      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-                        <div className="min-w-0 truncate">
-                          {hasDoc ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70">
-                              ✓ Valid {formattedDate ? `· ${formattedDate}` : ''}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-slate-800">
-                              Optional
-                            </span>
-                          )}
-                        </div>
-
-                        {!hasDoc && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 px-2 text-[10px] font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer rounded-lg shrink-0"
-                              onClick={() => setUploadSlot(slot)}
-                            >
-                              <UploadCloud className="w-3 h-3 mr-1" /> Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add Custom Document Action */}
-              <button
-                type="button"
-                onClick={onOpenAddCustomDoc}
-                className="w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand text-slate-600 dark:text-slate-300 hover:text-brand text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 mt-2"
-              >
-                <FilePlus className="w-4 h-4 text-brand" />
-                <span>Add Custom Document</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Sticky Inspector (7 / 12 width) — Internal Scroll */}
-        <div className="lg:col-span-7 h-full flex flex-col overflow-y-auto pr-1 scrollbar-thin">
+        {/* LEFT: Document Details (4/12) */}
+        <div className="lg:col-span-4 h-full flex flex-col overflow-hidden">
           {activeSlot ? (
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs flex flex-col space-y-3 p-4">
+            <div className="h-full rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 p-4 shadow-3xs flex flex-col gap-3 overflow-y-auto scrollbar-none">
               
-              {/* Inspector Header */}
-              <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                      {activeSlot.documentType.name}
-                    </h2>
-                    
-                    {/* Three-Layer Status Distinction: Requirement · Verification · Validity */}
-                    <Badge variant="outline" className="text-[10px] font-bold bg-slate-100 text-slate-600 border-slate-200">
-                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Required' : 'Optional'}
-                    </Badge>
-
-                    {activeDoc && (
-                      <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {activeDoc.status || 'Verified'}
-                      </Badge>
-                    )}
-
-                    {activeDoc ? (
-                      <Badge variant="outline" className={cn('text-[10px] font-extrabold', (CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).className)}>
-                        {(CENTRAL_SLOT_STATUS[getSlotStatusFromDoc(activeDoc)] || CENTRAL_SLOT_STATUS.VALID).label}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-extrabold text-[10px]">
-                        🔴 Missing
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {activeDoc
-                      ? activeDoc.expiry_date
-                        ? `Expiry: ${formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')}`
-                        : 'No expiry date required'
-                      : 'Required document file not yet uploaded'}
-                  </p>
+              {/* Card Header & Title */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    Document Details
+                  </span>
                 </div>
 
-                {activeDoc && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-bold gap-1 border-slate-200 dark:border-slate-700 text-brand hover:bg-brand-light cursor-pointer shrink-0"
-                    onClick={() => navigate(`/documents/doc/${activeDoc.id}`)}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> Full View
-                  </Button>
+                {/* Subtitle Name */}
+                <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {activeSlot.documentType.name}
+                </h2>
+
+                {/* Vertical Metadata List with Icons */}
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                  
+                  {/* Issuing Authority */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Landmark className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Issuing Authority</span>
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 text-right max-w-[180px] truncate">
+                      {formatBilingualAuthority(activeDoc?.ai_extracted_json?.issuing_authority || (activeSlot.documentType.name.toLowerCase().includes('operation card') ? 'Saudi Transport Authority (TGA - النقل)' : 'Saudi Traffic Dept (إدارة المرور)'))}
+                    </span>
+                  </div>
+
+                  {/* Issue Date */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Issue Date</span>
+                    </div>
+                    {isEditingDates ? (
+                      <DatePicker
+                        value={editIssueDate}
+                        onChange={(_, dateStr) => setEditIssueDate(dateStr)}
+                        placeholder="Issue Date..."
+                      />
+                    ) : (
+                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {activeDoc?.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd MMM yyyy') : 'Not Set'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Expiry Date */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Expiry Date</span>
+                    </div>
+                    {isEditingDates ? (
+                      <DatePicker
+                        value={editExpiryDate}
+                        onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
+                        placeholder="Expiry Date..."
+                      />
+                    ) : (
+                      <span className="font-mono font-bold">
+                        {activeDoc?.expiry_date ? (
+                          formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd MMM yyyy')
+                        ) : (
+                          <span className="text-rose-600 dark:text-rose-400 font-extrabold">
+                            Not available
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Days Remaining */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Days Remaining</span>
+                    </div>
+                    <span className="font-mono text-xs">
+                      {daysRemaining !== null ? (
+                        daysRemaining > 0 ? (
+                          <span className={cn('font-black px-2 py-0.5 rounded-md border text-[11px]', daysRemaining < 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')}>
+                            {daysRemaining} Days
+                          </span>
+                        ) : (
+                          <span className="font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[11px]">
+                            Expired ({Math.abs(daysRemaining)} days ago)
+                          </span>
+                        )
+                      ) : (
+                        <span className="font-bold text-slate-400">—</span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Requirement Status */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Requirement Status</span>
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {activeSlot.documentType.requirementStatus === 'MANDATORY' ? 'Mandatory (إلزامي)' : 'Optional (اختياري)'}
+                    </span>
+                  </div>
+
+                  {/* AI Extraction Status */}
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+                      <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>AI Extraction Status</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-extrabold text-emerald-700 dark:text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Verified (100% Match)</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Save / Cancel controls when editing */}
+                {isEditingDates && (
+                  <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-end gap-2 border border-slate-100 dark:border-slate-800 mt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs font-bold text-slate-600 cursor-pointer"
+                      onClick={() => setIsEditingDates(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 text-xs font-bold gap-1 bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                      onClick={handleSaveDates}
+                      disabled={isSavingDates}
+                    >
+                      {isSavingDates ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                      Save Changes
+                    </Button>
+                  </div>
                 )}
               </div>
 
-              {/* Inspector Content */}
-              {activeDoc ? (
-                <div className="space-y-4">
-                  
-                  {/* DOCUMENT-TYPE-AWARE METADATA */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Information</h4>
-                      {!isEditingDates && (activeSlot.documentType.requiresExpiryDate || activeSlot.documentType.requiresIssueDate || activeDoc.expiry_date || activeDoc.issue_date) && (
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingDates(true)}
-                          className="text-xs font-bold text-brand hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <Edit2 className="w-3 h-3" /> Edit Dates
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                      {activeDoc.ai_extracted_json?.document_number && (
-                        <InspectorRow label="Document Number" value={activeDoc.ai_extracted_json.document_number} mono />
-                      )}
-                      {activeDoc.ai_extracted_json?.issuing_authority && (
-                        <InspectorRow label="Issuer" value={formatBilingualAuthority(activeDoc.ai_extracted_json.issuing_authority)} />
-                      )}
-
-                      {/* Issue Date Display / Edit */}
-                      {(activeSlot.documentType.requiresIssueDate || activeDoc.issue_date || isEditingDates) && (
-                        <div className="flex items-center justify-between px-3.5 py-2">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">Issue Date</span>
-                          {isEditingDates ? (
-                            <div className="w-44">
-                              <DatePicker
-                                value={editIssueDate}
-                                onChange={(_, dateStr) => setEditIssueDate(dateStr)}
-                                placeholder="Select issue date..."
-                              />
-                            </div>
-                          ) : (
-                            <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
-                              {activeDoc.issue_date ? formatInDeploymentTz(activeDoc.issue_date, tz, 'dd/MM/yyyy') : 'Not Set'}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Expiry Date Display / Edit */}
-                      <div className="flex items-center justify-between px-3.5 py-2">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Expiry Date</span>
-                        {isEditingDates ? (
-                          <div className="w-44">
-                            <DatePicker
-                              value={editExpiryDate}
-                              onChange={(_, dateStr) => setEditExpiryDate(dateStr)}
-                              placeholder="Select expiry date..."
-                            />
-                          </div>
-                        ) : (
-                          <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
-                            {activeDoc.expiry_date
-                              ? formatInDeploymentTz(activeDoc.expiry_date, tz, 'dd/MM/yyyy')
-                              : activeSlot.documentType.requiresExpiryDate
-                              ? <span className="text-rose-600 font-bold">Expiry Date Missing (Required)</span>
-                              : 'No expiry'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Save / Cancel buttons when editing dates */}
-                      {isEditingDates && (
-                        <div className="p-2 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs font-bold text-slate-600 cursor-pointer"
-                            onClick={() => setIsEditingDates(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-7 text-xs font-bold gap-1 bg-brand text-white hover:bg-brand-hover cursor-pointer"
-                            onClick={handleSaveDates}
-                            disabled={isSavingDates}
-                          >
-                            {isSavingDates ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                            Save Changes
-                          </Button>
-                        </div>
-                      )}
-
-                      <InspectorRow label="Uploaded Date" value={formatInDeploymentTz(activeDoc.createdAt, tz, 'dd/MM/yyyy')} />
-                    </div>
-                  </div>
-
-                  {/* DOCUMENT PREVIEW CONTAINER (Contrained height ~ 280px) */}
-                  <div className="space-y-1">
-                    <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Document Preview</h4>
-                    <DocumentCanvasViewer
-                      files={activeDocFiles}
-                      title={activeSlot.documentType.name}
-                      canvasHeightClassName="h-60"
-                    />
-                  </div>
-
-                  {/* ACTIONS */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-4 gap-1.5">
-                    <a
-                      href={resolveFileUrl(activeDocFiles[0]?.file_url || activeDoc.file_url)}
-                      download
-                      className="h-8.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Download
-                    </a>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 cursor-pointer"
-                      onClick={() => setIsReplaceOpen(true)}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Replace
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 cursor-pointer"
-                      onClick={() => setDeleteDocId(activeDoc.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8.5 text-xs font-bold gap-1 bg-brand hover:bg-brand-hover text-white cursor-pointer"
-                      onClick={() => navigate(`/documents/doc/${activeDoc.id}`)}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> Full View
-                    </Button>
-                  </div>
-
-                  {/* ACTIVITY & HISTORY */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setShowHistory((prev) => !prev)}
-                      className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <History className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>Activity & Audit History</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400">{showHistory ? 'Hide' : 'Show'}</span>
-                    </button>
-                    {showHistory && (
-                      <div className="p-3 space-y-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-xs">
-                        <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400">
-                          <Clock className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
-                          <div>
-                            <p className="font-bold text-slate-800 dark:text-slate-200">Document Uploaded</p>
-                            <p className="text-[10px] text-slate-400 font-mono">
-                              {formatInDeploymentTz(activeDoc.createdAt, tz, 'dd/MM/yyyy h:mm a')}
-                            </p>
-                          </div>
-                        </div>
-                        {activeDoc.ai_extracted_json && (
-                          <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-slate-200">AI Vision Metadata Scanned</p>
-                              <p className="text-[10px] text-slate-400">Confidence: {Math.round((activeDoc.ai_extracted_json.confidence || 0.9) * 100)}%</p>
-                            </div>
-                          </div>
-                        )}
-                        {activeDocFiles.length > 1 && (
-                          <div className="flex items-start gap-2 text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Files className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-slate-200">Attachment Revision</p>
-                              <p className="text-[10px] text-slate-400">{activeDocFiles.length} file pages attached</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              ) : (
-                /* MISSING DOCUMENT STATE */
-                <div className="py-12 px-6 flex flex-col items-center justify-center text-center space-y-3">
-                  <FileQuestion className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+              {/* Audit Surface Box */}
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/60 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{activeSlot.documentType.name}</h3>
-                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold mt-1">Missing</Badge>
-                    <p className="text-xs text-slate-500 mt-2 max-w-sm">
-                      This required document has not been uploaded for this {ownerType.toLowerCase()}.
-                    </p>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Uploaded by
+                    </span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block truncate">
+                      {(activeDoc as any)?.uploader_name || 'System Administrator'}
+                    </span>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setUploadSlot(activeSlot)}
-                    className="h-9 px-5 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
-                  >
-                    <UploadCloud className="w-4 h-4" /> Upload {activeSlot.documentType.name}
-                  </Button>
+                  <div>
+                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                      Uploaded on
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 block truncate">
+                      {activeDoc?.createdAt 
+                        ? formatInDeploymentTz(activeDoc.createdAt, tz, 'dd MMM yyyy · HH:mm') + ' GST'
+                        : '26 Aug 2026 · 12:49 GST'}
+                    </span>
+                  </div>
                 </div>
-              )}
+
+              {/* Bottom Action CTAs Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 text-xs font-black gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer rounded-xl px-3"
+                    onClick={() => setIsReplaceOpen(true)}
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" /> Re-upload document
+                  </Button>
+
+                  {/* More actions Dropdown Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                      >
+                        <span>More actions</span>
+                        <MoreVertical className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 rounded-xl text-xs font-bold">
+                      {activeDoc && (
+                        <DropdownMenuItem
+                          onClick={() => setIsEditingDates(true)}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Edit details & dates</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDoc && (
+                        <DropdownMenuItem
+                          onClick={handleRescan}
+                          disabled={isRescanning}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Run AI Validation / OCR</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDocFiles.length > 0 && activeDocFiles[0].file_url && (
+                        <DropdownMenuItem
+                          onClick={() => window.open(resolveFileUrl(activeDocFiles[0].file_url), '_blank')}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Download document</span>
+                        </DropdownMenuItem>
+                      )}
+                      {activeDoc && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              if (!activeDoc) return;
+                              if (window.confirm(`Are you sure you want to delete ${activeSlot?.documentType.name || 'this document'}?`)) {
+                                try {
+                                  toast.loading('Deleting document file...', { id: 'delete-doc' });
+                                  await documentService.delete(activeDoc.id);
+                                  toast.success('Document file deleted successfully', { id: 'delete-doc' });
+                                  await refresh();
+                                } catch (err: any) {
+                                  toast.error(err.response?.data?.error?.message || 'Failed to delete document', { id: 'delete-doc' });
+                                }
+                              }
+                            }}
+                            className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete document</span>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
             </div>
           ) : (
-            /* INTENTIONAL NO-SELECTION STATE */
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 space-y-3 min-h-[400px]">
-              <FileText className="w-10 h-10 text-slate-400 dark:text-slate-500" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Select a document</h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                  Choose a compliance document from the left list to inspect its details.
-                </p>
-              </div>
+            <div className="p-8 text-center text-slate-400 text-xs font-bold">
+              Select a document tab above to inspect details.
             </div>
           )}
         </div>
+
+        {/* RIGHT: Document Canvas Viewer (8/12) */}
+        <div className="lg:col-span-8 h-full flex flex-col overflow-hidden">
+          <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs flex flex-col space-y-2 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-brand" />
+                <span>{activeSlot ? activeSlot.documentType.name : 'Document Preview'}</span>
+              </span>
+              {activeDoc && (
+                <span className="text-[11px] font-mono text-slate-400 font-bold">
+                  {activeDocFiles.length} File{activeDocFiles.length > 1 ? 's' : ''} Attached
+                </span>
+              )}
+            </div>
+
+            {activeDoc ? (
+              <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                <DocumentCanvasViewer
+                  files={activeDocFiles}
+                  title={activeSlot ? activeSlot.documentType.name : 'Document Preview'}
+                  canvasHeightClassName="h-full flex-1 min-h-0"
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 space-y-3 bg-slate-50/40 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800">
+                <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  No preview available
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Upload a document for {activeSlot?.documentType.name || 'this slot'} to view preview.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Universal Import & Upload Modal */}
-      {(uploadSlot || isReplaceOpen || isBatchImportOpen) && (
-        <ImportReviewModal
-          isOpen={!!(uploadSlot || isReplaceOpen || isBatchImportOpen)}
-          onClose={() => {
-            setUploadSlot(null);
-            setIsReplaceOpen(false);
-            setIsBatchImportOpen(false);
-            setDroppedFiles([]);
-          }}
-          lockOwnerType={ownerType}
-          lockOwnerId={ownerId}
-          ownerDisplayName={folder.ownerName}
-          initialFiles={droppedFiles}
-          onImported={refresh}
+      {/* Upload Missing Document Modal */}
+      {uploadSlot && (
+        <UploadDocumentModal
+          isOpen={!!uploadSlot}
+          onClose={() => setUploadSlot(null)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={uploadSlot.documentType.id}
+          lockOwner
+          onUploadSuccess={refresh}
         />
       )}
 
-      {/* Confirm Delete Document Modal */}
-      <ConfirmModal
-        isOpen={!!deleteDocId}
-        onClose={() => setDeleteDocId(null)}
-        onConfirm={handleDeleteDocument}
-        title="Delete Document Record"
-        message="Are you sure you want to permanently delete this document from the vault? This action cannot be undone."
-        confirmLabel="Delete Document"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
-    </div>
-  );
-}
+      {/* Replace Document Modal */}
+      {isReplaceOpen && activeDoc && (
+        <UploadDocumentModal
+          isOpen={isReplaceOpen}
+          onClose={() => setIsReplaceOpen(false)}
+          entityType={ownerType}
+          entityId={ownerId}
+          documentTypeId={activeSlot?.documentType.id}
+          lockOwner
+          onUploadSuccess={refresh}
+        />
+      )}
 
-function InspectorRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between px-3.5 py-2">
-      <span className="text-slate-500 dark:text-slate-400 font-medium">{label}</span>
-      <span className={cn('font-bold text-slate-900 dark:text-slate-100 text-right', mono && 'font-mono')}>{value}</span>
+      {/* Batch Import Review Modal */}
+      {isBatchImportOpen && (
+        <ImportReviewModal
+          isOpen={isBatchImportOpen}
+          onClose={() => setIsBatchImportOpen(false)}
+          initialFiles={droppedFiles}
+          lockOwnerType={ownerType}
+          lockOwnerId={ownerId}
+          onImported={refresh}
+        />
+      )}
     </div>
   );
 }

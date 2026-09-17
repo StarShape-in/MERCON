@@ -4,6 +4,34 @@ import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
+export type LocationSource = 'DRIVER_GPS' | 'PHYSICAL_GPS' | 'NONE' | (string & {});
+export type LocationDisplayState = 'CURRENT' | 'LAST_KNOWN' | 'UNAVAILABLE' | (string & {});
+
+export interface ResolvedLocation {
+  vehicle_id?: string | null;
+  ref_id?: string | null;
+  plate_number?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+  speed_kph?: number | null;
+  heading_deg?: number | null;
+  accuracy_m?: number | null;
+  source?: LocationSource | null;
+  display_state?: LocationDisplayState | null;
+  timestamp?: string | null;
+  formatted_time_ago?: string | null;
+  active_trip_id?: string | null;
+  active_driver_id?: string | null;
+  address?: string | null;
+  formatted_address?: string | null;
+  name?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+}
+
 export interface VehicleUsage {
   activeTrips: number;
   totalTrips: number;
@@ -17,7 +45,7 @@ export interface ActiveMaintenance {
   maintenance_type: string;
   workshop_name: string;
   start_date: string;
-  end_date: string | null;
+  end_date?: string | null;
 }
 
 export interface Vehicle {
@@ -30,7 +58,6 @@ export interface Vehicle {
   current_odometer: number;
   /** When current_odometer was last changed. Null means never recorded. */
   odometer_updated_at?: string | null;
-  gps_device_id: string | null;
   trailer_number: string | null;
   trailer_type: AssetType | null;
   trailer_capacity_kg: number | null;
@@ -48,6 +75,7 @@ export interface Vehicle {
   trips?: any[];
   assignedDriver?: any;
   active_maintenance?: ActiveMaintenance | null;
+  image_url?: string | null;
 }
 
 export interface CreateVehiclePayload {
@@ -57,8 +85,8 @@ export interface CreateVehiclePayload {
   trailer_number?: string;
   trailer_type?: AssetType;
   trailer_capacity_kg?: number;
-  gps_device_id?: string;
   icces_device_id?: string;
+  image_url?: string | null;
 }
 
 export interface VehicleFilters {
@@ -176,9 +204,34 @@ export interface VehicleStats {
   maintenance: number;
 }
 
+export interface PhysicalGpsStatusSummary {
+  mercon_total: number;
+  physical_gps_total: number;
+  not_connected_total: number;
+  reconciliation_valid: boolean;
+  category_sum: number;
+  status_counts: {
+    MOVING: number;
+    IDLE: number;
+    STOPPED: number;
+    COMMAND: number;
+    ALERT: number;
+    DEVICE_NO_SIGNAL: number;
+    DEVICE_NOT_WORKING: number;
+    ACCIDENT: number;
+    TAMPER_WEIGHT: number;
+    UNKNOWN: number;
+  };
+}
+
 export const vehicleService = {
   async getStats(): Promise<VehicleStats> {
     const res = await api.get<ApiResponse<VehicleStats>>('/vehicles/stats');
+    return res.data.data;
+  },
+
+  async getIccesSummary(): Promise<PhysicalGpsStatusSummary> {
+    const res = await api.get<ApiResponse<PhysicalGpsStatusSummary>>('/vehicles/icces-summary');
     return res.data.data;
   },
 

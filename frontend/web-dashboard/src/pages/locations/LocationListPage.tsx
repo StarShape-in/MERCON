@@ -10,12 +10,13 @@ import {
   Download, FileSpreadsheet, FileText, UploadCloud,
   Building2, List, Map as MapIcon, Check,
   Search, Filter, X, ArrowDown, ArrowUp,
-  ChevronDown, Eye,
+  ChevronDown, Eye, MessageSquare,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { LOCATION_COLUMNS } from '@/utils/importUtils';
@@ -27,7 +28,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ExportModal, { ExportColumn } from '@/components/ui/ExportModal';
-import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
 
@@ -119,15 +119,6 @@ function MapBoundsController({ locations, selectedMapCenter, fitTrigger }: {
 // ─── sort options ──────────────────────────────────────────────────────────
 type LocationSortOption = 'latest' | 'oldest' | 'code_asc' | 'name_asc' | 'customer_asc' | 'status';
 
-const LOCATION_SORT_OPTIONS: SortOption<LocationSortOption>[] = [
-  { value: 'latest',       label: 'Newest Added',           icon: <ArrowDown  className="w-3.5 h-3.5 text-blue-600" /> },
-  { value: 'oldest',       label: 'Oldest Added',           icon: <ArrowUp    className="w-3.5 h-3.5 text-amber-600" /> },
-  { value: 'code_asc',     label: 'Code (A → Z)',           icon: <Building2  className="w-3.5 h-3.5 text-indigo-600" /> },
-  { value: 'name_asc',     label: 'Location Name (A → Z)',  icon: <MapPin     className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'customer_asc', label: 'Customer Name (A → Z)',  icon: <Building2  className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'status',       label: 'Status',                 icon: <Filter     className="w-3.5 h-3.5 text-slate-500" /> },
-];
-
 // ─── component ────────────────────────────────────────────────────────────
 export default function LocationListPage() {
   const navigate = useNavigate();
@@ -141,9 +132,8 @@ export default function LocationListPage() {
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
-  const [sortOrder, setSortOrder] = useState<LocationSortOption>('code_asc');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filter] = useState<'all' | 'pinned' | 'unpinned' | 'active' | 'inactive' | 'exact' | 'approximate' | 'unknown'>('all');
+  const [sortOrder] = useState<LocationSortOption>('code_asc');
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const [isExportOpen, setIsExportOpen] = useState(false);
@@ -157,6 +147,7 @@ export default function LocationListPage() {
     message: string;
     onConfirm: () => void | Promise<void>;
     isDestructive?: boolean;
+    confirmLabel?: string;
   }>({
     isOpen: false,
     title: '',
@@ -178,14 +169,6 @@ export default function LocationListPage() {
     queryFn: () => locationService.getAll({ customerId: selectedCustomerId !== 'all' ? selectedCustomerId : undefined }),
   });
   const locations = response?.data || [];
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['locations'] });
-    setSelectionResetKey(k => k + 1);
-    setFitTrigger(k => k + 1);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const filteredData = useMemo(() => {
     return locations
@@ -233,22 +216,41 @@ export default function LocationListPage() {
     }
   };
 
+  const handleShareWhatsapp = (loc: Location) => {
+    const text = [
+      `📍 *MERCON Location Details*`,
+      `• *Location Name:* ${loc.name}`,
+      `• *Code:* ${loc.code}`,
+      `• *Customer:* ${loc.customer?.name || '—'}`,
+      `• *City:* ${loc.city || 'Saudi Arabia'}`,
+      loc.address ? `• *Address:* ${loc.address}` : '',
+      loc.lat != null && loc.lng != null
+        ? `• *Map Location:* https://maps.google.com/?q=${loc.lat},${loc.lng}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   // ── table columns ──────────────────────────────────────────────────────
   const columns = [
     {
       header: 'Customer',
       className: 'w-[13%] min-w-[110px]',
       accessor: (row: Location) => (
-        <Badge variant="outline" className="bg-indigo-50/80 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-bold text-xs">
+        <Badge variant="outline" className="bg-indigo-50/80 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-extrabold text-[10px] px-1.5 py-0.5 truncate">
           {row.customer?.name || '—'}
         </Badge>
       ),
     },
     {
       header: 'Code',
-      className: 'w-[90px]',
+      className: 'w-[85px]',
       accessor: (row: Location) => (
-        <span className="font-mono text-xs font-black text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+        <span className="font-mono text-[10px] font-black text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
           {row.code}
         </span>
       ),
@@ -257,9 +259,9 @@ export default function LocationListPage() {
       header: 'Location Name',
       className: 'w-[22%] min-w-[150px]',
       accessor: (row: Location) => (
-        <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-4 h-4 text-brand shrink-0" />
-          <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.name}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
+          <span className="font-bold text-[11px] text-slate-900 dark:text-slate-100 truncate" title={row.name}>
             {row.name}
           </span>
         </div>
@@ -267,23 +269,23 @@ export default function LocationListPage() {
     },
     {
       header: 'City',
-      className: 'w-[11%] min-w-[90px]',
+      className: 'w-[11%] min-w-[85px]',
       accessor: (row: Location) => (
-        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{row.city || '—'}</span>
+        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{row.city || '—'}</span>
       ),
     },
     {
       header: 'Address',
-      className: 'w-[20%] min-w-[150px]',
+      className: 'w-[24%] min-w-[150px]',
       accessor: (row: Location) => (
-        <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1" title={row.address || ''}>
+        <span className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1" title={row.address || ''}>
           {row.address || '—'}
         </span>
       ),
     },
     {
       header: 'Precision / Map Pin',
-      className: 'w-[17%] min-w-[140px]',
+      className: 'w-[18%] min-w-[140px]',
       accessor: (row: Location) => {
         const prec = row.coordinate_precision || (row.lat != null ? 'APPROXIMATE' : 'UNKNOWN');
         return (
@@ -291,12 +293,12 @@ export default function LocationListPage() {
             {prec === 'EXACT' && (
               <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px] w-fit flex items-center gap-1">
                 <Check className="w-3 h-3 text-emerald-600" />
-                <span>✓ Exact ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
+                <span>Exact ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
               </Badge>
             )}
             {prec === 'APPROXIMATE' && (
               <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold text-[10px] w-fit flex items-center gap-1">
-                <span>≈ Area ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
+                <span>Area ({row.lat!.toFixed(3)}, {row.lng!.toFixed(3)})</span>
               </Badge>
             )}
             {prec === 'UNKNOWN' && (
@@ -307,16 +309,6 @@ export default function LocationListPage() {
           </div>
         );
       },
-    },
-    {
-      header: 'Usage',
-      className: 'w-[11%] min-w-[110px]',
-      accessor: (row: Location) => (
-        <div className="text-[11px] font-mono text-slate-500 flex flex-col gap-0.5">
-          <span>{quotationUses(row)} Quotations</span>
-          <span>{tripUses(row)} Trip Stops</span>
-        </div>
-      ),
     },
     {
       header: 'Status',
@@ -335,7 +327,19 @@ export default function LocationListPage() {
       headerClassName: 'text-right',
       className: 'text-right whitespace-nowrap',
       accessor: (row: Location) => (
-        <div className="flex items-center justify-end gap-0.5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShareWhatsapp(row);
+            }}
+            title="Share Location via WhatsApp"
+            aria-label="Share via WhatsApp"
+            className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all focus:outline-none cursor-pointer group"
+          >
+            <WhatsAppIcon className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -346,7 +350,14 @@ export default function LocationListPage() {
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              <DropdownMenuItem
+                onClick={() => handleShareWhatsapp(row)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              >
+                <WhatsAppIcon className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                Share on WhatsApp
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate(`/locations/${row.id}`)}
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
@@ -372,22 +383,30 @@ export default function LocationListPage() {
                   const parts: string[] = [];
                   if (qCount > 0) parts.push(`${qCount} quotation stop${qCount === 1 ? '' : 's'}`);
                   if (tCount > 0) parts.push(`${tCount} trip stop${tCount === 1 ? '' : 's'}`);
-                  const message = parts.length > 0
-                    ? `"${locName}" (${row.code}) is referenced in ${parts.join(' and ')}. Deleting it will remove the location — linked quotations and historical trip stops may be affected.`
+                  const isReferenced = parts.length > 0;
+                  const message = isReferenced
+                    ? `"${locName}" (${row.code}) is referenced in ${parts.join(' and ')}. Operational locations with active history cannot be deleted. Would you like to deactivate this location instead?`
                     : `"${locName}" (${row.code}) has no linked quotations or trip stops. This will permanently delete the location.`;
+
                   setConfirmModal({
                     isOpen: true,
-                    title: 'Delete Customer Location?',
+                    title: isReferenced ? 'Deactivate Location?' : 'Delete Customer Location?',
                     message,
-                    isDestructive: true,
+                    confirmLabel: isReferenced ? 'Deactivate Location' : 'Delete Location',
+                    isDestructive: !isReferenced,
                     onConfirm: async () => {
                       try {
-                        await locationService.delete(row.id);
-                        toast.success(`Location "${locName}" deleted successfully`);
+                        if (isReferenced) {
+                          await locationService.update(row.id, { is_active: false });
+                          toast.success(`Location "${locName}" deactivated successfully`);
+                        } else {
+                          await locationService.delete(row.id);
+                          toast.success(`Location "${locName}" deleted successfully`);
+                        }
                         queryClient.invalidateQueries({ queryKey: ['locations'] });
                         setSelectionResetKey(k => k + 1);
                       } catch (e: any) {
-                        toast.error(e?.response?.data?.error?.message || 'Failed to delete location');
+                        toast.error(e?.response?.data?.error?.message || e?.message || 'Action failed');
                       }
                     },
                   });
@@ -430,34 +449,6 @@ export default function LocationListPage() {
           </SelectGroup>
         </SelectContent>
       </Select>
-
-      {/* Precision filter */}
-      <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-        <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold rounded-lg shadow-2xs">
-          <div className="flex items-center gap-2 truncate">
-            <Filter className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <SelectValue placeholder="Precision" />
-          </div>
-        </SelectTrigger>
-        <SelectContent align="start" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Pin Status</SelectLabel>
-            <SelectItem value="all"         className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Locations</SelectItem>
-            <SelectItem value="exact"       className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">✓ Exact Only</SelectItem>
-            <SelectItem value="approximate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">≈ Area Only</SelectItem>
-            <SelectItem value="unknown"     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">○ Not Pinned Only</SelectItem>
-          </SelectGroup>
-          <SelectSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-          <SelectGroup>
-            <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 px-2 py-1">Active Status</SelectLabel>
-            <SelectItem value="active"   className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 font-semibold">Active Only</SelectItem>
-            <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 font-semibold">Inactive Only</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {/* Sort */}
-      <SortDropdown value={sortOrder} onChange={setSortOrder} options={LOCATION_SORT_OPTIONS} triggerClassName="h-9" />
     </div>
   );
 
@@ -525,9 +516,6 @@ export default function LocationListPage() {
                   Master Data
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Manage canonical locations used across quotations and trips.
-              </p>
             </div>
           </div>
 
@@ -616,15 +604,6 @@ export default function LocationListPage() {
               <Plus className="h-4 w-4" />
               Add Location
             </Button>
-
-            {/* Refresh */}
-            <button
-              onClick={handleRefresh}
-              title="Refresh Locations"
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-            </button>
           </div>
         </div>
 
@@ -632,12 +611,6 @@ export default function LocationListPage() {
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-brand" />
-                  <span>Customer Locations Ledger</span>
-                </span>
-              }
               columns={columns}
               data={filteredData}
               enableSelection={true}
@@ -796,7 +769,7 @@ export default function LocationListPage() {
         title={confirmModal.title}
         message={confirmModal.message}
         isDestructive={confirmModal.isDestructive}
-        confirmLabel="Delete Location"
+        confirmLabel={confirmModal.confirmLabel || 'Delete Location'}
       />
 
       {isExportOpen && (

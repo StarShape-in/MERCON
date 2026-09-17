@@ -47,8 +47,6 @@ function formatHeaderLabel(key: string): string {
     plate_number: 'Plate Number',
     capacity_kg: 'Capacity (KG)',
     asset_type: 'Vehicle Type',
-    ai_risk_score: 'AI Safety Risk Score',
-    credit_limit: 'Credit Limit (SAR)',
     total_amount: 'Total Amount (SAR)',
     subtotal: 'Subtotal (SAR)',
     billing_amount: 'Billing Rate (SAR)',
@@ -96,7 +94,6 @@ function extractValue(val: any, tz: string = DEFAULT_EXPORT_TZ): string {
     }
     if (val.plate_number) return String(val.plate_number);
     if (val.ref_id) return String(val.ref_id);
-    if (val.company_name) return String(val.company_name);
     if (val.username) return String(val.username);
     if (val.title) return String(val.title);
     return '';

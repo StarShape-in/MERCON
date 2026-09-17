@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, Image, TextInput, StyleSheet, ActivityIndicator, Alert, ScrollView,
+  Modal, View, Text, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
-import { X, Camera, Video, Image as ImageIcon, AlertTriangle, CheckCircle2, Trash2, MapPin } from 'lucide-react-native';
+import { X, Video, Film, AlertTriangle, CheckCircle2, Trash2, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../theme/tokens';
 import { Button } from './Button';
-import { chooseMedia, capturePhoto, captureVideo, type CapturedMedia } from '../lib/camera';
+import { captureVideo, pickVideoFromGallery, type CapturedMedia } from '../lib/camera';
 import { tripService } from '../lib/trips';
 import { getApiErrorMessage } from '../lib/api';
 import { GoogleMapsGeotagPreview } from './GoogleMapsGeotagPreview';
+import { useLanguage } from '../lib/language-context';
 
 const REASON_PRESETS = [
-  { id: 'traffic', label: 'Heavy Traffic / Jam', icon: '🚦' },
-  { id: 'road_closure', label: 'Road Closure / Construction', icon: '🚧' },
-  { id: 'dock_wait', label: 'Loading Dock Queue / Wait', icon: '🚛' },
-  { id: 'vehicle_breakdown', label: 'Vehicle Technical Issue', icon: '🛠️' },
-  { id: 'customs', label: 'Customs / Border Clearance', icon: '📑' },
-  { id: 'weather', label: 'Bad Weather Conditions', icon: '🌧️' },
+  { id: 'traffic', labelKey: 'delay_heavy_traffic', defaultLabel: 'Heavy Traffic / Jam', icon: '🚦' },
+  { id: 'road_closure', labelKey: 'delay_road_closure', defaultLabel: 'Road Closure / Construction', icon: '🚧' },
+  { id: 'dock_wait', labelKey: 'delay_dock_wait', defaultLabel: 'Loading Dock Queue / Wait', icon: '🚛' },
+  { id: 'vehicle_breakdown', labelKey: 'delay_vehicle_breakdown', defaultLabel: 'Vehicle Technical Issue', icon: '🛠️' },
+  { id: 'customs', labelKey: 'delay_customs', defaultLabel: 'Customs / Border Clearance', icon: '📑' },
+  { id: 'weather', labelKey: 'delay_weather', defaultLabel: 'Bad Weather Conditions', icon: '🌧️' },
 ];
 
 interface DelayReportModalProps {
@@ -27,29 +28,27 @@ interface DelayReportModalProps {
 }
 
 export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayReportModalProps) {
+  const { t } = useLanguage();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [customNotes, setCustomNotes] = useState('');
   const [media, setMedia] = useState<CapturedMedia | null>(null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'media' | 'details'>('media');
 
-  const handlePickMedia = async (kind: 'photo' | 'video' | 'gallery') => {
+  const handlePickMedia = async (kind: 'video' | 'gallery') => {
     try {
       let res: CapturedMedia | null = null;
-      if (kind === 'photo') {
-        const photo = await capturePhoto();
-        if (photo) res = { uri: photo.uri, type: 'image', mimeType: photo.mimeType, fileName: photo.fileName };
-      } else if (kind === 'video') {
+      if (kind === 'video') {
         res = await captureVideo();
       } else {
-        res = await chooseMedia();
+        res = await pickVideoFromGallery();
       }
       if (res) {
         setMedia(res);
         setStep('details');
       }
     } catch (e) {
-      Alert.alert('Media Capture Error', getApiErrorMessage(e));
+      Alert.alert(t('err_camera_title', 'Video Capture Error'), getApiErrorMessage(e));
     }
   };
 
@@ -72,28 +71,34 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
     try {
       // Build final delay reason text
       const finalReason = [
-        selectedReason ? REASON_PRESETS.find((r) => r.id === selectedReason)?.label : null,
+        selectedReason ? REASON_PRESETS.find((r) => r.id === selectedReason)?.defaultLabel : null,
         customNotes.trim() ? customNotes.trim() : null,
       ].filter(Boolean).join(' - ') || 'Driver reported delay';
 
-      // 1. Upload photo/video evidence if attached
+      // 1. Upload video evidence if attached
       if (media) {
-        await tripService.uploadPhoto(tripId, 'cargo', {
-          uri: media.uri,
-          mimeType: media.mimeType,
-          fileName: media.fileName ?? (media.type === 'video' ? 'delay-video.mp4' : 'delay-photo.jpg'),
-          location: media.location,
-        });
+        await tripService.uploadPhoto(
+          tripId,
+          'cargo',
+          {
+            uri: media.uri,
+            mimeType: media.mimeType ?? 'video/mp4',
+            fileName: media.fileName ?? 'delay-video.mp4',
+            location: media.location,
+          },
+          undefined,
+          'delay'
+        );
       }
 
       // 2. Update trip status to Delayed with reason
       await tripService.updateStatus(tripId, 'Delayed', finalReason);
 
-      Alert.alert('Delay Reported', 'Your delay report has been submitted to dispatch.');
+      Alert.alert(t('status_delayed', 'Delay Reported'), t('msg_delay_submitted', 'Your delay report has been submitted to dispatch.'));
       handleClose();
       onSuccess();
     } catch (e) {
-      Alert.alert('Could Not Report Delay', getApiErrorMessage(e));
+      Alert.alert(t('err_something_went_wrong', 'Could Not Report Delay'), getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -107,7 +112,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <AlertTriangle size={20} color="#D97706" strokeWidth={2.2} />
-              <Text style={styles.title}>Report Trip Delay</Text>
+              <Text style={styles.title}>{t('title_report_delay', 'Report Trip Delay')}</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn} hitSlop={10}>
               <X size={20} color={Colors.gray500} strokeWidth={2.2} />
@@ -115,31 +120,26 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
           </View>
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
-            {/* STEP 1: CAPTURE MEDIA EVIDENCE */}
+            {/* STEP 1: CAPTURE MEDIA EVIDENCE (VIDEO ONLY) */}
             {step === 'media' && (
               <View style={styles.stepBlock}>
-                <Text style={styles.stepTitle}>1. Capture Evidence (Photo or Video)</Text>
-                <Text style={styles.stepSub}>Take a photo or video of the delay (e.g. traffic, breakdown, wait time).</Text>
+                <Text style={styles.stepTitle}>{t('step_record_video', '1. Record Delay Video')}</Text>
+                <Text style={styles.stepSub}>{t('step_record_video_desc', 'Record a video of the delay (e.g. traffic, breakdown, wait time).')}</Text>
 
                 <View style={styles.mediaActionGrid}>
-                  <TouchableOpacity style={styles.mediaBtn} activeOpacity={0.8} onPress={() => handlePickMedia('photo')}>
-                    <Camera size={26} color={Colors.primary} strokeWidth={2} />
-                    <Text style={styles.mediaBtnText}>Take Photo</Text>
-                  </TouchableOpacity>
-
                   <TouchableOpacity style={styles.mediaBtn} activeOpacity={0.8} onPress={() => handlePickMedia('video')}>
-                    <Video size={26} color="#7C3AED" strokeWidth={2} />
-                    <Text style={styles.mediaBtnText}>Record Video</Text>
+                    <Video size={28} color="#7C3AED" strokeWidth={2.2} />
+                    <Text style={styles.mediaBtnText}>{t('action_record_video', 'Record Video')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.mediaBtn} activeOpacity={0.8} onPress={() => handlePickMedia('gallery')}>
-                    <ImageIcon size={26} color="#0284C7" strokeWidth={2} />
-                    <Text style={styles.mediaBtnText}>Gallery</Text>
+                    <Film size={28} color="#0284C7" strokeWidth={2.2} />
+                    <Text style={styles.mediaBtnText}>{t('action_video_gallery', 'Video Gallery')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity style={styles.skipBtn} onPress={() => setStep('details')}>
-                  <Text style={styles.skipBtnText}>Skip Evidence (Proceed to Reason) →</Text>
+                  <Text style={styles.skipBtnText}>{t('action_skip_video', 'Skip Video (Proceed to Reason) →')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -150,15 +150,11 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                 {media && (
                   <View style={styles.mediaPreviewCard}>
                     <View style={styles.mediaPreviewLeft}>
-                      {media.type === 'video' ? (
-                        <Video size={22} color="#7C3AED" />
-                      ) : (
-                        <Image source={{ uri: media.uri }} style={styles.thumbnail} />
-                      )}
+                      <View style={styles.videoIconBox}>
+                        <Video size={22} color="#7C3AED" strokeWidth={2.2} />
+                      </View>
                       <View>
-                        <Text style={styles.mediaPreviewTitle}>
-                          {media.type === 'video' ? 'Video Evidence Recorded' : 'Photo Attached'}
-                        </Text>
+                        <Text style={styles.mediaPreviewTitle}>{t('title_video_recorded', 'Delay Video Recorded')}</Text>
                         {!!media.location && (
                           <GoogleMapsGeotagPreview
                             latitude={media.location.latitude}
@@ -167,7 +163,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                             address={media.location.address}
                           />
                         )}
-                        <Text style={styles.mediaPreviewSub}>Tap trash to remove</Text>
+                        <Text style={styles.mediaPreviewSub}>{t('action_remove_video', 'Tap trash to remove')}</Text>
                       </View>
                     </View>
                     <TouchableOpacity onPress={() => setMedia(null)} hitSlop={8}>
@@ -176,7 +172,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                   </View>
                 )}
 
-                <Text style={styles.stepTitle}>2. Select Delay Reason</Text>
+                <Text style={styles.stepTitle}>{t('step_select_reason', '2. Select Delay Reason')}</Text>
                 <View style={styles.presetsGrid}>
                   {REASON_PRESETS.map((preset) => {
                     const selected = selectedReason === preset.id;
@@ -189,7 +185,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                       >
                         <Text style={styles.presetIcon}>{preset.icon}</Text>
                         <Text style={[styles.presetLabel, selected && styles.presetLabelSelected]}>
-                          {preset.label}
+                          {t(preset.labelKey, preset.defaultLabel)}
                         </Text>
                         {selected && <CheckCircle2 size={14} color={Colors.primary} style={styles.checkIcon} />}
                       </TouchableOpacity>
@@ -197,12 +193,12 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
                   })}
                 </View>
 
-                <Text style={styles.inputLabel}>Additional Notes / Custom Reason (Optional)</Text>
+                <Text style={styles.inputLabel}>{t('label_custom_delay_notes', 'Additional Notes / Custom Reason (Optional)')}</Text>
                 <TextInput
                   style={styles.textInput}
                   value={customNotes}
                   onChangeText={setCustomNotes}
-                  placeholder="Type extra notes or custom reason (optional)..."
+                  placeholder={t('placeholder_delay_notes', 'Type extra notes or custom reason (optional)...')}
                   placeholderTextColor={Colors.gray400}
                   multiline
                   numberOfLines={3}
@@ -215,7 +211,7 @@ export function DelayReportModal({ visible, tripId, onClose, onSuccess }: DelayR
           {step === 'details' && (
             <View style={styles.footer}>
               <Button
-                title={loading ? 'Submitting…' : 'Submit Delay Report'}
+                title={loading ? (media ? t('msg_uploading_video', 'Uploading Video…') : t('msg_submitting_delay', 'Submitting…')) : t('action_submit_delay', 'Submit Delay Report')}
                 onPress={handleSubmit}
                 disabled={loading}
                 size="lg"
@@ -329,10 +325,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  thumbnail: {
-    width: 36,
-    height: 36,
+  videoIconBox: {
+    width: 38,
+    height: 38,
     borderRadius: Radius.md,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mediaPreviewTitle: {
     fontSize: Typography.xs,

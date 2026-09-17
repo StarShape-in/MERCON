@@ -9,18 +9,18 @@ import { ArrowLeft, Truck, Wrench, Calendar } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useAssignedVehicle } from '../../lib/vehicle';
 
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, getLocalizedStatus } from '../../lib/language-context';
 
 const AssignedVehicleScreen = () => {
   const router = useRouter();
   const { vehicle, loading, error } = useAssignedVehicle();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const specs = vehicle
     ? [
         { labelKey: 'label_plate_number', defaultLabel: 'Plate', value: vehicle.plate_number },
         { labelKey: 'label_vehicle_type', defaultLabel: 'Type', value: vehicle.asset_type },
-        { labelKey: 'label_status', defaultLabel: 'Status', value: vehicle.status },
+        { labelKey: 'label_status', defaultLabel: 'Status', value: getLocalizedStatus(vehicle.status, language) },
         { labelKey: 'label_capacity', defaultLabel: 'Capacity', value: `${vehicle.capacity_kg.toLocaleString()} kg` },
         { labelKey: 'label_odometer', defaultLabel: 'Odometer', value: `${Math.round(vehicle.current_odometer).toLocaleString()} km` },
         ...(vehicle.trailer_number
@@ -51,10 +51,10 @@ const AssignedVehicleScreen = () => {
               <View style={styles.headerBadges}>
                 <View style={styles.statusChip}>
                   <View style={styles.statusDot} />
-                  <Text style={styles.statusChipText}>{vehicle.status}</Text>
+                  <Text style={styles.statusChipText}>{getLocalizedStatus(vehicle.status, language)}</Text>
                 </View>
                 <View style={styles.plateChip}>
-                  <Text style={styles.plateText}>{vehicle.plate_number}</Text>
+                  <Text style={[styles.plateText, { writingDirection: 'ltr' }]}>{vehicle.plate_number}</Text>
                 </View>
               </View>
             )}
@@ -66,9 +66,9 @@ const AssignedVehicleScreen = () => {
         ) : !vehicle ? (
           <View style={styles.emptyCard}>
             <Truck size={48} color={Colors.gray400} strokeWidth={1.6} />
-            <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : t('msg_no_vehicle_assigned', 'No vehicle assigned')}</Text>
+            <Text style={styles.emptyTitle}>{error ? t('err_could_not_load_vehicle', 'Could not load vehicle') : t('msg_no_vehicle_assigned', 'No vehicle assigned')}</Text>
             <Text style={styles.emptyText}>
-              {error ?? "You'll see your truck here once you're assigned to a trip."}
+              {error ?? t('msg_no_vehicle_assigned_desc', "You'll see your truck here once you're assigned to a trip.")}
             </Text>
           </View>
         ) : (
@@ -94,7 +94,7 @@ const AssignedVehicleScreen = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.maintenanceTitle}>
-                        {isActive ? 'Vehicle In Maintenance' : 'Scheduled Maintenance'}
+                        {isActive ? t('title_maintenance_active', 'Vehicle In Maintenance') : t('title_maintenance_scheduled', 'Scheduled Maintenance')}
                       </Text>
                       <Text style={styles.maintenanceDates}>{dateRange}</Text>
                       {maint.workshop_name ? (
@@ -104,7 +104,7 @@ const AssignedVehicleScreen = () => {
                   </View>
                   {!isActive && (
                     <Text style={styles.maintenanceNote}>
-                      This vehicle cannot be assigned on maintenance days.
+                      {t('msg_maintenance_block', 'This vehicle cannot be assigned on maintenance days.')}
                     </Text>
                   )}
                 </View>

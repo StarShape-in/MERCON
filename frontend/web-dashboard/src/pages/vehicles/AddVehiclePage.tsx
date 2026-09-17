@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Combobox } from '@/components/ui/combobox';
 import { useFormKeyboardShortcuts } from '@/hooks/useFormKeyboardShortcuts';
 import { KbdBadge } from '@/components/ui/KbdBadge';
+import VehicleImageUploader from '@/components/ui/VehicleImageUploader';
 
 const EMPTY_FORM = {
   plate_number: '',
@@ -42,9 +43,9 @@ const EMPTY_FORM = {
   trailer_number: '',
   trailer_type: 'Flatbed' as AssetType,
   trailer_capacity_kg: '',
-  gps_device_id: '',
   icces_device_id: '',
   assigned_driver_id: '',
+  image_url: null as string | null,
 };
 
 export interface VehicleDocumentFile {
@@ -135,18 +136,12 @@ export default function AddVehiclePage() {
   };
 
   const cleanSaudiPlate = (plate: string) => {
-    let clean = plate.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
-    if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
-      const digits = clean.match(/^\d{1,4}/)?.[0] || '';
-      const letters = clean.slice(digits.length);
-      clean = `${digits} ${letters}`;
-    }
-    return clean;
+    return plate.trim().toUpperCase();
   };
 
   const validateSaudiPlate = (plate: string) => {
     const clean = cleanSaudiPlate(plate);
-    return /^\d{1,4}\s[A-Z]{3}$/.test(clean);
+    return clean.length >= 2 && /^[A-Z0-9\s_-]{2,20}$/i.test(clean);
   };
 
   const tractorCap = Number(formData.capacity_kg) || 0;
@@ -163,20 +158,20 @@ export default function AddVehiclePage() {
     setError(null);
 
     if (!formData.plate_number.trim()) return setError('Plate number is required');
-    if (!isPlateValid) return setError('Invalid Saudi vehicle plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
+    if (!isPlateValid) return setError('Invalid vehicle plate number (e.g. DRA-6484 or 1234 ABC).');
     if (!formData.capacity_kg || tractorCap <= 0) return setError('Valid tractor capacity (kg) is required');
     if (hasTrailer && !formData.trailer_number.trim()) return setError('Trailer plate number is required when a trailer is attached');
-    if (hasTrailer && !isTrailerValid) return setError('Invalid Saudi trailer plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
+    if (hasTrailer && !isTrailerValid) return setError('Invalid trailer plate number.');
 
     const payload: CreateVehiclePayload = {
       plate_number: cleanSaudiPlate(formData.plate_number),
       asset_type: formData.asset_type,
       capacity_kg: tractorCap,
+      icces_device_id: formData.icces_device_id || undefined,
+      image_url: formData.image_url || undefined,
       trailer_number: hasTrailer && formData.trailer_number ? cleanSaudiPlate(formData.trailer_number) : undefined,
       trailer_type: hasTrailer ? formData.trailer_type : undefined,
       trailer_capacity_kg: hasTrailer && formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : undefined,
-      gps_device_id: formData.gps_device_id || undefined,
-      icces_device_id: formData.icces_device_id || undefined,
     };
 
     createMutation.mutate(payload);
@@ -269,6 +264,12 @@ export default function AddVehiclePage() {
                     <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
 
+                  <VehicleImageUploader
+                    value={formData.image_url}
+                    onChange={(url) => handleChange('image_url', url || '')}
+                    plateNumber={formData.plate_number}
+                  />
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1">
                       <Label htmlFor="plate_number" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
@@ -284,7 +285,7 @@ export default function AddVehiclePage() {
                       />
                       {formData.plate_number.trim() !== '' && !isPlateValid && (
                         <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
-                          Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).
+                          Please enter a valid plate number (e.g. DRA-6484 or 1234 ABC).
                         </p>
                       )}
                     </div>

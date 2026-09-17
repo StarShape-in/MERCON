@@ -224,9 +224,14 @@ Prefer page background, subtle border, section divider, and whitespace before ad
 
 ---
 
-## 10. Typography
+## 10. Typography & Copywriting
 Use a clear hierarchy: Page title -> Section title -> Primary value -> Body -> Supporting metadata.
 Do not use uppercase text everywhere. Uppercase is appropriate for small metadata labels, not major content.
+
+### 10.1 Concise Titles & Zero Subtitle Clutter
+- **No verbose titles or numbered prefixes**: Avoid artificial numbered step prefixes (e.g. `01 · `, `02 · `, `03 · `) or long phrase titles. Keep section titles concise, direct, and minimal (e.g. `Customer`, `Contract Terms`, `Commercial Routes`, `Origin`, `Destination`, `Surcharges`).
+- **No unnecessary paragraph descriptions**: Do not add explanatory subtitle paragraphs under section headers or form cards (e.g. *"Optional extra fees (e.g. Same-Day Delivery, Labor Charges...)"*). Users understand standard logistics terminology without paragraph explanations cluttering the view.
+- **Clean summary cards**: Display clear values (`1 Route`, `10 TON`, `Single Trip`) without redundant supporting metadata descriptions underneath every metric pill.
 
 ---
 
@@ -364,8 +369,14 @@ Do not sacrifice application performance for visual effects. Prefer efficient li
 
 ---
 
-## 32. Data Integrity
+## 32. Data Integrity & Database Migrations
 Protect quotation rates, history, route stops, canonical locations, driver charge `NULL` semantics. Enforce rules on the backend.
+
+### 32.1 Database Schema Migrations & CI/CD
+Whenever modifying `backend/api-server/prisma/schema.prisma` or making database DDL structure changes:
+- **Always create an official Prisma migration folder** inside `backend/api-server/prisma/migrations/<timestamp>_<migration_name>/migration.sql`.
+- **Never rely solely on inline node scripts or local DB alters** for schema changes.
+- **Commit and push the migration folder to Git**, because the CI/CD pipeline (`ci-cd-dev.yml` / `ci-cd.yml`) executes `npx prisma migrate deploy` on server container startup. Without a migration SQL folder in Git, the remote deployment database will NOT be updated automatically.
 
 ---
 
@@ -403,3 +414,57 @@ workflow > template
 business correctness > visual polish
 ```
 MERCON should feel like a serious, efficient logistics operating system — clean, dense, predictable, and easy to operate.
+
+---
+
+## 38. 502 Bad Gateway Troubleshooting & Prevention Rules
+
+A **502 Bad Gateway** on `dev.mercon.tech` occurs when Nginx cannot proxy requests to the backend API container running on host port `3051`. Below are the 5 specific root causes, their official names, how they were resolved, and strict prevention rules.
+
+### 38.1 Root Causes & Resolution Reference
+
+#### 1. TypeScript Strict Compilation Failure (`Docker Container Build Crash`)
+- **Name**: `Docker Container Build Failure (TypeScript Strict Mode)`
+- **Cause**: Pushing code with TypeScript type errors (e.g. invalid type assignments in `mobileTripController.ts` or missing properties in `whatsappService.ts`) causes `RUN npm run build -w @mercon/api-server` to crash during Docker image build.
+- **Symptom**: Docker fails to spawn container `mercon-dev-api`. Nginx gets connection refused on port `3051` -> **502 Bad Gateway**.
+- **Fix**: Run `npx tsc --noEmit` locally in `backend/api-server` before pushing.
+- **Prevention**: **Never push to `origin/dev` without verifying `npx tsc --noEmit` passes cleanly.**
+
+#### 2. PostgreSQL Auto-Increment Sequence Desynchronization (`Sequence Desync`)
+- **Name**: `PostgreSQL Auto-Increment Sequence Desynchronization`
+- **Cause**: Adding `@default(autoincrement())` sequence columns (e.g. `quotation_number`) and backfilling existing records (`1..N`) without advancing the sequence pointer via `SELECT setval(...)`.
+- **Symptom**: New `INSERT` queries try to use `nextval = 1`, resulting in duplicate key errors or container crash on startup -> **502 Bad Gateway**.
+- **Fix**: Always append sequence synchronization to the migration file:
+  `SELECT setval('"Quotation_quotation_number_seq"', COALESCE((SELECT MAX("quotation_number") FROM "Quotation"), 1));`
+- **Prevention**: **Always call `setval()` after any SQL backfill on auto-increment columns.**
+
+#### 3. Container Network Interface Isolation (`Loopback Binding`)
+- **Name**: `Container Network Interface Isolation (127.0.0.1 Binding)`
+- **Cause**: `httpServer.listen(port)` bound to `127.0.0.1` inside Docker container instead of `0.0.0.0`.
+- **Symptom**: Container starts, but host Nginx proxy cannot connect to container port `3051` -> **502 Bad Gateway**.
+- **Fix**: Bind Express server to `0.0.0.0`: `httpServer.listen(port, '0.0.0.0', ...)` in `src/index.ts`.
+- **Prevention**: **All Dockerized Node servers MUST listen on `'0.0.0.0'`.**
+
+#### 4. Ignored Prisma Migration SQL Files (`Dockerignore Exclusion`)
+- **Name**: `Missing Prisma Migration SQL Artifacts (.dockerignore Exclusion)`
+- **Cause**: `.dockerignore` ignoring `*.sql` files or migration folders, preventing container startup `npx prisma migrate deploy` from finding schema migrations.
+- **Symptom**: Container crashes on startup when attempting to query missing columns -> **502 Bad Gateway**.
+- **Fix**: Ensure `.dockerignore` contains `!**/prisma/migrations/**/*.sql` and strip UTF-8 BOM encoding from SQL files.
+- **Prevention**: **Always verify migration folder is committed and un-ignored in `.dockerignore`.**
+
+#### 5. Unused Variables breaking Build (`TS6133 Unused Parameter`)
+- **Name**: `Strict TypeScript Build Failure (TS6133 Unused Parameter)`
+- **Cause**: Unused function parameters (e.g. `url` in `getProxyTarget`) breaking `tsc -b` during workspace build.
+- **Symptom**: Frontend build step fails in CI pipeline -> **502 Bad Gateway**.
+- **Fix**: Remove unused parameters/imports and run `npx tsc -b` locally.
+- **Prevention**: **Run `npx tsc -b` in `frontend/web-dashboard` before committing.**
+
+---
+
+### 38.2 Mandatory Pre-Push Verification Checklist
+Before pushing any commit to `origin/dev`:
+1. `cd backend/api-server && npx tsc --noEmit` (Must pass with 0 errors)
+2. `cd frontend/web-dashboard && npx tsc -b` (Must pass with 0 errors)
+3. Check `git status` for new Prisma migration SQL files and verify they are committed.
+4. If modifying auto-increment sequence columns, ensure `SELECT setval(...)` is included.
+

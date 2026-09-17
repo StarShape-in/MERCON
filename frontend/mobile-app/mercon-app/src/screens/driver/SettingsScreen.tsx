@@ -147,7 +147,9 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
           <View>
             <Text style={styles.versionAppName}>MERCON Driver</Text>
-            <Text style={styles.versionNum}>Version 2.1.0 (Build 210)</Text>
+            <Text style={styles.versionNum}>
+              {t('label_version', 'Version')} <Text style={{ writingDirection: 'ltr' }}>2.1.0 (Build 210)</Text>
+            </Text>
           </View>
           <View style={styles.versionBadge}>
             <Text style={styles.versionBadgeText}>{t('status_up_to_date', 'Up to date')}</Text>
@@ -229,7 +231,14 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          activeOpacity={0.8}
+          onPress={async () => {
+            await signOut();
+            router.replace('/login');
+          }}
+        >
           <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
           <Text style={styles.logoutText}>{t('action_logout', 'Logout')}</Text>
         </TouchableOpacity>

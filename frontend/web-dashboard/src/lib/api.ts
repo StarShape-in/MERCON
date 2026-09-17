@@ -18,33 +18,103 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* ─── Response interceptor — handle 401 and 403 ────────────────────────────── */
-// 401 = token expired / revoked: clear the session and redirect to login.
-// 403 = authenticated but not authorised: do NOT clear the session — let the
-//       calling page surface an inline "you don't have permission" message.
-// MODULE_DISABLED is a narrower case of 403: normal navigation is already
-// blocked client-side by RequireModule, so this only fires for a tab left
-// open on a gated page when a superadmin disables that module mid-session —
-// send it home rather than leaving a broken page up.
+/**
+ * Extract human-readable, diagnostic error message from API errors (502 Bad Gateway, 500 Server, Prisma/DB, Network).
+ */
+export function extractApiErrorMessage(error: any): string {
+  if (!error) return 'An unexpected error occurred.';
+
+  // If it's an Axios error or has a response
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const responseData = error.response?.data;
+
+    // 1. 502 Bad Gateway / Server Down / Proxy Failure
+    if (status === 502) {
+      const serverMsg = typeof responseData === 'string' ? responseData.slice(0, 150) : responseData?.message || responseData?.error?.message;
+      return `502 Bad Gateway: API server is restarting or unreachable ${serverMsg ? `(${serverMsg})` : ''}`.trim();
+    }
+
+    // 2. 504 Gateway Timeout
+    if (status === 504) {
+      return '504 Gateway Timeout: API server took too long to respond.';
+    }
+
+    // 3. Structured JSON Error Extraction (500 / 400 / 422)
+    if (responseData) {
+      if (typeof responseData === 'object') {
+        const msg =
+          responseData.error?.message ||
+          responseData.message ||
+          responseData.error ||
+          responseData.details ||
+          (responseData.error?.code ? `Error Code: ${responseData.error.code}` : null);
+
+        if (msg && typeof msg === 'string') {
+          // Check for Prisma / Database Column & Schema Mismatches
+          if (
+            msg.includes('Prisma') ||
+            msg.includes('P2002') ||
+            msg.includes('P2025') ||
+            msg.toLowerCase().includes('column') ||
+            msg.toLowerCase().includes('table') ||
+            msg.toLowerCase().includes('does not exist') ||
+            msg.toLowerCase().includes('migration')
+          ) {
+            return `Database / Schema Error: ${msg}`;
+          }
+          return msg;
+        }
+      } else if (typeof responseData === 'string' && responseData.trim()) {
+        const cleanedStr = responseData.replace(/<[^>]*>/g, '').slice(0, 200).trim();
+        if (cleanedStr.toLowerCase().includes('prisma') || cleanedStr.toLowerCase().includes('column')) {
+          return `Database Error: ${cleanedStr}`;
+        }
+        return cleanedStr || `Server returned HTTP ${status}`;
+      }
+    }
+
+    // 4. Network Connection Refused / Offline
+    if (error.code === 'ERR_NETWORK') {
+      return 'Network Error: Cannot connect to API server (ERR_NETWORK). Check server status on port 3001.';
+    }
+
+    if (error.message) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+
+  return 'An unexpected server error occurred.';
+}
+
+/* ─── Response interceptor — handle 401 & enrich error messages ─────────────── */
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
+    const userMessage = extractApiErrorMessage(error);
+    (error as any).userMessage = userMessage;
+
     const errCode = error.response?.data?.error?.code;
-    if (
+    const errMsg = (error.response?.data?.error?.message || '').toLowerCase();
+    const isTokenErr =
       error.response?.status === 401 ||
       errCode === 'INVALID_TOKEN' ||
       errCode === 'UNAUTHORIZED' ||
-      errCode === 'TOKEN_EXPIRED'
-    ) {
+      errCode === 'TOKEN_EXPIRED' ||
+      errMsg.includes('expired token') ||
+      errMsg.includes('invalid token') ||
+      errMsg.includes('token missing');
+
+    if (isTokenErr) {
       authStore.clearSession();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
-    } else if (errCode === 'MODULE_DISABLED') {
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
     }
+
     return Promise.reject(error);
   }
 );

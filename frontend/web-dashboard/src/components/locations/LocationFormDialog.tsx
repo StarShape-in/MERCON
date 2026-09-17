@@ -485,12 +485,12 @@ export default function LocationFormDialog({
               <span>Coordinate Precision</span>
               {precision === 'EXACT' && (
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                  ✓ Exact location
+                  Exact location
                 </Badge>
               )}
               {precision === 'APPROXIMATE' && (
                 <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
-                  ≈ Area location
+                  Area location
                 </Badge>
               )}
               {precision === 'UNKNOWN' && (

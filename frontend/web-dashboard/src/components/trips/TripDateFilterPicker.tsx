@@ -13,10 +13,8 @@ import { DateRange } from 'react-day-picker';
 import {
   Calendar as CalendarIcon,
   ChevronDown,
-  ChevronLeft,
   Check,
   CalendarDays,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -60,7 +58,7 @@ export function TripDateFilterPicker({
       },
       {
         id: '3Days',
-        label: '3 Days (Prev, Today, Next)',
+        label: '3 Days',
         getRange: () => ({ from: subDays(today, 1), to: addDays(today, 1) }),
       },
       {
@@ -88,11 +86,6 @@ export function TripDateFilterPicker({
         id: 'ThisMonth',
         label: 'This Month',
         getRange: () => ({ from: startOfMonth(today), to: endOfMonth(today) }),
-      },
-      {
-        id: 'Last30Days',
-        label: 'Last 30 Days',
-        getRange: () => ({ from: subDays(today, 29), to: today }),
       },
     ];
   }, []);
@@ -134,7 +127,7 @@ export function TripDateFilterPicker({
 
   const getButtonLabel = () => {
     if (dateFilter === 'All') return 'All Dates';
-    if (dateFilter === '3Days') return '3 Days (Prev, Today, Next)';
+    if (dateFilter === '3Days') return '3 Days';
     if (dateFilter === 'Today') return 'Today';
     if (dateFilter === 'Yesterday') return 'Yesterday';
     if (dateFilter === 'ThisWeek') return 'This Week';
@@ -170,8 +163,8 @@ export function TripDateFilterPicker({
         align="start"
         sideOffset={6}
         className={cn(
-          "p-1.5 shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50 transition-all",
-          isCustomMode ? "w-72" : "w-56"
+          "shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl z-50 transition-all",
+          isCustomMode ? "w-[330px] p-3" : "w-56 p-1.5"
         )}
       >
         {!isCustomMode ? (
@@ -231,17 +224,10 @@ export function TripDateFilterPicker({
         ) : (
           /* Custom Calendar Mode inside little box */
           <div className="p-1 space-y-2">
-            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsCustomMode(false)}
-                className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 rounded px-1.5 py-0.5 hover:bg-slate-100 cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Back
-              </button>
+            <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800 px-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Custom Range</span>
 
-              <span className="text-[11px] font-mono text-slate-500 truncate max-w-[150px]">
+              <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[150px]">
                 {tempRange?.from ? (
                   tempRange.to ? (
                     `${format(tempRange.from, 'MMM d')} – ${format(tempRange.to, 'MMM d')}`
@@ -254,12 +240,13 @@ export function TripDateFilterPicker({
               </span>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center relative pt-1">
               <Calendar
                 mode="range"
                 selected={tempRange}
                 onSelect={setTempRange}
                 numberOfMonths={1}
+                captionLayout="dropdown"
                 className="p-0 select-none"
               />
             </div>

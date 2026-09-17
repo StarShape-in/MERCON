@@ -11,7 +11,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { safeSecureStore as SecureStore } from './secure-store';
-import { api, TOKEN_KEY, SESSION_KEY } from './api';
+import { api, TOKEN_KEY, SESSION_KEY, PUSH_TOKEN_KEY, setAuthToken, ensureAuthToken } from './api';
+import { queryClient } from './query-client';
+import {
+  registerForPushNotificationsAsync,
+  registerPushDeviceWithBackend,
+  unregisterPushDeviceWithBackend,
+} from './notifications';
 
 export type Role = 'Driver' | 'Operator' | 'Admin';
 
@@ -37,9 +43,8 @@ interface AuthContextValue {
   isLoggedIn: boolean;
   isLoading: boolean; // true while restoring the session on app start
   /**
-   * Single entry point for both user types. Tries the endpoint the credentials
-   * most likely belong to first (phone-shaped identifier → driver), then falls
-   * back to the other. Routing to the right app happens off `role` afterwards.
+   * Single entry point for both user types. Phone-shaped identifier calls driver
+   * endpoint directly; otherwise calls operator endpoint.
    */
   signIn: (identifier: string, secret: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -51,16 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const syncPushToken = async () => {
+    try {
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, pushToken);
+        await registerPushDeviceWithBackend(pushToken);
+      }
+    } catch (err) {
+      console.warn('[Auth] Non-fatal push token registration failure:', err);
+    }
+  };
+
   // Restore session on app start
   useEffect(() => {
     (async () => {
       try {
         const [token, rawSession] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
+          ensureAuthToken(),
           SecureStore.getItemAsync(SESSION_KEY),
         ]);
         if (token && rawSession) {
-          setSession(JSON.parse(rawSession));
+          setAuthToken(token);
+          const parsed = JSON.parse(rawSession);
+          setSession(parsed);
+          if (parsed.role === 'Driver') {
+            syncPushToken().catch(() => {});
+          }
         }
       } finally {
         setIsLoading(false);
@@ -69,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persist = async (token: string, next: Session) => {
+    setAuthToken(token);
     await Promise.all([
       SecureStore.setItemAsync(TOKEN_KEY, token),
       SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(next)),
@@ -76,10 +99,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(next);
   };
 
-  const signInDriver = async (phone_primary: string, license_number: string) => {
-    const { data } = await api.post('/mobile/auth/login', { phone_primary, license_number });
+  const signInDriver = async (phone_primary: string, secret: string) => {
+    const trimmedSecret = secret.trim();
+    const { data } = await api.post('/mobile/auth/login', {
+      phone_primary,
+      password: trimmedSecret,
+      license_number: trimmedSecret,
+    });
     const { token, driver } = data.data;
     await persist(token, { role: 'Driver', profile: driver });
+    // Register push device token in background (non-blocking for login)
+    syncPushToken().catch(() => {});
   };
 
   const signInOperator = async (username: string, password: string) => {
@@ -91,38 +121,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // A wrong-credentials response (bad login) — safe to try the other endpoint.
-  // Network/timeout/server errors are NOT this, so we surface them immediately.
-  const isBadCredentials = (err: unknown) =>
-    axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 400);
-
   const signIn = async (identifier: string, secret: string) => {
     const id = identifier.trim();
     // Driver identifiers are phone numbers (digits / +); operators use a username.
     const looksLikePhone = /^\+?[\d\s()-]+$/.test(id);
-    const attempts = looksLikePhone
-      ? [() => signInDriver(id, secret.trim()), () => signInOperator(id, secret)]
-      : [() => signInOperator(id, secret), () => signInDriver(id, secret.trim())];
-
-    let lastErr: unknown;
-    for (const attempt of attempts) {
-      try {
-        await attempt();
-        return;
-      } catch (err) {
-        lastErr = err;
-        // Only fall through to the other endpoint on a credentials mismatch.
-        if (!isBadCredentials(err)) throw err;
-      }
+    if (looksLikePhone) {
+      // Direct driver login without falling through to operator on credential failure
+      await signInDriver(id, secret.trim());
+      return;
     }
-    throw lastErr;
+    // Operator login
+    await signInOperator(id, secret);
   };
 
   const signOut = async () => {
+    // 1. Attempt to unregister push token with backend before wiping credentials
+    try {
+      const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+      if (pushToken) {
+        await unregisterPushDeviceWithBackend(pushToken).catch(() => {});
+      }
+    } catch {
+      // Non-fatal unregistration
+    }
+
+    // 2. Purge query cache so previous driver data cannot linger in memory
+    queryClient.clear();
+    // 3. Clear in-memory token
+    setAuthToken(null);
+    // 4. Clear SecureStore items
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(SESSION_KEY),
+      SecureStore.deleteItemAsync(PUSH_TOKEN_KEY),
     ]);
+    // 5. Reset auth session state
     setSession(null);
   };
 

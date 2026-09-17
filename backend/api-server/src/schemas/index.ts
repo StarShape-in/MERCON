@@ -91,34 +91,22 @@ export const sourceVehicleLabelField = z.preprocess(
 
 const saudiPlateSchema = z.preprocess((val) => {
   if (typeof val !== 'string') return val;
-  let clean = val.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
-  if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
-    const digits = clean.match(/^\d{1,4}/)?.[0] || '';
-    const letters = clean.slice(digits.length);
-    clean = `${digits} ${letters}`;
-  }
-  return clean;
+  return val.trim().toUpperCase();
 }, z.string().refine((val) => {
-  return /^\d{1,4}\s[A-Z]{3}$/.test(val);
+  return val.length >= 2 && /^[A-Z0-9\s_-]{2,20}$/i.test(val);
 }, {
-  message: 'Invalid Saudi vehicle plate. Must be 1-4 digits followed by 3 letters (e.g., 1234 ABC)',
+  message: 'Invalid Saudi vehicle plate (e.g., DRA-6484 or 1234 ABC)',
 }));
 
 const saudiTrailerPlateSchema = z.preprocess((val) => {
   if (val === null || val === undefined || val === '') return undefined;
   if (typeof val !== 'string') return val;
-  let clean = val.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
-  if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
-    const digits = clean.match(/^\d{1,4}/)?.[0] || '';
-    const letters = clean.slice(digits.length);
-    clean = `${digits} ${letters}`;
-  }
-  return clean;
+  return val.trim().toUpperCase();
 }, z.string().refine((val) => {
-  return /^\d{1,4}\s[A-Z]{3}$/.test(val);
+  return val.length >= 2 && /^[A-Z0-9\s_-]{2,20}$/i.test(val);
 }, {
-  message: 'Invalid Saudi trailer plate. Must be 1-4 digits followed by 3 letters (e.g., 1234 ABC)',
-}).optional());
+  message: 'Invalid Saudi trailer plate (e.g., DRA-6484 or 1234 ABC)',
+}).optional().nullable());
 
 const saudiPhoneSchema = z.preprocess(
   (val) => (val === null || val === undefined ? val : String(val)),
@@ -165,7 +153,9 @@ export const createTripBody = z.object({
   driver_id: z.string().uuid('Invalid driver').optional(),
   vehicle_id: z.string().uuid('Invalid vehicle').optional(),
   planned_start: z.coerce.date().optional(),
+  planned_end: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
+  driver_charge: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
   status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
   dispatch_now: z.boolean().optional(),
@@ -184,6 +174,7 @@ export const createTripBody = z.object({
   rate_category: z.string().trim().max(60).nullable().optional(),
   // Whether this trip is a one-off "Extra" job or part of a standing
   // "Monthly" commitment — see BILLING_TYPES in @mercon/shared-types.
+  operation_type: z.string().trim().max(60).nullable().optional(),
   billing_type: z.string().trim().max(60).nullable().optional(),
   // Third-Party Logistics & Rental fields
   is_third_party: z.boolean().optional(),
@@ -221,6 +212,37 @@ export const createTripBody = z.object({
 }, {
   message: 'Trip planned start date must be today or in the future',
   path: ['planned_start'],
+}).refine((data) => {
+  if (data.planned_start && data.planned_end) {
+    return new Date(data.planned_end).getTime() > new Date(data.planned_start).getTime();
+  }
+  return true;
+}, {
+  message: 'Drop-off date and time must be strictly later than start date and time',
+  path: ['planned_end'],
+}).refine((data) => {
+  if (data.stops && Array.isArray(data.stops)) {
+    const startTime = data.planned_start ? new Date(data.planned_start).getTime() : null;
+    const endTime = data.planned_end ? new Date(data.planned_end).getTime() : null;
+    let prevTime: number | null = startTime;
+
+    for (let i = 0; i < data.stops.length; i++) {
+      const stop = data.stops[i];
+      if (stop.planned_arrival) {
+        const arrDate = new Date(stop.planned_arrival);
+        if (isNaN(arrDate.getTime())) return false;
+        const arrTime = arrDate.getTime();
+        if (startTime !== null && arrTime < startTime) return false;
+        if (endTime !== null && arrTime > endTime) return false;
+        if (prevTime !== null && arrTime < prevTime) return false;
+        prevTime = arrTime;
+      }
+    }
+  }
+  return true;
+}, {
+  message: 'Stop planned arrivals must follow chronological sequence between trip start and drop-off',
+  path: ['stops'],
 });
 
 /** Correcting a stop after the trip exists — every field optional, since the
@@ -245,12 +267,15 @@ export const updateTripStopBody = z.object({
 export const bulkImportLocationsBody = z.object({
   rows: z.array(z.object({
     name: nonEmpty('Location name'),
+    code: safeImportString(z.string().trim().max(100).optional()),
+    city: safeImportString(z.string().trim().max(100).optional()),
     address: safeImportString(z.string().trim().max(300).optional()),
+    postal_code: safeImportString(z.string().trim().max(50).optional()),
     lat: coercedNumber(z.number().min(-90).max(90).optional()),
     lng: coercedNumber(z.number().min(-180).max(180).optional()),
+    coordinate_precision: safeImportString(z.string().trim().max(50).optional()),
     codes: safeImportString(z.string().trim().max(500).optional()),
     customer_name: safeImportString(z.string().trim().max(200).optional()),
-    company_name: safeImportString(z.string().trim().max(200).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
@@ -305,30 +330,68 @@ export const bulkImportVehiclesBody = z.object({
  *  later through the normal trip edit UI. */
 export const bulkImportTripsBody = z.object({
   rows: z.array(z.object({
-    customer_id: z.string().trim().optional(),
-    customer_name: z.string().trim().optional(),
-    driver_id: z.string().trim().optional(),
-    driver_name: z.string().trim().optional(),
-    vehicle_id: z.string().trim().optional(),
-    vehicle_plate: z.string().trim().optional(),
-    planned_start: z.string().trim().optional(),
-    planned_end: z.string().trim().optional(),
-    rate_category: z.string().trim().optional(),
-    vehicle_type: z.string().trim().optional(),
-    billing_type: z.string().trim().optional(),
-    billing_amount: z.coerce.number().optional(),
+    customer_id: z.string().trim().nullable().optional(),
+    customer_name: z.string().trim().nullable().optional(),
+    driver_id: z.string().trim().nullable().optional(),
+    driver_name: z.string().trim().nullable().optional(),
+    vehicle_id: z.string().trim().nullable().optional(),
+    vehicle_plate: z.string().trim().nullable().optional(),
+    planned_start: z.string().trim().nullable().optional(),
+    planned_end: z.string().trim().nullable().optional(),
+    rate_category: z.string().trim().nullable().optional(),
+    vehicle_type: z.string().trim().nullable().optional(),
+    operation_type: z.string().trim().nullable().optional(),
+    billing_type: z.string().trim().nullable().optional(),
+    billing_amount: z.coerce.number().nullable().optional(),
     // What MERCON paid its own driver for this specific trip -- unlike
     // quotations' driver_payout (a default allocated for the lane),
     // this is the real, per-trip figure straight from historical records.
-    trip_charges: z.coerce.number().optional(),
-    origin: z.string().trim().optional(),
-    destination: z.string().trim().optional(),
+    trip_charges: z.coerce.number().nullable().optional(),
+    origin: z.string().trim().nullable().optional(),
+    destination: z.string().trim().nullable().optional(),
     // 'Completed' is for backfilling historical trips that already happened
     // (e.g. a month's worth of trip logs) so they don't sit on the live ops
     // board looking like an active dispatch.
     status: z.enum(['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Completed', 'Invoiced', 'Cancelled', 'Draft']).optional(),
+    is_third_party: z.boolean().optional(),
+    third_party_provider_id: z.preprocess((val) => (val === '' ? null : val), z.string().uuid().nullable().optional()),
+    third_party_driver_name: z.string().trim().nullable().optional(),
+    third_party_driver_phone: z.string().trim().nullable().optional(),
+    third_party_vehicle_plate: z.string().trim().nullable().optional(),
+    third_party_vehicle_type: z.string().trim().nullable().optional(),
+    third_party_cost: z.coerce.number().nullable().optional(),
+    rate_card_id: z.string().trim().nullable().optional(),
+    quotation_id: z.string().trim().nullable().optional(),
+    driver_charge: z.coerce.number().nullable().optional(),
+    driver_payout: z.coerce.number().nullable().optional(),
+    co_driver_id: z.string().trim().nullable().optional(),
+    co_driver_payout: z.coerce.number().nullable().optional(),
+    update_quotation_driver_payout: z.boolean().optional(),
+    stops: z.array(z.object({
+      stop_sequence: z.number().int().optional(),
+      leg_index: z.number().int().optional(),
+      stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']).optional(),
+      location_name: z.string().trim().nullable().optional(),
+      location_address: z.string().trim().nullable().optional(),
+      location_id: z.preprocess((val) => (val === '' ? null : val), z.string().uuid().nullable().optional()),
+      lat: z.coerce.number().nullable().optional(),
+      lng: z.coerce.number().nullable().optional(),
+      planned_arrival: z.string().nullable().optional(),
+    })).optional(),
   }).refine((data) => Boolean(data.customer_id || data.customer_name), {
     message: 'Either customer_id or customer_name is required',
+  }).refine((data) => {
+    if (data.planned_start && data.planned_end) {
+      const s = new Date(data.planned_start).getTime();
+      const e = new Date(data.planned_end).getTime();
+      if (!isNaN(s) && !isNaN(e)) {
+        return e >= s;
+      }
+    }
+    return true;
+  }, {
+    message: 'Drop-off date and time must be later than or equal to start date and time',
+    path: ['planned_end'],
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
 });
 
@@ -383,38 +446,32 @@ export const updateDriverBody = z.object({
 export const createCustomerBody = z.object({
   name: nonEmpty('Customer name'),
   contact_phone: nonEmpty('Contact phone'),
-  company_name: z.string().trim().optional(),
-  avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
   primary_contact_phone: z.string().trim().optional(),
   secondary_contact_person: z.string().trim().optional(),
   secondary_contact_phone: z.string().trim().optional(),
   payment_terms: z.string().trim().optional(),
-  tax_number: z.string().trim().optional(),
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
-  credit_limit: z.coerce.number().nonnegative().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 
 export const updateCustomerBody = z.object({
   name: nonEmpty('Customer name').optional(),
   contact_phone: nonEmpty('Contact phone').optional(),
-  company_name: z.string().trim().optional(),
-  avatar_url: z.string().nullable().optional(),
   logo_url: z.string().nullable().optional(),
   primary_contact_person: z.string().trim().optional(),
   primary_contact_phone: z.string().trim().optional(),
   secondary_contact_person: z.string().trim().optional(),
   secondary_contact_phone: z.string().trim().optional(),
   payment_terms: z.string().trim().optional(),
-  tax_number: z.string().trim().optional(),
   whatsapp_number: z.string().trim().optional(),
   whatsapp_group_link: z.string().trim().optional(),
   whatsapp_group_name: z.string().trim().optional(),
-  credit_limit: z.coerce.number().nonnegative().optional(),
+  driver_workflow: z.enum(['NATIVE', 'EXTERNAL_APP']).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -424,10 +481,10 @@ export const createVehicleBody = z.object({
   asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']),
   capacity_kg: z.coerce.number().int().positive('Capacity must be a whole number of kg'),
   trailer_number: saudiTrailerPlateSchema,
-  trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
-  trailer_capacity_kg: z.coerce.number().int().positive().optional(),
-  gps_device_id: z.string().trim().optional(),
-  icces_device_id: z.string().trim().optional(),
+  trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional().nullable(),
+  trailer_capacity_kg: z.coerce.number().int().positive().optional().nullable(),
+  icces_device_id: z.string().trim().optional().nullable(),
+  image_url: z.string().nullable().optional(),
 });
 
 export const updateVehicleBody = z.object({
@@ -436,11 +493,11 @@ export const updateVehicleBody = z.object({
   capacity_kg: z.coerce.number().int().positive().optional(),
   current_odometer: z.coerce.number().min(0).optional(),
   trailer_number: saudiTrailerPlateSchema,
-  trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
-  trailer_capacity_kg: z.coerce.number().int().positive().optional(),
-  gps_device_id: z.string().trim().optional(),
-  icces_device_id: z.string().trim().optional(),
+  trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional().nullable(),
+  trailer_capacity_kg: z.coerce.number().int().positive().optional().nullable(),
+  icces_device_id: z.string().trim().optional().nullable(),
   status: z.enum(['Available', 'OnTrip', 'Maintenance', 'Inactive']).optional(),
+  image_url: z.string().nullable().optional(),
 });
 
 /* ─── Users (Admin-only web dashboard accounts) ─────────────────────────────
@@ -448,7 +505,7 @@ export const updateVehicleBody = z.object({
  * through the Drivers module, never through User Management. See
  * CLAUDE.md "Roles" and "Who uses which app".
  */
-const webUserRole = z.enum(['Admin', 'Operator']);
+const webUserRole = z.enum(['SuperAdmin', 'Admin', 'Operator']);
 
 export const createUserBody = z.object({
   name: nonEmpty('Name'),
@@ -477,14 +534,6 @@ export const setDriverPasswordBody = z.object({
   password: z.string().trim().min(4, 'Password must be at least 4 characters'),
 });
 
-/* ─── Invoices ───────────────────────────────────────────────────────────── */
-export const createInvoiceBody = z.object({
-  trip_id: z.string().uuid('A valid trip is required'),
-  customer_id: z.string().uuid('A valid customer is required'),
-  subtotal: z.coerce.number().nonnegative(),
-  total_amount: z.coerce.number().nonnegative(),
-  due_date: z.coerce.date(),
-});
 
 /* ─── Smart Report Builder ────────────────────────────────────────────────── */
 export const reportQuerySpecBody = z.object({

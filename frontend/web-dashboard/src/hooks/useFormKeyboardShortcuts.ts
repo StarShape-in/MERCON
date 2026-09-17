@@ -72,7 +72,11 @@ export function useFormKeyboardShortcuts({
       }
 
       // 4. Enter Key -> ERP Next-Field Focus Stepping & Double-Enter Step Advancing
-      if (enterToNextField && key === 'enter' && isInput) {
+      // Skip if the input is inside an open dropdown/combobox (Radix popover with data-state="open")
+      // so the dropdown can handle Enter to select its highlighted item.
+      const isInsideOpenPopover = !!target.closest('[data-radix-popper-content-wrapper]');
+
+      if (enterToNextField && key === 'enter' && isInput && !isInsideOpenPopover) {
         // Allow Enter inside multiline textareas or explicit submit buttons
         if (target.tagName === 'TEXTAREA' || (target as HTMLInputElement).type === 'submit') {
           return;

@@ -172,15 +172,35 @@ export default function QuotationSelectionCard({
 
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Billing Rate</span>
-                <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 tracking-tight">
-                  {selectedQuotation.currency || 'SAR'} {Number(selectedQuotation.rate ?? selectedQuotation.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
+                {(() => {
+                  const isMonthly = selectedQuotation.pricing_basis === 'PER_TRIP'
+                    ? false
+                    : selectedQuotation.pricing_basis === 'PER_MONTH'
+                    ? true
+                    : (selectedQuotation.billing_type || '').toLowerCase().includes('monthly');
+                  const rawRate = Number(selectedQuotation.rate ?? selectedQuotation.base_price ?? 0);
+
+                  return (
+                    <>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        {isMonthly ? 'Monthly Contract' : 'Billing Rate / Trip'}
+                      </span>
+                      <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 tracking-tight">
+                        {selectedQuotation.currency || 'SAR'} {rawRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </div>
+                      {isMonthly && rawRate > 0 && (
+                        <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 block">
+                          ≈ SAR {(rawRate / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               {selectedQuotation.driver_payout != null && Number(selectedQuotation.driver_payout) > 0 && (
                 <div className="text-right border-l border-emerald-200 dark:border-emerald-900 pl-4">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Driver Charge</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Driver Charge / Trip</span>
                   <div className="text-lg font-extrabold text-amber-700 dark:text-amber-400 tracking-tight">
                     SAR {Number(selectedQuotation.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
@@ -190,7 +210,7 @@ export default function QuotationSelectionCard({
           </div>
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <TaxonomyBadge category="OPERATION_TYPE" value={selectedQuotation.billing_type} size="sm" />
+            <TaxonomyBadge category="OPERATION_TYPE" value={selectedQuotation.operation_type || selectedQuotation.billing_type} size="sm" />
             <TaxonomyBadge category="LINE_TYPE" value={selectedQuotation.line_type} size="sm" />
             <TaxonomyBadge category="VEHICLE_CLASS" value={selectedQuotation.vehicle_class} size="sm" />
           </div>

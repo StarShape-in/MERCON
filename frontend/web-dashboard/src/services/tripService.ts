@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { ResolvedLocation } from './vehicleService';
 
 export type TripStatus = 'Draft' | 'Scheduled' | 'Loading' | 'Dispatched' | 'AtPickup' | 'InTransit' | 'AtDelivery' | 'Completed' | 'Invoiced' | 'Cancelled' | 'Delayed' | 'Emergency' | (string & {});
 
@@ -26,33 +27,115 @@ export interface TripChargeInput {
   save_as_rule?: boolean;
 }
 
+export type DriverTripRole = 'PRIMARY' | 'CO_DRIVER' | 'RELIEVER';
+export type AssignmentEntityType = 'DRIVER' | 'VEHICLE';
+
+export interface TripDriver {
+  id: string;
+  tripId: string;
+  driverId: string;
+  role: DriverTripRole;
+  driver_charge?: number | null;
+  extra_driver_payment?: number | null;
+  payment_reason?: string | null;
+  payment_status?: string | null;
+  assignedAt: string;
+  removedAt?: string | null;
+  driver?: {
+    id: string;
+    ref_id?: string | null;
+    first_name: string;
+    last_name: string;
+    phone_primary?: string | null;
+    avatar_url?: string | null;
+  };
+}
+
+export interface TripAssignmentEvent {
+  id: string;
+  tripId: string;
+  entityType: AssignmentEntityType;
+  fromId?: string | null;
+  toId?: string | null;
+  reason: string;
+  changedBy?: string | null;
+  changedAt: string;
+}
+
+export interface DriverRecommendation {
+  driverId: string;
+  driverName: string;
+  phone?: string | null;
+  assignmentType: 'PRIMARY' | 'BACKUP' | 'TEMPORARY';
+  priority: number;
+  isAvailable: boolean;
+  unavailabilityReason?: string;
+}
+
+export interface VehicleRecommendation {
+  vehicleId: string;
+  plateNumber: string;
+  assetType: string;
+  capacityKg: number;
+  assignmentType: 'PRIMARY' | 'BACKUP' | 'TEMPORARY';
+  priority: number;
+  isAvailable: boolean;
+  unavailabilityReason?: string;
+}
+
 export interface Trip {
   id: string;
   ref_id: string;
   status: TripStatus;
+  driver_workflow_state?: string | null;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
   actual_end: string | null;
   planned_distance: number | null;
-  extra_driver_payment: number | null;
-  payment_reason: string | null;
-  payment_status: string | null;
   /** Itemised customer-billable extras — waiting/labor, additional stops, etc. */
   charges?: TripCharge[];
+  driver_payout?: number;
+  driver_charge?: number;
   trip_charges?: number;
   billing_amount?: number;
+  financials?: {
+    id?: string;
+    tripId?: string;
+    quotationId?: string | null;
+    applied_rate?: number | null;
+    quotation_line_type?: string | null;
+    quotation_billing_type?: string | null;
+    quotation_pricing_basis?: string | null;
+    quotation_vehicle_class?: string | null;
+    quotation_source_vehicle_label?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  } | null;
   quotationId?: string | null;
   quotation_id?: string | null;
   quotation_line_type?: string | null;
   quotation_billing_type?: string | null;
   quotation_pricing_basis?: string | null;
   applied_rate?: number | null;
+  line_type_id?: string | null;
+  line_type?: { id?: string; name?: string } | null;
   quotation_vehicle_class?: string | null;
   quotation_source_vehicle_label?: string | null;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
   is_third_party?: boolean;
+  subcontract?: {
+    id?: string;
+    tripId?: string;
+    providerId?: string | null;
+    provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+    driverName?: string | null;
+    driverPhone?: string | null;
+    vehiclePlate?: string | null;
+    vehicleType?: string | null;
+    cost?: number | null;
+  } | null;
   thirdPartyProviderId?: string | null;
   third_party_driver_name?: string | null;
   third_party_driver_phone?: string | null;
@@ -71,10 +154,19 @@ export interface Trip {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
+  notes?: string | null;
   customer_id?: string;
-  customer?: { id: string; name: string; company_name?: string | null; avatar_url?: string | null; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
-  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; ai_risk_score?: number; deletedAt?: string | null } | null;
-  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null } | null;
+  customer?: { id: string; name: string; logo_url?: string | null; primary_contact_person?: string | null; contact_phone: string; whatsapp_number?: string; whatsapp_group_link?: string; whatsapp_group_name?: string };
+  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; deletedAt?: string | null } | null;
+  co_driver_id?: string | null;
+  coDriver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; avatar_url?: string | null; deletedAt?: string | null } | null;
+  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null; deletedAt?: string | null; resolved_location?: ResolvedLocation } | null;
+  tripDrivers?: TripDriver[];
+  is_contingency_dispatch?: boolean;
+  original_vehicle_id?: string | null;
+  original_driver_id?: string | null;
+  contingency_reason?: string | null;
+  assignmentEvents?: TripAssignmentEvent[];
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
   vehicle_type?: string | null;
@@ -107,7 +199,14 @@ export function getTripPayloadCapacity(trip: Partial<Trip>): string {
 }
 
 export function getTripRateCategory(trip: Partial<Trip>): string {
-  return trip.rate_category || trip.rateCard?.rate_category || '—';
+  return (
+    trip.rate_category ||
+    trip.quotation_line_type ||
+    trip.financials?.quotation_line_type ||
+    trip.rateCard?.rate_category ||
+    trip.line_type?.name ||
+    '—'
+  );
 }
 
 export function getTripBillingType(trip: Partial<Trip>): string {
@@ -117,6 +216,7 @@ export function getTripBillingType(trip: Partial<Trip>): string {
 export interface TripStop {
   id: string;
   stop_sequence: number;
+  leg_index?: number;
   stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_lat: number;
   location_lng: number;
@@ -144,6 +244,9 @@ export interface CreateTripPayload {
   planned_end?: string;
   billing_amount?: number;
   trip_charges?: number;
+  driver_payout?: number;
+  driver_charge?: number;
+  update_quotation_driver_payout?: boolean;
   status?: TripStatus;
   dispatch_now?: boolean;
   /** Quotation reference */
@@ -167,8 +270,8 @@ export interface CreateTripPayload {
   third_party_cost?: number;
   stops: {
     stop_type: string;
-    lat: number;
-    lng: number;
+    lat?: number | null;
+    lng?: number | null;
     planned_arrival?: string;
     /** The exact yard/dock — what the driver navigates to. */
     location_name?: string;
@@ -176,6 +279,8 @@ export interface CreateTripPayload {
     location_address?: string;
     /** The lane endpoint this stop sits in ("Riyadh") — what the rate is priced against. */
     location_id?: string;
+    coordinate_precision?: 'EXACT' | 'APPROXIMATE' | 'UNKNOWN';
+    update_canonical_location?: boolean;
   }[];
 }
 
@@ -240,7 +345,7 @@ export interface MonthlyBoardTrip {
   actual_end: string | null;
   /** The day came from createdAt because the trip was never scheduled. */
   date_is_inferred: boolean;
-  driver: { id: string; ref_id: string | null; name: string; phone_primary: string | null } | null;
+  driver: { id: string; ref_id: string | null; name: string; phone_primary: string | null; avatar_url?: string | null } | null;
   vehicle: { id: string; ref_id: string | null; plate_number: string; asset_type: string } | null;
   /** Tonnage tier — the trip's own, else the rate card it was booked from. */
   vehicle_type: string | null;
@@ -256,7 +361,7 @@ export interface MonthlyBoardTrip {
 }
 
 export interface MonthlyBoardCompany {
-  customer: { id: string; name: string; contact_phone: string };
+  customer: { id: string; name: string; contact_phone: string; avatar_url?: string | null; logo_url?: string | null };
   total_trips: number;
   total_billed: number;
   /** Trips still missing a driver or a truck — the gaps to fill. */
@@ -341,6 +446,34 @@ export const tripService = {
     return res.data.data;
   },
 
+  async getRecommendedDrivers(params?: {
+    vehicleId?: string;
+    vehicleClass?: string;
+    origin?: string;
+    destination?: string;
+  }): Promise<Array<{
+    driverId: string;
+    driverName: string;
+    phone?: string | null;
+    status: string;
+    isAvailable: boolean;
+    unavailabilityReason?: string;
+    routeTripCount: number;
+    capacityMatch: boolean;
+    score: number;
+    badges: string[];
+    vehiclePlate?: string | null;
+    vehicleClass?: string | null;
+    rest_hours?: number | null;
+  }>> {
+    try {
+      const res = await api.get<ApiResponse<any[]>>('/trips/recommendations/drivers', { params });
+      return res.data.data || [];
+    } catch {
+      return [];
+    }
+  },
+
   async updateStatus(id: string, status: TripStatus): Promise<Trip> {
     const res = await api.patch<ApiResponse<Trip>>(`/trips/${id}/status`, { status });
     return res.data.data;
@@ -383,6 +516,12 @@ export const tripService = {
     return res.data.data;
   },
 
+  /** Bulk assign driver, vehicle, category, and/or status to multiple trips in a single transaction. */
+  async bulkAssign(payload: { trip_ids: string[]; driver_id?: string; vehicle_id?: string; status?: string; rate_category?: string }): Promise<{ count: number; message: string }> {
+    const res = await api.post<ApiResponse<{ count: number; message: string }>>('/trips/bulk-assign', payload);
+    return res.data.data;
+  },
+
   /** Reassign driver and/or vehicle on a trip. */
   async reassign(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/reassign`, payload);
@@ -395,13 +534,14 @@ export const tripService = {
   },
 
   /** Swap the assigned driver mid-trip. */
-  async replaceDriver(id: string, driverId: string): Promise<Trip> {
-    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { driver_id: driverId });
+  async replaceDriver(id: string, driverId: string, reason?: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { new_driver_id: driverId, reason });
     return res.data.data;
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/trips/bulk-delete', { ids });
+  async bulkDelete(ids: string[]): Promise<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }> {
+    const res = await api.post<ApiResponse<{ deletedCount: number; skippedCount: number; skippedTrips?: any[]; message?: string }>>('/trips/bulk-delete', { ids });
+    return res.data.data;
   },
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
@@ -436,6 +576,12 @@ export const tripService = {
     const res = await api.get<ApiResponse<CustomerBillingRow[]>>('/invoices/billing-ledger/by-customer', { params: filters });
     return res.data;
   },
+
+  /** Dispatch delay video or POD photo natively via WhatsApp Cloud API. */
+  async shareMediaWhatsApp(tripId: string, params?: ShareMediaWhatsAppParams): Promise<ApiResponse<ShareMediaWhatsAppResponse>> {
+    const res = await api.post<ApiResponse<ShareMediaWhatsAppResponse>>(`/trips/${tripId}/share-whatsapp`, params || {});
+    return res.data;
+  },
 };
 
 export interface BulkImportTripRow {
@@ -443,6 +589,7 @@ export interface BulkImportTripRow {
   customer_name?: string;
   driver_id?: string;
   driver_name?: string;
+  co_driver_id?: string;
   vehicle_id?: string;
   vehicle_plate?: string;
   date?: string;
@@ -455,6 +602,10 @@ export interface BulkImportTripRow {
   billing_amount?: number;
   /** What MERCON paid its own driver for this specific trip. */
   trip_charges?: number;
+  driver_charge?: number;
+  driver_payout?: number;
+  co_driver_payout?: number;
+  update_quotation_driver_payout?: boolean;
   origin?: string;
   destination?: string;
   status?: TripStatus;
@@ -467,6 +618,18 @@ export interface BulkImportTripRow {
   third_party_vehicle_type?: string;
   third_party_cost?: number;
   pickup_time?: string;
+  pickupTime?: string;
+  time?: string;
+  stops?: Array<{
+    stop_sequence?: number;
+    leg_index?: number;
+    stop_type?: string;
+    location_name?: string;
+    location_address?: string | null;
+    location_id?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  }>;
 }
 
 export interface BulkImportResult {
@@ -566,3 +729,40 @@ export async function downloadTripExport(params: TripExportParams): Promise<{ bl
 
   return { blob: response.data as Blob, filename };
 }
+
+export async function getDriverRecommendations(vehicleId: string, plannedStart?: string): Promise<ApiResponse<DriverRecommendation[]>> {
+  const res = await api.get<ApiResponse<DriverRecommendation[]>>('/trips/recommendations/drivers', { params: { vehicleId, plannedStart } });
+  return res.data;
+}
+
+export async function getVehicleRecommendations(driverId: string): Promise<ApiResponse<VehicleRecommendation[]>> {
+  const res = await api.get<ApiResponse<VehicleRecommendation[]>>('/trips/recommendations/vehicles', { params: { driverId } });
+  return res.data;
+}
+
+export interface ShareMediaWhatsAppParams {
+  category?: 'delay' | 'pod';
+  recipientPhone?: string;
+}
+
+export interface ShareMediaWhatsAppResponse {
+  isCloudApi?: boolean;
+  messageId?: string;
+  mediaId?: string;
+  recipient?: string;
+  publicMediaUrl?: string;
+  shareText?: string;
+  whatsappWebUrl?: string;
+}
+
+export async function shareMediaWhatsApp(
+  tripId: string,
+  params?: ShareMediaWhatsAppParams
+): Promise<ApiResponse<ShareMediaWhatsAppResponse>> {
+  const res = await api.post<ApiResponse<ShareMediaWhatsAppResponse>>(
+    `/trips/${tripId}/share-whatsapp`,
+    params || {}
+  );
+  return res.data;
+}
+

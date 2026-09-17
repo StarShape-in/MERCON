@@ -87,11 +87,11 @@ export function QuotationPrintModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-0 bg-slate-900/40 backdrop-blur-md border-0 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <DialogContent hideCloseButton className="max-w-4xl p-0 bg-slate-950/60 backdrop-blur-md border border-slate-800 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col rounded-2xl">
         {/* Modal Top Actions Header (Screen only) */}
-        <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0 print:hidden">
+        <div className="px-4 py-3 bg-[#2D2B2C] text-white flex items-center justify-between border-b border-slate-800 shrink-0 print:hidden">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#FA634E]" />
+            <FileText className="w-4.5 h-4.5 text-[#FA634E]" />
             <span className="text-xs font-black uppercase tracking-wider text-slate-200">
               Commercial Quotation Document Preview
             </span>
@@ -101,19 +101,20 @@ export function QuotationPrintModal({
             <Button
               type="button"
               onClick={handlePrint}
-              className="h-8 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#DF4834] text-white rounded-lg gap-1.5 cursor-pointer shadow-sm"
+              className="h-8.5 px-4 text-xs font-bold bg-[#FA634E] hover:bg-[#DF4834] text-white rounded-xl gap-1.5 cursor-pointer shadow-md shadow-[#FA634E]/20 transition-all hover:scale-[1.01]"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Quotation / PDF</span>
+              <Printer className="w-4 h-4" />
+              <span>Print / Export PDF</span>
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-8 w-8 text-slate-400 hover:text-white rounded-lg"
+              className="h-8.5 w-8.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
+              title="Close Preview"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4.5 h-4.5" />
             </Button>
           </div>
         </div>

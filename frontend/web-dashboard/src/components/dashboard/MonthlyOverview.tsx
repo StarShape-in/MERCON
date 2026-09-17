@@ -72,9 +72,17 @@ export default function MonthlyOverview() {
   const [chartPeriod, setChartPeriod] = useState<PeriodType>('monthly');
 
   // Live Query integration from backend reports summary
+  // try/catch prevents MODULE_DISABLED 403 from triggering global redirect to /
   const { data: summaryData, refetch, isFetching } = useQuery({
     queryKey: ['dashboard-summary'],
-    queryFn: reportsService.getSummary,
+    queryFn: async () => {
+      try {
+        return await reportsService.getSummary();
+      } catch {
+        return null;
+      }
+    },
+    retry: false,
   });
 
   const chartData = useMemo(() => {
@@ -155,7 +163,7 @@ export default function MonthlyOverview() {
                     onClick={() => setChartPeriod(p)}
                     className={`text-[9px] font-extrabold h-5 px-2.5 rounded-md transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-brand text-white shadow-xs'
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
                         : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >

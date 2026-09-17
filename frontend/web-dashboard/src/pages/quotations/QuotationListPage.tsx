@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -48,7 +48,7 @@ import { TaxonomySelect } from '@/components/common/TaxonomySelect';
 import { quotationService, Quotation } from '@/services/quotationService';
 import { customerService } from '@/services/customerService';
 import QuotationFormDialog from '@/components/quotations/RateCardFormDialog';
-import SurchargeFeesPanel from '@/components/quotations/SurchargeFeesPanel';
+import { CustomerSurchargesSection } from '@/components/quotations/CustomerSurchargesSection';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { QuotationRouteDrawer } from './QuotationRouteDrawer';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
@@ -57,6 +57,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -76,7 +77,7 @@ const QUOTATION_EXPORT_COLUMNS: ExportColumn<Quotation>[] = [
   { id: 'vehicle_class', label: 'Vehicle Class', accessor: (q) => q.vehicle_class || '—' },
   { id: 'source_vehicle_label', label: 'Source Vehicle Label', accessor: (q) => q.source_vehicle_label || q.vehicle_type || '—' },
   { id: 'line_type', label: 'Line Type', accessor: (q) => q.line_type || q.rate_category || 'Single Trip' },
-  { id: 'billing_type', label: 'Operation Type', accessor: (q) => q.billing_type || 'EXTRA' },
+  { id: 'operation_type', label: 'Operation Type', accessor: (q) => q.operation_type || q.billing_type || 'EXTRA' },
   { id: 'rate', label: 'Billing Rate (SAR)', accessor: (q) => `SAR ${Number(q.rate || q.base_price || 0).toLocaleString()}` },
   { id: 'driver_payout', label: 'Driver Charge (SAR)', accessor: (q) => q.driver_payout != null ? `SAR ${Number(q.driver_payout).toLocaleString()}` : '—' },
   { id: 'status', label: 'Status', accessor: (q) => (q.is_active ? 'Active' : 'Inactive') },
@@ -121,20 +122,36 @@ function getOperationTypeBadge(billingType?: string | null) {
 function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onOpenDrawer: (q: Quotation) => void }) {
   const stops = (quotation.stops || (quotation as any).via_stops || (quotation as any).viaStops || []) as any[];
 
-  // Determine stop names in exact sequence
-  const stopNames = useMemo(() => {
+  // Determine stop details in exact sequence
+  const stopDetails = useMemo(() => {
     if (stops.length > 0) {
-      return stops.map((s: any) => s.source_label || s.location?.name || s.name || s.label || 'Location');
+      return stops.map((s: any) => {
+        const shortName = s.source_label || s.location?.code || s.name || s.label || 'Location';
+        const canonicalName =
+          s.location?.name && s.location.name.trim().toLowerCase() !== shortName.trim().toLowerCase()
+            ? s.location.name
+            : null;
+        return {
+          shortName,
+          canonicalName,
+          city: s.location?.city || null,
+        };
+      });
     }
     const origin = quotation.route_origin || 'Origin';
     const dest = quotation.route_destination || 'Destination';
-    return [origin, dest];
+    return [
+      { shortName: origin, canonicalName: null, city: null },
+      { shortName: dest, canonicalName: null, city: null },
+    ];
   }, [stops, quotation]);
 
-  const firstStop = stopNames[0] || 'Origin';
-  const lastStop = stopNames[stopNames.length - 1] || 'Destination';
+  const stopNames = useMemo(() => stopDetails.map((s) => s.shortName), [stopDetails]);
+
+  const firstStop = stopDetails[0]?.shortName || 'Origin';
+  const lastStop = stopDetails[stopDetails.length - 1]?.shortName || 'Destination';
   const intermediateStops = stopNames.slice(1, -1);
-  const totalStops = Math.max(stopNames.length, 2);
+  const totalStops = Math.max(stopDetails.length, 2);
 
   // Line 2 subtitle generation
   let viaText = 'Direct';
@@ -182,7 +199,7 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
       </HoverCardTrigger>
 
-      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-72 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
+      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-80 p-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-2.5 z-[9999]">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Route Preview</span>
           <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -197,10 +214,19 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
         </div>
 
         <div className="space-y-1.5 pt-1 max-h-40 overflow-y-auto">
-          {stopNames.map((name, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 py-0.5 px-1.5 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
-              <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
-              <span className="font-semibold truncate">{name}</span>
+          {stopDetails.map((stop, idx) => (
+            <div key={idx} className="flex flex-col text-[11px] text-slate-700 dark:text-slate-300 py-1 px-2 rounded-md bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <span className="w-4 text-slate-400 font-mono text-[10px] font-bold">{idx + 1}.</span>
+                <span className="font-bold text-[#3E3C3D] dark:text-slate-100 truncate">{stop.shortName}</span>
+              </div>
+              {(stop.canonicalName || stop.city) && (
+                <div className="pl-6 text-[10px] font-medium text-slate-500 truncate flex items-center gap-1">
+                  {stop.canonicalName && <span>{stop.canonicalName}</span>}
+                  {stop.canonicalName && stop.city && <span>·</span>}
+                  {stop.city && <span className="font-mono text-[9px] text-slate-400">{stop.city}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -213,10 +239,20 @@ function RouteStopsCell({ quotation, onOpenDrawer }: { quotation: Quotation; onO
   );
 }
 
-function SurchargesCell({ quotation }: { quotation: Quotation }) {
+function SurchargesCell({ quotation, onOpenCustomerSurcharges }: { quotation: Quotation; onOpenCustomerSurcharges?: () => void }) {
   const rules = ((quotation as any).surchargeRules || (quotation as any).surcharge_rules || []) as any[];
   if (!rules || rules.length === 0) {
-    return <span className="text-slate-400 text-xs">—</span>;
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onOpenCustomerSurcharges?.()}
+        className="h-6 px-1.5 text-[11px] text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md gap-1 font-normal"
+      >
+        <Tag className="w-3 h-3 text-slate-300 dark:text-slate-600" />
+        <span>0 fees</span>
+      </Button>
+    );
   }
 
   return (
@@ -232,12 +268,15 @@ function SurchargesCell({ quotation }: { quotation: Quotation }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-3 shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg space-y-2">
-        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-1.5">
-          Surcharge Rules
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Surcharge Rules</span>
+          <Badge variant="outline" className="text-[10px] font-mono font-semibold px-1.5 py-0">
+            {rules.length} Total
+          </Badge>
         </div>
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-1.5 text-xs max-h-48 overflow-y-auto">
           {rules.map((rule: any, idx: number) => {
-            const feeType = rule.fee_name || rule.fee_type || rule.name || 'Additional Fee';
+            const feeType = rule.fee_name || rule.fee_type || rule.charge_type || rule.name || 'Additional Fee';
             const amount = rule.amount != null ? `SAR ${Number(rule.amount).toLocaleString()}` : rule.rate != null ? `SAR ${Number(rule.rate).toLocaleString()}` : '—';
             const unit = rule.unit ? `/ ${rule.unit}` : '';
             return (
@@ -248,6 +287,20 @@ function SurchargesCell({ quotation }: { quotation: Quotation }) {
             );
           })}
         </div>
+
+        {onOpenCustomerSurcharges && (
+          <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenCustomerSurcharges()}
+              className="w-full h-7 text-[11px] font-bold text-[#FA634E] hover:text-[#DF4834] hover:bg-orange-50 dark:hover:bg-orange-950/30 justify-between px-2"
+            >
+              <span>Manage Customer Surcharges</span>
+              <ArrowRight className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -285,13 +338,31 @@ function ValidityStatusCell({ quotation }: { quotation: Quotation }) {
 
 export default function QuotationListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'quotations' | 'surcharges'>('quotations');
+  const urlCustomerId = searchParams.get('customer_id');
+
+  // Customer Workspace Sub-Tab State ('routes' | 'surcharges')
+  const [customerWorkspaceTab, setCustomerWorkspaceTab] = useState<'routes' | 'surcharges'>('routes');
+
+  const handleOpenCustomerSurcharges = (id: string, _name: string) => {
+    setSelectedCustomerId(id);
+    setCustomerWorkspaceTab('surcharges');
+  };
 
   // Customer Navigator Search (Left panel)
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(urlCustomerId);
+
+  const handleSelectCustomer = (id: string) => {
+    setSelectedCustomerId(id);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('customer_id', id);
+      return next;
+    }, { replace: true });
+  };
 
   // Global Route Workspace Filters (Right panel toolbar)
   const [search, setSearch] = useState('');
@@ -309,6 +380,11 @@ export default function QuotationListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Right-side Route Details Drawer State
   const [drawerQuotation, setDrawerQuotation] = useState<Quotation | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -318,20 +394,12 @@ export default function QuotationListPage() {
     setIsDrawerOpen(true);
   };
 
-  // Fetch Quotations list
+  // Fetch Quotations list (Full dataset for workspace navigator and customer grouping)
   const { data: quotationsRes, isLoading, refetch } = useQuery({
-    queryKey: ['quotations', search, billingTypeFilter, lineTypeFilter, vehicleClassFilter, statusFilter],
-    queryFn: () =>
-      quotationService.getAll({
-        per_page: 500, // Fetch all commercial routes for customer workspace grouping
-        ...(search ? { search } : {}),
-        ...(billingTypeFilter !== 'ALL' ? { billing_type: billingTypeFilter } : {}),
-        ...(lineTypeFilter !== 'ALL' ? { line_type: lineTypeFilter } : {}),
-        ...(vehicleClassFilter !== 'ALL' ? { vehicle_class: vehicleClassFilter } : {}),
-        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
-      }),
-    placeholderData: keepPreviousData,
-    enabled: activeTab === 'quotations',
+    queryKey: ['quotations'],
+    queryFn: () => quotationService.getAll({ per_page: 'all' }),
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const rawQuotations = quotationsRes?.data || [];
@@ -370,7 +438,8 @@ export default function QuotationListPage() {
       }
       const entry = map.get(custId)!;
       entry.quotations.push(q);
-      if ((q.billing_type || '').toUpperCase() === 'MONTHLY') {
+      const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+      if (opType === 'MONTHLY') {
         entry.monthlyCount++;
       } else {
         entry.extraCount++;
@@ -381,14 +450,18 @@ export default function QuotationListPage() {
     return groups.sort((a, b) => a.name.localeCompare(b.name));
   }, [rawQuotations, sortedCustomers]);
 
-  // Auto-select first customer
+  // Auto-select customer from URL or first customer
   useEffect(() => {
     if (companyGroups.length > 0) {
-      if (!selectedCustomerId || !companyGroups.some((g) => g.id === selectedCustomerId)) {
+      if (urlCustomerId && companyGroups.some((g) => g.id === urlCustomerId)) {
+        if (selectedCustomerId !== urlCustomerId) {
+          setSelectedCustomerId(urlCustomerId);
+        }
+      } else if (!selectedCustomerId || !companyGroups.some((g) => g.id === selectedCustomerId)) {
         setSelectedCustomerId(companyGroups[0].id);
       }
     }
-  }, [companyGroups, selectedCustomerId]);
+  }, [companyGroups, urlCustomerId, selectedCustomerId]);
 
   // Filtered customer navigator list for left panel search
   const navCustomerGroups = useMemo(() => {
@@ -421,7 +494,8 @@ export default function QuotationListPage() {
 
       // Operation Type Filter
       if (billingTypeFilter !== 'ALL') {
-        if ((q.billing_type || '').toUpperCase() !== billingTypeFilter) return false;
+        const opType = (q.operation_type || q.billing_type || '').toUpperCase();
+        if (opType !== billingTypeFilter) return false;
       }
 
       // Vehicle Class Filter
@@ -458,10 +532,69 @@ export default function QuotationListPage() {
 
   const totalWorkspacePages = Math.ceil(filteredWorkspaceRoutes.length / workspacePerPage) || 1;
 
-  // Reset workspace page on selection / filter change
+  // Reset workspace filters when changing selected customer
   useEffect(() => {
+    setSearch('');
+    setBillingTypeFilter('ALL');
+    setVehicleClassFilter('ALL');
+    setLineTypeFilter('ALL');
+    setStatusFilter('ALL');
     setWorkspacePage(1);
+  }, [selectedCustomerId]);
+
+  // Reset selection on customer change or filter change
+  useEffect(() => {
+    setSelectedIds(new Set());
   }, [selectedCustomerId, search, billingTypeFilter, vehicleClassFilter, lineTypeFilter, statusFilter]);
+
+  const isAllSelected = useMemo(() => {
+    if (filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.every((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds]);
+
+  const isSomeSelected = useMemo(() => {
+    if (isAllSelected || filteredWorkspaceRoutes.length === 0) return false;
+    return filteredWorkspaceRoutes.some((q) => selectedIds.has(q.id));
+  }, [filteredWorkspaceRoutes, selectedIds, isAllSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      const next = new Set<string>();
+      filteredWorkspaceRoutes.forEach((q) => next.add(q.id));
+      setSelectedIds(next);
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const idsArray = Array.from(selectedIds);
+      await quotationService.bulkDelete(idsArray);
+      toast.success(`Deleted ${idsArray.length} commercial route(s) successfully`);
+      setSelectedIds(new Set());
+      setIsBulkDeleteModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete selected quotations');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!selectedQuotation) return;
@@ -545,18 +678,15 @@ export default function QuotationListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* View Mode Toggle (Routes vs Surcharge Rules) */}
+            {/* Excel Direct Import Action */}
             <Button
               size="sm"
               variant="outline"
-              className={cn(
-                "h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 rounded-lg px-3.5 cursor-pointer transition-all",
-                activeTab === 'surcharges' ? "bg-[#3E3C3D] text-white" : "bg-white hover:bg-slate-50 text-[#3E3C3D]"
-              )}
-              onClick={() => setActiveTab((prev) => (prev === 'surcharges' ? 'quotations' : 'surcharges'))}
+              className="h-9 gap-1.5 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-200 rounded-lg px-3.5 cursor-pointer transition-all"
+              onClick={() => setIsImportModalOpen(true)}
             >
-              <Settings2 className="h-4 w-4 text-amber-500" />
-              <span>{activeTab === 'surcharges' ? 'View Commercial Routes' : 'Surcharge Rules'}</span>
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Import Excel</span>
             </Button>
 
             {/* AI Import Action */}
@@ -567,7 +697,7 @@ export default function QuotationListPage() {
               onClick={() => navigate('/quotations/import')}
             >
               <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>AI Import</span>
+              <span>AI Studio</span>
             </Button>
 
             {/* + New Commercial Route Action (Primary Coral Red #FA634E) */}
@@ -582,11 +712,8 @@ export default function QuotationListPage() {
           </div>
         </div>
 
-        {activeTab === 'surcharges' ? (
-          <SurchargeFeesPanel />
-        ) : (
-          /* 2. TWO-PANEL WORKSPACE (COMPANY VIEW ONLY) */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* 2. TWO-PANEL WORKSPACE (COMPANY VIEW ONLY) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             
             {/* LEFT PANEL: CUSTOMER NAVIGATOR */}
             <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden flex flex-col max-h-[calc(100vh-170px)] min-h-[540px]">
@@ -627,7 +754,7 @@ export default function QuotationListPage() {
                       <button
                         key={group.id}
                         type="button"
-                        onClick={() => setSelectedCustomerId(group.id)}
+                        onClick={() => handleSelectCustomer(group.id)}
                         className={cn(
                           "w-full text-left p-2.5 rounded-lg transition-all flex items-center justify-between gap-2.5 cursor-pointer group border-l-4",
                           isSelected
@@ -682,85 +809,140 @@ export default function QuotationListPage() {
                         </div>
                       </div>
 
-                      {/* Executive Metric Stat Counters */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Routes</span>
-                          <span className="font-mono font-black text-xs text-[#3E3C3D] dark:text-slate-100">{selectedGroup.quotations.length}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/90 dark:text-emerald-400">Monthly</span>
-                          <span className="font-mono font-black text-xs text-emerald-800 dark:text-emerald-300">{selectedGroup.monthlyCount}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FA634E]/10 dark:bg-[#FA634E]/20 border border-[#FA634E]/20">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#FA634E]">Extra</span>
-                          <span className="font-mono font-black text-xs text-[#FA634E]">{selectedGroup.extraCount}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Integrated Filter Bar inside Workspace */}
-                    <div className="flex items-center gap-2 flex-wrap pt-1">
-                      <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                        <Input
-                          placeholder="Search route, vehicle class..."
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          className="h-8.5 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-9 rounded-lg focus-visible:ring-1 focus-visible:ring-[#FA634E]"
-                        />
-                      </div>
-
-                      {/* Operation Type Filter */}
-                      <div className="w-[140px]">
-                        <TaxonomySelect
-                          category="OPERATION_TYPE"
-                          value={billingTypeFilter === 'ALL' ? '' : billingTypeFilter}
-                          onValueChange={(val: string) => { setBillingTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
-                          placeholder="All Operations"
-                          size="sm"
-                        />
-                      </div>
-
-                      {/* Vehicle Class Filter */}
-                      <div className="w-[145px]">
-                        <TaxonomySelect
-                          category="VEHICLE_CLASS"
-                          value={vehicleClassFilter === 'ALL' ? '' : vehicleClassFilter}
-                          onValueChange={(val: string) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
-                          placeholder="All Vehicles"
-                          size="sm"
-                        />
-                      </div>
-
-                      {/* Line Type Filter */}
-                      <div className="w-[150px]">
-                        <TaxonomySelect
-                          category="LINE_TYPE"
-                          value={lineTypeFilter === 'ALL' ? '' : lineTypeFilter}
-                          onValueChange={(val: string) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
-                          placeholder="All Line Types"
-                          size="sm"
-                        />
-                      </div>
-
-                      {isFiltersActive && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearFilters}
-                          className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-2.5 shrink-0 font-medium"
+                      {/* Customer Workspace View Controller (Commercial Routes vs Standing Surcharges) */}
+                      <div className="flex items-center gap-1 p-1 bg-slate-200/70 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() => setCustomerWorkspaceTab('routes')}
+                          className={cn(
+                            "px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+                            customerWorkspaceTab === 'routes'
+                              ? "bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 shadow-2xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                          )}
                         >
-                          <X className="h-3.5 w-3.5 mr-1" />
-                          <span>Clear</span>
-                        </Button>
-                      )}
+                          <RouteIcon className="w-3.5 h-3.5 text-[#FA634E]" />
+                          <span>Commercial Routes</span>
+                          <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded font-bold">
+                            {selectedGroup.quotations.length}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCustomerWorkspaceTab('surcharges')}
+                          className={cn(
+                            "px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+                            customerWorkspaceTab === 'surcharges'
+                              ? "bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 shadow-2xs"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                          )}
+                        >
+                          <Tag className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Standing Surcharges</span>
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Integrated Filter Bar (Visible when in Routes view) */}
+                    {customerWorkspaceTab === 'routes' && (
+                      <div className="flex items-center gap-2 flex-wrap pt-1">
+                        <div className="relative flex-1 min-w-[200px]">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                          <Input
+                            placeholder="Search route, vehicle class..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="h-8.5 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-9 rounded-lg focus-visible:ring-1 focus-visible:ring-[#FA634E]"
+                          />
+                        </div>
+
+                        {/* Operation Type Filter */}
+                        <div className="w-[140px]">
+                          <TaxonomySelect
+                            category="OPERATION_TYPE"
+                            value={billingTypeFilter === 'ALL' ? '' : billingTypeFilter}
+                            onValueChange={(val: string) => { setBillingTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                            placeholder="All Operations"
+                            clearLabel="All Operations"
+                            size="sm"
+                          />
+                        </div>
+
+                        {/* Vehicle Class Filter */}
+                        <div className="w-[145px]">
+                          <TaxonomySelect
+                            category="VEHICLE_CLASS"
+                            value={vehicleClassFilter === 'ALL' ? '' : vehicleClassFilter}
+                            onValueChange={(val: string) => { setVehicleClassFilter(val || 'ALL'); setWorkspacePage(1); }}
+                            placeholder="All Vehicles"
+                            clearLabel="All Vehicles"
+                            size="sm"
+                          />
+                        </div>
+
+                        {/* Line Type Filter */}
+                        <div className="w-[150px]">
+                          <TaxonomySelect
+                            category="LINE_TYPE"
+                            value={lineTypeFilter === 'ALL' ? '' : lineTypeFilter}
+                            onValueChange={(val: string) => { setLineTypeFilter(val || 'ALL'); setWorkspacePage(1); }}
+                            placeholder="All Line Types"
+                            clearLabel="All Line Types"
+                            size="sm"
+                          />
+                        </div>
+
+                        {isFiltersActive && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearFilters}
+                            className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-2.5 shrink-0 font-medium"
+                          >
+                            <X className="h-3.5 w-3.5 mr-1" />
+                            <span>Clear Filters</span>
+                          </Button>
+                        )}
+
+                        {/* Bulk Action Controls */}
+                        {selectedIds.size > 0 && (
+                          <div className="flex items-center gap-2 ml-auto pl-2 border-l border-slate-200 dark:border-slate-700">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {selectedIds.size} selected
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setIsBulkDeleteModalOpen(true)}
+                              className="h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 flex items-center gap-1.5 cursor-pointer shadow-xs border-0"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete Selected ({selectedIds.size})</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedIds(new Set())}
+                              className="h-8 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 rounded-lg px-2 cursor-pointer"
+                            >
+                              Deselect
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Dense Route Ledger Table */}
+                  {/* Workspace Content: Routes Ledger OR Standing Surcharges Section */}
+                  {customerWorkspaceTab === 'surcharges' ? (
+                    <CustomerSurchargesSection
+                      customerId={selectedGroup.id}
+                      customerName={selectedGroup.name}
+                    />
+                  ) : (
+                    <>
+                      {/* Dense Route Ledger Table */}
                   <div className="flex-1 overflow-x-auto">
                     {filteredWorkspaceRoutes.length === 0 ? (
                       /* Empty State */
@@ -788,6 +970,14 @@ export default function QuotationListPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 dark:bg-slate-800/20">
+                            <th className="py-2.5 px-3.5 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                                onCheckedChange={handleToggleSelectAll}
+                                aria-label="Select all commercial routes"
+                                className="translate-y-[1px]"
+                              />
+                            </th>
                             <th className="py-2.5 px-3.5 w-10">#</th>
                             <th className="py-2.5 px-3.5">Route / Stops</th>
                             <th className="py-2.5 px-3.5">Vehicle Class</th>
@@ -806,13 +996,26 @@ export default function QuotationListPage() {
                             const driverChargeText = row.driver_payout != null && !isNaN(Number(row.driver_payout))
                               ? `SAR ${Number(row.driver_payout).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                               : '—';
+                            const isSelectedRow = selectedIds.has(row.id);
 
                             return (
                               <tr
                                 key={row.id}
                                 onClick={() => handleOpenDrawer(row)}
-                                className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                                className={cn(
+                                  "hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors",
+                                  isSelectedRow && "bg-rose-50/30 dark:bg-rose-950/20 hover:bg-rose-50/50"
+                                )}
                               >
+                                <td className="py-3 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={isSelectedRow}
+                                    onCheckedChange={() => handleToggleSelectRow(row.id)}
+                                    aria-label={`Select route ${row.name || row.id}`}
+                                    className="translate-y-[1px]"
+                                  />
+                                </td>
+
                                 <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">
                                   {rowNumber}
                                 </td>
@@ -826,15 +1029,41 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5">
-                                  {getOperationTypeBadge(row.billing_type)}
+                                  {getOperationTypeBadge(row.operation_type || row.billing_type)}
                                 </td>
 
                                 <td className="py-3 px-3.5">
                                   {getLineTypeBadge(row.line_type || row.rate_category)}
                                 </td>
 
-                                <td className="py-3 px-3.5 font-mono font-bold text-slate-900 dark:text-slate-100 text-xs whitespace-nowrap">
-                                  SAR {Number(row.rate ?? row.base_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <td className="py-3 px-3.5 font-mono text-xs whitespace-nowrap">
+                                  {(() => {
+                                    const rawRate = Number(row.rate ?? row.base_price ?? 0);
+                                    const isMonthly = row.pricing_basis === 'PER_TRIP'
+                                      ? false
+                                      : row.pricing_basis === 'PER_MONTH'
+                                      ? true
+                                      : (row.operation_type || row.billing_type || '').toLowerCase().includes('monthly');
+
+                                    if (isMonthly && rawRate > 0) {
+                                      const dailyEq = rawRate / 30;
+                                      return (
+                                        <div className="space-y-0.5">
+                                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                                            SAR {rawRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-semibold text-slate-500">/ mo</span>
+                                          </div>
+                                          <div className="text-[10px] text-slate-500 font-medium">
+                                            ≈ SAR {dailyEq.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <span className="font-bold text-slate-900 dark:text-slate-100">
+                                        SAR {rawRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-semibold text-slate-500">/ trip</span>
+                                      </span>
+                                    );
+                                  })()}
                                 </td>
 
                                 <td className="py-3 px-3.5 font-mono text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
@@ -846,7 +1075,10 @@ export default function QuotationListPage() {
                                 </td>
 
                                 <td className="py-3 px-3.5" onClick={(e) => e.stopPropagation()}>
-                                  <SurchargesCell quotation={row} />
+                                  <SurchargesCell
+                                    quotation={row}
+                                    onOpenCustomerSurcharges={() => handleOpenCustomerSurcharges(row.customerId || selectedGroup.id, selectedGroup.name)}
+                                  />
                                 </td>
 
                                 <td className="py-3 px-3.5 text-right" onClick={(e) => e.stopPropagation()}>
@@ -951,7 +1183,9 @@ export default function QuotationListPage() {
                       </div>
                     </div>
                   )}
-                </div>
+                </>
+              )}
+            </div>
               ) : (
                 <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-xs text-slate-400">
                   Select a customer from the left list to view their commercial routes.
@@ -959,8 +1193,7 @@ export default function QuotationListPage() {
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
@@ -970,6 +1203,17 @@ export default function QuotationListPage() {
         title="Delete Commercial Route"
         message="Are you sure you want to delete this commercial route quotation? Historical trips billed with this quotation will retain their commercial snapshot."
         confirmLabel="Delete Route"
+        isDestructive
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title={`Delete ${selectedIds.size} Commercial Routes`}
+        message={`Are you sure you want to delete ${selectedIds.size} selected commercial route(s)? Historical trips billed with these quotations will retain their commercial rate snapshots.`}
+        confirmLabel={isBulkDeleting ? 'Deleting...' : `Delete ${selectedIds.size} Routes`}
         isDestructive
       />
 
@@ -1003,6 +1247,14 @@ export default function QuotationListPage() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         customerName={selectedGroup?.name}
+        onOpenCustomerSurcharges={() => {
+          if (drawerQuotation?.customerId || selectedGroup?.id) {
+            handleOpenCustomerSurcharges(
+              drawerQuotation?.customerId || selectedGroup!.id,
+              selectedGroup?.name || 'Customer'
+            );
+          }
+        }}
       />
     </DashboardLayout>
   );

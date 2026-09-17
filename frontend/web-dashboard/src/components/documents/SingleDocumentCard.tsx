@@ -25,9 +25,9 @@ interface SingleDocumentCardProps {
 }
 
 const EXPIRY_BADGE: Record<string, { label: string; className: string }> = {
-  VALID: { label: '🟢 Valid', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  EXPIRING_SOON: { label: '⚠️ Expiring Soon', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  EXPIRED: { label: '🔴 Expired', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  VALID: { label: 'Valid', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  EXPIRING_SOON: { label: 'Expiring Soon', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  EXPIRED: { label: 'Expired', className: 'bg-rose-50 text-rose-700 border-rose-200' },
   NO_EXPIRY: { label: 'Permanent', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   MISSING: { label: 'Missing', className: 'bg-slate-100 text-slate-500 border-slate-200' },
 };

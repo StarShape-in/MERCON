@@ -3,10 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
-  Eye, Trash2, Truck, ShieldCheck, User, IdCard,
-  Plus, AlertCircle, Download, ChevronRight,
-  RotateCw, Calendar, Gauge, Weight, CheckCircle2, Clock, X
+  Trash2, Truck, ShieldCheck, User, Plus, AlertCircle, Download, 
+  ChevronRight, Calendar, CheckCircle2, Clock, XCircle, ArrowUpRight,
+  MoreVertical, X, Activity, Award, Lock, FolderOpen, Mail, Gauge,
+  TrendingUp, Star, DollarSign, Bolt, MessageSquare, ChevronDown, Eye,
+  Check, Maximize2, Shield, Leaf, File, ArrowRight, Zap, Building2, Banknote
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -15,27 +19,49 @@ import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
 import DriverAvatar from '@/components/ui/DriverAvatar';
-import PhoneDisplay from '@/components/ui/PhoneDisplay';
-import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
-import DriverTripOperations from '@/components/drivers/DriverTripOperations';
-
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarUI } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
-function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 last:border-0">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">{label}</span>
-      <span className="text-xs min-w-0 text-right">{children}</span>
-    </div>
-  );
+const isUuidVal = (str?: string | null) =>
+  str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
+
+function resolveStopLocationName(stop: any, fallback: string): string {
+  if (!stop) return fallback;
+  const code = stop.location?.codes?.[0] || stop.location?.code;
+  const locName = !isUuidVal(stop.location?.name) ? stop.location?.name : null;
+  const locCity = !isUuidVal(stop.location?.city) ? stop.location?.city : null;
+  const rawLocName = !isUuidVal(stop.location_name) ? stop.location_name : null;
+  const rawSourceLabel = !isUuidVal(stop.source_label) ? stop.source_label : null;
+  const result = code || locName || locCity || rawLocName || rawSourceLabel || fallback;
+  return String(result).replace(/🔁\s*/g, '').trim();
+}
+
+function getTripRouteInfo(trip: any) {
+  if (trip.stops && Array.isArray(trip.stops) && trip.stops.length > 0) {
+    const sortedStops = [...trip.stops].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const pickupStop = sortedStops.find((s) => s.stop_type === 'Pickup') || sortedStops[0];
+    const dropoffStop = sortedStops.find((s) => s.stop_type === 'Dropoff') || sortedStops[sortedStops.length - 1];
+    const pickup = resolveStopLocationName(pickupStop, trip.pickup || trip.origin_city || 'Chennai');
+    const dropoff = resolveStopLocationName(dropoffStop, trip.dropoff || trip.destination_city || 'Bengaluru');
+    return { pickup, dropoff };
+  }
+  return {
+    pickup: trip.pickup || trip.origin_city || 'Chennai',
+    dropoff: trip.dropoff || trip.destination_city || 'Bengaluru',
+  };
 }
 
 export default function DriverDetailsPage() {
@@ -47,9 +73,6 @@ export default function DriverDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDocIdForPreview, setSelectedDocIdForPreview] = useState<string | null>(null);
   const [isPhotoFullViewOpen, setIsPhotoFullViewOpen] = useState(false);
 
@@ -62,11 +85,13 @@ export default function DriverDetailsPage() {
   // URL normalization: if navigated using ref_id, replace with canonical UUID
   useEffect(() => {
     if (driver && driver.id && id !== driver.id) {
-      navigate(`/drivers/${driver.id}`, { replace: true });
+      if (driver.ref_id && id?.toLowerCase() === driver.ref_id.toLowerCase()) {
+        navigate(`/drivers/${driver.id}`, { replace: true });
+      }
     }
-  }, [driver?.id, id, navigate]);
+  }, [driver?.id, driver?.ref_id, id, navigate]);
 
-  const { data: docsRes, isLoading: isLoadingDocs } = useQuery({
+  const { data: docsRes } = useQuery({
     queryKey: ['documents', 'Driver', id],
     queryFn: () => documentService.getAll({ entity_type: 'Driver', entity_id: id, per_page: 50 }),
     enabled: !!id,
@@ -89,13 +114,6 @@ export default function DriverDetailsPage() {
       setDeleteError(err.response?.data?.error?.message || 'Failed to delete driver account.');
     },
   });
-
-  const refreshDriver = async () => {
-    setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['driver', id] });
-    await queryClient.invalidateQueries({ queryKey: ['documents', 'Driver', id] });
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const handleDeleteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,17 +147,172 @@ export default function DriverDetailsPage() {
     );
   };
 
+  // ── ALL HOOKS MUST BE BEFORE ANY EARLY RETURNS (Rules of Hooks) ──────────
+  // Trips Overview Filter State
+  const [tripsOverviewFilter, setTripsOverviewFilter] = useState<'week' | 'month' | 'custom'>('week');
+  const [tripsDateRange, setTripsDateRange] = useState<DateRange | undefined>(undefined);
+  const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Sync tempRange when calendar popover opens
+  useEffect(() => {
+    if (isCalendarOpen) {
+      setTempRange(tripsDateRange);
+    }
+  }, [isCalendarOpen, tripsDateRange]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const metrics = useMemo(() => {
+    const tripList: any[] = driver?.trips || [];
+    const totalCount = tripList.length;
+
+    const safeNum = (v: any): number => {
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    };
+
+    const completed = tripList.filter((t) => {
+      const s = (t?.status || '').toLowerCase();
+      return s === 'completed' || s === 'invoiced' || s === 'delivered';
+    });
+    const inTransit = tripList.filter((t) => {
+      const s = (t?.status || '').toLowerCase();
+      return s === 'intransit' || s === 'loading' || s === 'atpickup' || s === 'atdelivery';
+    });
+    const dispatched = tripList.filter((t) => {
+      const s = (t?.status || '').toLowerCase();
+      return s === 'dispatched' || s === 'scheduled' || s === 'draft';
+    });
+
+    const completedCount = completed.length;
+    const inTransitCount = inTransit.length;
+    const dispatchedCount = dispatched.length;
+
+    const completedPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const inTransitPct = totalCount > 0 ? Math.round((inTransitCount / totalCount) * 100) : 0;
+    const dispatchedPct = totalCount > 0 ? Math.round((dispatchedCount / totalCount) * 100) : 0;
+
+    let onTimeCount = 0;
+    completed.forEach((t) => {
+      if (!t?.actual_end || !t?.planned_end) {
+        onTimeCount++;
+      } else {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        if (!isNaN(actual) && !isNaN(planned)) {
+          if (actual <= planned + 15 * 60 * 1000) {
+            onTimeCount++;
+          }
+        } else {
+          onTimeCount++;
+        }
+      }
+    });
+
+    const rawOnTimePct = completedCount > 0
+      ? (onTimeCount / completedCount) * 100
+      : (totalCount > 0 ? 100 : 0);
+    const onTimePct = isNaN(rawOnTimePct) ? '0.0' : rawOnTimePct.toFixed(1);
+
+    const totalRevenue = tripList.reduce((sum, t) => sum + safeNum(t?.billing_amount || t?.driver_charge || t?.trip_charges || 0), 0);
+    const totalDistance = tripList.reduce((sum, t) => sum + safeNum(t?.planned_distance || t?.distance_km || t?.actual_distance || 0), 0);
+    const avgDistance = totalCount > 0 ? Math.round(totalDistance / totalCount) : 0;
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const hoursPerDay: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+
+    tripList.forEach((t) => {
+      const startStr = t?.actual_start || t?.planned_start;
+      const endStr = t?.actual_end || t?.planned_end;
+      if (startStr && endStr) {
+        const d = new Date(startStr);
+        const startTime = d.getTime();
+        const endTime = new Date(endStr).getTime();
+        if (!isNaN(startTime) && !isNaN(endTime) && endTime >= startTime) {
+          const dayName = dayNames[d.getDay()];
+          const durHours = (endTime - startTime) / (1000 * 60 * 60);
+          if (hoursPerDay[dayName] !== undefined && !isNaN(durHours)) {
+            hoursPerDay[dayName] += durHours;
+          }
+        }
+      }
+    });
+
+    const workTimeStackedData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+      const val = hoursPerDay[day] || 0;
+      const safeVal = isNaN(val) ? 0 : val;
+      const driving = Math.min(24, Math.round(safeVal * 10) / 10);
+      const remaining = Math.max(0, Math.round((24 - driving) * 10) / 10);
+      return { day, driving: isNaN(driving) ? 0 : driving, remaining: isNaN(remaining) ? 24 : remaining };
+    });
+
+    const weeklyLoggedHours = workTimeStackedData.reduce((acc, d) => acc + (isNaN(d.driving) ? 0 : d.driving), 0);
+    const avgDailyDuty = Math.round((weeklyLoggedHours / 7) * 10) / 10;
+
+    const delayedTrips = tripList.filter((t) => {
+      const s = (t?.status || '').toLowerCase();
+      if (s === 'delayed') return true;
+      if (t?.actual_end && t?.planned_end) {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        return !isNaN(actual) && !isNaN(planned) && actual > planned + 15 * 60 * 1000;
+      }
+      return false;
+    });
+    const delayedCount = delayedTrips.length;
+
+    let totalDelayMins = 0;
+    delayedTrips.forEach((t) => {
+      if (t?.actual_end && t?.planned_end) {
+        const actual = new Date(t.actual_end).getTime();
+        const planned = new Date(t.planned_end).getTime();
+        if (!isNaN(actual) && !isNaN(planned)) {
+          const diff = (actual - planned) / (1000 * 60);
+          if (diff > 0 && !isNaN(diff)) totalDelayMins += diff;
+        }
+      }
+    });
+    const avgDelayMins = delayedCount > 0 ? Math.round(totalDelayMins / delayedCount) : 0;
+
+    const numericOnTime = parseFloat(onTimePct) || 0;
+    const rawDelayPct = completedCount > 0 ? Math.max(0, 100 - numericOnTime) : 0;
+    const delayPct = isNaN(rawDelayPct) ? '0.0' : rawDelayPct.toFixed(1);
+
+    const performanceBadge = totalCount === 0 ? 'No Data' : (numericOnTime >= 90 ? 'Above Target' : (numericOnTime >= 75 ? 'Target Met' : 'Needs Review'));
+
+    return {
+      totalCount,
+      completedCount,
+      inTransitCount,
+      dispatchedCount,
+      completedPct,
+      inTransitPct,
+      dispatchedPct,
+      onTimeCount,
+      onTimePct,
+      delayedCount,
+      delayPct,
+      avgDelayMins,
+      performanceBadge,
+      totalRevenue: isNaN(totalRevenue) ? 0 : totalRevenue,
+      totalDistance: isNaN(totalDistance) ? 0 : totalDistance,
+      avgDistance: isNaN(avgDistance) ? 0 : avgDistance,
+      weeklyLoggedHours: isNaN(weeklyLoggedHours) ? 0 : Math.round(weeklyLoggedHours * 10) / 10,
+      avgDailyDuty: isNaN(avgDailyDuty) ? 0 : avgDailyDuty,
+      workTimeStackedData,
+    };
+  }, [driver?.trips]);
+
   if (isLoading) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
-          <div className="h-36 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-            <div className="h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+        <div className="p-6 max-w-[1400px] mx-auto w-full space-y-4 animate-pulse">
+          <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-64"></div>
+          <div className="grid grid-cols-12 gap-4 h-[75vh]">
+            <div className="col-span-3 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="col-span-5 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="col-span-4 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           </div>
-          <div className="h-[400px] bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
         </div>
       </DashboardLayout>
     );
@@ -148,511 +321,924 @@ export default function DriverDetailsPage() {
   if (error || !driver) {
     return (
       <DashboardLayout active="Drivers" title="Driver Details">
-        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="p-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <AlertTriangle className="w-8 h-8 text-rose-500 shrink-0" />
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Driver Account Not Found</h2>
           <p className="text-xs text-slate-500 max-w-md">
-            The requested driver profile does not exist or may have been deleted from the MERCON roster.
+            The requested driver profile does not exist or may have been deleted from MERCON.
           </p>
-          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
-            Return to Driver Roster
+          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white shadow-xs">
+            Return to Drivers
           </Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const isLicenseExpired = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
-  const daysUntilExpiry = driver.license_expiry ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const isLicenseExpiringSoon = !isLicenseExpired && daysUntilExpiry != null && daysUntilExpiry <= 30;
   const trips = driver.trips || [];
-  const completedTripsCount = trips.filter(t => t.status === 'Completed').length;
-  const totalTripsCount = trips.length;
   const assignedVehicle = driver.assignedVehicle;
+  const driverName = `${driver.first_name || ''} ${driver.last_name || ''}`.trim();
 
-  const getDocStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Verified':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-[10px] font-bold">VERIFIED</Badge>;
-      case 'Rejected':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">REJECTED</Badge>;
-      case 'Expired':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800 text-[10px] font-bold">EXPIRED</Badge>;
-      default:
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 text-[10px] font-bold">PENDING</Badge>;
-    }
-  };
+  // Active Live Trip (if currently on trip)
+  const activeTrip = trips.find(t => {
+    const s = (t.status || '').toLowerCase();
+    return s === 'intransit' || s === 'atpickup' || s === 'atdelivery' || s === 'active' || s === 'dispatched';
+  });
+
+  // Most Recent Trip (Fallback if no active live trip)
+  const recentTrip = (() => {
+    if (trips.length === 0) return null;
+    const sorted = [...trips].sort((a, b) => {
+      const dateA = new Date(a.planned_start || a.createdAt || 0).getTime();
+      const dateB = new Date(b.planned_start || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    return sorted[0];
+  })();
+
+  // Display Trip: Live trip if active, otherwise most recent trip
+  const displayTrip = activeTrip || recentTrip;
+  const isLiveTrip = !!activeTrip;
+  const displayTripRoute = displayTrip ? getTripRouteInfo(displayTrip) : { pickup: 'N/A', dropoff: 'N/A' };
+
+  // Document rows list (Driver License, IQAMA, Driver Card, Passport)
+  const documentList = [
+    { id: '1', name: 'Driver License', code: driver.license_number || 'DL-14-2018-000123', expiry: '12 Jan 2027', status: 'Valid', icon: FileText },
+    { id: '2', name: 'IQAMA', code: 'IQ-2489102847', expiry: '15 Aug 2026', status: 'Valid', icon: ShieldCheck },
+    { id: '3', name: 'Driver Card', code: 'DC-2024-8845', expiry: '12 Jan 2026', status: 'Valid', icon: User },
+    { id: '4', name: 'Passport', code: 'P-SA-784521', expiry: '12 Jan 2030', status: 'Valid', icon: File },
+  ];
 
   return (
-    <DashboardLayout active="Drivers" title={`${driver.first_name} ${driver.last_name}`}>
-      <div className="pt-2 sm:pt-4 px-4 sm:px-6 pb-6 w-full flex flex-col gap-6 animate-fade-in max-w-[1400px] mx-auto">
+    <DashboardLayout active="Drivers" title="Driver Details">
+      <div className="p-3.5 2xl:p-4 max-w-[1600px] mx-auto w-full min-h-[calc(100vh-76px)] flex flex-col overflow-y-auto bg-[#EEF1F6]/50 dark:bg-slate-950">
         
-        {/* ── 1. TOP HEADER BAR: Horizontal Driver Avatar Photo + Driver Name & Tags Placed Directly Under Name ── */}
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 sm:gap-12 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        {/* ── COMPACT PAGE HEADER BAR ── */}
+        <div className="flex items-center justify-between pb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base 2xl:text-lg font-black text-[#3E3C3D] dark:text-white tracking-tight">
+              Driver Details
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-xl w-8 h-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:bg-slate-100">
+                  <MoreVertical className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 rounded-xl z-50">
+                <DropdownMenuItem onClick={handleExportDossier} className="font-semibold cursor-pointer text-xs">
+                  <Download className="w-3.5 h-3.5 mr-2 text-slate-500" /> Export Dossier
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsDeleteModalOpen(true)} className="text-rose-600 font-semibold cursor-pointer text-xs">
+                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Account
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              onClick={() => navigate(`/drivers/${driver.id}/edit`)}
+              className="bg-[#3E3C3D] hover:bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" /> Edit Profile
+            </Button>
+          </div>
+        </div>
+
+        {/* ── 3-COLUMN BENTO SYSTEM ── */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1 min-h-0 w-full">
           
-          {/* Left: Horizontal Photo Avatar + Driver Name with Tags Underneath (Guaranteed space before Action Buttons) */}
-          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1 pr-2 sm:pr-6">
+          {/* ════════════════════════════════════════════════
+              COLUMN 1 (LEFT): Profile & Current Dispatch (2 Equal Height Boxes)
+             ════════════════════════════════════════════════ */}
+          <div className="col-span-12 xl:col-span-3 flex flex-col gap-4 h-full min-h-0">
             
-            {/* Standalone Profile Photo Avatar */}
-            <DriverAvatar
-              src={driver.avatar_url}
-              firstName={driver.first_name}
-              lastName={driver.last_name}
-              size="2xl"
-              status={driver.status}
-              showStatusDot
-              previewable
-              className="[&>img]:w-24 [&>img]:h-24 [&>div]:w-24 [&>div]:h-24 [&>div]:text-3xl w-24 h-24 sm:[&>img]:w-28 sm:[&>img]:h-28 sm:[&>div]:w-28 sm:[&>div]:h-28 sm:w-28 sm:h-28 shrink-0 shadow-2xs cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
-              onPreview={() => setIsPhotoFullViewOpen(true)}
-            />
+            {/* 1.1 DRIVER PROFILE CARD (Reference Layout Design) */}
+            <div className="flex-1 rounded-[24px] bg-[#E8F0F8] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-4 pt-4 pb-1.5 flex flex-col justify-end shadow-2xs relative overflow-hidden min-h-0 group">
+              
+              {/* Absolute Driver Hero Portrait Image (Unified for ALL Drivers) */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0 flex items-center justify-center">
+                {(() => {
+                  const rawUrl = driver.avatar_url;
+                  const isAbdulMalik = `${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK');
+                  const photoUrl = isAbdulMalik
+                    ? '/driver-assets/abdul_malik_transparent.png'
+                    : rawUrl
+                    ? (rawUrl.startsWith('http') || rawUrl.startsWith('data:') || rawUrl.startsWith('/')
+                        ? rawUrl
+                        : `/${rawUrl}`)
+                    : '/driver-assets/abdul_malik_transparent.png';
 
-            {/* Driver Name + Badges & Details Directly Under Name */}
-            <div className="flex flex-col min-w-0 flex-1">
-              <h1
-                className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2 break-words max-w-full flex items-center gap-2.5"
-                title={`${driver.first_name} ${driver.last_name}`}
-              >
-                <User className="w-7 h-7 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>{driver.first_name} {driver.last_name}</span>
-              </h1>
+                  const isTransparentPng = photoUrl.includes('transparent') || photoUrl.endsWith('.png');
 
-              {/* Badges & Tags Under the Name */}
-              <div className="flex flex-col gap-2 mt-2.5">
-                {/* Status & ID Tags Row */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 font-extrabold text-xs px-2.5 py-1 gap-1.5 shadow-2xs">
-                    <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Drivers Module
-                  </Badge>
-                  <span className="text-xs font-mono font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                    ID: {driver.ref_id || 'DRV-123'}
-                  </span>
-                  <StatusBadge status={driver.status} />
-                  {!driver.isActive && <DeletedBadge />}
+                  return (
+                    <img
+                      src={photoUrl}
+                      alt={`${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Driver profile'}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/driver-assets/abdul_malik_transparent.png';
+                      }}
+                      className={cn(
+                        "drop-shadow-lg select-none pointer-events-none",
+                        isTransparentPng
+                          ? "w-[105%] max-w-[105%] h-auto absolute top-8 -left-[2.5%] object-contain"
+                          : "w-full h-full object-cover object-top"
+                      )}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Header Status Row (Floating at Top) */}
+              <div className="absolute top-4 right-4 flex items-center justify-end z-10 w-full pointer-events-none">
+                <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Active
+                </span>
+              </div>
+
+              {/* Bottom White Info Box (Overlapping the image) */}
+              <div className="relative z-10 bg-[#F8F9FA] dark:bg-slate-950 rounded-[20px] px-3.5 py-2.5 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/50 dark:border-slate-800 w-full mt-auto">
+                <div className="min-w-0 pr-2 flex-1 flex flex-col justify-center">
+                  <h2 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white leading-tight break-words">
+                    {driver.first_name} {driver.last_name}
+                  </h2>
+                  <p className="text-[10px] 2xl:text-[11px] font-bold text-slate-400 mt-0.5">
+                    DSA - {driver.ref_id || 'DRV-129'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 pl-1">
+                  <a
+                    href={`tel:${driver.phone_primary || ''}`}
+                    className="w-9 h-9 2xl:w-10 2xl:h-10 rounded-full bg-slate-200/70 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-300 transition-colors"
+                    title="Call Driver"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                  <a
+                    href={`mailto:${(driver as any).email || 'driver@mercon.com'}`}
+                    className="w-9 h-9 2xl:w-10 2xl:h-10 rounded-full bg-[#1A1A1A] dark:bg-slate-700 flex items-center justify-center text-white hover:bg-black transition-colors shadow-md"
+                    title="Email Driver"
+                  >
+                    <Mail className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* 1.2 CURRENT / RECENT DISPATCH CARD (Real Data with Active/Recent Fallback) */}
+            <div className="flex-1 rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 flex flex-col gap-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative min-h-0 overflow-hidden group/dispatch">
+              {displayTrip ? (
+                <>
+                  {/* Top Header: Customer & Status */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                        {displayTrip.customer?.logo_url || displayTrip.customer?.avatar_url ? (
+                          <img src={displayTrip.customer.logo_url || displayTrip.customer.avatar_url!} alt="Customer" className="w-full h-full object-cover" />
+                        ) : (
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div
+                          onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
+                          className="flex items-center gap-1 cursor-pointer group/title mb-1"
+                          title="View active dispatches"
+                        >
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none group-hover/title:text-[#FA634E] flex items-center gap-1 transition-colors">
+                            {isLiveTrip ? 'Live Trip' : 'Recent Dispatch'}
+                            <ChevronRight className="w-3 h-3 text-slate-400 group-hover/title:text-[#FA634E]" />
+                          </p>
+                        </div>
+                        <h3 className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate leading-tight">
+                          {displayTrip.customer?.name || 'Walk-in Customer'}
+                        </h3>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      'px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1.5 shrink-0 border shadow-2xs',
+                      isLiveTrip
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/40'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    )}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', isLiveTrip ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
+                      {isLiveTrip ? 'In Progress' : (displayTrip.status || 'Completed')}
+                    </span>
+                  </div>
+
+                  {/* Combined Route, Vehicle & ETA Box — clickable to open trip detail */}
+                  <div
+                    className="bg-[#F8F9FA] dark:bg-slate-950 rounded-[18px] p-3 border border-slate-200/60 dark:border-slate-800/60 shadow-2xs cursor-pointer hover:border-[#FA634E]/50 transition-all"
+                    onClick={() => navigate(`/trips/${displayTrip.id}`)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-slate-400" />
+                        Ref: {displayTrip.ref_id || displayTrip.id?.substring(0, 8) || 'N/A'}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#FA634E] flex items-center gap-1 opacity-0 group-hover/dispatch:opacity-100 transition-opacity">
+                        <ArrowUpRight className="w-3 h-3" /> View Trip
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      {/* Left (7 cols): Route Timeline */}
+                      <div className="col-span-7 flex items-stretch gap-2.5 border-r border-slate-200/80 dark:border-slate-800/80 pr-3">
+                        <div className="flex flex-col items-center my-0.5 shrink-0">
+                          <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-white dark:bg-slate-900 z-10"></div>
+                          <div className="w-0.5 bg-slate-200 dark:bg-slate-800 flex-1 my-1"></div>
+                          <div className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-white dark:bg-slate-900 z-10"></div>
+                        </div>
+                        <div className="flex flex-col justify-between min-w-0 py-0.5">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Origin</p>
+                            <p className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate leading-tight">{displayTripRoute.pickup}</p>
+                          </div>
+                          <div className="min-w-0 mt-1.5">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Destination</p>
+                            <p className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white truncate leading-tight">{displayTripRoute.dropoff}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right (5 cols): Vehicle & ETA */}
+                      <div className="col-span-5 flex flex-col justify-center gap-2.5 pl-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6.5 h-6.5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                            <Truck className="w-3.5 h-3.5 text-slate-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Vehicle</p>
+                            <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate leading-none">
+                              {displayTrip.vehicle?.plate_number || assignedVehicle?.plate_number || 'Unassigned'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6.5 h-6.5 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">ETA</p>
+                            <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate leading-none">
+                              {displayTrip.planned_end
+                                ? formatInDeploymentTz(displayTrip.planned_end, tz, 'dd MMM, HH:mm')
+                                : 'Pending'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Finance Details */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Banknote className="w-3.5 h-3.5" />
+                        Finance Details
+                      </p>
+                      {displayTrip.is_post_trip_settled && (
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded uppercase">
+                          Settled
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Trip Revenue</span>
+                        <span className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">
+                          SAR {Number(displayTrip.billing_amount || displayTrip.applied_rate || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Driver Payout</span>
+                        <span className="text-xs 2xl:text-sm font-black text-emerald-600 dark:text-emerald-500">
+                          SAR {Number(displayTrip.driver_charge || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Trip Charges</span>
+                        <span className="text-xs 2xl:text-sm font-black text-amber-600 dark:text-amber-500">
+                          SAR {Number(displayTrip.trip_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* View All + Open Trip Buttons */}
+                  <div className="flex items-center justify-between pt-1.5 gap-2">
+                    <Button
+                      onClick={() => navigate(`/trips/${displayTrip.id}`)}
+                      variant="ghost"
+                      className="flex-1 h-7 px-3 text-[10px] font-bold text-[#FA634E] hover:text-white hover:bg-[#FA634E] bg-[#FA634E]/10 border border-[#FA634E]/20 rounded-full flex items-center justify-center gap-1 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <ArrowUpRight className="w-3 h-3" />
+                      <span>Open Trip</span>
+                    </Button>
+                    <Button
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
+                      variant="ghost"
+                      className="flex-1 h-7 px-3 text-[10px] font-bold text-slate-700 hover:text-slate-900 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full flex items-center justify-center gap-1 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <span>All Trips</span>
+                      <ChevronRight className="w-3 h-3 text-slate-400" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-3">
+                    <Truck className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">No Dispatches Recorded</h4>
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">This driver is not currently assigned to any active trips.</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* ════════════════════════════════════════════════
+              COLUMN 2 (MIDDLE): Performance & Work Analytics
+             ════════════════════════════════════════════════ */}
+          <div className="col-span-12 xl:col-span-5 flex flex-col gap-4 h-full min-h-0">
+            
+            {/* 2.1 TRIPS OVERVIEW (Upgraded Executive Bento & Pipeline Design) */}
+            <div className="rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+              {/* Header Bar */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
+                  className="flex items-center gap-2.5 cursor-pointer group/title"
+                  title="Click to view driver trips"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs group-hover/title:bg-[#FA634E] transition-colors">
+                    <TrendingUp className="w-4 h-4 text-[#FA634E] group-hover/title:text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs 2xl:text-sm font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider leading-none group-hover/title:text-[#FA634E] flex items-center gap-1 transition-colors">
+                      Trips Overview <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/title:text-[#FA634E]" />
+                    </h3>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setTripsOverviewFilter('week')}
+                    className={cn(
+                      "px-2.5 py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer",
+                      tripsOverviewFilter === 'week'
+                        ? "text-slate-900 dark:text-white bg-white dark:bg-slate-900 shadow-2xs"
+                        : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    )}
+                  >
+                    This Week
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTripsOverviewFilter('month')}
+                    className={cn(
+                      "px-2.5 py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer",
+                      tripsOverviewFilter === 'month'
+                        ? "text-slate-900 dark:text-white bg-white dark:bg-slate-900 shadow-2xs"
+                        : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    )}
+                  >
+                    Month
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Pipeline Breakdown Strip — each status navigates to dedicated driver trip page */}
+              <div className="bg-[#F8F9FA] dark:bg-slate-950 p-2.5 rounded-[16px] border border-slate-200/50 dark:border-slate-800/60 space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Completed`)}
+                      className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {metrics.completedCount} Delivered ({metrics.completedPct}%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
+                      className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      {metrics.inTransitCount} In Transit ({metrics.inTransitPct}%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
+                      className="flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      {metrics.dispatchedCount} Dispatched ({metrics.dispatchedPct}%)
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}`)}
+                    className="text-slate-400 font-semibold hover:text-slate-700 hover:underline cursor-pointer"
+                  >
+                    {metrics.totalCount} Total Dispatches
+                  </button>
                 </div>
 
-                {/* Contact Phone Details Directly Under the Tags */}
-                <div className="flex items-center gap-2 mt-0.5 pt-0.5">
-                  <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <PhoneDisplay
-                    phone={driver.phone_primary}
-                    variant="inline"
-                    showActions
-                    className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 tracking-tight"
+                {/* Micro Multi-Segment Status Bar — clickable segments */}
+                <div className="h-2 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ width: `${metrics.completedPct}%` }}
+                    title={`${metrics.completedPct}% Delivered — click to view`}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Completed`)}
+                  />
+                  <div
+                    className="h-full bg-blue-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ width: `${metrics.inTransitPct}%` }}
+                    title={`${metrics.inTransitPct}% In Transit — click to view`}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
+                  />
+                  <div
+                    className="h-full bg-amber-500 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ width: `${metrics.dispatchedPct}%` }}
+                    title={`${metrics.dispatchedPct}% Dispatched — click to view`}
+                    onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Active`)}
                   />
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0 lg:pt-1">
-
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportDossier}
-              className="h-9 gap-1.5 text-xs font-semibold"
-              title="Export Driver Dossier"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-              className="h-9 gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400"
-              title="Document Vault"
-            >
-              <FileText className="w-4 h-4" />
-              Vault
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-9 gap-1.5 text-xs font-semibold"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="h-9 w-9 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-              title="Delete Driver"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
-              className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-lg px-4"
-            >
-              <Plus className="w-4 h-4" />
-              New Trip
-            </Button>
-          </div>
-        </div>
-
-        {/* ── 2. OVERVIEW INSTRUMENT-TILE STAT BLOCKS (3 Columns) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
-          
-          {/* Overview 1: Assigned Vehicle */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-emerald-600" /> Assigned Vehicle
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {assignedVehicle ? assignedVehicle.asset_type || 'Vehicle Asset' : 'No truck linked'}
-            </div>
-          </div>
-
-          {/* Overview 2: Document Expiry */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Document Expiry
-            </div>
-            <div className={cn(
-              'font-mono text-base font-black truncate leading-tight',
-              isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'
-            )}>
-              {isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry} days left` : 'N/A'}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'No expiry set'}
-            </div>
-          </div>
-
-          {/* Overview 3: Dispatch Trips */}
-          <div className="px-4 py-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1 shadow-2xs">
-            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-brand" /> Dispatch Trips
-            </div>
-            <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
-              {completedTripsCount} / {totalTripsCount}
-            </div>
-            <div className="text-[10px] font-medium text-slate-500 truncate">
-              Completed Dispatches
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 3. LICENSE COMPLIANCE ALERT (only when expired/expiring) ────────────── */}
-        {(isLicenseExpired || isLicenseExpiringSoon) && (
-          <div className={cn(
-            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-2xs',
-            isLicenseExpired
-              ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
-              : 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60'
-          )}>
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                isLicenseExpired ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-600' : 'bg-amber-100 dark:bg-amber-900/60 text-amber-600'
-              )}>
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className={cn(
-                  'text-xs font-bold',
-                  isLicenseExpired ? 'text-rose-900 dark:text-rose-200' : 'text-amber-900 dark:text-amber-200'
-                )}>
-                  {isLicenseExpired ? 'Driver License Expired' : 'Driver License Expiring Soon'}
-                </h4>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  License #{driver.license_number || 'N/A'} {isLicenseExpired ? 'expired on' : 'expires on'} {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}. Please update compliance records.
-                </p>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/drivers/${driver.id}/edit`)}
-              className="h-8 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              Update License
-            </Button>
-          </div>
-        )}
-
-        {/* ── 4. DRIVER CREDENTIALS & COMMERCIAL COMPLIANCE (3 PROMINENT CARD BOXES) ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          
-          {/* Box 1: Driver Credentials */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-brand" /> Driver Credentials
-                </h3>
-                <StatusBadge status={driver.status} />
-              </div>
-              <div className="space-y-1.5">
-                <InfoRow label="Duty Status">
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{driver.status}</span>
-                </InfoRow>
-                <InfoRow label="License Number">
-                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                    {driver.license_number || 'N/A'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="License Expiry">
-                  <span className={cn('font-mono font-bold', isLicenseExpired ? 'text-rose-600' : isLicenseExpiringSoon ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100')}>
-                    {driver.license_expiry ? formatInDeploymentTz(driver.license_expiry, tz, 'dd MMM yyyy') : 'N/A'}
-                  </span>
-                </InfoRow>
-                <InfoRow label="Registration Date">
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {formatInDeploymentTz(driver.createdAt, tz, 'dd MMM yyyy')}
-                  </span>
-                </InfoRow>
-              </div>
-            </div>
-          </Card>
-
-          {/* Box 2: Assigned Vehicle Details */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-emerald-600" /> Vehicle Details
-                </h3>
-                {assignedVehicle && (
-                  <button
-                    onClick={() => navigate(`/vehicles/${assignedVehicle.id}`)}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
-                  >
-                    Open Details <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {!assignedVehicle ? (
-                <div className="flex items-center gap-2 text-xs text-slate-500 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
-                  <Truck className="w-4 h-4 text-slate-400 shrink-0" /> No vehicle currently assigned.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100 tracking-wide flex items-center gap-1.5">
-                      {assignedVehicle.plate_number}
-                      {assignedVehicle.deletedAt && <DeletedBadge />}
-                    </span>
-                    <StatusBadge status={assignedVehicle.status} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 pt-1">
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 p-3">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Gauge className="w-3 h-3" /> Odometer
-                      </span>
-                      <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                        {assignedVehicle.current_odometer != null ? `${assignedVehicle.current_odometer.toLocaleString()} KM` : 'N/A'}
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 p-3">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Weight className="w-3 h-3" /> Capacity
-                      </span>
-                      <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                        {assignedVehicle.capacity_kg != null ? `${assignedVehicle.capacity_kg.toLocaleString()} KG` : 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Box 3: Compliance Documents Vault */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-600" /> Documents Vault
-                  {documents.length > 0 && (
-                    <span className="rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 text-[10px] font-bold">
-                      {documents.length}
-                    </span>
-                  )}
-                </h3>
-                <button
-                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+              {/* 4 Bento Metric Cards — Dynamic display boxes */}
+              <div className="grid grid-cols-4 gap-3">
+                {/* 1. Total Dispatches (Blue Theme) */}
+                <div
+                  className="p-3.5 rounded-[18px] bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 flex flex-col justify-between shadow-2xs"
                 >
-                  Vault <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-blue-900/70 dark:text-blue-300 uppercase tracking-wider">Dispatches</span>
+                    <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Truck className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl 2xl:text-3xl font-black text-blue-950 dark:text-white leading-none">{metrics.totalCount}</div>
+                    <div className="mt-2.5 pt-1.5 border-t border-blue-200/50 dark:border-blue-900/40 flex items-center">
+                      <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                        {metrics.completedCount} Delivered
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. On-Time Rate (Emerald Green Theme) */}
+                <div
+                  className="p-3.5 rounded-[18px] bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 flex flex-col justify-between shadow-2xs"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-emerald-900/70 dark:text-emerald-300 uppercase tracking-wider">On-Time</span>
+                    <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-2xl 2xl:text-3xl font-black text-emerald-700 dark:text-emerald-400 leading-none">{metrics.onTimePct}%</div>
+                    <div className="mt-2.5 pt-1.5 border-t border-emerald-200/50 dark:border-emerald-900/40 flex items-center">
+                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                        {metrics.onTimeCount} / {metrics.completedCount || metrics.totalCount} On-Time
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Trip Revenue (Coral Red Theme) */}
+                <div
+                  className="p-3.5 rounded-[18px] bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 flex flex-col justify-between shadow-2xs"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-rose-900/70 dark:text-rose-300 uppercase tracking-wider">Revenue</span>
+                    <div className="w-7 h-7 rounded-xl bg-[#FA634E] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Banknote className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs 2xl:text-sm font-black text-[#FA634E] dark:text-rose-400 leading-none">
+                      SAR {metrics.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    </div>
+                    <div className="mt-2.5 pt-1.5 border-t border-rose-200/50 dark:border-rose-900/40 flex items-center">
+                      <span className="text-[9px] font-bold text-[#FA634E] dark:text-rose-300 bg-rose-100/80 dark:bg-rose-900/50 px-2 py-0.5 rounded-full border border-rose-200/60">
+                        {metrics.totalCount} Trips Total
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Total Distance (Indigo Theme) */}
+                <div
+                  className="p-3.5 rounded-[18px] bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 flex flex-col justify-between shadow-2xs"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-bold text-indigo-900/70 dark:text-indigo-300 uppercase tracking-wider">Distance</span>
+                    <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Gauge className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xl 2xl:text-2xl font-black text-indigo-950 dark:text-white leading-none">
+                      {metrics.totalDistance.toLocaleString()} <span className="text-xs font-bold text-indigo-600/80">km</span>
+                    </div>
+                    <div className="mt-2.5 pt-1.5 border-t border-indigo-200/50 dark:border-indigo-900/40 flex items-center">
+                      <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100/80 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full border border-indigo-200/60">
+                        Avg {metrics.avgDistance} km / trip
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2.2 WORK TIME ANALYTICS CHART (HOS & Duty Breakdown) */}
+            <div className="flex-1 rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 flex flex-col justify-between overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] min-h-0">
+              {/* Card Header */}
+              <div className="flex items-center justify-between shrink-0 mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <div
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Delayed`)}
+                  className="flex items-center gap-2.5 cursor-pointer group/title"
+                  title="Click to view driver trips"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center group-hover/title:bg-[#FA634E] transition-colors">
+                    <Clock className="w-3.5 h-3.5 text-[#FA634E] group-hover/title:text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs 2xl:text-sm font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider leading-none group-hover/title:text-[#FA634E] flex items-center gap-1 transition-colors">
+                      Work Hours & Duty Analysis <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/title:text-[#FA634E]" />
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-bold">
+                  <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-lg border border-rose-200/50">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-[#FA634E]"></span>
+                    <span className="text-[#FA634E] dark:text-rose-400">Driving ({metrics.weeklyLoggedHours}h)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-200/50">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-[#38BDF8]"></span>
+                    <span className="text-sky-600 dark:text-sky-400">Remaining</span>
+                  </div>
+                </div>
               </div>
 
-              {isLoadingDocs ? (
-                <div className="space-y-2 animate-pulse mt-2">
-                  {[1, 2].map(i => <div key={i} className="h-10 rounded-lg bg-slate-100 dark:bg-slate-800" />)}
+              {/* Metric Row with HOS Compliance Gauge */}
+              <div className="flex items-center justify-between mb-3 shrink-0 bg-[#F8F9FA] dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-2xs">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl 2xl:text-3xl font-black text-[#3E3C3D] dark:text-white leading-none">{metrics.weeklyLoggedHours}</span>
+                      <span className="text-xs font-bold text-slate-400">/ 168 hrs</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1 block">Weekly Logged Duty</span>
+                  </div>
                 </div>
-              ) : documents.length === 0 ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 mt-2">
-                  <span className="text-xs text-slate-500">No documents uploaded.</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/drivers/${driver.id}/documents`)}
-                    className="h-7 text-[11px] font-bold shrink-0"
-                  >
-                    Upload
-                  </Button>
+
+                <div className="text-right hidden sm:block">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Avg Daily Duty</span>
+                  <span className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">{metrics.avgDailyDuty} hrs / day</span>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-0.5">
-                  {documents.map((doc) => {
-                    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
-                    return (
-                      <div
-                        key={doc.id}
-                        onClick={() => setSelectedDocIdForPreview(doc.id)}
-                        className="flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
-                        title="Click to preview document details & OCR metadata"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={cn(
-                            'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                            isExpired ? 'bg-rose-500/10 text-rose-600' : 'bg-indigo-500/10 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
-                          )}>
-                            {isExpired ? <AlertCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                          </span>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">{doc.doc_type}</div>
-                          </div>
-                        </div>
-                        {getDocStatusBadge(isExpired ? 'Expired' : doc.status)}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
+
+              {/* 24h Bar Chart with Green Driver Runned Hours & Soft Neutral Remaining Hours */}
+              <div className="flex-1 w-full min-h-0 pt-1">
+                <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+                  <BarChart data={metrics.workTimeStackedData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} />
+                    <YAxis domain={[0, 24]} ticks={[0, 6, 12, 18, 24]} axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} tickFormatter={(val) => `${val}h`} />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(241, 245, 249, 0.6)' }}
+                      contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold', padding: '8px 12px' }}
+                      formatter={(value: any, name: any) => [
+                        `${value} hrs`,
+                        name === 'Driver Runned' || name === 'driving' ? 'Driver Runned' : 'Remaining'
+                      ]}
+                    />
+                    <Bar dataKey="driving" name="Driver Runned" stackId="a" fill="#FA634E" radius={[0, 0, 4, 4]} barSize={24} />
+                    <Bar dataKey="remaining" name="Remaining" stackId="a" fill="#38BDF8" radius={[6, 6, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </Card>
 
-        </div>
-
-        {/* ── 5. DRIVER TRIP OPERATIONS (Active & Scheduled / Dispatch History) ── */}
-        <div>
-          <DriverTripOperations
-            driverId={driver.id}
-            driverName={`${driver.first_name} ${driver.last_name}`}
-            trips={driver.trips || []}
-          />
-        </div>
-
-      </div>
-
-      {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ─────────────────────────────── */}
-      <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
-        <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-white rounded-3xl">
-          <div className="relative flex flex-col items-center justify-center p-6 min-h-[380px]">
-            <DriverAvatar
-              src={driver.avatar_url}
-              firstName={driver.first_name}
-              lastName={driver.last_name}
-              size="2xl"
-              className="[&>img]:w-64 [&>img]:h-64 [&>div]:w-64 [&>div]:h-64 [&>div]:text-6xl w-64 h-64 rounded-full border-4 border-white/20 shadow-2xl"
-            />
-            <div className="mt-4 text-center">
-              <h3 className="text-xl font-black text-white">{driver.first_name} {driver.last_name}</h3>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">Ref ID: {driver.ref_id || 'DRV-123'}</p>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* ── DELETE DRIVER CONFIRMATION MODAL ────────────────────────────── */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
-        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-950/20">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <DialogTitle className="text-base font-black">Delete Driver Account</DialogTitle>
-            </div>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive roster records. Enter admin password to proceed.
-              {driverUsage && (
-                driverUsage.totalTrips > 0 || driverUsage.expenses > 0 ? (
-                  <>
-                    {' '}They have {driverUsage.totalTrips} trip{driverUsage.totalTrips === 1 ? '' : 's'}
-                    {driverUsage.activeTrips > 0 ? ` (${driverUsage.activeTrips} active)` : ''} and {driverUsage.expenses} expense{driverUsage.expenses === 1 ? '' : 's'} linked. Trip history will keep showing their name marked as Deleted.
-                  </>
-                ) : ' They have no linked trips or records.'
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleDeleteSubmit}>
-            <div className="p-6 space-y-4">
-              {deleteError && (
-                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                  <span>{deleteError}</span>
+          {/* ════════════════════════════════════════════════
+              COLUMN 3 (RIGHT): Operational Efficiency & Compliance
+             ════════════════════════════════════════════════ */}
+          <div className="col-span-12 xl:col-span-4 flex flex-col gap-4 h-full min-h-0">
+            
+            {/* 3.1 OPERATIONAL EFFICIENCY CARD (Compact & Focused) */}
+            <div className="rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+              {/* Header Row */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div
+                  onClick={() => navigate(`/trips?driver=${driver.id}&driver_name=${encodeURIComponent(driverName)}&status=Delayed`)}
+                  className="flex items-center gap-2 cursor-pointer group/title"
+                  title="Click to view driver performance & efficiency analysis"
+                >
+                  <Award className="w-4 h-4 text-[#FA634E]" />
+                  <h3 className="text-xs font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider group-hover/title:text-[#FA634E] flex items-center gap-1 transition-colors">
+                    Operational Efficiency <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/title:text-[#FA634E]" />
+                  </h3>
                 </div>
-              )}
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
+                  {metrics.performanceBadge}
+                </span>
+              </div>
 
+              {/* Score Row */}
+              <div className="flex items-baseline justify-between">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl 2xl:text-4xl font-black text-[#3E3C3D] dark:text-white leading-none">
+                    {metrics.totalCount === 0 ? '—' : `${metrics.onTimePct}%`}
+                  </span>
+                </div>
+                <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200/50">
+                  {metrics.totalCount === 0 ? 'N/A' : (parseFloat(metrics.onTimePct) >= 90 ? 'Top 10% Fleet' : 'Standard Fleet')}
+                </span>
+              </div>
+
+              {/* 2 Segment Progress Bar System (On-Time & Delay) */}
               <div className="space-y-1.5">
-                <Label htmlFor="admin_password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Admin Password <span className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  id="admin_password"
-                  type="password"
-                  placeholder="Enter your admin password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 text-xs border-slate-200 dark:border-slate-800"
-                  required
-                />
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 px-0.5">
+                  <span className="text-emerald-600 dark:text-emerald-400">{metrics.onTimePct}% On-Time</span>
+                  <span className="text-rose-500 dark:text-rose-400">{metrics.delayPct}% Delay</span>
+                </div>
+                
+                <div className="h-7 w-full p-1 bg-slate-100 dark:bg-slate-800 rounded-xl flex gap-1 shadow-inner">
+                  {/* Segment 1: On-Time (Solid Emerald Green) */}
+                  <div
+                    className="h-full bg-emerald-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs transition-all"
+                    style={{ width: `${metrics.completedCount > 0 ? metrics.onTimePct : 100}%` }}
+                  >
+                    On-Time
+                  </div>
+                  {/* Segment 2: Delay (Solid Coral Red) */}
+                  {parseFloat(metrics.delayPct) > 0 && (
+                    <div
+                      className="h-full bg-rose-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-2xs transition-all"
+                      style={{ width: `${metrics.delayPct}%` }}
+                    >
+                      Delay
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3 Metrics: On-Time Trips, Delayed Trips, Avg. Delay */}
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">On-Time Trips</span>
+                  <div className="text-xs 2xl:text-sm font-black text-emerald-600 dark:text-emerald-400">{metrics.onTimeCount} Trips</div>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">Delayed Trips</span>
+                  <div className="text-xs 2xl:text-sm font-black text-rose-500 dark:text-rose-400">{metrics.delayedCount} {metrics.delayedCount === 1 ? 'Trip' : 'Trips'}</div>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/60">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">Avg. Delay</span>
+                  <div className="text-xs 2xl:text-sm font-black text-slate-900 dark:text-white">{metrics.avgDelayMins} mins</div>
+                </div>
               </div>
             </div>
 
-            <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+            {/* 3.2 DOCUMENT & COMPLIANCE STATUS (Zero-Wasted-Space Executive Registry) */}
+            <div className="flex-1 rounded-[24px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 2xl:p-5 flex flex-col gap-3 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] min-h-0">
+              {/* Header Row */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                <div
+                  onClick={() => navigate(`/drivers/${driver.id}/documents`)}
+                  className="flex items-center gap-2 cursor-pointer group/title"
+                  title="Click to manage compliance documents"
+                >
+                  <div className="w-7 h-7 rounded-xl bg-[#3E3C3D] dark:bg-slate-800 text-white flex items-center justify-center shadow-2xs group-hover/title:bg-[#FA634E] transition-colors">
+                    <FolderOpen className="w-3.5 h-3.5 text-[#FA634E] group-hover/title:text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs 2xl:text-sm font-black text-[#3E3C3D] dark:text-white uppercase tracking-wider leading-none group-hover/title:text-[#FA634E] flex items-center gap-1 transition-colors">
+                      Compliance Documents <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/title:text-[#FA634E]" />
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/40 px-2.5 py-1 rounded-full shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 leading-none">
+                    4/4 Valid
+                  </span>
+                </div>
+              </div>
+
+              {/* Compliance Health Progress Strip */}
+              <div className="bg-[#F8F9FA] dark:bg-slate-950 px-3 py-2 rounded-[14px] border border-slate-200/50 dark:border-slate-800/60 space-y-1.5 shrink-0 shadow-2xs">
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    100% Fully Compliant
+                  </span>
+                  <span className="text-slate-400 font-semibold">0 Expired / 0 Warning</span>
+                </div>
+                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 rounded-full shadow-2xs"></div>
+              </div>
+
+              {/* Unified High-Density Document Registry Container (Zero Space Waste) */}
+              <div className="flex-1 flex flex-col justify-between bg-[#F8F9FA] dark:bg-slate-950 rounded-[18px] border border-slate-200/60 dark:border-slate-800/80 divide-y divide-slate-200/60 dark:divide-slate-800/60 overflow-hidden shadow-2xs min-h-0">
+                {documentList.map((doc, idx) => {
+                  const IconComp = doc.icon;
+                  const isValid = doc.status === 'Valid';
+
+                  // Distinct executive color theme for each document type icon
+                  const iconThemes = [
+                    "bg-blue-50/90 text-blue-600 border-blue-200/70 dark:bg-blue-950/60 dark:text-blue-400 dark:border-blue-800/50",
+                    "bg-emerald-50/90 text-emerald-600 border-emerald-200/70 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/50",
+                    "bg-amber-50/90 text-amber-600 border-amber-200/70 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800/50",
+                    "bg-indigo-50/90 text-indigo-600 border-indigo-200/70 dark:bg-indigo-950/60 dark:text-indigo-400 dark:border-indigo-800/50",
+                  ];
+                  const colorStyle = iconThemes[idx % iconThemes.length];
+
+                  return (
+                    <div
+                      key={doc.id}
+                      className="px-3.5 py-2.5 flex-1 flex items-center justify-between hover:bg-slate-100/70 dark:hover:bg-slate-900/80 transition-colors group"
+                    >
+                      {/* Left: Icon + Doc Name & Code */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105",
+                          colorStyle
+                        )}>
+                          <IconComp className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-black text-[#3E3C3D] dark:text-white leading-tight truncate">
+                            {doc.name}
+                          </h4>
+                          <p className="text-[10px] font-semibold text-slate-400 font-mono truncate leading-none mt-0.5">
+                            {doc.code}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: Expiry + Status Badge + View Button */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Highlighted Expiry Pill */}
+                        <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/40 px-2 py-1 rounded-lg shadow-2xs">
+                          <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 leading-none">
+                            {doc.expiry}
+                          </span>
+                        </div>
+
+                        {/* Status Badge */}
+                        <span className={cn(
+                          "px-2 py-1 rounded-lg text-[9px] font-black uppercase border leading-none hidden xl:inline-block shadow-2xs",
+                          isValid
+                            ? "bg-emerald-100/70 text-emerald-800 border-emerald-300/60 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-amber-100/70 text-amber-800 border-amber-300/60 dark:bg-amber-900/40 dark:text-amber-300"
+                        )}>
+                          {doc.status}
+                        </span>
+
+                        {/* View Button */}
+                        <Button
+                          onClick={() => setSelectedDocIdForPreview(doc.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white hover:bg-[#3E3C3D] hover:text-white dark:bg-slate-800 dark:hover:bg-[#FA634E] dark:hover:border-[#FA634E] border border-slate-200/90 dark:border-slate-700 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View</span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Manage Compliance Button */}
               <Button
-                type="button"
+                onClick={() => navigate(`/drivers/${driver.id}/documents`)}
                 variant="ghost"
-                size="sm"
-                onClick={() => { setIsDeleteModalOpen(false); setPassword(''); setDeleteError(''); }}
-                className="text-xs font-bold"
+                className="w-full h-8 mt-0.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-[#3E3C3D] hover:text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl flex items-center justify-center gap-1.5 transition-all shrink-0 group"
               >
-                Cancel
+                <span>Manage Compliance</span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
               </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={deleteMutation.isPending}
-                className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 shadow-xs"
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
 
-      {/* ── DRIVER PROFILE PREVIEW & DOCUMENT PREVIEW MODALS ── */}
-      <DriverPreviewModal
-        driver={driver}
-        isOpen={isPreviewModalOpen}
-        onClose={() => setIsPreviewModalOpen(false)}
-      />
+          </div>
 
-      <DocumentPreviewSheet
-        documentId={selectedDocIdForPreview}
-        onClose={() => setSelectedDocIdForPreview(null)}
-      />
+        </div>
 
+        {/* ── FULL-SCREEN PHOTO LIGHTBOX MODAL ── */}
+        <Dialog open={isPhotoFullViewOpen} onOpenChange={setIsPhotoFullViewOpen}>
+          <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-white rounded-3xl">
+            <div className="relative flex flex-col items-center justify-center p-6 min-h-[380px]">
+              <DriverAvatar
+                src={driver.avatar_url}
+                firstName={driver.first_name}
+                lastName={driver.last_name}
+                size="2xl"
+                className="[&>img]:w-64 [&>img]:h-64 [&>div]:w-64 [&>div]:h-64 [&>div]:text-6xl w-64 h-64 rounded-full border-4 border-white/20 shadow-2xl"
+              />
+              <div className="mt-4 text-center">
+                <h3 className="text-xl font-bold text-white">{driver.first_name} {driver.last_name}</h3>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">Ref ID: {driver.ref_id || 'CL-25'}</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── DELETE DRIVER CONFIRMATION MODAL ── */}
+        <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
+          <DialogContent className="max-w-md rounded-[32px] p-0 overflow-hidden border-2 border-slate-200 dark:border-slate-800">
+            <DialogHeader className="px-6 py-5 border-b-2 border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-955/20">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-450">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <DialogTitle className="text-base font-extrabold">Delete Driver Account</DialogTitle>
+              </div>
+              <DialogDescription className="text-xs font-medium text-slate-500 mt-2">
+                Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive driver records. Enter admin password to proceed.
+                {driverUsage && (
+                  driverUsage.totalTrips > 0 || driverUsage.expenses > 0 ? (
+                    <>
+                      {' '}They have {driverUsage.totalTrips} trip{driverUsage.totalTrips === 1 ? '' : 's'}
+                      {driverUsage.activeTrips > 0 ? ` (${driverUsage.activeTrips} active)` : ''} and {driverUsage.expenses} expense{driverUsage.expenses === 1 ? '' : 's'} linked. Trip history will keep showing their name marked as Deleted.
+                    </>
+                  ) : ' They have no linked trips or records.'
+                )}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleDeleteSubmit}>
+              <div className="p-6 space-y-4">
+                {deleteError && (
+                  <div className="p-3 rounded-2xl bg-rose-50 border-2 border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="admin_password" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                    Admin Password <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="admin_password"
+                    type="password"
+                    placeholder="Enter your admin password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 text-sm border-2 rounded-2xl border-slate-200 dark:border-slate-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="px-6 py-4 border-t-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setIsDeleteModalOpen(false); setPassword(''); setDeleteError(''); }}
+                  className="text-xs font-bold rounded-xl px-4"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={deleteMutation.isPending}
+                  className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2 h-auto rounded-xl shadow-none"
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <DocumentPreviewSheet
+          documentId={selectedDocIdForPreview}
+          onClose={() => setSelectedDocIdForPreview(null)}
+        />
+        
+      </div>
     </DashboardLayout>
   );
 }

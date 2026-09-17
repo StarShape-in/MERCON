@@ -1,11 +1,16 @@
 import { useMemo, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Download, ChevronDown,
-  Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, Filter, RotateCw, Building2
+  Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, Filter, RotateCw, Building2,
+  Truck, User, Wrench, Users
 } from 'lucide-react';
 
+import { format, subDays, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyBoard from '@/components/trips/monthly/MonthlyCompanyBoard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -23,12 +28,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { VEHICLE_TYPES, RATE_CATEGORIES, BILLING_TYPES } from '@mercon/shared-types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { exportExcelTable, exportPDFTable, downloadCSVTable } from '@/utils/exportUtils';
 
 const LABEL = 'text-[10px] font-bold uppercase tracking-wider text-[#9898A4]';
@@ -98,14 +105,33 @@ export default function MonthlyTripsPage() {
 
   const [month, setMonth] = useState(currentMonthKey());
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [customerId, setCustomerId] = useState('All');
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [billingType, setBillingType] = useState('');
   const [status, setStatus] = useState('');
+
+  const effectiveDateRange = useMemo<DateRange | undefined>(() => {
+    const today = new Date();
+    if (dateFilter === 'Today') return { from: today, to: today };
+    if (dateFilter === 'Yesterday') {
+      const y = subDays(today, 1);
+      return { from: y, to: y };
+    }
+    if (dateFilter === '3Days') return { from: subDays(today, 1), to: addDays(today, 1) };
+    if (dateFilter === 'ThisWeek') return { from: startOfWeek(today, { weekStartsOn: 0 }), to: endOfWeek(today, { weekStartsOn: 0 }) };
+    if (dateFilter === 'Last7Days') return { from: subDays(today, 6), to: today };
+    if (dateFilter === 'ThisMonth') return { from: startOfMonth(today), to: endOfMonth(today) };
+    if (dateFilter === 'Last30Days') return { from: subDays(today, 29), to: today };
+    if (dateFilter === 'Custom') return customDateRange;
+    return undefined;
+  }, [dateFilter, customDateRange]);
+
   useEffect(() => {
     if (searchParams.get('bulk') === 'true') {
-      navigate(`/trips/monthly/new?month=${month}`, { replace: true });
+      navigate(`/trips/new?mode=monthly&month=${month}`, { replace: true });
     }
   }, [searchParams, month, navigate]);
 
@@ -150,15 +176,34 @@ export default function MonthlyTripsPage() {
   }, [customers]);
 
   const companies = useMemo(() => {
-    if (!search.trim()) return rawCompanies;
+    let fromStr: string | null = null;
+    let toStr: string | null = null;
+
+    if (effectiveDateRange?.from) {
+      fromStr = format(effectiveDateRange.from, 'yyyy-MM-dd');
+      toStr = effectiveDateRange.to ? format(effectiveDateRange.to, 'yyyy-MM-dd') : fromStr;
+    }
+
+    if (!search.trim() && !fromStr) return rawCompanies;
     
     const query = search.trim();
-    // 1. Filter trips inside each company's days
     const filtered = rawCompanies.map((c) => {
       const filteredDays = c.days.map((d) => {
-        const matchingTrips = d.trips.filter((t) => computeMonthlyTripSearchRelevance(t, query) > 0);
+        // Date Filter
+        if (fromStr && toStr) {
+          if (d.date < fromStr || d.date > toStr) return null;
+        }
+
+        // Search Filter
+        let matchingTrips = d.trips;
+        if (query) {
+          matchingTrips = d.trips.filter((t) => computeMonthlyTripSearchRelevance(t, query) > 0);
+        }
+
+        if (matchingTrips.length === 0) return null;
+
         return { ...d, trips: matchingTrips };
-      }).filter((d) => d.trips.length > 0);
+      }).filter(Boolean) as typeof c.days;
 
       const totalMatchingTrips = filteredDays.reduce((sum, d) => sum + d.trips.length, 0);
 
@@ -174,7 +219,8 @@ export default function MonthlyTripsPage() {
       };
     }).filter((c) => c.total_trips > 0);
 
-    // 2. Sort by search relevance
+    if (!query) return filtered;
+
     return filtered.sort((a, b) => {
       const aTrips = a.days.flatMap((d) => d.trips);
       const bTrips = b.days.flatMap((d) => d.trips);
@@ -183,7 +229,7 @@ export default function MonthlyTripsPage() {
       if (scoreA !== scoreB) return scoreB - scoreA;
       return b.total_trips - a.total_trips;
     });
-  }, [rawCompanies, search]);
+  }, [rawCompanies, search, effectiveDateRange]);
 
   const allVisibleTripIds = useMemo(
     () => companies.flatMap((c) => c.days.flatMap((d) => d.trips.map((t) => t.id))),
@@ -201,20 +247,17 @@ export default function MonthlyTripsPage() {
     );
   };
 
-  const handleToggleCompany = (companyTripIds: string[]) => {
-    setSelectedTripIds((prev) => {
-      const allSelected = companyTripIds.length > 0 && companyTripIds.every((id) => prev.includes(id));
-      if (allSelected) {
-        return prev.filter((id) => !companyTripIds.includes(id));
-      } else {
-        const set = new Set([...prev, ...companyTripIds]);
-        return Array.from(set);
-      }
-    });
+  const handleToggleCompany = (tripIds: string[]) => {
+    const allInCompanySelected = tripIds.every((id) => selectedTripIds.includes(id));
+    if (allInCompanySelected) {
+      setSelectedTripIds((prev) => prev.filter((id) => !tripIds.includes(id)));
+    } else {
+      setSelectedTripIds((prev) => Array.from(new Set([...prev, ...tripIds])));
+    }
   };
 
   const handleSelectAllVisible = () => {
-    if (selectedTripIds.length === allVisibleTripIds.length && allVisibleTripIds.length > 0) {
+    if (selectedTripIds.length === allVisibleTripIds.length) {
       setSelectedTripIds([]);
     } else {
       setSelectedTripIds(allVisibleTripIds);
@@ -225,73 +268,60 @@ export default function MonthlyTripsPage() {
     setSelectedTripIds([]);
   };
 
-  const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: string[]) => tripService.bulkDelete(ids),
-    onSuccess: () => {
-      setSelectedTripIds([]);
-      setIsDeleteConfirmOpen(false);
-      setIsSingleDeleteConfirmOpen(false);
-      setTripToDelete(null);
-      refetch();
-    },
-  });
-
   const bulkStatusMutation = useMutation({
     mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
       tripService.bulkUpdateStatus(ids, status),
     onSuccess: () => {
-      setSelectedTripIds([]);
       refetch();
+      setSelectedTripIds([]);
     },
   });
 
-  const appliedFilters = [
-    search.trim() && { key: 'search', label: `"${search.trim()}"`, clear: () => setSearch('') },
-    customerId && customerId !== 'All' && {
-      key: 'customer',
-      label: customers.find((c) => c.id === customerId)?.name ?? 'Company',
-      clear: () => setCustomerId('All'),
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => tripService.bulkDelete(ids),
+    onSuccess: (res) => {
+      refetch();
+      setSelectedTripIds([]);
+      setIsDeleteConfirmOpen(false);
+      setIsSingleDeleteConfirmOpen(false);
+      setTripToDelete(null);
+      if (res?.skippedCount > 0) {
+        if (res.deletedCount > 0) {
+          toast.warning(`Moved ${res.deletedCount} trip(s) to Trash. ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+        } else {
+          toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or financially settled.`);
+        }
+      } else {
+        toast.success(`Successfully moved ${res?.deletedCount || 'selected'} trip(s) to Trash`);
+      }
     },
-    rateCategory && { key: 'category', label: rateCategory, clear: () => setRateCategory('') },
-    vehicleType && { key: 'type', label: vehicleType, clear: () => setVehicleType('') },
-    billingType && { key: 'billing', label: billingType, clear: () => setBillingType('') },
-    status && { key: 'status', label: status, clear: () => setStatus('') },
-  ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
+    onError: (e: any) => {
+      toast.error(e.response?.data?.error?.message || 'Failed to delete trip(s)');
+    },
+  });
 
   const resetFilters = () => {
-    setSearch('');
     setCustomerId('All');
     setRateCategory('');
     setVehicleType('');
     setBillingType('');
     setStatus('');
+    setSearch('');
+    setDateFilter('All');
+    setCustomDateRange(undefined);
   };
 
-  const exportRows = useMemo(
-    () =>
-      companies.flatMap((company) =>
-        company.days.flatMap((day) =>
-          day.trips.map((trip) => [
-            company.customer.name,
-            day.date,
-            trip.ref_id ?? '',
-            trip.status,
-            trip.driver?.name ?? 'Not assigned',
-            trip.vehicle?.plate_number ?? 'Not assigned',
-            trip.rate_category ?? '',
-            trip.vehicle_type ?? '',
-            trip.billing_type ?? '',
-            trip.origin ?? '',
-            trip.destination ?? '',
-            trip.billing_amount ?? '',
-            trip.currency,
-          ]),
-        ),
-      ),
-    [companies],
-  );
+  const appliedFiltersCount = [
+    customerId !== 'All',
+    Boolean(rateCategory),
+    Boolean(vehicleType),
+    Boolean(billingType),
+    Boolean(status),
+    Boolean(search.trim()),
+    dateFilter !== 'All',
+  ].filter(Boolean).length;
 
-  const flatExportRows = useMemo<MonthlyExportRow[]>(
+  const exportRows: MonthlyExportRow[] = useMemo(
     () =>
       companies.flatMap((company) =>
         company.days.flatMap((day) =>
@@ -321,48 +351,62 @@ export default function MonthlyTripsPage() {
     const title = `Monthly Trips — ${monthLabel(month)}`;
     const baseName = `MERCON_Monthly_Trips_${month}`;
 
+    const matrix = exportRows.map((r) => [
+      r.company_name,
+      r.date,
+      r.ref_id,
+      r.status,
+      r.driver_name,
+      r.vehicle_plate,
+      r.rate_category,
+      r.vehicle_type,
+      r.billing_type,
+      r.origin,
+      r.destination,
+      r.billing_amount,
+      r.currency,
+    ]);
+
     if (format === 'excel') {
-      exportExcelTable(title, EXPORT_HEADERS, exportRows, `${baseName}.xlsx`, { sheetName: `Monthly ${month}` });
+      exportExcelTable(title, EXPORT_HEADERS, matrix, `${baseName}.xlsx`, { sheetName: `Monthly ${month}` });
     } else if (format === 'pdf') {
-      exportPDFTable(title, EXPORT_HEADERS, exportRows, `${baseName}.pdf`, {
+      exportPDFTable(title, EXPORT_HEADERS, matrix, `${baseName}.pdf`, {
         subtitle: `Monthly Trips Board for ${monthLabel(month)} · ${exportRows.length} trips`,
       });
     } else if (format === 'csv') {
-      downloadCSVTable(EXPORT_HEADERS, exportRows, `${baseName}.csv`);
+      downloadCSVTable(EXPORT_HEADERS, matrix, `${baseName}.csv`);
     }
   };
 
   return (
     <DashboardLayout active="Trips" title="Monthly Trips">
-      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-4">
 
-        {/* ── 1. Page Content Header Row ── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          
-          {/* Left: Total Trips pill (Purple Accent) + Search Bar + Company Combobox */}
+        {/* ── Filter Toolbar Row ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 py-1">
+          {/* Left: Total Trips Pill + Search + Filters */}
           <div className="flex items-center flex-wrap gap-2.5 min-w-0">
-            {/* Total Trips Pill (Purple theme matching top nav accent) */}
-            <button
-              type="button"
+            {/* Total Trips Pill */}
+            <div
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200/90 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shadow-2xs hover:bg-purple-100/80 dark:hover:bg-purple-950/80 transition-all cursor-pointer h-9 shrink-0 group"
-              title="Total Monthly Trips (Click to reset filters)"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200/90 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs font-bold shadow-2xs hover:bg-purple-100 transition-all cursor-pointer h-9 shrink-0"
+              title="Click to reset filters"
             >
               <div className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
-              <span className="font-extrabold text-purple-950 dark:text-purple-200">Total Trips:</span>
-              <span className="font-mono text-xs font-black text-purple-700 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-purple-200 dark:border-purple-800 shadow-3xs group-hover:scale-105 transition-transform">
+              <span>Total Trips:</span>
+              <span className="font-mono text-xs font-black text-purple-700 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-purple-200 shadow-3xs">
                 {summary?.total_trips ?? allTripsFlat.length}
               </span>
-            </button>
+            </div>
 
-            {/* Search Bar */}
-            <div className="relative w-48 sm:w-64 lg:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
+            {/* Search Input */}
+            <div className="relative w-56 sm:w-64 lg:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search trip ID, driver, vehicle or place..."
+                placeholder="Search by route, driver, vehicle, trip ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 w-full rounded-xl shadow-2xs focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
+                className="pl-9 text-xs h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 w-full rounded-xl shadow-2xs focus-visible:ring-purple-500/20 focus-visible:border-purple-500"
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -371,29 +415,38 @@ export default function MonthlyTripsPage() {
               )}
             </div>
 
-            {/* Company Filter Combobox */}
-            <Combobox
-              options={companyOptions}
-              value={customerId}
-              onChange={setCustomerId}
-              placeholder="All Companies"
-              searchPlaceholder="Search company..."
-              triggerClassName="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-semibold rounded-xl shadow-2xs"
-            />
+            {/* Date Filter Button from Trip Ledger */}
+            <div className="w-auto">
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={(newRange) => {
+                  setCustomDateRange(newRange);
+                  if (newRange?.from) {
+                    const newMonthKey = format(newRange.from, 'yyyy-MM');
+                    if (newMonthKey !== month) {
+                      setMonth(newMonthKey);
+                    }
+                  }
+                }}
+              />
+            </div>
+
           </div>
 
-          {/* Right: Month Stepper, Export & Import, + New Trip (Purple Accent), Refresh */}
+          {/* Right: Month Selector, Export & Import, + New Trip */}
           <div className="flex items-center flex-wrap gap-2.5">
-            {/* Month Stepper */}
+            {/* Month Selector Stepper */}
             <MonthStepper month={month} onChange={setMonth} />
 
-            {/* Export Dropdown */}
+            {/* Export & Import Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
+                  className="h-9 gap-1.5 text-xs font-bold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
                   Export & Import
@@ -431,10 +484,10 @@ export default function MonthlyTripsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Primary New Trip Action (Purple Accent) */}
+            {/* Primary Action Button (New Trip) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-9 rounded-xl px-3.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <Button className="h-9 rounded-xl px-4 text-xs font-extrabold bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 cursor-pointer shadow-md">
                   <span>New Trip</span>
                   <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
                 </Button>
@@ -452,7 +505,7 @@ export default function MonthlyTripsPage() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onClick={() => navigate(`/trips/monthly/new?month=${month}`)}
+                  onClick={() => navigate(`/trips/new?mode=monthly&month=${month}`)}
                   className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-purple-50"
                 >
                   <Layers className="w-4 h-4 text-purple-600 shrink-0" />
@@ -466,8 +519,6 @@ export default function MonthlyTripsPage() {
           </div>
         </div>
 
-
-
         {summary?.truncated && (
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
             <Info className="h-4 w-4 shrink-0 mt-px text-amber-700" />
@@ -478,16 +529,16 @@ export default function MonthlyTripsPage() {
           </div>
         )}
 
-        {/* ── 3. Main Body: Direct Company Board View ── */}
+        {/* ── 3. Main Body: 4-Column Company Board ── */}
         {isLoading ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-64 w-full rounded-xl border border-slate-200" />
+              <Skeleton key={i} className="h-80 w-full rounded-2xl border border-slate-200" />
             ))}
           </div>
         ) : isError ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-16 text-center">
-            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0" />
+            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0 mx-auto" />
             <h3 className="mt-4 text-sm font-bold text-rose-700">Failed to load this month's trips</h3>
             <p className="mt-1.5 text-xs text-rose-600 max-w-sm mx-auto">
               This can happen on a slow or unstable connection. Your data is fine — try again.
@@ -504,19 +555,19 @@ export default function MonthlyTripsPage() {
           </div>
         ) : companies.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-6 py-16 text-center">
-            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0" />
+            <CalendarRange className="w-8 h-8 text-slate-600 shrink-0 mx-auto" />
             <h3 className="mt-4 text-sm font-bold text-slate-900">
-              {appliedFilters.length > 0
+              {appliedFiltersCount > 0
                 ? 'Nothing matches these filters'
                 : `No trips planned for ${monthLabel(month)}`}
             </h3>
             <p className="mt-1.5 text-xs text-slate-500 max-w-sm mx-auto">
-              {appliedFilters.length > 0
+              {appliedFiltersCount > 0
                 ? 'Try clearing a filter, or step to another month.'
                 : 'Trips appear here as soon as they are created with a planned start in this month.'}
             </p>
             <div className="mt-5">
-              {appliedFilters.length > 0 ? (
+              {appliedFiltersCount > 0 ? (
                 <Button
                   variant="outline"
                   className="h-9 rounded-lg text-xs font-bold border-slate-200 shadow-none"
@@ -543,11 +594,12 @@ export default function MonthlyTripsPage() {
             search={search}
             onToggleTrip={handleToggleTrip}
             onToggleCompany={handleToggleCompany}
+            onRefresh={refetch}
           />
         )}
       </div>
 
-      {/* ── 4. Floating Selection & Bulk Action Bar ── */}
+      {/* Floating Selection & Bulk Action Bar */}
       {selectedTripIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92vw] sm:w-auto bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center gap-3">
@@ -589,7 +641,7 @@ export default function MonthlyTripsPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                const selectedRows = flatExportRows.filter(row => selectedTripIds.includes(row.id));
+                const selectedRows = exportRows.filter(row => selectedTripIds.includes(row.id));
                 setSelectedMonthlyTripsForExport(selectedRows);
                 setIsExportOpen(true);
               }}
@@ -651,8 +703,8 @@ export default function MonthlyTripsPage() {
         title="Monthly Trips Export"
         fileNamePrefix={`monthly_trips_export_${month}`}
         sheetName={`Monthly ${month}`}
-        filteredData={flatExportRows}
-        allData={flatExportRows}
+        filteredData={exportRows}
+        allData={exportRows}
         selectedData={selectedMonthlyTripsForExport}
         columns={MONTHLY_EXPORT_COLUMNS}
         filters={MONTHLY_EXPORT_FILTERS}
@@ -715,22 +767,24 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
 
 /** Filter dropdown */
 function FilterSelect({
-  value, onChange, placeholder, label, options,
+  value, onChange, placeholder, label, options, icon,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   label: string;
   options: { value: string; label: string }[];
+  icon?: React.ReactNode;
 }) {
   const active = !!value;
   return (
     <Select value={value || 'all'} onValueChange={(val: string) => onChange(val === 'all' ? '' : val)}>
       <SelectTrigger
-        className={`h-9 w-auto min-w-[130px] rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 text-xs font-semibold shadow-2xs focus:ring-0 ${
+        className={`h-9 w-auto min-w-[130px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 text-xs font-semibold shadow-2xs focus:ring-0 flex items-center gap-1.5 ${
           active ? 'text-purple-700 font-bold border-purple-300' : 'text-slate-600'
         }`}
       >
+        {icon}
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent align="start" className="w-[200px] max-h-[320px] p-1.5 rounded-xl border border-slate-200 bg-white shadow-md">

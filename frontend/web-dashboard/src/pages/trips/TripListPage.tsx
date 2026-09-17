@@ -35,7 +35,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { TruckMotion, CheckBadge, RouteLine, ClockIcon, LoadingBox, RiskAlert } from '@/components/ui/kpi-icons';
+import { TruckMotion, CheckBadge, RouteLine, ClockIcon, RiskAlert } from '@/components/ui/kpi-icons';
 
 import { format, subDays, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -43,11 +43,13 @@ import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUt
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory, downloadTripExport } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
+import { calculateRoadDistanceKm, resolveCityCoords } from '@/services/travelTimeService';
 import { TaxonomyBadge } from '@/components/common/TaxonomyBadge';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -61,6 +63,7 @@ import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { analyzePastDateRows, applyPastStatusToRows, PastDateAnalysis } from '@/utils/pastDateTripUtils';
+import { openMultipleWhatsappMessages } from '@/utils/whatsappFormatter';
 import PastDateTripConfirmModal from '@/components/trips/PastDateTripConfirmModal';
 
 
@@ -69,12 +72,8 @@ type TripSortOption = 'latest' | 'oldest' | 'price_desc' | 'price_asc' | 'ref_id
 const TRIP_SORT_OPTIONS: SortOption<TripSortOption>[] = [
   { value: 'latest', label: 'Newest Added', icon: <ArrowDown className="w-3.5 h-3.5 text-blue-600" /> },
   { value: 'oldest', label: 'Oldest Added', icon: <ArrowUp className="w-3.5 h-3.5 text-amber-600" /> },
-  { value: 'ref_id_asc', label: 'Ref ID (Ascending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
-  { value: 'ref_id_desc', label: 'Ref ID (Descending)', icon: <Layers className="w-3.5 h-3.5 text-indigo-600" /> },
   { value: 'price_desc', label: 'Billing Price (High → Low)', icon: <ArrowDown className="w-3.5 h-3.5 text-emerald-600" /> },
   { value: 'price_asc', label: 'Billing Price (Low → High)', icon: <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> },
-  { value: 'customer_asc', label: 'Customer (A → Z)', icon: <Building2 className="w-3.5 h-3.5 text-purple-600" /> },
-  { value: 'status', label: 'Trip Status', icon: <Filter className="w-3.5 h-3.5 text-slate-500" /> },
 ];
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
@@ -144,8 +143,8 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Payload Capacity', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-  'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+  'Line Type', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Driver Charge', 'Billing Rate', 'Carrier / Provider',
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');
@@ -159,10 +158,35 @@ const getPickupInfo = (trip: Trip) => {
 };
 
 const getDropoffInfo = (trip: Trip) => {
-  const dropoff = (trip.stops && trip.stops.length > 1) ? trip.stops[trip.stops.length - 1] : (trip.stops?.find((s) => s.stop_type === 'Dropoff'));
+  const stops = trip.stops || [];
+  if (!stops.length) {
+    const fallback = trip.rateCard?.route_destination || (trip as any).quotation?.route_destination || (trip as any).route_destination || '—';
+    return { name: fallback, address: null };
+  }
+
+  const pickupStop = stops.find((s) => s.stop_type === 'Pickup') || stops[0];
+  const pickupName = (pickupStop?.location_name || pickupStop?.location?.name || '').toLowerCase().trim();
+
+  const outboundStops = stops.filter((s: any) => ((s as any).leg_index ?? 0) === 0);
+  let dropoff = outboundStops.length > 1 ? outboundStops[outboundStops.length - 1] : null;
+
+  if (!dropoff || (outboundStops.length > 1 && (dropoff.location_name || dropoff.location?.name || '').toLowerCase().trim() === pickupName)) {
+    const distinctStop = stops.find((s) => {
+      const sName = (s.location_name || s.location?.name || '').toLowerCase().trim();
+      return sName && sName !== pickupName;
+    });
+    if (distinctStop) {
+      dropoff = distinctStop;
+    }
+  }
+
+  if (!dropoff && stops.length > 1) dropoff = stops[stops.length - 1];
+  if (!dropoff && stops.length > 0) dropoff = stops[0];
   if (!dropoff) return { name: '—', address: null };
+
   let name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
-  name = name.replace(/🔁\s*/g, '').trim();
+  name = name.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+
   const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
   return { name, address };
 };
@@ -187,47 +211,21 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
       ? (t.third_party_vehicle_plate || '3PL Vehicle')
       : (t.vehicle?.plate_number || 'Unassigned')
   },
-  { id: 'capacity', label: 'Payload Capacity', accessor: (t) => getTripPayloadCapacity(t) },
-  { id: 'category', label: 'Vehicle Class', accessor: (t) => getTripRateCategory(t) },
+  { id: 'line_type', label: 'Line Type', accessor: (t) => getTripRateCategory(t) },
+  { id: 'category', label: 'Vehicle Class', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t) },
   { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
   { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
   { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
   { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
   { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
-  { id: 'trip_charges', label: 'Driver Charge (SAR)', accessor: (t) => Number(t.trip_charges || 0) },
-  { id: 'billing_amount', label: 'Billing Rate (SAR)', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
+  { id: 'trip_charges', label: 'Driver Charge', accessor: (t) => Number(t.trip_charges || 0) },
+  { id: 'billing_amount', label: 'Billing Rate', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
   { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
       ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
       : (t.carrier_name || 'MERCON LOGISTICS')
   },
 ];
 
-const TRIP_EXPORT_FILTERS: ExportFilter<Trip>[] = [
-  {
-    id: 'status_group',
-    label: 'Status Group',
-    options: [
-      { label: 'All Trips', value: 'All' },
-      { label: 'Completed / Delivered Only', value: 'Completed' },
-      { label: 'In Transit Right Now', value: 'InTransit' },
-      { label: 'Not Completed', value: 'NotCompleted' },
-    ],
-    filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
-  },
-  {
-    id: 'is_3pl',
-    label: 'Provider Type',
-    options: [
-      { label: 'All Providers', value: 'All' },
-      { label: 'MERCON Fleet Only', value: 'Mercon' },
-      { label: 'Third-Party (3PL) Only', value: '3PL' },
-    ],
-    filterFn: (t, val) => {
-      const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
-      return val === '3PL' ? is3PL : !is3PL;
-    },
-  },
-];
 
 /**
  * Normalises a place or search string for tolerant phonetic matching:
@@ -600,15 +598,34 @@ const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
   { label: 'Issues', value: 'Issues' },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  All: 'All Statuses',
+  Active: 'Active',
+  Draft: 'Draft',
+  Scheduled: 'Scheduled',
+  Dispatched: 'Dispatched',
+  Loading: 'Loading',
+  AtPickup: 'Loading',
+  InTransit: 'In Transit',
+  Delayed: 'Delayed',
+  AtDelivery: 'At Delivery',
+  Completed: 'Completed',
+  Invoiced: 'Invoiced',
+  Cancelled: 'Cancelled',
+};
+
 const EXACT_SERVER_STATUSES = new Set<TripStatusFilter>([
   'Draft',
-  'Dispatched',
-  'AtPickup',
+  'Scheduled',
+  'Loading',
   'InTransit',
-  'AtDelivery',
+  'Delayed',
   'Completed',
   'Invoiced',
   'Cancelled',
+  'Dispatched',
+  'AtPickup',
+  'AtDelivery',
 ]);
 
 const getServerStatusFilter = (status: TripStatusFilter) => (
@@ -617,9 +634,19 @@ const getServerStatusFilter = (status: TripStatusFilter) => (
 
 const matchesTripStatusFilter = (trip: Trip, filter: TripStatusFilter) => {
   if (filter === 'All') return true;
-  if (filter === 'Active') return ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(trip.status);
-  if (filter === 'Completed,Invoiced') return trip.status === 'Completed' || trip.status === 'Invoiced';
-  if (filter === 'Issues') return trip.status === 'Cancelled';
+  if (filter === 'Active') {
+    return ['Scheduled', 'Loading', 'InTransit', 'Delayed', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(trip.status);
+  }
+  if (filter === 'Scheduled' || filter === 'Draft') {
+    return trip.status === 'Scheduled' || trip.status === 'Draft' || trip.status === 'Dispatched';
+  }
+  if (filter === 'Loading' || filter === 'AtPickup') {
+    return trip.status === 'Loading' || trip.status === 'AtPickup';
+  }
+  if (filter === 'Completed' || filter === 'Completed,Invoiced') {
+    return trip.status === 'Completed' || trip.status === 'AtDelivery' || trip.status === 'Invoiced';
+  }
+  if (filter === 'Issues') return trip.status === 'Cancelled' || trip.status === 'Delayed';
   return trip.status === filter;
 };
 
@@ -658,13 +685,25 @@ export default function TripListPage() {
   const queryClient = useQueryClient();
   const tz = useDeploymentTimezone();
 
-  const viewMode = searchParams.get('view') === 'table' ? 'table' : 'kanban';
+  const viewMode = searchParams.get('view') === 'kanban' ? 'kanban' : 'table';
   const setViewMode = (mode: 'table' | 'kanban') => {
     const newParams = new URLSearchParams(searchParams);
-    if (mode === 'table') {
-      newParams.set('view', 'table');
-    } else {
+    if (mode === 'kanban') {
       newParams.set('view', 'kanban');
+    } else {
+      newParams.delete('view');
+      newParams.delete('stage');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const stageParam = searchParams.get('stage');
+  const handleStageFocusChange = (stage: string | null) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (stage) {
+      newParams.set('stage', stage);
+    } else {
+      newParams.delete('stage');
     }
     setSearchParams(newParams, { replace: true });
   };
@@ -762,9 +801,10 @@ export default function TripListPage() {
 
       const updated = await tripService.updateStatus(trip.id, targetStatus as TripStatus);
 
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] });
+      await refetch();
       toast.success(`Updated ${trip.ref_id} status to ${targetStatus}`);
 
       setStatusConfirmModal({
@@ -804,6 +844,45 @@ export default function TripListPage() {
       navigate('/trips/new', { replace: true });
     }
   }, [searchParams, navigate]);
+
+  // Deep-link support: ?driver=UUID&driver_name=... or ?search=PlateNumber pre-fills search & switches to table view
+  // ?status=X pre-selects the status filter
+  // Run once on mount (searchParams is stable on initial render)
+  useEffect(() => {
+    const driverParam = searchParams.get('driver');
+    const driverNameParam = searchParams.get('driver_name');
+    const searchParam = searchParams.get('search') || searchParams.get('vehicle') || searchParams.get('vehicle_name') || searchParams.get('plate_number');
+    const statusParam = searchParams.get('status') as TripStatusFilter | null;
+
+    if (statusParam && EXACT_SERVER_STATUSES.has(statusParam as any)) {
+      setSelectedStatus(statusParam);
+    }
+
+    if (driverParam || driverNameParam) {
+      // Switch to table view so the filtered rows are immediately visible
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('view', 'table');
+      newParams.delete('driver');
+      newParams.delete('driver_name');
+      newParams.delete('status');
+      setSearchParams(newParams, { replace: true });
+      // Pre-fill search with driver name so client-side filter matches correctly
+      if (driverNameParam) {
+        setSearch(driverNameParam);
+      }
+    } else if (searchParam) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('view', 'table');
+      newParams.delete('search');
+      newParams.delete('vehicle');
+      newParams.delete('vehicle_name');
+      newParams.delete('plate_number');
+      newParams.delete('status');
+      setSearchParams(newParams, { replace: true });
+      setSearch(searchParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -849,16 +928,16 @@ export default function TripListPage() {
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
   const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
-  const { data: exportDriversRes } = useQuery({
-    queryKey: ['drivers-for-export'],
-    queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
-  const { data: exportVehiclesRes } = useQuery({
-    queryKey: ['vehicles-for-export'],
-    queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
-    enabled: exportMenuOpen,
-  });
+   const { data: exportDriversRes } = useQuery({
+     queryKey: ['drivers-for-export'],
+     queryFn: () => driverService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
+   const { data: exportVehiclesRes } = useQuery({
+     queryKey: ['vehicles-for-export'],
+     queryFn: () => vehicleService.getAll({ per_page: 500, mode: 'lookup' }),
+     enabled: exportMenuOpen || isCustomExportOpen,
+   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
 
@@ -902,6 +981,7 @@ export default function TripListPage() {
   const [whatsappRecipientType, setWhatsappRecipientType] = useState<'driver' | 'customer' | 'custom'>('custom');
   const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
   const [whatsappMessageText, setWhatsappMessageText] = useState('');
+  const [whatsappWithTailgate, setWhatsappWithTailgate] = useState(false);
 
   const startDateStr = dateFilter === '3Days'
     ? format(subDays(new Date(), 1), 'yyyy-MM-dd')
@@ -914,23 +994,25 @@ export default function TripListPage() {
       ? format(customDateRange.to, 'yyyy-MM-dd')
       : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined));
 
-  // Fetch trips using React Query.
-  // NOTE: Search is intentionally NOT sent to the backend — the backend search was unreliable
-  // and could return 0 results, defeating the client-side computeTripSearchRelevance filter below.
-  // We fetch all trips up to per_page=1000 and let the trips memo handle filtering client-side.
+  // Fetch trips using React Query with server-side pagination (10 trips default, 30s polling).
   const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr],
+    queryKey: ['trips', selectedStatus, selectedCustomerId, dateFilter, startDateStr, endDateStr, currentPage, pageSize, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
+      customer_id: selectedCustomerId !== 'All' ? selectedCustomerId : undefined,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
-      per_page: 1000,
+      search: debouncedSearch || undefined,
+      page: currentPage,
+      per_page: pageSize,
     }),
     // Keep the previous rows on screen while a new search/page loads.
     placeholderData: keepPreviousData,
-    // Auto-poll every 10s so driver app updates move Kanban cards live without manual page reload
-    refetchInterval: 10000,
+    // Always fetch fresh data when this page mounts.
+    refetchOnMount: true,
+    // Auto-poll every 30s for smooth background status updates
+    refetchInterval: 30000,
   });
 
   // The unfiltered trip ledger, for the export sheet. Despite the old name this
@@ -979,15 +1061,29 @@ export default function TripListPage() {
     return list;
   }, [tripsRes?.data, localTripOverrides]);
 
+  const { data: customerLookupRes } = useQuery({
+    queryKey: ['customers-lookup'],
+    queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
+    const masterList = customerLookupRes?.data || [];
+    masterList.forEach((c) => {
+      if (c.id && c.name) {
+        map.set(c.id, c.name);
+      }
+    });
     rawTrips.forEach((t) => {
       if (t.customer?.id && t.customer?.name) {
         map.set(t.customer.id, t.customer.name);
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [rawTrips]);
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [customerLookupRes?.data, rawTrips]);
 
   const companyOptions = useMemo(() => {
     const icon = <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
@@ -997,6 +1093,82 @@ export default function TripListPage() {
     });
     return opts;
   }, [customerFilterOptions]);
+
+  const tripExportFilters = useMemo(() => {
+    const filters: ExportFilter<Trip>[] = [
+      {
+        id: 'status_group',
+        label: 'Status Group',
+        options: [
+          { label: 'All Trips', value: 'All' },
+          { label: 'Completed / Delivered Only', value: 'Completed' },
+          { label: 'In Transit Right Now', value: 'InTransit' },
+          { label: 'Not Completed', value: 'NotCompleted' },
+        ],
+        filterFn: (t, val) => matchesExportStatusGroup(t.status, val as ExportStatusGroup),
+      },
+      {
+        id: 'is_3pl',
+        label: 'Provider Type',
+        options: [
+          { label: 'All Providers', value: 'All' },
+          { label: 'MERCON Fleet Only', value: 'Mercon' },
+          { label: 'Third-Party (3PL) Only', value: '3PL' },
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          const is3PL = !!(t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
+          return val === '3PL' ? is3PL : !is3PL;
+        },
+      },
+      {
+        id: 'driver',
+        label: 'Driver',
+        options: [
+          { label: 'All Drivers', value: 'All' },
+          ...exportDrivers.map((d) => ({
+            label: `${d.first_name} ${d.last_name}`,
+            value: d.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.driver?.id === val;
+        },
+      },
+      {
+        id: 'vehicle',
+        label: 'Vehicle',
+        options: [
+          { label: 'All Vehicles', value: 'All' },
+          ...exportVehicles.map((v) => ({
+            label: v.plate_number,
+            value: v.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.vehicle?.id === val;
+        },
+      },
+      {
+        id: 'customer',
+        label: 'Customer / Company',
+        options: [
+          { label: 'All Companies', value: 'All' },
+          ...customerFilterOptions.map((c) => ({
+            label: c.name,
+            value: c.id,
+          })),
+        ],
+        filterFn: (t, val) => {
+          if (val === 'All') return true;
+          return t.customer?.id === val;
+        },
+      },
+    ];
+    return filters;
+  }, [exportDrivers, exportVehicles, customerFilterOptions]);
 
 
 
@@ -1062,15 +1234,17 @@ export default function TripListPage() {
   const inTransitCount = inTransitTrips.length;
 
   // Trucks at pickup point, loading goods
-  const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
+  const atPickupTrips = kpiTrips.filter(t => t.status === 'Loading' || t.status === 'AtPickup');
   const atPickupCount = atPickupTrips.length;
 
-  // Delayed trips: active trips whose planned_end has already passed
+  // Delayed trips: active trips whose planned_end has already passed or explicitly marked Delayed
   const nowMs = Date.now();
   const delayedTrips = kpiTrips.filter(t =>
-    ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status) &&
-    t.planned_end != null &&
-    new Date(t.planned_end).getTime() < nowMs
+    t.status === 'Delayed' || (
+      ['Scheduled', 'Loading', 'InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status) &&
+      t.planned_end != null &&
+      new Date(t.planned_end).getTime() < nowMs
+    )
   );
   const delayedCount = delayedTrips.length;
 
@@ -1084,7 +1258,7 @@ export default function TripListPage() {
   const completedCount = completedTrips.length;
   const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
+  const draftTrips = kpiTrips.filter(t => t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched');
   const dispatchQueueCount = draftTrips.length;
 
   const periodTrips = useMemo(() => {
@@ -1093,7 +1267,7 @@ export default function TripListPage() {
   const periodCount = periodTrips.length;
   const periodCompletedCount = periodTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
   const periodInTransitCount = periodTrips.filter(t => t.status === 'InTransit').length;
-  const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'AtPickup').length;
+  const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Scheduled' || t.status === 'Dispatched' || t.status === 'AtPickup' || t.status === 'Loading').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -1111,8 +1285,9 @@ export default function TripListPage() {
     try {
       setIsUpdatingStatus(true);
       const updated = await tripService.updateStatus(targetTrip.id, targetStatus);
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips'] });
+      await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      await refetch();
       setSelectionResetKey(k => k + 1);
       setStatusDialogTrip(null);
       toast.success('Trip status updated successfully');
@@ -1314,32 +1489,10 @@ export default function TripListPage() {
   const openWhatsappShare = (selectedRows: Trip[]) => {
     setWhatsappSelectedTrips(selectedRows);
     if (selectedRows.length === 0) return;
+    setWhatsappWithTailgate(false);
 
     if (selectedRows.length === 1) {
       const trip = selectedRows[0];
-      const customerName = trip.customer?.name || 'Unassigned';
-      const driverName = trip.is_third_party
-        ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
-        : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned');
-      const plate = trip.is_third_party
-        ? (trip.third_party_vehicle_plate || '3PL Vehicle')
-        : (trip.vehicle?.plate_number || 'Unassigned');
-      const providerInfo = trip.is_third_party
-        ? (trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Provider')
-        : null;
-
-      const text = `*MERCON LOGISTICS - Trip Manifest*\n` +
-                   `• *Trip Ref:* ${trip.ref_id || 'Draft'}\n` +
-                   `• *Status:* ${trip.status}\n` +
-                   `• *Customer:* ${customerName}\n` +
-                   (providerInfo ? `• *3PL Provider:* ${providerInfo}\n` : '') +
-                   `• *Driver:* ${driverName}\n` +
-                   `• *Vehicle:* ${plate}\n` +
-                   (trip.planned_start ? `• *Planned Start:* ${formatInDeploymentTz(trip.planned_start, tz, 'MMM d, yyyy')}\n` : '') +
-                   `• *Tracking:* ${window.location.origin}/trips/${trip.id}/track`;
-
-      setWhatsappMessageText(text);
-
       if (!trip.is_third_party && trip.driver?.phone_primary) {
         setWhatsappRecipientType('driver');
       } else if (trip.is_third_party && (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone)) {
@@ -1352,8 +1505,91 @@ export default function TripListPage() {
         setWhatsappCustomPhone('');
       }
     } else {
+      setWhatsappRecipientType('custom');
+      setWhatsappCustomPhone('');
+    }
+
+    setWhatsappDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!whatsappDialogOpen || whatsappSelectedTrips.length === 0) return;
+
+    if (whatsappSelectedTrips.length === 1) {
+      const trip = whatsappSelectedTrips[0];
+      const customerName = trip.customer?.name || 'Unassigned';
+      const driverName = trip.is_third_party
+        ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+        : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned');
+      const plate = trip.is_third_party
+        ? (trip.third_party_vehicle_plate || '3PL Vehicle')
+        : (trip.vehicle?.plate_number || 'Unassigned');
+      
+      const pickupName = trip.stops?.find((s) => s.stop_type === 'Pickup')?.location_name || trip.stops?.[0]?.location_name || 'Origin';
+      const dropoffStop = trip.stops?.find((s) => s.stop_type === 'Dropoff') || trip.stops?.[trip.stops.length - 1];
+      const dropoffName = dropoffStop?.location_name || 'Destination';
+      
+      const isScheduled = ['Draft', 'Scheduled'].includes(trip.status);
+      let text = '';
+      
+      if (isScheduled) {
+        const isMonthly = trip.billing_type?.toUpperCase().includes('MONTHLY') || trip.quotation_billing_type?.toUpperCase().includes('MONTHLY');
+        const billingLabel = isMonthly ? 'MONTHLY' : 'EXTRA';
+        const vClass = trip.quotation_vehicle_class || trip.vehicle_type || trip.vehicle?.asset_type || 'VEHICLE';
+        const lType = trip.quotation_line_type || 'ROUND TRIP';
+        
+        text = `@${customerName}\n` +
+               `*(${billingLabel} VEHICLE)*\n` +
+               `1. ${pickupName}>>>${dropoffName} ${vClass} (${lType})\n` +
+               `Driver name # ${driverName}\n` +
+               `Number # ${trip.driver?.phone_primary || trip.third_party_driver_phone || 'Unassigned'}\n` +
+               `Truck no # ${plate}`;
+               
+        if (whatsappWithTailgate) {
+           text += `\n\nWITH TAILGATE`;
+        }
+      } else {
+        let distanceText = 'Unavailable';
+        let etaText = 'Unavailable';
+        
+        const vehicleLat = trip.vehicle?.resolved_location?.latitude;
+        const vehicleLng = trip.vehicle?.resolved_location?.longitude;
+        
+        let destLat = dropoffStop?.location_lat;
+        let destLng = dropoffStop?.location_lng;
+        
+        if (!destLat || !destLng) {
+          const resolvedDest = resolveCityCoords(dropoffName);
+          if (resolvedDest) {
+            destLat = resolvedDest.lat;
+            destLng = resolvedDest.lng;
+          }
+        }
+        
+        if (vehicleLat && vehicleLng && destLat && destLng) {
+          const distKm = calculateRoadDistanceKm(vehicleLat, vehicleLng, destLat, destLng);
+          distanceText = `${distKm}KM TO ${dropoffName.toUpperCase()}`;
+          const etaHours = (distKm / 70).toFixed(1);
+          etaText = `${etaHours}HRS`;
+        }
+        
+        let statusDisplay = trip.status;
+        if (trip.status === 'AtPickup') statusDisplay = 'Loading';
+        else if (trip.status === 'AtDelivery') statusDisplay = 'At Delivery';
+        else if (trip.status === 'InTransit') statusDisplay = 'In Transit';
+        
+        text = `Vehicle Status Update\n\n` +
+               `Truck: *${plate}*\n` +
+               `Driver: ${driverName}\n` +
+               `Route: ${pickupName}>>>${dropoffName}\n` +
+               `Distance left: ${distanceText}\n` +
+               `ETA: ${etaText}\n` +
+               `Status: ${statusDisplay}`;
+      }
+      setWhatsappMessageText(text);
+    } else {
       let text = `*MERCON LOGISTICS - Manifest Summary*\n`;
-      selectedRows.forEach((t) => {
+      whatsappSelectedTrips.forEach((t) => {
         const cust = t.customer?.name || 'Unassigned';
         const drv = t.is_third_party
           ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver')
@@ -1368,14 +1604,16 @@ export default function TripListPage() {
                 `  • Status: ${t.status}\n`;
       });
       setWhatsappMessageText(text);
-      setWhatsappRecipientType('custom');
-      setWhatsappCustomPhone('');
     }
-
-    setWhatsappDialogOpen(true);
-  };
+  }, [whatsappSelectedTrips, whatsappWithTailgate, whatsappDialogOpen]);
 
   const handleWhatsappSend = () => {
+    if (whatsappSelectedTrips.length > 1) {
+      openMultipleWhatsappMessages(whatsappSelectedTrips);
+      setWhatsappDialogOpen(false);
+      return;
+    }
+
     let phone = '';
     if (whatsappSelectedTrips.length === 1) {
       const trip = whatsappSelectedTrips[0];
@@ -1452,40 +1690,64 @@ export default function TripListPage() {
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
+        const stops = row.stops || [];
+
+        const stopNames = stops
+          .map((s) => {
+            const n = s.location_name || s.location?.name || s.location_address || s.location?.address || '';
+            return n.replace(/🔁\s*/g, '').replace(/\[RETURN:.*?\]/gi, '').trim();
+          })
+          .filter(Boolean);
+
+        const firstStop = stopNames[0] || pickup.name || '—';
+        const lastStop = stopNames.length > 1 ? stopNames[stopNames.length - 1] : dropoff.name || '—';
+
+        let intermediateList: string[] = [];
+        if (stopNames.length > 2) {
+          intermediateList = stopNames
+            .slice(1, stopNames.length - 1)
+            .filter((name, idx, arr) => idx === 0 || name.toLowerCase() !== arr[idx - 1].toLowerCase());
+        } else if (firstStop.toLowerCase() === lastStop.toLowerCase() && dropoff.name && dropoff.name.toLowerCase() !== firstStop.toLowerCase()) {
+          intermediateList = [dropoff.name];
+        }
+
+        const fullRouteDisplay = [firstStop, ...intermediateList, lastStop].filter(Boolean).join(' → ');
+
         return (
-          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
-            {/* Pickup (From) */}
+          <div className="flex flex-col min-w-0 py-0.5 space-y-1" title={fullRouteDisplay}>
+            {/* Origin (From) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                {pickup.name || '—'}
+                {firstStop}
               </span>
             </div>
+
+            {/* In-Between Stop(s) */}
+            {intermediateList.length > 0 && (
+              <>
+                <div className="pl-[2.5px] -my-0.5">
+                  <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 truncate">
+                    {intermediateList.join(' → ')}
+                  </span>
+                </div>
+              </>
+            )}
+
             {/* Connecting visual line */}
             <div className="pl-[2.5px] -my-0.5">
-              <div className="w-px h-2.5 border-l border-dashed border-slate-300 dark:border-slate-700" />
+              <div className="w-px h-2 border-l border-dashed border-slate-300 dark:border-slate-700" />
             </div>
-            {/* Dropoff (To) */}
+
+            {/* Final Destination / Return (To) */}
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate flex items-center gap-1">
-                {(() => {
-                  const raw = dropoff.name || '—';
-                  // Strip 🔁 emoji, then extract destination from "[RETURN: From → To]" or "RETURN: From → To" patterns
-                  const clean = raw.replace(/🔁\s*/g, '').trim();
-                  const match = clean.match(/^(.*?)\s*\[RETURN:\s*(.*?)\]$/i);
-                  if (match) {
-                    // Return trip: show only the final destination city
-                    const dest = match[2].includes('→') ? match[2].split('→').pop()?.trim() : match[2].trim();
-                    return <span className="truncate">{dest || match[1].trim()}</span>;
-                  }
-                  // Also handle "RETURN: From → To" without brackets
-                  if (/^RETURN:/i.test(clean)) {
-                    const dest = clean.includes('→') ? clean.split('→').pop()?.trim() : clean.replace(/^RETURN:\s*/i, '').trim();
-                    return <span className="truncate">{dest}</span>;
-                  }
-                  return clean;
-                })()}
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                {lastStop}
               </span>
             </div>
           </div>
@@ -1493,128 +1755,134 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Driver',
-      className: 'max-w-[165px]',
+      header: 'Driver / Vehicle',
+      className: 'min-w-[160px] max-w-[190px]',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
-          const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
-          const initial = name[0]?.toUpperCase() || '3P';
+        const renderDriver = () => {
+          if (row.is_third_party) {
+            const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
+            const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
+            const initial = name[0]?.toUpperCase() || '3P';
 
-          return (
-            <div
-              className="flex items-center gap-1.5 max-w-[165px] cursor-pointer group"
-              title={`3PL Driver: ${name}\nProvider: ${providerName}`}
-              onClick={(e) => {
-                if (row.thirdPartyProvider) {
-                  e.stopPropagation();
-                  setPreviewThirdParty(row.thirdPartyProvider);
-                }
-              }}
-            >
-              <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
-                {initial}
-              </div>
-              <div className="flex flex-col min-w-0 truncate leading-tight">
+            return (
+              <div
+                className="flex items-center gap-1.5 cursor-pointer group min-w-0"
+                title={`3PL Driver: ${name}\nProvider: ${providerName}`}
+                onClick={(e) => {
+                  if (row.thirdPartyProvider) {
+                    e.stopPropagation();
+                    setPreviewThirdParty(row.thirdPartyProvider);
+                  }
+                }}
+              >
+                <div className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[8px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                  {initial}
+                </div>
                 <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:underline truncate">
                   {name}
                 </span>
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
-                  3PL: {providerName}
-                </span>
               </div>
-            </div>
-          );
-        }
+            );
+          }
 
-        return (
-          <div className="flex items-center gap-1.5 max-w-[165px] overflow-hidden">
-            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
-              {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
-            </div>
-            {row.driver ? (
-              <div className="overflow-hidden whitespace-nowrap min-w-0 flex-1">
+          return (
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
+              <div className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[8px] flex items-center justify-center shrink-0">
+                {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
+              </div>
+              {row.driver ? (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setPreviewDriver(row.driver);
                   }}
-                  className={cn(
-                    "text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer block",
-                    `${row.driver.first_name} ${row.driver.last_name}`.length > 13 ? "animate-marquee-slow" : "truncate"
-                  )}
+                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-brand hover:underline text-left cursor-pointer truncate"
                   title={`Preview ${row.driver.first_name} ${row.driver.last_name}`}
                 >
                   {row.driver.first_name} {row.driver.last_name}
                 </button>
-              </div>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
-            {row.driver?.deletedAt && <DeletedBadge />}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Vehicle',
-      className: 'w-[95px] shrink-0',
-      mobilePriority: 'meta' as const,
-      accessor: (row: Trip) => {
-        if (row.is_third_party) {
-          const plate = row.third_party_vehicle_plate || '3PL Truck';
+              ) : (
+                <span className="text-xs text-slate-400 italic">Unassigned</span>
+              )}
+              {row.driver?.deletedAt && <DeletedBadge />}
+            </div>
+          );
+        };
+
+        const renderCoDriver = () => {
+          if (row.is_third_party || !(row as any).coDriver) return null;
+          const coDriver = (row as any).coDriver;
+          const coName = `${coDriver.first_name || ''} ${coDriver.last_name || ''}`.trim();
+          if (!coName) return null;
           return (
-            <div className="flex items-center gap-1">
-              <Truck size={12} className="text-purple-500 shrink-0" />
-              <span
-                className="font-mono text-[11px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1.5 py-0.5 rounded truncate"
-                title={`3PL Vehicle Plate: ${plate}`}
-              >
-                {plate}
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0 mt-0.5">
+              <div className="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[7px] flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+                CO
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 truncate">
+                {coName}
               </span>
             </div>
           );
-        }
+        };
+
+        const renderVehicle = () => {
+          if (row.is_third_party) {
+            const plate = row.third_party_vehicle_plate || '3PL Truck';
+            return (
+              <div className="flex items-center gap-1 min-w-0">
+                <Truck size={11} className="text-purple-500 shrink-0" />
+                <span
+                  className="font-mono text-[10px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1 py-0.2 rounded truncate"
+                  title={`3PL Vehicle Plate: ${plate}`}
+                >
+                  {plate}
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-1 min-w-0">
+              <Truck size={11} className="text-slate-400 shrink-0" />
+              {row.vehicle?.plate_number ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVehicle(row.vehicle);
+                    }}
+                    className="font-mono text-[10px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1 py-0.2 rounded truncate transition-colors cursor-pointer"
+                    title={`Preview Vehicle ${row.vehicle.plate_number}`}
+                  >
+                    {row.vehicle.plate_number}
+                  </button>
+                  {row.vehicle?.deletedAt && <DeletedBadge />}
+                </>
+              ) : (
+                <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+              )}
+            </div>
+          );
+        };
 
         return (
-          <div className="flex items-center gap-1">
-            <Truck size={12} className="text-slate-400 shrink-0" />
-            {row.vehicle?.plate_number ? (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewVehicle(row.vehicle);
-                  }}
-                  className="font-mono text-[11px] text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-400 px-1.5 py-0.5 rounded truncate transition-colors cursor-pointer"
-                  title={`Preview Vehicle ${row.vehicle.plate_number}`}
-                >
-                  {row.vehicle.plate_number}
-                </button>
-                {row.vehicle?.deletedAt && <DeletedBadge />}
-              </>
-            ) : (
-              <span className="text-xs text-slate-400 italic">Unassigned</span>
-            )}
+          <div className="flex flex-col space-y-0.5 py-0.5">
+            {renderDriver()}
+            {renderCoDriver()}
+            {renderVehicle()}
           </div>
         );
       },
     },
     {
-      header: 'Payload Cap.',
-      className: 'w-[110px] shrink-0',
+      header: 'Line Type',
+      className: 'w-[120px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cap = getTripPayloadCapacity(row);
-        return (
-          <Badge
-            variant="outline"
-            className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 px-1.5 py-0.5"
-          >
-            {cap}
-          </Badge>
-        );
+        const lineType = getTripRateCategory(row);
+        return <TaxonomyBadge category="LINE_TYPE" value={lineType} fallbackText="Single Trip" />;
       },
     },
     {
@@ -1622,12 +1890,12 @@ export default function TripListPage() {
       className: 'w-[130px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const cat = row.quotation_vehicle_class || row.vehicle_type || getTripRateCategory(row);
-        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} />;
+        const cat = row.quotation_vehicle_class || row.financials?.quotation_vehicle_class || row.vehicle_type || getTripPayloadCapacity(row);
+        return <TaxonomyBadge category="VEHICLE_CLASS" value={cat} fallbackText="10 TON" />;
       },
     },
     {
-      header: 'Rate (SAR)',
+      header: 'Rate',
       className: 'w-[100px] shrink-0',
       mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
@@ -1644,18 +1912,27 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Trip Charge (SAR)',
+      header: 'Driver Charge',
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const charge = row.trip_charges;
+        const primaryCharge = row.driver_payout ?? row.driver_charge ?? row.trip_charges ?? row.third_party_cost;
+        const coDriverPayout = Number((row as any).co_driver_payout ?? 0);
+        const combinedCharge = (primaryCharge !== undefined && primaryCharge !== null)
+          ? Number(primaryCharge) + coDriverPayout
+          : undefined;
         return (
-          <div className="flex items-center font-mono text-xs" title="What MERCON pays the driver/subcontractor — not the customer-billed amount">
+          <div className="flex flex-col font-mono text-xs" title="What MERCON pays the driver(s) — not the customer-billed amount">
             <span className="font-bold text-slate-500 dark:text-slate-400">
-              {charge !== undefined && charge !== null && charge > 0
-                ? `SAR ${Number(charge).toLocaleString('en-US')}`
+              {combinedCharge !== undefined && combinedCharge > 0
+                ? `SAR ${combinedCharge.toLocaleString('en-US')}`
                 : '—'}
             </span>
+            {coDriverPayout > 0 && (
+              <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {`${Number(primaryCharge).toLocaleString('en-US')} + ${coDriverPayout.toLocaleString('en-US')}`}
+              </span>
+            )}
           </div>
         );
       },
@@ -1746,17 +2023,18 @@ export default function TripListPage() {
                 onClick={() => {
                   setConfirmModal({
                     isOpen: true,
-                    title: 'Delete Trip Draft',
-                    message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
+                    title: 'Delete Trip',
+                    message: `Are you sure you want to move trip ${row.ref_id || 'Draft'} to Trash?`,
                     onConfirm: async () => {
                       try {
                         await tripService.bulkDelete([row.id]);
-                        queryClient.invalidateQueries({ queryKey: ['trips'] });
-                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        await queryClient.invalidateQueries({ queryKey: ['trips'] });
+                        await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        await refetch();
                         setSelectionResetKey(k => k + 1);
-                        toast.success('Trip deleted successfully');
-                      } catch (e) {
-                        toast.error('Failed to delete trip');
+                        toast.success('Trip moved to Trash');
+                      } catch (e: any) {
+                        toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
                       }
                     }
                   });
@@ -1828,17 +2106,26 @@ export default function TripListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Trips',
-          message: `Are you sure you want to delete ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.`,
+          message: `Are you sure you want to move ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''} to Trash?`,
           onConfirm: async () => {
             try {
-              await tripService.bulkDelete(selectedRows.map(r => r.id));
-              queryClient.invalidateQueries({ queryKey: ['trips'] });
-              queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+              const res = await tripService.bulkDelete(selectedRows.map(r => r.id));
+              await queryClient.invalidateQueries({ queryKey: ['trips'] });
+              await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+              await refetch();
               clearSelection?.();
               setSelectionResetKey(k => k + 1);
-              toast.success(`Successfully deleted ${selectedRows.length} trip${selectedRows.length > 1 ? 's' : ''}`);
-            } catch (e) {
-              toast.error('Failed to delete trips');
+              if (res?.skippedCount > 0) {
+                if (res.deletedCount > 0) {
+                  toast.warning(`Moved ${res.deletedCount} trip(s) to Trash. ${res.skippedCount} trip(s) were protected from deletion (invoiced/settled).`);
+                } else {
+                  toast.error(`Cannot delete trip(s): selected trip(s) are already invoiced or financially settled.`);
+                }
+              } else {
+                toast.success(`Successfully moved ${res?.deletedCount || selectedRows.length} trip(s) to Trash`);
+              }
+            } catch (e: any) {
+              toast.error(e.response?.data?.error?.message || 'Failed to delete trips');
             }
           }
         });
@@ -1877,262 +2164,10 @@ export default function TripListPage() {
       title="Trips" 
     >
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trips</h1>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  Export & Import
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                {/* Format toggle — applies to every option below */}
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1 flex items-center justify-between">
-                  <span>Export Trips</span>
-                  <span className="text-[9px] font-bold text-slate-500">({exportFormat.toUpperCase()})</span>
-                </DropdownMenuLabel>
-
-                 <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
-                   <button
-                     onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
-                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                   >
-                     <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                     Excel
-                   </button>
-                   <button
-                     onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
-                     className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
-                   >
-                     <FileText className="h-3.5 w-3.5 text-rose-600" />
-                     PDF
-                   </button>
-                 </div>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All' });
-                    else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Export All Trips
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', thirdPartyOnly: true });
-                    else { setExportMenuOpen(false); triggerExport({ type: '3pl', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }
-                  }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
-                >
-                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                  Third-Party (3PL) Trips Only
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Status
-                </DropdownMenuLabel>
-
-                {/* Completed — 12-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'completed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Completed
-                </DropdownMenuItem>
-
-                {/* Loading — 8-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'loading', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Loading
-                </DropdownMenuItem>
-
-                {/* In Transit Right Now — 11-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'in-transit', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  In Transit Right Now
-                </DropdownMenuItem>
-
-                {/* Delayed — 9-column business format */}
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); triggerExport({ type: 'delayed', format: exportFormat === 'csv' ? 'csv' : 'xlsx' }); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Delayed
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  By Driver / Vehicle / Date
-                </DropdownMenuLabel>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Driver
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportDrivers.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
-                      ) : (
-                        exportDrivers.map(d => (
-                          <DropdownMenuItem
-                            key={d.id}
-                            onClick={() => {
-                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', driverId: d.id });
-                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', driver_id: d.id }); }
-                            }}
-                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                          >
-                            {d.first_name} {d.last_name}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                    A Specific Vehicle
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      {exportVehicles.length === 0 ? (
-                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
-                      ) : (
-                        exportVehicles.map(v => (
-                          <DropdownMenuItem
-                            key={v.id}
-                            onClick={() => {
-                              if (exportFormat === 'pdf') runExport('pdf', { statusGroup: 'All', vehicleId: v.id });
-                              else { setExportMenuOpen(false); triggerExport({ type: 'all', format: exportFormat === 'csv' ? 'csv' : 'xlsx', vehicle_id: v.id }); }
-                            }}
-                            className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
-                          >
-                            {v.plate_number}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setExportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
-                  A Date Range...
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedTripsForExport([]);
-                    setExportMenuOpen(false);
-                    setIsCustomExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Custom Export Settings...
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100" />
-
-                {/* Import Section */}
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Trips
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => { setExportMenuOpen(false); setImportDialogOpen(true); }}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/70"
-                >
-                  <Upload className="mr-2 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  Import File (Excel / CSV)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
-                >
-                  <span>New Trip</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/new')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Plus className="w-4 h-4 text-brand shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Single Local Trip</div>
-                    <div className="text-[10px] text-slate-500">Standard single dispatch trip</div>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => navigate('/trips/monthly?bulk=true')}
-                  className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
-                >
-                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <div>
-                    <div className="font-bold text-[#111111] dark:text-slate-100">Monthly / Bulk Add Trips</div>
-                    <div className="text-[10px] text-slate-500">Batch contract generator & import</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
 
         {/* ── 2. Instrument-Panel KPI Cards (Trip Ledger Table View Only) ────────────────── */}
         {viewMode === 'table' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
             <KpiCard
               title={kpiTitle}
               className="kpi-tint-trips"
@@ -2188,25 +2223,6 @@ export default function TripListPage() {
               isActive={selectedStatus === 'All'}
               onClick={() => {
                 setSelectedStatus('All');
-                setCurrentPage(1);
-              }}
-            />
-
-            <KpiCard
-              title="LOADING GOODS"
-              className="kpi-tint-trips"
-              value={
-                <span>
-                  {atPickupCount}
-                  <span className="text-[16px] font-semibold ml-1.5 opacity-85">At Pickup</span>
-                </span>
-              }
-              variant="slate"
-              description="Driver reached pickup point"
-              icon={LoadingBox}
-              isActive={selectedStatus === 'AtPickup'}
-              onClick={() => {
-                setSelectedStatus('AtPickup');
                 setCurrentPage(1);
               }}
             />
@@ -2289,285 +2305,393 @@ export default function TripListPage() {
           </div>
         )}
 
-        {/* Control Toolbar (Search, Filter, View Switcher) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-            {/* Reset Filters / Total Trips Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCustomerId('All');
-                setDateFilter('3Days');
-                setSearch('');
-                setCurrentPage(1);
-                setTotalTripsResetKey(prev => prev + 1);
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200/90 dark:border-orange-850/80 text-brand dark:text-orange-300 text-[11px] font-bold shadow-3xs hover:bg-orange-100/80 dark:hover:bg-orange-950/80 transition-all cursor-pointer h-8 shrink-0 group"
-              title="Click to reset all filters"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-              <span className="font-extrabold text-orange-950 dark:text-orange-200">Trips:</span>
-              <span className="font-mono text-[10px] font-black text-brand bg-white dark:bg-slate-900 px-1 py-0.2 rounded border border-orange-200/80 dark:border-orange-800 shadow-3xs">
-                {rawTrips.length}
-              </span>
-            </button>
+        {/* ── Control Toolbar & Views ───────────────────── */}
+        {(() => {
+          const filterControls = (
+            <>
+              {/* Search Input */}
+              <div className="relative w-full sm:w-56 lg:w-64 shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Input
+                  placeholder="Search trip ID, driver, vehicle..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 h-8 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-            {/* Search Input */}
-            <div className="relative w-full sm:w-48 md:w-56 shrink-0">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, driver, vehicle..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-[11px] bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+              {/* Multi-Filter Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer rounded-lg px-2.5 shrink-0"
+                  >
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Filters</span>
+                    {activeFiltersCount > 0 && (
+                      <span className="ml-0.5 px-1 py-0.2 rounded-full bg-red-600 text-white text-[8px] font-black leading-none">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                    <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
+                    Filter Trips
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
+                  
+                  <div className="space-y-2.5">
+                    {/* Status Group / Exact State Filter */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => {
+                          setSelectedStatus(e.target.value as any);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Loading">Loading</option>
+                        <option value="InTransit">In Transit</option>
+                        <option value="Delayed">Delayed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
 
-            {/* Multi-Filter Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-[11px] font-semibold bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs cursor-pointer rounded-lg px-2.5 shrink-0"
-                >
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Filters</span>
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-0.5 px-1 py-0.2 rounded-full bg-brand text-white text-[8px] font-black leading-none">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 p-3.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl space-y-3 z-50">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 p-0">
-                  Filter Trips
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-850" />
-                
-                <div className="space-y-2.5">
-                  {/* Status Group / Exact State Filter */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => {
-                        setSelectedStatus(e.target.value as any);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All Statuses</option>
-                      <optgroup label="Status Group">
-                        {STATUS_TABS.map((tab) => (
-                          <option key={tab.value} value={tab.value}>
-                            {tab.label}
+                    {/* Company Filter */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
+                      <select
+                        value={selectedCustomerId}
+                        onChange={(e) => {
+                          setSelectedCustomerId(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All Companies</option>
+                        {customerFilterOptions.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
                           </option>
                         ))}
-                      </optgroup>
-                      <optgroup label="Exact State">
-                        {[
-                          ['Draft', 'Scheduled (Draft)'],
-                          ['Dispatched', 'Dispatched'],
-                          ['AtPickup', 'Loading'],
-                          ['InTransit', 'In Transit'],
-                          ['AtDelivery', 'At Delivery'],
-                          ['Completed', 'Completed'],
-                          ['Invoiced', 'Invoiced'],
-                          ['Cancelled', 'Cancelled'],
-                        ].map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Company Filter */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Company</label>
-                    <Combobox
-                      options={companyOptions}
-                      value={selectedCustomerId}
-                      onChange={(val) => {
-                        setSelectedCustomerId(val);
-                        setCurrentPage(1);
+                  {activeFiltersCount > 0 && (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus('All');
+                          setSelectedCustomerId('All');
+                          setCurrentPage(1);
+                        }}
+                        className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Date Filter Picker */}
+              <TripDateFilterPicker
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={setCustomDateRange}
+              />
+            </>
+          );
+
+          const actionControls = (
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              {/* View Mode Switcher */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="List View"
+                >
+                  <LayoutList className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('kanban')}
+                  className={`p-1.5 rounded-md text-xs font-bold flex items-center transition-all cursor-pointer ${
+                    viewMode === 'kanban'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Kanban View"
+                >
+                  <Kanban className="w-4 h-4" />
+                </button>
+              </div>
+
+              <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-xl transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                    <span className="hidden sm:inline">Export & Import</span>
+                    <span className="sm:hidden">Export</span>
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl z-50">
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Export Operations
+                  </DropdownMenuLabel>
+                  
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      triggerExport({ type: 'all', format: 'xlsx' });
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-405 shrink-0" />
+                    <span>Export to Excel</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      runExport('pdf', { statusGroup: 'All' });
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
+                    <span>Export to PDF</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedTripsForExport([]);
+                      setExportMenuOpen(false);
+                      setIsCustomExportOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
+                  >
+                    <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
+                    <span>Custom Export...</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+                  <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Import Operations
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      setImportDialogOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400"
+                  >
+                    <Upload className="h-4 w-4 text-blue-600 dark:text-blue-455 shrink-0" />
+                    <span>Import File (Excel / CSV)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5 text-[11px] font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-xs rounded-xl px-3.5 cursor-pointer flex items-center"
+                  >
+                    <span>New Trip</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-white/80 ml-0.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-50">
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?billingType=Extra')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Plus className="w-4 h-4 text-brand shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Daily / Spot Trip</div>
+                      <div className="text-[10px] text-slate-500">Single or round trip at spot rate cards</div>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?billingType=Monthly')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">Monthly Duty Trip</div>
+                      <div className="text-[10px] text-slate-500">Dedicated monthly contract duty & calendar</div>
+                    </div>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => navigate('/trips/new?assignment=third_party')}
+                    className="cursor-pointer text-xs font-medium py-2.5 px-3 rounded-lg flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-950/40 focus:bg-orange-50 focus:text-brand"
+                  >
+                    <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#111111] dark:text-slate-100">3PL Partner Dispatch</div>
+                      <div className="text-[10px] text-slate-500">Subcontracted trip with 3PL carrier cost</div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+
+          return (
+            <>
+              {/* Standalone Control Toolbar for Kanban View only */}
+              {viewMode === 'kanban' && (
+                <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
+                  <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                    {filterControls}
+                  </div>
+                  {actionControls}
+                </div>
+              )}
+
+              {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
+              {viewMode === 'kanban' ? (
+                <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
+                  {/* Full-Height Kanban Board Canvas */}
+                  <div className="flex-1 min-h-0 relative">
+                    <TripKanbanBoard
+                      ref={kanbanBoardRef}
+                      trips={trips}
+                      statusFilter={selectedStatus !== 'All' ? (selectedStatus as string) : undefined}
+                      focusedStage={stageParam}
+                      onStageFocusChange={handleStageFocusChange}
+                      onStatusChange={handleKanbanStatusChange}
+                      onLogDelay={(trip) => setStatusDialogTrip(trip)}
+                      onShareWhatsapp={(trip) => openWhatsappShare([trip])}
+                      onDelete={(trip) => {
+                        setConfirmModal({
+                          isOpen: true,
+                          title: 'Delete Trip',
+                          message: `Are you sure you want to move trip ${trip.ref_id} to Trash?`,
+                          onConfirm: async () => {
+                            try {
+                              await tripService.bulkDelete([trip.id]);
+                              await queryClient.invalidateQueries({ queryKey: ['trips'] });
+                              await queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                              await refetch();
+                              toast.success(`Moved trip ${trip.ref_id} to Trash`);
+                            } catch (e: any) {
+                              toast.error(e.response?.data?.error?.message || 'Failed to delete trip');
+                            }
+                          }
+                        });
                       }}
-                      placeholder="Select Company..."
-                      searchPlaceholder="Search company..."
-                      emptyText="No companies found."
-                      triggerClassName="h-8 rounded-lg border-slate-200 dark:border-slate-800 text-xs font-semibold shadow-3xs"
+                      onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
+                      onCreateTrip={() => navigate('/trips/new')}
+                      isLoading={isLoading}
+                      isError={isError}
+                      onRetry={() => refetch()}
                     />
                   </div>
                 </div>
+              ) : (
+                <div className="w-full flex flex-col gap-3 animate-fade-in">
 
-                {activeFiltersCount > 0 && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedStatus('All');
-                        setSelectedCustomerId('All');
+                  {/* Active Filter Indicator Banner */}
+                  {selectedStatus !== 'All' && (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                        <span>
+                          Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_LABELS[selectedStatus] || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedStatus('All');
+                          setCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Show All Operations</span>
+                        <X className="w-3 h-3 shrink-0" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="w-full flex flex-col">
+                    <DataTable
+                      key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
+                      title={
+                        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Layers className="w-4 h-4 text-brand" />
+                            <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</span>
+                            <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                              {trips.length} {trips.length === 1 ? 'record' : 'records'}
+                            </Badge>
+                          </div>
+                          {filterControls}
+                        </div>
+                      }
+                      hideRecordCount={true}
+                      data={trips}
+                      columns={columns}
+                      enableSelection={true}
+                      selectionResetKey={selectionResetKey}
+                      compact={true}
+                      isLoading={isLoading}
+                      isError={isError}
+                      errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+                      actionsElement={actionControls}
+                      bulkActions={bulkActions}
+                      currentPage={currentPage}
+                      onPageChange={(page) => setCurrentPage(page)}
+                      pageSize={pageSize}
+                      onPageSizeChange={(size) => {
+                        setPageSize(size);
                         setCurrentPage(1);
                       }}
-                      className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                    >
-                      Clear Filters
-                    </button>
+                      totalRecords={tripsRes?.meta?.total ?? trips.length}
+                      totalPages={tripsRes?.meta?.total_pages ?? Math.ceil((tripsRes?.meta?.total ?? trips.length) / pageSize)}
+                      onRowClick={(row) => navigate(`/trips/${row.id}`)}
+                    />
                   </div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {/* Date Filter Picker */}
-            <TripDateFilterPicker
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-            />
-
-            {/* Sort Dropdown */}
-            <SortDropdown
-              value={sortOption as TripSortOption}
-              onChange={(val) => setSortOption(val)}
-              options={TRIP_SORT_OPTIONS}
-            />
-
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-                <span>List</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('kanban')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'kanban'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <Kanban className="w-3.5 h-3.5" />
-                <span>Kanban</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 3. Main View Canvas (Kanban or Ledger Table) ───────────────────── */}
-        {viewMode === 'kanban' ? (
-          <div className="flex-1 flex flex-col min-h-0 w-full gap-3 h-[calc(100vh-140px)] animate-fade-in">
-            {/* Full-Height Kanban Board Canvas */}
-            <div className="flex-1 min-h-0 relative">
-              <TripKanbanBoard
-                ref={kanbanBoardRef}
-                trips={trips}
-                statusFilter={selectedStatus !== 'All' ? (selectedStatus as string) : undefined}
-                onStatusChange={handleKanbanStatusChange}
-                onLogDelay={(trip) => setStatusDialogTrip(trip)}
-                onShareWhatsapp={(trip) => openWhatsappShare([trip])}
-                onDelete={(trip) => {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: 'Delete Trip',
-                    message: `Are you sure you want to delete trip ${trip.ref_id}? This action cannot be undone.`,
-                    onConfirm: async () => {
-                      try {
-                        await tripService.bulkDelete([trip.id]);
-                        queryClient.invalidateQueries({ queryKey: ['trips'] });
-                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-                        toast.success(`Deleted trip ${trip.ref_id}`);
-                      } catch (e) {
-                        toast.error('Failed to delete trip');
-                      }
-                    }
-                  });
-                }}
-                onOpenSettlement={(trip) => setSettlementModalTrip(trip)}
-                onCreateTrip={() => navigate('/trips/new')}
-                isLoading={isLoading}
-                isError={isError}
-                onRetry={() => refetch()}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full flex flex-col gap-3 animate-fade-in">
-            {/* Active Filter Indicator Banner */}
-            {selectedStatus !== 'All' && (
-              <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
-                  <span>
-                    Filtered by status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
-                  </span>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedStatus('All');
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Show All Operations</span>
-                  <X className="w-3 h-3 shrink-0" />
-                </button>
-              </div>
-            )}
-
-            <div className="w-full flex flex-col">
-              <DataTable
-                key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
-                title={
-                  <span className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-brand" />
-                    <span>Trip Ledger</span>
-                  </span>
-                }
-
-                data={trips}
-                columns={columns}
-                enableSelection={true}
-                selectionResetKey={selectionResetKey}
-                compact={true}
-                isLoading={isLoading}
-                isError={isError}
-                errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-                actionsElement={undefined}
-                bulkActions={bulkActions}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => setPageSize(size)}
-                onRowClick={(row) => navigate(`/trips/${row.id}`)}
-              />
-            </div>
-          </div>
-        )}
+              )}
+            </>
+          );
+        })()}
 
         {/* Quick Status Update Modal (Dialog) */}
         <Dialog open={!!statusDialogTrip} onOpenChange={(open) => !open && setStatusDialogTrip(null)}>
@@ -2766,7 +2890,7 @@ export default function TripListPage() {
           totalCount={allTripsRes?.meta?.total || allTripsRes?.data?.length || 0}
           selectedData={selectedTripsForExport}
           columns={TRIP_EXPORT_COLUMNS}
-          filters={TRIP_EXPORT_FILTERS}
+          filters={tripExportFilters}
           formats={['xlsx', 'csv', 'pdf']}
           rowDateAccessor={(t) => t.planned_start || t.createdAt}
         />
@@ -2895,9 +3019,24 @@ export default function TripListPage() {
 
               {/* Message text preview */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Message Preview:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Message Preview:
+                  </label>
+                  {whatsappSelectedTrips.length === 1 && ['Draft', 'Scheduled'].includes(whatsappSelectedTrips[0]?.status || '') && (
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={whatsappWithTailgate}
+                        onChange={(e) => setWhatsappWithTailgate(e.target.checked)}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 bg-white"
+                      />
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        Include Tailgate
+                      </span>
+                    </label>
+                  )}
+                </div>
                 <textarea
                   value={whatsappMessageText}
                   onChange={(e) => setWhatsappMessageText(e.target.value)}
@@ -2954,7 +3093,7 @@ export default function TripListPage() {
                       <span className="font-mono font-semibold">Origin</span>,{' '}
                       <span className="font-mono font-semibold">Destination</span>,{' '}
                       <span className="font-mono font-semibold">Billing Amount</span>,{' '}
-                      <span className="font-mono font-semibold">Trip Charges</span>
+                      <span className="font-mono font-semibold">Driver Charge</span>
                     </div>
                   </div>
 

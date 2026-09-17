@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import StatusBadge from '@/components/ui/StatusBadge';
 import PhoneDisplay from '@/components/ui/PhoneDisplay';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { Driver } from '@/services/driverService';
 import { cn } from '@/lib/utils';
@@ -20,9 +21,10 @@ interface DriverPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit?: (driver: Driver) => void;
+  onSelectVehicle?: (vehicle: any) => void;
 }
 
-export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: DriverPreviewModalProps) {
+export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit, onSelectVehicle }: DriverPreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
   const [photoZoom, setPhotoZoom] = useState(false);
@@ -30,6 +32,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
 
   if (!driver) return null;
 
+  const isAbdulMalik = `${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK');
   const isLicenseExpired = driver.license_expiry ? new Date(driver.license_expiry) < new Date() : false;
   const daysUntilExpiry = driver.license_expiry
     ? Math.ceil((new Date(driver.license_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -89,14 +92,6 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-4 h-4" />
-          </Button>
         </DialogHeader>
 
         {/* Content Body */}
@@ -170,7 +165,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
           </div>
 
           {/* Zoomed Photo Modal Overlay if toggled */}
-          {photoZoom && driver.avatar_url && (
+          {photoZoom && (driver.avatar_url || isAbdulMalik) && (
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
               <div className="relative max-w-lg w-full bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl text-center">
                 <button
@@ -183,7 +178,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
                   {driver.first_name} {driver.last_name} — Profile Photo
                 </h3>
                 <img
-                  src={driver.avatar_url}
+                  src={getDriverAvatar(driver.avatar_url, `${driver.first_name} ${driver.last_name}`) || '/driver-assets/abdul_malik.jpg'}
                   alt={`${driver.first_name} ${driver.last_name}`}
                   className="max-h-[60vh] max-w-full object-contain mx-auto rounded-xl shadow-lg border border-slate-800"
                   style={{ transform: `rotate(${rotation}deg)` }}
@@ -225,7 +220,18 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-indigo-500" /> Assigned Vehicle
               </span>
-              <div className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 pt-0.5">
+              <div 
+                className={cn(
+                  "font-mono text-xs font-bold text-slate-800 dark:text-slate-200 pt-0.5",
+                  assignedVehicle && "hover:text-brand cursor-pointer transition-colors underline"
+                )}
+                onClick={() => {
+                  if (assignedVehicle) {
+                    if (onSelectVehicle) onSelectVehicle(assignedVehicle);
+                    else navigate(`/vehicles/${assignedVehicle.id}`);
+                  }
+                }}
+              >
                 {assignedVehicle ? assignedVehicle.plate_number : 'Unassigned'}
               </div>
             </div>
@@ -243,7 +249,7 @@ export default function DriverPreviewModal({ driver, isOpen, onClose, onEdit }: 
           {/* Dossier Credentials Summary */}
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 bg-white dark:bg-slate-900 space-y-3">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              <IdCard className="w-4 h-4 text-indigo-600" /> Driver Roster Dossier Summary
+              <IdCard className="w-4 h-4 text-indigo-600" /> Driver Dossier Summary
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">

@@ -41,6 +41,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+import ProviderRatesTab from '@/components/third-party/ProviderRatesTab';
 import { toast } from 'sonner';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
@@ -78,9 +79,11 @@ export default function ThirdPartyDetailsPage() {
 
   useEffect(() => {
     if (provider && provider.id && id !== provider.id) {
-      navigate(`/third-party/${provider.id}`, { replace: true });
+      if ((provider as any).ref_id && id?.toLowerCase() === (provider as any).ref_id.toLowerCase()) {
+        navigate(`/third-party/${provider.id}`, { replace: true });
+      }
     }
-  }, [provider?.id, id, navigate]);
+  }, [provider?.id, (provider as any)?.ref_id, id, navigate]);
 
   if (isLoading) {
     return (
@@ -432,7 +435,10 @@ export default function ThirdPartyDetailsPage() {
 
         </div>
 
-        {/* ── 4. SUBCONTRACTED TRIP LEDGER (FULL WIDTH) ── */}
+        {/* ── 4. NEGOTIATED PROVIDER RATE CARDS (FULL WIDTH) ── */}
+        <ProviderRatesTab providerId={provider.id} providerName={provider.name} />
+
+        {/* ── 5. SUBCONTRACTED TRIP LEDGER (FULL WIDTH) ── */}
         <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden w-full">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>

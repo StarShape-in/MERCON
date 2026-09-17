@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { Wallet, ChevronRight } from 'lucide-react-native';
+import { Wallet, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTripHistory } from '../lib/use-trip-history';
 import { getTripChargeValue } from '../screens/driver/DriverChargesScreen';
@@ -13,7 +13,7 @@ interface DriverChargePillProps {
 
 export function DriverChargePill({ amount, style }: DriverChargePillProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language, formatCurrency } = useLanguage();
   const { trips: historyList } = useTripHistory();
 
   const totalEarnings = useMemo(() => {
@@ -36,12 +36,16 @@ export function DriverChargePill({ amount, style }: DriverChargePillProps) {
         <Wallet size={15} color="#FA634E" strokeWidth={2.2} />
       </View>
       <View style={styles.chargeTextCol}>
-        <Text style={styles.chargeAmount}>
-          SAR {totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <Text style={[styles.chargeAmount, { writingDirection: 'ltr' }]}>
+          {formatCurrency(totalEarnings)}
         </Text>
         <Text style={styles.chargeLabel}>{t('label_driver_charge', 'Driver Charge')}</Text>
       </View>
-      <ChevronRight size={14} color="#9898A4" strokeWidth={2.2} />
+      {language === 'ur' ? (
+        <ChevronLeft size={14} color="#9898A4" strokeWidth={2.2} />
+      ) : (
+        <ChevronRight size={14} color="#9898A4" strokeWidth={2.2} />
+      )}
     </TouchableOpacity>
   );
 }

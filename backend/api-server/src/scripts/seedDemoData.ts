@@ -29,11 +29,9 @@ async function main() {
   const { data: custData } = await axios.post(`${API}/customers`, {
     name: 'Riyadh Fresh Foods Co.',
     contact_phone: '+966500000001',
-    company_name: 'RFC Logistics',
     primary_contact_person: 'Abdullah Al-Rashid',
     primary_contact_phone: '+966500000002',
     payment_terms: 'Net 30',
-    credit_limit: 50000,
     isActive: true,
   }, H);
   const customer = custData.data;

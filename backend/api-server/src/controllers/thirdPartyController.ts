@@ -1,13 +1,12 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { buildSearchAnd } from '../utils/search';
 import { TripStatus } from '@prisma/client';
 
 const THIRD_PARTY_SEARCH_FIELDS = ['name', 'contact_person', 'phone', 'email', 'tax_id'];
 
-// Trip statuses that mean the trip is still in progress — the same active-set
-// convention used in driverController / vehicleController.
-const ACTIVE_TRIP_STATUSES = ['Scheduled', 'Loading', 'InTransit', 'Delayed'];
+// Trip statuses that mean the trip is actively started and in progress.
+const ACTIVE_TRIP_STATUSES = ['Loading', 'InTransit', 'Delayed'];
 
 export const getThirdPartyProviders = async (req: Request, res: Response) => {
   try {
@@ -34,56 +33,49 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
         take: limit,
         orderBy: { name: 'asc' },
         include: {
-          // Excludes soft-deleted trips, so this agrees with total_cost /
-          // total_revenue below — which have always filtered them out.
           _count: {
-            select: { trips: { where: { deletedAt: null } } },
+            select: { subcontracts: { where: { trip: { deletedAt: null } } } },
           },
         },
       }),
       prisma.thirdPartyProvider.count({ where: whereClause }),
     ]);
 
-    // Per-provider stats in two grouped queries rather than two queries per
-    // provider. The previous version issued a count + an aggregate inside a
-    // `.map()`, so listing the providers page (which asks for per_page=1000)
-    // fired ~2000 round-trips to Postgres for one screen.
     const providerIds = providers.map((p: any) => p.id);
     const [activeByProvider, totalsByProvider] = providerIds.length === 0
       ? [[], []]
       : await Promise.all([
-          prisma.trip.groupBy({
-            by: ['thirdPartyProviderId'],
+          prisma.tripSubcontract.groupBy({
+            by: ['providerId'],
             where: {
-              thirdPartyProviderId: { in: providerIds },
-              status: { in: ACTIVE_TRIP_STATUSES as TripStatus[] },
-              deletedAt: null,
+              providerId: { in: providerIds },
+              trip: { status: { in: ACTIVE_TRIP_STATUSES as TripStatus[] }, deletedAt: null },
             },
             _count: { _all: true },
           }),
-          prisma.trip.groupBy({
-            by: ['thirdPartyProviderId'],
-            where: { thirdPartyProviderId: { in: providerIds }, deletedAt: null },
-            _sum: { third_party_cost: true, billing_amount: true },
+          prisma.tripSubcontract.groupBy({
+            by: ['providerId'],
+            where: { providerId: { in: providerIds }, trip: { deletedAt: null } },
+            _sum: { cost: true },
           }),
         ]);
 
     const activeCountById = new Map<string, number>(
-      activeByProvider.map((row: any) => [row.thirdPartyProviderId as string, row._count._all])
+      activeByProvider.map((row: any) => [row.providerId as string, row._count._all])
     );
-    const totalsById = new Map<string, { cost: number; revenue: number }>(
+    const totalsById = new Map<string, { cost: number }>(
       totalsByProvider.map((row: any) => [
-        row.thirdPartyProviderId as string,
-        { cost: Number(row._sum.third_party_cost ?? 0), revenue: Number(row._sum.billing_amount ?? 0) },
+        row.providerId as string,
+        { cost: Number(row._sum.cost ?? 0) },
       ])
     );
 
     const formattedProviders = providers.map((provider: any) => ({
       ...provider,
-      total_trips: provider._count?.trips || 0,
+      total_trips: provider._count?.subcontracts || 0,
       active_trips: activeCountById.get(provider.id) || 0,
       total_cost: totalsById.get(provider.id)?.cost || 0,
-      total_revenue: totalsById.get(provider.id)?.revenue || 0,
+      total_revenue: 0,
     }));
 
     res.json({
@@ -102,26 +94,20 @@ export const getThirdPartyProviders = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Totals for the 3PL KPI strip. The page used to derive these in the browser
- * from a `per_page=1000` provider fetch on every mount — which, before the
- * grouped rewrite above, meant ~2000 extra queries just to render four cards.
- */
 export const getThirdPartyStats = async (_req: Request, res: Response) => {
   try {
     const where = { deletedAt: null };
     const [total, active, tripTotals] = await Promise.all([
       prisma.thirdPartyProvider.count({ where }),
       prisma.thirdPartyProvider.count({ where: { ...where, isActive: true } }),
-      prisma.trip.aggregate({
-        where: { thirdPartyProviderId: { not: null }, deletedAt: null },
+      prisma.tripSubcontract.aggregate({
+        where: { providerId: { not: null }, trip: { deletedAt: null } },
         _count: { _all: true },
-        _sum: { third_party_cost: true, billing_amount: true },
+        _sum: { cost: true },
       }),
     ]);
 
-    const totalCost = Number(tripTotals._sum.third_party_cost ?? 0);
-    const totalRevenue = Number(tripTotals._sum.billing_amount ?? 0);
+    const totalCost = Number(tripTotals._sum.cost ?? 0);
 
     res.json({
       success: true,
@@ -131,8 +117,8 @@ export const getThirdPartyStats = async (_req: Request, res: Response) => {
         inactive: total - active,
         total_trips: tripTotals._count._all,
         total_cost: totalCost,
-        total_revenue: totalRevenue,
-        net_profit: totalRevenue - totalCost,
+        total_revenue: 0,
+        net_profit: 0 - totalCost,
       },
     });
   } catch (error) {
@@ -147,12 +133,12 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
     const provider: any = await prisma.thirdPartyProvider.findFirst({
       where: { id, deletedAt: null },
       include: {
-        trips: {
+        subcontracts: {
           take: 20,
           orderBy: { createdAt: 'desc' },
-          include: { customer: true },
+          include: { trip: { include: { customer: true } } },
         },
-        _count: { select: { trips: true } },
+        _count: { select: { subcontracts: true } },
       },
     });
 
@@ -160,22 +146,23 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Third-party provider not found' } });
     }
 
-    const activeTripsCount = await prisma.trip.count({
+    const activeTripsCount = await prisma.tripSubcontract.count({
       where: {
-        thirdPartyProviderId: provider.id,
-        status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
-        deletedAt: null,
+        providerId: provider.id,
+        trip: {
+          status: { in: ['Scheduled', 'Loading', 'InTransit', 'Delayed'] },
+          deletedAt: null,
+        },
       },
     });
 
-    const totalCostAggregate = await prisma.trip.aggregate({
+    const totalCostAggregate = await prisma.tripSubcontract.aggregate({
       where: {
-        thirdPartyProviderId: provider.id,
-        deletedAt: null,
+        providerId: provider.id,
+        trip: { deletedAt: null },
       },
       _sum: {
-        third_party_cost: true,
-        billing_amount: true,
+        cost: true,
       },
     });
 
@@ -183,10 +170,11 @@ export const getThirdPartyProviderById = async (req: Request, res: Response) => 
       success: true,
       data: {
         ...provider,
-        total_trips: provider._count?.trips || 0,
+        trips: (provider.subcontracts || []).map((sc: any) => sc.trip),
+        total_trips: provider._count?.subcontracts || 0,
         active_trips: activeTripsCount,
-        total_cost: totalCostAggregate._sum.third_party_cost || 0,
-        total_revenue: totalCostAggregate._sum.billing_amount || 0,
+        total_cost: totalCostAggregate._sum.cost || 0,
+        total_revenue: 0,
       },
     });
   } catch (error) {
@@ -287,13 +275,10 @@ export const deleteThirdPartyProvider = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Provider not found' } });
     }
 
-    await prisma.thirdPartyProvider.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-      },
-    });
+    await prisma.$transaction([
+      prisma.tripSubcontract.updateMany({ where: { providerId: id }, data: { providerId: null } }),
+      prisma.thirdPartyProvider.delete({ where: { id } })
+    ]);
 
     res.json({ success: true, data: { id, deleted: true } });
   } catch (error) {
@@ -379,3 +364,418 @@ export const bulkImportThirdPartyProviders = async (req: Request, res: Response)
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to bulk import third party providers' } });
   }
 };
+
+// ============================================================================
+// PROVIDER RATE CARD CRUD & DETERMINISTIC MATCHING ENGINE
+// ============================================================================
+
+export const getProviderRates = async (req: Request, res: Response) => {
+  try {
+    const providerId = String(req.params.providerId || req.params.id || '');
+    const { status, search } = req.query;
+
+    const whereClause: any = {
+      providerId,
+      deletedAt: null,
+    };
+
+    if (status && typeof status === 'string') {
+      whereClause.status = status;
+    }
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const query = search.trim();
+      whereClause.OR = [
+        { origin_city: { contains: query, mode: 'insensitive' } },
+        { destination_city: { contains: query, mode: 'insensitive' } },
+        { vehicle_class: { contains: query, mode: 'insensitive' } },
+        { line_type: { contains: query, mode: 'insensitive' } },
+      ];
+    }
+
+    const rates = await prisma.providerRateCard.findMany({
+      where: whereClause,
+      orderBy: [{ updatedAt: 'desc' }],
+      include: {
+        originLocation: { select: { id: true, name: true, city: true } },
+        destinationLocation: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    res.json({ success: true, data: rates });
+  } catch (error) {
+    console.error('Failed to fetch provider rates:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch provider rates' } });
+  }
+};
+
+export const createProviderRateCard = async (req: Request, res: Response) => {
+  try {
+    const providerId = String(req.params.providerId || req.body.providerId || '');
+    const {
+      origin_city,
+      destination_city,
+      originLocationId,
+      destinationLocationId,
+      vehicle_class,
+      line_type,
+      operation_type,
+      pricing_basis = 'Per Trip',
+      cost,
+      valid_from,
+      valid_to,
+      status = 'active',
+    } = req.body;
+
+    if (!providerId) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'providerId is required' } });
+    }
+    if (!origin_city || !destination_city) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'origin_city and destination_city are required' } });
+    }
+    if (!vehicle_class || !line_type) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'vehicle_class and line_type are required' } });
+    }
+    if (cost === undefined || cost === null || isNaN(Number(cost)) || Number(cost) < 0) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Valid non-negative cost is required' } });
+    }
+
+    if (valid_from && valid_to) {
+      if (new Date(valid_from) > new Date(valid_to)) {
+        return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'valid_from must be before or equal to valid_to' } });
+      }
+    }
+
+    const newRate = await prisma.providerRateCard.create({
+      data: {
+        providerId,
+        origin_city: String(origin_city).trim(),
+        destination_city: String(destination_city).trim(),
+        originLocationId: originLocationId || null,
+        destinationLocationId: destinationLocationId || null,
+        vehicle_class: String(vehicle_class).trim(),
+        line_type: String(line_type).trim(),
+        operation_type: operation_type ? String(operation_type).trim() : null,
+        pricing_basis: String(pricing_basis).trim(),
+        cost: Number(cost),
+        valid_from: valid_from ? new Date(valid_from) : null,
+        valid_to: valid_to ? new Date(valid_to) : null,
+        status: status || 'active',
+      },
+      include: {
+        originLocation: { select: { id: true, name: true, city: true } },
+        destinationLocation: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    res.status(201).json({ success: true, data: newRate });
+  } catch (error) {
+    console.error('Failed to create provider rate card:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create provider rate card' } });
+  }
+};
+
+export const updateProviderRateCard = async (req: Request, res: Response) => {
+  try {
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id || '') as string;
+    const {
+      origin_city,
+      destination_city,
+      originLocationId,
+      destinationLocationId,
+      vehicle_class,
+      line_type,
+      operation_type,
+      pricing_basis,
+      cost,
+      valid_from,
+      valid_to,
+      status,
+    } = req.body;
+
+    const existing = await prisma.providerRateCard.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Provider rate card not found' } });
+    }
+
+    if (cost !== undefined && (isNaN(Number(cost)) || Number(cost) < 0)) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Cost must be a valid non-negative number' } });
+    }
+
+    const updated = await prisma.providerRateCard.update({
+      where: { id },
+      data: {
+        ...(origin_city !== undefined && { origin_city: String(origin_city).trim() }),
+        ...(destination_city !== undefined && { destination_city: String(destination_city).trim() }),
+        ...(originLocationId !== undefined && { originLocationId: originLocationId || null }),
+        ...(destinationLocationId !== undefined && { destinationLocationId: destinationLocationId || null }),
+        ...(vehicle_class !== undefined && { vehicle_class: String(vehicle_class).trim() }),
+        ...(line_type !== undefined && { line_type: String(line_type).trim() }),
+        ...(operation_type !== undefined && { operation_type: operation_type ? String(operation_type).trim() : null }),
+        ...(pricing_basis !== undefined && { pricing_basis: String(pricing_basis).trim() }),
+        ...(cost !== undefined && { cost: Number(cost) }),
+        ...(valid_from !== undefined && { valid_from: valid_from ? new Date(valid_from) : null }),
+        ...(valid_to !== undefined && { valid_to: valid_to ? new Date(valid_to) : null }),
+        ...(status !== undefined && { status }),
+      },
+      include: {
+        originLocation: { select: { id: true, name: true, city: true } },
+        destinationLocation: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Failed to update provider rate card:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update provider rate card' } });
+  }
+};
+
+export const deleteProviderRateCard = async (req: Request, res: Response) => {
+  try {
+    const id = (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id || '') as string;
+    const existing = await prisma.providerRateCard.findUnique({ where: { id } });
+    if (!existing || existing.deletedAt) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Provider rate card not found' } });
+    }
+
+    await prisma.providerRateCard.update({
+      where: { id },
+      data: {
+        status: 'archived',
+        deletedAt: new Date(),
+      },
+    });
+
+    res.json({ success: true, message: 'Provider rate card archived successfully' });
+  } catch (error) {
+    console.error('Failed to delete provider rate card:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete provider rate card' } });
+  }
+};
+
+export const matchProviderRateCard = async (req: Request, res: Response) => {
+  try {
+    const {
+      providerId,
+      origin,
+      origin_city,
+      originLocationId,
+      destination,
+      destination_city,
+      destinationLocationId,
+      vehicle_class,
+      vehicle_type,
+      line_type,
+      rate_category,
+      operation_type,
+      billing_type,
+      pricing_basis,
+      target_date,
+    } = req.body;
+
+    if (!providerId) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'providerId is required for rate matching' } });
+    }
+
+    const norm = (s?: string | null) => String(s || '').toLowerCase().replace(/[\s,_()[\]\/{}\-.]/g, '');
+    const normalizeLineTypeToken = (s?: string | null): string => {
+      if (!s) return '';
+      const str = String(s).toUpperCase().replace(/_/g, ' ');
+      if (str.includes('10')) return '10_HRS';
+      if (str.includes('12')) return '12_HRS';
+      if (str.includes('ROUND')) return 'ROUND_TRIP';
+      if (str.includes('SINGLE')) return 'SINGLE_TRIP';
+      return str.replace(/[\s,_()[\]\/{}\-.]/g, '');
+    };
+
+    const normalizeBillingType = (s?: string | null): string => {
+      if (!s) return '';
+      const str = String(s).toLowerCase();
+      if (str.includes('month')) return 'monthly';
+      if (str.includes('extra') || str.includes('spot')) return 'extra';
+      return str;
+    };
+
+    const targetOrigCity = origin_city || origin || '';
+    const targetDestCity = destination_city || destination || '';
+    const targetVehicle = vehicle_class || vehicle_type || '';
+    const targetLine = line_type || rate_category || '';
+    const targetOp = normalizeBillingType(operation_type || billing_type);
+    const targetBasis = pricing_basis || (targetOp === 'monthly' ? 'Per Month' : 'Per Trip');
+    const targetTime = target_date ? new Date(target_date).getTime() : Date.now();
+
+    const candidateCards = await prisma.providerRateCard.findMany({
+      where: {
+        providerId,
+        status: 'active',
+        deletedAt: null,
+      },
+      include: {
+        originLocation: { select: { id: true, name: true, city: true } },
+        destinationLocation: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    const validCards = candidateCards.filter((rc: any) => {
+      // 1. Date Validity Check
+      if (rc.valid_from && new Date(rc.valid_from).getTime() > targetTime) return false;
+      if (rc.valid_to && new Date(rc.valid_to).getTime() < targetTime) return false;
+
+      // 2. Pricing Basis Exact Match Requirement
+      if (rc.pricing_basis && norm(rc.pricing_basis) !== norm(targetBasis)) return false;
+
+      // 3. Vehicle Class Match
+      if (targetVehicle && rc.vehicle_class) {
+        const rcV = norm(rc.vehicle_class);
+        const tV = norm(targetVehicle);
+        if (rcV !== tV) return false;
+      }
+
+      // 4. Line Type Match
+      if (targetLine && rc.line_type) {
+        const rcL = normalizeLineTypeToken(rc.line_type);
+        const tL = normalizeLineTypeToken(targetLine);
+        if (rcL !== tL) return false;
+      }
+
+      // 5. Operation Type Rule: Never match a rate with a conflicting explicit operation type
+      if (rc.operation_type && targetOp) {
+        const rcOp = normalizeBillingType(rc.operation_type);
+        if (rcOp && rcOp !== targetOp) return false;
+      }
+
+      // 6. Route Match
+      const matchOrigin =
+        (originLocationId && rc.originLocationId && rc.originLocationId === originLocationId) ||
+        (targetOrigCity && norm(rc.origin_city) === norm(targetOrigCity)) ||
+        (targetOrigCity && norm(rc.origin_city).includes(norm(targetOrigCity))) ||
+        (targetOrigCity && norm(targetOrigCity).includes(norm(rc.origin_city)));
+
+      const matchDest =
+        (destinationLocationId && rc.destinationLocationId && rc.destinationLocationId === destinationLocationId) ||
+        (targetDestCity && norm(rc.destination_city) === norm(targetDestCity)) ||
+        (targetDestCity && norm(rc.destination_city).includes(norm(targetDestCity))) ||
+        (targetDestCity && norm(targetDestCity).includes(norm(rc.destination_city)));
+
+      return matchOrigin && matchDest;
+    });
+
+    if (validCards.length === 0) {
+      return res.json({ success: true, data: null, message: 'No matching provider rate card found' });
+    }
+
+    // Rank candidate cards:
+    // Rank 1: Location ID exact match + exact operation_type match
+    // Rank 2: City corridor match + exact operation_type match
+    // Rank 3: Location ID exact match + operation_type IS NULL (wildcard)
+    // Rank 4: City corridor match + operation_type IS NULL (wildcard)
+    const rankedCards = validCards.map((rc: any) => {
+      const locExact = Boolean(originLocationId && destinationLocationId && rc.originLocationId === originLocationId && rc.destinationLocationId === destinationLocationId);
+      const opExact = Boolean(rc.operation_type && targetOp && normalizeBillingType(rc.operation_type) === targetOp);
+
+      let rank = 4;
+      if (locExact && opExact) rank = 1;
+      else if (!locExact && opExact) rank = 2;
+      else if (locExact && !rc.operation_type) rank = 3;
+      else rank = 4;
+
+      return { card: rc, rank };
+    });
+
+    rankedCards.sort((a: any, b: any) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return new Date(b.card.updatedAt).getTime() - new Date(a.card.updatedAt).getTime();
+    });
+
+    const bestMatch = rankedCards[0].card;
+
+    res.json({
+      success: true,
+      data: bestMatch,
+      matched_rank: rankedCards[0].rank,
+    });
+  } catch (error) {
+    console.error('Failed to match provider rate card:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to match provider rate card' } });
+  }
+};
+
+export const getPreviousDrivers = async (req: Request, res: Response) => {
+  try {
+    const providerId = req.params.providerId as string;
+
+    if (!providerId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'providerId is required' },
+      });
+    }
+
+    const subcontracts = await prisma.tripSubcontract.findMany({
+      where: {
+        providerId,
+        trip: { deletedAt: null },
+        OR: [
+          { driverName: { not: null } },
+          { driverPhone: { not: null } },
+          { vehiclePlate: { not: null } },
+        ],
+      },
+      select: {
+        driverName: true,
+        driverPhone: true,
+        vehiclePlate: true,
+        vehicleType: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 200,
+    });
+
+    const seen = new Set<string>();
+    const deduplicated: Array<{
+      driverName: string | null;
+      driverPhone: string | null;
+      vehiclePlate: string | null;
+      vehicleType: string | null;
+    }> = [];
+
+    const norm = (str?: string | null) => (str ? str.trim().toLowerCase().replace(/[\s\-_()]/g, '') : '');
+
+    for (const item of subcontracts) {
+      const nameNorm = norm(item.driverName);
+      const phoneNorm = norm(item.driverPhone);
+      const plateNorm = norm(item.vehiclePlate);
+
+      const identityKey = `${nameNorm}|${phoneNorm}|${plateNorm}`;
+
+      if (!identityKey.replace(/\|/g, '')) {
+        continue;
+      }
+
+      if (!seen.has(identityKey)) {
+        seen.add(identityKey);
+        deduplicated.push({
+          driverName: item.driverName ? item.driverName.trim() : null,
+          driverPhone: item.driverPhone ? item.driverPhone.trim() : null,
+          vehiclePlate: item.vehiclePlate ? item.vehiclePlate.trim() : null,
+          vehicleType: item.vehicleType ? item.vehicleType.trim() : null,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: deduplicated,
+    });
+  } catch (error) {
+    console.error('Failed to fetch 3PL previous drivers:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch previous drivers' },
+    });
+  }
+};
+
+

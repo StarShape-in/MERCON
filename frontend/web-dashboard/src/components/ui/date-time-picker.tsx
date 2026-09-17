@@ -11,6 +11,8 @@ import {
   isToday,
   isTomorrow,
   formatDistanceToNow,
+  startOfDay,
+  isSameDay,
 } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, Check, X, Sparkles, ChevronRight, Zap } from 'lucide-react';
 
@@ -65,8 +67,16 @@ export function DateTimePicker({
     }
     if (typeof value === 'string') {
       if (!value.trim()) return undefined;
-      // Handle both "YYYY-MM-DDTHH:mm" and other ISO formats
-      const d = parseISO(value);
+      let str = value.trim();
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+        const parts = str.split(':');
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = new Date();
+        d.setHours(h, m, 0, 0);
+        return d;
+      }
+      const d = parseISO(str);
       return isValid(d) ? d : undefined;
     }
     return undefined;
@@ -192,15 +202,15 @@ export function DateTimePicker({
             type="button"
             disabled={disabled}
             className={cn(
-              'group relative flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 py-2 text-left text-xs transition-all duration-200 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1',
+              'group relative flex w-full items-center justify-between gap-1.5 rounded-xl border border-input bg-background px-2.5 py-1 text-left text-xs transition-all duration-200 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1',
               !parsedDate && 'text-muted-foreground',
               error && 'border-destructive ring-1 ring-destructive/30',
               disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
             )}
           >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <CalendarIcon className="size-3.5" />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <CalendarIcon className="size-3" />
               </div>
 
               <div className="flex flex-col min-w-0">
@@ -209,19 +219,20 @@ export function DateTimePicker({
                     {label}
                   </span>
                 )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={cn('font-mono font-medium truncate', parsedDate ? 'text-foreground font-semibold' : 'text-muted-foreground')}>
-                    {parsedDate ? format(parsedDate, 'MMM d, yyyy • hh:mm a') : placeholder}
+                {parsedDate ? (
+                  <div className="flex flex-col text-left leading-tight min-w-0">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-xs truncate">
+                      {format(parsedDate, 'MMM d, yyyy')}
+                    </span>
+                    <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                      {format(parsedDate, 'hh:mm a')}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-400">
+                    {placeholder}
                   </span>
-                  {showRelativeBadge && relativeText && (
-                    <Badge
-                      variant="secondary"
-                      className="px-1.5 py-0 text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 shrink-0"
-                    >
-                      {relativeText}
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
             </div>
 
@@ -324,8 +335,8 @@ export function DateTimePicker({
                 selected={parsedDate}
                 onSelect={handleDateSelect}
                 disabled={(date) => {
-                  if (minDate && isBefore(date, minDate)) return true;
-                  if (maxDate && isBefore(maxDate, date)) return true;
+                  if (minDate && isBefore(startOfDay(date), startOfDay(minDate))) return true;
+                  if (maxDate && isBefore(startOfDay(maxDate), startOfDay(date))) return true;
                   return false;
                 }}
                 autoFocus
@@ -356,11 +367,17 @@ export function DateTimePicker({
                       onChange={(e) => handle12hTime(parseInt(e.target.value, 10), minutes, isPM)}
                       className="w-full text-center font-mono font-bold text-xs bg-muted/40 hover:bg-muted py-1.5 rounded-lg border-0 focus:ring-1 focus:ring-primary outline-none cursor-pointer"
                     >
-                      {hours12List.map((h) => (
-                        <option key={h} value={h}>
-                          {String(h).padStart(2, '0')}
-                        </option>
-                      ))}
+                      {hours12List.map((h) => {
+                        const h24 = isPM ? (h < 12 ? h + 12 : 12) : (h === 12 ? 0 : h);
+                        const isHourDisabled = Boolean(
+                          minDate && parsedDate && isSameDay(parsedDate, minDate) && h24 < minDate.getHours()
+                        );
+                        return (
+                          <option key={h} value={h} disabled={isHourDisabled}>
+                            {String(h).padStart(2, '0')}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -376,11 +393,16 @@ export function DateTimePicker({
                       onChange={(e) => handle12hTime(hours12, parseInt(e.target.value, 10), isPM)}
                       className="w-full text-center font-mono font-bold text-xs bg-muted/40 hover:bg-muted py-1.5 rounded-lg border-0 focus:ring-1 focus:ring-primary outline-none cursor-pointer"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                        <option key={m} value={m}>
-                          {String(m).padStart(2, '0')}
-                        </option>
-                      ))}
+                      {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => {
+                        const isMinDisabled = Boolean(
+                          minDate && parsedDate && isSameDay(parsedDate, minDate) && hours24 === minDate.getHours() && m <= minDate.getMinutes()
+                        );
+                        return (
+                          <option key={m} value={m} disabled={isMinDisabled}>
+                            {String(m).padStart(2, '0')}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -388,12 +410,14 @@ export function DateTimePicker({
                   <div className="flex flex-col gap-0.5 pt-3">
                     <button
                       type="button"
+                      disabled={Boolean(minDate && parsedDate && isSameDay(parsedDate, minDate) && minDate.getHours() >= 12)}
                       onClick={() => handle12hTime(hours12, minutes, false)}
                       className={cn(
                         'text-[10px] font-bold px-2 py-0.5 rounded-md transition-all',
                         !isPM
                           ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'bg-muted text-muted-foreground hover:text-foreground'
+                          : 'bg-muted text-muted-foreground hover:text-foreground',
+                        Boolean(minDate && parsedDate && isSameDay(parsedDate, minDate) && minDate.getHours() >= 12) && 'opacity-40 cursor-not-allowed'
                       )}
                     >
                       AM
@@ -421,16 +445,24 @@ export function DateTimePicker({
                   <div className="grid grid-cols-3 gap-1">
                     {quickHours.map((qh) => {
                       const isSelected = parsedDate && hours24 === qh.h && minutes === qh.m;
+                      const isChipDisabled = Boolean(
+                        minDate &&
+                        parsedDate &&
+                        isSameDay(parsedDate, minDate) &&
+                        (qh.h < minDate.getHours() || (qh.h === minDate.getHours() && qh.m <= minDate.getMinutes()))
+                      );
                       return (
                         <button
                           key={qh.label}
                           type="button"
+                          disabled={isChipDisabled}
                           onClick={() => handleTimeChange(qh.h, qh.m)}
                           className={cn(
                             'text-[10px] py-1 px-1 rounded-md font-mono transition-all text-center truncate',
                             isSelected
                               ? 'bg-primary text-primary-foreground font-bold shadow-xs'
-                              : 'bg-background hover:bg-muted text-foreground border border-border/60'
+                              : 'bg-background hover:bg-muted text-foreground border border-border/60',
+                            isChipDisabled && 'opacity-40 cursor-not-allowed pointer-events-none'
                           )}
                         >
                           {qh.label.replace(' ', '')}

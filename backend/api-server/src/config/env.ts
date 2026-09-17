@@ -7,17 +7,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-function required(name: string): string {
+function required(name: string, fallback?: string): string {
   const value = process.env[name];
-  if (!value) {
+  if (!value || value.trim() === '') {
+    if (fallback) return fallback;
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
 }
 
 export const env = {
-  DATABASE_URL: required('DATABASE_URL'),
-  JWT_SECRET: required('JWT_SECRET'),
+  DATABASE_URL: required('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/mercon_db?schema=public'),
+  JWT_SECRET: required('JWT_SECRET', 'development_secret_key_change_me'),
   PORT: Number(process.env.PORT) || 3000,
   BASE_URL: process.env.BASE_URL, // optional — derived from PORT when absent
   // ICCES GPS tracking. Optional: the platform runs perfectly well without a

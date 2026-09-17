@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MoreHorizontal,
@@ -10,12 +10,14 @@ import {
   Trash2,
   Edit2,
   Navigation,
+  MapPin,
 } from 'lucide-react';
 import { Trip, TripStop, TripStatus, getTripPayloadCapacity } from '@/services/tripService';
 import { formatInDeploymentTz, useDeploymentTimezone } from '@/lib/datetime';
 import DeletedBadge from '@/components/ui/DeletedBadge';
 import { cn } from '@/lib/utils';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { reverseGeocode } from '@/services/addressSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,16 +26,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface TripKanbanCardProps {
   trip: Trip;
-  onStatusChange: (trip: Trip, newStatus: TripStatus) => void;
+  onStatusChange?: (trip: Trip, newStatus: TripStatus) => void;
   onLogDelay?: (trip: Trip) => void;
   onShareWhatsapp?: (trip: Trip) => void;
   onDelete?: (trip: Trip) => void;
   onOpenSettlement?: (trip: Trip) => void;
   density?: 'compact' | 'normal' | 'expanded';
   hideCustomer?: boolean;
+  isSelected?: boolean;
+  showCheckbox?: boolean;
+  onToggleSelect?: (trip: Trip) => void;
 }
 
 // Prefer the compact monthly-sheet code ("RUH") when the stop's Location has
@@ -72,8 +78,50 @@ const stopFullLabel = (stop: TripStop | undefined) => {
 const getTripTypeLabel = (trip: Trip): string => {
   if (trip.is_third_party) return '3PL Trip';
   const stopsCount = trip.stops?.length ?? 0;
-  if (stopsCount > 2) return 'Multi-Stop';
+  const stops = trip.stops || [];
+  if (stops.some((s: any) => s.leg_index === 1) || (trip.line_type?.name && /round/i.test(trip.line_type.name))) {
+    return 'Round Trip';
+  }
+  if (stopsCount >= 3) {
+    const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+    const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+    if (firstLoc && lastLoc && firstLoc === lastLoc) return 'Round Trip';
+    return 'Multi-Stop';
+  }
   return 'Single Trip';
+};
+
+const getActiveLegInfo = (trip: Trip) => {
+  const stops = trip.stops || [];
+  const stopsCount = stops.length;
+  if (stopsCount === 0) return null;
+
+  const firstLoc = (stops[0]?.location_name || stops[0]?.location?.name || '').toLowerCase().trim();
+  const lastLoc = (stops[stopsCount - 1]?.location_name || stops[stopsCount - 1]?.location?.name || '').toLowerCase().trim();
+  const isRound = stops.some((s: any) => s.leg_index === 1) ||
+    Boolean(trip.line_type?.name && /round/i.test(trip.line_type.name)) ||
+    Boolean(stopsCount >= 3 && firstLoc && lastLoc && firstLoc === lastLoc);
+
+  // Find active stop: first stop without actual_departure
+  const activeIdx = stops.findIndex((s) => !s.actual_departure);
+  const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+  const currentStop = activeIdx >= 0 ? stops[activeIdx] : stops[stopsCount - 1];
+  
+  const rawName = currentStop?.location_name || currentStop?.location?.name || '—';
+  const cleanName = rawName.replace(/🔁\s*/g, '').trim();
+
+  return {
+    stopsCount,
+    currentStopNum,
+    currentStop,
+    cleanName,
+    isRound,
+    badgeText: isRound
+      ? `Leg ${currentStopNum}/${stopsCount} (Return)`
+      : stopsCount > 2
+        ? `Stop ${currentStopNum}/${stopsCount}`
+        : null
+  };
 };
 
 export default function TripKanbanCard({
@@ -85,6 +133,9 @@ export default function TripKanbanCard({
   onOpenSettlement,
   density = 'normal',
   hideCustomer = false,
+  isSelected = false,
+  showCheckbox = false,
+  onToggleSelect,
 }: TripKanbanCardProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -96,8 +147,38 @@ export default function TripKanbanCard({
   const dropoffName = getDropoffName(trip);
   const capacity = getTripPayloadCapacity(trip);
   const tripType = getTripTypeLabel(trip);
+  const legInfo = getActiveLegInfo(trip);
   const routeText = `${pickupName}  →  ${dropoffName}`;
   const routeTitle = `${stopFullLabel(pickup)} → ${stopFullLabel(dropoff)}`;
+
+  const resolvedLoc = trip.vehicle?.resolved_location;
+  const lat = resolvedLoc?.latitude;
+  const lng = resolvedLoc?.longitude;
+  const displayState = resolvedLoc?.display_state;
+  const hasCoords = typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng);
+  const isUnavailable = !resolvedLoc || displayState === 'UNAVAILABLE' || !hasCoords;
+
+  const [placeName, setPlaceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasCoords || isUnavailable) {
+      setPlaceName(null);
+      return;
+    }
+
+    let isMounted = true;
+    reverseGeocode(lat!, lng!)
+      .then((res) => {
+        if (isMounted) setPlaceName(res);
+      })
+      .catch(() => {
+        if (isMounted) setPlaceName(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lat, lng, isUnavailable, hasCoords]);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', trip.id);
@@ -122,31 +203,46 @@ export default function TripKanbanCard({
       onDragEnd={handleDragEnd}
       onClick={() => navigate(`/trips/${trip.id}`)}
       className={cn(
-        'group relative bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
+        'group relative bg-white dark:bg-slate-900 border rounded-xl shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing flex flex-col select-none',
         density === 'compact' ? 'p-3 gap-2' : density === 'expanded' ? 'p-4 gap-3' : 'p-3 gap-2.5',
-        isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10'
+        isDragging && 'opacity-40 border-dashed border-brand bg-orange-50/20 dark:bg-orange-950/10',
+        isSelected ? 'border-brand ring-1 ring-brand/30 bg-brand/5 dark:bg-brand/10' : 'border-slate-200/90 dark:border-slate-800'
       )}
     >
       {/* ── ROW 1: Trip Type badge (left) + Trip ID + ··· menu (right) ─────── */}
-      <div className="flex items-center justify-between gap-2">
-        {/* Trip type label — compact, low visual weight */}
-        <span className={cn(
-          'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase',
-          trip.is_third_party
-            ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-            : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-        )}>
-          {tripType}
-        </span>
+      <div className="flex items-center justify-between gap-1.5 w-full min-w-0">
+        {/* Left cluster: Checkbox + Trip type label */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
+          {showCheckbox && onToggleSelect && (
+            <div onClick={(e) => e.stopPropagation()} className="flex items-center shrink-0">
+              <Checkbox 
+                checked={isSelected} 
+                onCheckedChange={() => onToggleSelect(trip)} 
+                className={cn(
+                  "w-4 h-4 rounded shadow-sm border-slate-300 dark:border-slate-700 data-[state=checked]:bg-brand data-[state=checked]:border-brand",
+                  isSelected && "border-brand"
+                )}
+              />
+            </div>
+          )}
+          <span className={cn(
+            'text-[9px] font-bold px-1.5 py-0.5 rounded border tracking-wide uppercase shrink-0',
+            trip.is_third_party
+              ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+              : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+          )}>
+            {tripType}
+          </span>
+        </div>
 
         {/* Right cluster: ref_id + actions menu */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          <span className="font-mono text-[11px] font-black text-slate-700 dark:text-slate-300 group-hover:text-brand transition-colors tracking-tight">
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <span className="font-mono text-[11px] font-black text-[#FA634E] dark:text-[#FA634E] tracking-tight shrink-0 whitespace-nowrap">
             {trip.ref_id}
           </span>
 
           {/* Quick Action Dropdown */}
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -230,7 +326,7 @@ export default function TripKanbanCard({
                   .map((s) => (
                     <DropdownMenuItem
                       key={s}
-                      onClick={() => onStatusChange(trip, s)}
+                      onClick={() => onStatusChange?.(trip, s)}
                       className="cursor-pointer text-xs font-semibold py-1 px-2 rounded-md capitalize"
                     >
                       Move to {s === 'Draft' ? 'Scheduled' : s}
@@ -272,10 +368,7 @@ export default function TripKanbanCard({
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="group/route whitespace-nowrap text-[11px] font-bold text-slate-700 dark:text-slate-300">
               <span
-                className={cn(
-                  'inline-block',
-                  routeText.length > 28 ? 'animate-marquee group-hover/route:animation-paused' : 'truncate'
-                )}
+                className="inline-block truncate"
               >
                 {routeText}
               </span>
@@ -285,16 +378,55 @@ export default function TripKanbanCard({
         </div>
       </div>
 
+      {/* ── ROW 3.5: Resolved Physical Location Row ──────────────────────────── */}
+      {(() => {
+        if (trip.status === 'Completed' || trip.status === 'Invoiced') return null;
+        
+        if (isUnavailable) {
+          return (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium italic text-slate-400 dark:text-slate-500 py-0.5 px-1">
+              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+              <span className="truncate">Location unavailable</span>
+            </div>
+          );
+        }
+
+        const isCurrent = displayState === 'CURRENT';
+        const coordsText = `${lat!.toFixed(4)}, ${lng!.toFixed(4)}`;
+        const locationLabel = placeName || coordsText;
+        const sourceLabel = resolvedLoc?.source === 'DRIVER_GPS' ? 'Driver GPS' : resolvedLoc?.source === 'PHYSICAL_GPS' ? 'Vehicle GPS' : null;
+        const timeAgoText = resolvedLoc?.formatted_time_ago;
+        const statePrefix = isCurrent ? 'Current location' : 'Last known location';
+
+        return (
+          <div className="flex flex-col gap-0.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-lg px-2 py-1 min-w-0" title={`${statePrefix}: ${locationLabel}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Navigation className={cn("w-3 h-3 shrink-0", isCurrent ? "text-emerald-500" : "text-amber-500")} />
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                {locationLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[9.5px] font-medium text-slate-500 dark:text-slate-400 pl-4 truncate">
+              {timeAgoText && (
+                <span>
+                  {isCurrent ? `Updated ${timeAgoText}` : `Last known · ${timeAgoText}`}
+                </span>
+              )}
+              {sourceLabel && <span>· {sourceLabel}</span>}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── ROW 4: Driver name (left) + Tonnage (right) — no icons ─────────── */}
       <div className="flex items-center justify-between gap-2 overflow-hidden">
         <div className="flex-1 min-w-0 overflow-hidden">
           <span
             className={cn(
-              'text-[11px] font-semibold block',
+              'text-[11px] font-semibold block truncate',
               trip.is_third_party
                 ? 'text-purple-600 dark:text-purple-400'
-                : 'text-slate-600 dark:text-slate-400',
-              driverName.length > 13 ? 'animate-marquee-slow' : 'truncate'
+                : 'text-slate-600 dark:text-slate-400'
             )}
             title={driverName}
           >

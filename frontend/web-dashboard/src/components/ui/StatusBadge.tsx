@@ -31,6 +31,12 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
       styleClass = "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800";
       break;
 
+    case 'delayed':
+      label = 'Delayed';
+      Icon = AlertTriangle;
+      styleClass = "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800";
+      break;
+
     case 'emergency':
       label = 'Emergency';
       Icon = AlertTriangle;

@@ -3,8 +3,16 @@
 # (e.g. MTL) runs this same compose file on its own VPS with CLIENT_NAME,
 # POSTGRES_DB, and the port vars set in that host's .env — see
 # PROGRESS.md's new-client provisioning notes.
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "20m"
+      max-file: "3"
+
 services:
   postgres-db:
+    <<: *default-logging
     image: postgres:15-alpine
     container_name: "${CLIENT_NAME:-mercon}-postgres"
     restart: unless-stopped
@@ -23,6 +31,7 @@ services:
       retries: 5
 
   mercon-api:
+    <<: *default-logging
     build:
       context: .
       dockerfile: backend/api-server/Dockerfile
@@ -42,6 +51,8 @@ services:
       ICCES_USER: "${ICCES_USER:-}"
       ICCES_PASS: "${ICCES_PASS:-}"
       ICCES_ACCT: "${ICCES_ACCT:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-}"
       PORT: 3000
     volumes:
       # Parameterized by CLIENT_NAME so a second stack (e.g. dev) on the same
@@ -52,7 +63,7 @@ services:
       # mercon's existing host path is literally "/tmp/uploads" — deriving it
       # from CLIENT_NAME would silently move prod to a new, empty directory.
       - "/tmp/${CLIENT_NAME:-mercon}-uploads:/app/backend/api-server/uploads"
-      - "${TMP_UPLOADS_DIR:-/tmp/uploads}:/tmp/uploads"
+      - "${DEV_UPLOADS_DIR:-${TMP_UPLOADS_DIR:-/tmp/uploads}}:/tmp/uploads"
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -63,6 +74,7 @@ services:
       retries: 3
 
   mercon-frontend:
+    <<: *default-logging
     build:
       context: .
       dockerfile: frontend/web-dashboard/Dockerfile

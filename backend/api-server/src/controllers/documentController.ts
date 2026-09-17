@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { DocType, DocStatus, DocOwnerType } from '@prisma/client';
 import path from 'path';
@@ -154,7 +154,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       data: {
         entity_type,
         entity_id,
-        doc_type: doc_type as DocType,
+        doc_type: doc_type ? (doc_type as DocType) : null,
         documentTypeId: documentType?.id ?? null,
         status: DocStatus.PendingReview,
         file_url,
@@ -211,18 +211,15 @@ export const updateDocumentStatus = async (req: Request, res: Response) => {
   }
 };
 
-/* ─── Delete document (soft) ──────────────────────────────────────────────── */
+/* ─── Delete document (hard) ──────────────────────────────────────────────── */
 export const deleteDocument = async (req: Request, res: Response) => {
   try {
-    await prisma.document.update({
-      where: { id: req.params.id as string },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: (req as any).user?.id
-      }
-    });
-    res.json({ success: true, data: { message: 'Document deleted successfully' } });
+    const id = req.params.id as string;
+    await prisma.$transaction([
+      prisma.documentFile.deleteMany({ where: { documentId: id } }),
+      prisma.document.delete({ where: { id } })
+    ]);
+    res.json({ success: true, data: { message: 'Document permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete document' } });
   }
@@ -231,22 +228,17 @@ export const deleteDocument = async (req: Request, res: Response) => {
 
 export const bulkDeleteDocuments = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.document.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
-      }
-    });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} documents` } });
+    await prisma.$transaction([
+      prisma.documentFile.deleteMany({ where: { documentId: { in: ids } } }),
+      prisma.document.deleteMany({ where: { id: { in: ids } } })
+    ]);
+    res.json({ success: true, data: { message: `Successfully permanently deleted ${ids.length} documents` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete documents` } });
   }
@@ -551,14 +543,13 @@ export const addDocumentFile = async (req: Request, res: Response) => {
   }
 };
 
-/* ─── Remove a file from a document (soft delete) ─────────────────────────── */
+/* ─── Remove a file from a document (hard delete) ─────────────────────────── */
 export const deleteDocumentFile = async (req: Request, res: Response) => {
   try {
-    await prisma.documentFile.update({
+    await prisma.documentFile.delete({
       where: { id: req.params.fileId as string },
-      data: { deletedAt: new Date(), isActive: false },
     });
-    res.json({ success: true, data: { message: 'File removed successfully' } });
+    res.json({ success: true, data: { message: 'File permanently removed successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to remove file' } });
   }

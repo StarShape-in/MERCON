@@ -81,14 +81,6 @@ export default function CustomerPreviewModal({
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-4 h-4" />
-          </Button>
         </DialogHeader>
 
         {/* Content Body */}
@@ -97,8 +89,8 @@ export default function CustomerPreviewModal({
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
-            {customer.logo_url || customer.avatar_url ? (
-              <img src={customer.logo_url || customer.avatar_url || ''} alt={customer.name} className="w-16 h-16 object-contain shrink-0" />
+            {customer.logo_url ? (
+              <img src={customer.logo_url} alt={customer.name} className="w-16 h-16 object-contain shrink-0" />
             ) : (
               <Building2 className="w-7 h-7 text-white shrink-0" />
             )}
@@ -108,21 +100,10 @@ export default function CustomerPreviewModal({
                 <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {customer.name}
                 </h2>
-                {customer.company_name && customer.company_name !== customer.name && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    ({customer.company_name})
-                  </span>
-                )}
               </div>
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-xs">
                 {phoneToUse && <PhoneDisplay phone={phoneToUse} showActions variant="badge" />}
-                {customer.tax_number && (
-                  <span className="flex items-center gap-1.5 font-mono font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1 text-slate-700 dark:text-slate-200 shadow-2xs">
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    VAT/CR: {customer.tax_number}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -138,14 +119,7 @@ export default function CustomerPreviewModal({
               </div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-emerald-500" /> Credit Limit
-              </span>
-              <div className="font-mono text-base font-black text-slate-900 dark:text-slate-100 pt-0.5">
-                SAR {(customer.credit_limit || 0).toLocaleString()}
-              </div>
-            </div>
+
 
             <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">

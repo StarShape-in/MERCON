@@ -1,36 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { openInGoogleMaps } from '../../lib/maps';
 import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Linking,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, ActivityIndicator, Platform, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-
-let MapView: any = View;
-let Marker: any = View;
-let Polyline: any = View;
-let PROVIDER_DEFAULT: any = undefined;
-
-if (Platform.OS !== 'web') {
-  try {
-    const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Marker = Maps.Marker;
-    Polyline = Maps.Polyline;
-    PROVIDER_DEFAULT = Maps.PROVIDER_DEFAULT;
-  } catch (e) {
-    console.warn('react-native-maps load error:', e);
-  }
-}
-import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation } from 'lucide-react-native';
+import { OsmMapView, type OsmMapViewRef } from '../../components/common/OsmMapView';
+import { isValidCoordinate } from '../../lib/geo';
+import { ArrowLeft, MapPin, Truck, Siren, Clock, Banknote, ArrowUpRight, Navigation, Camera, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { DelayReportModal, TripProgressStepper } from '../../components';
+import { DelayReportModal, TripProgressStepper, DelayButton, GeotagPhotoModal } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, stopAddress, stopLabel } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel, isRoundTrip, resolveAuthoritativeActiveStop } from '../../lib/trips';
+import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
+import { useLanguage } from '../../lib/language-context';
 
 const ARRIVAL_RADIUS_M = 200;
-const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /** Great-circle distance between two lat/lng points, in meters. */
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -46,6 +33,7 @@ function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) 
 const LiveNavigationScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const { trip, loading, refetch } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -56,24 +44,191 @@ const LiveNavigationScreen = () => {
   
   const [arriving, setArriving] = useState(false);
   const [delayModalVisible, setDelayModalVisible] = useState(false);
+  const [arrivalPhoto, setArrivalPhoto] = useState<CapturedPhoto | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const hasArrivedRef = useRef(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<OsmMapViewRef>(null);
 
-  const activeStop = trip?.stops?.find((s) => s.actual_arrival === null) ?? trip?.stops?.[0] ?? null;
-  const isPickup = activeStop ? activeStop.stop_type === 'Pickup' : (trip?.status === 'Scheduled' || trip?.status === 'Draft' || trip?.driver_workflow_state === 'GOING_TO_PICKUP');
-  const isHeadingToPickup = isPickup;
+  useEffect(() => {
+    if (trip?.driver_workflow === 'EXTERNAL_APP') {
+      const ws = trip?.driver_workflow_state || 'ASSIGNED';
+      if (ws === 'ASSIGNED') {
+        router.replace('/');
+      } else {
+        router.replace('/trip/external-app');
+      }
+    }
+  }, [trip?.driver_workflow, trip]);
+
+  const ws = trip?.driver_workflow_state || 'ASSIGNED';
+  const isRound = isRoundTrip(trip);
+
+  const authActive = React.useMemo(() => {
+    return resolveAuthoritativeActiveStop(trip);
+  }, [trip]);
+
+  // Determine if heading to pickup or delivery directly from workflow state
+  const isHeadingToPickup = ws === 'ASSIGNED' || ws === 'GOING_TO_PICKUP' || ws === 'ARRIVED_AT_PICKUP' || (isRound && ws === 'RETURN_LOADING');
+
+  // Authoritative leg index: 0 for first leg, 1 for return leg
+  const legIndex = authActive.currentLegIndex;
+
+  // 1. Identify the trip's pickup stop for the active leg
+  const pickupStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    const stops = trip.stops;
+    const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
+    if (legStops.length > 0) {
+      return legStops.find((s) => s.stop_type === 'Pickup') || legStops[0];
+    }
+    return stops.find((s) => s.stop_type === 'Pickup') ?? stops[0];
+  }, [trip?.stops, legIndex]);
+
+  // 2. Identify the trip's drop-off / delivery stop for the active leg
+  const dropoffStop = React.useMemo(() => {
+    if (!trip?.stops || trip.stops.length === 0) return null;
+    const stops = trip.stops;
+    const legStops = stops.filter((s) => (s.leg_index ?? 0) === legIndex);
+    if (legStops.length > 0) {
+      return legStops.filter((s) => s.stop_type === 'Dropoff').pop() || legStops[legStops.length - 1];
+    }
+    return stops.find((s) => s.stop_type === 'Dropoff') ?? stops[stops.length - 1];
+  }, [trip?.stops, legIndex]);
+
+  // LiveNavigationScreen (the arrival image page) is strictly for Loading (Pickup) and Delivery (Dropoff).
+  // Intermediate stops must NEVER show this arrival image page — they go directly to /trip/stop.
+  const isIntermediateStop = React.useMemo(() => {
+    if (!trip) return false;
+    const isStopWorkflow =
+      ws === 'GOING_TO_STOP' ||
+      ws === 'ARRIVED_AT_STOP' ||
+      ws === 'STOP_VERIFICATION' ||
+      ws === 'GOING_TO_RETURN_STOP' ||
+      ws === 'ARRIVED_AT_RETURN_STOP' ||
+      ws === 'RETURN_STOP_VERIFICATION';
+    if (isStopWorkflow) return true;
+
+    if (authActive.activeStop) {
+      const isPickup = pickupStop && authActive.activeStop.id === pickupStop.id;
+      const isDropoff = dropoffStop && authActive.activeStop.id === dropoffStop.id;
+      if (!isPickup && !isDropoff) {
+        return true;
+      }
+    }
+
+    // If in transit, check if there are uncompleted intermediate stops for this leg
+    if (ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+      const legStops = (trip.stops || []).filter((s) => (s.leg_index ?? 0) === legIndex);
+      const uncompletedStop = legStops.find(
+        (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+      );
+      if (uncompletedStop) return true;
+    }
+
+    return false;
+  }, [trip, ws, authActive.activeStop, pickupStop, dropoffStop, legIndex]);
+
+  useEffect(() => {
+    if (loading || !trip) return;
+    if (isIntermediateStop) {
+      router.replace({
+        pathname: '/trip/stop',
+        params: { legIndex: String(legIndex) },
+      } as any);
+    }
+  }, [loading, trip, isIntermediateStop, legIndex]);
+
+  // 3. For LiveNavigationScreen, the active destination is strictly pickupStop or dropoffStop
+  const activeStop = React.useMemo(() => {
+    return isHeadingToPickup ? pickupStop : dropoffStop;
+  }, [isHeadingToPickup, pickupStop, dropoffStop]);
+
+  // 4. Create independent MarkerInfo objects for the map
+  const pickupMarker = React.useMemo(() => {
+    if (!pickupStop || !isValidCoordinate(pickupStop.location_lat, pickupStop.location_lng)) {
+      return null;
+    }
+    return {
+      coordinate: { latitude: pickupStop.location_lat, longitude: pickupStop.location_lng },
+      title: stopLabel(pickupStop, 'Pickup Location'),
+      address: stopAddress(pickupStop),
+    };
+  }, [pickupStop]);
+
+  const dropoffMarker = React.useMemo(() => {
+    if (!dropoffStop || !isValidCoordinate(dropoffStop.location_lat, dropoffStop.location_lng)) {
+      return null;
+    }
+    return {
+      coordinate: { latitude: dropoffStop.location_lat, longitude: dropoffStop.location_lng },
+      title: stopLabel(dropoffStop, 'Delivery Destination'),
+      address: stopAddress(dropoffStop),
+    };
+  }, [dropoffStop]);
+
+  const handleAddPhoto = async () => {
+    try {
+      const photo = await choosePhoto();
+      if (photo) {
+        setArrivalPhoto(photo);
+      }
+    } catch (e) {
+      Alert.alert(t('err_camera_title', 'Camera Error'), getApiErrorMessage(e));
+    }
+  };
 
   const goToStop = async () => {
     if (!trip || hasArrivedRef.current) return;
+
+    if (!arrivalPhoto) {
+      Alert.alert(
+        t('err_arrival_photo_needed', 'Arrival Photo Required'),
+        t('err_arrival_photo_needed', 'Please capture or attach an arrival photo before confirming arrival.'),
+        [
+          { text: t('action_add_image', 'Add Image') + ' 📷', onPress: handleAddPhoto },
+          { text: t('action_cancel', 'Cancel'), style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     hasArrivedRef.current = true;
     setArriving(true);
     try {
+      if (arrivalPhoto && trip.id) {
+        try {
+          const arrivalOp = isHeadingToPickup
+            ? (legIndex === 1 ? 'return_loading_arrival' : 'pickup_arrival')
+            : (legIndex === 1 ? 'return_delivery_arrival' : 'delivery_arrival');
+
+          await tripService.uploadPhoto(
+            trip.id,
+            isHeadingToPickup ? 'cargo' : 'pod',
+            {
+              uri: arrivalPhoto.uri,
+              fileName: arrivalPhoto.fileName,
+              mimeType: arrivalPhoto.mimeType,
+              location: arrivalPhoto.location ? {
+                latitude: arrivalPhoto.location.latitude,
+                longitude: arrivalPhoto.location.longitude,
+                timestamp: arrivalPhoto.location.timestamp,
+              } : null,
+            },
+            legIndex,
+            arrivalOp,
+            activeStop?.id
+          );
+        } catch (photoErr) {
+          console.warn('Arrival photo upload warning:', photoErr);
+        }
+      }
+
       if (isHeadingToPickup) {
         await tripService.updateStatus(trip.id, 'Loading', 'ARRIVED_AT_PICKUP');
         router.replace('/trip/pickup' as any);
       } else {
-        const isFinal = activeStop ? activeStop.stop_sequence === (trip.stops?.length ?? 1) : true;
-        const nextState = isFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
+        const isReturnFinal = isRound && (legIndex === 1 || ws === 'IN_TRANSIT_RETURN');
+        const nextState = isReturnFinal ? 'ARRIVED_AT_FINAL_DELIVERY' : 'ARRIVED_AT_DELIVERY';
         await tripService.updateStatus(trip.id, 'InTransit', nextState);
         router.replace('/trip/delivery' as any);
       }
@@ -85,27 +240,47 @@ const LiveNavigationScreen = () => {
   };
 
   const handleOpenExternalNavigation = () => {
-    const lat = activeStop?.location_lat ?? 18.3039;
-    const lng = activeStop?.location_lng ?? 42.7314;
-    const label = encodeURIComponent(stopLabel(activeStop) || 'Pickup Location');
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${lat},${lng}`,
-      android: `geo:0,0?q=${lat},${lng}(${label})`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    });
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-    });
+    openInGoogleMaps(activeStop);
   };
 
-  // Stream live position and auto-detect arrival at the dropoff.
+
+
+  const lastPostTimeRef = useRef<number>(0);
+
+  // Stream live position to backend and auto-detect arrival at the dropoff.
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
 
     (async () => {
+      // Stop tracking if trip is completed, cancelled, or not active
+      const isTrackable =
+        trip &&
+        (['Loading', 'InTransit', 'Delayed'].includes(trip.status) ||
+          (trip.status === 'Scheduled' && trip.driver_workflow_state === 'GOING_TO_PICKUP'));
+      if (!isTrackable || cancelled) return;
+
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
+
+      // Immediate initial position fix so the driver marker appears while stationary
+      try {
+        const initialLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!cancelled && initialLoc?.coords) {
+          let initLat = initialLoc.coords.latitude;
+          let initLng = initialLoc.coords.longitude;
+          if (Math.abs(initLat - 37.785834) < 0.1 && Math.abs(initLng - -122.406417) < 0.1 && activeStop) {
+            initLat = activeStop.location_lat - 0.005;
+            initLng = activeStop.location_lng - 0.005;
+          }
+          setPosition({ lat: initLat, lng: initLng });
+          if (activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
+            setDistanceToTarget(distanceMeters(initLat, initLng, activeStop.location_lat, activeStop.location_lng));
+          }
+        }
+      } catch {
+        // Safe degrade: continuous watchPositionAsync below will establish position
+      }
 
       sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
@@ -124,10 +299,26 @@ const LiveNavigationScreen = () => {
 
           setPosition({ lat, lng });
 
-          if (activeStop) {
+          // Send throttled location update to backend every 15 seconds
+          const now = Date.now();
+          if (trip?.id && now - lastPostTimeRef.current >= 15000) {
+            lastPostTimeRef.current = now;
+            tripService.sendLocationUpdate(trip.id, {
+              latitude: lat,
+              longitude: lng,
+              speed_kph: loc.coords.speed != null && loc.coords.speed >= 0 ? loc.coords.speed * 3.6 : null,
+              heading_deg: loc.coords.heading != null && loc.coords.heading >= 0 ? loc.coords.heading : null,
+              accuracy_m: loc.coords.accuracy != null ? loc.coords.accuracy : null,
+              recorded_at: new Date(loc.timestamp).toISOString(),
+            });
+          }
+
+          if (activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
             const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
             setDistanceToTarget(dist);
-            if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current) goToStop();
+            if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current && arrivalPhoto) goToStop();
+          } else {
+            setDistanceToTarget(null);
           }
         },
       );
@@ -138,10 +329,14 @@ const LiveNavigationScreen = () => {
       sub?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStop?.id]);
+  }, [activeStop?.id, trip?.id, trip?.status, trip?.driver_workflow_state]);
 
   useEffect(() => {
     if (!trip || !position || !activeStop) return;
+    if (!isValidCoordinate(activeStop.location_lat, activeStop.location_lng)) {
+      setRouteCoords(null);
+      return;
+    }
     if (routeFetchedRef.current === activeStop.id) return;
 
     routeFetchedRef.current = activeStop.id;
@@ -152,23 +347,17 @@ const LiveNavigationScreen = () => {
         setBaseDistance(route.distanceMeters);
         setRouteCoords(route.geometry.map((c) => ({ latitude: c[1], longitude: c[0] })));
       } catch (e) {
-        console.warn('Failed to fetch route:', e);
+        // Route API failure (e.g. 503 or network) must NEVER crash or block the map display
+        console.warn('Route polyline unavailable, rendering destination directly on OSM map:', e);
+        setRouteCoords(null);
       }
     };
     fetchRoute();
   }, [trip, position, activeStop]);
 
-  useEffect(() => {
-    if (position && activeStop && mapRef.current && Platform.OS !== 'web' && mapRef.current.fitToCoordinates) {
-      mapRef.current.fitToCoordinates(
-        [
-          { latitude: position.lat, longitude: position.lng },
-          { latitude: activeStop.location_lat, longitude: activeStop.location_lng }
-        ],
-        { edgePadding: { top: 80, right: 80, bottom: 80, left: 80 }, animated: true }
-      );
-    }
-  }, [position, activeStop]);
+  const recenterMap = useCallback(() => {
+    mapRef.current?.recenter();
+  }, []);
 
   if (loading && !trip) {
     return (
@@ -178,7 +367,9 @@ const LiveNavigationScreen = () => {
     );
   }
 
-  const center = position ?? (activeStop ? { lat: activeStop.location_lat, lng: activeStop.location_lng } : { lat: 24.7136, lng: 46.6753 });
+  const hasValidActiveCoords = Boolean(
+    activeStop && isValidCoordinate(activeStop.location_lat, activeStop.location_lng)
+  );
 
   let displayEta = '';
   let displayDistance = '';
@@ -197,136 +388,169 @@ const LiveNavigationScreen = () => {
       : `${Math.round(distanceToTarget)} m`;
   }
 
+  if (isIntermediateStop) {
+    return (
+      <View style={[styles.container, styles.centerBox]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          <View style={[styles.map, styles.centerBox, { backgroundColor: '#1E293B' }]}>
-            <MapPin size={36} color={Colors.primary} />
-            <Text style={{ color: Colors.white, marginTop: 12, fontWeight: '700', fontSize: Typography.base }}>
-              Live Map View
-            </Text>
-            <Text style={{ color: Colors.gray400, marginTop: 4, fontSize: Typography.xs }}>
-              Open in Expo Go app on iOS/Android for interactive map
-            </Text>
-          </View>
-        ) : (
-          <MapView
-            ref={mapRef}
-            provider={PROVIDER_DEFAULT}
-            style={styles.map}
-            initialRegion={{
-              latitude: center.lat,
-              longitude: center.lng,
-              latitudeDelta: 0.2,
-              longitudeDelta: 0.2,
-            }}
-          >
-            {position && (
-              <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.driverPin}>
-                  <Truck size={16} color={Colors.white} strokeWidth={2.4} />
+      {/* ── Background Map (OpenStreetMap OSM Layer via Leaflet WebView) ─── */}
+      <View style={StyleSheet.absoluteFill}>
+        <OsmMapView
+          ref={mapRef}
+          pickup={pickupMarker}
+          destination={dropoffMarker}
+          driverPosition={
+            position && isValidCoordinate(position.lat, position.lng)
+              ? { latitude: position.lat, longitude: position.lng }
+              : null
+          }
+          routeCoordinates={routeCoords}
+        />
+      </View>
+
+      {/* ── Top Header Overlay ─────────────────────────────────────────── */}
+      <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
+        {/* Outer Shadow Container */}
+        <View style={styles.unifiedTopCardShadow}>
+          {/* Inner Clipped Curved White Card */}
+          <View style={styles.unifiedTopCardInner}>
+            {/* Row 1: Back Arrow (Left), Current Step Info (Center), Report Delay Pill (Right) */}
+            <View style={styles.topControlHeaderRow}>
+              <TouchableOpacity
+                style={styles.backCircleBtn}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
+              </TouchableOpacity>
+
+              <View style={styles.headerTitleCenter}>
+                <View style={styles.currentStepTagRow}>
+                  <View style={styles.coralIndicatorDot} />
+                  <Text style={styles.currentStepTag}>{t('label_current_step', 'CURRENT STEP')}</Text>
                 </View>
-              </Marker>
-            )}
-
-            {activeStop && (
-              <Marker coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }} anchor={{ x: 0.5, y: 1 }}>
-                <View style={styles.destPin}>
-                  <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
-                </View>
-              </Marker>
-            )}
-
-            {routeCoords && (
-              <Polyline
-                coordinates={routeCoords}
-                strokeColor="#4285F4"
-                strokeWidth={6}
-                lineCap="round"
-                lineJoin="round"
-              />
-            )}
-          </MapView>
-        )}
-
-        {/* Top Header Overlay */}
-        <View style={[styles.topOverlay, { top: Math.max(insets.top + 8, 16) }]}>
-          {/* Outer Shadow Container */}
-          <View style={styles.unifiedTopCardShadow}>
-            {/* Inner Clipped Curved White Card */}
-            <View style={styles.unifiedTopCardInner}>
-              {/* Row 1: Back Arrow (Left), Current Step Info (Center), Report Delay Pill (Right) */}
-              <View style={styles.topControlHeaderRow}>
-                <TouchableOpacity
-                  style={styles.backCircleBtn}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <ArrowLeft size={18} color="#3E3C3D" strokeWidth={2.2} />
-                </TouchableOpacity>
-
-                <View style={styles.headerTitleCenter}>
-                  <View style={styles.currentStepTagRow}>
-                    <View style={styles.coralIndicatorDot} />
-                    <Text style={styles.currentStepTag}>CURRENT STEP</Text>
-                  </View>
-                  <Text style={styles.headerStateTitle} numberOfLines={1}>
-                    {isHeadingToPickup ? 'On the way to pickup' : 'On the way to delivery'}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.delayPillBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setDelayModalVisible(true)}
-                >
-                  <Clock size={13} color="#FA634E" strokeWidth={2.4} />
-                  <Text style={styles.delayPillText}>Delay</Text>
-                </TouchableOpacity>
+                <Text style={styles.headerStateTitle} numberOfLines={1}>
+                  {isHeadingToPickup ? t('msg_en_route_pickup', 'On the way to pickup') : t('msg_en_route_delivery', 'On the way to delivery')}
+                </Text>
               </View>
 
-              {/* Subtle Horizontal Divider */}
-              <View style={styles.subtleDivider} />
+              <DelayButton onPress={() => setDelayModalVisible(true)} />
+            </View>
 
-              {/* Row 2: Full Width Connected 4-Stage Stepper */}
-              <View style={styles.fullWidthStepperContainer}>
-                <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
-              </View>
+            {/* Subtle Horizontal Divider */}
+            <View style={styles.subtleDivider} />
+
+            {/* Row 2: Full Width Connected 4-Stage Stepper */}
+            <View style={styles.fullWidthStepperContainer}>
+              <TripProgressStepper currentStep={isHeadingToPickup ? 1 : 3} />
             </View>
           </View>
         </View>
-
-        {!position && (
-          <View style={styles.gpsNotice}>
-            <Text style={styles.gpsNoticeText}>Waiting for GPS signal…</Text>
-          </View>
-        )}
       </View>
+
+      {/* ── Floating Controls on Map (ETA Pill + Recenter Button) ────────── */}
+      {(displayDistance || displayEta) && (
+        <View style={[styles.floatingEtaContainer, { top: Math.max(insets.top + 8, 16) + 124 }]}>
+          <View style={styles.floatingEtaPill}>
+            <View style={[styles.etaPulseDot, { backgroundColor: position ? '#10B981' : '#F59E0B' }]} />
+            {displayDistance ? (
+              <Text style={styles.floatingDistanceText}>{displayDistance}</Text>
+            ) : null}
+            {displayDistance && displayEta ? (
+              <Text style={styles.floatingEtaDivider}>•</Text>
+            ) : null}
+            {displayEta ? (
+              <Text style={styles.floatingEtaText}>{displayEta} {language === 'ur' ? 'باقی' : 'remaining'}</Text>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      {/* Floating Recenter Map Button */}
+      <TouchableOpacity
+        style={[styles.floatingRecenterBtn, { bottom: Math.max(insets.bottom + 16, 24) + 225 }]}
+        activeOpacity={0.85}
+        onPress={recenterMap}
+      >
+        <Navigation size={18} color="#FA634E" strokeWidth={2.4} />
+      </TouchableOpacity>
+
 
       {/* Bottom Sheet Container */}
       <View style={styles.bottomCardShadow}>
         <View style={[styles.bottomCardInner, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
-          {/* 1. Destination Information Block */}
+          {/* 1. Destination Information Block with Add Photo button */}
           <View style={styles.destinationBlock}>
-            <Text style={styles.destinationLabel}>
-              {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
-            </Text>
-            <Text style={styles.destinationName} numberOfLines={1}>
-              {stopLabel(activeStop, isHeadingToPickup ? 'Khamis Mushayt' : 'Khamis Mushayt')}
-            </Text>
-            <Text style={styles.destinationAddress} numberOfLines={2}>
-              {stopAddress(activeStop) ?? "Khamis Mushayt, 'Asir Province, Saudi Arabia"}
-            </Text>
+            <View style={styles.destinationRow}>
+              <View style={styles.destinationTextCol}>
+                <Text style={styles.destinationLabel}>
+                  {isHeadingToPickup ? t('label_picking_up_at', 'PICKING UP AT') : t('label_delivering_to', 'DELIVERING TO')}
+                </Text>
+                <Text style={styles.destinationName} numberOfLines={1}>
+                  {stopLabel(activeStop, isHeadingToPickup ? 'Pickup Location' : 'Delivery Location')}
+                </Text>
+                <Text style={styles.destinationAddress} numberOfLines={2}>
+                  {stopAddress(activeStop) ?? (isHeadingToPickup ? "Pickup Point, Saudi Arabia" : "Delivery Destination, Saudi Arabia")}
+                </Text>
+              </View>
+
+              {/* Photo Upload Tile (Matching user screenshot) */}
+              {arrivalPhoto ? (
+                <View style={styles.photoTileWrapper}>
+                  <TouchableOpacity
+                    style={styles.arrivalPhotoThumbBox}
+                    activeOpacity={0.85}
+                    onPress={() => setPreviewPhoto(arrivalPhoto)}
+                  >
+                    <Image source={{ uri: arrivalPhoto.uri }} style={styles.arrivalPhotoThumb} />
+                    <View style={styles.photoCheckBadge}>
+                      <CheckCircle2 size={11} color="#FFFFFF" strokeWidth={2.5} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.removePhotoBtn}
+                    activeOpacity={0.7}
+                    onPress={() => setArrivalPhoto(null)}
+                  >
+                    <Trash2 size={11} color="#FFFFFF" strokeWidth={2.2} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addArrivalPhotoBtn}
+                  activeOpacity={0.8}
+                  onPress={handleAddPhoto}
+                >
+                  <View style={styles.addPhotoIconCircle}>
+                    <Camera size={18} color="#FA634E" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.addPhotoBtnText}>{t('action_add_image', 'Add Image')}</Text>
+                  <Text style={styles.requiredBadge}>{t('badge_required', 'Required')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {!hasValidActiveCoords && (
+              <View style={styles.missingCoordsBanner}>
+                <Text style={styles.missingCoordsBannerText}>
+                  {t('warn_gps_missing', '⚠️ Stop GPS coordinates unavailable — Tap Open Navigation to search by address')}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* 2. PRIMARY ACTION: I'VE ARRIVED AT PICKUP */}
           <TouchableOpacity
             style={[
               styles.primaryArrivedBtn,
-              { backgroundColor: isHeadingToPickup ? '#FA634E' : '#10B981' },
+              { backgroundColor: !arrivalPhoto ? '#94A3B8' : (isHeadingToPickup ? '#FA634E' : '#10B981') },
               arriving && { opacity: 0.6 }
             ]}
             activeOpacity={0.88}
@@ -334,7 +558,13 @@ const LiveNavigationScreen = () => {
             disabled={arriving}
           >
             <Text style={styles.primaryArrivedBtnText}>
-              {arriving ? 'Updating State…' : isHeadingToPickup ? "I'VE ARRIVED AT PICKUP" : "I'VE ARRIVED AT DELIVERY"}
+              {arriving
+                ? t('msg_updating_state', 'Updating State…')
+                : !arrivalPhoto
+                ? t('action_add_image_first', 'ADD IMAGE TO CONFIRM ARRIVAL')
+                : isHeadingToPickup
+                ? t('action_arrived_pickup', "I'VE ARRIVED AT PICKUP")
+                : t('action_arrived_delivery', "I'VE ARRIVED AT DELIVERY")}
             </Text>
           </TouchableOpacity>
 
@@ -350,9 +580,9 @@ const LiveNavigationScreen = () => {
 
             <View style={styles.navTileTextCol}>
               <Text style={styles.navTileTitle}>
-                {isHeadingToPickup ? 'GO TO PICKUP' : 'GO TO DELIVERY'}
+                {isHeadingToPickup ? t('action_go_to_pickup', 'GO TO PICKUP') : t('action_go_to_delivery', 'GO TO DELIVERY')}
               </Text>
-              <Text style={styles.navTileSubtext}>Open navigation app</Text>
+              <Text style={styles.navTileSubtext}>{t('label_open_nav_app', 'Open navigation app')}</Text>
             </View>
 
             <ArrowUpRight size={18} color="#94A3B8" strokeWidth={2.4} />
@@ -366,6 +596,12 @@ const LiveNavigationScreen = () => {
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
       />
+
+      <GeotagPhotoModal
+        visible={!!previewPhoto}
+        photo={previewPhoto ? { uri: previewPhoto.uri, title: 'Arrival Photo Preview', location: previewPhoto.location } : null}
+        onClose={() => setPreviewPhoto(null)}
+      />
     </View>
   );
 };
@@ -373,35 +609,123 @@ const LiveNavigationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
   },
   centerBox: { alignItems: 'center', justifyContent: 'center' },
-  mapContainer: {
-    ...StyleSheet.absoluteFill,
-  },
-  map: {
-    ...StyleSheet.absoluteFill,
-  },
-  driverPin: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
+  driverPinPulse: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(250, 99, 78, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
   },
-  destPin: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#1A2B1A',
+  driverPinOuter: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FA634E',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
+  destPinOuter: {
+    alignItems: 'center',
+  },
+  destPinInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  destPinArrow: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderBottomWidth: 0,
+    borderTopWidth: 7,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#1E293B',
+    marginTop: -1,
+  },
+  floatingEtaContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 45,
+  },
+  floatingEtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.92)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    gap: 6,
+  },
+  etaPulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  floatingDistanceText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  floatingEtaDivider: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  floatingEtaText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  floatingRecenterBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    zIndex: 45,
+  },
+
   topOverlay: {
     position: 'absolute',
     left: 12,
@@ -589,6 +913,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray200,
   },
+  destinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  destinationTextCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
   destinationLabel: {
     fontSize: Typography.xs,
     fontWeight: '700',
@@ -606,6 +939,95 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: 2,
     lineHeight: 18,
+  },
+  missingCoordsBanner: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  missingCoordsBannerText: {
+    fontSize: Typography.xs,
+    color: '#92400E',
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  addArrivalPhotoBtn: {
+    width: 76,
+    height: 72,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FA634E',
+    borderStyle: 'dashed',
+    backgroundColor: '#FFF5F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  addPhotoIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFEBE8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  addPhotoBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  requiredBadge: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#E11D48',
+    marginTop: 1,
+  },
+  photoTileWrapper: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+  },
+  arrivalPhotoThumbBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  arrivalPhotoThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  photoCheckBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    zIndex: 10,
   },
   navStats: {
     flexDirection: 'row',

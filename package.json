@@ -9,6 +9,7 @@
     "frontend/web-dashboard"
   ],
   "scripts": {
+    "dev": "npx --yes concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "npm run dev -w @mercon/api-server",
     "dev:web": "npm run dev -w @mercon/web-dashboard",
     "build:types": "npm run build -w @mercon/shared-types",
@@ -22,6 +23,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "localtunnel": "^2.0.2"
   }
 }

@@ -43,18 +43,10 @@ export type StopType = 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
 export interface TripStop {
   id: string;
   stop_sequence: number;
+  leg_index?: number;
   stop_type: StopType;
   location_lat: number;
   location_lng: number;
-  /**
-   * Where this stop actually is, in three parts — the API has always sent
-   * these; the type used to declare only the coordinates, so the app couldn't
-   * see them and the driver got a pin with no address.
-   *
-   *  location_name    short label — "Khamis Sorting Center"
-   *  location_address full postal address — what you navigate by
-   *  location         the lane endpoint it sits in — "Jeddah"
-   */
   location_name: string | null;
   location_address: string | null;
   location?: { id: string; name: string; address: string | null } | null;
@@ -140,20 +132,278 @@ export interface MobileTrip {
   id: string;
   ref_id: string | null;
   status: TripStatus;
+  driver_workflow: 'NATIVE' | 'EXTERNAL_APP';
   driver_workflow_state?: string | null;
   planned_distance: number | null;
   planned_start?: string | null;
   actual_start?: string | null;
   planned_end: string | null;
   actual_end?: string | null;
+  driver_payout?: number | string | null;
+  driver_charge?: number | string | null;
   trip_charges?: number | string | null;
   billing_amount?: number | string | null;
   applied_rate?: number | string | null;
   extra_driver_payment?: number | string | null;
   trip_type?: string | null;
-  customer?: { id: string; name: string; logo_url?: string | null; avatar_url?: string | null } | null;
+  quotation_line_type?: string | null;
+  rate_category?: string | null;
+  customer?: { id: string; name: string; logo_url?: string | null } | null;
   vehicle?: { id: string; plate_number: string } | null;
+  origin?: string | null;
+  destination?: string | null;
   stops: TripStop[];
+  documents?: Array<{
+    id: string;
+    doc_type?: string;
+    file_url: string;
+    mime_type?: string;
+    ai_extracted_json?: any;
+    createdAt?: string;
+  }> | null;
+}
+
+/** Check whether a trip is genuinely a Round Trip */
+export function isRoundTrip(trip: MobileTrip | null | undefined): boolean {
+  if (!trip) return false;
+
+  // Primary check: explicit return leg in structured stops
+  if (trip.stops?.some((s) => (s.leg_index ?? 0) === 1)) return true;
+
+  const lineType = (
+    trip.quotation_line_type ||
+    trip.trip_type ||
+    (trip as any).rate_category ||
+    ''
+  ).toLowerCase().trim();
+  if (lineType.includes('round')) return true;
+
+  if (trip.destination?.includes('[RETURN:')) return true;
+  if (trip.stops?.some((s) => (s.location_name || '').includes('[RETURN:'))) return true;
+
+  const hasSecondPickup = (trip.stops ?? []).some((s, idx) => idx > 0 && s.stop_type === 'Pickup');
+  if (hasSecondPickup) return true;
+
+  // Check if first and last stop locations are identical (circular round trip)
+  const stops = trip.stops ?? [];
+  if (stops.length >= 3) {
+    const first = (stops[0].location_name || stops[0].location?.name || '').toLowerCase().trim();
+    const last = (stops[stops.length - 1].location_name || stops[stops.length - 1].location?.name || '').toLowerCase().trim();
+    if (first && last && first === last) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Intelligently derives the true driver workflow state from both the explicit
+ * driver_workflow_state and the real-world stop progress (actual_arrival and actual_departure).
+ * This ensures that completed stops (e.g. Stop 1 arrived or loaded or departed)
+ * NEVER regress to ASSIGNED or GOING_TO_PICKUP if the cache or local state was cleared.
+ */
+export function getEffectiveWorkflowState(trip: MobileTrip | null | undefined): string {
+  if (!trip) return 'ASSIGNED';
+  const ws = trip.driver_workflow_state;
+  const stops = [...(trip.stops || [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const isRound = isRoundTrip(trip);
+
+  if (trip.status === 'Completed' || trip.status === 'Invoiced' || ws === 'COMPLETED') {
+    return 'COMPLETED';
+  }
+
+  if (stops.length > 0) {
+    const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+    const returnStops = stops.filter((s) => (s.leg_index ?? 0) === 1);
+    const hasExplicitLegs = returnStops.length > 0;
+
+    const s1 = outboundStops[0] || stops[0];
+    const s2 = hasExplicitLegs
+      ? (outboundStops.filter((s) => s.stop_type === 'Dropoff').pop() || outboundStops[outboundStops.length - 1])
+      : (stops.find((s) => s.stop_sequence === 2) || stops[1] || stops[stops.length - 1]);
+
+    const s3 = isRound
+      ? (hasExplicitLegs
+          ? (returnStops.find((s) => s.stop_type === 'Pickup') || returnStops[0])
+          : stops.find((s) => s.stop_sequence === 3))
+      : null;
+
+    const s4 = isRound
+      ? (hasExplicitLegs
+          ? (returnStops.filter((s) => s.stop_type === 'Dropoff').pop() || returnStops[returnStops.length - 1])
+          : (stops.find((s) => s.stop_sequence === 4) || stops[stops.length - 1]))
+      : null;
+
+    // 1. Final Delivery (Stop 4 for round trip, Stop 2 for single trip)
+    if (isRound && s4) {
+      if (s4.actual_departure || ws === 'RETURN_DELIVERY_COMPLETED' || ws === 'COMPLETED') {
+        return 'COMPLETED';
+      }
+      if (s4.actual_arrival || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION') {
+        return ws && ['ARRIVED_AT_FINAL_DELIVERY', 'FINAL_DELIVERY_VERIFICATION'].includes(ws) ? ws : 'ARRIVED_AT_FINAL_DELIVERY';
+      }
+    }
+
+    // 2. Return Loading (Stop 3 for round trip)
+    if (isRound && s3) {
+      if (s3.actual_departure) {
+        // Return loading completed and departed -> In transit to return delivery
+        return (ws && ['IN_TRANSIT_RETURN', 'ARRIVED_AT_FINAL_DELIVERY', 'FINAL_DELIVERY_VERIFICATION'].includes(ws))
+          ? ws
+          : 'IN_TRANSIT_RETURN';
+      }
+      if (s3.actual_arrival || ws === 'RETURN_LOADING' || ws === 'RETURN_LOADING_COMPLETED') {
+        return ws && ['RETURN_LOADING', 'RETURN_LOADING_COMPLETED'].includes(ws) ? ws : 'RETURN_LOADING';
+      }
+    }
+
+    // 3. Outbound Delivery (Stop 2)
+    if (s2) {
+      if (s2.actual_departure) {
+        if (isRound) {
+          // First delivery completed and departed -> Ready for return loading
+          return (ws && ['RETURN_LOADING', 'RETURN_LOADING_COMPLETED', 'IN_TRANSIT_RETURN', 'ARRIVED_AT_FINAL_DELIVERY'].includes(ws))
+            ? ws
+            : 'RETURN_LOADING';
+        } else {
+          return 'COMPLETED';
+        }
+      }
+      if (s2.actual_arrival || ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'FIRST_DELIVERY_COMPLETED') {
+        return ws && ['ARRIVED_AT_DELIVERY', 'DELIVERY_VERIFICATION', 'FIRST_DELIVERY_COMPLETED'].includes(ws) ? ws : 'ARRIVED_AT_DELIVERY';
+      }
+    }
+
+    // 4. Initial Pickup (Stop 1)
+    if (s1) {
+      if (s1.actual_departure) {
+        // Pickup departed -> In transit to delivery
+        return (ws && ['IN_TRANSIT', 'GOING_TO_STOP', 'ARRIVED_AT_STOP', 'STOP_VERIFICATION', 'ARRIVED_AT_DELIVERY', 'DELIVERY_VERIFICATION'].includes(ws))
+          ? ws
+          : 'IN_TRANSIT';
+      }
+      if (s1.actual_arrival || ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'LOADING_COMPLETED') {
+        return ws && ['ARRIVED_AT_PICKUP', 'LOADING', 'LOADING_COMPLETED'].includes(ws) ? ws : 'ARRIVED_AT_PICKUP';
+      }
+    }
+  }
+
+  return ws || 'ASSIGNED';
+}
+
+export interface AuthoritativeActiveStop {
+  activeStop: TripStop | null;
+  activeStopId: string | null;
+  activeStopSequence: number | null;
+  currentLegIndex: number;
+  nextStop: TripStop | null;
+  nextStopId: string | null;
+  isOutboundCompleted: boolean;
+  isReturnAllowedToStart: boolean;
+  isTripCompleted: boolean;
+  effectiveWorkflowState: string;
+}
+
+/**
+ * Single authoritative active stop resolver across MERCON.
+ * Resolves current active stop, next stop, active leg, and return readiness
+ * dynamically from stop records without hardcoding stop sequences or array positions.
+ */
+export function resolveAuthoritativeActiveStop(
+  trip?: { stops?: TripStop[]; status?: string; driver_workflow_state?: string | null } | null
+): AuthoritativeActiveStop {
+  const stops = trip?.stops || [];
+  const statusUpper = (trip?.status || '').toUpperCase();
+  const ws = trip?.driver_workflow_state || null;
+  const sortedStops = [...stops].sort((a, b) => a.stop_sequence - b.stop_sequence);
+
+  if (statusUpper === 'COMPLETED' || statusUpper === 'INVOICED' || ws === 'COMPLETED') {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: sortedStops.some((s) => (s.leg_index ?? 0) === 1) ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  if (sortedStops.length === 0) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: false,
+      isReturnAllowedToStart: false,
+      isTripCompleted: false,
+      effectiveWorkflowState: ws || (['IN_TRANSIT', 'DISPATCHED', 'ACTIVE'].includes(statusUpper) ? 'AT_PICKUP' : 'SCHEDULED'),
+    };
+  }
+
+  const outboundStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 0);
+  const returnStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 1);
+  const isRound = returnStops.length > 0 || (trip ? isRoundTrip(trip as any) : false);
+
+  const outboundDelivery = outboundStops.filter((s) => s.stop_type === 'Dropoff').pop() ||
+    (outboundStops.length > 0 ? outboundStops[outboundStops.length - 1] : null);
+
+  const isOutboundCompleted = Boolean(
+    outboundDelivery && (outboundDelivery.actual_departure != null || outboundDelivery.actual_arrival != null)
+  );
+
+  const isReturnAllowedToStart = isRound ? isOutboundCompleted : false;
+
+  // Find active stop: first stop that has not departed yet
+  let activeIdx = sortedStops.findIndex((s) => !s.actual_departure);
+
+  if (activeIdx === -1) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: returnStops.length > 0 ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  let activeStop = sortedStops[activeIdx];
+  const activeLeg = activeStop.leg_index ?? 0;
+
+  // STRICT RETURN START GUARD:
+  // If active stop is on return leg (leg 1), but outbound delivery has NOT arrived,
+  // return leg CANNOT be active. The active stop must remain the outbound delivery stop.
+  if (activeLeg === 1 && !isOutboundCompleted && outboundDelivery) {
+    activeStop = outboundDelivery;
+    activeIdx = sortedStops.findIndex((s) => s.id === outboundDelivery.id);
+  }
+
+  const nextStop = activeIdx + 1 < sortedStops.length ? sortedStops[activeIdx + 1] : null;
+
+  return {
+    activeStop,
+    activeStopId: activeStop?.id || null,
+    activeStopSequence: activeStop?.stop_sequence || null,
+    currentLegIndex: activeStop?.leg_index ?? 0,
+    nextStop,
+    nextStopId: nextStop?.id || null,
+    isOutboundCompleted,
+    isReturnAllowedToStart,
+    isTripCompleted: false,
+    effectiveWorkflowState: getEffectiveWorkflowState(trip as any),
+  };
 }
 
 /** A road route to the trip's next stop, as MERCON returns it. */
@@ -187,10 +437,14 @@ export const tripService = {
     return (data.data ?? []) as MobileTrip[];
   },
 
-  /** Scheduled/upcoming trips for this driver. */
-  async getScheduled(): Promise<MobileTrip[]> {
-    const { data } = await api.get('/mobile/trips/scheduled');
-    return (data.data ?? []) as MobileTrip[];
+  /** Scheduled / assigned trips for the driver. */
+  async getScheduled(limit = 30): Promise<MobileTrip[]> {
+    try {
+      const { data } = await api.get('/mobile/trips/scheduled', { params: { limit } });
+      return (data.data ?? []) as MobileTrip[];
+    } catch {
+      return [];
+    }
   },
 
   /**
@@ -204,6 +458,63 @@ export const tripService = {
       params: { from_lat: fromLat, from_lng: fromLng },
     });
     return data.data as TripRoute;
+  },
+
+  /** Upload an external app screenshot for AI Vision extraction and milestone processing. */
+  async uploadExternalScreenshot(
+    id: string,
+    asset: { uri: string; mimeType?: string | null; fileName?: string | null }
+  ): Promise<{
+    document_id: string;
+    extraction_status: 'SUCCESS' | 'NEEDS_REVIEW' | 'FAILED';
+    event_type?: string | null;
+    event_timestamp?: string | null;
+    stop_location_name?: string | null;
+    external_reference?: string | null;
+    detected_text?: string | null;
+    is_wrong_trip?: boolean;
+    extraction_error?: string | null;
+    confidence: number;
+    applied: boolean;
+    can_confirm?: boolean;
+    target_status?: string | null;
+    target_workflow_state?: string | null;
+    notes?: string | null;
+    validation_reason?: string | null;
+    trip?: MobileTrip | null;
+  }> {
+    const form = new FormData();
+    const fileName = asset.fileName || 'external-screenshot.jpg';
+    const mimeType = asset.mimeType || 'image/jpeg';
+    form.append('file', {
+      uri: asset.uri,
+      name: fileName,
+      type: mimeType,
+    } as any);
+
+    const res = await api.post<any>(`/mobile/trips/${id}/external-screenshot`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+    return (res.data?.data ?? res.data) as any;
+  },
+
+  async sendLocationUpdate(
+    tripId: string,
+    coords: {
+      latitude: number;
+      longitude: number;
+      speed_kph?: number | null;
+      heading_deg?: number | null;
+      accuracy_m?: number | null;
+      recorded_at?: string;
+    }
+  ): Promise<void> {
+    try {
+      await api.post(`/mobile/trips/${tripId}/location`, coords);
+    } catch {
+      // Background location update failures are non-fatal to mobile navigation
+    }
   },
 
   /** Details for a specific trip by ID with remote API + list fallback. */
@@ -264,6 +575,18 @@ export const tripService = {
     return trip;
   },
 
+  async updateTripStatus(
+    id: string,
+    payload: { status: TripStatus; driver_workflow_state?: string; reason?: string } | TripStatus,
+    driver_workflow_state?: string,
+    reason?: string
+  ): Promise<MobileTrip> {
+    if (typeof payload === 'object' && payload !== null) {
+      return tripService.updateStatus(id, payload.status, payload.driver_workflow_state, payload.reason);
+    }
+    return tripService.updateStatus(id, payload, driver_workflow_state, reason);
+  },
+
   /** Upload a cargo (pickup) or POD (delivery) photo and attach it to the trip. */
   async uploadPhoto(
     id: string,
@@ -271,29 +594,40 @@ export const tripService = {
     asset: { uri: string; mimeType?: string | null; fileName?: string | null; location?: { latitude: number; longitude: number; timestamp: string } | null },
     legIndex?: number,
     operation?: string,
+    stopId?: string,
   ): Promise<void> {
     const form = new FormData();
-    form.append('file', {
-      uri: asset.uri,
-      name: asset.fileName ?? `${kind}.jpg`,
-      type: asset.mimeType ?? 'image/jpeg',
-    } as unknown as Blob);
     form.append('kind', kind);
+    if (operation) {
+      form.append('operation', operation);
+    }
+    if (legIndex !== undefined) {
+      form.append('leg_index', String(legIndex));
+    }
+    if (stopId) {
+      form.append('stop_id', stopId);
+    }
     if (asset.location) {
       form.append('location_lat', String(asset.location.latitude));
       form.append('location_lng', String(asset.location.longitude));
       form.append('captured_at', String(asset.location.timestamp));
     }
-    if (legIndex !== undefined) {
-      form.append('leg_index', String(legIndex));
-    }
-    if (operation) {
-      form.append('operation', operation);
-    }
+    const isVideo = operation === 'delay' || (asset.mimeType && asset.mimeType.startsWith('video/')) || (asset.fileName && /\.(mp4|mov|webm|3gp)$/i.test(asset.fileName));
+    const fileName = asset.fileName || (isVideo ? 'delay-video.mp4' : `${kind}.jpg`);
+    const mimeType = asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg');
+
+    form.append('file', {
+      uri: asset.uri,
+      name: fileName,
+      type: mimeType,
+    } as unknown as Blob);
     // Don't set Content-Type manually — axios/RN needs to generate it
     // itself so it includes the multipart boundary. A hardcoded header
     // here strips the boundary and the backend fails to parse the body.
-    await api.post(`/mobile/trips/${id}/photo`, form);
+    // Use extended 180s timeout for video/media uploads to prevent ECONNABORTED
+    await api.post(`/mobile/trips/${id}/photo`, form, {
+      timeout: 180000,
+    });
   },
 };
 
@@ -305,16 +639,14 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 
 /** The next step a driver can take from the current status (null = nothing to do). */
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
-  Draft:      { to: 'Loading',   label: 'Go to Pickup Location' },
-  Scheduled:  { to: 'Loading',   label: 'Go to Pickup Location' },
-  Loading:    { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
-  InTransit:  { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
+  Scheduled:  { to: 'Loading',   label: 'Arrived at Pickup / Start Loading' },
+  Loading:    { to: 'InTransit', label: 'Start Trip (Picked Up)' },
+  InTransit:  { to: 'Completed', label: 'Complete Delivery' },
   Delayed:    { to: 'InTransit', label: 'Resume Trip' },
-  AtPickup:   { to: 'InTransit', label: 'Upload Cargo & Start Trip' },
-  AtDelivery: { to: 'Completed', label: 'Arrived at Delivery / Upload POD' },
+  AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
+  AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };
 
-/** Checks if the current time is before the planned start time (early arrival). */
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
   switch (s) {

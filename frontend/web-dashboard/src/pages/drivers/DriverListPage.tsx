@@ -437,7 +437,7 @@ export default function DriverListPage() {
       ];
     });
 
-    await exportExcelTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    await exportExcelTable('MERCON Drivers', headers, dataRows, `drivers_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const handleExportPDF = (rowsToExport: Driver[]) => {
@@ -466,7 +466,7 @@ export default function DriverListPage() {
       ];
     });
 
-    exportPDFTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.pdf`);
+    exportPDFTable('MERCON Drivers', headers, dataRows, `drivers_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const handleExportCSV = (rowsToExport: Driver[]) => {
@@ -605,7 +605,7 @@ export default function DriverListPage() {
       accessor: (row: Driver) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Total Trip Charge',
+      header: 'Total Driver Charges',
       accessor: (row: Driver) => (
         <span
           className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400"
@@ -1034,269 +1034,103 @@ export default function DriverListPage() {
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          {/* Card 1: Total Registered Drivers (Indigo Roster Theme) */}
-          <div 
+          {/* Card 1: Total Registered Drivers (Monthly Roster Trend Sparkline) */}
+          <KpiCard
+            title="TOTAL REGISTERED DRIVERS"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
+              </span>
+            }
+            variant="emerald"
+            trend="up"
+            trendValue={`${Math.round((availableCount / (totalCount || 1)) * 100)}% Standby`}
+            icon={DriverBadge}
+            isActive={selectedStatus === 'All' && activeKpiModal !== 'expired'}
             onClick={() => {
               setSelectedStatus('All');
               setActiveKpiModal(null);
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
-              selectedStatus === 'All' && activeKpiModal !== 'expired'
-                ? 'border-indigo-500 bg-gradient-to-br from-indigo-50/90 via-white to-slate-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-950 shadow-md ring-1 ring-indigo-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs hover:shadow-md'
-            )}
-          >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-            
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                  WORKFORCE ROSTER
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/25 transition-transform group-hover:scale-110">
-                  <DriverBadge className="w-4 h-4" />
-                </div>
-              </div>
+            chartData={[20, 22, 24, 25, 27, 28, totalCount || 30]}
+          />
 
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                  {totalCount}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Registered</span>
-              </div>
-            </div>
-
-            {/* Roster Distribution Bar */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border-t border-indigo-100/60 dark:border-indigo-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-indigo-900 dark:text-indigo-300">
-              <span className="flex items-center gap-1.5 relative z-10">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                <span>Roster Breakdown</span>
+          {/* Card 2: Dispatch Ready (Standby Capacity Gauge Progress Meter) */}
+          <KpiCard
+            title="DISPATCH READY"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {availableCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
               </span>
-              <div className="flex items-center gap-1 text-[9px] font-mono font-extrabold">
-                <span className="text-emerald-600 dark:text-emerald-400">{availableCount} Ready</span>
-                <span className="text-slate-300 dark:text-slate-700">·</span>
-                <span className="text-brand">{onTripCount} En-route</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Available Standby (Emerald Operations Ready Theme with Real-Time Shift Timeline) */}
-          <div 
+            }
+            variant="emerald"
+            trend="up"
+            trendValue={`${availableCount} Available`}
+            icon={CheckBadge}
+            isActive={selectedStatus === 'Available'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[175px]",
-              selectedStatus === 'Available'
-                ? 'border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 shadow-md ring-1 ring-emerald-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs hover:shadow-md'
-            )}
-          >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100),
+              label: 'Standby Capacity Pool',
+              subtext: `${availableCount} Available`
+            }}
+          />
 
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                  AVAILABLE STANDBY
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 transition-transform group-hover:scale-110">
-                  <CheckBadge className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mt-1.5 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                  {availableCount}
-                </span>
-                <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-300/80">Dispatch Ready</span>
-              </div>
-            </div>
-
-            {/* Custom Footer: Real-Time Driver Shift Timeline & Wave Area Graph */}
-            <div className="relative h-[78px] mt-2 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-t border-emerald-100/60 dark:border-emerald-900/30 flex flex-col justify-between pt-1.5 pb-1">
-              {/* 1. Time Labels Header (Calculated dynamically for 06 AM, 12 PM, 06 PM, 12 AM with real-time active highlight) */}
-              {(() => {
-                const currentHour = new Date().getHours();
-                const shiftTimeSlots = [
-                  { label: '06 AM', isCurrent: currentHour >= 6 && currentHour < 12 },
-                  { label: '12 PM', isCurrent: currentHour >= 12 && currentHour < 18 },
-                  { label: '06 PM', isCurrent: currentHour >= 18 || currentHour < 0 },
-                  { label: '12 AM', isCurrent: currentHour >= 0 && currentHour < 6 },
-                ];
-                return (
-                  <>
-                    <div className="flex justify-between items-center px-4 relative z-20">
-                      {shiftTimeSlots.map((slot) => (
-                        <span 
-                          key={slot.label}
-                          className={cn(
-                            "text-[9px] font-mono font-extrabold transition-colors",
-                            slot.isCurrent 
-                              ? "text-emerald-700 dark:text-emerald-300 underline underline-offset-2" 
-                              : "text-slate-500 dark:text-slate-400 opacity-80"
-                          )}
-                        >
-                          {slot.label}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* 2. Dotted Connector Line & Nodes */}
-                    <div className="relative w-full h-3 px-4 flex items-center justify-between z-20 my-0.5">
-                      <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 border-b-2 border-dashed border-emerald-400/60 dark:border-emerald-600/60 pointer-events-none" />
-                      {shiftTimeSlots.map((slot, idx) => (
-                        <div key={idx} className="relative z-20 flex items-center justify-center">
-                          <div 
-                            className={cn(
-                              "rounded-full transition-all",
-                              slot.isCurrent
-                                ? "w-3 h-3 bg-emerald-500 ring-4 ring-emerald-500/30 dark:ring-emerald-400/30 animate-pulse"
-                                : "w-2.5 h-2.5 bg-emerald-600 dark:bg-emerald-400"
-                            )} 
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* 3. Smooth Sine Wave Area Graph & Floating Driver Avatars */}
-                    <div className="relative w-full h-8 overflow-hidden">
-                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 32" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="driverWaveGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
-                            <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
-                          </linearGradient>
-                        </defs>
-                        {/* Wave Area Fill */}
-                        <path
-                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14 L 280 32 L 0 32 Z"
-                          fill="url(#driverWaveGrad)"
-                        />
-                        {/* Wave Stroke */}
-                        <path
-                          d="M 0 24 Q 35 4, 70 20 T 140 10 T 210 24 T 280 14"
-                          fill="none"
-                          stroke="#10B981"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-
-                      {/* Driver Avatar Nodes Positioned on Wave Peaks */}
-                      <div className="absolute inset-0 px-4 flex items-center justify-around pointer-events-none z-20">
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-2">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-4">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-500 text-emerald-700 dark:text-emerald-200 shadow-xs flex items-center justify-center -mt-3">
-                          <User className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Card 3: Active On Road (MERCON Coral Red Logistics Theme) */}
-          <div 
+          {/* Card 3: Active On Road (Live GPS Dispatch Pulse Track) */}
+          <KpiCard
+            title="ACTIVE ON ROAD"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {onTripCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+              </span>
+            }
+            variant="emerald"
+            trend={onTripCount > 0 ? 'up' : 'neutral'}
+            trendValue={`${onTripCount} Dispatched`}
+            icon={TruckMotion}
+            isActive={selectedStatus === 'OnTrip'}
             onClick={() => {
               setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
             }}
-            className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
-              selectedStatus === 'OnTrip'
-                ? 'border-brand bg-gradient-to-br from-rose-50/90 via-white to-orange-50/40 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/20 shadow-md ring-1 ring-brand/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-700 shadow-2xs hover:shadow-md'
-            )}
-          >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-brand/10 dark:bg-brand/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
+            livePulseTrack={{
+              statusText: `${onTripCount} Drivers Active On-Route`,
+              subText: 'GPS Telemetry'
+            }}
+          />
 
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-brand dark:text-orange-400">
-                  ACTIVE ON ROAD
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-[#FA634E] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#FA634E]/25 transition-transform group-hover:scale-110">
-                  <TruckMotion className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
-                <span className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                  {onTripCount}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">In Transit</span>
-              </div>
-            </div>
-
-            {/* Active Transit Operations Telemetry */}
-            <div className="relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-100/60 dark:border-orange-900/30 flex items-center justify-between px-3 text-[10px] font-bold text-orange-900 dark:text-orange-300">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#FA634E] animate-ping" />
-                <span>En-Route Operations</span>
+          {/* Card 4: Compliance Audit (MOT License Verification Audit Track) */}
+          <KpiCard
+            title="COMPLIANCE AUDIT"
+            className="kpi-tint-drivers"
+            value={
+              <span>
+                {expiredLicenseCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Expired</span>
               </span>
-              <span className="font-mono font-extrabold text-brand dark:text-orange-400">⚡ Live Dispatch</span>
-            </div>
-          </div>
-
-          {/* Card 4: Compliance & Licenses (Amber / Rose Audit Theme) */}
-          <div 
+            }
+            variant={expiredLicenseCount > 0 ? 'rose' : 'emerald'}
+            trend={expiredLicenseCount > 0 ? 'down' : 'up'}
+            trendValue={expiredLicenseCount > 0 ? `${expiredLicenseCount} Need Action` : '100% Valid'}
+            icon={RiskAlert}
+            isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
-            className={cn(
-              "group relative rounded-2xl border p-4 flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-0.5 min-h-[148px]",
-              activeKpiModal === 'expired'
-                ? 'border-rose-500 bg-gradient-to-br from-rose-50/90 via-white to-amber-50/40 dark:from-rose-950/40 dark:via-slate-900 dark:to-amber-950/20 shadow-md ring-1 ring-rose-500/30'
-                : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-rose-300 dark:hover:border-rose-700 shadow-2xs hover:shadow-md'
-            )}
-          >
-            {/* Ambient Background Glow */}
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-rose-500/10 dark:bg-rose-500/15 blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-300" />
-
-            <div>
-              <div className="flex items-center justify-between gap-2 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
-                  COMPLIANCE AUDIT
-                </span>
-                <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md transition-transform group-hover:scale-110", expiredLicenseCount > 0 ? 'bg-rose-600 shadow-rose-500/25' : 'bg-emerald-600 shadow-emerald-500/25')}>
-                  <RiskAlert className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mt-2 flex items-baseline gap-2 relative z-10">
-                <span className={cn("text-3xl font-extrabold tracking-tight font-mono", expiredLicenseCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100')}>
-                  {expiredLicenseCount}
-                </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Expired Permits</span>
-              </div>
-            </div>
-
-            {/* Compliance Audit Status */}
-            <div className={cn(
-              "relative h-9 mt-4 -mx-4 -mb-4 overflow-hidden rounded-b-2xl border-t flex items-center justify-between px-3 text-[10px] font-bold",
-              expiredLicenseCount > 0
-                ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-100/60 dark:border-rose-900/30 text-rose-800 dark:text-rose-300'
-                : 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300'
-            )}>
-              <span>Permit Status</span>
-              <span className="flex items-center gap-1">
-                <span className={cn("h-1.5 w-1.5 rounded-full", expiredLicenseCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500')} />
-                {expiredLicenseCount > 0 ? `${expiredLicenseCount} Renewal Needed` : '✓ 100% Valid'}
-              </span>
-            </div>
-          </div>
+            livePulseTrack={{
+              statusText: expiredLicenseCount > 0 ? `${expiredLicenseCount} MOT Licenses Expired` : '100% MOT Licenses Valid',
+              subText: expiredLicenseCount > 0 ? 'Action Required' : 'Verified'
+            }}
+          />
         </div>
 
         {/* Dynamic Table or Grid Render */}
@@ -1306,7 +1140,7 @@ export default function DriverListPage() {
               title={
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-emerald-500" />
-                  <span>Driver Roster Ledger</span>
+                  <span>Driver Ledger</span>
                 </span>
               }
               data={filteredDrivers}
@@ -1343,7 +1177,7 @@ export default function DriverListPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                       <Users className="w-4 h-4 text-emerald-500" />
-                      <span>Driver Roster Ledger</span>
+                      <span>Driver Ledger</span>
                     </h3>
                     <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
                       {totalCount} {totalCount === 1 ? 'record' : 'records'}
@@ -1775,8 +1609,8 @@ export default function DriverListPage() {
         <ExportModal
           isOpen={isExportOpen}
           onClose={() => setIsExportOpen(false)}
-          title="Export Drivers Roster"
-          fileNamePrefix="drivers_roster"
+          title="Export Drivers"
+          fileNamePrefix="drivers"
           sheetName="Drivers"
           filteredData={customExportFilteredDrivers}
           allData={rosterRes?.data || []}

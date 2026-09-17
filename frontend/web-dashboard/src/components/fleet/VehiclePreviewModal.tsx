@@ -20,6 +20,7 @@ interface VehiclePreviewModalProps {
   onClose: () => void;
   onSendToWorkshop?: (vehicle: Vehicle) => void;
   onEdit?: (vehicle: Vehicle) => void;
+  onSelectDriver?: (driver: any) => void;
 }
 
 export default function VehiclePreviewModal({
@@ -28,6 +29,7 @@ export default function VehiclePreviewModal({
   onClose,
   onSendToWorkshop,
   onEdit,
+  onSelectDriver,
 }: VehiclePreviewModalProps) {
   const navigate = useNavigate();
   const tz = useDeploymentTimezone();
@@ -88,14 +90,6 @@ export default function VehiclePreviewModal({
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-4 h-4" />
-          </Button>
         </DialogHeader>
 
         {/* Content Body */}
@@ -104,7 +98,15 @@ export default function VehiclePreviewModal({
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
-            <Truck className="w-7 h-7 text-white shrink-0" />
+            {vehicle.image_url ? (
+              <div className="w-16 h-16 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 shadow-md">
+                <img src={vehicle.image_url} alt={vehicle.plate_number} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                <Truck className="w-6 h-6" />
+              </div>
+            )}
 
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -149,7 +151,18 @@ export default function VehiclePreviewModal({
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-indigo-500" /> Assigned Driver
               </span>
-              <div className="font-semibold text-xs text-slate-800 dark:text-slate-200 pt-0.5 truncate">
+              <div 
+                className={cn(
+                  "font-semibold text-xs text-slate-800 dark:text-slate-200 pt-0.5 truncate",
+                  assignedDriver && "hover:text-brand cursor-pointer transition-colors"
+                )}
+                onClick={() => {
+                  if (assignedDriver) {
+                    if (onSelectDriver) onSelectDriver(assignedDriver);
+                    else navigate(`/drivers/${assignedDriver.id}`);
+                  }
+                }}
+              >
                 {assignedDriver ? `${assignedDriver.first_name} ${assignedDriver.last_name}` : 'Unassigned'}
               </div>
             </div>
@@ -184,12 +197,6 @@ export default function VehiclePreviewModal({
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">GPS Device ID:</span>
-                <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                  {vehicle.gps_device_id || 'Not Installed'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-slate-500">ICCES Device ID:</span>
                 <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
                   {vehicle.icces_device_id || 'Not Installed'}
@@ -212,14 +219,21 @@ export default function VehiclePreviewModal({
 
           {/* Assigned Driver Card if present */}
           {assignedDriver && (
-            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs">
+            <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/60 p-4 bg-indigo-50/40 dark:bg-indigo-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div 
+                className="flex items-center gap-3 cursor-pointer group"
+                onClick={() => {
+                  if (onSelectDriver) onSelectDriver(assignedDriver);
+                  else navigate(`/drivers/${assignedDriver.id}`);
+                }}
+              >
+                <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs shrink-0 group-hover:scale-105 transition-transform">
                   {assignedDriver.first_name?.[0]}{assignedDriver.last_name?.[0]}
                 </div>
                 <div>
-                  <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                  <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-brand transition-colors">
                     {assignedDriver.first_name} {assignedDriver.last_name}
+                    <span className="ml-2 text-[10px] font-normal text-indigo-600 dark:text-indigo-400 underline">View Profile</span>
                   </div>
                   <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                     <span>Ref: {assignedDriver.ref_id || 'DRV-N/A'}</span>

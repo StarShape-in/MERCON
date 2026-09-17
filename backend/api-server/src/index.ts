@@ -33,7 +33,6 @@ import driverRoutes from './routes/driverRoutes';
 import vehicleRoutes from './routes/vehicleRoutes';
 import customerRoutes from './routes/customerRoutes';
 import tripRoutes from './routes/tripRoutes';
-import invoiceRoutes from './routes/invoiceRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import expenseRoutes from './routes/expenseRoutes';
 import documentRoutes from './routes/documentRoutes';
@@ -45,6 +44,7 @@ import reportBuilderRoutes from './routes/reportBuilderRoutes';
 import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
+import mobileDeviceRoutes from './routes/mobileDeviceRoutes';
 import mobileProfileRoutes from './routes/mobileProfileRoutes';
 import mobileEmergencyRoutes from './routes/mobileEmergencyRoutes';
 import mobileMiscRoutes from './routes/mobileMiscRoutes';
@@ -59,25 +59,21 @@ import trashRoutes from './routes/trashRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import thirdPartyRoutes from './routes/thirdPartyRoutes';
 import geocodingRoutes from './routes/geocodingRoutes';
+import vehicleCompatibilityRoutes from './routes/vehicleCompatibilityRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
+import { initTripDelayMonitor } from './services/tracking/tripDelayMonitor';
 
 import helmet from 'helmet';
 // @ts-ignore
 import compression from 'compression';
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3060',
-  process.env.VITE_APP_URL || 'https://dashboard.mercon.local'
-];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'X-CSRF-Token'],
 }));
 
 // Gzip every response big enough to be worth it. List endpoints return highly
@@ -86,7 +82,10 @@ app.use(cors({
 // the VPS nginx only gzips text/html by default, not application/json.
 app.use(compression());
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+}));
 app.use(helmet.hsts({
   maxAge: 31536000,
   includeSubDomains: true,
@@ -106,12 +105,17 @@ app.use('/uploads', express.static('/tmp/uploads'));
 
 // Create API router and mount all API routes
 const apiRouter = express.Router();
+apiRouter.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/drivers', driverRoutes);
 apiRouter.use('/vehicles', vehicleRoutes);
 apiRouter.use('/customers', customerRoutes);
 apiRouter.use('/trips', tripRoutes);
-apiRouter.use('/invoices', invoiceRoutes);
 apiRouter.use('/maintenance', maintenanceRoutes);
 apiRouter.use('/expenses', expenseRoutes);
 apiRouter.use('/reports', reportsRoutes);
@@ -132,6 +136,7 @@ apiRouter.use('/trash', trashRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/third-party-providers', thirdPartyRoutes);
 apiRouter.use('/geocoding', geocodingRoutes);
+apiRouter.use('/vehicle-compatibility', vehicleCompatibilityRoutes);
 
 // Mount router on both /api and root for maximum proxy compatibility
 app.use('/api', apiRouter);
@@ -141,6 +146,8 @@ app.use(apiRouter);
 app.use('/mobile/auth', mobileAuthRoutes);
 app.use('/mobile/trips', mobileTripRoutes);
 app.use('/mobile/notifications', mobileNotificationRoutes);
+app.use('/mobile/devices', mobileDeviceRoutes);
+app.use('/api/mobile/devices', mobileDeviceRoutes);
 app.use('/mobile/profile', mobileProfileRoutes);
 app.use('/mobile/emergency', mobileEmergencyRoutes);
 app.use('/mobile', mobileMiscRoutes); // /mobile/documents, /mobile/vehicle
@@ -213,8 +220,13 @@ io.on('connection', (socket: Socket) => {
 });
 
 // Healthcheck endpoint
-app.get(['/health', '/api/health'], (req: Request, res: Response) => {
-  res.json({ success: true, message: 'MERCON API is running perfectly!' });
+app.get(['/health', '/api/health'], async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ success: true, message: 'MERCON API is running perfectly!', db: 'connected' });
+  } catch (err: any) {
+    res.json({ success: true, message: 'MERCON API is running (DB initializing)', error: err?.message || String(err) });
+  }
 });
 
 // Catches errors passed via next(err) — most notably multer's fileFilter
@@ -230,7 +242,12 @@ app.use((err: Error, req: Request, res: Response, next: express.NextFunction) =>
 
 // Initialize Background Workers
 initFleetTracking();
+initTripDelayMonitor();
 
-httpServer.listen(port, () => {
-  logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
-});
+async function startServer() {
+  httpServer.listen(port, '0.0.0.0', () => {
+    logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
+  });
+}
+
+startServer();

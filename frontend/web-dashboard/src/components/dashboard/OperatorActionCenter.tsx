@@ -129,55 +129,7 @@ export default function OperatorActionCenter({ trips, onOpenQuickAssign }: Opera
       }
     });
 
-    // Fallback seed items if trips dataset is empty or clean, to demonstrate functional queue UI
-    if (items.length === 0 && trips.length === 0) {
-      items.push(
-        {
-          id: 'fallback-1',
-          trip: { id: 'trp-0368', ref_id: 'TRP-0368', status: 'Completed' } as any,
-          priority: 'critical',
-          typeLabel: 'MISSING POD',
-          entityId: 'TRP-0368',
-          context: 'IMILE DELIVERY SAUDI LOGISTICS • Khamis Sorting Center → Dammam',
-          actionLabel: 'Upload POD',
-          actionType: 'pod',
-          icon: FileText,
-        },
-        {
-          id: 'fallback-2',
-          trip: { id: 'trp-0412', ref_id: 'TRP-0412', status: 'InTransit' } as any,
-          priority: 'critical',
-          typeLabel: 'DELAYED TRIP',
-          entityId: 'TRP-0412',
-          context: 'AKS GLOBAL LOGISTICS • Riyadh → Jubail',
-          actionLabel: 'Open Trip',
-          actionType: 'view',
-          icon: Clock,
-        },
-        {
-          id: 'fallback-3',
-          trip: { id: 'fallback-doc', ref_id: 'ESA-4207', status: 'Draft' } as any,
-          priority: 'attention',
-          typeLabel: 'DOCUMENT EXPIRING',
-          entityId: 'FAHAS · ESA-4207',
-          context: 'Insurance expires in 6 days',
-          actionLabel: 'Review',
-          actionType: 'review',
-          icon: FileCheck,
-        },
-        {
-          id: 'fallback-4',
-          trip: { id: 'fallback-lic', ref_id: 'DRV-901', status: 'Draft' } as any,
-          priority: 'other',
-          typeLabel: 'DRIVER LICENSE EXPIRING',
-          entityId: 'Ahmed Khan',
-          context: 'License expires in 9 days',
-          actionLabel: 'View',
-          actionType: 'view',
-          icon: ShieldAlert,
-        }
-      );
-    }
+
 
     // Sort by Priority Rank: Critical -> Attention -> Other
     const priorityRank: Record<PriorityLevel, number> = { critical: 1, attention: 2, other: 3 };

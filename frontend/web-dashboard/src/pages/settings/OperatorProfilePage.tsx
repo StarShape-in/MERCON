@@ -881,7 +881,7 @@ export default function OperatorProfilePage() {
                         <SelectItem value="/drivers" className="text-xs">
                           <div className="flex items-center gap-2">
                             <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                            <span>Driver Roster</span>
+                            <span>Drivers</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="/documents" className="text-xs">

@@ -2,18 +2,16 @@ import type { DocType } from '@/services/documentService';
 
 /** Human-friendly label for each DocType enum value. */
 const DOC_TYPE_LABELS: Record<DocType, string> = {
-  DriverLicense:          'Driver License',
-  VehicleRegistration:    'Vehicle Registration',
-  Insurance:              'Insurance Policy',
-  POD:                    'Proof of Delivery',
-  CustomsClearance:       'Customs Clearance',
-  Waybill:                'Waybill',
-  Contract:               'Contract Agreement',
-  Invoice:                'Commercial Invoice',
-  Emergency:              'Emergency Incident File',
-  Passport:               'Passport',
-  CustomerDoc:            'Customer Onboarding File',
-  CommercialRegistration: 'Commercial Registration (CR)',
+  DriverLicense:       'Driver License',
+  VehicleRegistration: 'Vehicle Registration',
+  Insurance:           'Insurance Policy',
+  POD:                 'Proof of Delivery',
+  CustomsClearance:    'Customs Clearance',
+  Waybill:             'Waybill',
+  Contract:            'Contract Agreement',
+  Invoice:             'Commercial Invoice',
+  Emergency:           'Emergency Incident File',
+  Passport:            'Passport',
 };
 
 export function docTypeLabel(t: string): string {
@@ -28,8 +26,9 @@ export function docTypeLabel(t: string): string {
  * back to the legacy label only for documents that predate DocumentType
  * linking (should be none after the seed backfill, but stay defensive).
  */
-export function documentDisplayName(doc: { doc_type: string; documentType?: { name: string } | null }): string {
-  return doc.documentType?.name || docTypeLabel(doc.doc_type);
+export function documentDisplayName(doc?: { doc_type?: string; documentType?: { name: string } | null } | null): string {
+  if (!doc) return 'Document';
+  return doc.documentType?.name || (doc.doc_type ? docTypeLabel(doc.doc_type) : 'Document');
 }
 
 export type DocCategory = 'Drivers' | 'Vehicles' | 'Company' | 'Operations';
@@ -219,7 +218,7 @@ export function getOwnerCardSummary(slots: Array<{ status?: string; document?: a
 
   if (issuesCount === 0) {
     return {
-      label: '✓ Compliant',
+      label: 'Compliant',
       isCompliant: true,
       issuesCount: 0,
       className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50',
@@ -253,16 +252,6 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
 
   const rawUrl = fileUrl.trim();
 
-  // If already a Data URI or Blob URL, return directly
-  if (rawUrl.startsWith('data:') || rawUrl.startsWith('blob:')) {
-    return rawUrl;
-  }
-
-  // If raw base64 string without data: header (e.g. +Ocgxo...)
-  if (!rawUrl.startsWith('/') && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://') && rawUrl.length > 30 && !rawUrl.includes(' ')) {
-    return `data:image/png;base64,${rawUrl}`;
-  }
-
   // If stored file_url is legacy 'http://localhost:3000/uploads/xyz.jpg' or 'http://localhost:4000/uploads/xyz.jpg',
   // strip hardcoded origin so browser resolves it via current API origin/relative path!
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(rawUrl)) {
@@ -279,10 +268,6 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
     }
   }
 
-  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-    return rawUrl;
-  }
-
   // If relative path like '/uploads/file-123.jpg', attach API origin if VITE_API_URL is an absolute HTTP url
   if (rawUrl.startsWith('/')) {
     const apiBase = import.meta.env.VITE_API_URL || '';
@@ -294,11 +279,9 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
         // fallback
       }
     }
-    return rawUrl;
   }
 
-  const apiBase = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '';
-  return `${apiBase}/${rawUrl}`;
+  return rawUrl;
 }
 
 /**
@@ -341,6 +324,41 @@ export function formatBilingualAuthority(raw: string | null | undefined): string
   }
 
   return text;
+}
+
+/**
+ * Sorts folder summary rows so that folders needing attention
+ * (EXPIRED slots first, EXPIRING_SOON slots second, MISSING slots third)
+ * appear at the top of the list by default!
+ */
+export function sortFoldersByAttentionFirst<T extends { slots: Array<{ status: string }>; ownerName: string }>(folders: T[]): T[] {
+  return [...folders].sort((a, b) => {
+    const getScore = (row: T) => {
+      let expiredCount = 0;
+      let expiringCount = 0;
+      let missingCount = 0;
+
+      row.slots.forEach((s) => {
+        if (s.status === 'EXPIRED') expiredCount++;
+        else if (s.status === 'EXPIRING_SOON') expiringCount++;
+        else if (s.status === 'MISSING') missingCount++;
+      });
+
+      if (expiredCount > 0) return 3000 + expiredCount;
+      if (expiringCount > 0) return 2000 + expiringCount;
+      if (missingCount > 0) return 1000 + missingCount;
+      return 0;
+    };
+
+    const scoreA = getScore(a);
+    const scoreB = getScore(b);
+
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA; // Higher urgency score first
+    }
+
+    return a.ownerName.localeCompare(b.ownerName);
+  });
 }
 
 

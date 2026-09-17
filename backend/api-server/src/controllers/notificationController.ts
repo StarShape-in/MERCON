@@ -1,8 +1,17 @@
 import { Request, Response } from 'express';
 import { Role } from '@prisma/client';
 import { logger } from '../utils/logger';
-import { prisma, io } from '../index';
+import { prisma } from '../db';
 import type { DelayDetection } from '../services/tripLifecycle';
+import { sendDriverPushNotification } from '../services/pushNotificationService';
+
+const getIO = () => {
+  try {
+    return require('../index').io;
+  } catch {
+    return null;
+  }
+};
 
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -94,7 +103,7 @@ export const createNotification = async (
     });
 
     // Send to just this user's private room (they auto-join it on socket connect)
-    io.to(`user:${userId}`).emit(`user:notification:${userId}`, notification);
+    getIO()?.to(`user:${userId}`).emit(`user:notification:${userId}`, notification);
 
     return notification;
   } catch (error) {
@@ -176,14 +185,28 @@ export const createDriverNotification = async (
   message: string,
   type: string,
   entity_type?: string,
-  entity_id?: string
+  entity_id?: string,
+  dataPayload?: Record<string, any>
 ) => {
   try {
     const notification = await prisma.notification.create({
       data: { driverId, title, message, type, entity_type, entity_id }
     });
 
-    io.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
+    // 1. Emit real-time Socket.io event to driver's private room
+    getIO()?.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
+
+    // 2. Attempt push notification dispatch (non-blocking for DB and socket)
+    const pushData = {
+      type,
+      entity_type,
+      entity_id,
+      notificationId: notification.id,
+      ...(dataPayload || {}),
+    };
+    sendDriverPushNotification(driverId, title, message, pushData).catch((err) => {
+      logger.error({ err, driverId }, '[NotificationController] Background push dispatch failed');
+    });
 
     return notification;
   } catch (error) {

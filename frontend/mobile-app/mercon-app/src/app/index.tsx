@@ -1,23 +1,16 @@
-/**
- * Post-login landing. Routes by role:
- *   Driver           → driver home
- *   Operator / Admin → operator home
- * (This screen only renders when logged in — see the guard in _layout.tsx.)
- */
+import { Redirect } from 'expo-router';
 import DriverHomeScreen from '@/screens/driver/HomeScreen';
 import OperatorHomeScreen from '@/screens/operator/HomeScreen';
 import { useAuth } from '@/lib/auth-context';
-import { DriverLiveTracking } from '@/lib/DriverLiveTracking';
 
 export default function Index() {
-  const { role } = useAuth();
+  const { isLoggedIn, role } = useAuth();
+  if (!isLoggedIn) {
+    return <Redirect href="/login" />;
+  }
   if (role === 'Driver') {
-    return (
-      <>
-        <DriverHomeScreen />
-        <DriverLiveTracking />
-      </>
-    );
+    return <DriverHomeScreen />;
   }
   return <OperatorHomeScreen />;
 }
+

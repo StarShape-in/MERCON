@@ -1,0 +1,23 @@
+-- Ensure pgcrypto extension is active for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "VehicleCompatibilityRule" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "serviceVehicleClassId" TEXT NOT NULL,
+    "serviceVehicleClassCode" TEXT NOT NULL,
+    "preferredVehicleClassCodes" TEXT[],
+    "allowedVehicleClassCodes" TEXT[],
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "VehicleCompatibilityRule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "VehicleCompatibilityRule_serviceVehicleClassCode_key" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "VehicleCompatibilityRule_serviceVehicleClassCode_idx" ON "VehicleCompatibilityRule"("serviceVehicleClassCode");
+

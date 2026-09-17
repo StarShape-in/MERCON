@@ -24,6 +24,10 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService, AssetType, AssetStatus } from '@/services/vehicleService';
+import { driverService, Driver } from '@/services/driverService';
+import VehiclePreviewModal from '@/components/fleet/VehiclePreviewModal';
+import DriverPreviewModal from '@/components/drivers/DriverPreviewModal';
+import VehicleImageUploader from '@/components/ui/VehicleImageUploader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,6 +50,17 @@ export default function EditVehiclePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasTrailer, setHasTrailer] = useState(false);
   const [files, setFiles] = useState<VehicleDocumentFile[]>([]);
+  const [previewDriver, setPreviewDriver] = useState<Driver | null>(null);
+  const [previewVehicle, setPreviewVehicle] = useState<any | null>(null);
+  const [assignedDriverId, setAssignedDriverId] = useState<string>('unassigned');
+
+  // Fetch available drivers
+  const { data: driversRes } = useQuery({
+    queryKey: ['drivers-lookup'],
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+  });
+
+  const drivers = driversRes?.data || [];
 
   // Fetch vehicle details
   const { data: vehicle, isLoading, refetch } = useQuery({
@@ -61,13 +76,14 @@ export default function EditVehiclePage() {
     trailer_number: '',
     trailer_type: 'Flatbed' as AssetType,
     trailer_capacity_kg: '',
-    gps_device_id: '',
     icces_device_id: '',
     status: 'Available' as AssetStatus,
+    image_url: null as string | null,
   });
 
   useEffect(() => {
     if (vehicle) {
+      const currentDriver = vehicle.assignedDriver || (vehicle as any).driver;
       setFormData({
         plate_number: vehicle.plate_number || '',
         asset_type: vehicle.asset_type || 'Flatbed',
@@ -75,11 +91,12 @@ export default function EditVehiclePage() {
         trailer_number: vehicle.trailer_number || '',
         trailer_type: vehicle.trailer_type || 'Flatbed',
         trailer_capacity_kg: vehicle.trailer_capacity_kg ? vehicle.trailer_capacity_kg.toString() : '',
-        gps_device_id: vehicle.gps_device_id || '',
         icces_device_id: vehicle.icces_device_id || '',
         status: vehicle.status || 'Available',
+        image_url: vehicle.image_url || null,
       });
       setHasTrailer(!!vehicle.trailer_number);
+      setAssignedDriverId(currentDriver?.id || 'unassigned');
     }
   }, [vehicle]);
 
@@ -112,9 +129,9 @@ export default function EditVehiclePage() {
         trailer_number: vehicle.trailer_number || '',
         trailer_type: vehicle.trailer_type || 'Flatbed',
         trailer_capacity_kg: vehicle.trailer_capacity_kg ? vehicle.trailer_capacity_kg.toString() : '',
-        gps_device_id: vehicle.gps_device_id || '',
         icces_device_id: vehicle.icces_device_id || '',
         status: vehicle.status || 'Available',
+        image_url: vehicle.image_url || null,
       });
       setHasTrailer(!!vehicle.trailer_number);
       setFiles([]);
@@ -124,10 +141,32 @@ export default function EditVehiclePage() {
   };
 
   const updateMutation = useMutation({
-    mutationFn: (payload: any) => vehicleService.update(id!, payload),
+    mutationFn: async (payload: any) => {
+      const updatedVehicle = await vehicleService.update(id!, payload);
+      const origDriverId = vehicle?.assignedDriver?.id || 'unassigned';
+
+      if (assignedDriverId !== origDriverId) {
+        if (origDriverId !== 'unassigned') {
+          try {
+            await driverService.update(origDriverId, { assigned_vehicle_id: null });
+          } catch (e) {
+            console.error('Failed to unassign previous driver:', e);
+          }
+        }
+        if (assignedDriverId !== 'unassigned') {
+          try {
+            await driverService.update(assignedDriverId, { assigned_vehicle_id: id! });
+          } catch (e) {
+            console.error('Failed to assign new driver:', e);
+          }
+        }
+      }
+      return updatedVehicle;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
       toast.success('Vehicle updated successfully');
       navigate(`/vehicles/${id}`);
     },
@@ -139,18 +178,12 @@ export default function EditVehiclePage() {
   });
 
   const cleanSaudiPlate = (plate: string) => {
-    let clean = plate.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
-    if (/^\d{1,4}[A-Z]{3}$/.test(clean)) {
-      const digits = clean.match(/^\d{1,4}/)?.[0] || '';
-      const letters = clean.slice(digits.length);
-      clean = `${digits} ${letters}`;
-    }
-    return clean;
+    return plate.trim().toUpperCase();
   };
 
   const validateSaudiPlate = (plate: string) => {
     const clean = cleanSaudiPlate(plate);
-    return /^\d{1,4}\s[A-Z]{3}$/.test(clean);
+    return clean.length >= 2 && /^[A-Z0-9\s_-]{2,20}$/i.test(clean);
   };
 
   const tractorCap = Number(formData.capacity_kg) || 0;
@@ -167,18 +200,18 @@ export default function EditVehiclePage() {
     setError(null);
 
     if (!formData.plate_number.trim()) return setError('Plate number is required');
-    if (!isPlateValid) return setError('Invalid Saudi vehicle plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
+    if (!isPlateValid) return setError('Invalid vehicle plate number (e.g. DRA-6484 or 1234 ABC).');
     if (!formData.capacity_kg || tractorCap <= 0) return setError('Valid tractor capacity (kg) is required');
     if (hasTrailer && !formData.trailer_number.trim()) return setError('Trailer plate number is required when trailer is attached');
-    if (hasTrailer && !isTrailerValid) return setError('Invalid Saudi trailer plate number. Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).');
+    if (hasTrailer && !isTrailerValid) return setError('Invalid trailer plate number.');
 
     const payload: any = {
       plate_number: cleanSaudiPlate(formData.plate_number),
       asset_type: formData.asset_type,
       capacity_kg: tractorCap,
       status: formData.status,
-      gps_device_id: formData.gps_device_id || null,
       icces_device_id: formData.icces_device_id || null,
+      image_url: formData.image_url || null,
       trailer_number: hasTrailer && formData.trailer_number ? cleanSaudiPlate(formData.trailer_number) : null,
       trailer_type: hasTrailer ? formData.trailer_type : null,
       trailer_capacity_kg: hasTrailer && formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : null,
@@ -239,6 +272,14 @@ export default function EditVehiclePage() {
             <Button 
               variant="outline" 
               size="sm" 
+              onClick={() => vehicle && setPreviewVehicle(vehicle)}
+              className="h-7 text-xs font-bold text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-2"
+            >
+              <Truck className="w-3.5 h-3.5 mr-1 text-indigo-600" /> Truck Profile
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
               onClick={() => navigate(`/vehicles/${id}`)}
               className="h-7 text-xs text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 px-2"
             >
@@ -279,14 +320,20 @@ export default function EditVehiclePage() {
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
               <CardContent className="p-3.5 sm:p-4 space-y-3.5">
 
-                {/* Section 1: Primary Asset Identifier */}
-                <div className="space-y-2.5">
+                {/* Section 1: Primary Asset Identifier & Profile Picture */}
+                <div className="space-y-3">
                   <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Truck className="w-3.5 h-3.5 text-brand" /> Primary Asset Identifier
                     </h2>
                     <span className="text-[10px] text-slate-400 font-mono">* Required fields</span>
                   </div>
+
+                  <VehicleImageUploader
+                    value={formData.image_url}
+                    onChange={(url) => handleChange('image_url', url || '')}
+                    plateNumber={formData.plate_number}
+                  />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div className="space-y-1">
@@ -302,7 +349,7 @@ export default function EditVehiclePage() {
                       />
                       {formData.plate_number.trim() !== '' && !isPlateValid && (
                         <p className="text-[10px] text-rose-500 font-semibold mt-0.5">
-                          Must be 1-4 digits followed by 3 letters (e.g. 1234 ABC).
+                          Please enter a valid plate number (e.g. DRA-6484 or 1234 ABC).
                         </p>
                       )}
                     </div>
@@ -343,6 +390,46 @@ export default function EditVehiclePage() {
                           <SelectItem value="OnTrip" className="text-xs">On Trip (In Transit)</SelectItem>
                           <SelectItem value="Maintenance" className="text-xs">Maintenance (Garage)</SelectItem>
                           <SelectItem value="Inactive" className="text-xs">Inactive (Decommissioned)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="assigned_driver" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <UserRound className="w-3.5 h-3.5 text-indigo-500" /> Assigned Driver
+                        </Label>
+                        {assignedDriverId !== 'unassigned' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sel = drivers.find((d) => d.id === assignedDriverId) || vehicle?.assignedDriver;
+                              if (sel) setPreviewDriver(sel);
+                            }}
+                            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" /> View Driver Profile
+                          </button>
+                        )}
+                      </div>
+                      <Select
+                        value={assignedDriverId}
+                        onValueChange={(val) => setAssignedDriverId(val)}
+                      >
+                        <SelectTrigger id="assigned_driver" className="h-8 text-xs">
+                          <SelectValue placeholder="Select assigned driver..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned" className="text-xs italic text-slate-400">
+                            Unassigned (No Driver)
+                          </SelectItem>
+                          {drivers.map((d) => (
+                            <SelectItem key={d.id} value={d.id} className="text-xs">
+                              {d.first_name} {d.last_name} ({d.phone_primary || d.ref_id || 'No Phone'})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -530,8 +617,12 @@ export default function EditVehiclePage() {
 
               <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-brand dark:bg-orange-950/40 flex items-center justify-center font-bold text-xs shrink-0 border border-orange-200 dark:border-orange-900/50">
-                    {getAssetIcon(formData.asset_type)}
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-brand dark:bg-orange-950/40 flex items-center justify-center font-bold text-xs shrink-0 border border-orange-200 dark:border-orange-900/50 overflow-hidden">
+                    {formData.image_url ? (
+                      <img src={formData.image_url} alt={formData.plate_number} className="w-full h-full object-cover" />
+                    ) : (
+                      getAssetIcon(formData.asset_type)
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100 truncate">
@@ -597,6 +688,20 @@ export default function EditVehiclePage() {
 
         </div>
       </div>
+
+      <VehiclePreviewModal
+        vehicle={previewVehicle}
+        isOpen={!!previewVehicle}
+        onClose={() => setPreviewVehicle(null)}
+        onSelectDriver={(d) => setPreviewDriver(d)}
+      />
+
+      <DriverPreviewModal
+        driver={previewDriver}
+        isOpen={!!previewDriver}
+        onClose={() => setPreviewDriver(null)}
+        onSelectVehicle={(v) => setPreviewVehicle(v)}
+      />
     </DashboardLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 
 /** The logged-in driver's compliance documents (License, Iqama, Medical, Insurance), newest first. */
 export const getDriverDocuments = async (req: Request, res: Response) => {

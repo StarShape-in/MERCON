@@ -69,6 +69,9 @@ jobs:
           ICCES_USER: ${{ secrets.ICCES_USER }}
           ICCES_PASS: ${{ secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.ICCES_ACCT }}
+          # Gemini Vision AI — injected from repo/environment secrets
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'AQ.Ab8RN6K3a4t83gB0yRI607axYGS8_JJIHhRuJZkYkLwxDDsNZA' }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-flash-latest' }}
           # Google address autocomplete. Reaches the frontend as a
           # docker-compose build arg, because Vite inlines VITE_* at build time
           # — a runtime env var would arrive after the bundle is written.
@@ -103,6 +106,12 @@ jobs:
           # Ensure host uploads directory exists with full 777 write permissions
           mkdir -p /tmp/mercon-uploads /tmp/uploads ./backend/api-server/uploads
           chmod -R 777 /tmp/mercon-uploads /tmp/uploads ./backend/api-server/uploads 2>/dev/null || true
+
+          # Free up disk space from previous builds and dangling layers to prevent ENOSPC errors
+          echo "Pruning dangling Docker images and build cache to ensure disk space..."
+          docker builder prune -af --filter "until=24h" 2>/dev/null || docker builder prune -af 2>/dev/null || true
+          docker image prune -f 2>/dev/null || true
+          df -h / || true
 
           # Build and start services in detached mode
           docker compose up -d --build

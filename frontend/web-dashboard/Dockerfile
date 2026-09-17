@@ -1,6 +1,6 @@
 # Build from the repo root: docker build -f frontend/web-dashboard/Dockerfile .
 # Build stage
-FROM node:22-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
 # Workspace manifests first (for layer caching).
 # NOTE: the lockfile is intentionally NOT copied. It is generated on macOS
@@ -10,9 +10,14 @@ WORKDIR /app
 # without the lockfile lets npm resolve the correct binding for this platform.
 COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
-COPY backend/api-server/package.json ./backend/api-server/
 COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
-RUN npm install --legacy-peer-deps --ignore-scripts
+# Strip root devDependencies (concurrently, localtunnel) and linter (oxlint) which are unnecessary for the Vite dashboard build
+RUN node -e "const fs=require('fs'); const r=JSON.parse(fs.readFileSync('package.json')); delete r.devDependencies; fs.writeFileSync('package.json',JSON.stringify(r,null,2)); const d=JSON.parse(fs.readFileSync('frontend/web-dashboard/package.json')); if(d.devDependencies) delete d.devDependencies.oxlint; fs.writeFileSync('frontend/web-dashboard/package.json',JSON.stringify(d,null,2));" && \
+    npm install --workspace=@mercon/shared-types --workspace=@mercon/web-dashboard --legacy-peer-deps --ignore-scripts --no-audit --no-fund --cache /tmp/npm-cache && \
+    rm -rf /tmp/npm-cache /root/.npm /tmp/* && \
+    npm cache clean --force
+
+
 # Shared types (built explicitly since --ignore-scripts skips prepare)
 COPY packages/shared-types ./packages/shared-types
 RUN npm run build -w @mercon/shared-types

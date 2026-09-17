@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Share2, Image as ImageIcon, FileText } from 'lucide-react-native';
 import { GoogleMapsGeotagPreview } from '../../components/GoogleMapsGeotagPreview';
 import { generateGeotaggedEvidenceImage } from '../../utils/geotagImageGenerator';
+import { useLanguage } from '../../lib/language-context';
 
 export interface CargoPhotoPreviewScreenProps {
   photoUri?: string;
@@ -33,6 +34,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const previewRef = useRef<View>(null);
+  const { t } = useLanguage();
 
   const [sharing, setSharing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -195,7 +197,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
           <X size={18} color="#FFFFFF" strokeWidth={2.4} />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Cargo Photo Preview</Text>
+        <Text style={styles.headerTitle}>{t('title_cargo_photo_preview', 'Cargo Photo Preview')}</Text>
 
         <TouchableOpacity
           style={styles.iconCircleBtn}
@@ -254,7 +256,7 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
         >
           <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share Evidence</Text>
+              <Text style={styles.modalTitle}>{t('title_share_evidence', 'Share Evidence')}</Text>
               <TouchableOpacity onPress={() => setShowShareModal(false)} style={styles.modalCloseBtn}>
                 <X size={20} color="#64748B" />
               </TouchableOpacity>
@@ -269,8 +271,8 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
                 <ImageIcon size={22} color="#FFFFFF" />
               </View>
               <View style={styles.optionTextWrapper}>
-                <Text style={styles.optionTitlePrimary}>Share Geotagged Image</Text>
-                <Text style={styles.optionSubPrimary}>Sends the photo + geotag card image directly to WhatsApp/Messages</Text>
+                <Text style={styles.optionTitlePrimary}>{t('action_share_geotagged', 'Share Geotagged Image')}</Text>
+                <Text style={styles.optionSubPrimary}>{t('desc_share_geotagged', 'Sends the photo + geotag card image directly to WhatsApp/Messages')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -283,8 +285,8 @@ export const CargoPhotoPreviewScreen: React.FC<CargoPhotoPreviewScreenProps> = (
                 <FileText size={22} color="#FA634E" />
               </View>
               <View style={styles.optionTextWrapper}>
-                <Text style={styles.optionTitleSec}>Share Text & Location Link</Text>
-                <Text style={styles.optionSubSec}>Sends formatted text report with live Google Maps GPS link</Text>
+                <Text style={styles.optionTitleSec}>{t('action_share_text_link', 'Share Text & Location Link')}</Text>
+                <Text style={styles.optionSubSec}>{t('desc_share_text_link', 'Sends formatted text report with live Google Maps GPS link')}</Text>
               </View>
             </TouchableOpacity>
           </View>

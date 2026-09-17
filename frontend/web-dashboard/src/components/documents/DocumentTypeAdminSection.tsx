@@ -231,7 +231,7 @@ export default function DocumentTypeAdminSection() {
                   t.requirementStatus === 'OPTIONAL' ? 'bg-slate-100 text-slate-600 border-slate-200 text-[10px] font-bold' :
                   'bg-slate-50 text-slate-400 border-slate-200 text-[10px] font-bold'
                 }>
-                  {t.requirementStatus === 'MANDATORY' ? '🔴 Mandatory' : t.requirementStatus}
+                  {t.requirementStatus === 'MANDATORY' ? 'Mandatory' : t.requirementStatus}
                 </Badge>
               ),
             },
@@ -256,7 +256,7 @@ export default function DocumentTypeAdminSection() {
               accessor: (t) => (
                 <button type="button" onClick={() => toggleActiveMutation.mutate(t)} className="cursor-pointer">
                   <Badge className={t.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-extrabold' : 'bg-slate-100 text-slate-400 border-slate-200 text-[10px] font-bold'}>
-                    {t.isActive ? '🟢 Active' : '⚪ Disabled'}
+                    {t.isActive ? 'Active' : 'Disabled'}
                   </Badge>
                 </button>
               ),

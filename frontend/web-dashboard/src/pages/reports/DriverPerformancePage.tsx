@@ -3,23 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Download, Users, AlertTriangle, CheckCircle2, Route, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ScatterChart, Scatter, ZAxis,
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import DataTable from '@/components/ui/DataTable';
-import { DriverBadge, CheckBadge, RiskAlert, RouteLine } from '@/components/ui/kpi-icons';
+import { DriverBadge, CheckBadge, RouteLine } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService, type DriverPerfRow } from '@/services/reportsService';
 
-/** AI risk score → level. Lower is safer. */
-function riskLevel(score: number | null): { label: string; cls: string } {
-  if (score == null) return { label: 'N/A', cls: 'bg-[#F5F5F7] text-[#6E6E80]' };
-  if (score < 4) return { label: 'Low', cls: 'bg-[#F0FDF4] text-[#16A34A]' };
-  if (score < 7) return { label: 'Medium', cls: 'bg-[#FFFBEB] text-[#D97706]' };
-  return { label: 'High', cls: 'bg-[#FEF2F2] text-[#DC2626]' };
-}
+
 
 import ReportsHeader from '@/components/reports/ReportsHeader';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -35,22 +28,19 @@ export default function DriverPerformancePage() {
   const handleExport = (format: 'excel' | 'pdf') => {
     if (!rows || rows.length === 0) return;
 
-    const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'AI Safety Risk Score', 'Risk Level', 'Total Trips', 'Completed Trips'];
+    const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'Total Trips', 'Completed Trips'];
     let sumTrips = 0;
     let sumCompleted = 0;
 
     const dataRows = rows.map((d, idx) => {
       sumTrips += d.total_trips || 0;
       sumCompleted += d.completed_trips || 0;
-      const risk = riskLevel(d.ai_risk_score);
 
       return [
         idx + 1,
         d.name || '',
         d.ref_id || '',
         d.status || '',
-        d.ai_risk_score ?? 'N/A',
-        risk.label,
         d.total_trips || 0,
         d.completed_trips || 0,
       ];
@@ -71,10 +61,8 @@ export default function DriverPerformancePage() {
   const kpis = useMemo(() => {
     const totalDrivers = rows.length;
     const available = rows.filter((d) => d.status === 'Available').length;
-    const scored = rows.filter((d) => d.ai_risk_score != null);
-    const avgRisk = scored.length ? (scored.reduce((s, d) => s + (d.ai_risk_score ?? 0), 0) / scored.length) : null;
     const totalTrips = rows.reduce((s, d) => s + d.total_trips, 0);
-    return { totalDrivers, available, avgRisk, totalTrips };
+    return { totalDrivers, available, totalTrips };
   }, [rows]);
 
   const tripsByDriver = useMemo(
@@ -85,12 +73,7 @@ export default function DriverPerformancePage() {
     [rows],
   );
 
-  const scatter = useMemo(
-    () => rows
-      .filter((d) => d.ai_risk_score != null)
-      .map((d) => ({ x: d.total_trips, y: d.ai_risk_score as number, z: d.completed_trips, name: d.name })),
-    [rows],
-  );
+
 
   const topDrivers = useMemo(
     () => [...rows].sort((a, b) => b.completed_trips - a.completed_trips).slice(0, 5),
@@ -138,16 +121,6 @@ export default function DriverPerformancePage() {
             chartData={[8, 10, 12, 11, 15, 14, 16]}
           />
           <KpiCard
-            title="Avg. Risk Score"
-            value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))}
-            icon={RiskAlert}
-            variant={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'rose' : 'emerald'}
-            trend={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'down' : 'up'}
-            trendValue={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'Elevated' : 'Safe'}
-            description="AI safety score"
-            chartData={[2.1, 1.8, 2.4, 2.0, 1.9, 1.7, kpis.avgRisk || 2.0]}
-          />
-          <KpiCard
             title="Total Trips"
             value={isLoading ? '—' : kpis.totalTrips.toLocaleString()}
             icon={RouteLine}
@@ -182,27 +155,6 @@ export default function DriverPerformancePage() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-[#111]">Risk vs Trip Volume</h3>
-              <p className="text-xs text-[#6E6E80]">Risk score (Y) relative to total trips (X)</p>
-            </div>
-            <div className="h-[280px]">
-              {chartState === 'ready' && scatter.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 10, right: 20, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
-                    <XAxis type="number" dataKey="x" name="Trips" tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                    <YAxis type="number" dataKey="y" name="Risk" domain={[0, 10]} tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                    <ZAxis type="number" dataKey="z" range={[100, 400]} name="Completed" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Scatter name="Drivers" data={scatter} fill="var(--color-brand)" opacity={0.8} />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              ) : <Fallback empty={scatter.length === 0} />}
-            </div>
-          </div>
-
         </div>
 
         {/* Top Drivers Table */}
@@ -225,13 +177,6 @@ export default function DriverPerformancePage() {
             {
               header: 'Completion %',
               accessor: (d: DriverPerfRow) => <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{completion(d)}%</span>
-            },
-            {
-              header: 'AI Risk Level',
-              accessor: (d: DriverPerfRow) => {
-                const risk = riskLevel(d.ai_risk_score);
-                return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${risk.cls}`}>{risk.label}</span>;
-              }
             }
           ]}
           data={topDrivers}

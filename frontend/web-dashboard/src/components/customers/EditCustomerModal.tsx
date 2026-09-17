@@ -24,24 +24,22 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState('');
-  const [taxNumber, setTaxNumber] = useState('');
   const [primaryContactPerson, setPrimaryContactPerson] = useState('');
-  const [creditLimit, setCreditLimit] = useState('50000');
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30 Days');
+  const [driverWorkflow, setDriverWorkflow] = useState<'NATIVE' | 'EXTERNAL_APP'>('NATIVE');
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (customer) {
       setName(customer.name || '');
-      setLogoUrl(customer.logo_url || customer.avatar_url || null);
+      setLogoUrl(customer.logo_url || null);
       setContactPhone(customer.contact_phone || customer.primary_contact_phone || customer.phone || '');
-      setTaxNumber(customer.tax_number || '');
       setPrimaryContactPerson(customer.primary_contact_person || '');
-      setCreditLimit((customer.credit_limit || 0).toString());
       setWhatsappGroupLink(customer.whatsapp_group_link || '');
       setPaymentTerms(customer.payment_terms || 'Net 30 Days');
+      setDriverWorkflow(customer.driver_workflow || 'NATIVE');
       setIsActive(customer.isActive ?? true);
       setError(null);
     }
@@ -81,12 +79,10 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
       name: name.trim(),
       contact_phone: contactPhone.trim(),
       logo_url: logoUrl || undefined,
-      avatar_url: logoUrl || undefined,
-      tax_number: taxNumber.trim() || undefined,
       primary_contact_person: primaryContactPerson.trim() || undefined,
-      credit_limit: parseFloat(creditLimit) || 0,
       whatsapp_group_link: whatsappGroupLink.trim() || undefined,
       payment_terms: paymentTerms || undefined,
+      driver_workflow: driverWorkflow,
       isActive,
     });
   };
@@ -156,33 +152,19 @@ export default function EditCustomerModal({ isOpen, customer, onClose, onSuccess
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_tax_number" className="text-xs font-semibold flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-slate-500" /> CR / VAT Tax ID
-              </Label>
-              <Input
-                id="edit_tax_number"
-                placeholder="3100XXXXXXXXXXX"
-                value={taxNumber}
-                onChange={(e) => setTaxNumber(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_credit_limit" className="text-xs font-semibold flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-slate-500" /> Credit Limit (SAR)
-              </Label>
-              <Input
-                id="edit_credit_limit"
-                type="number"
-                placeholder="50000"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit_driver_workflow" className="text-xs font-bold flex items-center gap-1.5">
+              Driver Workflow Configuration
+            </Label>
+            <select
+              id="edit_driver_workflow"
+              value={driverWorkflow}
+              onChange={(e) => setDriverWorkflow(e.target.value as 'NATIVE' | 'EXTERNAL_APP')}
+              className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              <option value="NATIVE">Native CargoPod App (Standard Driver Stepper)</option>
+              <option value="EXTERNAL_APP">External Customer App (Screenshot AI Ingestion)</option>
+            </select>
           </div>
 
           <div className="space-y-1.5">

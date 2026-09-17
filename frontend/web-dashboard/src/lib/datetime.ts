@@ -24,8 +24,15 @@ export function useDeploymentTimezone(): string {
 }
 
 /** Formats a UTC ISO string / Date in the given IANA timezone (date-fns `format` tokens). */
-export function formatInDeploymentTz(date: string | Date, tz: string, formatStr: string): string {
-  return formatInTimeZone(date, tz, formatStr);
+export function formatInDeploymentTz(date: string | Date | null | undefined, tz: string, formatStr: string): string {
+  if (!date) return '';
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return typeof date === 'string' ? date : '';
+    return formatInTimeZone(d, tz || 'Asia/Riyadh', formatStr);
+  } catch {
+    return typeof date === 'string' ? date : '';
+  }
 }
 
 /**

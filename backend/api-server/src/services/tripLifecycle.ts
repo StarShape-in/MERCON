@@ -81,38 +81,54 @@ export async function stampStopTransition(
   if (!mark) return null;
 
   const now = new Date();
-  const stamped = await tx.tripStop.updateMany({
-    where: { tripId, stop_type: mark.stop_type, [mark.field]: null, deletedAt: null },
+  
+  // Dynamically find the specific stop relevant to this status change
+  let targetStop = null;
+  if (to === TripStatus.Loading || to === TripStatus.InTransit) {
+    // Targets the outbound pickup stop (leg 0)
+    targetStop = await tx.tripStop.findFirst({
+      where: { tripId, stop_type: mark.stop_type, leg_index: 0, deletedAt: null },
+      orderBy: { stop_sequence: 'asc' },
+    }) || await tx.tripStop.findFirst({
+      where: { tripId, stop_type: mark.stop_type, deletedAt: null },
+      orderBy: { stop_sequence: 'asc' },
+    });
+  } else if (to === TripStatus.Completed) {
+    // Targets the final dropoff stop (highest sequence)
+    targetStop = await tx.tripStop.findFirst({
+      where: { tripId, stop_type: mark.stop_type, deletedAt: null },
+      orderBy: { stop_sequence: 'desc' },
+    });
+  }
+
+  if (!targetStop) return null;
+  if (targetStop[mark.field] !== null) return null; // already stamped — do not re-alert
+
+  await tx.tripStop.update({
+    where: { id: targetStop.id },
     data: { [mark.field]: now },
   });
-  if (stamped.count === 0) return null; // already stamped — do not re-alert
+
   if (mark.field !== 'actual_arrival') return null;
+  if (!targetStop.planned_arrival) return null;
 
-  const stop = await tx.tripStop.findFirst({
-    where: { tripId, stop_type: mark.stop_type, deletedAt: null },
-    orderBy: { stop_sequence: 'asc' },
-  });
-  // No planned arrival means no baseline: the stop is honestly excluded from
-  // delay reporting rather than counted as on time.
-  if (!stop?.planned_arrival) return null;
-
-  const delayMinutes = Math.round((now.getTime() - stop.planned_arrival.getTime()) / 60000);
+  const delayMinutes = Math.round((now.getTime() - targetStop.planned_arrival.getTime()) / 60000);
   if (delayMinutes < DELAY_THRESHOLD_MINUTES) return null;
 
   const trip = await tx.trip.findUnique({ where: { id: tripId }, select: { ref_id: true } });
   return {
     tripId,
     tripRefId: trip?.ref_id ?? null,
-    stopId: stop.id,
+    stopId: targetStop.id,
     stopType: mark.stop_type,
-    locationName: stop.location_name,
+    locationName: targetStop.location_name,
     delayMinutes,
   };
 }
 
 /**
  * The one place a trip is marked Completed: releases the driver/vehicle back
- * to Available and stamps the dropoff departure timestamp.
+ * to Available and stamps the final dropoff arrival and departure timestamps.
  *
  * NOTE: Invoice creation is intentionally NOT performed here. Invoices are
  * created manually by an operator via the POST /trips/:id/mark-invoiced
@@ -129,13 +145,25 @@ export async function completeTrip(
   const trip = await tx.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new Error('NOT_FOUND');
 
-  // Marks dropoff arrival (if not already stamped) and departure.
+  // Stamp the final dropoff stop
   const now = new Date();
-  await tx.tripStop.updateMany({
-    where: { tripId, stop_type: StopType.Dropoff, actual_arrival: null, deletedAt: null },
-    data: { actual_arrival: now },
+  const finalDropoff = await tx.tripStop.findFirst({
+    where: { tripId, stop_type: StopType.Dropoff, deletedAt: null },
+    orderBy: { stop_sequence: 'desc' },
+  }) || await tx.tripStop.findFirst({
+    where: { tripId, deletedAt: null },
+    orderBy: { stop_sequence: 'desc' },
   });
-  await stampStopTransition(tx, tripId, TripStatus.Completed);
+
+  if (finalDropoff) {
+    await tx.tripStop.update({
+      where: { id: finalDropoff.id },
+      data: {
+        actual_arrival: finalDropoff.actual_arrival ?? now,
+        actual_departure: finalDropoff.actual_departure ?? now,
+      },
+    });
+  }
 
   const updatedTrip = await tx.trip.update({
     where: { id: tripId },
@@ -163,51 +191,268 @@ export async function stampWorkflowTransition(
   tx: Prisma.TransactionClient,
   tripId: string,
   workflowState: string,
+  targetStopId?: string,
 ) {
   const now = new Date();
-  
-  if (workflowState === 'ARRIVED_AT_PICKUP') {
-    // Stamp Stop 1 arrival
+  const stops = await tx.tripStop.findMany({
+    where: { tripId, deletedAt: null },
+    orderBy: { stop_sequence: 'asc' },
+  });
+  if (stops.length === 0) return;
+
+  // Direct stop stamping if targetStopId is provided
+  if (targetStopId) {
+    const specificStop = stops.find(s => s.id === targetStopId);
+    if (specificStop) {
+      if (workflowState.includes('ARRIV')) {
+        await tx.tripStop.updateMany({
+          where: { id: specificStop.id, actual_arrival: null },
+          data: { actual_arrival: now },
+        });
+      } else if (workflowState.includes('COMPLET') || workflowState.includes('DEPART') || workflowState === 'IN_TRANSIT') {
+        await tx.tripStop.updateMany({
+          where: { id: specificStop.id, actual_departure: null },
+          data: { actual_departure: now },
+        });
+      }
+      return;
+    }
+  }
+
+  const outboundStops = stops.filter(s => (s.leg_index ?? 0) === 0);
+  const returnStops = stops.filter(s => (s.leg_index ?? 0) === 1);
+  const hasExplicitReturnLeg = returnStops.length > 0;
+
+  // Legacy fallback heuristic if leg_index was not set
+  let isRound = hasExplicitReturnLeg;
+  if (!isRound && stops.length >= 3) {
+    const firstLoc = (stops[0].location_name || '').toLowerCase().trim();
+    const lastLoc = (stops[stops.length - 1].location_name || '').toLowerCase().trim();
+    if (firstLoc && lastLoc && firstLoc === lastLoc) {
+      isRound = true;
+    }
+  }
+
+  // Identify key stops dynamically across legs
+  const outboundOrigin = outboundStops[0] || stops[0];
+  const outboundDelivery = outboundStops.filter(s => s.stop_type === StopType.Dropoff).pop() ||
+    (hasExplicitReturnLeg ? outboundStops[outboundStops.length - 1] : (isRound ? stops[1] : stops[stops.length - 1]));
+
+  const returnLoading = hasExplicitReturnLeg
+    ? (returnStops.find(s => s.stop_type === StopType.Pickup) || returnStops[0])
+    : (isRound && stops.length >= 3 ? (stops.find(s => s.stop_sequence === 3) || stops[2]) : null);
+
+  const finalDelivery = hasExplicitReturnLeg
+    ? (returnStops.filter(s => s.stop_type === StopType.Dropoff).pop() || returnStops[returnStops.length - 1])
+    : stops[stops.length - 1];
+
+  // STRICT RETURN START GUARD:
+  // Cannot start return leg loading before outbound delivery is completed.
+  const returnStates = [
+    'FIRST_DELIVERY_COMPLETED',
+    'RETURN_LOADING',
+    'RETURN_LOADING_COMPLETED',
+    'IN_TRANSIT_RETURN',
+    'ARRIVED_AT_FINAL_DELIVERY',
+    'RETURN_DELIVERY_COMPLETED',
+  ];
+  if (isRound && returnStates.includes(workflowState) && outboundDelivery) {
+    if (!outboundDelivery.actual_arrival && !outboundDelivery.actual_departure) {
+      throw new Error('OUTBOUND_DELIVERY_NOT_COMPLETED: Cannot start return leg before completing outbound delivery.');
+    }
+    // Auto-stamp outbound departure if it arrived but departure timestamp wasn't recorded yet
+    if (outboundDelivery.actual_arrival && !outboundDelivery.actual_departure) {
+      await tx.tripStop.updateMany({
+        where: { id: outboundDelivery.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
+  }
+
+  if (workflowState === 'ARRIVED_AT_PICKUP' || workflowState === 'LOADING') {
+    // Stamp outbound pickup arrival
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 1, actual_arrival: null, deletedAt: null },
+      where: { id: outboundOrigin.id, actual_arrival: null },
       data: { actual_arrival: now },
     });
-  } else if (workflowState === 'IN_TRANSIT') {
-    // Stamp Stop 1 departure
+  } else if (workflowState === 'IN_TRANSIT' || workflowState === 'LOADING_COMPLETED') {
+    // Stamp outbound pickup departure
     await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 1, actual_departure: null, deletedAt: null },
+      where: { id: outboundOrigin.id, actual_departure: null },
       data: { actual_departure: now },
     });
   } else if (workflowState === 'ARRIVED_AT_DELIVERY') {
-    // Stamp Stop 2 arrival
-    await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 2, actual_arrival: null, deletedAt: null },
-      data: { actual_arrival: now },
-    });
-  } else if (workflowState === 'IN_TRANSIT_RETURN') {
-    // Stamp Stop 2 departure
-    await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 2, actual_departure: null, deletedAt: null },
-      data: { actual_departure: now },
-    });
+    // Stamp outbound delivery arrival
+    if (outboundDelivery) {
+      await tx.tripStop.updateMany({
+        where: { id: outboundDelivery.id, actual_arrival: null },
+        data: { actual_arrival: now },
+      });
+    }
+  } else if (workflowState === 'FIRST_DELIVERY_COMPLETED' || workflowState === 'RETURN_LOADING') {
+    // Outbound delivery departed
+    if (outboundDelivery) {
+      await tx.tripStop.updateMany({
+        where: { id: outboundDelivery.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
+    // Return loading arrived
+    if (returnLoading) {
+      await tx.tripStop.updateMany({
+        where: { id: returnLoading.id, actual_arrival: null },
+        data: { actual_arrival: now },
+      });
+    }
+  } else if (workflowState === 'IN_TRANSIT_RETURN' || workflowState === 'RETURN_LOADING_COMPLETED') {
+    // Return loading departed
+    if (returnLoading) {
+      await tx.tripStop.updateMany({
+        where: { id: returnLoading.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
   } else if (workflowState === 'ARRIVED_AT_FINAL_DELIVERY') {
-    // Stamp Stop 3 arrival
-    await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: 3, actual_arrival: null, deletedAt: null },
-      data: { actual_arrival: now },
-    });
-  } else if (workflowState === 'COMPLETED') {
-    // Stamp final stop departure
-    const stops = await tx.tripStop.findMany({
-      where: { tripId, deletedAt: null },
-      select: { stop_sequence: true },
-    });
-    const maxSeq = Math.max(...stops.map((s) => s.stop_sequence), 1);
-    await tx.tripStop.updateMany({
-      where: { tripId, stop_sequence: maxSeq, actual_departure: null, deletedAt: null },
-      data: { actual_departure: now },
-    });
+    // Final delivery arrived
+    if (finalDelivery) {
+      await tx.tripStop.updateMany({
+        where: { id: finalDelivery.id, actual_arrival: null },
+        data: { actual_arrival: now },
+      });
+    }
+  } else if (workflowState === 'COMPLETED' || workflowState === 'RETURN_DELIVERY_COMPLETED') {
+    // Final delivery departed
+    if (finalDelivery) {
+      await tx.tripStop.updateMany({
+        where: { id: finalDelivery.id, actual_departure: null },
+        data: { actual_departure: now },
+      });
+    }
   }
+}
+
+export interface AuthoritativeActiveStop {
+  activeStop: any | null;
+  activeStopId: string | null;
+  activeStopSequence: number | null;
+  currentLegIndex: number;
+  nextStop: any | null;
+  nextStopId: string | null;
+  isOutboundCompleted: boolean;
+  isReturnAllowedToStart: boolean;
+  isTripCompleted: boolean;
+  effectiveWorkflowState: string;
+}
+
+/**
+ * Single authoritative active stop resolver across MERCON.
+ * Resolves current active stop, next stop, active leg, and return readiness
+ * dynamically from stop records without hardcoding stop sequences or array positions.
+ */
+export function resolveAuthoritativeActiveStop(
+  stops: any[],
+  workflowState?: string | null,
+  tripStatus?: string | null,
+): AuthoritativeActiveStop {
+  const sortedStops = [...(stops || [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const statusUpper = (tripStatus || '').toUpperCase();
+  const ws = workflowState || null;
+
+  if (statusUpper === 'COMPLETED' || statusUpper === 'INVOICED' || ws === 'COMPLETED') {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: sortedStops.some(s => (s.leg_index ?? 0) === 1) ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  if (sortedStops.length === 0) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: false,
+      isReturnAllowedToStart: false,
+      isTripCompleted: false,
+      effectiveWorkflowState: ws || (['IN_TRANSIT', 'DISPATCHED', 'ACTIVE'].includes(statusUpper) ? 'AT_PICKUP' : 'SCHEDULED'),
+    };
+  }
+
+  const outboundStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 0);
+  const returnStops = sortedStops.filter((s) => (s.leg_index ?? 0) === 1);
+  const hasExplicitReturnLeg = returnStops.length > 0;
+
+  let isRound = hasExplicitReturnLeg;
+  if (!isRound && sortedStops.length >= 3) {
+    const firstLoc = (sortedStops[0].location_name || '').toLowerCase().trim();
+    const lastLoc = (sortedStops[sortedStops.length - 1].location_name || '').toLowerCase().trim();
+    if (firstLoc && lastLoc && firstLoc === lastLoc) {
+      isRound = true;
+    }
+  }
+
+  const outboundDelivery = outboundStops.filter((s) => s.stop_type === StopType.Dropoff).pop() ||
+    (outboundStops.length > 0 ? outboundStops[outboundStops.length - 1] : null);
+
+  const isOutboundCompleted = Boolean(
+    outboundDelivery && (outboundDelivery.actual_departure != null || outboundDelivery.actual_arrival != null)
+  );
+
+  const isReturnAllowedToStart = isRound ? isOutboundCompleted : false;
+
+  // Find active stop: first stop that has not departed yet (actual_departure === null)
+  let activeIdx = sortedStops.findIndex((s) => !s.actual_departure);
+
+  if (activeIdx === -1) {
+    return {
+      activeStop: null,
+      activeStopId: null,
+      activeStopSequence: null,
+      currentLegIndex: returnStops.length > 0 ? 1 : 0,
+      nextStop: null,
+      nextStopId: null,
+      isOutboundCompleted: true,
+      isReturnAllowedToStart: true,
+      isTripCompleted: true,
+      effectiveWorkflowState: 'COMPLETED',
+    };
+  }
+
+  let activeStop = sortedStops[activeIdx];
+  const activeLeg = activeStop.leg_index ?? 0;
+
+  // STRICT RETURN START GUARD:
+  // If active stop is on return leg (leg 1), but outbound delivery has NOT arrived,
+  // return leg CANNOT be active. The active stop must remain the outbound delivery stop.
+  if (activeLeg === 1 && !isOutboundCompleted && outboundDelivery) {
+    activeStop = outboundDelivery;
+    activeIdx = sortedStops.findIndex((s) => s.id === outboundDelivery.id);
+  }
+
+  const nextStop = activeIdx + 1 < sortedStops.length ? sortedStops[activeIdx + 1] : null;
+
+  return {
+    activeStop,
+    activeStopId: activeStop?.id || null,
+    activeStopSequence: activeStop?.stop_sequence || null,
+    currentLegIndex: activeStop?.leg_index ?? 0,
+    nextStop,
+    nextStopId: nextStop?.id || null,
+    isOutboundCompleted,
+    isReturnAllowedToStart,
+    isTripCompleted: false,
+    effectiveWorkflowState: ws || (activeLeg === 1 ? 'IN_TRANSIT_RETURN' : 'IN_TRANSIT'),
+  };
 }
 
 

@@ -1,22 +1,21 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
-  Download, UploadCloud, Truck, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, ExternalLink,
-  User, Activity, Radio, Layers, Shield
-} from 'lucide-react';
+import { Download, UploadCloud, Truck, User, ArrowLeft, Folder, MoreVertical, RotateCw, ChevronDown, FilePlus, Phone, ChevronRight, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { driverService } from '@/services/driverService';
+import { driverService, type Driver } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService } from '@/services/documentService';
 import { downloadCSV } from '@/utils/exportUtils';
-import { getOwnerCardSummary } from '@/lib/documents';
+import { getOwnerCardSummary, resolveFileUrl } from '@/lib/documents';
+import { cn } from '@/lib/utils';
 import OwnerFolderDetail from '@/components/documents/OwnerFolderDetail';
 import ImportReviewModal from '@/components/documents/ImportReviewModal';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import AddCustomDocumentModal from '@/components/ui/AddCustomDocumentModal';
+import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 
 export default function OwnerFolderPage() {
   const navigate = useNavigate();
@@ -37,34 +35,96 @@ export default function OwnerFolderPage() {
   const queryClient = useQueryClient();
   const normalizedType = ownerType === 'vehicles' ? 'Vehicle' : ownerType === 'drivers' ? 'Driver' : null;
 
+  const { data: driversRes } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: async () => {
+      try {
+        return await driverService.getAll({ mode: 'lookup' });
+      } catch (err) {
+        return { data: [] } as any;
+      }
+    },
+  });
+
+  const driversList: Driver[] = driversRes?.data || [];
+
   const { data: driver } = useQuery({
     queryKey: ['driver', ownerId],
-    queryFn: () => driverService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await driverService.getById(ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && normalizedType === 'Driver',
   });
 
   const { data: vehicle } = useQuery({
     queryKey: ['vehicle', ownerId],
-    queryFn: () => vehicleService.getById(ownerId!),
+    queryFn: async () => {
+      try {
+        return await vehicleService.getById(ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && normalizedType === 'Vehicle',
+  });
+
+  const targetDriverId = normalizedType === 'Driver'
+    ? ownerId
+    : ((vehicle as any)?.assigned_driver_id || (vehicle as any)?.driver_id || vehicle?.assignedDriver?.id);
+
+  const { data: fullTargetDriver } = useQuery({
+    queryKey: ['driver', targetDriverId],
+    queryFn: async () => {
+      try {
+        return await driverService.getById(targetDriverId!);
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: !!targetDriverId,
   });
 
   const { data: folder } = useQuery({
     queryKey: ['documents', 'owner', normalizedType, ownerId],
-    queryFn: () => documentService.getOwnerFolder(normalizedType!, ownerId!),
+    queryFn: async () => {
+      try {
+        return await documentService.getOwnerFolder(normalizedType!, ownerId!);
+      } catch (err) {
+        return null;
+      }
+    },
     enabled: !!ownerId && !!normalizedType,
   });
 
   const ownerName = normalizedType === 'Driver'
-    ? (driver ? `${driver.first_name} ${driver.last_name}` : 'Driver')
+    ? (fullTargetDriver ? `${fullTargetDriver.first_name} ${fullTargetDriver.last_name}` : (driver ? `${driver.first_name} ${driver.last_name}` : 'Driver'))
     : normalizedType === 'Vehicle'
       ? (vehicle ? (vehicle.plate_number || vehicle.ref_id || 'Vehicle') : 'Vehicle')
       : 'Documents';
 
-  const assignedDriver = vehicle?.assignedDriver || (vehicle as any)?.driver;
+  const assignedDriver = fullTargetDriver || vehicle?.assignedDriver || (vehicle as any)?.driver;
   const driverName = assignedDriver
     ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim()
-    : (driver ? `${driver.first_name} ${driver.last_name}` : 'Saleem Taha Khan');
+    : 'Saleem Taha Khan';
+
+  const activeDriverObj = useMemo(() => {
+    if (fullTargetDriver) return fullTargetDriver;
+    if (normalizedType === 'Driver') {
+      return driver || driversList.find((d: Driver) => d.id === ownerId) || null;
+    }
+    const driverId = (vehicle as any)?.assigned_driver_id || (vehicle as any)?.driver_id || vehicle?.assignedDriver?.id;
+    if (driverId) {
+      return driversList.find((d: Driver) => d.id === driverId) || vehicle?.assignedDriver || null;
+    }
+    if (vehicle?.assignedDriver) {
+      return driversList.find((d: Driver) => d.first_name === vehicle.assignedDriver?.first_name) || vehicle.assignedDriver;
+    }
+    return driversList[0] || null;
+  }, [fullTargetDriver, normalizedType, driver, vehicle, driversList, ownerId]);
 
   const cardSummary = getOwnerCardSummary(folder?.slots || []);
 
@@ -96,198 +156,67 @@ export default function OwnerFolderPage() {
   };
 
   return (
-    <DashboardLayout active="Documents" title={`${ownerName} Workspace`}>
-      {/* Anchored Viewport Container: No outer page scroll */}
-      <div className="pt-6 sm:pt-8 px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden space-y-4">
+    <DashboardLayout active="Documents" title={`${ownerName} Workspace`} fixedViewport>
+      {/* Anchored Desktop Viewport Container: Fits full browser height on every desktop without scrolling */}
+      <div className="px-4 sm:px-6 pb-4 max-w-[1600px] mx-auto w-full h-full flex flex-col overflow-hidden gap-4">
         
-        {/* ── Top Header Bar with Big Title & Action Group ─────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-4 min-w-0">
-{normalizedType === 'Driver' ? (
-              <User className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            ) : (
-              <Truck className="w-8 h-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            )}
-            <div className="flex flex-col gap-1 min-w-0">
+        {/* ── Reference Design ERP Header Card ── */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900 px-5 py-4 sm:px-6 sm:py-5 shadow-3xs flex items-center justify-between gap-4 shrink-0">
+          
+          <div className="flex items-center gap-3.5 min-w-0">
+            {/* Left Truck / Entity Icon Box */}
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700">
+              <Truck className="w-7 h-7 text-slate-700 dark:text-slate-300" />
+            </div>
+
+            <div className="min-w-0 space-y-1">
+              {/* Row 1: Plate Number + Metadata Badges */}
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-                  {vehicle?.plate_number || ownerName}
+                  {vehicle?.plate_number || (normalizedType === 'Vehicle' ? ownerName : 'VRA-5510')}
                 </h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 font-semibold text-xs px-2.5 py-0.5 shadow-2xs">
-                  {normalizedType === 'Driver' ? 'Driver Compliance Vault' : 'Vehicle Compliance Vault'}
-                </Badge>
-                <Badge className={cardSummary.className}>
-                  {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
-                </Badge>
+                
+                {/* Vehicle Ref Code Tag */}
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+                  {vehicle?.ref_id || 'TRK-110'}
+                </span>
+
+                {/* Capacity Tag */}
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+                  {(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 10).toFixed(0)} TON
+                </span>
               </div>
-              <p className="text-xs font-medium text-slate-500 mt-0.5 flex items-center gap-2">
-                <span>Ref: {vehicle?.ref_id || driver?.ref_id || 'REF-101'}</span>
-                <span>•</span>
-                <span>{normalizedType === 'Vehicle' ? `${(vehicle?.capacity_kg ? vehicle.capacity_kg / 1000 : 8).toFixed(0)} Ton Payload` : (driver?.phone_primary || 'Saudi MOT Licensed Driver')}</span>
-                <span>•</span>
-                <span>Driver: {driverName}</span>
-              </p>
+
+              {/* Row 2: Subtitle Name & Phone */}
+              {(() => {
+                const fullDName = activeDriverObj ? `${activeDriverObj.first_name} ${activeDriverObj.last_name}` : (normalizedType === 'Driver' ? ownerName : driverName);
+                const phoneNum = (activeDriverObj as any)?.phone || (activeDriverObj as any)?.phone_number || (assignedDriver as any)?.phone || '+966 50 123 4567';
+
+                return (
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 flex-wrap">
+                    <span className="uppercase tracking-wide font-extrabold text-slate-800 dark:text-slate-200">{fullDName}</span>
+                    {phoneNum && (
+                      <span className="flex items-center gap-1 text-slate-400 dark:text-slate-500 font-mono text-[11px]">
+                        <Phone className="w-3 h-3" /> {phoneNum}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
-          {/* Right Action Hierarchy */}
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {/* Primary Action: Upload Document */}
-            <Button
-              size="sm"
-              onClick={() => setIsBatchOpen(true)}
-              className="h-9 px-4 text-xs font-extrabold gap-1.5 bg-brand hover:bg-brand-hover text-white shadow-xs rounded-xl cursor-pointer"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>Upload Document</span>
-            </Button>
-
-            {/* Secondary Action: Add Custom Document */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsCustomDocOpen(true)}
-              className="h-9 px-3 text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-xl"
-            >
-              <FilePlus className="w-3.5 h-3.5 text-brand" />
-              <span>Add Custom Document</span>
-            </Button>
-
-            {/* Direct Profile Button */}
-            {normalizedType === 'Vehicle' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/vehicles/${ownerId}`)}
-                className="h-9 px-3 text-xs font-bold gap-1.5 border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/80 cursor-pointer rounded-xl"
-              >
-                <span>Vehicle Profile</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Button>
-            )}
-
-            {(assignedDriver?.id || normalizedType === 'Driver') && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/drivers/${assignedDriver?.id || ownerId}`)}
-                className="h-9 px-3 text-xs font-bold gap-1.5 border-purple-200 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100/80 cursor-pointer rounded-xl"
-              >
-                <span>Driver Profile</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Button>
-            )}
-
-            {/* More ⋮ Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-9 p-0 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 rounded-xl cursor-pointer"
-                  title="More Actions"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                <DropdownMenuItem
-                  onClick={() => setIsBatchOpen(true)}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <Folder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Import Folder / Batch</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleExportSummary}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <Download className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <span>Export Summary CSV</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleRefresh}
-                  className="cursor-pointer text-xs font-semibold gap-2 py-2"
-                >
-                  <RotateCw className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Refresh Vault Data</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* ── Asset Specifications & Telematics Quick Strip (Matching VehicleDetailsPage) ──── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-          {/* Box 1: Driver / Vehicle */}
-          <div
-            onClick={() => (assignedDriver?.id ? navigate(`/drivers/${assignedDriver.id}`) : (normalizedType === 'Driver' ? navigate(`/drivers/${ownerId}`) : null))}
-            className={cn(
-              "bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-2.5 transition-all shadow-2xs group",
-              assignedDriver?.id || normalizedType === 'Driver' ? "cursor-pointer hover:border-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-900/60" : ""
-            )}
-          >
-            <User className="w-4 h-4 text-blue-600 shrink-0" />
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <span className="text-[9px] font-black uppercase text-blue-600/80 dark:text-blue-400/80 tracking-wider block leading-none">
-                Driver
-              </span>
-              <span className="font-mono text-xs font-black text-blue-900 dark:text-blue-100 truncate block mt-0.5">
-                {driverName}
-              </span>
-            </div>
+          {/* Right Side: Issues Warning Badge & Sub-link */}
+          <div className="shrink-0 flex flex-col items-end space-y-1">
+            <Badge className={cn('text-xs font-mono font-extrabold px-3 py-1 border rounded-xl shadow-3xs gap-1.5', cardSummary.className)}>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              {cardSummary.isCompliant ? '0 Issues' : cardSummary.label}
+            </Badge>
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1 hover:text-slate-600 cursor-pointer">
+              Documents need attention <ChevronRight className="w-3.5 h-3.5" />
+            </span>
           </div>
 
-          {/* Box 2: Spec / Type */}
-          <div className="bg-indigo-50/70 dark:bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 flex items-center gap-2.5 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-2xs">
-            <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
-            <div className="min-w-0">
-              <span className="text-[9px] font-black uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider block leading-none">Asset Spec</span>
-              <span className="font-mono text-xs font-black text-indigo-900 dark:text-indigo-100 truncate block mt-0.5">
-                {vehicle?.asset_type || (driver?.license_number ? 'Saudi Driving License' : 'Heavy Transport')}
-              </span>
-            </div>
-          </div>
-
-          {/* Box 3: Compliance Health */}
-          <div className={cn(
-            "p-2.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-2xs",
-            cardSummary.isCompliant
-              ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/60"
-              : "bg-rose-50/70 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-900/60"
-          )}>
-            <div className={cn(
-              "w-7.5 h-7.5 rounded-lg flex items-center justify-center shrink-0",
-              cardSummary.isCompliant ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/70 dark:text-emerald-400" : "bg-rose-100 text-rose-600 dark:bg-rose-900/70 dark:text-rose-400"
-            )}>
-              <Activity className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <span className={cn(
-                "text-[9px] font-black uppercase tracking-wider block leading-none",
-                cardSummary.isCompliant ? "text-emerald-700/80 dark:text-emerald-400/80" : "text-rose-700/80 dark:text-rose-400/80"
-              )}>
-                Health Status
-              </span>
-              <span className={cn(
-                "font-mono text-xs font-black truncate block mt-0.5",
-                cardSummary.isCompliant ? "text-emerald-900 dark:text-emerald-100" : "text-rose-900 dark:text-rose-100"
-              )}>
-                {cardSummary.isCompliant ? '🟢 Fully Compliant' : `🔴 ${cardSummary.label}`}
-              </span>
-            </div>
-          </div>
-
-          {/* Box 4: Telematics / Verification */}
-          <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 flex items-center gap-2.5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all shadow-2xs">
-            <Radio className="w-4 h-4 text-emerald-600 shrink-0" />
-            <div className="min-w-0">
-              <span className="text-[9px] font-black uppercase text-emerald-700/80 dark:text-emerald-400/80 tracking-wider block leading-none">Integrations</span>
-              <span className="font-mono text-xs font-black text-emerald-900 dark:text-emerald-100 truncate block mt-0.5">
-                {vehicle?.gps_device_id || 'ZATCA / MOMRAH Linked'}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Viewport Fills: Main Master/Detail Workspace */}

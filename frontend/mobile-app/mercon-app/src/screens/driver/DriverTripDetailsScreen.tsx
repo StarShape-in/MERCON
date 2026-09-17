@@ -14,8 +14,10 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { tripService, statusLabel, stopLabel, stopAddress, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { getTripChargeValue } from './DriverChargesScreen';
 import { BilingualText } from '../../components';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, formatCurrency, getLocalizedStatus } from '../../lib/language-context';
 import { API_URL } from '../../lib/api';
+
+import { parseTripRouteNodes } from '../../lib/routeParser';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -53,7 +55,7 @@ function resolveLogoUrl(rawLogo?: string | null): string | null {
 export default function DriverTripDetailsScreen() {
   const router = useRouter();
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [trip, setTrip] = useState<MobileTrip | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function DriverTripDetailsScreen() {
   const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   const intermediateStops = trip?.stops?.filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff') ?? [];
 
-  const rawLogo = trip?.customer?.logo_url || trip?.customer?.avatar_url || null;
+  const rawLogo = trip?.customer?.logo_url || null;
   const logoUrl = resolveLogoUrl(rawLogo);
   const showLogo = logoUrl && !logoError;
 
@@ -127,7 +129,7 @@ export default function DriverTripDetailsScreen() {
         </View>
       ) : !trip ? (
         <View style={styles.centerLoading}>
-          <Text style={styles.errorText}>Trip not found.</Text>
+          <Text style={styles.errorText}>{t('err_trip_not_found', 'Trip not found.')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -158,13 +160,13 @@ export default function DriverTripDetailsScreen() {
                 <Text style={styles.customerName} numberOfLines={1}>
                   {trip.customer?.name ?? 'Mercon Logistics'}
                 </Text>
-                <Text style={styles.tripRefId}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                <Text style={[styles.tripRefId, { writingDirection: 'ltr' }]}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
               </View>
 
               {/* Status Badge */}
               <View style={[styles.statusBadge, isCompleted ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
                 <Text style={[styles.statusBadgeText, isCompleted ? styles.statusTextCompleted : styles.statusTextActive]}>
-                  {statusLabel(trip.status)}
+                  {getLocalizedStatus(trip.status, language)}
                 </Text>
               </View>
             </View>
@@ -175,8 +177,8 @@ export default function DriverTripDetailsScreen() {
             <View style={styles.heroMetaGrid}>
               <View style={styles.metaCol}>
                 <Text style={styles.metaLabel}>{t('label_driver_charge', 'Driver Charge')}</Text>
-                <Text style={[styles.metaChargeVal, isCompleted ? styles.chargeValCompleted : styles.chargeValActive]}>
-                  SAR {chargeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <Text style={[styles.metaChargeVal, isCompleted ? styles.chargeValCompleted : styles.chargeValActive, { writingDirection: 'ltr' }]}>
+                  {formatCurrency(chargeAmount, language)}
                 </Text>
               </View>
 
@@ -186,7 +188,7 @@ export default function DriverTripDetailsScreen() {
                 <Text style={styles.metaLabel}>{t('label_assigned_vehicle', 'Vehicle')}</Text>
                 <View style={styles.vehicleRow}>
                   <Truck size={16} color="#3E3C3D" strokeWidth={2} />
-                  <Text style={styles.metaVehicleVal}>{trip.vehicle?.plate_number ?? 'Assigned Vehicle'}</Text>
+                  <Text style={[styles.metaVehicleVal, { writingDirection: 'ltr' }]}>{trip.vehicle?.plate_number ?? 'Assigned Vehicle'}</Text>
                 </View>
               </View>
             </View>
@@ -204,88 +206,60 @@ export default function DriverTripDetailsScreen() {
               />
             </View>
 
-            <View style={styles.routeContainer}>
-              {/* Left Timeline Line */}
-              <View style={styles.timelineCol}>
-                <View style={styles.pickupNodeOuter}>
-                  <View style={styles.pickupNodeInner} />
-                </View>
-                <View style={styles.dashedLine} />
-                {intermediateStops.length > 0 && (
-                  <>
-                    <View style={styles.stopNodeDot} />
-                    <View style={styles.dashedLine} />
-                  </>
-                )}
-                <View style={styles.stopNodeDot} />
-              </View>
+            {/* Route & Locations Timeline */}
+            {(() => {
+              const timelineStops = parseTripRouteNodes(trip);
 
-              {/* Route Items */}
-              <View style={styles.routeItemsCol}>
-                {/* Pickup Location */}
-                <View style={styles.routeRowItem}>
-                  <View style={styles.iconCircleBadge}>
-                    <House size={20} color="#FA634E" strokeWidth={2} />
+              return (
+                <View style={styles.routeContainer}>
+                  {/* Left Timeline Line */}
+                  <View style={styles.timelineCol}>
+                    {timelineStops.map((st, idx) => (
+                      <React.Fragment key={`node-${st.id}-${idx}`}>
+                        {idx === 0 ? (
+                          <View style={styles.pickupNodeOuter}>
+                            <View style={styles.pickupNodeInner} />
+                          </View>
+                        ) : (
+                          <View style={styles.stopNodeDot} />
+                        )}
+                        {idx < timelineStops.length - 1 && <View style={styles.dashedLine} />}
+                      </React.Fragment>
+                    ))}
                   </View>
-                  <View style={styles.routeTextCol}>
-                    <BilingualText
-                      ur="پک اپ پوائنٹ"
-                      en="Pickup Location"
-                      primaryStyle={styles.stageUrduPrimary}
-                      subStyle={styles.stageSubEn}
-                    />
-                    <Text style={styles.routePlaceName}>{stopLabel(pickupStop) ?? 'Mercon Hub'}</Text>
-                    <Text style={styles.routeAddressText}>{stopAddress(pickupStop) ?? 'Location address'}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(stopAddress(pickupStop))}>
-                    <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                  </TouchableOpacity>
-                </View>
 
-                {/* Intermediate Stops if present */}
-                {intermediateStops.length > 0 && (
-                  <View style={styles.routeRowItem}>
-                    <View style={styles.iconCircleBadge}>
-                      <Route size={20} color="#FA634E" strokeWidth={2} />
-                    </View>
-                    <View style={styles.routeTextCol}>
-                      <BilingualText
-                        ur="اسٹاپس"
-                        en="Waypoints"
-                        primaryStyle={styles.stageUrduPrimary}
-                        subStyle={styles.stageSubEn}
-                      />
-                      <Text style={styles.routePlaceName}>
-                        {intermediateStops.length} {intermediateStops.length === 1 ? 'Intermediate Stop' : 'Intermediate Stops'}
-                      </Text>
-                      <Text style={styles.routeAddressText}>
-                        {intermediateStops.map((s) => stopLabel(s)).filter(Boolean).join(', ')}
-                      </Text>
-                    </View>
+                  {/* Route Items */}
+                  <View style={styles.routeItemsCol}>
+                    {timelineStops.map((st) => (
+                      <View key={`item-${st.id}`} style={styles.routeRowItem}>
+                        <View style={styles.iconCircleBadge}>
+                          {st.iconType === 'House' ? (
+                            <House size={20} color="#FA634E" strokeWidth={2} />
+                          ) : st.iconType === 'MapPin' ? (
+                            <MapPin size={20} color="#FA634E" strokeWidth={2} />
+                          ) : (
+                            <Route size={20} color="#FA634E" strokeWidth={2} />
+                          )}
+                        </View>
+                        <View style={styles.routeTextCol}>
+                          <BilingualText
+                            ur={st.typeUrdu}
+                            en={st.typeEn}
+                            primaryStyle={styles.stageUrduPrimary}
+                            subStyle={styles.stageSubEn}
+                          />
+                          <Text style={styles.routePlaceName}>{st.name}</Text>
+                          {st.address ? <Text style={styles.routeAddressText}>{st.address}</Text> : null}
+                        </View>
+                        <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(st.address || st.name)}>
+                          <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                   </View>
-                )}
-
-                {/* Delivery Location */}
-                <View style={styles.routeRowItem}>
-                  <View style={styles.iconCircleBadge}>
-                    <MapPin size={20} color="#FA634E" strokeWidth={2} />
-                  </View>
-                  <View style={styles.routeTextCol}>
-                    <BilingualText
-                      ur="ڈلیوری پوائنٹ"
-                      en="Delivery Location"
-                      primaryStyle={styles.stageUrduPrimary}
-                      subStyle={styles.stageSubEn}
-                    />
-                    <Text style={styles.routePlaceName}>{stopLabel(dropoffStop) ?? 'Destination'}</Text>
-                    <Text style={styles.routeAddressText}>{stopAddress(dropoffStop) ?? 'Location address'}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.navCircleBtn} onPress={() => openNavigation(stopAddress(dropoffStop))}>
-                    <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                  </TouchableOpacity>
                 </View>
-              </View>
-            </View>
+              );
+            })()}
           </View>
 
           {/* Card 3: Schedule & Times */}
@@ -302,23 +276,23 @@ export default function DriverTripDetailsScreen() {
 
             <View style={styles.scheduleGrid}>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>Planned Start</Text>
-                <Text style={styles.scheduleVal}>{formatDateTime(trip.planned_start)}</Text>
+                <Text style={styles.scheduleLabel}>{t('label_planned_start', 'Planned Start')}</Text>
+                <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.planned_start)}</Text>
               </View>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>Planned End</Text>
-                <Text style={styles.scheduleVal}>{formatDateTime(trip.planned_end)}</Text>
+                <Text style={styles.scheduleLabel}>{t('label_planned_end', 'Planned End')}</Text>
+                <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.planned_end)}</Text>
               </View>
               {trip.actual_start && (
                 <View style={styles.scheduleRow}>
-                  <Text style={styles.scheduleLabel}>Actual Start</Text>
-                  <Text style={styles.scheduleVal}>{formatDateTime(trip.actual_start)}</Text>
+                  <Text style={styles.scheduleLabel}>{t('label_actual_start', 'Actual Start')}</Text>
+                  <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.actual_start)}</Text>
                 </View>
               )}
               {trip.actual_end && (
                 <View style={styles.scheduleRow}>
-                  <Text style={styles.scheduleLabel}>Actual End</Text>
-                  <Text style={styles.scheduleVal}>{formatDateTime(trip.actual_end)}</Text>
+                  <Text style={styles.scheduleLabel}>{t('label_actual_end', 'Actual End')}</Text>
+                  <Text style={[styles.scheduleVal, { writingDirection: 'ltr' }]}>{formatDateTime(trip.actual_end)}</Text>
                 </View>
               )}
             </View>

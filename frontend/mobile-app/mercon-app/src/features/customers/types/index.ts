@@ -3,8 +3,7 @@
  * Mirrors the backend's Customer/Trip/Invoice/RateCard Prisma models — see
  * backend/api-server/prisma/schema.prisma for the source of truth.
  *
- * The Customer model is deliberately small (name, contact_phone, credit_limit,
- * default pickup/dropoff coordinates, isActive). Everything richer on this
+ * The Customer model is deliberately small (name, contact_phone, isActive). Everything richer on this
  * screen — trips, revenue, rate cards — is *derived* from the customer's real
  * trips/invoices/rate cards, never invented.
  */
@@ -42,17 +41,9 @@ export interface CustomerListItem {
   id: string;
   name: string;
   phone: string;
-  creditLimit: number;
   isActive: boolean;
   createdAt: string;
   status: CustomerDisplayStatus;
-
-  /**
-   * How many of the customer's two optional default coordinates are set
-   * (0–2). There is no Location entity — this is the honest reading of
-   * "locations" against the real schema.
-   */
-  defaultLocationCount: number;
 
   /** The customer's active rate card, or null when they have none negotiated yet. */
   rateCard: CustomerRateCard | null;

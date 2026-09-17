@@ -55,6 +55,8 @@ export default function QuotationFormDialog({
   const [customerId, setCustomerId] = useState('');
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
+  const [originName, setOriginName] = useState('');
+  const [destinationName, setDestinationName] = useState('');
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
@@ -91,6 +93,10 @@ export default function QuotationFormDialog({
       setCustomerId(quotation.customerId || '');
       setOriginId(quotation.originLocationId || '');
       setDestinationId(quotation.destinationLocationId || '');
+      const firstStop = quotation.stops?.[0];
+      const lastStop = quotation.stops?.[quotation.stops.length - 1];
+      setOriginName(firstStop?.source_label || firstStop?.location?.name || quotation.origin_name || quotation.route_origin || '');
+      setDestinationName(lastStop?.source_label || lastStop?.location?.name || quotation.destination_name || quotation.route_destination || '');
       setPrice(String(quotation.rate ?? quotation.base_price ?? ''));
       setDriverPayout(quotation.driver_payout != null ? String(quotation.driver_payout) : '');
       setCurrency(quotation.currency || 'SAR');
@@ -98,7 +104,7 @@ export default function QuotationFormDialog({
       setVehicleClass(quotation.vehicle_class || '');
       setSourceVehicleLabel(quotation.source_vehicle_label || quotation.vehicle_type || '');
       setLineType(quotation.line_type || quotation.rate_category || '');
-      setBillingType(quotation.billing_type || '');
+      setBillingType(quotation.operation_type || quotation.billing_type || '');
       setPricingBasis(quotation.pricing_basis || 'UNSPECIFIED');
       setValidFrom(quotation.valid_from ? quotation.valid_from.substring(0, 10) : '');
       setValidTo(quotation.valid_to ? quotation.valid_to.substring(0, 10) : '');
@@ -108,6 +114,8 @@ export default function QuotationFormDialog({
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
+      setOriginName('');
+      setDestinationName('');
       setPrice(defaultPrice || '');
       setDriverPayout('');
       setCurrency('SAR');
@@ -138,11 +146,18 @@ export default function QuotationFormDialog({
         customerId: effectiveCustomerId,
         origin_location_id: originId || null,
         destination_location_id: destinationId || null,
+        origin_name: originName || undefined,
+        destination_name: destinationName || undefined,
+        stops: [
+          ...(originId || originName ? [{ sequence: 1, locationId: originId || null, location_id: originId || null, source_label: originName || null, stop_type: 'Pickup' }] : []),
+          ...(destinationId || destinationName ? [{ sequence: 2, locationId: destinationId || null, location_id: destinationId || null, source_label: destinationName || null, stop_type: 'Dropoff' }] : []),
+        ],
         vehicle_class: vehicleClass.trim() || null,
         source_vehicle_label: sourceVehicleLabel.trim() || null,
         vehicle_type: sourceVehicleLabel.trim() || vehicleClass.trim() || null,
         line_type: lineType || null,
         rate_category: lineType || null,
+        operation_type: billingType || null,
         billing_type: billingType || null,
         pricing_basis: pricingBasis === 'UNSPECIFIED' ? null : pricingBasis,
         valid_from: validFrom || null,
@@ -156,13 +171,22 @@ export default function QuotationFormDialog({
         : quotationService.create(payload);
     },
     onSuccess: (saved) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotations', 'select-all'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['quotation-lookup'], refetchType: 'all' });
       onSaved?.(saved);
       onClose();
     },
     onError: (err: any) => {
+      console.error('❌ [RateCardFormDialog] Save failed:', {
+        status: err.response?.status,
+        errorData: err.response?.data,
+        message: err.message,
+      });
       setError(err.response?.data?.error?.message || err.message || 'Could not save quotation.');
     },
   });
@@ -170,7 +194,9 @@ export default function QuotationFormDialog({
   const handleSubmit = () => {
     setError(null);
     if (!effectiveCustomerId) return setError('Choose which customer this quotation is for.');
-    if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
+    if ((!originId && !originName.trim()) || (!destinationId && !destinationName.trim())) {
+      return setError('Pick both an origin and a destination.');
+    }
     if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a rate greater than 0.');
     saveMutation.mutate();
   };
@@ -234,7 +260,11 @@ export default function QuotationFormDialog({
                 </Label>
                 <LocationCombobox
                   value={originId}
-                  onChange={setOriginId}
+                  onChange={(val, loc) => {
+                    setOriginId(val);
+                    if (loc?.name) setOriginName(loc.name);
+                    else setOriginName(val);
+                  }}
                   placeholder="Search origin..."
                 />
               </div>
@@ -245,7 +275,11 @@ export default function QuotationFormDialog({
                 </Label>
                 <LocationCombobox
                   value={destinationId}
-                  onChange={setDestinationId}
+                  onChange={(val, loc) => {
+                    setDestinationId(val);
+                    if (loc?.name) setDestinationName(loc.name);
+                    else setDestinationName(val);
+                  }}
                   placeholder="Search destination..."
                 />
               </div>
@@ -321,33 +355,31 @@ export default function QuotationFormDialog({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5 text-emerald-600" /> Commercial Billing Rate *
+                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
+                  {billingType?.toLowerCase().includes('monthly') ? 'MONTHLY CUSTOMER RATE *' : 'CUSTOMER RATE / TRIP *'}
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g. 1600"
+                  placeholder={billingType?.toLowerCase().includes('monthly') ? 'e.g. 1750' : 'e.g. 530'}
                   className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Driver Charge / Payout
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Banknote className="h-3.5 w-3.5 text-amber-600" /> DRIVER CHARGE / TRIP
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={driverPayout}
                   onChange={(e) => setDriverPayout(e.target.value)}
-                  placeholder="— Not provided"
-                  className="h-9 text-xs bg-white dark:bg-slate-900 placeholder:text-slate-400"
+                  placeholder="e.g. 149"
+                  className="h-9 text-xs bg-white dark:bg-slate-900 font-bold"
                 />
-                <span className="text-[10px] text-slate-400 block">
-                  Defaults to NULL unless specified
-                </span>
               </div>
 
               <div className="space-y-1.5">
@@ -364,6 +396,28 @@ export default function QuotationFormDialog({
                 </Select>
               </div>
             </div>
+
+            {(pricingBasis === 'PER_MONTH' || billingType?.toLowerCase().includes('monthly')) && parseFloat(price || '0') > 0 && (
+              <div className="p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
+                <span>Monthly Rate: <strong className="font-mono">SAR {parseFloat(price).toLocaleString()}/mo</strong></span>
+                <span>Daily Rate Breakdown (1/30): <strong className="font-mono">SAR {(parseFloat(price) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day</strong></span>
+              </div>
+            )}
+
+            {/* Monthly Quotation Helper Text */}
+            {billingType?.toLowerCase().includes('monthly') && price && !isNaN(Number(price)) && Number(price) > 0 && (
+              <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 p-2.5 rounded-lg space-y-0.5">
+                <div className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                  <span>Daily operational equivalent:</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-extrabold">
+                    {currency} {(Number(price) / 30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Based on monthly rate ÷ 30. The contractual monthly rate remains {currency} {Number(price).toLocaleString()}.
+                </div>
+              </div>
+            )}
 
             {isEditing && (
               <div className="space-y-1.5 pt-1">

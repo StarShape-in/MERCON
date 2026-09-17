@@ -7,8 +7,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
+import { useLanguage } from '../../lib/language-context';
 
 const SplashScreen = () => {
+  const { t } = useLanguage();
   const [dot1] = useState(new Animated.Value(0.3));
   const [dot2] = useState(new Animated.Value(0.3));
   const [dot3] = useState(new Animated.Value(0.3));
@@ -38,7 +40,7 @@ const SplashScreen = () => {
           </View>
         </View>
         <Text style={styles.brand}>MERCON</Text>
-        <Text style={styles.tagline}>Logistics Platform</Text>
+        <Text style={styles.tagline}>{t('label_logistics_platform', 'Logistics Platform')}</Text>
         <View style={styles.dotsContainer}>
           <Animated.View style={[styles.dot, { opacity: dot1 }]} />
           <Animated.View style={[styles.dot, { opacity: dot2 }]} />

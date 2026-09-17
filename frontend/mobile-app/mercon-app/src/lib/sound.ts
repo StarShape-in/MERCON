@@ -21,26 +21,7 @@ function isNativeModuleAvailable(moduleName: string): boolean {
   }
 }
 
-let ExpoAudioModule: any = null;
-let expoAudioAttempted = false;
 
-function getExpoAudio() {
-  if (expoAudioAttempted) return ExpoAudioModule;
-  expoAudioAttempted = true;
-
-  if (!isNativeModuleAvailable('ExponentAV')) {
-    ExpoAudioModule = null;
-    return null;
-  }
-
-  try {
-    const av = require('expo-av');
-    ExpoAudioModule = av?.Audio || null;
-  } catch (_) {
-    ExpoAudioModule = null;
-  }
-  return ExpoAudioModule;
-}
 
 let HapticsModule: any = null;
 let hapticsAttempted = false;
@@ -100,29 +81,6 @@ function synthWebAudioFallback() {
  * Plays the Google Pay style success chime audio safely.
  */
 export async function playSuccessSound() {
-  const Audio = getExpoAudio();
-  if (Audio && Platform.OS !== 'web') {
-    try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-      });
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: GPAY_CHIME_WAV },
-        { shouldPlay: true, volume: 1.0 }
-      );
-
-      sound.setOnPlaybackStatusUpdate((status: any) => {
-        if (status?.isLoaded && status?.didJustFinish) {
-          sound.unloadAsync().catch(() => {});
-        }
-      });
-      return;
-    } catch (_) {}
-  }
-
   // Fallback to Web Audio / HTML5 Audio
   if (typeof window !== 'undefined' && (window as any).Audio) {
     try {

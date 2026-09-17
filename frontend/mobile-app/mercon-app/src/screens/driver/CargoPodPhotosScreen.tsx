@@ -27,6 +27,7 @@ function openFile(fileUrl: string) {
 }
 
 const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string } }) => {
+  const { t } = useLanguage();
   const fullUrl = photo.file_url.startsWith('http') ? photo.file_url : `${FILE_BASE}${photo.file_url}`;
   const isPod = photo.doc_type === 'POD';
 
@@ -41,15 +42,15 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
           <View style={[styles.typeBadge, isPod ? styles.podBadge : styles.cargoBadge]}>
             {isPod ? <FileCheck size={12} color="#0369A1" /> : <Package size={12} color="#C7380A" />}
             <Text style={[styles.typeBadgeText, isPod ? styles.podBadgeText : styles.cargoBadgeText]}>
-              {isPod ? 'Proof of Delivery (POD)' : 'Cargo Pickup Photo'}
+              {isPod ? t('title_pod_details', 'Proof of Delivery (POD)') : t('title_cargo_pickup_photo', 'Cargo Pickup Photo')}
             </Text>
           </View>
           <Text style={styles.dateText}>{formatDate(photo.createdAt)}</Text>
         </View>
 
         <View style={styles.tripInfoRow}>
-          <Text style={styles.tripRef}>
-            {photo.trip_ref_id ? `Trip #${photo.trip_ref_id}` : 'General Attachment'}
+          <Text style={[styles.tripRef, { writingDirection: 'ltr' }]}>
+            {photo.trip_ref_id ? `${t('label_trip', 'Trip')} #${photo.trip_ref_id}` : t('label_general_attachment', 'General Attachment')}
           </Text>
           {photo.customer_name && photo.customer_name !== '—' && (
             <Text style={styles.customerName} numberOfLines={1}>
@@ -81,7 +82,7 @@ const PhotoCard = ({ photo }: { photo: DriverDocument & { customer_name?: string
 
         <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => openFile(photo.file_url)}>
           <ImageIcon size={14} color={Colors.primary} />
-          <Text style={styles.viewBtnText}>View Full Photo</Text>
+          <Text style={styles.viewBtnText}>{t('action_view_full_photo', 'View Full Photo')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -109,7 +110,7 @@ export function CargoPodPhotosScreen() {
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cargo & POD Photos</Text>
+        <Text style={styles.headerTitle}>{t('title_cargo_pod_photos', 'Cargo & POD Photos')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -120,7 +121,7 @@ export function CargoPodPhotosScreen() {
           onPress={() => setFilter('all')}
         >
           <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>
-            All ({photos.length})
+            {t('filter_all', 'All')} ({photos.length})
           </Text>
         </TouchableOpacity>
 
@@ -129,7 +130,7 @@ export function CargoPodPhotosScreen() {
           onPress={() => setFilter('cargo')}
         >
           <Text style={[styles.tabText, filter === 'cargo' && styles.tabTextActive]}>
-            Cargo ({photos.filter((p) => p.doc_type === 'Waybill').length})
+            {t('filter_cargo', 'Cargo')} ({photos.filter((p) => p.doc_type === 'Waybill').length})
           </Text>
         </TouchableOpacity>
 
@@ -138,7 +139,7 @@ export function CargoPodPhotosScreen() {
           onPress={() => setFilter('pod')}
         >
           <Text style={[styles.tabText, filter === 'pod' && styles.tabTextActive]}>
-            POD ({photos.filter((p) => p.doc_type === 'POD').length})
+            {t('filter_pod', 'POD')} ({photos.filter((p) => p.doc_type === 'POD').length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -153,7 +154,7 @@ export function CargoPodPhotosScreen() {
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
-            <Text style={styles.emptyText}>{error ?? 'No photos uploaded yet.'}</Text>
+            <Text style={styles.emptyText}>{error ?? t('msg_no_photos_uploaded', 'No photos uploaded yet.')}</Text>
           )
         }
       />

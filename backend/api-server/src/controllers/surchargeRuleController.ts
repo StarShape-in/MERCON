@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { getValidUuid } from '../utils/uuid';
 import { logger } from '../utils/logger';
 
@@ -203,13 +203,12 @@ export const updateSurchargeRule = async (req: Request, res: Response) => {
 export const deleteSurchargeRule = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = getValidUuid((req as any).user?.id);
 
-    await prisma.surchargeRule.update({
-      where: { id: id as string },
-      data: { deletedAt: new Date(), deleted_by: userId, is_active: false },
-    });
-    res.json({ success: true, message: 'Surcharge rule deleted successfully' });
+    await prisma.$transaction([
+      prisma.tripCharge.updateMany({ where: { surchargeRuleId: id as string }, data: { surchargeRuleId: null } }),
+      prisma.surchargeRule.delete({ where: { id: id as string } })
+    ]);
+    res.json({ success: true, message: 'Surcharge rule permanently deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete surcharge rule' } });
   }

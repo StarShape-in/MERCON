@@ -12,7 +12,7 @@ import { notificationIcon, timeAgo, type MobileNotification } from '../../lib/no
 
 import { useLanguage } from '../../lib/language-context';
 
-const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress: () => void }) => {
+const NotificationCard = ({ item, onPress, language }: { item: MobileNotification; onPress: () => void; language: any }) => {
   const unread = !item.is_read;
   const Icon = notificationIcon(item.type);
   return (
@@ -27,7 +27,7 @@ const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress
       <View style={styles.content}>
         <View style={styles.contentHeader}>
           <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+          <Text style={styles.time}>{timeAgo(item.createdAt, language)}</Text>
         </View>
         <Text style={styles.body} numberOfLines={2}>{item.message}</Text>
       </View>
@@ -39,7 +39,7 @@ const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress
 const NotificationsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Home');
   const { items, loading, error, refetch, markRead, markAll } = useNotifications();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const unreadCount = items.filter((n) => !n.is_read).length;
 
@@ -50,7 +50,9 @@ const NotificationsScreen = ({ navigation }: any) => {
         <View>
           <Text style={styles.headerTitle}>{t('nav_notifications', 'Notifications')}</Text>
           {unreadCount > 0 && (
-            <Text style={styles.unreadCount}>{unreadCount} unread</Text>
+            <Text style={styles.unreadCount}>
+              {t('label_unread_count', '{count} unread').replace('{count}', String(unreadCount))}
+            </Text>
           )}
         </View>
         {unreadCount > 0 && (
@@ -68,7 +70,7 @@ const NotificationsScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={loading && items.length > 0} onRefresh={refetch} />
         }
         renderItem={({ item }) => (
-          <NotificationCard item={item} onPress={() => markRead(item.id)} />
+          <NotificationCard item={item} onPress={() => markRead(item.id)} language={language} />
         )}
         ListEmptyComponent={
           loading ? (
@@ -78,14 +80,14 @@ const NotificationsScreen = ({ navigation }: any) => {
           ) : error ? (
             <View style={styles.emptyState}>
               <TriangleAlert size={44} color={Colors.gray400} strokeWidth={1.6} />
-              <Text style={styles.emptyTitle}>Couldn't load notifications</Text>
+              <Text style={styles.emptyTitle}>{t('err_load_notifications', "Couldn't load notifications")}</Text>
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : (
             <View style={styles.emptyState}>
               <BellOff size={44} color={Colors.gray400} strokeWidth={1.6} />
-              <Text style={styles.emptyTitle}>All Caught Up</Text>
-              <Text style={styles.emptyText}>No new notifications.</Text>
+              <Text style={styles.emptyTitle}>{t('title_all_caught_up', 'All Caught Up')}</Text>
+              <Text style={styles.emptyText}>{t('msg_no_notifications', 'No new notifications.')}</Text>
             </View>
           )
         }

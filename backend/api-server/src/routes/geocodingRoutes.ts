@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { resolveMapsLink } from '../controllers/geocodingController';
+import { resolveMapsLink, searchAddress, reverseGeocode } from '../controllers/geocodingController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
@@ -7,5 +7,7 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/resolve-maps-link', resolveMapsLink);
+router.get('/search', searchAddress);
+router.get('/reverse', reverseGeocode);
 
 export default router;

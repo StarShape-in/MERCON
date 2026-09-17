@@ -4,7 +4,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  FolderArchive, FileText, Image as ImageIcon, Upload, Search, Download, Eye,
+  FolderGit2, FileText, Image as ImageIcon, Upload, Search, Download, Eye,
   Trash2, Edit2, RotateCw, FileCode, X, LayoutGrid, List, AlertCircle, FilePlus,
   ChevronDown, HardDrive, Tag, CheckCircle2
 } from 'lucide-react';
@@ -320,7 +320,7 @@ export default function AprodacDocumentsPage() {
         {/* Top Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <FolderArchive className="w-6 h-6 text-brand shrink-0" />
+            <FolderGit2 className="w-6 h-6 text-brand shrink-0" />
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Aprodac Vault
@@ -374,7 +374,7 @@ export default function AprodacDocumentsPage() {
               className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
             >
               <FilePlus className="h-4 w-4" />
-              Upload Document
+              + Upload Document
             </Button>
           </div>
         </div>
@@ -385,7 +385,7 @@ export default function AprodacDocumentsPage() {
             title="Total Documents"
             label="DEV VAULT COUNT"
             value={totalDocs}
-            icon={FolderArchive}
+            icon={FolderGit2}
             variant="brand"
             description="Total documents in developer vault"
             isActive={typeFilter === 'All'}
@@ -490,27 +490,27 @@ export default function AprodacDocumentsPage() {
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
               title="List View"
-              aria-label="List View"
             >
               <List size={15} />
+              <span className="hidden sm:inline">List</span>
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
               }`}
               title="Grid View"
-              aria-label="Grid View"
             >
               <LayoutGrid size={15} />
+              <span className="hidden sm:inline">Grid</span>
             </button>
           </div>
         </div>
@@ -531,7 +531,9 @@ export default function AprodacDocumentsPage() {
           {/* Clean Honest Empty State */}
           {filteredDocuments.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center">
-              <FolderArchive className="w-7 h-7 text-slate-400 shrink-0" />
+              <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-3">
+                <FolderGit2 className="w-7 h-7 text-slate-400" />
+              </div>
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No developer documents found</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 {searchTerm || categoryFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
@@ -563,8 +565,8 @@ export default function AprodacDocumentsPage() {
                     }}
                     className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    Upload First Document
+                    <FilePlus size={15} />
+                    + Upload First Document
                   </Button>
                 )}
               </div>
@@ -1114,7 +1116,9 @@ export default function AprodacDocumentsPage() {
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
-            <Trash2 className="w-8 h-8 text-rose-600 shrink-0" />
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 size={24} />
+            </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">Delete Document?</h3>
               <p className="text-xs text-slate-500 mt-1">

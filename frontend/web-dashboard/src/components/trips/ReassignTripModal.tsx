@@ -35,6 +35,7 @@ export function ReassignTripModal({
   const [mode, setMode] = useState<ReassignMode>(initialMode);
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+  const [reassignmentReason, setReassignmentReason] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Sync mode and selections when modal opens or trip changes
@@ -43,6 +44,7 @@ export function ReassignTripModal({
       setMode(initialMode);
       setSelectedDriverId(trip?.driver?.id || '');
       setSelectedVehicleId(trip?.vehicle?.id || '');
+      setReassignmentReason('');
       setErrorMsg(null);
     }
   }, [isOpen, initialMode, trip]);
@@ -120,7 +122,10 @@ export function ReassignTripModal({
   }, [trip?.vehicle, availableVehicles]);
 
   const reassignMutation = useMutation({
-    mutationFn: async (payload: { driver_id?: string; vehicle_id?: string }) => {
+    mutationFn: async (payload: { driver_id?: string; vehicle_id?: string; reason?: string }) => {
+      if (payload.driver_id && !payload.vehicle_id) {
+        return tripService.replaceDriver(trip.id, payload.driver_id, payload.reason);
+      }
       return tripService.dispatch(trip.id, payload);
     },
     onSuccess: (_, variables) => {
@@ -152,7 +157,9 @@ export function ReassignTripModal({
     e.preventDefault();
     setErrorMsg(null);
 
-    const payload: { driver_id?: string; vehicle_id?: string } = {};
+    const payload: { driver_id?: string; vehicle_id?: string; reason?: string } = {
+      reason: reassignmentReason.trim() || undefined,
+    };
 
     if (mode === 'driver' || mode === 'both') {
       if (!selectedDriverId) {

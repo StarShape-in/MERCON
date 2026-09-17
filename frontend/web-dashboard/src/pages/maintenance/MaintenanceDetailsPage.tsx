@@ -225,162 +225,143 @@ export default function MaintenanceDetailsPage() {
     <DashboardLayout active="Vehicles" title={`Service Order ${orderNo}`}>
       <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── HERO: header + actions + lifecycle rail + integrated metrics, one card ─── */}
-        <Card className="relative overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] py-0 gap-0 ring-0">
-          {/* brand accent rail */}
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-amber-500 to-emerald-500" />
-
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 p-4 pt-5">
-            <div className="flex items-start gap-3 min-w-0">
+        {/* ── HERO: Header, Actions, Sleek Timeline & Integrated Metrics ─── */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+          
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3.5 min-w-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/maintenance')}
-                className="h-9 w-9 p-0 shrink-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-brand dark:text-orange-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-brand/40 shadow-2xs"
+                className="h-9 w-9 p-0 shrink-0 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
                 title="Back to maintenance list"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <Hash className="w-3 h-3" /> Service order
-                </div>
-                <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate font-mono">
-                  {orderNo}
-                </h1>
-                <div className="flex items-center gap-2 flex-wrap mt-1.5">
-                  <Badge className={cn('font-bold text-[10px] uppercase tracking-wide', typeMeta.className)}>
+              <div className="min-w-0 space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-mono">
+                    {orderNo}
+                  </h1>
+                  <Badge className={cn('font-bold text-[10px] uppercase tracking-wide px-2.5 py-0.5 rounded-full', typeMeta.className)}>
                     {typeMeta.label}
                   </Badge>
-                  <Badge className={cn('font-bold text-[10px] uppercase tracking-wide', statusMeta.className)}>
+                  <Badge className={cn('font-bold text-[10px] uppercase tracking-wide px-2.5 py-0.5 rounded-full', statusMeta.className)}>
                     {statusMeta.label}
                   </Badge>
-                  {vehicle && (
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1 hover:text-brand hover:border-brand/40 transition-colors"
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      {vehicle.plate_number}
-                      <ExternalLink className="w-3 h-3" />
-                    </button>
-                  )}
                 </div>
+
+                {vehicle && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300 hover:text-[#FA634E] transition-colors"
+                  >
+                    <Truck className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Plate: {vehicle.plate_number}</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-              <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleOpenEditModal}
-                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:text-brand hover:bg-orange-50 dark:hover:bg-orange-950/30"
-                  title="Edit service order"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Print work report"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
-                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => exportToCSV([record], `maintenance_${orderNo}.csv`)}
-                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Export as CSV"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-3 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 gap-1.5 text-xs font-semibold"
-                    >
-                      Set Status <ChevronDown className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
-                    <DropdownMenuLabel className="text-[10px] text-slate-400 uppercase">Set status</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Scheduled')}>
-                      <Clock className="w-3.5 h-3.5 mr-2 text-blue-500" /> Scheduled
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleQuickStatusChange('In_Progress')}>
-                      <RotateCw className="w-3.5 h-3.5 mr-2 text-amber-500" /> In Progress
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Completed')}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Completed
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Cancelled')}>
-                      <XCircle className="w-3.5 h-3.5 mr-2 text-rose-500" /> Cancelled
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+            {/* Top Right Action Group */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenEditModal}
+                className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-bold gap-1.5 shadow-2xs"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-bold gap-1.5 shadow-2xs"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportToCSV([record], `maintenance_${orderNo}.csv`)}
+                className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-bold gap-1.5 shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-extrabold gap-1 shadow-2xs"
+                  >
+                    <span>Status</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 text-xs font-semibold rounded-xl">
+                  <DropdownMenuLabel className="text-[10px] text-slate-400 uppercase">Set status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Scheduled')}>
+                    <Clock className="w-3.5 h-3.5 mr-2 text-blue-500" /> Scheduled
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleQuickStatusChange('In_Progress')}>
+                    <RotateCw className="w-3.5 h-3.5 mr-2 text-amber-500" /> In Progress
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Completed')}>
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Completed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Cancelled')}>
+                    <XCircle className="w-3.5 h-3.5 mr-2 text-rose-500" /> Cancelled
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
-          {/* Lifecycle rail */}
-          <div className="px-5 pb-4">
+          {/* Clean Lifecycle Step Bar */}
+          <div className="px-5 py-3.5 bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800">
             {isCancelled ? (
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-bold">
                 <XCircle className="w-4 h-4 shrink-0" />
-                <span className="text-xs font-extrabold">This service order was cancelled</span>
-                <span className="text-[11px] text-slate-500">· no further work is expected</span>
+                <span>Service order cancelled</span>
               </div>
             ) : (
-              <div className="px-1">
-                <div className="relative h-1 rounded-full bg-slate-200 dark:bg-slate-800">
+              <div className="space-y-2">
+                <div className="relative h-2 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden">
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-brand transition-all duration-500"
+                    className="h-full bg-[#FA634E] rounded-full transition-all duration-500"
                     style={{ width: `${progressPct}%` }}
                   />
-                  {LIFECYCLE.map((step, index) => (
-                    <span
-                      key={step}
-                      className={cn(
-                        'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 transition-colors',
-                        index <= currentStep ? 'bg-brand' : 'bg-slate-300 dark:bg-slate-700',
-                      )}
-                      style={{ left: `${(index / (LIFECYCLE.length - 1)) * 100}%` }}
-                    />
-                  ))}
                 </div>
-                <div className="flex justify-between mt-2">
+                <div className="flex justify-between items-center text-xs">
                   {LIFECYCLE.map((step, index) => (
                     <div
                       key={step}
                       className={cn(
-                        'text-[10px] font-bold uppercase tracking-wide',
-                        index === 0 && 'text-left',
-                        index === LIFECYCLE.length - 1 && 'text-right',
-                        index <= currentStep ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400',
+                        'flex items-center gap-1.5 font-bold',
+                        index <= currentStep ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'
                       )}
                     >
-                      {STATUS_META[step].label}
-                      {step === 'Scheduled' && (
-                        <span className="block font-mono font-medium normal-case text-slate-400">
-                          {formatDate(record.start_date, tz)}
-                        </span>
+                      <span className={cn('w-2 h-2 rounded-full', index <= currentStep ? 'bg-[#FA634E]' : 'bg-slate-300')} />
+                      <span>{STATUS_META[step].label}</span>
+                      {step === 'Scheduled' && record.start_date && (
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">({formatDate(record.start_date, tz)})</span>
                       )}
-                      {step === 'Completed' && (
-                        <span className="block font-mono font-medium normal-case text-slate-400">
-                          {formatDate(record.end_date, tz)}
-                        </span>
+                      {step === 'Completed' && record.end_date && (
+                        <span className="text-[10px] font-mono text-slate-400 font-normal">({formatDate(record.end_date, tz)})</span>
                       )}
                     </div>
                   ))}
@@ -389,71 +370,70 @@ export default function MaintenanceDetailsPage() {
             )}
           </div>
 
-          {/* Integrated stat strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-slate-100 dark:border-slate-800 divide-x divide-y lg:divide-y-0 divide-slate-100 dark:divide-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+          {/* Integrated 4 Stat Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-xs">
             <HeroStat
               icon={Banknote}
               label="Cost"
               value={formatSAR(record.cost)}
               hint={`Invoice ${record.invoice_number || EMPTY}`}
-              tone="bg-rose-500/10 text-rose-500"
+              tone="bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400"
             />
             <HeroStat
               icon={Gauge}
               label="Odometer at service"
               value={record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
               hint={odoSinceService !== null ? `+${odoSinceService.toLocaleString()} km driven since` : 'Vehicle odometer unavailable'}
-              tone="bg-indigo-500/10 text-indigo-500"
+              tone="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400"
             />
             <HeroStat
               icon={Clock}
               label="Downtime"
               value={durationDays !== null ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'}` : EMPTY}
               hint={record.end_date ? `Closed ${formatDate(record.end_date, tz)}` : 'Not closed yet'}
-              tone="bg-amber-500/10 text-amber-500"
+              tone="bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400"
             />
             <HeroStat
               icon={CalendarClock}
               label="Next service due"
               value={formatDate(record.next_service_due, tz)}
               hint={record.next_service_due ? 'Scheduled follow-up' : 'No follow-up recorded'}
-              tone="bg-emerald-500/10 text-emerald-500"
+              tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
             />
           </div>
-        </Card>
+        </div>
 
-        {/* ── Body: tabbed work report (report + billing/invoice) + joined service provider card ── */}
+        {/* ── Body: 2 Column Layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
-          {/* Work report & Billing — inside cards in that page (no tabs) */}
+          {/* Left Column (2/3): Workshop Work Report */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Card 1: Workshop work report */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
-                <div>
-                  <div className="flex items-center gap-2 text-brand">
-                    <ClipboardList className="w-4 h-4" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-[0.14em]">Workshop work report</span>
-                  </div>
-                  <div className="text-base font-black text-slate-900 dark:text-slate-100 mt-1">
-                    {record.workshop_name || 'Unnamed workshop'}
-                  </div>
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-xs p-0 gap-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-[#FA634E]" />
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                    Workshop Work Report
+                  </h3>
                 </div>
+                <span className="text-xs font-bold text-slate-500">
+                  {record.workshop_name || 'Unnamed Workshop'}
+                </span>
               </div>
 
               <div className="px-5 sm:px-6 py-5 space-y-5">
                 <section>
-                  <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
-                    Scope of work performed
-                  </h3>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Scope of Work Performed
+                  </h4>
                   {record.work_done ? (
-                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed border-l-2 border-brand/40 pl-3.5">
+                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed border-l-2 border-[#FA634E] pl-3.5">
                       {record.work_done}
                     </p>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs text-slate-500 py-5 justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                      <AlertCircle className="w-4 h-4" />
-                      No work details recorded for this service order.
+                    <div className="flex items-center gap-2 text-xs text-slate-500 py-4 justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                      <AlertCircle className="w-4 h-4 text-slate-400" />
+                      <span>No work details recorded for this service order.</span>
                     </div>
                   )}
                 </section>
@@ -509,7 +489,7 @@ export default function MaintenanceDetailsPage() {
                   type="button"
                   size="sm"
                   onClick={() => setIsCostModalOpen(true)}
-                  className="h-8.5 text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white rounded-xl gap-1.5 shadow-xs"
+                  className="h-8.5 text-xs font-bold bg-[#FA634E] hover:bg-[#e0523d] text-white rounded-xl gap-1.5 shadow-xs border-none"
                 >
                   <Banknote className="w-3.5 h-3.5" />
                   Enter / Update Cost

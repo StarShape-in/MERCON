@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 
 /* ─── List Folders ───────────────────────────────────────────────────────── */
 export const getFolders = async (req: Request, res: Response) => {
@@ -97,22 +97,12 @@ export const deleteFolder = async (req: Request, res: Response) => {
     const folderId = req.params.id as string;
     const userId = (req as any).user?.id;
 
-    // Unlink documents from deleted folder
-    await prisma.document.updateMany({
-      where: { folderId },
-      data: { folderId: null }
-    });
+    await prisma.$transaction([
+      prisma.document.updateMany({ where: { folderId }, data: { folderId: null } }),
+      prisma.folder.delete({ where: { id: folderId } })
+    ]);
 
-    await prisma.folder.update({
-      where: { id: folderId },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
-      }
-    });
-
-    res.json({ success: true, data: { message: 'Folder deleted successfully' } });
+    res.json({ success: true, data: { message: 'Folder permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({
       success: false,

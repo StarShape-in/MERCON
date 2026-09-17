@@ -32,7 +32,7 @@ window.addEventListener('vite:preloadError', () => {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="bottom-right" />
       <AppRouter />
     </QueryClientProvider>
   </StrictMode>

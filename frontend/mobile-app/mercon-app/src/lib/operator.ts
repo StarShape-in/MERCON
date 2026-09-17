@@ -82,7 +82,6 @@ export interface OperatorCustomer {
   id: string;
   name: string;
   contact_phone?: string;
-  credit_limit?: number;
   isActive?: boolean;
   createdAt?: string;
 }
@@ -90,13 +89,11 @@ export interface OperatorCustomer {
 export interface CreateCustomerInput {
   name: string;
   contact_phone: string;
-  credit_limit?: number;
 }
 
 export interface UpdateCustomerInput {
   name?: string;
   contact_phone?: string;
-  credit_limit?: number;
   isActive?: boolean;
 }
 

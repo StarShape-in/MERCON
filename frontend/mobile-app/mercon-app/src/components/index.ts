@@ -10,3 +10,6 @@ export * from './GeotagPhotoModal';
 export * from './TripProgressStepper';
 export * from './DriverChargePill';
 export * from './BilingualText';
+export * from './FadedBottomIllustration';
+export * from './DelayButton';
+export * from './ReturnLoadingModal';

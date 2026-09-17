@@ -6,25 +6,18 @@ export interface Customer {
   name: string;
   contact_phone: string;
   phone?: string;
-  avatar_url?: string | null;
   logo_url?: string | null;
   whatsapp_number?: string;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
-  company_name?: string;
   primary_contact_person?: string;
   primary_contact_phone?: string;
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
-  tax_number?: string;
-  credit_limit: number;
+  driver_workflow?: 'NATIVE' | 'EXTERNAL_APP';
   isActive: boolean;
   createdAt: string;
-  default_pickup_lat?: number | null;
-  default_pickup_lng?: number | null;
-  default_dropoff_lat?: number | null;
-  default_dropoff_lng?: number | null;
   trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
   /** Present on list responses only — total trip count, used to rank frequent shippers. */
   _count?: { trips: number };
@@ -33,24 +26,17 @@ export interface Customer {
 export interface CreateCustomerPayload {
   name: string;
   contact_phone: string;
-  company_name?: string;
-  avatar_url?: string | null;
   logo_url?: string | null;
   primary_contact_person?: string;
   primary_contact_phone?: string;
   secondary_contact_person?: string;
   secondary_contact_phone?: string;
   payment_terms?: string;
-  tax_number?: string;
-  credit_limit?: number;
+  driver_workflow?: 'NATIVE' | 'EXTERNAL_APP';
   isActive?: boolean;
   whatsapp_number?: string;
   whatsapp_group_link?: string;
   whatsapp_group_name?: string;
-  default_pickup_lat?: number | null;
-  default_pickup_lng?: number | null;
-  default_dropoff_lat?: number | null;
-  default_dropoff_lng?: number | null;
 }
 
 export interface CustomerFilters {
@@ -65,12 +51,12 @@ export interface CustomerFilters {
 export const customerService = {
   async getAll(filters: CustomerFilters = {}): Promise<ApiResponse<Customer[]>> {
     const res = await api.get<ApiResponse<Customer[]>>('/customers', { params: filters });
-    return res.data;
+    return res?.data ?? { success: false, data: [] };
   },
 
   async getById(id: string): Promise<Customer> {
     const res = await api.get<ApiResponse<Customer>>(`/customers/${id}`);
-    return res.data.data;
+    return res?.data?.data;
   },
 
   async create(payload: CreateCustomerPayload): Promise<Customer> {

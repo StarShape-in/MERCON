@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, Image } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Calendar, Globe, MapPin, Building2 } from 'lucide-react-native';
+import { useLanguage } from '../lib/language-context';
 
 const merconLogo = require('../../assets/images/merconclosed.png');
 
@@ -29,6 +29,7 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
   customerName,
   bottomPadding = 16,
 }) => {
+  const { t } = useLanguage();
   const displayLocation = locationName ?? address ?? 'Up Hill, Malappuram, India';
   const displayFullAddress = fullAddress ?? (address && address !== locationName ? address : 'Up Hill, Malappuram,\nKerala 676519, India');
   const displayCompany = companyName ?? customerName ?? 'Horizon Distributors Co.';
@@ -92,21 +93,21 @@ export const GoogleMapsGeotagPreview: React.FC<GoogleMapsGeotagProps> = ({
           {/* Metadata Row 1: Captured Date & Time */}
           <View style={styles.metaRow}>
             <Calendar size={11} color="#FA634E" strokeWidth={2.4} />
-            <Text style={styles.metaLabel}>Captured</Text>
-            <Text style={styles.metaValue}>{formattedDate} · {formattedTime}</Text>
+            <Text style={styles.metaLabel}>{t('label_captured', 'Captured')}</Text>
+            <Text style={[styles.metaValue, { writingDirection: 'ltr' }]}>{formattedDate} · {formattedTime}</Text>
           </View>
 
           {/* Metadata Row 2: GPS Coordinates */}
           <View style={[styles.metaRow, { marginTop: 4 }]}>
             <Globe size={11} color="#FA634E" strokeWidth={2.4} />
-            <Text style={styles.metaLabel}>Coordinates</Text>
-            <Text style={styles.metaValue}>{latStr} · {lngStr}</Text>
+            <Text style={styles.metaLabel}>{t('label_coordinates', 'Coordinates')}</Text>
+            <Text style={[styles.metaValue, { writingDirection: 'ltr' }]}>{latStr} · {lngStr}</Text>
           </View>
 
           {/* Metadata Row 3: Customer / Company */}
           <View style={[styles.metaRow, { marginTop: 4 }]}>
             <Building2 size={11} color="#FA634E" strokeWidth={2.4} />
-            <Text style={styles.metaLabel}>Customer</Text>
+            <Text style={styles.metaLabel}>{t('label_customer', 'Customer')}</Text>
             <Text style={styles.metaValue} numberOfLines={1}>{displayCompany}</Text>
           </View>
         </View>

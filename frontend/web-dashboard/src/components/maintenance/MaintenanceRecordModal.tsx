@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
+import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus, VehicleSystemCategory } from '@/services/maintenanceService';
 import { vehicleService } from '@/services/vehicleService';
 
 const TODAY_ISO = new Date().toISOString().split('T')[0];
@@ -24,20 +24,28 @@ export interface MaintenanceRecordModalVehicle {
 export interface MaintenanceRecordModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialVehicleId?: string;
-  bulkVehicles?: MaintenanceRecordModalVehicle[];
   editingRecord?: MaintenanceRecord | null;
+  /** Vehicle to pre-select when opening modal to log new maintenance */
+  vehicleId?: string;
+  initialVehicleId?: string;
+  /** Single vehicle OR list of selected vehicles for bulk action */
+  vehicles?: MaintenanceRecordModalVehicle[];
+  bulkVehicles?: MaintenanceRecordModalVehicle[];
   onSuccess?: () => void;
 }
 
 export default function MaintenanceRecordModal({
   open,
   onOpenChange,
-  initialVehicleId,
-  bulkVehicles = [],
-  editingRecord = null,
+  editingRecord,
+  vehicleId,
+  initialVehicleId: legacyVehicleId,
+  vehicles: vehiclesProp = [],
+  bulkVehicles: legacyBulkVehicles = [],
   onSuccess,
 }: MaintenanceRecordModalProps) {
+  const initialVehicleId = vehicleId || legacyVehicleId;
+  const bulkVehicles = vehiclesProp.length > 0 ? vehiclesProp : legacyBulkVehicles;
   const queryClient = useQueryClient();
 
   const { data: vehiclesRes } = useQuery({
@@ -53,6 +61,7 @@ export default function MaintenanceRecordModal({
     workshop_name: '',
     workshop_contact: '',
     maintenance_type: 'Routine',
+    system: 'others',
     status: 'Completed',
     start_date: TODAY_ISO,
     end_date: TODAY_ISO,
@@ -80,6 +89,7 @@ export default function MaintenanceRecordModal({
         workshop_name: editingRecord.workshop_name || '',
         workshop_contact: editingRecord.workshop_contact || '',
         maintenance_type: editingRecord.maintenance_type,
+        system: (editingRecord.system as VehicleSystemCategory) || 'others',
         status: editingRecord.status,
         start_date: editingRecord.start_date ? editingRecord.start_date.split('T')[0] : TODAY_ISO,
         end_date: editingRecord.end_date ? editingRecord.end_date.split('T')[0] : TODAY_ISO,
@@ -101,6 +111,7 @@ export default function MaintenanceRecordModal({
         workshop_name: '',
         workshop_contact: '',
         maintenance_type: 'Routine',
+        system: 'others',
         status: 'Completed',
         start_date: TODAY_ISO,
         end_date: TODAY_ISO,
@@ -276,23 +287,47 @@ export default function MaintenanceRecordModal({
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Maintenance Type *</Label>
-                <Select
-                  value={formData.maintenance_type}
-                  onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
-                >
-                  <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Routine">Routine Service</SelectItem>
-                    <SelectItem value="Repair">Repair</SelectItem>
-                    <SelectItem value="Inspection">Inspection</SelectItem>
-                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Sectioned Two-Level Classification */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle System *</Label>
+                  <Select
+                    value={formData.system || 'others'}
+                    onValueChange={(val: VehicleSystemCategory) => setFormData(prev => ({ ...prev, system: val }))}
+                  >
+                    <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl font-semibold">
+                      <SelectValue placeholder="Select Vehicle System" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="engine">⚙️ Engine & Transmission</SelectItem>
+                      <SelectItem value="axles">🔩 Axles & Suspension</SelectItem>
+                      <SelectItem value="air_system">💨 Air Intake & Filtration</SelectItem>
+                      <SelectItem value="brakes">🛑 Brakes & Pneumatics</SelectItem>
+                      <SelectItem value="tires">🛞 Tires & Wheels</SelectItem>
+                      <SelectItem value="electrical">⚡ Electrical & Battery</SelectItem>
+                      <SelectItem value="others">🔧 Others / General Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Maintenance Type *</Label>
+                  <Select
+                    value={formData.maintenance_type}
+                    onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
+                  >
+                    <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl font-semibold">
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Routine">Routine Service</SelectItem>
+                      <SelectItem value="Repair">Repair</SelectItem>
+                      <SelectItem value="Inspection">Inspection</SelectItem>
+                      <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
+                      <SelectItem value="Emergency">Emergency</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-1.5">

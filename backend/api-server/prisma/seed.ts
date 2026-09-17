@@ -22,7 +22,29 @@ async function main() {
   // intentionally omit `password_hash`.
   const defaultPassword = process.env.SEED_ADMIN_PASSWORD ?? 'password123';
   const password_hash = await bcrypt.hash(defaultPassword, 10);
+  const superadmin_password_hash = await bcrypt.hash('superadmin1234', 10);
   const ilan_password_hash = await bcrypt.hash('ilan1234', 10);
+
+  const superadmin = await prisma.user.upsert({
+    where: { username: 'superadmin' },
+    update: {
+      password_hash: superadmin_password_hash,
+      role: Role.SuperAdmin,
+      isSuperAdmin: true,
+      isActive: true,
+    },
+    create: {
+      username: 'superadmin',
+      email: 'superadmin@mercon.tech',
+      phone: '+966500000000',
+      password_hash: superadmin_password_hash,
+      name: 'Platform SuperAdmin',
+      role: Role.SuperAdmin,
+      isActive: true,
+      isSuperAdmin: true,
+    },
+  });
+  console.log(`  ✓ SuperAdmin user: ${superadmin.username}`);
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
@@ -87,6 +109,8 @@ async function main() {
   // module an owner had deliberately turned off). No owner could have
   // disabled a key that didn't exist yet, so this stays safe and idempotent.
   await backfillCompanyReportsModule();
+  await backfillDocumentsModule();
+  await backfillNewModuleKeys();
 
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
@@ -174,6 +198,32 @@ async function backfillCompanyReportsModule() {
       data: { enabledModules: { push: 'company-reports' } },
     });
     console.log('  ✓ Backfilled company-reports module key');
+  }
+}
+
+async function backfillDocumentsModule() {
+  const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+  if (settings && !settings.enabledModules.includes('documents')) {
+    await prisma.settings.update({
+      where: { id: 'singleton' },
+      data: { enabledModules: { push: 'documents' } },
+    });
+    console.log('  ✓ Backfilled documents module key');
+  }
+}
+
+async function backfillNewModuleKeys() {
+  const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+  if (settings) {
+    const missingKeys = MODULE_KEYS.filter((k) => !settings.enabledModules.includes(k));
+    if (missingKeys.length > 0) {
+      const updatedModules = Array.from(new Set([...settings.enabledModules, ...missingKeys]));
+      await prisma.settings.update({
+        where: { id: 'singleton' },
+        data: { enabledModules: updatedModules },
+      });
+      console.log(`  ✓ Backfilled ${missingKeys.length} new module keys to Settings`);
+    }
   }
 }
 

@@ -511,7 +511,7 @@ export default function VehicleFinancialsPage() {
         { label: 'Fuel & Gas', value: fuel, pct: total > 0 ? Math.round((fuel / total) * 100) : 0, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', icon: Fuel },
         { label: 'Maintenance & Repairs', value: maintenance, pct: total > 0 ? Math.round((maintenance / total) * 100) : 0, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', icon: Wrench },
         { label: 'Driver Salaries & Allowances', value: salary, pct: total > 0 ? Math.round((salary / total) * 100) : 0, color: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', icon: UserCheck },
-        { label: 'Driver Trip Charges', value: driverCharges, pct: total > 0 ? Math.round((driverCharges / total) * 100) : 0, color: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', icon: Coins },
+        { label: 'Driver Charges', value: driverCharges, pct: total > 0 ? Math.round((driverCharges / total) * 100) : 0, color: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', icon: Coins },
         { label: 'Other Operating Expenses', value: other, pct: total > 0 ? Math.round((other / total) * 100) : 0, color: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400', icon: ReceiptText },
       ].filter(item => item.value > 0 || total === 0)
     };
@@ -835,7 +835,7 @@ export default function VehicleFinancialsPage() {
                 value={String(summary.total_trips)}
                 hint="Completed & invoiced trips"
                 tone="neutral"
-                badgeText="⚡ Operations"
+                badgeText="Operations"
                 icon={<ReceiptText className="w-3.5 h-3.5 text-white" />}
               />
               <StatCard
@@ -843,7 +843,7 @@ export default function VehicleFinancialsPage() {
                 value={sar(summary.total_expenses)}
                 hint="Operating expenses & driver charges"
                 tone="expense"
-                badgeText="● Expenses"
+                badgeText="Expenses"
                 icon={<TrendingDown className="w-3.5 h-3.5 text-white" />}
                 ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
               />
@@ -852,7 +852,7 @@ export default function VehicleFinancialsPage() {
                 value={sar(summary.net_profit)}
                 hint="Revenue minus operating costs"
                 tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                badgeText={summary.net_profit >= 0 ? '✓ Net Positive' : '⚠️ Net Negative'}
+                badgeText={summary.net_profit >= 0 ? 'Net Positive' : 'Net Negative'}
                 icon={<Wallet className="w-3.5 h-3.5 text-white" />}
               />
               <StatCard
@@ -860,7 +860,7 @@ export default function VehicleFinancialsPage() {
                 value={`${summary.margin_percent}%`}
                 hint="Return rate of fleet revenue"
                 tone={summary.margin_percent >= 0 ? 'income' : 'expense'}
-                badgeText="🛡️ Fleet Margin"
+                badgeText="Fleet Margin"
                 icon={<TrendingUp className="w-3.5 h-3.5 text-white" />}
               />
             </div>

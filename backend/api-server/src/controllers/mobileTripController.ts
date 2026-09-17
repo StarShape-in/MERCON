@@ -1,10 +1,15 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import fs from 'fs';
+import path from 'path';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
-import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, type DelayDetection } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, resolveAuthoritativeActiveStop, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
+import { compressUploadedImage } from '../services/imageCompressor';
+import { generateRefId } from '../utils/refId';
+import { analyzeExternalScreenshotWithAI } from '../services/ocrService';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
@@ -21,10 +26,63 @@ import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/ro
 const tripInclude = {
   customer: true,
   vehicle: true,
+  quotation: {
+    select: {
+      id: true,
+      name: true,
+      line_type: true,
+      operation_type: true,
+      rate: true,
+      driver_payout: true,
+      stops: {
+        orderBy: { sequence: 'asc' as const },
+        include: { location: { select: { id: true, name: true, address: true, code: true } } },
+      },
+    },
+  },
   stops: {
     orderBy: { stop_sequence: 'asc' as const },
-    include: { location: { select: { id: true, name: true, address: true } } },
+    include: { location: { select: { id: true, name: true, address: true, code: true } } },
   },
+};
+
+const formatMobileTrip = (trip: any) => {
+  if (!trip) return trip;
+  const rawPayout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.quotation?.driver_payout;
+  const payout = rawPayout != null ? Number(rawPayout) : 0;
+  return {
+    ...trip,
+    driver_payout: payout,
+    driver_charge: payout,
+    trip_charges: payout,
+  };
+};
+
+const attachTripDocuments = async (trip: any) => {
+  if (!trip) return trip;
+  let docs: any[] = [];
+  try {
+    docs = await prisma.document.findMany({
+      where: { entity_type: 'Trip', entity_id: trip.id, deletedAt: null },
+      select: {
+        id: true,
+        doc_type: true,
+        file_url: true,
+        mime_type: true,
+        createdAt: true,
+        ai_extracted_json: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  } catch (e) {
+    logger.warn({ err: e }, 'Failed to attach trip documents:');
+  }
+  const authoritative_active_stop = resolveAuthoritativeActiveStop(
+    trip.stops,
+    trip.driver_workflow_state,
+    trip.status,
+  );
+  return formatMobileTrip({ ...trip, documents: docs, authoritative_active_stop });
 };
 
 export const getCurrentTrip = async (req: Request, res: Response) => {
@@ -34,31 +92,42 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
   const include = tripInclude;
 
   try {
-    // Prefer an in-progress / dispatched trip.
+    // 1. Prefer an active in-progress / loading / transit trip.
     let trip = await prisma.trip.findFirst({
       where: {
         driverId,
         deletedAt: null,
         status: {
-          in: [TripStatus.Draft, TripStatus.Scheduled, TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
+          in: [TripStatus.Loading, TripStatus.InTransit, TripStatus.Delayed]
+        },
+        NOT: {
+          driver_workflow_state: 'COMPLETED'
         }
       },
       include,
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Otherwise show the next upcoming trip that's assigned but not yet dispatched
-    // (created for this driver in the operator panel).
+    // 2. Otherwise show the earliest next upcoming trip that is assigned (Scheduled or Draft)
     if (!trip) {
       trip = await prisma.trip.findFirst({
-        where: { driverId, deletedAt: null, status: { in: [TripStatus.Draft, TripStatus.Scheduled] } },
+        where: {
+          driverId,
+          deletedAt: null,
+          status: { in: [TripStatus.Scheduled, TripStatus.Draft] },
+          OR: [
+            { driver_workflow_state: null },
+            { driver_workflow_state: { not: 'COMPLETED' } }
+          ]
+        },
         include,
         orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       });
     }
 
-    res.json({ success: true, data: trip ?? null });
+    res.json({ success: true, data: trip ? await attachTripDocuments(trip) : null });
   } catch (error) {
+    logger.error({ err: error }, 'getCurrentTrip error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
@@ -86,8 +155,9 @@ export const getTripHistory = async (req: Request, res: Response) => {
       take: limit,
     });
 
-    res.json({ success: true, data: trips });
+    res.json({ success: true, data: trips.map(formatMobileTrip) });
   } catch (error) {
+    logger.error({ err: error }, 'getTripHistory error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
@@ -103,25 +173,34 @@ export const getScheduledTrips = async (req: Request, res: Response) => {
         driverId,
         deletedAt: null,
         status: { in: [TripStatus.Draft, TripStatus.Scheduled] },
+        OR: [
+          { driver_workflow_state: null },
+          { driver_workflow_state: { not: 'COMPLETED' } }
+        ]
       },
       include: tripInclude,
       orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       take: 20,
     });
 
-    res.json({ success: true, data: trips });
+    res.json({ success: true, data: trips.map(formatMobileTrip) });
   } catch (error) {
+    logger.error({ err: error }, 'getScheduledTrips error:');
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
 
 /** Fetch details for a specific trip by ID for the logged-in driver. */
 export const getMobileTripDetails = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+
   const idStr = String(req.params.id || '');
 
   try {
     const trip = await prisma.trip.findFirst({
       where: {
+        driverId,
         OR: [
           { id: idStr },
           { ref_id: idStr },
@@ -135,7 +214,7 @@ export const getMobileTripDetails = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
     }
 
-    res.json({ success: true, data: trip });
+    res.json({ success: true, data: await attachTripDocuments(trip) });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
@@ -164,6 +243,10 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
+    // Completing a trip always goes through the shared helper — this is the
+    // path that previously let a driver mark a trip Completed without ever
+    // generating its invoice, since only the web dashboard's deliveryVerify
+    // did that.
     if (status === TripStatus.Completed) {
       const updatedTrip = await prisma.$transaction(async (tx) => {
         await stampWorkflowTransition(tx, id, driver_workflow_state ?? 'COMPLETED');
@@ -179,9 +262,14 @@ export const updateTripStatus = async (req: Request, res: Response) => {
         where: { id: updatedTrip.id },
         include: tripInclude,
       });
-      return res.json({ success: true, data: full });
+      return res.json({ success: true, data: await attachTripDocuments(full) });
     }
 
+    // This is the path the driver's app actually takes — including the GPS
+    // geofence auto-arrival. It previously moved the trip's status without
+    // recording anything on the stop, so a driver arriving through the app
+    // left no arrival time at all and the trip was invisible to the delay
+    // report. Wrapped in a transaction so status and clock cannot diverge.
     let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
       if (driver_workflow_state) {
@@ -200,19 +288,26 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       });
     });
 
-    // This is the path the GPS geofence takes, so it is where most real
-    // delays surface. Fired post-commit, and never allowed to fail the
-    // driver's status update.
+    // Mark pending external app screenshots as Verified on status update
+    if (updatedTrip && (trip as any).driver_workflow === 'EXTERNAL_APP') {
+      try {
+        await prisma.document.updateMany({
+          where: { entity_type: 'Trip', entity_id: id, status: 'PendingReview' },
+          data: { status: 'Verified' },
+        });
+      } catch (docErr) {
+        logger.warn({ err: docErr }, 'Failed to update pending document status:');
+      }
+    }
+
     if (delay) await notifyOperatorsOfDelay(delay);
 
-    res.json({ success: true, data: updatedTrip });
+    res.json({ success: true, data: await attachTripDocuments(updatedTrip) });
   } catch (error: any) {
     logger.error({ err: error }, 'updateTripStatus error:');
     res.status(500).json({ success: false, error: { message: error?.message || 'Failed to update trip status' } });
   }
 };
-
-import { compressUploadedImage } from '../services/imageCompressor';
 
 /**
  * Upload a trip photo (cargo at pickup, or POD at delivery) and attach it to the
@@ -230,27 +325,23 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     const trip = await prisma.trip.findFirst({ where: { id, driverId, deletedAt: null } });
     if (!trip) return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
 
-    const { location_lat, location_lng, captured_at, leg_index, operation } = req.body || {};
+    const { location_lat, location_lng, captured_at, leg_index, operation, stop_id } = req.body || {};
     const notes = (location_lat && location_lng)
       ? `📍 [GPS: ${location_lat}, ${location_lng}] Captured: ${captured_at || new Date().toISOString()}`
       : undefined;
 
-    // Compress image if photo (compressUploadedImage safely skips videos and PDFs)
+    // Compress image to save disk space & mobile data bandwidth
     await compressUploadedImage(req.file.path);
-
-    const ext = (req.file.originalname || req.file.filename).split('.').pop()?.toLowerCase() || '';
-    let mimeType = req.file.mimetype;
-    if (!mimeType || mimeType === 'application/octet-stream') {
-      if (ext === 'mp4') mimeType = 'video/mp4';
-      else if (ext === 'mov') mimeType = 'video/quicktime';
-      else if (ext === 'webm') mimeType = 'video/webm';
-      else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
-      else if (ext === 'png') mimeType = 'image/png';
-      else mimeType = 'image/jpeg';
-    }
 
     const userId = (req as any).user?.id;
     const isValidUuid = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+
+    const isVideo = (req.file.mimetype && req.file.mimetype.startsWith('video/')) ||
+      /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(req.file.originalname) ||
+      /\.(mp4|mov|webm|avi|mkv|3gp)$/i.test(req.file.filename);
+    const resolvedMime = isVideo
+      ? (req.file.mimetype && req.file.mimetype !== 'application/octet-stream' ? req.file.mimetype : 'video/mp4')
+      : (req.file.mimetype || 'image/jpeg');
 
     const document = await prisma.document.create({
       data: {
@@ -259,12 +350,13 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
         // No dedicated "cargo photo" enum value; POD for delivery, Waybill for pickup cargo.
         doc_type: kind === 'pod' ? DocType.POD : DocType.Waybill,
         file_url: `/uploads/${req.file.filename}`,
-        mime_type: mimeType,
+        mime_type: resolvedMime,
         ocr_raw_text: notes,
         ai_extracted_json: {
           gps: (location_lat && location_lng) ? { latitude: location_lat, longitude: location_lng, captured_at } : undefined,
           leg_index: leg_index !== undefined ? Number(leg_index) : undefined,
           operation: operation || undefined,
+          stop_id: stop_id || undefined,
         },
         created_by: isValidUuid ? userId : undefined,
       },
@@ -337,6 +429,18 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
 
+    // Distinguish invalid coordinates from an unavailable routing provider:
+    if (
+      (target.location_lat === 0 && target.location_lng === 0) ||
+      target.location_lat < -90 || target.location_lat > 90 ||
+      target.location_lng < -180 || target.location_lng > 180
+    ) {
+      return res.status(422).json({
+        success: false,
+        error: { code: 'INVALID_STOP_COORDINATES', message: 'Destination coordinates are invalid for road routing' },
+      });
+    }
+
     const route = await getDrivingRoute(
       { lat: fromLat, lng: fromLng },
       { lat: target.location_lat, lng: target.location_lng },
@@ -354,5 +458,334 @@ export const getTripRoute = async (req: Request, res: Response) => {
       });
     }
     return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
+/**
+ * Record a driver GPS location update for an active trip.
+ * Path: POST /mobile/trips/:id/location
+ */
+export const recordDriverLocation = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  const id = req.params.id as string;
+
+  if (!driverId) {
+    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+  }
+
+  const { latitude, longitude, speed_kph, heading_deg, accuracy_m, recorded_at } = req.body || {};
+
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
+    return res.status(400).json({ success: false, error: { message: 'Invalid coordinates' } });
+  }
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id, driverId, deletedAt: null },
+      select: { id: true, status: true, vehicleId: true },
+    });
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Active trip not found or not assigned to you' },
+      });
+    }
+
+    const terminalStatuses: TripStatus[] = [TripStatus.Completed, TripStatus.Invoiced, TripStatus.Cancelled];
+    if (terminalStatuses.includes(trip.status)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: `Cannot record location for trip in state ${trip.status}` },
+      });
+    }
+
+    const recordedAt = recorded_at && !isNaN(Date.parse(recorded_at))
+      ? new Date(recorded_at)
+      : new Date();
+
+    logger.info({
+      driverId,
+      tripId: trip.id,
+      vehicleId: trip.vehicleId,
+      lat,
+      lng,
+      recordedAt: recordedAt.toISOString()
+    }, '[LOCATION] Received driver GPS');
+
+    const location = await prisma.tripLocation.create({
+      data: {
+        tripId: trip.id,
+        lat,
+        lng,
+        speed_kph: speed_kph != null && !isNaN(Number(speed_kph)) ? Number(speed_kph) : null,
+        heading: heading_deg != null && !isNaN(Number(heading_deg)) ? Number(heading_deg) : null,
+        accuracy_m: accuracy_m != null && !isNaN(Number(accuracy_m)) ? Number(accuracy_m) : null,
+        recordedAt,
+      },
+    });
+
+    try {
+      const { io } = require('../index');
+      if (io) {
+        io.emit('fleet:location_update', {
+          tripId: trip.id,
+          vehicleId: trip.vehicleId,
+          lat,
+          lng,
+          recordedAt,
+        });
+
+        // Also broadcast to the trip's dedicated room for live trip tracking
+        const speed = speed_kph != null && !isNaN(Number(speed_kph)) ? Number(speed_kph) : 0;
+        const heading = heading_deg != null && !isNaN(Number(heading_deg)) ? Number(heading_deg) : null;
+        const accuracy = accuracy_m != null && !isNaN(Number(accuracy_m)) ? Number(accuracy_m) : null;
+        const nowIso = new Date().toISOString();
+
+        io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, {
+          lat,
+          lng,
+          speed,
+          heading,
+          accuracy,
+          status: null,
+          source: 'mobile',
+          recordedAt: recordedAt.toISOString(),
+          ingestedAt: nowIso,
+        });
+      }
+    } catch {
+      // Non-fatal socket broadcast
+    }
+
+    return res.json({ success: true, data: location });
+  } catch (error: any) {
+    logger.error({ err: error }, 'recordDriverLocation error:');
+    return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to record driver location' } });
+  }
+};
+
+export const uploadExternalScreenshot = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  const tripId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (!driverId) {
+    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: { message: 'No screenshot file uploaded' } });
+  }
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, deletedAt: null },
+      include: tripInclude,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
+    }
+
+    if (trip.driverId !== driverId) {
+      return res.status(403).json({ success: false, error: { message: 'Driver is not assigned to this trip' } });
+    }
+
+    if (trip.driver_workflow !== 'EXTERNAL_APP') {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'This trip does not use the EXTERNAL_APP driver workflow' },
+      });
+    }
+
+    // 1. Compress image
+    let localFilePath = req.file.path;
+    try {
+      localFilePath = await compressUploadedImage(req.file.path);
+    } catch (compressErr) {
+      logger.warn({ err: compressErr }, 'Failed to compress screenshot image, using raw file');
+    }
+
+    const fileName = path.basename(localFilePath);
+    const fileUrl = `/uploads/${fileName}`;
+
+    // 2. Run Gemini Vision screenshot extraction with expected trip context
+    const firstStop = trip.stops?.[0];
+    const lastStop = trip.stops?.[trip.stops.length - 1];
+    const aiResult = await analyzeExternalScreenshotWithAI(localFilePath, {
+      ref_id: trip.ref_id || undefined,
+      waybill_number: (trip as any).waybill_number || undefined,
+      customer_name: trip.customer?.name,
+      origin: firstStop?.location_name || firstStop?.location?.name || undefined,
+      destination: lastStop?.location_name || lastStop?.location?.name || undefined,
+    });
+
+    // 3. Validation and lifecycle transition logic
+    const autoApply = req.body?.auto_apply === 'true' || req.body?.auto_apply === true || req.query?.auto_apply === 'true';
+    let applied = false;
+    let canConfirm = false;
+    let transitionReason: string | null = null;
+    let delayNotification: DelayDetection | null = null;
+    let targetStatus: TripStatus | null = null;
+    let targetWorkflowState: string | null = null;
+
+    const detectedEvent = aiResult.detected_event_type;
+    const confidence = aiResult.confidence ?? 0;
+    const isWrongTrip = aiResult.is_wrong_trip || false;
+    const hasAiError = Boolean(aiResult.extraction_error);
+
+    const getExpectedMilestoneForStatus = (st: TripStatus) => {
+      if (st === TripStatus.Scheduled || st === TripStatus.Draft) return 'Arrived at Pickup or Loading Completed';
+      if (st === TripStatus.Loading) return 'Departed Pickup (In Transit)';
+      if (st === TripStatus.InTransit) return 'Arrived at Delivery or Delivery Completed';
+      if (st === TripStatus.Completed || st === TripStatus.Invoiced) return 'Trip already completed';
+      return 'Next operational milestone';
+    };
+
+    if (hasAiError) {
+      if (aiResult.extraction_error === 'INVALID_GEMINI_API_KEY' || aiResult.notes?.includes('API key')) {
+        transitionReason = 'Invalid Gemini API Key: The server has an invalid GEMINI_API_KEY configured in environment settings. Please set a valid Google AI Studio key starting with AIzaSy...';
+      } else {
+        transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
+      }
+    } else if (isWrongTrip) {
+      transitionReason = `Wrong trip screenshot! Screenshot shows reference (${aiResult.external_reference || 'other order'}) which does not match current trip TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
+    } else if (detectedEvent && confidence >= 0.70) {
+      if (detectedEvent === 'ARRIVED_AT_PICKUP') {
+        targetStatus = TripStatus.Loading;
+        targetWorkflowState = 'ARRIVED_AT_PICKUP';
+      } else if (detectedEvent === 'LOADING_COMPLETED') {
+        targetStatus = TripStatus.Loading;
+        targetWorkflowState = 'LOADING_COMPLETED';
+      } else if (detectedEvent === 'DEPARTED_PICKUP') {
+        targetStatus = TripStatus.InTransit;
+        targetWorkflowState = 'IN_TRANSIT';
+      } else if (detectedEvent === 'ARRIVED_AT_DELIVERY') {
+        targetStatus = TripStatus.InTransit;
+        targetWorkflowState = 'ARRIVED_AT_DELIVERY';
+      } else if (detectedEvent === 'DELIVERY_COMPLETED') {
+        targetStatus = TripStatus.Completed;
+        targetWorkflowState = 'COMPLETED';
+      } else if (detectedEvent === 'DELAYED') {
+        targetStatus = TripStatus.Delayed;
+        targetWorkflowState = trip.driver_workflow_state || 'DELAYED';
+      }
+
+      if (targetStatus && isValidTransition(trip.status, targetStatus)) {
+        const nextStatus = targetStatus;
+        const nextWorkflowState = targetWorkflowState || 'IN_TRANSIT';
+        canConfirm = true;
+        if (autoApply) {
+          try {
+            delayNotification = await prisma.$transaction(async (tx) => {
+              let delay: DelayDetection | null = null;
+              if (nextStatus === TripStatus.Completed) {
+                await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
+                await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
+                await tx.trip.update({
+                  where: { id: trip.id },
+                  data: {
+                    driver_workflow_state: 'COMPLETED',
+                    updated_by: (req as any).user?.id || null,
+                  },
+                });
+              } else {
+                delay = await stampStopTransition(tx, trip.id, nextStatus);
+                await stampWorkflowTransition(tx, trip.id, nextWorkflowState, undefined);
+                await tx.trip.update({
+                  where: { id: trip.id },
+                  data: {
+                    status: nextStatus,
+                    driver_workflow_state: nextWorkflowState,
+                    updated_by: (req as any).user?.id || null,
+                  },
+                });
+              }
+              return delay;
+            });
+            applied = true;
+          } catch (txErr: any) {
+            logger.error({ err: txErr }, 'Failed to apply extracted lifecycle transition:');
+            transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
+            canConfirm = false;
+          }
+        }
+      } else {
+        transitionReason = `Out-of-sequence milestone: Screenshot shows '${detectedEvent.replace(/_/g, ' ')}', but the trip is currently in '${trip.status}' state. Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
+      }
+    } else if (detectedEvent && confidence < 0.70) {
+      transitionReason = `Low AI confidence score (${Math.round(confidence * 100)}%). Text in screenshot was not clear enough to automatically verify.`;
+    } else {
+      transitionReason = `No operational milestone recognized: The screenshot does not show clear status text like "Arrived at Pickup", "Cargo Loaded", "In Transit", "Arrived at Delivery", or "Delivery Completed". Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
+    }
+
+    // 4. Save Document record
+    const extraction_status = applied ? 'SUCCESS' : (hasAiError ? 'FAILED' : (isWrongTrip ? 'FAILED' : (canConfirm ? 'NEEDS_REVIEW' : 'FAILED')));
+    const docTypeVal = detectedEvent === 'DELAYED' ? DocType.Emergency : DocType.POD;
+
+    const document = await prisma.document.create({
+      data: {
+        entity_type: 'Trip',
+        entity_id: trip.id,
+        doc_type: docTypeVal,
+        file_url: fileUrl,
+        mime_type: req.file.mimetype || 'image/jpeg',
+        created_by: (req as any).user?.id || null,
+        executorDriverId: driverId,
+        status: applied ? 'Verified' : 'PendingReview',
+        ai_extracted_json: {
+          ...aiResult,
+          applied,
+          canConfirm,
+          targetStatus,
+          targetWorkflowState,
+          extraction_status,
+          validation_reason: transitionReason,
+          uploaded_at: new Date().toISOString(),
+        },
+      },
+    });
+
+    if (delayNotification) {
+      notifyOperatorsOfDelay(delayNotification).catch((err) =>
+        logger.warn({ err }, 'Failed to send delay notification for screenshot transition:')
+      );
+    }
+
+    // 5. Fetch updated trip state
+    const updatedTrip = await prisma.trip.findFirst({
+      where: { id: trip.id, deletedAt: null },
+      include: tripInclude,
+    });
+    const enrichedTrip = updatedTrip ? await attachTripDocuments(updatedTrip) : null;
+
+    return res.json({
+      success: true,
+      data: {
+        document_id: document.id,
+        extraction_status,
+        event_type: aiResult.detected_event_type,
+        event_timestamp: aiResult.event_timestamp,
+        stop_location_name: aiResult.stop_location_name,
+        external_reference: aiResult.external_reference,
+        detected_text: aiResult.detected_text,
+        is_wrong_trip: isWrongTrip,
+        extraction_error: aiResult.extraction_error,
+        confidence: aiResult.confidence,
+        applied,
+        can_confirm: canConfirm,
+        target_status: targetStatus,
+        target_workflow_state: targetWorkflowState,
+        notes: aiResult.notes,
+        validation_reason: transitionReason,
+        trip: enrichedTrip,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'uploadExternalScreenshot error:');
+    return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to process screenshot' } });
   }
 };

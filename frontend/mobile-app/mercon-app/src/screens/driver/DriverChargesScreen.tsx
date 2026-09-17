@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
-  ArrowLeft, Building2, Calendar, CheckCircle2, ChevronRight,
+  ArrowLeft, Building2, Calendar, CheckCircle2, ChevronRight, ChevronLeft,
   Wallet, ArrowRight, CalendarClock, TriangleAlert,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
@@ -14,7 +14,7 @@ import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useScheduledTrips } from '../../lib/use-scheduled-trips';
 import { useTripHistory } from '../../lib/use-trip-history';
 import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, formatCurrency, LanguageMode } from '../../lib/language-context';
 import { API_URL } from '../../lib/api';
 
 const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
@@ -38,7 +38,7 @@ function extractChargeNumber(val: any): number {
 
 export function getTripChargeValue(t: MobileTrip | any): number {
   if (!t) return 0;
-  return extractChargeNumber(t.trip_charges);
+  return extractChargeNumber(t.driver_payout ?? t.driver_charge ?? t.trip_charges ?? t.quotation?.driver_payout);
 }
 
 function formatDateTime(iso?: string | null): string {
@@ -48,15 +48,15 @@ function formatDateTime(iso?: string | null): string {
   return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatRelativeDate(iso?: string | null): string {
-  if (!iso) return 'Scheduled';
+function formatRelativeDate(iso?: string | null, lang: LanguageMode = 'en'): string {
+  if (!iso) return lang === 'ur' ? 'شیڈول شدہ' : 'Scheduled';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Scheduled';
+  if (Number.isNaN(d.getTime())) return lang === 'ur' ? 'شیڈول شدہ' : 'Scheduled';
   const now = new Date();
   const diffDays = Math.round((d.getTime() - now.getTime()) / (1000 * 3600 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow, 09:00 AM';
-  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays === 0) return lang === 'ur' ? 'آج' : 'Today';
+  if (diffDays === 1) return lang === 'ur' ? 'کل، 09:00 AM' : 'Tomorrow, 09:00 AM';
+  if (diffDays > 1 && diffDays <= 7) return lang === 'ur' ? `${diffDays} دنوں میں` : `In ${diffDays} days`;
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -89,11 +89,13 @@ const ChargeRowItem = ({
   isUpcoming,
   onPress,
   t,
+  language,
 }: {
   item: MobileTrip;
   isUpcoming: boolean;
   onPress: () => void;
   t: any;
+  language: LanguageMode;
 }) => {
   const [imgError, setImgError] = useState(false);
   const pickup = item.stops?.find((s) => s.stop_type === 'Pickup');
@@ -102,12 +104,12 @@ const ChargeRowItem = ({
   const toCity = stopLabel(dropoff) ?? 'Destination';
   const dateSource = item.actual_end ?? item.planned_end ?? item.actual_start ?? item.planned_start ?? null;
 
-  const rawLogo = item.customer?.logo_url || item.customer?.avatar_url || null;
+  const rawLogo = item.customer?.logo_url || null;
   const logoUrl = resolveLogoUrl(rawLogo);
   const showLogo = logoUrl && !imgError;
 
   const chargeVal = getTripChargeValue(item);
-  const chargeText = `SAR ${chargeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const chargeText = formatCurrency(chargeVal, language);
   const displayId = item.ref_id ?? item.id.slice(0, 8);
 
   return (
@@ -138,26 +140,34 @@ const ChargeRowItem = ({
         {/* Route */}
         <View style={styles.rowRouteLine}>
           <Text style={styles.rowCityText} numberOfLines={1}>{fromCity}</Text>
-          <ArrowRight size={14} color="#FA634E" strokeWidth={2.5} style={styles.rowArrow} />
+          {language === 'ur' ? (
+            <ArrowLeft size={14} color="#FA634E" strokeWidth={2.5} style={styles.rowArrow} />
+          ) : (
+            <ArrowRight size={14} color="#FA634E" strokeWidth={2.5} style={styles.rowArrow} />
+          )}
           <Text style={styles.rowCityText} numberOfLines={1}>{toCity}</Text>
         </View>
 
         {/* Trip ID & Date */}
         <View style={styles.rowMetaLine}>
-          <Text style={styles.rowMetaText}>TRP-{displayId}</Text>
+          <Text style={[styles.rowMetaText, { writingDirection: 'ltr' }]}>TRP-{displayId}</Text>
           <Text style={styles.rowMetaDot}>·</Text>
           <Text style={[styles.rowMetaText, isUpcoming && styles.rowMetaTextUpcoming]}>
-            {isUpcoming ? formatRelativeDate(dateSource) : formatDateTime(dateSource)}
+            {isUpcoming ? formatRelativeDate(dateSource, language) : formatDateTime(dateSource)}
           </Text>
         </View>
       </View>
 
       {/* Right Column: Driver Charge & Chevron */}
       <View style={styles.rowRightCol}>
-        <Text style={[styles.rowChargeAmount, isUpcoming ? styles.rowChargeUpcoming : styles.rowChargeEarned]}>
+        <Text style={[styles.rowChargeAmount, isUpcoming ? styles.rowChargeUpcoming : styles.rowChargeEarned, { writingDirection: 'ltr' }]}>
           {chargeText}
         </Text>
-        <ChevronRight size={16} color="#9898A4" strokeWidth={2} />
+        {language === 'ur' ? (
+          <ChevronLeft size={16} color="#9898A4" strokeWidth={2} />
+        ) : (
+          <ChevronRight size={16} color="#9898A4" strokeWidth={2} />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -165,7 +175,7 @@ const ChargeRowItem = ({
 
 const DriverChargesScreen = ({ navigation }: any) => {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const { trip: currentTrip, loading: loadingCurrent, refetch: refetchCurrent } = useCurrentTrip();
   const { trips: scheduledList, loading: loadingScheduled, refetch: refetchScheduled } = useScheduledTrips();
@@ -246,8 +256,8 @@ const DriverChargesScreen = ({ navigation }: any) => {
           </View>
 
           <Text style={styles.totalLabelOrange}>{t('label_total_driver_charges', 'Total Driver Charges')}</Text>
-          <Text style={styles.totalAmountOrange}>
-            SAR {totalCharges.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <Text style={[styles.totalAmountOrange, { writingDirection: 'ltr' }]}>
+            {formatCurrency(totalCharges, language)}
           </Text>
 
           {/* White Sub-container for Earned & Upcoming with Icons */}
@@ -259,8 +269,8 @@ const DriverChargesScreen = ({ navigation }: any) => {
               </View>
               <View style={styles.subColTextCol}>
                 <Text style={styles.subLabelWhiteBox}>{t('label_earned', 'Earned')}</Text>
-                <Text style={styles.earnedAmountWhiteBox}>
-                  SAR {earnedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <Text style={[styles.earnedAmountWhiteBox, { writingDirection: 'ltr' }]}>
+                  {formatCurrency(earnedTotal, language)}
                 </Text>
               </View>
             </View>
@@ -274,8 +284,8 @@ const DriverChargesScreen = ({ navigation }: any) => {
               </View>
               <View style={styles.subColTextCol}>
                 <Text style={styles.subLabelWhiteBox}>{t('label_upcoming', 'Upcoming')}</Text>
-                <Text style={styles.upcomingAmountWhiteBox}>
-                  SAR {upcomingTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <Text style={[styles.upcomingAmountWhiteBox, { writingDirection: 'ltr' }]}>
+                  {formatCurrency(upcomingTotal, language)}
                 </Text>
               </View>
             </View>
@@ -286,7 +296,7 @@ const DriverChargesScreen = ({ navigation }: any) => {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>{t('title_earned_driver_charges', 'Earned Driver Charges')}</Text>
           <TouchableOpacity onPress={() => router.push('/trips')} activeOpacity={0.8} style={styles.viewAllBtn}>
-            <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} →</Text>
+            <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} {language === 'ur' ? '←' : '→'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -303,7 +313,7 @@ const DriverChargesScreen = ({ navigation }: any) => {
             earnedTrips.slice(0, 5).map((trip, idx) => (
               <React.Fragment key={trip.id}>
                 {idx > 0 && <View style={styles.rowDivider} />}
-                <ChargeRowItem item={trip} isUpcoming={false} onPress={() => handleCardPress(trip.id)} t={t} />
+                <ChargeRowItem item={trip} isUpcoming={false} onPress={() => handleCardPress(trip.id)} t={t} language={language} />
               </React.Fragment>
             ))
           )}
@@ -313,7 +323,7 @@ const DriverChargesScreen = ({ navigation }: any) => {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>{t('title_upcoming_driver_charges', 'Upcoming Driver Charges')}</Text>
           <TouchableOpacity onPress={() => router.push('/trips')} activeOpacity={0.8} style={styles.viewAllBtn}>
-            <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} →</Text>
+            <Text style={styles.viewAllText}>{t('action_view_all', 'View All')} {language === 'ur' ? '←' : '→'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -330,7 +340,7 @@ const DriverChargesScreen = ({ navigation }: any) => {
             upcomingTrips.slice(0, 5).map((trip, idx) => (
               <React.Fragment key={trip.id}>
                 {idx > 0 && <View style={styles.rowDivider} />}
-                <ChargeRowItem item={trip} isUpcoming={true} onPress={() => handleCardPress(trip.id)} t={t} />
+                <ChargeRowItem item={trip} isUpcoming={true} onPress={() => handleCardPress(trip.id)} t={t} language={language} />
               </React.Fragment>
             ))
           )}
@@ -408,6 +418,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 4,
     marginBottom: 16,
+    writingDirection: 'ltr',
   },
   whiteSubContainer: {
     backgroundColor: '#FFFFFF',
@@ -448,12 +459,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#15803D',
     marginTop: 1,
+    writingDirection: 'ltr',
   },
   upcomingAmountWhiteBox: {
     fontSize: 15.5,
     fontWeight: '700',
     color: '#FA634E',
     marginTop: 1,
+    writingDirection: 'ltr',
   },
   whiteBoxDivider: {
     width: 1,
@@ -577,6 +590,7 @@ const styles = StyleSheet.create({
   rowChargeAmount: {
     fontSize: 16,
     fontWeight: '700',
+    writingDirection: 'ltr',
   },
   rowChargeEarned: {
     color: '#15803D',

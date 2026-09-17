@@ -9,15 +9,16 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import Svg, { Path, G, Circle } from 'react-native-svg';
 import {
   MapPin, Globe, Clock, ChevronRight, ChevronDown, Building2, Navigation,
-  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, Route, House, Camera, Settings,
+  Play, CheckCircle2, Wallet, MoreVertical, ArrowRight, ArrowLeft, Route, House, Camera, Settings, RotateCcw,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, statusLabel, stopAddress, stopLabel, type TripStatus, type MobileTrip } from '../../lib/trips';
+import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
-import { useLanguage } from '../../lib/language-context';
+import { useLanguage, getLocalizedStatus } from '../../lib/language-context';
+import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
 
 import { getTripChargeValue } from './DriverChargesScreen';
 
@@ -25,15 +26,15 @@ const WORKFLOW_URDU_LABEL: Record<string, string> = {
   ASSIGNED: 'ٹرپ شروع کریں',
   GOING_TO_PICKUP: 'پک اپ پر جائیں',
   ARRIVED_AT_PICKUP: 'لوڈنگ شروع کریں',
-  LOADING: 'ٹرپ شروع کریں',
+  LOADING: 'لوڈنگ مکمل کریں',
   IN_TRANSIT: 'ڈلیوری پر جائیں',
-  ARRIVED_AT_DELIVERY: 'ان لوڈ اور تصدیق کریں',
-  DELIVERY_VERIFICATION: 'ان لوڈ اور تصدیق کریں',
+  ARRIVED_AT_DELIVERY: 'ڈلیوری مکمل کریں',
+  DELIVERY_VERIFICATION: 'ڈلیوری مکمل کریں',
   FIRST_DELIVERY_COMPLETED: 'واپسی لوڈنگ شروع کریں',
-  RETURN_LOADING: 'واپسی ٹرپ شروع کریں',
-  IN_TRANSIT_RETURN: 'فائنل ڈلیوری پر جائیں',
-  ARRIVED_AT_FINAL_DELIVERY: 'فائنل ان لوڈ اور تصدیق',
-  FINAL_DELIVERY_VERIFICATION: 'فائنل ان لوڈ اور تصدیق',
+  RETURN_LOADING: 'واپسی لوڈنگ مکمل کریں',
+  IN_TRANSIT_RETURN: 'واپسی ڈلیوری پر جائیں',
+  ARRIVED_AT_FINAL_DELIVERY: 'واپسی ڈلیوری مکمل کریں',
+  FINAL_DELIVERY_VERIFICATION: 'واپسی ڈلیوری مکمل کریں',
   REVIEW_COMPLETE: 'ٹرپ مکمل کریں',
 };
 
@@ -131,11 +132,35 @@ const HomeScreen = () => {
   useEffect(() => {
     if (loading || !trip || restoredRef.current) return;
     restoredRef.current = true;
-    const ws = trip.driver_workflow_state || 'ASSIGNED';
-    if (ws === 'GOING_TO_PICKUP' || ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+    const ws = getEffectiveWorkflowState(trip);
+    if (trip.driver_workflow === 'EXTERNAL_APP') {
+      if (ws !== 'ASSIGNED') {
+        router.push('/trip/external-app');
+      }
+      return;
+    }
+    if (ws === 'GOING_TO_PICKUP') {
       router.push('/trip/navigate');
     } else if (ws === 'ARRIVED_AT_PICKUP' || ws === 'LOADING' || ws === 'RETURN_LOADING') {
       router.push('/trip/pickup');
+    } else if (
+      ws === 'GOING_TO_STOP' || ws === 'ARRIVED_AT_STOP' || ws === 'STOP_VERIFICATION' ||
+      ws === 'GOING_TO_RETURN_STOP' || ws === 'ARRIVED_AT_RETURN_STOP' || ws === 'RETURN_STOP_VERIFICATION'
+    ) {
+      const isReturn = ws.includes('RETURN');
+      router.push({ pathname: '/trip/stop', params: { legIndex: isReturn ? '1' : '0' } });
+    } else if (ws === 'IN_TRANSIT' || ws === 'IN_TRANSIT_RETURN') {
+      const isReturn = ws === 'IN_TRANSIT_RETURN';
+      const legIdx = isReturn ? 1 : 0;
+      const legStops = (trip.stops || []).filter((s) => (s.leg_index ?? 0) === legIdx);
+      const hasUncompletedIntermediate = legStops.some(
+        (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+      );
+      if (hasUncompletedIntermediate) {
+        router.push({ pathname: '/trip/stop', params: { legIndex: isReturn ? '1' : '0' } });
+      } else {
+        router.push('/trip/navigate');
+      }
     } else if (ws === 'ARRIVED_AT_DELIVERY' || ws === 'DELIVERY_VERIFICATION' || ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'REVIEW_COMPLETE') {
       router.push('/trip/delivery');
     }
@@ -160,7 +185,7 @@ const HomeScreen = () => {
     setScheduledLoading(true);
     try {
       const data = await tripService.getScheduled();
-      setScheduledTrips(trip ? data.filter((t) => t.id !== trip.id) : data);
+      setScheduledTrips(trip ? data.filter((t: MobileTrip) => t.id !== trip.id) : data);
     } catch {
       // silently fail
     } finally {
@@ -168,14 +193,20 @@ const HomeScreen = () => {
     }
   }, [trip]);
 
+  // Load secondary data (scheduled trips & earnings) strictly after primary trip resolves, avoiding connection storms
+  useEffect(() => {
+    if (!loading) {
+      Promise.allSettled([fetchScheduled(), fetchEarnings()]);
+    }
+  }, [loading, fetchScheduled, fetchEarnings]);
+
   // Refresh the trip whenever Home regains focus
-  useFocusEffect(useCallback(() => { refetch(); fetchScheduled(); fetchEarnings(); }, [refetch, fetchScheduled, fetchEarnings]));
+  const displayTrip = trip || (scheduledTrips.length > 0 ? scheduledTrips[0] : null);
+  const remainingScheduled = scheduledTrips.filter((st) => st.id !== displayTrip?.id);
 
-  const firstName = (profile?.name || 'Driver').split(' ')[0];
-
-  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
-  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
-  const intermediateStops = trip?.stops?.filter((s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff') ?? [];
+  const pickupStop = displayTrip?.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? displayTrip?.stops?.[0];
+  const dropoffStop = displayTrip?.stops?.find((s) => s.stop_sequence === (displayTrip?.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? displayTrip?.stops?.[displayTrip?.stops?.length - 1];
+  const intermediateStops = (displayTrip?.stops ?? []).filter((s) => s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
 
   const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
@@ -186,9 +217,37 @@ const HomeScreen = () => {
   }
 
   const getWorkflowStateInfo = (t: MobileTrip): WorkflowStateInfo => {
-    const ws = t.driver_workflow_state || 'ASSIGNED';
+    if (t.driver_workflow === 'EXTERNAL_APP') {
+      const ws = getEffectiveWorkflowState(t);
+      const isAssigned = ws === 'ASSIGNED';
+      return {
+        badgeLabel: isAssigned ? 'Assigned (External)' : 'External App',
+        btnLabel: isAssigned ? 'Start Trip' : 'Upload App Screenshot',
+        onPress: async () => {
+          if (isAssigned) {
+            setAdvancing(true);
+            try {
+              const updated = await tripService.updateStatus(t.id, 'Scheduled', 'GOING_TO_PICKUP');
+              setTrip(updated);
+            } catch (err) {
+              console.warn('Could not update trip status on start:', err);
+            } finally {
+              setAdvancing(false);
+            }
+          }
+          router.push('/trip/external-app');
+        },
+      };
+    }
+    const ws = getEffectiveWorkflowState(t);
+    const outboundStops = getOutboundIntermediateStops(t);
+    const returnStops = getReturnIntermediateStops(t);
+    const hasStops = outboundStops.length > 0;
+    const hasReturnStops = returnStops.length > 0;
+
     switch (ws) {
       case 'ASSIGNED':
+      case 'GOING_TO_PICKUP':
         return {
           badgeLabel: 'Assigned',
           btnLabel: 'Start Trip',
@@ -203,80 +262,127 @@ const HomeScreen = () => {
             } finally {
               setAdvancing(false);
             }
-          }
-        };
-      case 'GOING_TO_PICKUP':
-        return {
-          badgeLabel: 'Going to Pickup',
-          btnLabel: 'Go to Pickup',
-          onPress: () => router.push('/trip/navigate')
+          },
         };
       case 'ARRIVED_AT_PICKUP':
-        return {
-          badgeLabel: 'Arrived at Pickup',
-          btnLabel: 'Start Loading',
-          onPress: () => router.push('/trip/pickup')
-        };
       case 'LOADING':
         return {
-          badgeLabel: 'Loading In Progress',
-          btnLabel: 'Start Trip',
-          onPress: () => router.push('/trip/pickup')
+          badgeLabel: 'At Pickup',
+          btnLabel: 'Start Loading',
+          onPress: () => router.push('/trip/pickup'),
         };
-      case 'IN_TRANSIT':
+      case 'LOADING_COMPLETED':
+        return {
+          badgeLabel: 'Loading Completed',
+          btnLabel: hasStops ? 'Go to Intermediate Stop' : 'Go to Delivery',
+          onPress: () => {
+            if (hasStops) {
+              router.push('/trip/stop');
+            } else {
+              router.push('/trip/navigate');
+            }
+          },
+        };
+      case 'GOING_TO_STOP':
+      case 'ARRIVED_AT_STOP':
+      case 'STOP_VERIFICATION':
+        return {
+          badgeLabel: 'At Intermediate Stop',
+          btnLabel: 'Verify Stop & Upload Photo',
+          onPress: () => router.push('/trip/stop'),
+        };
+      case 'IN_TRANSIT': {
+        const legStops = (t.stops || []).filter((s) => (s.leg_index ?? 0) === 0);
+        const uncompletedStop = legStops.find(
+          (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+        );
+        if (uncompletedStop || (hasStops && (t.driver_workflow_state || '').includes('STOP'))) {
+          return {
+            badgeLabel: 'At Intermediate Stop',
+            btnLabel: 'Verify Stop & Upload Photo',
+            onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '0' } }),
+          };
+        }
         return {
           badgeLabel: 'In Transit',
           btnLabel: 'Go to Delivery',
-          onPress: () => router.push('/trip/navigate')
+          onPress: () => router.push('/trip/navigate'),
         };
+      }
       case 'ARRIVED_AT_DELIVERY':
       case 'DELIVERY_VERIFICATION':
         return {
-          badgeLabel: 'Arrived at Delivery',
+          badgeLabel: 'At Delivery',
           btnLabel: 'Unload & Verify',
-          onPress: () => router.push('/trip/delivery')
+          onPress: () => router.push('/trip/delivery'),
         };
+      case 'DELIVERY_COMPLETED':
       case 'FIRST_DELIVERY_COMPLETED':
-        return {
-          badgeLabel: '1 / 2 Completed',
-          btnLabel: 'Start Return Loading',
-          onPress: async () => {
-            setAdvancing(true);
-            try {
-              const updated = await tripService.updateStatus(t.id, 'Loading', 'RETURN_LOADING');
-              setTrip(updated);
-              router.push('/trip/pickup');
-            } catch (err) {
-              Alert.alert('Error', getApiErrorMessage(err));
-            } finally {
-              setAdvancing(false);
-            }
-          }
-        };
       case 'RETURN_LOADING':
+        if (!isRoundTrip(t)) {
+          return {
+            badgeLabel: 'Delivery Completed',
+            btnLabel: 'View Completed Summary',
+            onPress: () => router.push('/trip/completed'),
+          };
+        }
         return {
-          badgeLabel: 'Return Loading',
-          btnLabel: 'Start Return Trip',
-          onPress: () => router.push('/trip/pickup')
+          badgeLabel: 'Delivery Completed',
+          btnLabel: 'Start Return Loading',
+          onPress: () => router.push('/trip/pickup'),
         };
-      case 'IN_TRANSIT_RETURN':
+      case 'RETURN_LOADING_COMPLETED':
+        return {
+          badgeLabel: 'Return Loading Completed',
+          btnLabel: hasReturnStops ? 'Go to Return Intermediate Stop' : 'Go to Return Delivery',
+          onPress: () => {
+            if (hasReturnStops) {
+              router.push({ pathname: '/trip/stop', params: { legIndex: '1' } });
+            } else {
+              router.push('/trip/navigate');
+            }
+          },
+        };
+      case 'GOING_TO_RETURN_STOP':
+      case 'ARRIVED_AT_RETURN_STOP':
+      case 'RETURN_STOP_VERIFICATION':
+        return {
+          badgeLabel: 'At Return Stop',
+          btnLabel: 'Verify Return Stop & Upload Photo',
+          onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '1' } }),
+        };
+      case 'IN_TRANSIT_RETURN': {
+        const legStops = (t.stops || []).filter((s) => (s.leg_index ?? 0) === 1);
+        const uncompletedStop = legStops.find(
+          (s) => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff' && !s.actual_departure
+        );
+        if (uncompletedStop || (hasReturnStops && (t.driver_workflow_state || '').includes('STOP'))) {
+          return {
+            badgeLabel: 'At Return Stop',
+            btnLabel: 'Verify Return Stop & Upload Photo',
+            onPress: () => router.push({ pathname: '/trip/stop', params: { legIndex: '1' } }),
+          };
+        }
         return {
           badgeLabel: 'In Transit (Return)',
-          btnLabel: 'Go to Final Delivery',
-          onPress: () => router.push('/trip/navigate')
+          btnLabel: 'Go to Return Delivery',
+          onPress: () => router.push('/trip/navigate'),
         };
+      }
       case 'ARRIVED_AT_FINAL_DELIVERY':
       case 'FINAL_DELIVERY_VERIFICATION':
         return {
-          badgeLabel: 'Arrived at Final Delivery',
-          btnLabel: 'Final Unload & Verify',
-          onPress: () => router.push('/trip/delivery')
+          badgeLabel: isRoundTrip(t) ? 'At Return Delivery' : 'At Delivery',
+          btnLabel: isRoundTrip(t) ? 'Final Unload & Verify' : 'Unload & Verify',
+          onPress: () => router.push('/trip/delivery'),
         };
+      case 'RETURN_DELIVERY_COMPLETED':
       case 'REVIEW_COMPLETE':
+      case 'COMPLETED':
         return {
-          badgeLabel: 'Review & Complete',
-          btnLabel: 'Complete Trip',
-          onPress: () => router.push('/trip/delivery')
+          badgeLabel: isRoundTrip(t) ? 'Return Delivery Completed' : 'Trip Completed',
+          btnLabel: 'View Completed Summary',
+          onPress: () => router.push('/trip/completed'),
         };
       default:
         return {
@@ -304,10 +410,9 @@ const HomeScreen = () => {
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={() => {
-              refetch();
-              fetchScheduled();
-              fetchEarnings();
+            onRefresh={async () => {
+              await refetch();
+              await Promise.allSettled([fetchScheduled(), fetchEarnings()]);
             }}
             tintColor="#FFFFFF"
             progressBackgroundColor="#FA634E"
@@ -343,16 +448,16 @@ const HomeScreen = () => {
 
         {/* ── Current Trip Card Section (Overlapping Header naturally) ── */}
         <View style={styles.cardWrapper}>
-          {loading && !trip ? (
+          {loading && !displayTrip ? (
             <View style={styles.centerBox}>
               <ActivityIndicator color="#FA634E" />
             </View>
-          ) : error ? (
+          ) : error && !displayTrip ? (
             <View style={styles.centerBox}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
+              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>{t('action_tap_to_retry', 'Tap to retry')}</Text></TouchableOpacity>
             </View>
-          ) : !trip ? (
+          ) : !displayTrip ? (
             <View style={styles.emptyCard}>
               <BilingualText
                 ur="فی الحال کوئی فعال ٹرپ نہیں ہے"
@@ -376,18 +481,65 @@ const HomeScreen = () => {
               <View style={styles.cardHeaderRow}>
                 <View style={styles.cardTitleCol}>
                   <BilingualText
-                    ur="موجودہ ٹرپ"
-                    en="Current Trip"
+                    ur={displayTrip.status === 'Scheduled' || displayTrip.status === 'Draft' ? 'اگلا شیڈول شدہ ٹرپ' : 'موجودہ ٹرپ'}
+                    en={displayTrip.status === 'Scheduled' || displayTrip.status === 'Draft' ? 'Next Scheduled Trip' : 'Current Trip'}
                     primaryStyle={styles.cardTitleUrduPrimary}
                     subStyle={styles.cardTitleSubEn}
                   />
                 </View>
 
                 <View style={styles.headerRightGroup}>
+                  {(() => {
+                    const stops = displayTrip.stops || [];
+                    const stopsCount = stops.length;
+                    if (stopsCount > 2) {
+                      const isRound = isRoundTrip(displayTrip);
+                      const returnStops = stops.filter((s) => (s.leg_index ?? 0) === 1);
+                      const outboundStops = stops.filter((s) => (s.leg_index ?? 0) === 0);
+
+                      let badgeStr = '';
+                      const activeStop = stops.find((s) => !s.actual_departure);
+
+                      if (isRound && returnStops.length > 0) {
+                        if (!activeStop || (activeStop.leg_index ?? 0) === 0) {
+                          const activeOutIdx = outboundStops.findIndex((s) => !s.actual_departure);
+                          const num = activeOutIdx >= 0 ? activeOutIdx + 1 : outboundStops.length;
+                          badgeStr = language === 'ur'
+                            ? `روانگی: ${num}/${outboundStops.length}`
+                            : language === 'ur-en'
+                            ? `روانگی / Outbound: ${num}/${outboundStops.length}`
+                            : `Outbound: ${num}/${outboundStops.length}`;
+                        } else {
+                          const activeRetIdx = returnStops.findIndex((s) => !s.actual_departure);
+                          const num = activeRetIdx >= 0 ? activeRetIdx + 1 : returnStops.length;
+                          badgeStr = language === 'ur'
+                            ? `واپسی: ${num}/${returnStops.length}`
+                            : language === 'ur-en'
+                            ? `واپسی / Return: ${num}/${returnStops.length}`
+                            : `Return: ${num}/${returnStops.length}`;
+                        }
+                      } else {
+                        const activeIdx = stops.findIndex((s) => !s.actual_departure);
+                        const currentStopNum = activeIdx >= 0 ? activeIdx + 1 : stopsCount;
+                        badgeStr = isRound
+                          ? (language === 'ur' ? `لیگ ${currentStopNum}/${stopsCount}` : `Leg ${currentStopNum}/${stopsCount}`)
+                          : (language === 'ur' ? `اسٹاپ ${currentStopNum}/${stopsCount}` : `Stop ${currentStopNum}/${stopsCount}`);
+                      }
+
+                      return (
+                        <View style={[styles.inProgressBadge, { backgroundColor: '#FEF3C7' }]}>
+                          <Text style={[styles.inProgressText, { color: '#B45309', fontWeight: '800' }]} numberOfLines={1}>
+                            {badgeStr}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
                   <View style={styles.inProgressBadge}>
                     <View style={styles.coralDot} />
                     <Text style={styles.inProgressText} numberOfLines={1} ellipsizeMode="tail">
-                      {trip.driver_workflow_state ? trip.driver_workflow_state.replace(/_/g, ' ') : 'In Progress'}
+                      {getLocalizedStatus(displayTrip.driver_workflow_state || displayTrip.status, language)}
                     </Text>
                   </View>
                   <TouchableOpacity style={styles.moreOptionsBtn}>
@@ -398,116 +550,166 @@ const HomeScreen = () => {
 
               {/* Trip ID Row */}
               <View style={styles.tripIdRow}>
-                <Text style={styles.tripIdLabel}>Trip ID</Text>
-                <Text style={styles.tripIdValue}>TRP-{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                <Text style={styles.tripIdLabel}>{t('label_trip_id', 'Trip ID')}</Text>
+                <Text style={styles.tripIdValue}>
+                  {displayTrip.ref_id
+                    ? (displayTrip.ref_id.startsWith('TRP-') ? displayTrip.ref_id : `TRP-${displayTrip.ref_id}`)
+                    : `TRP-${displayTrip.id.slice(0, 8)}`}
+                </Text>
               </View>
 
               <View style={styles.cardDivider} />
 
-              {/* Route Vertical Timeline */}
-              <View style={styles.routeContainer}>
-                {/* Left Timeline Line & Nodes */}
-                <View style={styles.timelineCol}>
-                  <View style={styles.pickupNodeOuter}>
-                    <View style={styles.pickupNodeInner} />
-                  </View>
-                  <View style={styles.dashedLine} />
-                  {intermediateStops.length > 0 && (
-                    <>
-                      <View style={styles.stopNodeDot} />
-                      <View style={styles.dashedLine} />
-                    </>
-                  )}
-                  <View style={styles.stopNodeDot} />
-                </View>
+              {/* Route Vertical Timeline — unified row layout */}
+              {(() => {
+                const timelineStops = parseTripRouteNodes(displayTrip);
+                const returnLegStartIdx = timelineStops.findIndex((s) => s.legIndex === 1);
+                const isReturnLeg = (idx: number) => returnLegStartIdx !== -1 && idx >= returnLegStartIdx;
 
-                {/* Right Route Items */}
-                <View style={styles.routeItemsCol}>
-                  {/* Pickup Item */}
-                  <View style={styles.routeRowItem}>
-                    <View style={styles.iconCircleBadge}>
-                      <House size={20} color="#FA634E" strokeWidth={2} />
-                    </View>
-                    <View style={styles.routeTextCol}>
-                      <BilingualText
-                        ur="پک اپ"
-                        en="Pickup"
-                        primaryStyle={styles.stageUrduPrimary}
-                        subStyle={styles.stageSubEn}
-                      />
-                      <Text style={styles.routePlaceName} numberOfLines={1}>
-                        {stopLabel(pickupStop) ?? 'Mercon Logistics Hub'}
-                      </Text>
-                      <Text style={styles.routeAddressText} numberOfLines={1}>
-                        {stopAddress(pickupStop) ?? 'Bhiwandi, Thane, Maharashtra'}
-                      </Text>
-                    </View>
-                    <TouchableOpacity style={styles.navCircleBtn} onPress={() => router.push('/trip/navigate')}>
-                      <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                    </TouchableOpacity>
-                  </View>
+                const handleStopPress = (st: TimelineStop) => {
+                  if (displayTrip?.driver_workflow === 'EXTERNAL_APP') {
+                    router.push('/trip/external-app');
+                    return;
+                  }
+                  if (st.isIntermediate) {
+                    router.push({ pathname: '/trip/stop', params: { legIndex: String(st.legIndex ?? 0) } } as any);
+                  } else {
+                    router.push('/trip/navigate');
+                  }
+                };
 
-                  {/* Intermediate Stops Item (Only shown if trip has intermediate stops) */}
-                  {intermediateStops.length > 0 && (
-                    <View style={styles.routeRowItem}>
-                      <View style={styles.iconCircleBadge}>
-                        <Route size={20} color="#FA634E" strokeWidth={2} />
+                if (timelineStops.length === 0) {
+                  const fallbackOrigin = (displayTrip as any).quotation?.name?.split(/→|->|–|-/)[0]?.trim() || displayTrip.origin;
+                  const fallbackDest = (displayTrip as any).quotation?.name?.split(/→|->|–|-/)?.[1]?.replace(/\[.*?\]/g, '')?.trim() || displayTrip.destination;
+
+                  return (
+                    <View style={styles.routeContainer}>
+                      <View style={styles.fallbackRouteBanner}>
+                        <Route size={20} color="#FA634E" strokeWidth={2.2} />
+                        <View style={styles.fallbackRouteTextCol}>
+                          <Text style={styles.fallbackRouteTitle}>
+                            {fallbackOrigin && fallbackDest ? `${fallbackOrigin} → ${fallbackDest}` : 'Route Stops Pending Assignment'}
+                          </Text>
+                          <Text style={styles.fallbackRouteSub}>
+                            {fallbackOrigin && fallbackDest ? 'Detailed GPS checkpoints will sync upon dispatch' : 'Contact dispatch for assigned pickup and delivery stops'}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.routeTextCol}>
-                        <BilingualText
-                          ur="اسٹاپس"
-                          en="Stops"
-                          primaryStyle={styles.stageUrduPrimary}
-                          subStyle={styles.stageSubEn}
-                        />
-                        <Text style={styles.routePlaceName}>
-                          {intermediateStops.length} {intermediateStops.length === 1 ? 'Intermediate Stop' : 'Intermediate Stops'}
-                        </Text>
-                        <Text style={styles.routeAddressText} numberOfLines={1}>
-                          {intermediateStops.map((s) => stopLabel(s)).filter(Boolean).join(', ')}
-                        </Text>
-                      </View>
-                      <TouchableOpacity style={styles.navCircleBtn}>
-                        <ChevronDown size={18} color="#3E3C3D" strokeWidth={2.2} />
-                      </TouchableOpacity>
                     </View>
-                  )}
+                  );
+                }
 
-                  {/* Delivery Item */}
-                  <View style={styles.routeRowItem}>
-                    <View style={styles.iconCircleBadge}>
-                      <MapPin size={20} color="#FA634E" strokeWidth={2} />
-                    </View>
-                    <View style={styles.routeTextCol}>
-                      <BilingualText
-                        ur="ڈلیوری"
-                        en="Delivery"
-                        primaryStyle={styles.stageUrduPrimary}
-                        subStyle={styles.stageSubEn}
-                      />
-                      <Text style={styles.routePlaceName} numberOfLines={1}>
-                        {stopLabel(dropoffStop) ?? 'Pune Warehouse'}
-                      </Text>
-                      <Text style={styles.routeAddressText} numberOfLines={1}>
-                        {stopAddress(dropoffStop) ?? 'Chakan, Pune, Maharashtra'}
-                      </Text>
-                    </View>
-                    <TouchableOpacity style={styles.navCircleBtn} onPress={() => router.push('/trip/navigate')}>
-                      <Navigation size={16} color="#3E3C3D" strokeWidth={2.2} />
-                    </TouchableOpacity>
+                return (
+                  <View style={styles.routeContainer}>
+                    {timelineStops.map((st, idx) => {
+                      const isFirst = idx === 0;
+                      const isLast = idx === timelineStops.length - 1;
+                      const isReturnStart = returnLegStartIdx !== -1 && idx === returnLegStartIdx;
+                      const returnLeg = isReturnLeg(idx);
+                      const dotColor = returnLeg ? '#3E3C3D' : '#FA634E';
+                      const lineColor = returnLeg ? '#3E3C3D' : '#D8D8DC';
+                      const iconColor = returnLeg ? '#3E3C3D' : '#FA634E';
+
+                      return (
+                        <React.Fragment key={`row-${st.id}-${idx}`}>
+                          {/* Return Leg Pill Divider */}
+                          {isReturnStart && (
+                            <View style={styles.returnLegDividerRow}>
+                              <View style={styles.timelineDotCol}>
+                                <View style={styles.returnLegConnector} />
+                              </View>
+                              <View style={styles.returnLegDivider}>
+                                <View style={styles.returnLegDividerLine} />
+                                <View style={styles.returnLegPill}>
+                                  <RotateCcw size={11} color="#FA634E" strokeWidth={2.5} />
+                                  <Text style={styles.returnLegPillText}>{language === 'ur' ? 'واپسی کا سفر' : 'Return Leg'}</Text>
+                                </View>
+                                <View style={styles.returnLegDividerLine} />
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Stop Row */}
+                          <View style={styles.timelineRow}>
+                            {/* Left: dot + connector line */}
+                            <View style={styles.timelineDotCol}>
+                              {isFirst ? (
+                                <View style={[styles.pickupNodeOuter, { borderColor: dotColor }]}>
+                                  <View style={[styles.pickupNodeInner, { backgroundColor: dotColor }]} />
+                                </View>
+                              ) : (
+                                <View style={[
+                                  styles.stopNodeDot,
+                                  { borderColor: dotColor },
+                                  returnLeg && { backgroundColor: dotColor },
+                                ]} />
+                              )}
+                              {!isLast && (
+                                <View style={[styles.dashedLine, { borderColor: lineColor, opacity: returnLeg ? 0.4 : 1 }]} />
+                              )}
+                            </View>
+
+                            {/* Right: icon + text + nav button — all in one flat row */}
+                            <View style={styles.routeRowItem}>
+                              <View style={[styles.iconCircleBadge, returnLeg && { backgroundColor: '#F0F0F0' }]}>
+                                {st.iconType === 'House' ? (
+                                  <House size={20} color={iconColor} strokeWidth={2} />
+                                ) : st.iconType === 'MapPin' ? (
+                                  <MapPin size={20} color={iconColor} strokeWidth={2} />
+                                ) : (
+                                  /* Stop node — circle with "STOP" text */
+                                  <View style={[styles.stopLetterCircle, { borderColor: iconColor }]}>
+                                    <Text style={[styles.stopLetterText, { color: iconColor }]}>{t('label_stop', 'STOP')}</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <View style={styles.routeTextCol}>
+                                <BilingualText
+                                  ur={st.typeUrdu}
+                                  en={st.typeEn}
+                                  primaryStyle={styles.stageUrduPrimary}
+                                  subStyle={styles.stageSubEn}
+                                />
+                                <Text style={styles.routePlaceName} numberOfLines={1}>
+                                  {st.name}
+                                </Text>
+                                {st.address ? (
+                                  <Text style={styles.routeAddressText} numberOfLines={1}>
+                                    {st.address}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              <TouchableOpacity
+                                style={styles.navCircleBtn}
+                                activeOpacity={0.7}
+                                onPress={() => handleStopPress(st)}
+                              >
+                                <Navigation size={15} color="#3E3C3D" strokeWidth={2} />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </React.Fragment>
+                      );
+                    })}
                   </View>
-                </View>
-              </View>
+                );
+              })()}
+
+
+
 
               {/* Primary Action CTA & Secondary Delay Button Below */}
               {(() => {
-                const info = getWorkflowStateInfo(trip);
+                const info = getWorkflowStateInfo(displayTrip);
                 return (
                   <View style={styles.actionsContainer}>
                     <TouchableOpacity
                       style={[styles.primaryCtaBtn, advancing && { opacity: 0.7 }]}
                       activeOpacity={0.88}
-                      onPress={info.onPress}
+                      onPress={() => {
+                        setTrip(displayTrip);
+                        info.onPress();
+                      }}
                       disabled={advancing}
                     >
                       {advancing ? (
@@ -515,13 +717,17 @@ const HomeScreen = () => {
                       ) : (
                         <View style={styles.ctaContentRow}>
                           <BilingualText
-                            ur={WORKFLOW_URDU_LABEL[trip.driver_workflow_state || 'ASSIGNED'] || 'ٹرپ شروع کریں'}
-                            en={info.btnLabel || 'Go to Pickup'}
+                            ur={WORKFLOW_URDU_LABEL[displayTrip.driver_workflow_state || 'ASSIGNED'] || 'ٹرپ شروع کریں'}
+                            en={info.btnLabel || 'Start Trip'}
                             align="center"
                             primaryStyle={styles.ctaUrduPrimary}
                             subStyle={styles.ctaSubEn}
                           />
-                          <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          {language === 'ur' ? (
+                            <ArrowLeft size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          ) : (
+                            <ArrowRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+                          )}
                         </View>
                       )}
                     </TouchableOpacity>
@@ -547,11 +753,87 @@ const HomeScreen = () => {
             </View>
           )}
         </View>
+
+        {/* ── Upcoming Scheduled Trips List Section ── */}
+        {remainingScheduled.length > 0 && (
+          <View style={styles.scheduledSection}>
+            <View style={styles.scheduledSectionHeader}>
+              <BilingualText
+                ur="دیگر شیڈول شدہ ٹرپس"
+                en={`Upcoming Scheduled Trips (${remainingScheduled.length})`}
+                primaryStyle={styles.scheduledSectionUrdu}
+                subStyle={styles.scheduledSectionEn}
+              />
+              <TouchableOpacity onPress={() => router.push('/(tabs)/trips' as any)}>
+                <Text style={styles.viewAllText}>{t('action_view_all', 'View All')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {remainingScheduled.map((st) => {
+              const p = st.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? st.stops?.[0];
+              const d = st.stops?.find((s) => s.stop_sequence === (st.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? st.stops?.[st.stops?.length - 1];
+              const quoNameParts = (st as any).quotation?.name ? (st as any).quotation.name.split(/\s*(?:→|->|–|-)\s*/).map((s: string) => s.trim()).filter(Boolean) : [];
+              const originLabel = stopLabel(p) || (st.stops?.length ? null : quoNameParts[0]) || st.origin || 'Pickup';
+              const destLabel = stopLabel(d) || (st.stops?.length ? null : quoNameParts[1]) || st.destination || 'Delivery';
+              const tripRef = st.ref_id
+                ? (st.ref_id.startsWith('TRP-') ? st.ref_id : `TRP-${st.ref_id}`)
+                : `TRP-${st.id.slice(0, 8)}`;
+
+              return (
+                <View key={st.id} style={styles.scheduledCard}>
+                  <View style={styles.scheduledCardHeader}>
+                    <View style={styles.customerLogoBadge}>
+                      <Text style={styles.customerLogoLetter}>{(st.customer?.name || 'M')[0]}</Text>
+                    </View>
+                    <View style={styles.customerMetaCol}>
+                      <Text style={styles.scheduledCustomerName} numberOfLines={1}>
+                        {st.customer?.name || 'MERCON Customer'}
+                      </Text>
+                      <Text style={styles.scheduledTripIdText}>{t('label_trip_id', 'Trip ID')} · {tripRef}</Text>
+                    </View>
+                    <View style={styles.scheduledPillBadge}>
+                      <Text style={styles.scheduledPillText}>{t('status_scheduled', 'Scheduled')}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.scheduledRouteRow}>
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{originLabel}</Text>
+                    <ArrowRight size={14} color="#FA634E" strokeWidth={2.2} />
+                    <Text style={styles.scheduledCityText} numberOfLines={1}>{destLabel}</Text>
+                  </View>
+
+                  <View style={styles.scheduledCardFooter}>
+                    <View style={styles.footerTimeRow}>
+                      <Clock size={13} color="#64748B" />
+                      <Text style={styles.footerTimeText}>{shortWhen(st.planned_start, 'Scheduled')}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.startTripSmallBtn}
+                      onPress={async () => {
+                        setTrip(st);
+                        if (st.driver_workflow === 'EXTERNAL_APP') {
+                          try {
+                            await tripService.updateStatus(st.id, 'Scheduled', 'GOING_TO_PICKUP');
+                          } catch {}
+                          router.push('/trip/external-app');
+                        } else {
+                          router.push('/trip/navigate');
+                        }
+                      }}
+                    >
+                      <Text style={styles.startTripSmallBtnText}>{t('action_start_trip', 'Start Trip')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       <DelayReportModal
         visible={delayModalVisible}
-        tripId={trip?.id ?? null}
+        tripId={displayTrip?.id ?? null}
         onClose={() => setDelayModalVisible(false)}
         onSuccess={() => refetch()}
       />
@@ -816,12 +1098,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF0ED',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 14,
-    gap: 5,
+    gap: 4,
     flexShrink: 1,
-    maxWidth: 160,
   },
   coralDot: {
     width: 6,
@@ -865,15 +1146,59 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
 
-  /* Route Timeline */
+  /* Route Timeline — unified per-row layout */
   routeContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginVertical: 4,
   },
-  timelineCol: {
-    width: 24,
+  fallbackRouteBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F4',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    borderRadius: 14,
+    padding: 12,
+    marginVertical: 6,
+  },
+  fallbackRouteTextCol: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  fallbackRouteTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  fallbackRouteSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6E6E80',
+    marginTop: 2,
+  },
+  /* A single timeline row: dot column on left, content on right */
+  timelineRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  /* The Return Leg divider row (has same dot-col on left for line continuity) */
+  returnLegDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  /* Fixed-width column that holds the dot + the connector line below it */
+  timelineDotCol: {
+    width: 28,
     alignItems: 'center',
     paddingTop: 14,
+  },
+  /* Short dashed line that runs through the divider row to bridge the two legs */
+  returnLegConnector: {
+    width: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: '#D8D8DC',
+    borderStyle: 'dashed',
   },
   pickupNodeOuter: {
     width: 16,
@@ -893,7 +1218,7 @@ const styles = StyleSheet.create({
   },
   dashedLine: {
     width: 1,
-    height: 42,
+    height: 46,
     borderWidth: 1,
     borderColor: '#D8D8DC',
     borderStyle: 'dashed',
@@ -913,9 +1238,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   routeRowItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    paddingVertical: 6,
   },
   iconCircleBadge: {
     width: 44,
@@ -951,6 +1278,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F7',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* Stop label — "STOP" text inside icon badge, no border */
+  stopLetterCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stopLetterText: {
+    fontSize: 10,
+    fontWeight: '900',
+    lineHeight: 12,
+    letterSpacing: 0.6,
+  },
+
+  /* Return Leg Divider */
+  returnLegDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 6,
+    paddingVertical: 2,
+  },
+  returnLegDividerLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#EAEAF0',
+    borderRadius: 1,
+  },
+  returnLegPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FFF0ED',
+    borderWidth: 1.5,
+    borderColor: '#FFD0C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  returnLegPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FA634E',
+    letterSpacing: 0.2,
   },
 
   /* Actions */
@@ -994,6 +1365,134 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: '#FA634E',
+  },
+
+  /* Scheduled Trips Section */
+  scheduledSection: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  scheduledSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  scheduledSectionUrdu: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  scheduledSectionEn: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#3E3C3D',
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FA634E',
+  },
+  scheduledCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  scheduledCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  customerLogoBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1D4ED8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerLogoLetter: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  customerMetaCol: {
+    flex: 1,
+  },
+  scheduledCustomerName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  scheduledTripIdText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  scheduledPillBadge: {
+    backgroundColor: '#FFF0ED',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD0C7',
+  },
+  scheduledPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FA634E',
+  },
+  scheduledRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  scheduledCityText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3E3C3D',
+    flex: 1,
+  },
+  scheduledCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  footerTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  footerTimeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  startTripSmallBtn: {
+    backgroundColor: '#FA634E',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+  },
+  startTripSmallBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
 });
 

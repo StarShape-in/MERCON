@@ -10,20 +10,7 @@ export const toSlug = (name: string) =>
   String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 export const generateLocationCode = (name: string): string => {
-  const cleaned = String(name || '').trim().toUpperCase()
-    .replace(/\(.*?\)/g, '')
-    .replace(/[^A-Z0-9\s]/g, '')
-    .trim();
-
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  if (words.length >= 3) {
-    return (words[0][0] + words[1][0] + words[2][0]);
-  } else if (words.length === 2) {
-    return (words[0].substring(0, 2) + words[1][0]);
-  } else if (words.length === 1 && words[0].length >= 3) {
-    return words[0].substring(0, 3);
-  }
-  return (cleaned + 'LOC').substring(0, 3);
+  return String(name || '').trim().toUpperCase();
 };
 
 export const resolvePrecision = (
@@ -53,33 +40,27 @@ export const resolveLocation = async (
     lat?: number | null;
     lng?: number | null;
     coordinate_precision?: CoordinatePrecision | null;
+    skipCanonicalUpdate?: boolean;
   },
   userId?: string | null
 ) => {
   const validUserId = getValidUuid(userId);
   const idToUse = getValidUuid(input.id);
-  const customerIdToUse = getValidUuid(input.customerId);
+  const customerIdToUse = getValidUuid(input.customerId) || undefined;
 
   if (idToUse) {
     const existing = await tx.location.findFirst({ where: { id: idToUse } });
-    if (!existing) throw new Error('LOCATION_NOT_FOUND');
-    if (customerIdToUse && existing.customerId !== customerIdToUse) {
-      throw new Error('CROSS_CUSTOMER_LOCATION_MISMATCH: Location belongs to a different customer.');
-    }
-    return existing;
+    if (existing) return existing;
+    // If idToUse was passed but not found, fallback to name resolution
   }
 
   const name = String(input.name || '').trim();
   if (!name) return null;
 
-  if (!customerIdToUse) {
-    throw new Error('Customer ID is required for customer-scoped location lookup');
-  }
-
   const slug = toSlug(name);
   const inputCode = input.code ? String(input.code).trim().toUpperCase() : null;
 
-  if (inputCode) {
+  if (inputCode && customerIdToUse) {
     const codeClash = await tx.location.findFirst({
       where: {
         customerId: customerIdToUse,
@@ -89,35 +70,154 @@ export const resolveLocation = async (
       },
     });
 
-    if (codeClash && codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
-      throw new Error(`LOCATION_CODE_DUPLICATE: Code "${inputCode}" is already in use for location "${codeClash.name}". Please choose a different code.`);
+    if (codeClash && (!idToUse || codeClash.id !== idToUse)) {
+      if (codeClash.name.trim().toLowerCase() !== name.toLowerCase()) {
+        throw new Error(`LOCATION_CODE_DUPLICATE: Location code "${inputCode}" is already in use for this customer.`);
+      }
     }
   }
 
-  // 1. Search for existing location strictly by exact Code, Slug, or exact Name for this customer
+  // 1. Search for existing location by exact Code, Slug, or exact Name (customer-scoped when customerIdToUse is provided)
   let found = await tx.location.findFirst({
     where: {
-      customerId: customerIdToUse,
+      ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
       OR: [
         { slug },
         { name: { equals: name, mode: 'insensitive' as const } },
+        { code: { equals: name, mode: 'insensitive' as const } },
         ...(inputCode ? [{ code: { equals: inputCode, mode: 'insensitive' as const } }] : []),
       ],
+      deletedAt: null,
     },
   });
+
+  // 2. Advanced Fuzzy / Token / City Alias Search if direct exact match failed
+  if (!found) {
+    const candidates = await tx.location.findMany({
+      where: {
+        deletedAt: null,
+        ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
+      },
+      include: { customer: { select: { id: true, name: true } } },
+    });
+
+    let customerName = '';
+    if (customerIdToUse) {
+      const cust = await tx.customer.findFirst({ where: { id: customerIdToUse }, select: { name: true } });
+      if (cust) customerName = cust.name;
+    }
+
+    const rawUpper = name.toUpperCase().trim();
+    const stripWords = [
+      customerName.toUpperCase(),
+      'IMILE', 'JDL', 'SHIPA', 'AKS', 'GFS', 'RTL', 'HORIZON', 'ARKAN', 'BARWAN',
+      'STATION', 'DC', 'HUB', 'AIRPORT', 'LOGISTICS', 'SAUDI', 'DELIVERY', 'LIMITED', 'LLC', 'COMPANY'
+    ].filter(Boolean);
+
+    let stripped = rawUpper;
+    for (const w of stripWords) {
+      if (w.length >= 2) {
+        stripped = stripped.replace(new RegExp(`\\b${w.replace(/[-[\]{}()*+?.:\\^$|#\s]/g, '\\$&')}\\b`, 'gi'), '').trim();
+      }
+    }
+    stripped = stripped.replace(/\s+/g, ' ').trim();
+
+    const tokens = rawUpper.split(/[\s\-_,]+/).filter(t => t.length >= 2);
+    const strippedTokens = (stripped || rawUpper).split(/[\s\-_,]+/).filter(t => t.length >= 2);
+
+    const cityMap: Record<string, string[]> = {
+      'RUH': ['RIYADH', 'RDC', 'CDC', 'RUH', 'RYD'],
+      'JED': ['JEDDAH', 'JED', 'JDS', 'JNS', 'JKS', 'JES'],
+      'DMM': ['DAMMAM', 'DMM', 'DDC', 'DAHRAN'],
+      'KHA': ['KHAMIS', 'KHAMIS MUSHAIT', 'KHA'],
+      'ABH': ['ABHA', 'ABH'],
+      'HAIL': ['HAIL', 'HAD'],
+      'BUR': ['BURAIDAH', 'BURAYDAH', 'BUR', 'BUS'],
+      'UNZ': ['UNAYZAH', 'ONAIZAH', 'UNZ'],
+      'TAIF': ['TAIF', 'TIF', 'TAI'],
+      'HOF': ['HOFUF', 'AL HASA', 'AL-HOFUF', 'HOF', 'AHS', 'ALH', 'ALL'],
+      'QUR': ['QURAYYAT', 'GURAYYAT', 'QUR'],
+      'BAH': ['AL BAHA', 'BAHA', 'BAH'],
+      'MED': ['MADINAH', 'MEDINA', 'MED', 'MDC', 'MAA'],
+      'YNB': ['YANBU', 'YNB'],
+      'TUU': ['TABUK', 'TUU'],
+      'JUB': ['JUBAIL', 'JUB'],
+      'NAJ': ['NAJRAN', 'NAJ'],
+      'JIZ': ['JIZAN', 'JAZAN', 'JIZ'],
+      'MUH': ['MUHAYIL', 'MUHAYIL AL ANM', 'MUH', 'MUL'],
+      'DWD': ['DUWADIMI', 'DWD', 'DUS'],
+      'HAB': ['HAFAR', 'HAFAR AL BATIN', 'HAB'],
+      'WAD': ['WADI', 'WADI AD DAWASIR', 'WAD'],
+    };
+
+    const scoreCandidate = (loc: typeof candidates[0]) => {
+      const locCodeUpper = (loc.code || '').toUpperCase().trim();
+      const locNameUpper = (loc.name || '').toUpperCase().trim();
+      const locCityUpper = (loc.city || '').toUpperCase().trim();
+      const sameCustomer = customerIdToUse && loc.customerId === customerIdToUse;
+
+      // 1. Code match
+      if (locCodeUpper && (rawUpper === locCodeUpper || (stripped && stripped === locCodeUpper))) {
+        return sameCustomer ? 100 : 90;
+      }
+      if (locCodeUpper && tokens.includes(locCodeUpper)) {
+        return sameCustomer ? 95 : 85;
+      }
+      if (locCodeUpper && strippedTokens.includes(locCodeUpper)) {
+        return sameCustomer ? 95 : 85;
+      }
+
+      // 2. City dictionary match
+      for (const [key, aliases] of Object.entries(cityMap)) {
+        const inputMatchesCity = tokens.some(t => aliases.includes(t)) || aliases.some(a => rawUpper.includes(a) || (stripped && stripped.includes(a)));
+        const locMatchesCity = aliases.includes(locCodeUpper) || aliases.some(a => locNameUpper.includes(a) || locCityUpper.includes(a));
+        if (inputMatchesCity && locMatchesCity) {
+          return sameCustomer ? 80 : 70;
+        }
+      }
+
+      // 3. Substring match
+      if (stripped.length >= 3) {
+        if (locNameUpper.includes(stripped) || locCityUpper.includes(stripped)) {
+          return sameCustomer ? 75 : 65;
+        }
+        if (locCodeUpper.length >= 3 && stripped.includes(locCodeUpper)) {
+          return sameCustomer ? 70 : 60;
+        }
+      }
+
+      return 0;
+    };
+
+    let bestScore = 0;
+    let bestLoc: typeof candidates[0] | null = null;
+
+    for (const loc of candidates) {
+      const score = scoreCandidate(loc);
+      if (score > bestScore) {
+        bestScore = score;
+        bestLoc = loc;
+      }
+    }
+
+    if (bestLoc && bestScore >= 60) {
+      found = bestLoc;
+    }
+  }
 
   const precision = resolvePrecision(input.lat, input.lng, input.coordinate_precision);
 
   if (found) {
-    const needsCoords = (found.lat == null || found.lng == null) && input.lat != null && input.lng != null;
-    const needsAddress = !found.address && !!input.address;
+    if (input.skipCanonicalUpdate && !found.deletedAt && found.is_active) {
+      return found;
+    }
     const isSoftDeleted = found.deletedAt !== null || !found.is_active;
 
     let canUpdateCode = false;
     if (inputCode && inputCode !== found.code) {
       const codeInUse = await tx.location.findFirst({
         where: {
-          customerId: customerIdToUse,
+          ...(customerIdToUse ? { customerId: customerIdToUse } : {}),
           code: { equals: inputCode, mode: 'insensitive' as const },
           id: { not: found.id },
         },
@@ -129,10 +229,11 @@ export const resolveLocation = async (
 
     const updateData: Prisma.LocationUpdateInput = {
       ...(isSoftDeleted ? { deletedAt: null, is_active: true, deleted_by: null } : {}),
-      ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
-      ...(needsAddress ? { address: input.address } : {}),
-      ...(input.city && !found.city ? { city: input.city } : {}),
-      ...(input.postalCode && !found.postalCode ? { postalCode: input.postalCode } : {}),
+      ...(input.lat != null ? { lat: input.lat } : {}),
+      ...(input.lng != null ? { lng: input.lng } : {}),
+      ...(input.address ? { address: input.address } : {}),
+      ...(input.city ? { city: input.city } : {}),
+      ...(input.postalCode ? { postalCode: input.postalCode } : {}),
       ...(canUpdateCode && inputCode ? { code: inputCode } : {}),
       coordinate_precision: precision !== CoordinatePrecision.UNKNOWN ? precision : found.coordinate_precision,
       updated_by: validUserId,
@@ -142,6 +243,10 @@ export const resolveLocation = async (
       where: { id: found.id },
       data: updateData,
     });
+  }
+
+  if (!customerIdToUse) {
+    return null;
   }
 
   // 2. Generating code & ensuring slug uniqueness for new creation
@@ -218,7 +323,7 @@ export const getLocationById = async (req: Request, res: Response) => {
     const location = await prisma.location.findFirst({
       where: { id: req.params.id as string },
       include: {
-        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        customer: { select: { id: true, name: true } },
         _count: {
           select: {
             quotationStops: true,
@@ -232,11 +337,11 @@ export const getLocationById = async (req: Request, res: Response) => {
             quotation: {
               select: {
                 id: true,
-                quotationNumber: true,
-                status: true,
-                rate_amount: true,
+                name: true,
+                is_active: true,
+                rate: true,
                 currency: true,
-                billing_type: true,
+                operation_type: true,
                 vehicle_class: true,
                 customer: { select: { id: true, name: true } },
                 stops: {
@@ -415,7 +520,7 @@ export const updateLocation = async (req: Request, res: Response) => {
       where: { id: id as string },
       data: updateData,
       include: {
-        customer: { select: { id: true, name: true, company_name: true, tax_number: true } },
+        customer: { select: { id: true, name: true } },
         _count: {
           select: {
             quotationStops: true,
@@ -444,13 +549,10 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       const key = clean.toUpperCase();
       if (customerCache.has(key)) return customerCache.get(key);
 
-      // 1. Exact match on name or company_name
+      // 1. Exact match on name
       let cust = await prisma.customer.findFirst({
         where: {
-          OR: [
-            { name: { equals: clean, mode: 'insensitive' } },
-            { company_name: { equals: clean, mode: 'insensitive' } },
-          ],
+          name: { equals: clean, mode: 'insensitive' },
           deletedAt: null,
         },
       });
@@ -475,10 +577,9 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
           searchTerms = [clean];
         }
 
-        const orClauses = searchTerms.flatMap((term) => [
-          { name: { contains: term, mode: 'insensitive' as const } },
-          { company_name: { contains: term, mode: 'insensitive' as const } },
-        ]);
+        const orClauses = searchTerms.map((term) => ({
+          name: { contains: term, mode: 'insensitive' as const },
+        }));
 
         cust = await prisma.customer.findFirst({
           where: {
@@ -492,10 +593,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       if (!cust && clean.length >= 3) {
         cust = await prisma.customer.findFirst({
           where: {
-            OR: [
-              { name: { contains: clean, mode: 'insensitive' } },
-              { company_name: { contains: clean, mode: 'insensitive' } },
-            ],
+            name: { contains: clean, mode: 'insensitive' },
             deletedAt: null,
           },
         });
@@ -510,9 +608,9 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
       const rowNumber = i + 1;
 
       const custName = row.customer_name || row.customer || row['Customer'] || row['Customer *'];
-      const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Label *'] || row['label'];
-      const code = row.code || row['Code'] || row['Location Code'] || row['Location Code *'];
-      const address = row.address || row['Address'];
+      const locName = row.location_name || row.name || row['Location Name'] || row['Location Name *'] || row['Full Resolved Facility Name'] || row['Label *'] || row['label'];
+      const code = row.code || row.location_code || row.short_code || row['Code'] || row['Location Code'] || row['Location Code *'] || row['Short Code'] || row['August Location Label'] || row['August Sheet Label'];
+      const address = row.address || row['Address'] || row['Exact Postal Address (Drivers/GPS)'];
       const city = row.city || row['City'];
       const postalCode = row.postal_code || row.postalCode || row['Postal Code'];
 
@@ -611,6 +709,7 @@ export const bulkImportLocations = async (req: Request, res: Response) => {
 export const deleteLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const force = req.query.force === 'true' || req.body?.force === true;
 
     const location = await prisma.location.findFirst({
       where: { id: id as string, deletedAt: null },
@@ -620,17 +719,48 @@ export const deleteLocation = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Location not found' } });
     }
 
-    await prisma.location.update({
-      where: { id: id as string },
-      data: {
-        deletedAt: new Date(),
-        is_active: false,
-        deleted_by: getValidUuid((req as any).user?.id),
-      },
-    });
+    const [tripStopCount, quotationStopCount] = await Promise.all([
+      prisma.tripStop.count({
+        where: {
+          locationId: id as string,
+          trip: { deletedAt: null },
+        },
+      }),
+      prisma.quotationStop.count({
+        where: {
+          locationId: id as string,
+          quotation: { deletedAt: null },
+        },
+      }),
+    ]);
+
+    if ((tripStopCount > 0 || quotationStopCount > 0) && !force) {
+      const usageParts: string[] = [];
+      if (tripStopCount > 0) usageParts.push(`${tripStopCount} active trip stop(s)`);
+      if (quotationStopCount > 0) usageParts.push(`${quotationStopCount} quotation stop(s)`);
+
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'REFERENTIAL_INTEGRITY_VIOLATION',
+          message: `Cannot delete location "${location.name}" because it is referenced by ${usageParts.join(' and ')}. You can deactivate it, or confirm force delete to unlink it.`,
+          details: {
+            tripStopCount,
+            quotationStopCount,
+            canForce: true,
+          },
+        },
+      });
+    }
+
+    await prisma.$transaction([
+      prisma.tripStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.quotationStop.updateMany({ where: { locationId: id as string }, data: { locationId: null } }),
+      prisma.location.delete({ where: { id: id as string } }),
+    ]);
 
     res.json({ success: true, message: 'Location deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete location' } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to delete location' } });
   }
 };

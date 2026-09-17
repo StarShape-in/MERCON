@@ -6,7 +6,7 @@
 
 // ─── Enums / unions ──────────────────────────────────────────────
 /** Mirrors the Prisma `Role` enum in backend/api-server/prisma/schema.prisma */
-export type UserRole = 'Admin' | 'Operator' | 'Driver';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Operator' | 'Driver';
 export type UserStatus = 'Active' | 'Inactive';
 
 /**
@@ -150,21 +150,28 @@ export const EXPENSE_PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'Card
 export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number];
 
 /**
- * Optional modules a deployment's superadmin can toggle via Settings.
- * Core modules (auth, trips, drivers, vehicles, customers, settings,
- * locations, rate-cards) are always available and are not listed here —
- * locations/rate-cards were considered toggleable at first but are actually
- * infrastructure trip creation depends on (locations are auto-created by
- * trip creation; rate cards drive pricing), so they were moved to core.
+ * Platform modules that deployment superadmins can toggle via Settings.
+ * Supports Agile phased deployment where any page/module can be enabled/disabled.
  */
 export const MODULE_KEYS = [
-  'invoices',
+  'dashboard',
+  'quotations',
+  'trips',
+  'drivers',
+  'vehicles',
+  'customers',
+  'locations',
+  'taxonomy',
   'expenses',
-  'maintenance',
-  'reports',
   'documents',
-  'recycle-bin',
+  'reports',
   'company-reports',
+  'report-builder',
+  'maintenance',
+  'third-party',
+  'invoices',
+  'aprodac-documents',
+  'recycle-bin',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
@@ -190,7 +197,7 @@ export const TRIP_REPORT_FIELDS = [
   { key: 'total_charges', label: 'Extra charges (waiting, stops, etc.)', type: 'money' },
   { key: 'billing_amount', label: 'Billing amount', type: 'money' },
   { key: 'total_amount', label: 'Total amount', type: 'money' },
-  { key: 'trip_charges', label: 'Trip charges', type: 'money' },
+  { key: 'driver_payout', label: 'Driver payout', type: 'money' },
   { key: 'balance_amount', label: 'Balance amount', type: 'money' },
   { key: 'status', label: 'Trip status', type: 'string' },
   { key: 'rate_category', label: 'Rate category', type: 'string' },
@@ -300,6 +307,10 @@ export interface Settings {
   companyLegalName: string;
   logoUrl?: string | null;
   primaryColor: string;
+  themeColors?: Record<string, any> | null;
+  taxonomyConfig?: Record<string, any> | null;
+  maintenanceMode?: boolean;
+  maintenanceBanner?: string | null;
   enabledModules: ModuleKey[];
   /** IANA timezone (e.g. "Asia/Riyadh") the frontends convert UTC timestamps to for display. */
   timezone: string;
@@ -334,14 +345,36 @@ export interface ApiResponse<T> {
 }
 
 // ─── Commercial Pricing Snapshot DTO ────────────────────────────────
-export interface TripCommercialSnapshot {
+export interface TripFinancialsDto {
+  id?: string;
+  tripId?: string;
   quotationId?: string | null;
+  applied_rate?: number | string | null;
   quotation_line_type?: LineType | string | null;
+  quotation_operation_type?: BillingType | string | null;
   quotation_billing_type?: BillingType | string | null;
   quotation_pricing_basis?: PricingBasisType | string | null;
-  applied_rate?: number | string | null;
   quotation_vehicle_class?: string | null;
   quotation_source_vehicle_label?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TripCommercialSnapshot extends TripFinancialsDto {}
+
+// ─── Subcontract / Rental Carrier DTO ──────────────────────────────
+export interface TripSubcontractDto {
+  id?: string;
+  tripId?: string;
+  providerId?: string | null;
+  provider?: { id: string; name: string; contact_person?: string | null; phone?: string | null } | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  vehiclePlate?: string | null;
+  vehicleType?: string | null;
+  cost?: number | string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ─── Quotation V1 DTOs ──────────────────────────────────────────
@@ -349,6 +382,7 @@ export interface QuotationStop {
   id: string;
   quotationId: string;
   sequence: number;
+  leg_index?: number;
   locationId?: string | null;
   stop_type: string;
   source_label?: string | null;
@@ -358,8 +392,31 @@ export interface QuotationStop {
   updatedAt?: string;
 }
 
+export interface TripStopDTO {
+  id: string;
+  tripId: string;
+  stop_sequence: number;
+  leg_index: number;
+  stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
+  location_name?: string | null;
+  location_address?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_coordinate_precision?: string | null;
+  locationId?: string | null;
+  location?: Location | null;
+  planned_arrival?: string | null;
+  actual_arrival?: string | null;
+  actual_departure?: string | null;
+  delay_reason?: string | null;
+  delay_note?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Quotation {
   id: string;
+  quotation_number?: number | string | null;
   name: string;
   customerId: string;
   customer?: { id: string; name: string } | null;
@@ -371,6 +428,7 @@ export interface Quotation {
   vehicle_type?: string | null;
   line_type?: LineType | string | null;
   rate_category?: string | null;
+  operation_type?: BillingType | string | null;
   billing_type?: BillingType | string | null;
   pricing_basis?: PricingBasisType | string | null;
   rate: number;

@@ -19,7 +19,7 @@
 
 import { Request, Response } from 'express';
 import { DelayReason, StopType } from '@prisma/client';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { DELAY_THRESHOLD_MINUTES } from '../services/tripLifecycle';
 import { getEnabledModules } from './settingsController';

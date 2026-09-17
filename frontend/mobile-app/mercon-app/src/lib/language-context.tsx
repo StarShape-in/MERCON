@@ -5,12 +5,15 @@ import { safeSecureStore as SecureStore } from './secure-store';
 import { TRANSLATIONS, LanguageMode, TranslationItem } from './translations';
 import { Colors, Radius, Spacing, Typography, Shadows } from '../theme/tokens';
 
+export type { LanguageMode };
+
 const LANGUAGE_KEY = 'mercon_user_language';
 
 interface LanguageContextType {
   language: LanguageMode;
   setLanguage: (mode: LanguageMode) => Promise<void>;
   t: (key: string, fallback?: string) => string;
+  formatCurrency: (amount: number | string | null | undefined) => string;
   isLanguageModalOpen: boolean;
   openLanguageModal: () => void;
   closeLanguageModal: () => void;
@@ -20,10 +23,78 @@ const LanguageContext = createContext<LanguageContextType>({
   language: 'en',
   setLanguage: async () => {},
   t: (key: string, fallback?: string) => fallback || key,
+  formatCurrency: (amount: number | string | null | undefined) => formatCurrency(amount, 'en'),
   isLanguageModalOpen: false,
   openLanguageModal: () => {},
   closeLanguageModal: () => {},
 });
+
+let currentAppLanguage: LanguageMode = 'en';
+
+export function getCurrentLanguage(): LanguageMode {
+  return currentAppLanguage;
+}
+
+const STATUS_BADGE_MAP: Record<string, { en: string; ur: string }> = {
+  ASSIGNED: { en: 'Assigned', ur: 'تفویض کردہ' },
+  GOING_TO_PICKUP: { en: 'Going to Pickup', ur: 'پک اپ کے راستے میں' },
+  ARRIVED_AT_PICKUP: { en: 'At Pickup', ur: 'پک اپ پر' },
+  LOADING: { en: 'Loading', ur: 'لوڈنگ' },
+  IN_TRANSIT: { en: 'In Transit', ur: 'راستے میں' },
+  ARRIVED_AT_DELIVERY: { en: 'At Delivery', ur: 'ڈلیوری پر' },
+  DELIVERY_VERIFICATION: { en: 'Delivery Verification', ur: 'ڈلیوری تصدیق' },
+  FIRST_DELIVERY_COMPLETED: { en: 'At Return Loading', ur: 'واپسی لوڈنگ پر' },
+  RETURN_LOADING: { en: 'Return Loading', ur: 'واپسی لوڈنگ' },
+  IN_TRANSIT_RETURN: { en: 'Return Transit', ur: 'واپسی راستے میں' },
+  ARRIVED_AT_FINAL_DELIVERY: { en: 'At Return Delivery', ur: 'واپسی ڈلیوری پر' },
+  FINAL_DELIVERY_VERIFICATION: { en: 'Final Delivery Verification', ur: 'حتمی ڈلیوری تصدیق' },
+  REVIEW_COMPLETE: { en: 'Completed', ur: 'مکمل' },
+  DRIVER_REPORTED_DELAY: { en: 'Delayed', ur: 'تاخیر' },
+  Draft: { en: 'Scheduled', ur: 'شیڈول شدہ' },
+  Dispatched: { en: 'Scheduled', ur: 'شیڈول شدہ' },
+  Scheduled: { en: 'Scheduled', ur: 'شیڈول شدہ' },
+  AtPickup: { en: 'At Pickup', ur: 'پک اپ پر' },
+  Loading: { en: 'Loading', ur: 'لوڈنگ' },
+  InTransit: { en: 'In Transit', ur: 'راستے میں' },
+  Delayed: { en: 'Delayed', ur: 'تاخیر' },
+  Emergency: { en: 'Emergency', ur: 'ہنگامی صورتحال' },
+  AtDelivery: { en: 'At Delivery', ur: 'ڈلیوری پر' },
+  Completed: { en: 'Completed', ur: 'مکمل' },
+  Cancelled: { en: 'Cancelled', ur: 'منسوخ' },
+};
+
+export function getLocalizedStatus(rawStatus?: string | null, mode?: LanguageMode): string {
+  if (!rawStatus) return '';
+  const item = STATUS_BADGE_MAP[rawStatus] || STATUS_BADGE_MAP[rawStatus.toUpperCase()] || STATUS_BADGE_MAP[rawStatus.replace(/\s+/g, '_').toUpperCase()];
+  if (!item) {
+    return rawStatus.replace(/_/g, ' ');
+  }
+  const targetMode = mode || currentAppLanguage;
+  if (targetMode === 'ur') return item.ur;
+  if (targetMode === 'ur-en') return `${item.ur} / ${item.en}`;
+  return item.en;
+}
+
+export function formatCurrency(amount: number | string | null | undefined, mode?: LanguageMode): string {
+  if (amount == null || amount === '') return '—';
+  const num = typeof amount === 'number' ? amount : parseFloat(String(amount));
+  if (Number.isNaN(num)) return '—';
+  const numStr = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const targetMode = mode || currentAppLanguage;
+  if (targetMode === 'ur') {
+    return `${numStr} ريال`;
+  }
+  return `SAR ${numStr}`;
+}
+
+export function translate(key: string, fallback?: string, mode?: LanguageMode): string {
+  const item: TranslationItem | undefined = TRANSLATIONS[key];
+  if (!item) return fallback || key;
+  const targetMode = mode || currentAppLanguage;
+  if (targetMode === 'ur') return item.ur;
+  if (targetMode === 'ur-en') return `${item.ur} / ${item.en}`;
+  return item.en;
+}
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguageState] = useState<LanguageMode>('en');
@@ -35,6 +106,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       try {
         const stored = await SecureStore.getItemAsync(LANGUAGE_KEY);
         if (stored && (stored === 'en' || stored === 'ur' || stored === 'ur-en')) {
+          currentAppLanguage = stored as LanguageMode;
           setLanguageState(stored as LanguageMode);
         }
       } catch (err) {
@@ -44,6 +116,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const setLanguage = async (mode: LanguageMode) => {
+    currentAppLanguage = mode;
     setLanguageState(mode);
     try {
       await SecureStore.setItemAsync(LANGUAGE_KEY, mode);
@@ -85,6 +158,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         language,
         setLanguage,
         t,
+        formatCurrency: (amount) => formatCurrency(amount, language),
         isLanguageModalOpen: isModalOpen,
         openLanguageModal,
         closeLanguageModal,

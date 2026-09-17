@@ -37,7 +37,7 @@ const EmergencyScreen = () => {
 
   const callOperator = () => {
     Linking.openURL(`tel:${OPERATOR_EMERGENCY_PHONE}`).catch(() => {
-      Alert.alert('Could not place call', 'Please dial the operator manually.');
+      Alert.alert(t('title_emergency_call_failed', 'Could not place call'), t('msg_call_operator_manual', 'Please dial the operator manually.'));
     });
   };
 
@@ -51,7 +51,7 @@ const EmergencyScreen = () => {
         return next;
       });
     } catch (e) {
-      Alert.alert('Could not add photo', getApiErrorMessage(e));
+      Alert.alert(t('title_emergency_call_failed', 'Could not add photo'), getApiErrorMessage(e));
     }
   };
 
@@ -59,7 +59,7 @@ const EmergencyScreen = () => {
     if (sending) return;
     const selected = incidentTypes.find((t) => t.id === incidentType);
     if (!selected) {
-      Alert.alert('Select an incident type', 'Please choose what kind of emergency this is.');
+      Alert.alert(t('title_select_incident', 'Select an incident type'), t('msg_select_incident_desc', 'Please choose what kind of emergency this is.'));
       return;
     }
     setSending(true);
@@ -86,14 +86,14 @@ const EmergencyScreen = () => {
         photos: photos.filter((p): p is CapturedPhoto => !!p),
       });
       Alert.alert(
-        'Emergency sent',
+        t('title_emergency_sent', 'Emergency sent'),
         notified > 0
-          ? `Your operator has been alerted (${notified} notified).`
-          : 'Your report was recorded.',
-        [{ text: 'OK', onPress: () => router.back() }],
+          ? t('msg_emergency_notified', 'Your operator has been alerted.')
+          : t('msg_emergency_recorded', 'Your report was recorded.'),
+        [{ text: t('action_done', 'OK'), onPress: () => router.back() }],
       );
     } catch (e) {
-      Alert.alert('Could not send', getApiErrorMessage(e));
+      Alert.alert(t('title_emergency_call_failed', 'Could not send'), getApiErrorMessage(e));
     } finally {
       setSending(false);
     }
@@ -110,8 +110,8 @@ const EmergencyScreen = () => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Siren size={30} color={Colors.white} strokeWidth={2} />
-            <Text style={styles.headerTitle}>Emergency Report</Text>
-            <Text style={styles.headerSub}>Your operator will be alerted immediately</Text>
+            <Text style={styles.headerTitle}>{t('title_emergency_report', 'Emergency Report')}</Text>
+            <Text style={styles.headerSub}>{t('msg_operator_alerted_sub', 'Your operator will be alerted immediately')}</Text>
           </View>
           <View style={styles.placeholder} />
         </View>
@@ -121,12 +121,12 @@ const EmergencyScreen = () => {
           {/* Call Operator */}
           <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={callOperator}>
             <Phone size={26} color={Colors.error} strokeWidth={2.2} />
-            <Text style={styles.callText}>Call Operator Now</Text>
-            <Text style={styles.callSub}>+966 11 234 5678</Text>
+            <Text style={styles.callText}>{t('action_call_operator_now', 'Call Operator Now')}</Text>
+            <Text style={[styles.callSub, { writingDirection: 'ltr' }]}>+966 11 234 5678</Text>
           </TouchableOpacity>
 
           {/* Incident Type */}
-          <Text style={styles.sectionTitle}>Incident Type</Text>
+          <Text style={styles.sectionTitle}>{t('title_incident_type', 'Incident Type')}</Text>
           <View style={styles.incidentGrid}>
             {incidentTypes.map((type) => (
               <TouchableOpacity
@@ -144,7 +144,7 @@ const EmergencyScreen = () => {
           </View>
 
           {/* Photo Upload */}
-          <Text style={styles.sectionTitle}>Incident Photos</Text>
+          <Text style={styles.sectionTitle}>{t('title_incident_photos', 'Incident Photos')}</Text>
           <View style={styles.photoGrid}>
             {[0, 1, 2, 3].map((i) => (
               <TouchableOpacity
@@ -158,7 +158,7 @@ const EmergencyScreen = () => {
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Camera size={24} color={Colors.gray400} strokeWidth={1.8} />
-                    <Text style={styles.photoPlaceholderText}>Add Photo</Text>
+                    <Text style={styles.photoPlaceholderText}>{t('action_add_photo', 'Add Photo')}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -166,12 +166,12 @@ const EmergencyScreen = () => {
           </View>
 
           {/* Notes */}
-          <Text style={styles.sectionTitle}>Incident Notes</Text>
+          <Text style={styles.sectionTitle}>{t('title_incident_notes', 'Incident Notes')}</Text>
           <TextInput
             style={styles.notesInput}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Describe what happened. Include location details, injuries, and any immediate assistance needed..."
+            placeholder={t('placeholder_incident_notes', 'Describe what happened. Include location details, injuries, and any immediate assistance needed...')}
             placeholderTextColor={Colors.gray400}
             multiline
             numberOfLines={5}
@@ -182,13 +182,13 @@ const EmergencyScreen = () => {
           <View style={styles.locationCard}>
             <MapPin size={22} color={Colors.gray600} strokeWidth={2} />
             <View>
-              <Text style={styles.locationLabel}>Location</Text>
-              <Text style={styles.locationValue}>Your current GPS location is attached automatically when you send</Text>
+              <Text style={styles.locationLabel}>{t('label_location', 'Location')}</Text>
+              <Text style={styles.locationValue}>{t('msg_gps_attached_auto', 'Your current GPS location is attached automatically when you send')}</Text>
             </View>
           </View>
 
           <Button
-            title={sending ? 'Sending…' : 'Send Emergency Report'}
+            title={sending ? t('action_sending', 'Sending…') : t('action_send_emergency', 'Send Emergency Report')}
             onPress={send}
             style={styles.sendBtn}
           />

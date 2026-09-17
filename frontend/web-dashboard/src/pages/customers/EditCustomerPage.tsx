@@ -73,8 +73,8 @@ export default function EditCustomerPage() {
     whatsapp_group_name: '',
     email: '',
     billing_address: '',
-    credit_limit: '50000',
     payment_terms: 'Net 30 Days',
+    driver_workflow: 'NATIVE' as 'NATIVE' | 'EXTERNAL_APP',
     isActive: true,
   });
 
@@ -85,19 +85,19 @@ export default function EditCustomerPage() {
     if (customer) {
       setFormData({
         name: customer.name || '',
-        trade_alias: customer.company_name || '',
-        logo_url: customer.logo_url || customer.avatar_url || null,
+        trade_alias: '',
+        logo_url: customer.logo_url || null,
         industry: 'Logistics',
-        cr_number: customer.tax_number || '',
-        vat_number: customer.tax_number || '',
+        cr_number: '',
+        vat_number: '',
         contact_phone: customer.contact_phone || customer.primary_contact_phone || customer.phone || '',
         whatsapp_number: customer.whatsapp_number || '',
         whatsapp_group_link: customer.whatsapp_group_link || '',
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: (customer.credit_limit || 0).toString(),
         payment_terms: customer.payment_terms || 'Net 30 Days',
+        driver_workflow: customer.driver_workflow || 'NATIVE',
         isActive: customer.isActive ?? true,
       });
 
@@ -185,19 +185,19 @@ export default function EditCustomerPage() {
     if (customer) {
       setFormData({
         name: customer.name || '',
-        trade_alias: customer.company_name || '',
-        logo_url: customer.logo_url || customer.avatar_url || null,
+        trade_alias: '',
+        logo_url: customer.logo_url || null,
         industry: 'Logistics',
-        cr_number: customer.tax_number || '',
-        vat_number: customer.tax_number || '',
+        cr_number: '',
+        vat_number: '',
         contact_phone: customer.contact_phone || customer.phone || '',
         whatsapp_number: customer.whatsapp_number || '',
         whatsapp_group_link: customer.whatsapp_group_link || '',
         whatsapp_group_name: customer.whatsapp_group_name || '',
         email: '',
         billing_address: '',
-        credit_limit: (customer.credit_limit || 0).toString(),
         payment_terms: customer.payment_terms || 'Net 30 Days',
+        driver_workflow: customer.driver_workflow || 'NATIVE',
         isActive: customer.isActive ?? true,
       });
       setError(null);
@@ -230,18 +230,15 @@ export default function EditCustomerPage() {
         name: formData.name.trim(),
         contact_phone: effectivePhone,
         logo_url: formData.logo_url || undefined,
-        avatar_url: formData.logo_url || undefined,
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
         whatsapp_group_link: formData.whatsapp_group_link.trim() || undefined,
         whatsapp_group_name: formData.whatsapp_group_name.trim() || undefined,
-        company_name: formData.trade_alias.trim() || undefined,
-        tax_number: formData.vat_number.trim() || formData.cr_number.trim() || undefined,
         primary_contact_person: primary?.name || undefined,
         primary_contact_phone: primary?.phone || effectivePhone,
         secondary_contact_person: secondary?.name || undefined,
         secondary_contact_phone: secondary?.phone || undefined,
-        credit_limit: parseFloat(formData.credit_limit) || 0,
         payment_terms: formData.payment_terms || undefined,
+        driver_workflow: formData.driver_workflow,
         isActive: formData.isActive,
       });
 
@@ -394,6 +391,24 @@ export default function EditCustomerPage() {
                     </div>
 
                     <div className="space-y-1">
+                      <Label htmlFor="driver_workflow" className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Driver Workflow Configuration
+                      </Label>
+                      <Select
+                        value={formData.driver_workflow}
+                        onValueChange={(val) => handleChange('driver_workflow', val)}
+                      >
+                        <SelectTrigger id="driver_workflow" className="h-8 text-xs font-semibold">
+                          <SelectValue placeholder="Select workflow..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NATIVE">Native CargoPod App (Standard Driver Stepper)</SelectItem>
+                          <SelectItem value="EXTERNAL_APP">External Customer App (Screenshot AI Ingestion)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
                       <Label htmlFor="industry" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         Industry Sector
                       </Label>
@@ -442,19 +457,7 @@ export default function EditCustomerPage() {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="credit_limit" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <DollarSign className="w-3 h-3 text-emerald-600" /> Credit Limit (SAR)
-                      </Label>
-                      <Input
-                        id="credit_limit"
-                        type="number"
-                        placeholder="50000"
-                        value={formData.credit_limit}
-                        onChange={(e) => handleChange('credit_limit', e.target.value)}
-                        className="h-8 text-xs font-mono font-medium"
-                      />
-                    </div>
+
 
                     <div className="space-y-1">
                       <Label htmlFor="payment_terms" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">

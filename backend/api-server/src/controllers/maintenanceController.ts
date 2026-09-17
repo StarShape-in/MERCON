@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { generateRefId } from '../utils/refId';
 import { logger } from '../utils/logger';
@@ -50,7 +50,7 @@ const toDate = (value?: string | Date | null): Date | null => {
 
 export const getMaintenanceRecords = async (req: Request, res: Response) => {
   try {
-    const { vehicle_id, status, maintenance_type, search, page = '1', per_page = '50' } = req.query;
+    const { vehicle_id, status, maintenance_type, system, search, page = '1', per_page = '50' } = req.query;
 
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
@@ -71,6 +71,10 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
 
     if (maintenance_type && maintenance_type !== 'all') {
       whereClause.maintenance_type = maintenance_type as string;
+    }
+
+    if (system && system !== 'all') {
+      whereClause.system = system as string;
     }
 
     const searchAnd = buildSearchAnd(search, MAINTENANCE_SEARCH_FIELDS);
@@ -254,15 +258,10 @@ export const createSavedWorkshop = async (req: Request, res: Response) => {
 export const deleteSavedWorkshop = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    await prisma.savedWorkshop.update({
+    await prisma.savedWorkshop.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        updated_by: (req as any).user?.id,
-      },
     });
-    res.json({ success: true, message: 'Saved workshop deleted successfully' });
+    res.json({ success: true, message: 'Saved workshop permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete saved workshop');
     res.status(500).json({
@@ -368,15 +367,10 @@ export const createSavedWorkItem = async (req: Request, res: Response) => {
 export const deleteSavedWorkItem = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    await prisma.savedWorkDone.update({
+    await prisma.savedWorkDone.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        updated_by: (req as any).user?.id,
-      },
     });
-    res.json({ success: true, message: 'Saved work item deleted successfully' });
+    res.json({ success: true, message: 'Saved work item permanently deleted successfully' });
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete saved work item');
     res.status(500).json({
@@ -436,6 +430,7 @@ const maintenanceSchema = z.object({
   workshop_name: z.string().min(1, 'Workshop name is required'),
   workshop_contact: z.string().optional().nullable(),
   maintenance_type: z.enum(['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency']),
+  system: z.enum(['engine', 'axles', 'air_system', 'brakes', 'tires', 'electrical', 'others']).optional().nullable().default('others'),
   status: z.enum(['Scheduled', 'In_Progress', 'Completed', 'Cancelled']).default('Completed'),
   start_date: z.string().or(z.date()).optional(),
   end_date: z.string().or(z.date()).optional().nullable(),
@@ -507,6 +502,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
       workshop_name,
       workshop_contact,
       maintenance_type,
+      system,
       status,
       start_date,
       end_date,
@@ -560,6 +556,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
             workshop_name,
             workshop_contact: workshop_contact || null,
             maintenance_type,
+            system: system || 'others',
             status: status || 'Completed',
             start_date: startDateVal,
             end_date: endDateVal,
@@ -778,16 +775,8 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.maintenanceRecord.update({
-      where: { id: existing.id },
-      data: {
-        // Releasing the ref_id frees its number for the next service order, so the
-        // sequence stays gapless (delete MNT-005 → the next order becomes MNT-005).
-        // `ref_id` is unique across deleted rows too, so it must be cleared, not kept.
-        ref_id: null,
-        deletedAt: new Date(),
-        deleted_by: (req as any).user?.id,
-      },
+    await prisma.maintenanceRecord.delete({
+      where: { id: existing.id }
     });
 
     // Deleting the order that put the vehicle in the workshop must let it out again.

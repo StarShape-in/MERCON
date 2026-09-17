@@ -165,11 +165,11 @@ export default function QuotationAiImportPage() {
 
     try {
       setIsAnalyzing(true);
-      toast.loading('✨ Analyzing document & extracting multi-stop routes...', { id: 'ai-analysis' });
+      toast.loading('Analyzing document & extracting multi-stop routes...', { id: 'ai-analysis' });
 
       const result = await quotationService.analyzeDocumentAi(target as any, custId);
 
-      toast.success('✨ Document analysis complete!', { id: 'ai-analysis' });
+      toast.success('Document analysis complete!', { id: 'ai-analysis' });
       setAnalysisDone(true);
 
       if (result.agreement_ref) setAgreementRef(result.agreement_ref);
@@ -670,7 +670,7 @@ export default function QuotationAiImportPage() {
                     <SelectContent>
                       {customers.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          🏢 {c.name}
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1003,7 +1003,7 @@ export default function QuotationAiImportPage() {
                                               <SelectContent className="z-[9999]">
                                                 {masterLocations.map((m) => (
                                                   <SelectItem key={m.id} value={m.id}>
-                                                    📍 {m.name} ({m.code})
+                                                    {m.name} ({m.code})
                                                   </SelectItem>
                                                 ))}
                                               </SelectContent>
@@ -1185,11 +1185,11 @@ export default function QuotationAiImportPage() {
                         <td className="p-3 text-right space-y-1">
                           {isReady ? (
                             <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
-                              ✓ Ready
+                              Ready
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">
-                              ⚠ Needs Review
+                              Needs Review
                             </Badge>
                           )}
                           <div>

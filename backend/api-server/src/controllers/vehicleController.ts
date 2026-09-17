@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { DOCUMENT_LIST_SELECT, DOCUMENT_FILES_SELECT } from '../utils/documentSelect';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
 import { tripIncome, isEarned } from '../reportEngine/derived';
 import { getEnabledModules } from './settingsController';
+import { resolveVehicleLocation } from '../services/locationResolver';
 
 // Trip statuses that mean the trip is still in progress — mirrors the
 // active-set convention already used in thirdPartyController.ts's
@@ -17,7 +18,6 @@ const VEHICLE_SEARCH_FIELDS = [
   'plate_number',
   'ref_id',
   'trailer_number',
-  'gps_device_id',
   'icces_device_id',
   'assignedDriver.first_name',
   'assignedDriver.last_name',
@@ -98,13 +98,13 @@ export const getVehicles = async (req: Request, res: Response) => {
             id: true,
             plate_number: true,
             ref_id: true,
+            image_url: true,
             trailer_number: true,
             trailer_type: true,
             asset_type: true,
             status: true,
             capacity_kg: true,
             current_odometer: true,
-            gps_device_id: true,
             icces_device_id: true,
             createdAt: true,
             last_lat: true,
@@ -114,7 +114,7 @@ export const getVehicles = async (req: Request, res: Response) => {
             last_heading: true,
             last_status: true,
             assignedDriver: {
-              select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true }
+              select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true }
             }
           }
         }),
@@ -142,7 +142,7 @@ export const getVehicles = async (req: Request, res: Response) => {
         orderBy: { createdAt: 'desc' },
         include: {
           assignedDriver: {
-            select: { id: true, first_name: true, last_name: true, phone_primary: true }
+            select: { id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true }
           },
           trips: {
             where: {
@@ -153,7 +153,7 @@ export const getVehicles = async (req: Request, res: Response) => {
             },
             include: {
               driver: {
-                select: { id: true, first_name: true, last_name: true, phone_primary: true }
+                select: { id: true, first_name: true, last_name: true, phone_primary: true, avatar_url: true }
               },
               customer: { select: { name: true } },
               stops: {
@@ -197,21 +197,24 @@ export const getVehicles = async (req: Request, res: Response) => {
       prisma.vehicle.count({ where: whereClause })
     ]);
 
-    // Attach active_maintenance as computed field: prefer In_Progress, then current Scheduled, then upcoming
-    const vehiclesWithMaintenance = vehicles.map((v: any) => {
-      const records: any[] = v.maintenanceRecords || [];
-      const active =
-        records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
-        records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
-        records.find((r: any) => r.status === 'Scheduled') ??
-        null;
-      const { maintenanceRecords: _mr, ...rest } = v;
-      return { ...rest, active_maintenance: active ?? null };
-    });
+    // Attach active_maintenance and resolved_location as computed fields
+    const vehiclesWithResolvedLocation = await Promise.all(
+      vehicles.map(async (v: any) => {
+        const records: any[] = v.maintenanceRecords || [];
+        const active =
+          records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
+          records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
+          records.find((r: any) => r.status === 'Scheduled') ??
+          null;
+        const { maintenanceRecords: _mr, ...rest } = v;
+        const resolved_location = await resolveVehicleLocation(v, prisma);
+        return { ...rest, active_maintenance: active ?? null, resolved_location };
+      })
+    );
 
     res.json({
       success: true,
-      data: vehiclesWithMaintenance,
+      data: vehiclesWithResolvedLocation,
       meta: {
         page: pageNumber,
         per_page: limit,
@@ -265,8 +268,9 @@ export const getVehicleById = async (req: Request, res: Response) => {
             stops: true
           },
           orderBy: {
-            planned_start: 'asc'
-          }
+            planned_start: 'desc'
+          },
+          take: 100
         },
         maintenanceRecords: {
           where: {
@@ -307,7 +311,8 @@ export const getVehicleById = async (req: Request, res: Response) => {
       null;
 
     const { maintenanceRecords: _mr, ...vehicleData } = vehicle as any;
-    res.json({ success: true, data: { ...vehicleData, documents, active_maintenance: active ?? null } });
+    const resolved_location = await resolveVehicleLocation(vehicle, prisma);
+    res.json({ success: true, data: { ...vehicleData, documents, active_maintenance: active ?? null, resolved_location } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch vehicle' } });
   }
@@ -569,8 +574,8 @@ export const createVehicle = async (req: Request, res: Response) => {
       trailer_number,
       trailer_type,
       trailer_capacity_kg,
-      gps_device_id,
-      icces_device_id
+      icces_device_id,
+      image_url
     } = req.body;
 
     const ref_id = await generateRefId('TRK', () =>
@@ -585,12 +590,8 @@ export const createVehicle = async (req: Request, res: Response) => {
         trailer_number,
         trailer_type: trailer_type ? (trailer_type as AssetType) : null,
         trailer_capacity_kg,
-        gps_device_id,
         icces_device_id,
-        // A newly added truck's odometer is inherently "just confirmed" —
-        // without this, no odometer_updated_at means "never verified",
-        // which the fleet list reads as maximally stale and flags with the
-        // warning icon the moment the truck is created.
+        image_url,
         odometer_updated_at: new Date(),
         created_by: (req as any).user?.id
       }
@@ -646,23 +647,14 @@ export const deleteVehicle = async (req: Request, res: Response) => {
     }
 
     await prisma.$transaction([
-      prisma.vehicle.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          isActive: false,
-          deleted_by: (req as any).user?.id
-        }
-      }),
-      // Free any driver still pointing at this vehicle so the assignment
-      // doesn't silently keep referencing a deleted vehicle, and so the
-      // vehicle's unique assignedVehicleId slot can be reused.
-      prisma.driver.updateMany({
-        where: { assignedVehicleId: id },
-        data: { assignedVehicleId: null }
-      })
+      prisma.trip.updateMany({ where: { vehicleId: id }, data: { vehicleId: null } }),
+      prisma.expense.updateMany({ where: { vehicleId: id }, data: { vehicleId: null } }),
+      prisma.maintenanceRecord.deleteMany({ where: { vehicleId: id } }),
+      prisma.driverVehicleAssignment.deleteMany({ where: { vehicleId: id } }),
+      prisma.driver.updateMany({ where: { assignedVehicleId: id }, data: { assignedVehicleId: null } }),
+      prisma.vehicle.delete({ where: { id } })
     ]);
-    res.json({ success: true, data: { message: 'Vehicle deleted successfully' } });
+    res.json({ success: true, data: { message: 'Vehicle permanently deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete vehicle' } });
   }
@@ -699,14 +691,77 @@ export const getVehicleStats = async (_req: Request, res: Response) => {
   }
 };
 
+/**
+ * Computes exact physical GPS status counts and reconciliation for the fleet donut chart.
+ * Reconciles: Physical GPS Tracked (27) + Not Connected (4) = MERCON Vehicles (31).
+ */
+export const getPhysicalGpsStatusSummary = async (_req: Request, res: Response) => {
+  try {
+    const where = { deletedAt: null };
+    const vehicles = await prisma.vehicle.findMany({
+      where,
+      select: {
+        id: true,
+        icces_device_id: true,
+        last_status: true,
+        last_seen_at: true,
+      },
+    });
+
+    const merconTotal = vehicles.length;
+    const connectedVehicles = vehicles.filter((v) => v.icces_device_id && v.icces_device_id.trim() !== '');
+    const notConnectedTotal = merconTotal - connectedVehicles.length;
+    const physicalGpsTotal = connectedVehicles.length;
+
+    const statusCounts: Record<string, number> = {
+      MOVING: 0,
+      IDLE: 0,
+      STOPPED: 0,
+      COMMAND: 0,
+      ALERT: 0,
+      DEVICE_NO_SIGNAL: 0,
+      DEVICE_NOT_WORKING: 0,
+      ACCIDENT: 0,
+      TAMPER_WEIGHT: 0,
+      UNKNOWN: 0,
+    };
+
+    for (const v of connectedVehicles) {
+      const rawStatus = (v.last_status || 'UNKNOWN').trim().toUpperCase();
+      if (rawStatus in statusCounts) {
+        statusCounts[rawStatus] += 1;
+      } else {
+        statusCounts.UNKNOWN += 1;
+      }
+    }
+
+    const categorySum = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const reconciliationValid = categorySum === physicalGpsTotal;
+
+    res.json({
+      success: true,
+      data: {
+        mercon_total: merconTotal,
+        physical_gps_total: physicalGpsTotal,
+        not_connected_total: notConnectedTotal,
+        reconciliation_valid: reconciliationValid,
+        category_sum: categorySum,
+        status_counts: statusCounts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to compute physical GPS status summary' } });
+  }
+};
+
 export const getVehicleUsage = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const [activeTrips, totalTrips, maintenanceRecords, expenses] = await Promise.all([
-      prisma.trip.count({ where: { vehicleId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
-      prisma.trip.count({ where: { vehicleId: id, deletedAt: null } }),
-      prisma.maintenanceRecord.count({ where: { vehicleId: id, deletedAt: null } }),
-      prisma.expense.count({ where: { vehicleId: id, deletedAt: null } })
+      prisma.trip.count({ where: { vehicleId: id, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
+      prisma.trip.count({ where: { vehicleId: id } }),
+      prisma.maintenanceRecord.count({ where: { vehicleId: id } }),
+      prisma.expense.count({ where: { vehicleId: id } })
     ]);
     res.json({ success: true, data: { activeTrips, totalTrips, maintenanceRecords, expenses } });
   } catch (error) {
@@ -716,7 +771,6 @@ export const getVehicleUsage = async (req: Request, res: Response) => {
 
 export const bulkDeleteVehicles = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -724,7 +778,7 @@ export const bulkDeleteVehicles = async (req: Request, res: Response) => {
     }
 
     const inUse = await prisma.trip.findMany({
-      where: { vehicleId: { in: ids }, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } },
+      where: { vehicleId: { in: ids }, status: { in: ACTIVE_TRIP_STATUSES as any } },
       select: { vehicleId: true },
       distinct: ['vehicleId']
     });
@@ -733,18 +787,12 @@ export const bulkDeleteVehicles = async (req: Request, res: Response) => {
 
     if (deletableIds.length > 0) {
       await prisma.$transaction([
-        prisma.vehicle.updateMany({
-          where: { id: { in: deletableIds } },
-          data: {
-            deletedAt: new Date(),
-            isActive: false,
-            deleted_by: userId
-          }
-        }),
-        prisma.driver.updateMany({
-          where: { assignedVehicleId: { in: deletableIds } },
-          data: { assignedVehicleId: null }
-        })
+        prisma.trip.updateMany({ where: { vehicleId: { in: deletableIds } }, data: { vehicleId: null } }),
+        prisma.expense.updateMany({ where: { vehicleId: { in: deletableIds } }, data: { vehicleId: null } }),
+        prisma.maintenanceRecord.deleteMany({ where: { vehicleId: { in: deletableIds } } }),
+        prisma.driverVehicleAssignment.deleteMany({ where: { vehicleId: { in: deletableIds } } }),
+        prisma.driver.updateMany({ where: { assignedVehicleId: { in: deletableIds } }, data: { assignedVehicleId: null } }),
+        prisma.vehicle.deleteMany({ where: { id: { in: deletableIds } } })
       ]);
     }
 
@@ -841,7 +889,6 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       include: {
         customer: { select: { name: true } },
-        ...(invoicesOn ? { invoices: { where: { deletedAt: null } } } : {}),
       },
     });
 
@@ -857,7 +904,7 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     let totalDistanceKm = 0;
     const tripBreakdown = trips.map((t) => {
       const income = tripIncome(t);
-      const tripCharges = Number(t.trip_charges);
+      const tripCharges = Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0);
       if (isEarned(t.status)) {
         totalIncome += income;
         driverCharges += tripCharges;
@@ -987,7 +1034,6 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       }),
       prisma.trip.findMany({
         where: { deletedAt: null, vehicleId: { not: null }, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
-        include: invoicesOn ? { invoices: { where: { deletedAt: null }, select: { total_amount: true } } } : {},
       }),
       maintenanceOn
         ? prisma.maintenanceRecord.findMany({
@@ -1026,7 +1072,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       const b = bucket(t.vehicleId);
       b.income += tripIncome(t);
       b.trips_count += 1;
-      b.driver_charges += Number(t.trip_charges);
+      b.driver_charges += Number((t as any).driver_charge ?? (t as any).trip_charges ?? 0);
     }
 
     // MaintenanceRecord.cost / Expense.amount are Decimal at runtime —
@@ -1107,7 +1153,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
     const monthlyExpenses = [
       ...maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: Number(m.cost) })),
       ...expenses.filter(e => !(e.ref_id && e.ref_id.startsWith('EXP-MNT-'))).map((e) => ({ date: e.expense_date, amount: Number(e.amount) })),
-      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number(t.trip_charges)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number(t.trip_charges) })),
+      ...trips.filter(t => t.vehicleId && isEarned(t.status) && Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0)).map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: Number((t as any).driver_payout ?? (t as any).driver_charge ?? (t as any).trip_charges ?? 0) })),
     ];
 
     const monthly = buildMonthlySeries(

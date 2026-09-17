@@ -12,6 +12,8 @@
  * second billed call for data we are handed by the first.
  */
 
+import { api } from '@/lib/api';
+
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
 /** One row in the "Search an address…" dropdown. */
@@ -46,7 +48,7 @@ export interface AddressSearchSession {
 }
 
 /* ------------------------------------------------------------------ *
- * Nominatim — the fallback, unchanged in behaviour from before.
+ * Nominatim / MERCON Backend Proxy — server-cached address fallback.
  * ------------------------------------------------------------------ */
 
 interface NominatimResult {
@@ -55,14 +57,6 @@ interface NominatimResult {
   lon: string;
 }
 
-/**
- * Nominatim returns a full postal chain ("Khamis Mushait, Aseer Province,
- * 62454, Saudi Arabia"). A route label wants the place, not the address, so
- * take the leading segment — and the second as well when the first is just a
- * building or house number, which alone names nothing.
- *
- * Google needs none of this: it gives us `displayName` directly.
- */
 export function placeNameFrom(displayName: string): string {
   const parts = displayName.split(',').map((p) => p.trim()).filter(Boolean);
   if (parts.length === 0) return '';
@@ -71,21 +65,34 @@ export function placeNameFrom(displayName: string): string {
 }
 
 function createNominatimSession(): AddressSearchSession {
-  /** Cumulative, for the reason given on the Google session's copy. */
   const byId = new Map<string, NominatimResult>();
 
   return {
     async search(query) {
-      // Restrict search strictly to Saudi Arabia (countrycodes=sa & bounded viewbox)
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=sa&viewbox=34.0,32.5,55.8,16.0&bounded=1&q=${encodeURIComponent(query)}`
-      );
-      const data: NominatimResult[] = await res.json();
-      return data.map((r, i) => {
-        const id = `osm-${i}-${r.lat},${r.lon}`;
-        byId.set(id, r);
-        return { id, label: r.display_name };
-      });
+      try {
+        const res = await api.get('/geocoding/search', { params: { q: query } });
+        const suggestions: Array<{ id: string; display_name: string; lat: number; lon: number }> = res.data?.suggestions || [];
+        return suggestions.map((r) => {
+          const id = r.id;
+          byId.set(id, { display_name: r.display_name, lat: String(r.lat), lon: String(r.lon) });
+          return { id, label: r.display_name };
+        });
+      } catch (err) {
+        console.warn('[addressSearch] Proxy search failed, using direct fallback', err);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=sa&viewbox=34.0,32.5,55.8,16.0&bounded=1&q=${encodeURIComponent(query)}`
+          );
+          const data: NominatimResult[] = await res.json();
+          return data.map((r, i) => {
+            const id = `osm-${i}-${r.lat},${r.lon}`;
+            byId.set(id, r);
+            return { id, label: r.display_name };
+          });
+        } catch {
+          return [];
+        }
+      }
     },
 
     async resolve(id) {
@@ -101,14 +108,6 @@ function createNominatimSession(): AddressSearchSession {
   };
 }
 
-/**
- * Reverse geocode — a GPS fix (from vehicle telemetry, not a user's search)
- * back into a place name. Nominatim only: its reverse endpoint is free and
- * keyless, and the module-level comment above already rules out Google's
- * Geocoding API as a second billed call this app doesn't need. Callers are
- * responsible for their own rate limiting — Nominatim's usage policy caps
- * the public instance at one request per second.
- */
 const reverseGeocodeCache = new Map<string, string | null>();
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
@@ -116,12 +115,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key) ?? null;
 
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14`
-    );
-    if (!res.ok) throw new Error(`Nominatim reverse geocode failed: ${res.status}`);
-    const data: { display_name?: string } = await res.json();
-    const name = data.display_name ? placeNameFrom(data.display_name) : null;
+    const res = await api.get('/geocoding/reverse', { params: { lat, lng, zoom: 14 } });
+    const name = res.data?.display_name ? placeNameFrom(res.data.display_name) : null;
     reverseGeocodeCache.set(key, name);
     return name;
   } catch (err) {
@@ -131,19 +126,10 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   }
 }
 
-/** A pin turned back into both the fields a stop stores, in both languages. */
 export interface ReverseGeocodedPlace {
-  /** → `location_name`: the short label reports group routes by. */
   name: string;
-  /**
-   * → `location_address`: the address that will actually be stored. Defaults
-   * to the English rendering; the operator can switch it to the Arabic one,
-   * which is why both are carried alongside.
-   */
   address: string;
-  /** The same place written in English, when Nominatim knows it. */
   addressEn: string | null;
-  /** The same place written in Arabic, when Nominatim knows it. */
   addressAr: string | null;
 }
 
@@ -154,12 +140,17 @@ async function fetchReverseDisplayName(
   lng: number,
   language: 'en' | 'ar'
 ): Promise<string | null> {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=${language}`
-  );
-  if (!res.ok) throw new Error(`Nominatim reverse geocode failed: ${res.status}`);
-  const data: { display_name?: string } = await res.json();
-  return data.display_name ?? null;
+  try {
+    const res = await api.get('/geocoding/reverse', { params: { lat, lng, zoom: 18, language } });
+    return res.data?.display_name ?? null;
+  } catch {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=${language}`
+    );
+    if (!res.ok) throw new Error(`Nominatim reverse geocode failed: ${res.status}`);
+    const data: { display_name?: string } = await res.json();
+    return data.display_name ?? null;
+  }
 }
 
 /**

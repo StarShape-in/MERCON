@@ -22,6 +22,8 @@ import {
   Percent,
   CornerDownRight,
   GitCommit,
+  Copy,
+  Flag,
 } from 'lucide-react';
 import {
   Dialog,
@@ -136,11 +138,11 @@ export default function QuotationAiImportModal({
 
     try {
       setIsAnalyzing(true);
-      toast.loading('✨ Gemini 3.5 Flash analyzing commercial document & multi-stop routes...', { id: 'gemini-ai' });
+      toast.loading('Gemini 3.5 Flash analyzing commercial document & multi-stop routes...', { id: 'gemini-ai' });
 
       const result = await quotationService.analyzeDocumentAi(target as any, custId);
 
-      toast.success('✨ Gemini 3.5 Flash successfully extracted commercial terms & route geometry!', { id: 'gemini-ai' });
+      toast.success('Gemini 3.5 Flash successfully extracted commercial terms & route geometry!', { id: 'gemini-ai' });
 
       if (result.agreement_ref) setAgreementRef(result.agreement_ref);
       if (result.valid_from) setValidFrom(result.valid_from);
@@ -322,6 +324,7 @@ export default function QuotationAiImportModal({
               vehicle_class: r.vehicleClass,
               source_vehicle_label: r.sourceVehicleLabel || r.vehicleClass,
               line_type: r.lineType,
+              operation_type: r.billingType || null,
               billing_type: r.billingType || null,
               rate: Number(r.rate),
               driver_payout: r.driverPayout.trim() ? Number(r.driverPayout) : null,
@@ -337,6 +340,7 @@ export default function QuotationAiImportModal({
             vehicle_class: r.vehicleClass,
             source_vehicle_label: r.sourceVehicleLabel || r.vehicleClass,
             line_type: r.lineType,
+            operation_type: r.billingType || null,
             billing_type: r.billingType || null,
             rate: Number(r.rate),
             driver_payout: r.driverPayout.trim() ? Number(r.driverPayout) : null,
@@ -408,8 +412,8 @@ export default function QuotationAiImportModal({
                   <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
                   Import Error (Click to Copy)
                 </span>
-                <span className="text-[11px] bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-200 px-2 py-0.5 rounded font-mono font-semibold border border-red-300 dark:border-red-800 shrink-0 hover:bg-red-200 shadow-xs">
-                  📋 Click to Copy
+                <span className="text-[11px] bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-200 px-2 py-0.5 rounded font-mono font-semibold border border-red-300 dark:border-red-800 shrink-0 hover:bg-red-200 shadow-xs flex items-center gap-1">
+                  <Copy className="w-3 h-3" /> Click to Copy
                 </span>
               </div>
               <div className="text-red-950 dark:text-red-100 font-mono text-[11px] bg-red-50/90 dark:bg-slate-950 p-2 rounded-lg border border-red-200 dark:border-red-900 break-words whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed select-all">
@@ -500,7 +504,7 @@ export default function QuotationAiImportModal({
                   <SelectContent className="z-[9999]">
                     {customers.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        🏢 {c.name}
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -557,7 +561,7 @@ export default function QuotationAiImportModal({
                       {loc.status === 'MATCHED' ? (
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px]">Matched Master</Badge>
                       ) : (
-                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px]">✨ New Master Candidate</Badge>
+                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px]">New Master Candidate</Badge>
                       )}
                     </div>
 
@@ -576,7 +580,7 @@ export default function QuotationAiImportModal({
                         <SelectItem value="create_new">Create New Location</SelectItem>
                         {masterLocations.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            📍 {m.name} ({m.code})
+                            {m.name} ({m.code})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -631,7 +635,7 @@ export default function QuotationAiImportModal({
                         <td className="p-2.5 space-y-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 font-extrabold text-[11px] border border-emerald-300 dark:border-emerald-800 shadow-2xs">
-                              📍 Pickup: {route.originName}
+                              Pickup: {route.originName}
                             </span>
 
                             {route.waypoints.map((wp, wIdx) => (
@@ -664,7 +668,7 @@ export default function QuotationAiImportModal({
 
                             <span className="text-rose-500 dark:text-rose-400 font-black text-xs">➔</span>
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 font-extrabold text-[11px] border border-rose-300 dark:border-rose-800 shadow-2xs">
-                              🏁 Dropoff: {route.destinationName}
+                              Dropoff: {route.destinationName}
                             </span>
 
                             <Button
@@ -703,7 +707,7 @@ export default function QuotationAiImportModal({
                             <div className="p-2 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-1">
                               <div className="flex items-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300">
                                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                                <span>⚠ Route structure needs confirmation</span>
+                                <span>Route structure needs confirmation</span>
                               </div>
                               <div className="flex items-center gap-3 text-[11px]">
                                 <label className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">

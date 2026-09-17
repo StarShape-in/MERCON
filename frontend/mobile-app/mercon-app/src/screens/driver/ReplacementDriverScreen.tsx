@@ -8,15 +8,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, Star, Truck, Package, Smartphone, Ban, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Avatar } from '../../components';
+import { useLanguage } from '../../lib/language-context';
 
-const WAIT_TIPS: { Icon: LucideIcon; text: string }[] = [
-  { Icon: Truck, text: 'Stay with the vehicle at all times' },
-  { Icon: Package, text: 'Ensure cargo is secured and sealed' },
-  { Icon: Smartphone, text: 'Keep your phone charged and reachable' },
-  { Icon: Ban, text: 'Do not allow unauthorized access to cargo' },
+const WAIT_TIPS: { Icon: LucideIcon; key: string; defaultText: string }[] = [
+  { Icon: Truck, key: 'tip_stay_with_vehicle', defaultText: 'Stay with the vehicle at all times' },
+  { Icon: Package, key: 'tip_cargo_secured', defaultText: 'Ensure cargo is secured and sealed' },
+  { Icon: Smartphone, key: 'tip_phone_charged', defaultText: 'Keep your phone charged and reachable' },
+  { Icon: Ban, key: 'tip_no_unauthorized', defaultText: 'Do not allow unauthorized access to cargo' },
 ];
 
 const ReplacementDriverScreen = ({ navigation }: any) => {
+  const { t } = useLanguage();
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
@@ -26,9 +29,9 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
           <View style={styles.successCircle}>
             <Check size={40} color={Colors.white} strokeWidth={3} />
           </View>
-          <Text style={styles.successTitle}>Replacement Requested</Text>
+          <Text style={styles.successTitle}>{t('title_replacement_requested', 'Replacement Requested')}</Text>
           <Text style={styles.successSub}>
-            Your operator has been notified and is arranging a replacement driver.
+            {t('msg_replacement_arranging', 'Your operator has been notified and is arranging a replacement driver.')}
           </Text>
         </View>
 
@@ -40,9 +43,9 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
             </View>
             <View>
               <Text style={styles.operatorName}>Mohammed Al-Otaibi</Text>
-              <Text style={styles.operatorRole}>Fleet Operator</Text>
+              <Text style={styles.operatorRole}>{t('label_fleet_operator', 'Fleet Operator')}</Text>
             </View>
-            <Text style={styles.messageTime}>2 min ago</Text>
+            <Text style={styles.messageTime}>{t('label_time_2min_ago', '2 min ago')}</Text>
           </View>
           <View style={styles.messageBubble}>
             <Text style={styles.messageText}>
@@ -53,59 +56,59 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
         </View>
 
         {/* Replacement Driver Card */}
-        <Text style={styles.sectionTitle}>Replacement Driver</Text>
+        <Text style={styles.sectionTitle}>{t('title_replacement_driver', 'Replacement Driver')}</Text>
         <View style={styles.driverCard}>
           <Avatar initials="KA" size={56} />
           <View style={styles.driverInfo}>
             <Text style={styles.driverName}>Khalid Al-Zahrani</Text>
-            <Text style={styles.driverId}>DRV-2024-0147</Text>
+            <Text style={[styles.driverId, { writingDirection: 'ltr' }]}>DRV-2024-0147</Text>
             <View style={styles.ratingRow}>
               <Star size={14} color="#F5A623" strokeWidth={2} fill="#F5A623" />
               <Text style={styles.rating}>4.9</Text>
-              <Text style={styles.ratingCount}>(312 trips)</Text>
+              <Text style={styles.ratingCount}>{t('label_rating_trips', '(312 trips)')}</Text>
             </View>
           </View>
           <View style={styles.driverStatus}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>En Route</Text>
-            <Text style={styles.etaText}>~45 min</Text>
+            <Text style={styles.statusText}>{t('status_in_transit', 'In Transit')}</Text>
+            <Text style={[styles.etaText, { writingDirection: 'ltr' }]}>{t('label_eta_approx_45', '~45 min')}</Text>
           </View>
         </View>
 
         {/* Trip Handoff Details */}
         <View style={styles.handoffCard}>
-          <Text style={styles.handoffTitle}>Handoff Details</Text>
+          <Text style={styles.handoffTitle}>{t('title_handoff_details', 'Handoff Details')}</Text>
           <View style={styles.handoffRow}>
-            <Text style={styles.handoffLabel}>Trip ID</Text>
-            <Text style={styles.handoffValue}>#TRP-2024-0891</Text>
+            <Text style={styles.handoffLabel}>{t('label_trip_id', 'Trip ID')}</Text>
+            <Text style={[styles.handoffValue, { writingDirection: 'ltr' }]}>#TRP-2024-0891</Text>
           </View>
           <View style={styles.handoffRow}>
-            <Text style={styles.handoffLabel}>Cargo</Text>
+            <Text style={styles.handoffLabel}>{t('label_cargo_type', 'Cargo')}</Text>
             <Text style={styles.handoffValue}>Electronics (2.4T)</Text>
           </View>
           <View style={styles.handoffRow}>
-            <Text style={styles.handoffLabel}>Destination</Text>
+            <Text style={styles.handoffLabel}>{t('label_destination', 'Destination')}</Text>
             <Text style={styles.handoffValue}>Jeddah Port, Gate 7</Text>
           </View>
           <View style={styles.handoffRow}>
-            <Text style={styles.handoffLabel}>Current Location</Text>
+            <Text style={styles.handoffLabel}>{t('label_location', 'Location')}</Text>
             <Text style={styles.handoffValue}>Taif Road, KM 340</Text>
           </View>
         </View>
 
         {/* Instructions */}
         <View style={styles.instructionCard}>
-          <Text style={styles.instructionTitle}>While You Wait</Text>
+          <Text style={styles.instructionTitle}>{t('title_while_you_wait', 'While You Wait')}</Text>
           {WAIT_TIPS.map((tip, i) => (
             <View key={i} style={styles.instructionRow}>
               <tip.Icon size={16} color={Colors.gray600} strokeWidth={2} />
-              <Text style={styles.instructionItem}>{tip.text}</Text>
+              <Text style={styles.instructionItem}>{t(tip.key, tip.defaultText)}</Text>
             </View>
           ))}
         </View>
 
         <Button
-          title="Return Home"
+          title={t('action_return_home', 'Return Home')}
           onPress={() => navigation?.navigate('Home')}
           variant="outline"
         />

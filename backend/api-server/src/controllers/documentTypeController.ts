@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { DocOwnerType, DocRequirement } from '@prisma/client';
 
 /* ─── List document types ─────────────────────────────────────────────────── */

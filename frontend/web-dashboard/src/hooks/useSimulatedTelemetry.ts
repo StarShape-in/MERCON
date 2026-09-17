@@ -28,7 +28,8 @@ export function useSimulatedTelemetry(initialSpeedMultiplier: number = 1) {
 
     let lastTime = performance.now();
 
-    const tick = (now: number) => {
+    const intervalId = setInterval(() => {
+      const now = performance.now();
       const deltaSec = (now - lastTime) / 1000;
       lastTime = now;
 
@@ -66,8 +67,11 @@ export function useSimulatedTelemetry(initialSpeedMultiplier: number = 1) {
 
           // Calculate dynamic speed variation
           const baseSpeed = truck.status === 'InTransit' ? 88 : 0;
-          const speedFluc = Math.sin(now / 1000 + parseInt(truck.tripId, 36) || 0) * 4;
-          const currentSpeed = newStatus === 'Completed' || newStatus === 'AtPickup' ? 0 : Math.round(baseSpeed + speedFluc);
+          const speedFluc = Math.sin(now / 1000 + (parseInt(truck.tripId, 36) || 0)) * 4;
+          const currentSpeed =
+            newStatus === 'Completed' || newStatus === 'AtPickup'
+              ? 0
+              : Math.round(baseSpeed + speedFluc);
 
           const eta = currentSpeed > 0 ? Math.round((remainingDist / currentSpeed) * 60) : 0;
 
@@ -84,14 +88,10 @@ export function useSimulatedTelemetry(initialSpeedMultiplier: number = 1) {
           };
         })
       );
-
-      animFrameRef.current = requestAnimationFrame(tick);
-    };
-
-    animFrameRef.current = requestAnimationFrame(tick);
+    }, 1000);
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      clearInterval(intervalId);
     };
   }, [isPlaying, speedMultiplier]);
 

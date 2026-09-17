@@ -5,7 +5,9 @@ import { imageOrPdfFileFilter } from './uploadFileFilter';
 
 // Get and guarantee a 100% writable uploads directory inside the Docker container
 export const getUploadDir = (): string => {
-  const dir = path.resolve('/tmp', 'uploads');
+  const dir = process.env.UPLOADS_DIR
+    ? path.resolve(process.env.UPLOADS_DIR)
+    : path.resolve('/tmp', 'uploads');
   try {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
@@ -31,6 +33,6 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 150 * 1024 * 1024, fieldSize: 150 * 1024 * 1024 },
   fileFilter: imageOrPdfFileFilter,
 });

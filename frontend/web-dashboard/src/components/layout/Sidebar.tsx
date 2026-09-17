@@ -4,10 +4,14 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, Calculator, Files, FileBarChart,
   Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
-  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
+
+import { settingsService } from '@/services/settingsService';
+import type { ModuleKey } from '@mercon/shared-types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface SidebarProps {
   active?: string;
@@ -22,14 +26,13 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-
-
 export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
-  const isAdmin = user?.role === 'Admin';
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
+  const { can, isSuperAdmin, userRole } = usePermissions();
+  const isAdmin = userRole === 'Admin';
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ME';
 
   const isItemActive = (itemPath: string, itemEnd?: boolean) => {
     const currentPath = location.pathname;
@@ -69,49 +72,99 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     refetchInterval: 60000,
   });
 
-  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+    staleTime: 60000,
+  });
 
-  const groups = [
+  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
+  const enabledModules = settings?.enabledModules;
+
+  interface NavItem {
+    icon: any;
+    label: string;
+    path: string;
+    moduleKey?: ModuleKey;
+    permissionKey?: string;
+    end?: boolean;
+    badge?: number;
+  }
+
+  const rawGroups: { label: string; items: NavItem[] }[] = [
     {
       label: '',
       items: [
-        { icon: Home, label: 'Dashboard', path: '/' },
+        { icon: Home, label: 'Dashboard', path: '/', moduleKey: 'dashboard' },
       ],
     },
     {
       label: 'FINANCE',
       items: [
-        { icon: Calculator, label: 'Quotations', path: '/quotations' },
-        { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
-        { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials' },
+        { icon: Calculator, label: 'Quotations', path: '/quotations', moduleKey: 'quotations', permissionKey: 'quotations.view' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses', permissionKey: 'reports.view' },
+        { icon: TrendingUp, label: 'Vehicle P&L', path: '/vehicles/financials', moduleKey: 'vehicles', permissionKey: 'fleet.financials' },
       ],
     },
     {
       label: 'COMPLIANCE & REPORTS',
       items: [
-        { icon: Files, label: 'Documents', path: '/documents' },
-        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports' },
-        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder' },
+        { icon: Files, label: 'Documents', path: '/documents', moduleKey: 'documents' },
+        { icon: FileBarChart, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports', permissionKey: 'reports.view' },
+        { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder', moduleKey: 'report-builder', permissionKey: 'reports.view' },
       ],
     },
     {
       label: 'MASTER DATA',
       items: [
-        { icon: MapPin, label: 'Locations', path: '/locations' },
-        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy' },
+        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations', permissionKey: 'settings.view' },
+        { icon: SlidersHorizontal, label: 'Taxonomy & Colors', path: '/taxonomy', moduleKey: 'taxonomy', permissionKey: 'settings.view' },
       ],
     },
     {
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
-        ...(isAdmin ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
-        { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents' },
+        ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance', permissionKey: 'settings.deployment' }] : []),
+        ...(can('users.view') ? [{ icon: Users, label: 'User Management', path: '/settings/users', permissionKey: 'users.view' }] : []),
+        { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents', moduleKey: 'aprodac-documents' },
       ],
     },
   ];
+
+
+  const checkIsDisabled = (item: NavItem) => {
+    return item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+  };
+
+  const processedGroups: { label: string; items: NavItem[] }[] = [];
+  const comingSoonItems: NavItem[] = [];
+
+  rawGroups.forEach((g) => {
+    const enabledItems: NavItem[] = [];
+    g.items.forEach((item) => {
+      if (checkIsDisabled(item)) {
+        comingSoonItems.push(item);
+      } else {
+        enabledItems.push(item);
+      }
+    });
+    if (enabledItems.length > 0) {
+      processedGroups.push({
+        label: g.label,
+        items: enabledItems,
+      });
+    }
+  });
+
+  if (comingSoonItems.length > 0) {
+    processedGroups.push({
+      label: 'COMING SOON',
+      items: comingSoonItems,
+    });
+  }
+
+  const groups = processedGroups;
 
   return (
     <>
@@ -209,11 +262,16 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </button>
 
         {/* Nav groups */}
-        <div className={`flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 sidebar-scrollbar transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className="flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 sidebar-scrollbar">
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
-                <p className={`text-[10px] font-bold text-[#EEF1F6]/50 uppercase tracking-widest px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                <p
+                  className={`
+                    text-[10px] font-bold text-[#EEF1F6]/50 uppercase tracking-widest px-3 flex items-center gap-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                    ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:h-0 lg:mb-0' : 'lg:max-w-full lg:opacity-100 lg:h-4 lg:mb-1.5'}
+                  `}
+                >
                   <span className="w-1 h-1 rounded-full bg-[#FA634E] shrink-0" />
                   <span>{g.label}</span>
                 </p>
@@ -221,6 +279,36 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
               <div className="space-y-1">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
+                  const isDisabledModule = item.moduleKey && !isSuperAdmin && enabledModules && Array.isArray(enabledModules) && !enabledModules.includes(item.moduleKey);
+
+                  if (isDisabledModule) {
+                    return (
+                      <div
+                        key={item.label}
+                        title={collapsed ? `${item.label} — Locked` : `${item.label} (Locked)`}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl opacity-45 cursor-not-allowed select-none transition-colors duration-200 relative overflow-hidden text-[#EEF1F6]/50 bg-white/5 font-medium"
+                      >
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon size={17} className="stroke-[1.8] text-[#EEF1F6]/40" />
+                        </span>
+                        <div
+                          className={`
+                            flex items-center justify-between flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                            ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[180px] lg:opacity-100'}
+                          `}
+                        >
+                          <span className="text-xs truncate">
+                            {item.label}
+                          </span>
+                          <Lock size={13} className="text-amber-400/90 shrink-0 ml-1.5" />
+                        </div>
+                        {collapsed && (
+                          <Lock size={12} className="hidden lg:block absolute top-1.5 right-1.5 text-amber-400/90" />
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <NavLink
                       key={item.label}
@@ -228,28 +316,36 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-colors duration-150 group relative
-                        ${collapsed ? 'lg:justify-center lg:px-2' : ''}
+                        flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors duration-200 group relative overflow-hidden
                         ${isActive
                           ? 'bg-[#FA634E] text-white font-bold shadow-2xs'
                           : 'text-[#EEF1F6]/75 hover:bg-white/10 hover:text-white font-medium'
                         }
                       `}
                     >
-                      <item.icon
-                        size={17}
-                        className={`shrink-0 transition-colors duration-150 ${
-                          isActive ? 'stroke-[2.4] text-white' : 'stroke-[2] text-[#EEF1F6]/60 group-hover:text-white'
-                        }`}
-                      />
-                      <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
-                        {item.label}
+                      <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                        <item.icon
+                          size={17}
+                          className={`transition-colors duration-150 ${
+                            isActive ? 'stroke-[2.4] text-white' : 'stroke-[2] text-[#EEF1F6]/60 group-hover:text-white'
+                          }`}
+                        />
                       </span>
-                      {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span className={`w-4 h-4 rounded-full bg-[#FA634E] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
-                          {item.badge > 9 ? '9+' : item.badge}
+                      <div
+                        className={`
+                          flex items-center justify-between flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                          ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[180px] lg:opacity-100'}
+                        `}
+                      >
+                        <span className="text-xs truncate">
+                          {item.label}
                         </span>
-                      )}
+                        {item.badge !== undefined && item.badge > 0 && !isActive && (
+                          <span className="w-4 h-4 rounded-full bg-[#FA634E] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ml-1.5">
+                            {item.badge > 9 ? '9+' : item.badge}
+                          </span>
+                        )}
+                      </div>
                       {collapsed && item.badge !== undefined && item.badge > 0 && !isActive && (
                         <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[#FA634E]" />
                       )}
@@ -262,20 +358,28 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User profile footer */}
-        <div className={`px-3.5 py-3 border-t border-white/10 flex items-center gap-2.5 bg-[#2D2B2C] shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2.5 bg-[#2D2B2C] shrink-0 overflow-hidden">
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-9 h-9 rounded-xl bg-[#FA634E] text-white flex items-center justify-center text-xs font-black shrink-0 border-2 border-white/20 shadow-md shadow-[#FA634E]/20 select-none"
           >
             {initials}
           </div>
-          <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
+          <div
+            className={`
+              flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+              ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[160px] lg:opacity-100'}
+            `}
+          >
             <p className="text-xs font-black text-white truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
             <p className="text-[10px] font-medium text-[#EEF1F6]/60 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-[#EEF1F6]/60 hover:text-[#FA634E] p-2 rounded-xl hover:bg-[#FA634E]/15 transition-colors shrink-0 cursor-pointer"
+            className={`
+              text-[#EEF1F6]/60 hover:text-[#FA634E] p-2 rounded-xl hover:bg-[#FA634E]/15 transition-all duration-300 shrink-0 cursor-pointer
+              ${collapsed ? 'lg:hidden' : ''}
+            `}
             title="Logout"
           >
             <LogOut size={16} />

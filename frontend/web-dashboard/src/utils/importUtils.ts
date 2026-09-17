@@ -12,175 +12,128 @@ import ExcelJS from 'exceljs';
  * spellings per field rather than one exact string.
  */
 
-const normalise = (header: string) =>
-  String(header ?? '')
-    .toLowerCase()
-    .replace(/\*/g, '')
-    .replace(/\(.*?\)/g, '')   // drop unit hints like "(KG)"
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-
-/** Field name → the header spellings that map to it, most specific first. */
-export type ColumnMap = Record<string, string[]>;
-
-export const DRIVER_COLUMNS: ColumnMap = {
-  ref_id: ['driver ref id', 'driver ref', 'ref id', 'driver id'],
-  first_name: ['first name'],
-  last_name: ['last name', 'family name'],
-  phone_primary: ['primary phone', 'phone', 'mobile', 'contact number'],
-  license_number: ['license number', 'licence number', 'license no'],
-  license_expiry: ['license expiry date', 'license expiry', 'licence expiry'],
-  assigned_vehicle_plate: ['assigned vehicle plate', 'assigned vehicle', 'vehicle plate', 'plate'],
-};
-
-export const VEHICLE_COLUMNS: ColumnMap = {
-  ref_id: ['vehicle ref id', 'vehicle ref', 'ref id', 'vehicle id'],
-  plate_number: ['plate number', 'plate', 'registration plate'],
-  asset_type: ['asset type', 'vehicle type', 'body type'],
-  capacity_kg: ['capacity kg', 'capacity'],
-  current_odometer: ['current odometer km', 'current odometer', 'odometer'],
-  icces_device_id: ['icces device id', 'icces device', 'icces id'],
-  trailer_number: ['trailer number', 'trailer no'],
-  trailer_type: ['trailer type'],
-  trailer_capacity_kg: ['trailer capacity kg', 'trailer capacity'],
-  assigned_driver: ['assigned driver phone name', 'assigned driver', 'driver phone', 'driver'],
-};
-
-export const CUSTOMER_COLUMNS: ColumnMap = {
-  ref_id: ['customer ref id', 'customer ref', 'ref id', 'customer id'],
-  name: ['company name', 'company name *', 'company', 'legal entity name', 'customer name', 'name'],
-  trade_alias: ['trade name brand', 'trade name', 'trade alias', 'brand'],
-  industry: ['industry', 'industry sector'],
-  cr_number: ['commercial reg cr no', 'commercial reg no', 'cr number', 'cr no'],
-  vat_number: ['vat tax number', 'vat number', 'tax number', 'vat no'],
-  contact_person: ['contact 1 name', 'primary contact name', 'contact representative', 'contact person', 'representative'],
-  contact_phone: ['contact 1 phone *', 'contact 1 phone', 'primary phone *', 'primary phone', 'contact phone', 'phone', 'mobile', 'contact number'],
-  email: ['contact 1 email', 'primary email', 'billing email', 'email address', 'email'],
-  contact_title: ['contact 1 title', 'primary contact title', 'job title', 'designation', 'title'],
-  secondary_person: ['contact 2 name', 'secondary contact name', 'secondary contact', 'contact 2 name'],
-  secondary_phone: ['contact 2 phone', 'secondary phone'],
-  secondary_email: ['contact 2 email', 'secondary email'],
-  secondary_title: ['contact 2 title', 'secondary contact title'],
-  tertiary_person: ['contact 3 name', 'tertiary contact name', 'contact 3 name'],
-  tertiary_phone: ['contact 3 phone', 'tertiary phone'],
-  tertiary_email: ['contact 3 email', 'tertiary email'],
-  tertiary_title: ['contact 3 title', 'tertiary contact title'],
-  billing_address: ['billing address notes', 'billing address', 'address', 'notes'],
-};
-
-export const RATE_CARD_COLUMNS: ColumnMap = {
-  customer_name: ['customer', 'customer name', 'company', 'company name', 'carrier'],
-  rate_category: ['rate category', 'category', 'rate type', 'quote type'],
-  billing_type: ['billing type', 'billing', 'billing frequency', 'commitment'],
-  origin: ['origin', 'from', 'starting city', 'pickup', 'pickup city'],
-  origin_label: ['origin label', 'origin facility', 'pickup facility', 'pickup label'],
-  via: ['via', 'connecting city', 'connecting stop', 'stop'],
-  destination: ['destination', 'to', 'destination city', 'drop off', 'dropoff', 'drop off city'],
-  destination_label: ['destination label', 'destination facility', 'dropoff facility', 'dropoff label'],
-  vehicle_type: ['vehicle type', 'vehicle', 'truck type', 'body type'],
-  price: ['billing rate', 'price', 'rate', 'base price', 'amount'],
-  currency: ['currency', 'ccy'],
-  driver_payout: ['driver charge', 'driver payout', 'default trip charge', 'trip charge', 'payout rate', 'driver cost'],
-};
-
-export const LOCATION_COLUMNS: ColumnMap = {
-  name: ['location name', 'location name *', 'label', 'location', 'name', 'city', 'place', 'place name', 'saved place'],
-  customer_name: ['customer', 'customer name', 'company', 'company name', 'customer *', 'company name *', 'client'],
-  code: ['location code', 'location code *', 'code', 'code *', 'short code'],
-  address: ['address', 'street / facility address', 'facility address', 'full address', 'area'],
-  city: ['city', 'town'],
-  postal_code: ['postal code', 'postal code *', 'zip code', 'zip'],
-  lat: ['latitude', 'latitude *', 'lat'],
-  lng: ['longitude', 'longitude *', 'lng', 'long'],
-  coordinate_precision: ['coordinate precision', 'precision status', 'precision', 'confidence'],
-  codes: ['codes', 'short codes', 'monthly sheet codes', 'aliases'],
-};
-
-export const SURCHARGE_COLUMNS: ColumnMap = {
-  customer_name: ['customer', 'customer name', 'company', 'company name'],
-  charge_type: ['charge type', 'fee', 'fee type', 'charge'],
-  unit: ['unit', 'per', 'basis'],
-  vehicle_type: ['vehicle type', 'vehicle', 'truck type'],
-  applies_to: ['applies to', 'lane', 'route', 'origin destination'],
-  rate: ['rate', 'price', 'amount', 'fee amount'],
-  currency: ['currency', 'ccy'],
-};
-
-
-export const THIRD_PARTY_COLUMNS: ColumnMap = {
-  name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
-  contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],
-  phone: ['phone', 'phone number', 'mobile', 'contact phone', 'contact number'],
-  email: ['email', 'email address', 'contact email'],
-  tax_id: ['tax id', 'tax number', 'cr number', 'vat number', 'commercial reg id'],
-  address: ['address', 'office address', 'yard address', 'location'],
-  notes: ['notes', 'remarks', 'terms', 'comments'],
-};
-
-export const TRIP_COLUMNS: ColumnMap = {
-  customer_name: ['customer', 'customer name', 'company', 'company name', 'client'],
-  planned_start: ['date', 'trip date', 'planned start', 'planned date', 'start date', 'scheduled date'],
-  driver_name: ['driver', 'driver name', 'assigned driver', 'driver full name'],
-  vehicle_plate: ['vehicle plate', 'vehicle', 'plate', 'truck plate', 'plate number', 'vehicle no'],
-  rate_category: ['rate category', 'category', 'rate type', 'trip type'],
-  vehicle_type: ['vehicle type', 'truck type', 'body type', 'asset type'],
-  billing_type: ['billing type', 'billing', 'billing frequency', 'commitment'],
-  origin: ['origin', 'from', 'pickup', 'pickup city', 'starting point'],
-  destination: ['destination', 'to', 'dropoff', 'drop off', 'delivery city'],
-  billing_amount: ['amount', 'price', 'rate', 'billing amount', 'charges'],
-  trip_charges: ['trip charges', 'driver payout', 'driver charge', 'payout'],
-  status: ['status', 'trip status'],
-};
+export interface ColumnMap {
+  [fieldName: string]: string[];
+}
 
 export interface ParsedSheet {
   rows: Record<string, string | number>[];
-  /** Fields the template defines that this file has no column for. */
   missingColumns: string[];
-  /** Headers in the file we didn't recognise — surfaced so a renamed column isn't silently dropped. */
   unmappedHeaders: string[];
   sheetName: string;
 }
 
+export const DRIVER_COLUMNS: ColumnMap = {
+  first_name: ['first_name', 'firstname', 'first', 'given_name'],
+  last_name: ['last_name', 'lastname', 'last', 'family_name', 'surname'],
+  phone_primary: ['phone_primary', 'phone', 'mobile', 'primary_phone', 'phone_number', 'contact_phone'],
+  phone_secondary: ['phone_secondary', 'alt_phone', 'secondary_phone', 'emergency_phone'],
+  national_id: ['national_id', 'iqama', 'iqama_id', 'id_number', 'national_id_number'],
+  license_number: ['license_number', 'license', 'driving_license', 'license_no'],
+  license_type: ['license_type', 'class', 'license_class'],
+  license_expiry: ['license_expiry', 'expiry_date', 'license_expiration'],
+  date_of_birth: ['date_of_birth', 'dob', 'birth_date'],
+  status: ['status', 'state', 'active_status'],
+  notes: ['notes', 'remarks', 'comments'],
+};
+
+export const VEHICLE_COLUMNS: ColumnMap = {
+  plate_number: ['plate_number', 'plate', 'registration', 'reg_number', 'plate_no'],
+  vehicle_class: ['vehicle_class', 'class', 'type', 'vehicle_type', 'category'],
+  make: ['make', 'brand', 'manufacturer'],
+  model: ['model', 'vehicle_model'],
+  year: ['year', 'model_year'],
+  status: ['status', 'state'],
+  notes: ['notes', 'remarks', 'comments'],
+};
+
+export const TRIP_COLUMNS: ColumnMap = {
+  customer_name: ['customer_name', 'customer', 'client', 'client_name'],
+  origin_name: ['origin_name', 'origin', 'pickup_location', 'pickup', 'from'],
+  destination_name: ['destination_name', 'destination', 'dropoff_location', 'dropoff', 'to'],
+  pickup_time: ['pickup_time', 'scheduled_time', 'pickup_date', 'date', 'time'],
+  vehicle_plate: ['vehicle_plate', 'plate_number', 'plate', 'vehicle'],
+  driver_id: ['driver_id', 'driver_ref', 'driver'],
+  status: ['status', 'trip_status', 'state'],
+  billing_amount: ['billing_amount', 'rate', 'price', 'amount', 'trip_charge'],
+};
+
+export const CUSTOMER_COLUMNS: ColumnMap = {
+  name: ['name', 'company_name', 'customer_name', 'client'],
+  contact_phone: ['contact_phone', 'phone', 'mobile', 'primary_phone'],
+  payment_terms: ['payment_terms', 'terms'],
+  notes: ['notes', 'remarks'],
+};
+
+export const LOCATION_COLUMNS: ColumnMap = {
+  name: ['name', 'location_name', 'site_name', 'facility'],
+  address: ['address', 'street_address', 'location_address'],
+  city: ['city', 'town'],
+  latitude: ['latitude', 'lat'],
+  longitude: ['longitude', 'lng', 'long'],
+};
+
+export const RATE_CARD_COLUMNS: ColumnMap = {
+  customer_name: ['customer_name', 'customer'],
+  origin_name: ['origin_name', 'origin'],
+  destination_name: ['destination_name', 'destination'],
+  rate: ['rate', 'billing_rate', 'price', 'amount'],
+};
+
+export const THIRD_PARTY_COLUMNS: ColumnMap = {
+  name: ['name', 'vendor_name', 'carrier_name', 'supplier_name'],
+  contact_person: ['contact_person', 'contact', 'primary_contact'],
+  phone: ['phone', 'contact_phone', 'mobile'],
+};
+
+export const SURCHARGE_COLUMNS: ColumnMap = {
+  name: ['name', 'fee_name', 'surcharge_name'],
+  code: ['code', 'fee_code'],
+  amount: ['amount', 'fee_amount', 'rate'],
+};
+
 /**
- * A cell can come back as a string, a number, a Date, or a rich-text/formula
- * object. Flatten all of that to something the API can validate.
+ * Clean up a string so "Primary Phone *" matches "primaryphone".
  */
-function cellToValue(value: ExcelJS.CellValue): string | number | null {
-  if (value === null || value === undefined) return null;
-  if (value instanceof Date) {
-    // Dates go to the API as YYYY-MM-DD. Using the local date parts rather than
-    // toISOString(), which shifts to UTC and can move a date back a day.
-    const y = value.getFullYear();
-    const m = String(value.getMonth() + 1).padStart(2, '0');
-    const d = String(value.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  if (typeof value === 'number' || typeof value === 'string') return value;
-  if (typeof value === 'object') {
-    const anyVal = value as any;
-    if ('text' in anyVal) return String(anyVal.text);
-    if ('result' in anyVal) return anyVal.result ?? null;      // formula cell
-    if ('richText' in anyVal) return anyVal.richText.map((r: any) => r.text).join('');
-    if ('hyperlink' in anyVal) return String(anyVal.text ?? anyVal.hyperlink);
-  }
-  return String(value);
+export function normalise(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
 }
 
 /**
- * Find the header row. The templates put a banner and instructions above the
- * table, so the headers are not row 1 — locate the first row that matches at
- * least two known column names instead of assuming a position.
+ * Handle Excel cell values (dates, numbers, strings).
  */
-function findHeaderRow(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | null {
-  const known = new Set(Object.values(columns).flat());
+export function cellToValue(val: any): string | number | null {
+  if (val === null || val === undefined) return null;
+  if (val instanceof Date) {
+    return val.toISOString().split('T')[0];
+  }
+  if (typeof val === 'number') return val;
+  if (typeof val === 'object') {
+    if ('result' in val) return cellToValue((val as any).result);
+    if ('text' in val) return cellToValue((val as any).text);
+    if ('richText' in val && Array.isArray((val as any).richText)) {
+      return (val as any).richText.map((rt: any) => rt.text).join('');
+    }
+  }
+  const s = String(val).trim();
+  return s === '' ? null : s;
+}
+
+export function findHeaderRowInMatrix(matrix: any[][], columns: ColumnMap): number | null {
+  const fieldAliases = new Set(Object.values(columns).flat());
   let best: { row: number; hits: number } | null = null;
 
-  for (let r = 1; r <= Math.min(sheet.rowCount, 25); r++) {
-    const row = sheet.getRow(r);
+  for (let r = 0; r < Math.min(matrix.length, 25); r++) {
+    const row = matrix[r] || [];
     let hits = 0;
-    row.eachCell({ includeEmpty: false }, (cell) => {
-      if (known.has(normalise(String(cellToValue(cell.value) ?? '')))) hits++;
+    row.forEach((cell) => {
+      const norm = normalise(String(cellToValue(cell) ?? ''));
+      if (norm && fieldAliases.has(norm)) hits++;
     });
+
     if (hits >= 2 && (!best || hits > best.hits)) best = { row: r, hits };
   }
 
@@ -190,56 +143,67 @@ function findHeaderRow(sheet: ExcelJS.Worksheet, columns: ColumnMap): number | n
 export async function parseSheet(
   file: File,
   columns: ColumnMap,
-  /** Prefer a sheet whose name contains this, e.g. "driver". */
   preferSheet?: string
 ): Promise<ParsedSheet> {
+  const buffer = await file.arrayBuffer();
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(await file.arrayBuffer());
+  await workbook.xlsx.load(buffer);
 
-  // The master template holds Instructions / Drivers / Vehicles / Reference in
-  // one file, so pick the right sheet rather than always taking the first.
-  const sheet =
-    (preferSheet
-      ? workbook.worksheets.find((w) => w.name.toLowerCase().includes(preferSheet))
-      : undefined) ??
-    workbook.worksheets.find((w) => findHeaderRow(w, columns) !== null) ??
-    workbook.worksheets[0];
+  const sheetNames = workbook.worksheets.map((w) => w.name);
+  if (!sheetNames.length) {
+    throw new Error('That file has no readable sheets.');
+  }
 
-  if (!sheet) throw new Error('That file has no readable sheets.');
+  let targetSheetName = sheetNames[0];
+  if (preferSheet) {
+    const matched = sheetNames.find((s: string) => s.toLowerCase().includes(preferSheet.toLowerCase()));
+    if (matched) targetSheetName = matched;
+  }
 
-  const headerRowNumber = findHeaderRow(sheet, columns);
-  if (headerRowNumber === null) {
-    // Smart detection: check if they uploaded the wrong entity template (e.g. Drivers vs Vehicles)
-    const isLookingForDrivers = columns === DRIVER_COLUMNS;
-    const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
-    const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
-    const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
+  const getSheetMatrix = (sheetName: string): any[][] => {
+    const ws = workbook.getWorksheet(sheetName);
+    if (!ws) return [];
+    const mat: any[][] = [];
+    ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const vals = Array.isArray(row.values) ? row.values.slice(1) : [];
+      mat[rowNumber - 1] = vals.map((v: any) => cellToValue(v));
+    });
+    return mat;
+  };
 
-    const oppositeSheet = workbook.worksheets.find((w) => findHeaderRow(w, oppositeColumns) !== null);
-    if (oppositeSheet) {
-      throw new Error(
-        `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
-      );
+  let matrix = getSheetMatrix(targetSheetName);
+  let headerRowIdx = findHeaderRowInMatrix(matrix, columns);
+
+  if (headerRowIdx === null && !preferSheet) {
+    for (const sName of sheetNames) {
+      const mat = getSheetMatrix(sName);
+      if (findHeaderRowInMatrix(mat, columns) !== null) {
+        targetSheetName = sName;
+        matrix = mat;
+        headerRowIdx = findHeaderRowInMatrix(mat, columns);
+        break;
+      }
     }
+  }
 
+  if (headerRowIdx === null) {
     throw new Error(
-      `Couldn't find the column headers on sheet "${sheet.name}". Use the MERCON template, or check the header row wasn't deleted.`
+      `Couldn't find the column headers on sheet "${targetSheetName}". Use the MERCON template, or check the header row wasn't deleted.`
     );
   }
 
-  // Map each spreadsheet column index to one of our field names.
-  const headerRow = sheet.getRow(headerRowNumber);
+  const headerRow = matrix[headerRowIdx] || [];
   const indexToField = new Map<number, string>();
   const unmappedHeaders: string[] = [];
 
-  headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-    const header = normalise(String(cellToValue(cell.value) ?? ''));
+  headerRow.forEach((cellVal, colIdx) => {
+    const header = normalise(String(cellToValue(cellVal) ?? ''));
     if (!header) return;
     const field = Object.entries(columns).find(([, aliases]) => aliases.includes(header))?.[0];
     if (field && !Array.from(indexToField.values()).includes(field)) {
-      indexToField.set(colNumber, field);
+      indexToField.set(colIdx, field);
     } else if (!field) {
-      unmappedHeaders.push(String(cellToValue(cell.value) ?? ''));
+      unmappedHeaders.push(String(cellToValue(cellVal) ?? ''));
     }
   });
 
@@ -247,19 +211,18 @@ export async function parseSheet(
   const missingColumns = Object.keys(columns).filter((f) => !foundFields.has(f));
 
   const rows: Record<string, string | number>[] = [];
-  for (let r = headerRowNumber + 1; r <= sheet.rowCount; r++) {
-    const row = sheet.getRow(r);
+  for (let r = headerRowIdx + 1; r < matrix.length; r++) {
+    const rowCells = matrix[r] || [];
     const parsed: Record<string, string | number> = {};
 
-    indexToField.forEach((field, colNumber) => {
-      const value = cellToValue(row.getCell(colNumber).value);
-      if (value === null || String(value).trim() === '') return;
-      parsed[field] = typeof value === 'number' ? value : String(value).trim();
+    indexToField.forEach((field, colIdx) => {
+      const val = cellToValue(rowCells[colIdx]);
+      if (val === null || String(val).trim() === '') return;
+      parsed[field] = typeof val === 'number' ? val : String(val).trim();
     });
 
-    // Skip blank spacer rows without skipping a row that merely has gaps.
     if (Object.keys(parsed).length > 0) rows.push(parsed);
   }
 
-  return { rows, missingColumns, unmappedHeaders, sheetName: sheet.name };
+  return { rows, missingColumns, unmappedHeaders, sheetName: targetSheetName };
 }

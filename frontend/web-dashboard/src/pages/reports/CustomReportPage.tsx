@@ -343,7 +343,7 @@ export default function CustomReportPage() {
   // Handle Export CSV / Excel / PDF
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const headers = [
-      'Date', 'Driver Name', 'Vehicle Number', 'Trip Status', 'Trip Count', 'Revenue', 'Trip Charges', 'Third-Party Cost'
+      'Date', 'Driver Name', 'Vehicle Number', 'Trip Status', 'Trip Count', 'Revenue', 'Driver Charges', 'Third-Party Cost'
     ];
     const rows = filteredDataRows.map(r => [
       r.date,
@@ -797,7 +797,7 @@ export default function CustomReportPage() {
                           <th className="py-3 px-4">Trip Status</th>
                           <th className="py-3 px-4 text-center">Trip Count</th>
                           <th className="py-3 px-4 text-right">Revenue</th>
-                          <th className="py-3 px-4 text-right">Trip Charges</th>
+                          <th className="py-3 px-4 text-right">Driver Charges</th>
                           <th className="py-3 px-4 text-right">Third-Party Cost</th>
                         </tr>
                       </thead>
@@ -965,7 +965,7 @@ export default function CustomReportPage() {
                   {/* Total Trip Charges */}
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
-                      Total Trip Charges
+                      Total Driver Charges
                     </p>
                     <h4 className="text-xl font-black text-slate-900 dark:text-slate-100">
                       ₹{dynamicKpiSummary.totalTripCharges.toLocaleString()}
