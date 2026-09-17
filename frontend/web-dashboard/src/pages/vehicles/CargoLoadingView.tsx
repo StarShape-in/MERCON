@@ -787,9 +787,9 @@ export default function CargoLoadingView() {
               </div>
             )}
 
-            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - Grouped Closer with Simple Vertical Dividers) */}
+            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - Centered in Middle with Dividers) */}
             {activeServiceView === 'categories' && (
-              <div className="absolute bottom-3.5 left-5 z-20 flex items-center gap-5 sm:gap-7 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+              <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-5 sm:gap-7 w-max max-w-full px-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
                 {/* 1. Latest Odometer */}
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Gauge className="w-4.5 h-4.5 text-[#FA634E] stroke-[2.2] shrink-0" />
