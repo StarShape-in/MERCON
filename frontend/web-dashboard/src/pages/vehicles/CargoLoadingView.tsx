@@ -780,41 +780,42 @@ export default function CargoLoadingView() {
               onClick={handleToggleServiceHistory}
             />
 
-            {/* Floating 3D Part Interactive Hotspots */}
-            <div className="absolute inset-0 pointer-events-none">
-              {serviceItems.map((item) => {
-                const isSelected = item.id === selectedServiceId;
-                const IconComp = item.icon;
-                const theme = item.colorTheme;
-                return (
-                  <div
-                    key={`hotspot-${item.id}`}
-                    style={{ top: item.hotspot.top, left: item.hotspot.left }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedServiceId(item.id);
-                        if (!isExplodedView) handleToggleServiceHistory();
-                      }}
-                      className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
-                        isSelected 
-                          ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
-                          : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
-                      }`}
-                      title={item.categoryLabel}
+            {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
+            {isExplodedView && showHotspots && (
+              <div className="absolute inset-0 pointer-events-none animate-in fade-in zoom-in-95 duration-300">
+                {serviceItems.map((item) => {
+                  const isSelected = item.id === selectedServiceId;
+                  const IconComp = item.icon;
+                  const theme = item.colorTheme;
+                  return (
+                    <div
+                      key={`hotspot-${item.id}`}
+                      style={{ top: item.hotspot.top, left: item.hotspot.left }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
                     >
-                      <span className={`absolute -inset-1 rounded-full animate-ping opacity-30 ${theme.ping}`} />
-                      <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
-                      <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
-                        {item.categoryLabel}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedServiceId(item.id);
+                        }}
+                        className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
+                          isSelected 
+                            ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
+                            : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
+                        }`}
+                        title={item.categoryLabel}
+                      >
+                        <span className={`absolute -inset-1 rounded-full animate-ping opacity-30 ${theme.ping}`} />
+                        <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
+                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
+                          {item.categoryLabel}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
