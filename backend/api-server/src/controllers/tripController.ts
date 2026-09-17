@@ -1147,6 +1147,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         third_party_vehicle_plate?: string;
         third_party_vehicle_type?: string;
         third_party_cost?: number;
+        additional_charge?: number;
       }>;
     };
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -1260,19 +1261,22 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           });
         }
 
+        const baseStops = (row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : [];
         let parsedStops = Array.isArray(row.stops) && row.stops.length > 0
-          ? row.stops.map((st, idx) => ({
-              stop_sequence: st.stop_sequence ?? (idx + 1),
-              leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
-              stop_type: (st.stop_type || (idx === 0 ? 'Pickup' : 'Dropoff')) as 'Pickup' | 'Dropoff',
-              location_name: String(st.location_name ?? '').trim(),
-              location_id: st.location_id || null,
-              lat: st.lat ?? null,
-              lng: st.lng ?? null,
-            }))
-          : ((row.origin || row.destination)
-              ? parseFullTripStops(row.origin || '', row.destination || '')
-              : []);
+          ? [
+              ...(baseStops[0] ? [baseStops[0]] : []),
+              ...row.stops.map((st, idx) => ({
+                stop_sequence: st.stop_sequence ?? (idx + 2), // Shift sequence
+                leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
+                stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
+                location_name: String(st.location_name ?? '').trim(),
+                location_id: st.location_id || null,
+                lat: st.lat ?? null,
+                lng: st.lng ?? null,
+              })),
+              ...(baseStops[1] ? [{ ...baseStops[1], stop_sequence: (row.stops.length + (baseStops[0] ? 2 : 1)) }] : [])
+            ]
+          : baseStops;
 
         if (parsedStops.length === 0 && appliedQuotation?.stops && appliedQuotation.stops.length > 0) {
           const isQuoRound = (appliedQuotation.line_type || row.rate_category || '').toLowerCase().includes('round');
@@ -1393,6 +1397,15 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                 : (appliedQuotation?.rate != null ? { billing_amount: Number(appliedQuotation.rate) } : {})),
               driver_payout: finalRowDriverPayout,
               ...(createdBy ? { created_by: createdBy } : {}),
+              ...(row.additional_charge !== undefined && row.additional_charge !== null && !isNaN(Number(row.additional_charge)) && Number(row.additional_charge) > 0 ? {
+                charges: {
+                  create: [{
+                    amount: Number(row.additional_charge),
+                    description: 'Additional Charge',
+                    ...(createdBy ? { created_by: createdBy } : {})
+                  }]
+                }
+              } : {}),
               carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {
                 stops: {

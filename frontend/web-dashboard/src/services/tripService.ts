@@ -609,6 +609,7 @@ export interface BulkImportTripRow {
   driver_charge?: number;
   driver_payout?: number;
   co_driver_payout?: number;
+  additional_charge?: number;
   update_quotation_driver_payout?: boolean;
   origin?: string;
   destination?: string;

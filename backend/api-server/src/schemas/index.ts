@@ -369,6 +369,7 @@ export const bulkImportTripsBody = z.object({
     driver_payout: z.coerce.number().nullable().optional(),
     co_driver_id: z.string().trim().nullable().optional(),
     co_driver_payout: z.coerce.number().nullable().optional(),
+    additional_charge: z.coerce.number().nullable().optional(),
     update_quotation_driver_payout: z.boolean().optional(),
     stops: z.array(z.object({
       stop_sequence: z.number().int().optional(),
