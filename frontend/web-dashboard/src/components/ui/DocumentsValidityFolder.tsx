@@ -19,12 +19,15 @@ interface DocumentItem {
 
 interface DocumentsValidityFolderProps {
   vehicleId?: string;
+  onSelectDocument?: (docId: string) => void;
+  selectedDocumentId?: string | null;
 }
 
-export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidityFolderProps) {
+export default function DocumentsValidityFolder({ vehicleId, onSelectDocument, selectedDocumentId }: DocumentsValidityFolderProps) {
   const navigate = useNavigate();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
+  
+  // ... rest of setup ...
   const documents: DocumentItem[] = [
     {
       id: 'istimara',
@@ -112,10 +115,11 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
         <div className="relative w-full flex-1 flex flex-col justify-between space-y-[-4px]">
           {documents.map((doc, index) => {
             const Icon = doc.icon;
-            const isHovered = hoveredId === doc.id;
+            const isSelected = selectedDocumentId === doc.id;
+            const isHovered = hoveredId === doc.id || isSelected;
 
             // Base z-index stacks lower cards over upper cards in resting state.
-            // Hovered card gets highest z-index 100 to float cleanly above all cards.
+            // Hovered/Selected card gets highest z-index 100 to float cleanly above all cards.
             const baseZIndex = (index + 1) * 10;
             const computedZIndex = isHovered ? 100 : baseZIndex;
 
@@ -124,7 +128,13 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
                 key={doc.id}
                 onMouseEnter={() => setHoveredId(doc.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => vehicleId && navigate(`/vehicles/${vehicleId}/documents`)}
+                onClick={() => {
+                  if (onSelectDocument) {
+                    onSelectDocument(doc.id);
+                  } else if (vehicleId) {
+                    navigate(`/vehicles/${vehicleId}/documents`);
+                  }
+                }}
                 style={{ zIndex: computedZIndex }}
                 className={`
                   relative w-full h-[58px] cursor-pointer

@@ -138,6 +138,140 @@ export default function CargoLoadingView() {
   const [activeMilestoneId, setActiveMilestoneId] = useState<string>('mnt-1');
   const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
   const [showHotspots, setShowHotspots] = useState<boolean>(false);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+
+  const DOCUMENT_DETAILS: Record<string, {
+    name: string;
+    arabicName: string;
+    subtitle: string;
+    status: string;
+    statusBg: string;
+    statusText: string;
+    statusBorder: string;
+    docNumber: string;
+    issueDate: string;
+    expiryDate: string;
+    issuer: string;
+    icon: React.ElementType;
+    iconColor: string;
+    fields: { label: string; value: string; isMono?: boolean; isHighlight?: boolean }[];
+  }> = {
+    istimara: {
+      name: 'Vehicle Registration Certificate (Istimara)',
+      arabicName: 'رخصة سير مركبة - استمارة',
+      subtitle: 'Ministry of Interior · General Directorate of Traffic',
+      status: 'Valid (15 Oct 2027)',
+      statusBg: 'bg-emerald-50',
+      statusText: 'text-emerald-700',
+      statusBorder: 'border-emerald-200',
+      docNumber: 'IST-994827160',
+      issueDate: '16 Oct 2024',
+      expiryDate: '15 Oct 2027',
+      issuer: 'Saudi Traffic Department ( المرور )',
+      icon: FileText,
+      iconColor: 'text-blue-600',
+      fields: [
+        { label: 'Plate Number', value: plateNumber || '8849 - B R D', isMono: true, isHighlight: true },
+        { label: 'Vehicle Make & Model', value: `${vehicle?.asset_type || 'Box'} Truck (ISUZU FVR 34)` },
+        { label: 'VIN / Chassis No.', value: (vehicle as any)?.chassis_number || (vehicle as any)?.vin || 'KMC-FLT-2026-8849-SA', isMono: true },
+        { label: 'Registered Owner', value: 'MERCON LOGISTICS CO.' },
+        { label: 'Gross Vehicle Weight', value: capacityFormatted || '18,000 Kg' },
+        { label: 'Vehicle Color', value: 'White / Coral Red Trim' },
+      ]
+    },
+    insurance: {
+      name: 'Commercial Fleet Insurance Policy',
+      arabicName: 'وثيقة التأمين الشامل للمركبة',
+      subtitle: 'Tawuniya Commercial Transportation Coverage',
+      status: 'Valid (10 Jan 2027)',
+      statusBg: 'bg-emerald-50',
+      statusText: 'text-emerald-700',
+      statusBorder: 'border-emerald-200',
+      docNumber: 'INS-SA-2026-77492',
+      issueDate: '11 Jan 2025',
+      expiryDate: '10 Jan 2027',
+      issuer: 'Tawuniya Insurance Company',
+      icon: ShieldCheck,
+      iconColor: 'text-purple-600',
+      fields: [
+        { label: 'Policy Number', value: 'POL-TAW-8849-2025', isMono: true, isHighlight: true },
+        { label: 'Coverage Type', value: 'Comprehensive Commercial Fleet & 3rd Party' },
+        { label: 'Insured Entity', value: 'MERCON LOGISTICS CO.' },
+        { label: 'Deductible Amount', value: 'SAR 1,500 per Incident' },
+        { label: 'Towing & Roadside', value: 'Included (24/7 Kingdom-wide)' },
+        { label: 'Claims Support', value: '9200-19990' },
+      ]
+    },
+    operation_card: {
+      name: 'Transport General Authority (TGA Bayan) Card',
+      arabicName: 'بطاقة تشغيل نقل البضائع - الهيئة العامة للنقل',
+      subtitle: 'Public Transport Authority Intercity Freight Authorization',
+      status: 'Expiring 28 Sep 2026',
+      statusBg: 'bg-amber-50',
+      statusText: 'text-amber-700',
+      statusBorder: 'border-amber-200',
+      docNumber: 'OP-TGA-8849201',
+      issueDate: '29 Sep 2024',
+      expiryDate: '28 Sep 2026',
+      issuer: 'Transport General Authority ( TGA / الهيئة العامة للنقل )',
+      icon: AlertTriangle,
+      iconColor: 'text-amber-600',
+      fields: [
+        { label: 'Operation Card No.', value: 'TGA-8849201-SA', isMono: true, isHighlight: true },
+        { label: 'Permitted Activity', value: 'Intercity Land Freight Transport' },
+        { label: 'Bayan Platform Sync', value: 'Active · Integrated with MERCON' },
+        { label: 'Authorized Routes', value: 'All Saudi Provinces & GCC Transit' },
+        { label: 'Payload Category', value: 'General Cargo & Cold Chain Box' },
+        { label: 'Compliance Rating', value: 'Class A Commercial Operator' },
+      ]
+    },
+    saso_plates: {
+      name: 'SASO License & Plate Standards Certificate',
+      arabicName: 'شهادة المطابقة الفنية ولوحات القياس (SASO)',
+      subtitle: 'Saudi Standards, Metrology and Quality Organization',
+      status: 'Valid (04 Nov 2028)',
+      statusBg: 'bg-emerald-50',
+      statusText: 'text-emerald-700',
+      statusBorder: 'border-emerald-200',
+      docNumber: 'SASO-CERT-2024-991',
+      issueDate: '05 Nov 2024',
+      expiryDate: '04 Nov 2028',
+      issuer: 'Saudi Standards Organization ( SASO / المواصفات السعودية )',
+      icon: Award,
+      iconColor: 'text-indigo-600',
+      fields: [
+        { label: 'SASO Compliance ID', value: 'SASO-2024-99184', isMono: true, isHighlight: true },
+        { label: 'Reflective Tape & Underrun', value: 'Certified (ISO-3795 Compliant)' },
+        { label: 'Axle Load Limit', value: 'Single Axle 10T / Tandem 18T' },
+        { label: 'Speed Limiter Setting', value: 'Fixed at 90 KM/H Max' },
+        { label: 'Plate Dimension & Fit', value: 'Standard Saudi Commercial Size' },
+        { label: 'Inspection Status', value: 'Passed All Safety Checks' },
+      ]
+    },
+    fahas: {
+      name: 'Periodic Motor Vehicle Inspection (FAHAS)',
+      arabicName: 'شهادة الفحص الفني الدوري للمركبات (فحص)',
+      subtitle: 'MVPI Periodic Inspection Authority',
+      status: 'Valid (20 May 2027)',
+      statusBg: 'bg-emerald-50',
+      statusText: 'text-emerald-700',
+      statusBorder: 'border-emerald-200',
+      docNumber: 'FHS-RYD-2025-441',
+      issueDate: '21 May 2025',
+      expiryDate: '20 May 2027',
+      issuer: 'Saudi MVPI Authority ( الفحص الدوري )',
+      icon: CheckCircle2,
+      iconColor: 'text-emerald-600',
+      fields: [
+        { label: 'Inspection Certificate', value: 'FAHAS-RYD-44109', isMono: true, isHighlight: true },
+        { label: 'Inspection Station', value: 'Riyadh Main MVPI Station #1' },
+        { label: 'Exhaust & Emissions', value: 'Passed (Euro V Compliant)' },
+        { label: 'Braking & Suspension', value: 'Passed (Efficiency 96%)' },
+        { label: 'Headlights & Alignment', value: 'Calibrated & Certified' },
+        { label: 'Next Inspection Due', value: '20 May 2027' },
+      ]
+    }
+  };
   const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
   const [activeServiceView, setActiveServiceView] = useState<'categories' | 'detail'>('categories');
   const [recordIndex, setRecordIndex] = useState<number>(0);
@@ -725,118 +859,211 @@ export default function CargoLoadingView() {
 
         {/* Left Column: Documents & Validity (Redesigned Stacked Folder Pocket) */}
         <div className="xl:col-span-3 h-[410px] max-h-[410px]">
-          <DocumentsValidityFolder vehicleId={vehicle?.id || id} />
+          <DocumentsValidityFolder 
+            vehicleId={vehicle?.id || id} 
+            onSelectDocument={(docId) => setSelectedDocId(docId)}
+            selectedDocumentId={selectedDocId}
+          />
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Clean h-[410px] Height) */}
+        {/* Center Column: Truck Visualizer OR Document Preview Container (Clean h-[410px] Height) */}
         <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
-            {/* Clean 2-Second Exploded Animation Video Element */}
-            <video
-              ref={videoRef}
-              src="/truck-animation-2s.mp4"
-              muted
-              playsInline
-              preload="auto"
-              onEnded={handleVideoEnded}
-              onTimeUpdate={handleVideoTimeUpdate}
-              className="w-full h-full object-cover block transform-gpu transition-all duration-300 inset-0"
-            />
+          {selectedDocId && DOCUMENT_DETAILS[selectedDocId] ? (
+            /* ── Document Preview Screen ── */
+            <div className="w-full h-full p-4 sm:p-5 flex flex-col justify-between bg-slate-50/60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              
+              {/* 1. Header Bar with Back Button */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 shrink-0">
+                <button
+                  onClick={() => setSelectedDocId(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-800 font-extrabold text-xs shadow-2xs transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4 text-[#FA634E] stroke-[2.5]" />
+                  <span>Back to Truck</span>
+                </button>
 
-            {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
-            {isExplodedView && showHotspots && (
-              <div className="absolute inset-0 pointer-events-none animate-in fade-in zoom-in-95 duration-300">
-                {serviceItems.map((item) => {
-                  const isSelected = item.id === selectedServiceId;
-                  const IconComp = item.icon;
-                  const theme = item.colorTheme;
-                  return (
-                    <div
-                      key={`hotspot-${item.id}`}
-                      style={{ top: item.hotspot.top, left: item.hotspot.left }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (selectedServiceId === item.id) {
-                            setActiveServiceView('categories');
-                            setIsExplodedView(false);
-                          } else {
-                            setSelectedServiceId(item.id);
-                            setRecordIndex(0);
-                            setActiveServiceView('detail');
-                            setIsExplodedView(true);
-                          }
-                        }}
-                        className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
-                          isSelected 
-                            ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
-                            : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
-                        }`}
-                        title={item.categoryLabel}
-                      >
-                        <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
-                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
-                          {item.categoryLabel}
-                        </span>
-                      </button>
+                <div className="flex items-center gap-2">
+                  <Badge className={`px-2.5 py-0.5 text-[10px] font-bold border rounded-full ${DOCUMENT_DETAILS[selectedDocId].statusBg} ${DOCUMENT_DETAILS[selectedDocId].statusText} ${DOCUMENT_DETAILS[selectedDocId].statusBorder}`}>
+                    {DOCUMENT_DETAILS[selectedDocId].status}
+                  </Badge>
+                  <button
+                    onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1 cursor-pointer pl-2"
+                  >
+                    <span>Full Vault</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Official Document Certificate Card */}
+              <div className="my-3 flex-1 bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                {/* Subtle Background Watermark Stamp */}
+                <div className="absolute right-3 bottom-3 opacity-5 pointer-events-none text-slate-900 font-mono font-black text-5xl tracking-widest uppercase select-none">
+                  MERCON CERTIFIED
+                </div>
+
+                {/* Top Title Section */}
+                <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {(() => {
+                      const DocIcon = DOCUMENT_DETAILS[selectedDocId].icon;
+                      return <DocIcon className={`w-7 h-7 ${DOCUMENT_DETAILS[selectedDocId].iconColor} stroke-[2] shrink-0`} />;
+                    })()}
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base font-black text-slate-900 leading-tight truncate">
+                        {DOCUMENT_DETAILS[selectedDocId].name}
+                      </h3>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5 truncate">
+                        {DOCUMENT_DETAILS[selectedDocId].arabicName} · {DOCUMENT_DETAILS[selectedDocId].subtitle}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - Centered in Middle with Dividers) */}
-            {activeServiceView === 'categories' && (
-              <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-5 sm:gap-7 w-max max-w-full px-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
-                {/* 1. Latest Odometer */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Gauge className="w-4.5 h-4.5 text-[#FA634E] stroke-[2.2] shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
-                      LATEST ODOMETER
-                    </span>
-                    <span className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-none block truncate">
-                      {latestOdometerFormatted}
+                  </div>
+                  <div className="text-right shrink-0 hidden sm:block ml-2">
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-widest block mb-0.5">DOC REF NO.</span>
+                    <span className="text-xs font-mono font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                      {DOCUMENT_DETAILS[selectedDocId].docNumber}
                     </span>
                   </div>
                 </div>
 
-                {/* Divider Line 1 */}
-                <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
-
-                {/* 2. Next Service Due */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Clock className="w-4.5 h-4.5 text-blue-600 stroke-[2.2] shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
-                      NEXT SERVICE DUE
-                    </span>
-                    <span className="text-xs font-bold text-slate-800 leading-none block truncate">
-                      {nextServiceDue}
-                    </span>
-                  </div>
+                {/* Metadata Fields Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 py-3 my-auto">
+                  {DOCUMENT_DETAILS[selectedDocId].fields.map((f, i) => (
+                    <div key={`field-${i}`} className="bg-slate-50/80 border border-slate-200/70 p-2 px-2.5 rounded-xl">
+                      <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">
+                        {f.label}
+                      </span>
+                      <span className={`text-xs font-bold truncate block ${f.isMono ? 'font-mono' : ''} ${f.isHighlight ? 'text-[#FA634E] font-black' : 'text-slate-800'}`}>
+                        {f.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Divider Line 2 */}
-                <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
-
-                {/* 3. YTD Maintenance Spend */}
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Wrench className="w-4.5 h-4.5 text-indigo-600 stroke-[2.2] shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
-                      YTD MAINTENANCE
-                    </span>
-                    <span className="text-xs font-mono font-bold text-slate-900 leading-none block truncate">
-                      {ytdSpendFormatted}
-                    </span>
+                {/* Bottom Certificate Verification Footer */}
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-2 text-slate-500 min-w-0">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate"><strong className="text-slate-700">Issued By:</strong> {DOCUMENT_DETAILS[selectedDocId].issuer}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 font-mono font-bold text-slate-600 ml-2">
+                    <span>Valid: <span className="text-emerald-700">{DOCUMENT_DETAILS[selectedDocId].issueDate} → {DOCUMENT_DETAILS[selectedDocId].expiryDate}</span></span>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+
+            </div>
+          ) : (
+            /* ── Truck Visualizer View ── */
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
+              {/* Clean 2-Second Exploded Animation Video Element */}
+              <video
+                ref={videoRef}
+                src="/truck-animation-2s.mp4"
+                muted
+                playsInline
+                preload="auto"
+                onEnded={handleVideoEnded}
+                onTimeUpdate={handleVideoTimeUpdate}
+                className="w-full h-full object-cover block transform-gpu transition-all duration-300 inset-0"
+              />
+
+              {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
+              {isExplodedView && showHotspots && (
+                <div className="absolute inset-0 pointer-events-none animate-in fade-in zoom-in-95 duration-300">
+                  {serviceItems.map((item) => {
+                    const isSelected = item.id === selectedServiceId;
+                    const IconComp = item.icon;
+                    const theme = item.colorTheme;
+                    return (
+                      <div
+                        key={`hotspot-${item.id}`}
+                        style={{ top: item.hotspot.top, left: item.hotspot.left }}
+                        className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedServiceId === item.id) {
+                              setActiveServiceView('categories');
+                              setIsExplodedView(false);
+                            } else {
+                              setSelectedServiceId(item.id);
+                              setRecordIndex(0);
+                              setActiveServiceView('detail');
+                              setIsExplodedView(true);
+                            }
+                          }}
+                          className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
+                            isSelected 
+                              ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
+                              : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
+                          }`}
+                          title={item.categoryLabel}
+                        >
+                          <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
+                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
+                            {item.categoryLabel}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Bottom Telemetry Bar (Visible in Normal View inside Truck Box - Centered in Middle with Dividers) */}
+              {activeServiceView === 'categories' && (
+                <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-5 sm:gap-7 w-max max-w-full px-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+                  {/* 1. Latest Odometer */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Gauge className="w-4.5 h-4.5 text-[#FA634E] stroke-[2.2] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                        LATEST ODOMETER
+                      </span>
+                      <span className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-none block truncate">
+                        {latestOdometerFormatted}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Divider Line 1 */}
+                  <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
+
+                  {/* 2. Next Service Due */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Clock className="w-4.5 h-4.5 text-blue-600 stroke-[2.2] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                        NEXT SERVICE DUE
+                      </span>
+                      <span className="text-xs font-bold text-slate-800 leading-none block truncate">
+                        {nextServiceDue}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Divider Line 2 */}
+                  <div className="h-6 w-px bg-slate-300/80 shrink-0"></div>
+
+                  {/* 3. YTD Maintenance Spend */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Wrench className="w-4.5 h-4.5 text-indigo-600 stroke-[2.2] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                        YTD MAINTENANCE
+                      </span>
+                      <span className="text-xs font-mono font-bold text-slate-900 leading-none block truncate">
+                        {ytdSpendFormatted}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Service History (Clean h-[410px] Height, All Cards Fit Cleanly) */}
