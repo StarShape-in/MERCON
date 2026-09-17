@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import SlowScrollingDriverName from '@/components/ui/SlowScrollingDriverName';
+import DocumentsValidityFolder from '@/components/ui/DocumentsValidityFolder';
 
 type SlotId = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' |
               'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' |
@@ -722,85 +723,9 @@ export default function CargoLoadingView() {
       {/* ── Middle Section (3 Main Columns Grid - Clean Height h-[410px]) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
-        {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
-              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <FileText className="w-4.5 h-4.5 text-blue-600" />
-                Documents &amp; Validity
-              </h2>
-              <button 
-                onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-                className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-              >
-                View All
-              </button>
-            </div>
-
-            {/* 5 Document Cards List */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Istimara</span>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (15 Oct 2027)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Insurance</span>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (10 Jan 2027)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Operation Card</span>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/70">
-                  Expiring 28 Sep
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <Award className="w-3.5 h-3.5 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">SASO Plates</span>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (04 Nov 2028)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">FAHAS</span>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (20 May 2027)
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* Left Column: Documents & Validity (Redesigned Stacked Folder Pocket) */}
+        <div className="xl:col-span-3 h-[410px] max-h-[410px]">
+          <DocumentsValidityFolder vehicleId={vehicle?.id || id} />
         </div>
 
         {/* Center Column: Truck Visualizer Container (Clean h-[410px] Height) */}
