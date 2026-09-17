@@ -1378,18 +1378,19 @@ export default function TripListPage() {
   };
 
   const handleDateRangeExport = () => {
-    if (exportFormat === 'pdf') {
-      // PDF: keep existing browser-side generation (limited to 2,000 rows)
+    if (exportFormat === 'pdf' || exportFormat === 'excel') {
+      // PDF / Excel: use beautiful browser-side styled generation (limited to 2,000 rows)
       runExport(exportFormat, {
         statusGroup: exportStatusGroup,
         startDate: exportStartDate,
         endDate: exportEndDate,
       });
+      setExportDialogOpen(false);
     } else {
-      // xlsx / csv: use the scalable backend streaming endpoint
+      // CSV: use the scalable backend streaming endpoint
       triggerExport({
         type: 'date-range',
-        format: exportFormat === 'csv' ? 'csv' : 'xlsx',
+        format: 'csv',
         start_date: exportStartDate || undefined,
         end_date: exportEndDate || undefined,
       });
@@ -2475,7 +2476,7 @@ export default function TripListPage() {
                   <DropdownMenuItem
                     onClick={() => {
                       setExportMenuOpen(false);
-                      triggerExport({ type: 'all', format: 'xlsx' });
+                      runExport('excel', { statusGroup: 'All' });
                     }}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
