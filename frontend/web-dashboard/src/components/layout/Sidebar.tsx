@@ -262,11 +262,16 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </button>
 
         {/* Nav groups */}
-        <div className={`flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 sidebar-scrollbar transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className="flex-1 py-4 space-y-4 overflow-y-auto overflow-x-hidden px-3 sidebar-scrollbar">
           {groups.map((g, idx) => (
             <div key={g.label || `group-${idx}`}>
               {g.label ? (
-                <p className={`text-[10px] font-bold text-[#EEF1F6]/50 uppercase tracking-widest px-3 mb-1.5 flex items-center gap-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                <p
+                  className={`
+                    text-[10px] font-bold text-[#EEF1F6]/50 uppercase tracking-widest px-3 flex items-center gap-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                    ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:h-0 lg:mb-0' : 'lg:max-w-full lg:opacity-100 lg:h-4 lg:mb-1.5'}
+                  `}
+                >
                   <span className="w-1 h-1 rounded-full bg-[#FA634E] shrink-0" />
                   <span>{g.label}</span>
                 </p>
@@ -281,17 +286,22 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       <div
                         key={item.label}
                         title={collapsed ? `${item.label} — Locked` : `${item.label} (Locked)`}
-                        className={`
-                          flex items-center gap-2.5 px-3 py-2 rounded-xl opacity-45 cursor-not-allowed select-none transition-opacity relative
-                          text-[#EEF1F6]/50 bg-white/5 font-medium
-                          ${collapsed ? 'lg:justify-center lg:px-2' : ''}
-                        `}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl opacity-45 cursor-not-allowed select-none transition-colors duration-200 relative overflow-hidden text-[#EEF1F6]/50 bg-white/5 font-medium"
                       >
-                        <item.icon size={17} className="shrink-0 stroke-[1.8] text-[#EEF1F6]/40" />
-                        <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
-                          {item.label}
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon size={17} className="stroke-[1.8] text-[#EEF1F6]/40" />
                         </span>
-                        <Lock size={13} className={`text-amber-400/90 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
+                        <div
+                          className={`
+                            flex items-center justify-between flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                            ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[180px] lg:opacity-100'}
+                          `}
+                        >
+                          <span className="text-xs truncate">
+                            {item.label}
+                          </span>
+                          <Lock size={13} className="text-amber-400/90 shrink-0 ml-1.5" />
+                        </div>
                         {collapsed && (
                           <Lock size={12} className="hidden lg:block absolute top-1.5 right-1.5 text-amber-400/90" />
                         )}
@@ -306,28 +316,36 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-colors duration-150 group relative
-                        ${collapsed ? 'lg:justify-center lg:px-2' : ''}
+                        flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors duration-200 group relative overflow-hidden
                         ${isActive
                           ? 'bg-[#FA634E] text-white font-bold shadow-2xs'
                           : 'text-[#EEF1F6]/75 hover:bg-white/10 hover:text-white font-medium'
                         }
                       `}
                     >
-                      <item.icon
-                        size={17}
-                        className={`shrink-0 transition-colors duration-150 ${
-                          isActive ? 'stroke-[2.4] text-white' : 'stroke-[2] text-[#EEF1F6]/60 group-hover:text-white'
-                        }`}
-                      />
-                      <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>
-                        {item.label}
+                      <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                        <item.icon
+                          size={17}
+                          className={`transition-colors duration-150 ${
+                            isActive ? 'stroke-[2.4] text-white' : 'stroke-[2] text-[#EEF1F6]/60 group-hover:text-white'
+                          }`}
+                        />
                       </span>
-                      {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span className={`w-4 h-4 rounded-full bg-[#FA634E] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
-                          {item.badge > 9 ? '9+' : item.badge}
+                      <div
+                        className={`
+                          flex items-center justify-between flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+                          ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[180px] lg:opacity-100'}
+                        `}
+                      >
+                        <span className="text-xs truncate">
+                          {item.label}
                         </span>
-                      )}
+                        {item.badge !== undefined && item.badge > 0 && !isActive && (
+                          <span className="w-4 h-4 rounded-full bg-[#FA634E] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ml-1.5">
+                            {item.badge > 9 ? '9+' : item.badge}
+                          </span>
+                        )}
+                      </div>
                       {collapsed && item.badge !== undefined && item.badge > 0 && !isActive && (
                         <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[#FA634E]" />
                       )}
@@ -340,20 +358,28 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User profile footer */}
-        <div className={`px-3.5 py-3 border-t border-white/10 flex items-center gap-2.5 bg-[#2D2B2C] shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2.5 bg-[#2D2B2C] shrink-0 overflow-hidden">
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-9 h-9 rounded-xl bg-[#FA634E] text-white flex items-center justify-center text-xs font-black shrink-0 border-2 border-white/20 shadow-md shadow-[#FA634E]/20 select-none"
           >
             {initials}
           </div>
-          <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
+          <div
+            className={`
+              flex-1 min-w-0 transition-[opacity,max-width] duration-300 ease-in-out overflow-hidden whitespace-nowrap
+              ${collapsed ? 'lg:max-w-0 lg:opacity-0 lg:pointer-events-none' : 'lg:max-w-[160px] lg:opacity-100'}
+            `}
+          >
             <p className="text-xs font-black text-white truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
             <p className="text-[10px] font-medium text-[#EEF1F6]/60 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-[#EEF1F6]/60 hover:text-[#FA634E] p-2 rounded-xl hover:bg-[#FA634E]/15 transition-colors shrink-0 cursor-pointer"
+            className={`
+              text-[#EEF1F6]/60 hover:text-[#FA634E] p-2 rounded-xl hover:bg-[#FA634E]/15 transition-all duration-300 shrink-0 cursor-pointer
+              ${collapsed ? 'lg:hidden' : ''}
+            `}
             title="Logout"
           >
             <LogOut size={16} />
