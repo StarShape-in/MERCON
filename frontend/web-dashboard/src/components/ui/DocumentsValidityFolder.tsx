@@ -135,21 +135,29 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
                   }
                 `}
               >
-                {/* SVG Background Path & Extended Vertical Side Lines */}
+                {/* SVG Background Path & Vertical Side Guide Lines */}
                 <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 58" preserveAspectRatio="none">
-                  {/* Pure white fill in all states */}
-                  <path 
-                    d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
-                    fill="#FFFFFF"
-                    stroke={isHovered ? "#64748B" : doc.strokeColor}
-                    strokeWidth="1.2"
-                  />
-                  {isHovered && (
+                  {isHovered ? (
                     <>
-                      {/* Extended vertical side guide lines extending down to fill any gaps during hover */}
-                      <line x1="0" y1="58" x2="0" y2="92" stroke="#475569" strokeWidth="1.2" />
-                      <line x1="400" y1="58" x2="400" y2="92" stroke="#475569" strokeWidth="1.2" />
+                      {/* Hovered State: Fill bounded strictly to 56px so white background never covers the top tab line of the document below */}
+                      <path 
+                        d="M0,56 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,56" 
+                        fill="#FFFFFF"
+                        stroke="#64748B"
+                        strokeWidth="1.2"
+                      />
+                      {/* Side vertical guide lines extending down to touch document below during hover */}
+                      <line x1="0" y1="56" x2="0" y2="88" stroke="#475569" strokeWidth="1.2" />
+                      <line x1="400" y1="56" x2="400" y2="88" stroke="#475569" strokeWidth="1.2" />
                     </>
+                  ) : (
+                    /* Resting State: Open bottom edge extending down to y=76 */
+                    <path 
+                      d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
+                      fill="#FFFFFF"
+                      stroke={doc.strokeColor}
+                      strokeWidth="1.2"
+                    />
                   )}
                 </svg>
 
