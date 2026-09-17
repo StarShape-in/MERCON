@@ -438,11 +438,24 @@ export const deleteDriver = async (req: Request, res: Response) => {
 
     const driverId = req.params.id as string;
 
-    // A driver mid-trip can't be pulled out from under it — the trip would
-    // keep resolving the driver (soft delete), but dispatch would have no
-    // signal the driver is gone.
+    const driver = await prisma.driver.findFirst({
+      where: { id: driverId, deletedAt: null }
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Driver not found' } });
+    }
+
+    // A driver mid-trip (primary or co-driver) can't be pulled out from under it
     const activeTrips = await prisma.trip.count({
-      where: { driverId, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } }
+      where: {
+        OR: [
+          { driverId },
+          { co_driver_id: driverId }
+        ],
+        deletedAt: null,
+        status: { in: ACTIVE_TRIP_STATUSES as any }
+      }
     });
     if (activeTrips > 0) {
       return res.status(409).json({
@@ -454,15 +467,43 @@ export const deleteDriver = async (req: Request, res: Response) => {
       });
     }
 
-    // Hard delete driver: unlink optional historical trip/expense pointers, clear vehicle assignment, then delete record
-    await prisma.$transaction([
-      prisma.trip.updateMany({ where: { driverId }, data: { driverId: null } }),
-      prisma.expense.updateMany({ where: { driverId }, data: { driverId: null } }),
-      prisma.driverVehicleAssignment.deleteMany({ where: { driverId } }),
-      prisma.driver.delete({ where: { id: driverId } })
-    ]);
-    res.json({ success: true, data: { message: 'Driver permanently deleted successfully' } });
+    // Soft delete driver transactionally while preserving historical Trip and Expense linkages:
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      // Mark active vehicle assignment entries as inactive
+      await tx.driverVehicleAssignment.updateMany({
+        where: { driverId, isActive: true },
+        data: { isActive: false, effectiveTo: now }
+      });
+
+      // Deactivate associated user account if linked
+      if (driver.userId) {
+        await tx.user.update({
+          where: { id: driver.userId },
+          data: {
+            isActive: false,
+            deletedAt: now,
+            deleted_by: userId
+          }
+        });
+      }
+
+      // Soft delete driver record and unassign current vehicle
+      await tx.driver.update({
+        where: { id: driverId },
+        data: {
+          deletedAt: now,
+          deleted_by: userId,
+          status: 'Inactive',
+          isActive: false,
+          assignedVehicleId: null
+        }
+      });
+    });
+
+    res.json({ success: true, data: { message: 'Driver deleted successfully' } });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to delete driver');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
   }
 };
@@ -520,32 +561,83 @@ export const getDriverUsage = async (req: Request, res: Response) => {
 
 export const bulkDeleteDrivers = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    const inUse = await prisma.trip.findMany({
-      where: { driverId: { in: ids }, status: { in: ACTIVE_TRIP_STATUSES as any } },
-      select: { driverId: true },
-      distinct: ['driverId']
+    // Find active (non-soft-deleted) drivers requested
+    const driversToProcess = await prisma.driver.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true, userId: true }
     });
-    const inUseIds = new Set(inUse.map((t) => t.driverId));
-    const deletableIds = ids.filter((id: string) => !inUseIds.has(id));
+
+    const activeIds = driversToProcess.map((d) => d.id);
+
+    // Identify drivers with active trips in progress (primary or co-driver)
+    const inUseTrips = await prisma.trip.findMany({
+      where: {
+        OR: [
+          { driverId: { in: activeIds } },
+          { co_driver_id: { in: activeIds } }
+        ],
+        status: { in: ACTIVE_TRIP_STATUSES as any },
+        deletedAt: null
+      },
+      select: { driverId: true, co_driver_id: true }
+    });
+
+    const inUseIds = new Set<string>();
+    inUseTrips.forEach((t) => {
+      if (t.driverId && activeIds.includes(t.driverId)) inUseIds.add(t.driverId);
+      if (t.co_driver_id && activeIds.includes(t.co_driver_id)) inUseIds.add(t.co_driver_id);
+    });
+
+    const deletableDrivers = driversToProcess.filter((d) => !inUseIds.has(d.id));
+    const deletableIds = deletableDrivers.map((d) => d.id);
 
     if (deletableIds.length > 0) {
+      const now = new Date();
+      const userIdsToDeactivate = deletableDrivers.map((d) => d.userId).filter((u): u is string => Boolean(u));
+
       await prisma.$transaction([
-        prisma.trip.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
-        prisma.expense.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
-        prisma.driverVehicleAssignment.deleteMany({ where: { driverId: { in: deletableIds } } }),
-        prisma.driver.deleteMany({ where: { id: { in: deletableIds } } })
+        // Deactivate active vehicle assignments
+        prisma.driverVehicleAssignment.updateMany({
+          where: { driverId: { in: deletableIds }, isActive: true },
+          data: { isActive: false, effectiveTo: now }
+        }),
+
+        // Deactivate linked user accounts
+        ...(userIdsToDeactivate.length > 0
+          ? [
+              prisma.user.updateMany({
+                where: { id: { in: userIdsToDeactivate } },
+                data: { isActive: false, deletedAt: now, deleted_by: userId }
+              })
+            ]
+          : []),
+
+        // Soft delete drivers and unassign assigned vehicles
+        prisma.driver.updateMany({
+          where: { id: { in: deletableIds } },
+          data: {
+            deletedAt: now,
+            deleted_by: userId,
+            status: 'Inactive',
+            isActive: false,
+            assignedVehicleId: null
+          }
+        })
       ]);
     }
 
-    const skippedMessage = inUseIds.size > 0 ? ` ${inUseIds.size} skipped (active trip in progress).` : '';
-    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} drivers.${skippedMessage}` } });
+    const skippedCount = ids.length - deletableIds.length;
+    const skippedMessage = skippedCount > 0 ? ` ${skippedCount} skipped (active trip in progress or already deleted).` : '';
+    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} driver${deletableIds.length === 1 ? '' : 's'}.${skippedMessage}` } });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to bulk delete drivers');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete drivers` } });
   }
 };
