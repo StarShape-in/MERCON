@@ -244,7 +244,7 @@ export default function TripDetailsPage() {
   const tAny = trip as any;
   const coDriverPayoutRaw = Number(tAny.co_driver_payout ?? 0);
   const rawBilling = Number(trip.billing_amount || trip.applied_rate || trip.rateCard?.base_price || tAny.quotation?.rate || 0);
-  const rawDriverPayout = Number(tAny.driver_payout || tAny.driver_charge || tAny.trip_charges || tAny.rateCard?.driver_payout || tAny.quotation?.driver_payout || coDriverPayoutRaw || 0);
+  const rawDriverPayout = Number(tAny.primary_driver_payout ?? tAny.driver_payout ?? tAny.driver_charge ?? tAny.trip_charges ?? tAny.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? coDriverPayoutRaw ?? 0);
   const chargesList = trip.charges || [];
   const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c: any) => sum + Number(c.amount || 0), 0));
   const is3PL = Boolean(trip.is_third_party);

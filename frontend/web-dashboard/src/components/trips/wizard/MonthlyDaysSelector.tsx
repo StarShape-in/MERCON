@@ -3,6 +3,7 @@ import { Calendar, Check, X, User, Truck, Repeat, RotateCcw, Building2, ChevronD
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { shiftMonth, monthOptions } from '@/components/trips/monthly/monthlyBoardUtils';
+import { normalizeVehicleClass } from '@/utils/taxonomyRegistry';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 
 export interface MonthDateItem {
@@ -142,7 +143,18 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
         return nextV;
       });
     }
-  }, [masterDriver, masterVehicle]);
+
+    const targetVehId = masterVehicle || rotationVehicles[0];
+    if (targetVehId && targetVehId !== 'unassigned' && setContractVehicleType) {
+      const selVeh = vehicles.find((v: any) => v.id === targetVehId);
+      if (selVeh) {
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass) {
+          setContractVehicleType(vClass);
+        }
+      }
+    }
+  }, [masterDriver, masterVehicle, rotationVehicles, vehicles]);
 
   // Helper to fetch full driver object
   const getDriverObject = (dId: string) => {
@@ -205,6 +217,19 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
     applyAssignmentStrategy(mode, nextCount, rotationDrivers, rotationVehicles);
   };
 
+  const getVehicleClassFromVeh = (v: any): string => {
+    if (!v) return '10 TON';
+    if (v.capacity_kg && v.capacity_kg > 0) {
+      const tons = v.capacity_kg / 1000;
+      if (tons <= 4) return '3-4 TON';
+      if (tons <= 5) return '5 TON';
+      if (tons <= 10) return '10 TON';
+      if (tons <= 20) return '20 TON';
+      return '40 FEET';
+    }
+    return normalizeVehicleClass(v.asset_type || v.vehicle_class || v.class || v.type);
+  };
+
   // Update specific driver in rotation array
   const handleUpdateRotationDriver = (index: number, newDriverId: string) => {
     const nextDrivers = [...rotationDrivers];
@@ -221,14 +246,26 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       }
     } else if (newDriverId && newDriverId !== 'unassigned') {
       const selD = drivers.find((d) => d.id === newDriverId);
-      let vId = selD?.assignedVehicleId || (selD?.assignedVehicle as any)?.id;
+      let vId = selD?.assignedVehicleId || (selD?.assignedVehicle as any)?.id || (selD as any)?.assigned_vehicle_id;
       if (!vId) {
-        const vAssigned = vehicles.find((v: any) => v.assignedDriverId === newDriverId || v.assigned_driver_id === newDriverId);
+        const vAssigned = vehicles.find((v: any) => v.assignedDriverId === newDriverId || v.assigned_driver_id === newDriverId || (v.assignedDriver && v.assignedDriver.id === newDriverId));
         if (vAssigned) vId = vAssigned.id;
       }
       if (vId) {
         nextVehicles[index] = vId;
         setRotationVehicles(nextVehicles);
+      }
+    }
+
+    // Auto-update contractVehicleType based on driver's assigned vehicle or active vehicle
+    const activeVehId = nextVehicles[index] || nextVehicles[0];
+    if (activeVehId && activeVehId !== 'unassigned' && setContractVehicleType) {
+      const selVeh = vehicles.find((v: any) => v.id === activeVehId);
+      if (selVeh) {
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass) {
+          setContractVehicleType(vClass);
+        }
       }
     }
 
@@ -245,7 +282,31 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       handleVehicleChange(newVehicleId);
     }
 
-    applyAssignmentStrategy(strategyMode, rotationCount, rotationDrivers, nextVehicles);
+    const nextDrivers = [...rotationDrivers];
+    if (newVehicleId && newVehicleId !== 'unassigned') {
+      const selVeh = vehicles.find((v: any) => v.id === newVehicleId);
+      if (selVeh) {
+        // 1. Auto update contractVehicleType based on selected vehicle
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass && setContractVehicleType) {
+          setContractVehicleType(vClass);
+        }
+
+        // 2. If no driver assigned for this slot yet, auto-select vehicle's default driver
+        if (!nextDrivers[index] || nextDrivers[index] === 'unassigned') {
+          const defaultDriverId = selVeh.assignedDriverId || selVeh.assigned_driver_id || (selVeh.assignedDriver && selVeh.assignedDriver.id);
+          if (defaultDriverId) {
+            nextDrivers[index] = defaultDriverId;
+            setRotationDrivers(nextDrivers);
+            if (index === 0 && handleDriverChange) {
+              handleDriverChange(defaultDriverId);
+            }
+          }
+        }
+      }
+    }
+
+    applyAssignmentStrategy(strategyMode, rotationCount, nextDrivers, nextVehicles);
   };
 
   // Toggle date selection

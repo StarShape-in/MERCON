@@ -148,27 +148,46 @@ export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs)
   } else {
     const quotationDefault = trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
     const quotationDefaultVal = quotationDefault != null ? asNumber(quotationDefault) : 0;
-    const rawPrimary = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? (quotationDefaultVal > 0 ? quotationDefaultVal : 0);
-    let primaryVal = asNumber(rawPrimary);
+    const rawPrimary = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? 0;
+    const rawPrimaryVal = asNumber(rawPrimary);
     let coVal = asNumber(trip.co_driver_payout);
 
     const hasCoDriver = Boolean((trip as any).co_driver_id || (trip as any).coDriverId || (trip as any).coDriver || coVal > 0);
 
+    let primaryVal = 0;
+
     if (hasCoDriver) {
       if (coVal > 0) {
-        if (primaryVal === 0) {
+        if (rawPrimaryVal > 0) {
+          if (rawPrimaryVal === coVal) {
+            primaryVal = rawPrimaryVal;
+          } else if (rawPrimaryVal >= coVal * 2) {
+            primaryVal = rawPrimaryVal - coVal;
+          } else {
+            primaryVal = rawPrimaryVal;
+          }
+        } else if (quotationDefaultVal > 0) {
+          if (quotationDefaultVal > coVal) {
+            primaryVal = quotationDefaultVal - coVal;
+          } else {
+            primaryVal = quotationDefaultVal;
+          }
+        } else {
           primaryVal = coVal;
-        } else if (primaryVal === coVal * 2) {
-          primaryVal = primaryVal - coVal;
-        } else if (quotationDefaultVal > 0 && primaryVal === quotationDefaultVal && quotationDefaultVal > coVal) {
-          primaryVal = Math.max(coVal, quotationDefaultVal - coVal);
         }
-      } else if (primaryVal > 0) {
+      } else if (rawPrimaryVal > 0) {
         // Equal 50/50 split of the total saved rate driver payout
-        const half = Math.round((primaryVal / 2) * 100) / 100;
+        const half = Math.round((rawPrimaryVal / 2) * 100) / 100;
+        primaryVal = half;
+        coVal = half;
+      } else if (quotationDefaultVal > 0) {
+        const half = Math.round((quotationDefaultVal / 2) * 100) / 100;
         primaryVal = half;
         coVal = half;
       }
+    } else {
+      primaryVal = rawPrimaryVal > 0 ? rawPrimaryVal : quotationDefaultVal;
+      coVal = 0;
     }
 
     primaryDriverPayout = Math.max(0, primaryVal);

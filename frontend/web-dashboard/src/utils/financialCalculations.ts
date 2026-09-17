@@ -124,22 +124,40 @@ export function computeTripFinancials(inputs: TripFinancialInputs): ComputedTrip
     const quotationDefaultPayout = parseMoney(inputs.quotationDriverPayout ?? 0);
     const rawPrimaryPayout = parseMoney(inputs.driverPayout ?? inputs.driverCharge ?? 0);
 
-    let netPrimary = rawPrimaryPayout > 0 ? rawPrimaryPayout : quotationDefaultPayout;
+    let primaryVal = 0;
+    let coVal = coDriverPayoutInput;
 
     if (coDriverPayoutInput > 0) {
-      if (netPrimary === 0) {
-        netPrimary = coDriverPayoutInput;
-      } else if (netPrimary === coDriverPayoutInput * 2) {
-        netPrimary = netPrimary - coDriverPayoutInput;
-      } else if (quotationDefaultPayout > 0 && netPrimary === quotationDefaultPayout && quotationDefaultPayout > coDriverPayoutInput) {
-        netPrimary = Math.max(coDriverPayoutInput, quotationDefaultPayout - coDriverPayoutInput);
+      if (rawPrimaryPayout > 0) {
+        if (rawPrimaryPayout === coDriverPayoutInput) {
+          // Already split 50/50 (e.g. 30 and 30)
+          primaryVal = rawPrimaryPayout;
+        } else if (rawPrimaryPayout >= coDriverPayoutInput * 2) {
+          // Combined total payout (e.g. 60 and 30) -> subtract co-driver's share
+          primaryVal = rawPrimaryPayout - coDriverPayoutInput;
+        } else {
+          primaryVal = rawPrimaryPayout;
+        }
+      } else if (quotationDefaultPayout > 0) {
+        if (quotationDefaultPayout > coDriverPayoutInput) {
+          primaryVal = quotationDefaultPayout - coDriverPayoutInput;
+        } else {
+          primaryVal = quotationDefaultPayout;
+        }
+      } else {
+        // Fallback: match primary driver payout to co-driver payout
+        primaryVal = coDriverPayoutInput;
       }
+    } else {
+      primaryVal = rawPrimaryPayout > 0 ? rawPrimaryPayout : quotationDefaultPayout;
+      coVal = 0;
     }
 
-    primaryDriverPayout = Math.max(0, netPrimary);
+    primaryDriverPayout = Math.max(0, primaryVal);
+    coDriverPayout = Math.max(0, coVal);
     perDriverPayout = primaryDriverPayout;
     const scheduleDays = inputs.selectedOperatingDays != null && inputs.selectedOperatingDays > 0 ? inputs.selectedOperatingDays : 1;
-    totalDriverPayout = (primaryDriverPayout + coDriverPayoutInput) * scheduleDays;
+    totalDriverPayout = (primaryDriverPayout + coDriverPayout) * scheduleDays;
   }
 
   const resolvedDriverPayout = Math.max(0, totalDriverPayout + extraDriver);
@@ -174,6 +192,8 @@ export function computeTripFinancials(inputs: TripFinancialInputs): ComputedTrip
     perTripBreakdown: dailyRate,
     resolvedBilling,
     resolvedDriverPayout,
+    primaryDriverPayout,
+    coDriverPayout,
     perDriverPayout,
     driverCount,
     additionalChargesTotal,
