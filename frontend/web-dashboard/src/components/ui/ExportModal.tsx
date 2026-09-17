@@ -22,10 +22,10 @@ import {
 import { cn } from '@/lib/utils';
 import { exportExcelTable, downloadCSVTable, exportPDFTable } from '@/utils/exportUtils';
 
-export interface ExportColumn<T = any> {
+export interface ExportColumn<T> {
   id: string;
   label: string;
-  accessor: (row: T) => any;
+  accessor: (row: T, index: number) => string | number | boolean | null;
   defaultSelected?: boolean;
 }
 
@@ -136,7 +136,11 @@ export default function ExportModal<T = any>({
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
     if (newTheme === 'jd-monthly') {
-      const jdColumns = ['driver', 'vehicle', 'category', 'pickup', 'dropoff', 'billing_amount', 'driver_payout'];
+      const jdColumns = [
+        'sl', 'planned_start', 'ref_id', 'driver', 'vehicle', 'category', 'driver_phone', 
+        'provider_type', 'customer', 'receiver', 'additional_charge', 'stops', 
+        'billing_amount', 'total_amount', 'driver_payout', 'balance_amount', 'company_name'
+      ];
       const updated: Record<string, boolean> = {};
       columns.forEach((col) => {
         updated[col.id] = jdColumns.includes(col.id);
@@ -210,9 +214,9 @@ export default function ExportModal<T = any>({
       }
 
       const headers = activeColumns.map((col) => col.label);
-      const dataRows = rows.map((row) =>
+      const dataRows = rows.map((row, index) =>
         activeColumns.map((col) => {
-          const val = col.accessor(row);
+          const val = col.accessor(row, index);
           if (val === null || val === undefined) return '';
           return val;
         })
