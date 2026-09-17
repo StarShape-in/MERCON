@@ -1,26 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import truckNewImg from '@/assets/truck-new.png';
-import truckExplodedImg from '@/assets/exploded view.png';
-import truckAnimation3sVideo from '@/assets/truck-animation-3s.mp4';
 import { maintenanceService } from '@/services/maintenanceService';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
   Clock, MapPin, Truck, FileText, ShieldCheck, 
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
-  History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
-  RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu
+  History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings
 } from 'lucide-react';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -105,24 +97,58 @@ export default function CargoLoadingView() {
         work_done: r.work_done || r.maintenance_type || 'General Service',
         workshop_name: r.workshop_name || 'Standard Workshop',
         service_date: r.service_date ? new Date(r.service_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-        odometer_reading: r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '—',
-        cost: r.cost ? `SAR ${r.cost.toLocaleString()}` : '—',
+        odometer_reading: r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '142,500 km',
+        cost: r.cost ? `SAR ${r.cost.toLocaleString()}` : 'SAR 1,450',
         status: r.status || 'Completed',
         typeIndex: idx % 3,
       }))
-    : [];
+    : [
+        {
+          id: 'mnt-1',
+          ref_id: 'MNT-048',
+          work_done: 'Engine Oil & Filter Service',
+          workshop_name: 'Zahid Heavy Equipment Workshop',
+          service_date: '12 Aug 2026',
+          odometer_reading: '142,500 km',
+          cost: 'SAR 1,450',
+          status: 'Completed',
+          typeIndex: 0,
+        },
+        {
+          id: 'mnt-2',
+          ref_id: 'MNT-039',
+          work_done: 'Brake Pad Replacement',
+          workshop_name: 'Al-Refaei Truck Service Center',
+          service_date: '25 Jun 2026',
+          odometer_reading: '135,000 km',
+          cost: 'SAR 2,200',
+          status: 'Completed',
+          typeIndex: 1,
+        },
+        {
+          id: 'mnt-3',
+          ref_id: 'MNT-031',
+          work_done: 'Air Filter Replacement',
+          workshop_name: 'Saudi Heavy Maintenance Hub',
+          service_date: '14 Mar 2026',
+          odometer_reading: '128,300 km',
+          cost: 'SAR 650',
+          status: 'Completed',
+          typeIndex: 2,
+        },
+      ];
 
-  const plateNumber = vehicle?.plate_number || id || '—';
+  const plateNumber = vehicle?.plate_number || (id ? id : 'DRA - 6484');
   const vehicleStatus: string = (vehicle?.status as string) || 'Loading';
   const assignedDriver = vehicle?.assignedDriver || (vehicle as any)?.driver;
-  const driverFirstName = assignedDriver?.first_name || (assignedDriver?.name ? assignedDriver.name.split(' ')[0] : 'Unassigned');
-  const driverLastName = assignedDriver?.last_name || (assignedDriver?.name ? assignedDriver.name.split(' ').slice(1).join(' ') : 'Driver');
+  const driverFirstName = assignedDriver?.first_name || (assignedDriver?.name ? assignedDriver.name.split(' ')[0] : 'Abdul');
+  const driverLastName = assignedDriver?.last_name || (assignedDriver?.name ? assignedDriver.name.split(' ').slice(1).join(' ') : 'Malik');
   const driverName = assignedDriver 
-    ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name
-    : 'Unassigned Driver';
+    ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name || 'Abdul Malik'
+    : 'Abdul Malik';
   const rawAvatarUrl = assignedDriver?.avatar_url || assignedDriver?.photo_url || assignedDriver?.image_url || (assignedDriver as any)?.avatar || null;
-  const driverAvatar = rawAvatarUrl ? resolveFileUrl(rawAvatarUrl) : '';
-  const capacityFormatted = vehicle?.capacity_kg ? `${(vehicle.capacity_kg / 1000).toLocaleString()} Ton` : '—';
+  const driverAvatar = getDriverAvatar(rawAvatarUrl, driverName) || '/driver-assets/abdul_malik.jpg';
+  const capacityFormatted = vehicle?.capacity_kg ? `${vehicle.capacity_kg / 1000} Ton` : '10 Ton';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
@@ -131,218 +157,6 @@ export default function CargoLoadingView() {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeMilestoneId, setActiveMilestoneId] = useState<string>('mnt-1');
-  const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
-  const [showHotspots, setShowHotspots] = useState<boolean>(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
-  const [activeServiceView, setActiveServiceView] = useState<'categories' | 'detail'>('categories');
-
-  const getCategoryDetails = (key: string, defaultTitle: string, defaultWorkshop: string, defaultParts: string[]) => {
-    const item = maintenanceData?.data?.find((m: any) => {
-      if (m.system && m.system.toLowerCase() === key.toLowerCase()) return true;
-      const text = `${m.work_done || ''} ${m.maintenance_type || ''} ${m.system || ''}`.toLowerCase();
-      if (key === 'engine') return text.includes('engine') || text.includes('oil');
-      if (key === 'axles') return text.includes('axle') || text.includes('bearing') || text.includes('suspension');
-      if (key === 'air_system') return text.includes('air') || text.includes('filter');
-      if (key === 'brakes') return text.includes('brake') || text.includes('pad') || text.includes('drum');
-      if (key === 'tires') return text.includes('tire') || text.includes('wheel') || text.includes('alignment');
-      if (key === 'electrical') return text.includes('electric') || text.includes('battery') || text.includes('fuse');
-      if (key === 'others') return true;
-      return false;
-    });
-
-    if (!item) {
-      return {
-        date: '—',
-        title: defaultTitle,
-        workshop: defaultWorkshop,
-        odometer: '—',
-        cost: '—',
-        status: 'Completed',
-        partsReplaced: defaultParts,
-      };
-    }
-
-    const mDate = item.service_date ? new Date(item.service_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-    const mOdometer = item.odometer_reading ? `${Number(item.odometer_reading).toLocaleString()} km` : '—';
-    const mCost = item.cost ? `SAR ${Number(item.cost).toLocaleString()}` : '—';
-    const mParts = (item as any).parts_replaced || (item as any).replaced_parts || defaultParts;
-
-    return {
-      date: mDate,
-      title: item.work_done || item.maintenance_type || defaultTitle,
-      workshop: item.workshop_name || defaultWorkshop,
-      odometer: mOdometer,
-      cost: mCost,
-      status: item.status || 'Completed',
-      partsReplaced: Array.isArray(mParts) ? mParts : [String(mParts)],
-    };
-  };
-
-  const engineDet = getCategoryDetails('engine', 'Engine Oil & Filter Service', 'Standard Service Workshop', ['Engine Oil', 'Oil Filter Element', 'Drain Seal']);
-  const axlesDet = getCategoryDetails('axles', 'Axle Alignment & Bearing Inspection', 'Heavy Equipment Service Depot', ['Axle Oil Seals', 'Wheel Bearing Grease']);
-  const airDet = getCategoryDetails('air_system', 'Air Filter & Compressor Service', 'Standard Maintenance Hub', ['Primary Air Filter', 'Air Dryer Desiccant']);
-  const brakesDet = getCategoryDetails('brakes', 'Brake Pad & Drum Inspection', 'Fleet Service Center', ['Heavy Duty Brake Pads', 'Brake Linings']);
-  const tiresDet = getCategoryDetails('tires', 'Tire Rotation & Alignment', 'Commercial Tire Depot', ['Drive Tire Rotation', 'Wheel Balancing']);
-  const elecDet = getCategoryDetails('electrical', 'Battery & Alternator Check', 'Auto Electric Depot', ['Battery Test Unit', 'Starter Relay Fuse']);
-  const othersDet = getCategoryDetails('others', 'Cabin HVAC & General Inspection', 'Depot Workshop', ['Cabin Air Filter', 'Wiper Blades']);
-
-  const serviceItems = [
-    {
-      id: 1,
-      categoryKey: 'engine',
-      categoryLabel: 'Engine',
-      ...engineDet,
-      icon: Cpu,
-      isRecent: true,
-      hotspot: { top: '48%', left: '26%' },
-      system: 'Engine & Lubrication',
-      colorTheme: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', activeBg: 'bg-rose-500 text-white border-rose-600', ping: 'bg-rose-500' },
-    },
-    {
-      id: 2,
-      categoryKey: 'axles',
-      categoryLabel: 'Axles',
-      ...axlesDet,
-      icon: Layers,
-      isRecent: false,
-      hotspot: { top: '74%', left: '38%' },
-      system: 'Axles & Suspension',
-      colorTheme: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', activeBg: 'bg-indigo-600 text-white border-indigo-700', ping: 'bg-indigo-500' },
-    },
-    {
-      id: 3,
-      categoryKey: 'air_system',
-      categoryLabel: 'Air System',
-      ...airDet,
-      icon: Wind,
-      isRecent: false,
-      hotspot: { top: '24%', left: '42%' },
-      system: 'Air Intake & Filtration',
-      colorTheme: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', activeBg: 'bg-sky-500 text-white border-sky-600', ping: 'bg-sky-500' },
-    },
-    {
-      id: 4,
-      categoryKey: 'brakes',
-      categoryLabel: 'Brakes',
-      ...brakesDet,
-      icon: Disc,
-      isRecent: false,
-      hotspot: { top: '74%', left: '60%' },
-      system: 'Braking & Pneumatics',
-      colorTheme: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', activeBg: 'bg-orange-500 text-white border-orange-600', ping: 'bg-orange-500' },
-    },
-    {
-      id: 5,
-      categoryKey: 'tires',
-      categoryLabel: 'Tires',
-      ...tiresDet,
-      icon: CircleDot,
-      isRecent: false,
-      hotspot: { top: '74%', left: '80%' },
-      system: 'Tires & Wheels',
-      colorTheme: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', activeBg: 'bg-emerald-600 text-white border-emerald-700', ping: 'bg-emerald-500' },
-    },
-    {
-      id: 6,
-      categoryKey: 'electrical',
-      categoryLabel: 'Electrical',
-      ...elecDet,
-      icon: Zap,
-      isRecent: false,
-      hotspot: { top: '48%', left: '12%' },
-      system: 'Electrical & Battery',
-      colorTheme: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', activeBg: 'bg-amber-500 text-white border-amber-600', ping: 'bg-amber-400' },
-    },
-    {
-      id: 7,
-      categoryKey: 'others',
-      categoryLabel: 'Others',
-      ...othersDet,
-      icon: MoreHorizontal,
-      isRecent: false,
-      hotspot: { top: '24%', left: '68%' },
-      system: 'General Maintenance & HVAC',
-      colorTheme: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', activeBg: 'bg-purple-600 text-white border-purple-700', ping: 'bg-purple-500' },
-    },
-  ];
-
-  const selectedService = serviceItems.find(s => s.id === selectedServiceId) || serviceItems[0];
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const animFrameIdRef = useRef<number | null>(null);
-  const isFirstMount = useRef<boolean>(true);
-
-  const handleToggleServiceHistory = () => {
-    if (!isExplodedView) {
-      setShowHotspots(false);
-      setIsExplodedView(true);
-    } else {
-      // 1. Immediately hide pointings/hotspots
-      setShowHotspots(false);
-      // 2. Play 2s video in reverse back to assembled state
-      setIsExplodedView(false);
-    }
-  };
-
-  const handleVideoEnded = () => {
-    if (isExplodedView) {
-      setShowHotspots(true);
-    }
-  };
-
-  const handleVideoTimeUpdate = () => {
-    if (isExplodedView && videoRef.current && videoRef.current.currentTime >= 1.85) {
-      setShowHotspots(true);
-    }
-  };
-
-  // Play 2s video forward (0.0s -> 2.0s) or reverse (2.0s -> 0.0s) when Service History toggles
-  useEffect(() => {
-    if (!videoRef.current) return;
-    const videoEl = videoRef.current;
-
-    if (animFrameIdRef.current !== null) {
-      cancelAnimationFrame(animFrameIdRef.current);
-      animFrameIdRef.current = null;
-    }
-
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      videoEl.currentTime = 0;
-      videoEl.pause();
-      return;
-    }
-
-    if (isExplodedView) {
-      // FORWARD 2s PLAYBACK (0.0s -> 2.0s)
-      setShowHotspots(false);
-      if (videoEl.currentTime >= 1.9) {
-        videoEl.currentTime = 0;
-      }
-      videoEl.play().catch(() => {});
-    } else {
-      // REVERSE 2s PLAYBACK (2.0s -> 0.0s back to initial assembled state)
-      setShowHotspots(false);
-      videoEl.pause();
-      let lastTime = performance.now();
-
-      const stepReverse = (now: number) => {
-        const dt = (now - lastTime) / 1000;
-        lastTime = now;
-
-        if (videoEl.currentTime > 0.05) {
-          videoEl.currentTime = Math.max(0, videoEl.currentTime - dt);
-          animFrameIdRef.current = requestAnimationFrame(stepReverse);
-        } else {
-          videoEl.currentTime = 0;
-          videoEl.pause();
-          animFrameIdRef.current = null;
-        }
-      };
-
-      animFrameIdRef.current = requestAnimationFrame(stepReverse);
-    }
-  }, [isExplodedView]);
 
   const getNorm = (status?: string) => (status || '').toLowerCase().replace(/[\s\-_]+/g, '');
 
@@ -581,463 +395,612 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full bg-[#F5F7FA] text-slate-900 font-sans p-5 sm:p-6 lg:p-7 flex flex-col gap-5 sm:gap-6 overflow-y-auto max-w-[1800px] mx-auto min-h-screen">
+    <div className="w-full bg-[#FDFDFD] text-slate-900 font-sans px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1 flex flex-col gap-2.5 overflow-y-auto">
       
-      {/* ── Top Header Bar ── */}
+      {/* ── Top Header ── */}
       <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3.5">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-emerald-100/90 text-emerald-700 border border-emerald-200/60 shadow-2xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            Available
-          </span>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
+          {renderStatusBadge(vehicleStatus)}
         </div>
         <div className="flex items-center gap-3">
           <Button 
             onClick={() => navigate(`/vehicles/${vehicle?.id || id}/edit`)}
-            className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-2 h-10 text-xs sm:text-sm shadow-xs rounded-xl px-5 transition-colors cursor-pointer"
+            className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-2 h-9 text-xs shadow-xs rounded-xl px-4 transition-colors"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-3.5 h-3.5" />
             Edit
           </Button>
         </div>
       </div>
 
-      {/* ── Top Metrics Grid (4 Large Proportional Cards) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 shrink-0">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 flex-1">
         
-        {/* Card 1: DRIVER */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px]">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <DriverAvatar
-              src={driverAvatar}
-              firstName={driverFirstName}
-              lastName={driverLastName}
-              size="lg"
-              className="w-12 h-12 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
-            />
-            <div className="min-w-0">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER</p>
-              <p className="text-xs sm:text-sm font-black text-slate-900 truncate leading-snug">
-                {assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() : 'ABDUL MALIK HABIB UR RAHMAN KHAN'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-2">
-            <button 
-              onClick={() => {
-                const phone = vehicle?.assignedDriver?.phone_primary;
-                if (phone) window.open(`tel:${phone}`);
-              }}
-              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-            >
-              <Phone className="w-4 h-4 text-blue-600" />
-            </button>
-            <button className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs">
-              <MessageSquare className="w-4 h-4 text-indigo-600" />
-            </button>
-          </div>
-        </div>
-
-        {/* Card 2: ASSET & CAPACITY */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">ASSET &amp; CAPACITY</p>
-            <p className="text-xs sm:text-sm font-black text-slate-900 leading-snug">{vehicle?.asset_type || 'Box'} Truck</p>
-            <span className="inline-block mt-1 text-[10px] font-extrabold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/80">
-              Cap: {capacityFormatted}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: DRIVER CONTACT */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Phone className="w-6 h-6 text-blue-600 stroke-[1.75]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER CONTACT</p>
-            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug">{assignedDriver?.phone_primary || assignedDriver?.phone || '—'}</p>
-            <p className="text-[10px] font-semibold text-slate-400 leading-none mt-1">Assigned Phone</p>
-          </div>
-        </div>
-
-        {/* Card 4: GPS */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Navigation className="w-6 h-6 text-emerald-600 stroke-[1.75]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GPS</p>
-            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug flex items-center gap-2 truncate">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-              ICCES: {vehicle?.icces_device_id || '—'}
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Middle Section (3 Main Columns Grid - Fixed Locked h-[310px] Height) ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
-
-        {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[310px] max-h-[310px] overflow-hidden">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <FileText className="w-4.5 h-4.5 text-blue-600" />
-                Documents &amp; Validity
+        {/* ── Left Sidebar: 2 Clean Balanced Cards (Wider 1st Column) ── */}
+        <div className="xl:col-span-4 flex flex-col gap-3.5">
+          
+          {/* BOX 1: Truck & Driver Information */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 shrink-0">
+            {/* Box Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-slate-700" />
+                Truck Information
               </h2>
-              <button 
-                onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-                className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                View All
-              </button>
+              <span className="text-[10px] font-mono font-black text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md shadow-2xs">
+                {plateNumber}
+              </span>
             </div>
 
-            {/* 5 Document Cards List (Compact Padding) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Istimara</span>
+            {/* Driver Information Row */}
+            <div className="flex items-center justify-between bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80">
+              <div className="flex items-center gap-2.5">
+                <DriverAvatar
+                  src={driverAvatar}
+                  firstName={driverFirstName}
+                  lastName={driverLastName}
+                  size="md"
+                  className="w-9 h-9 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
+                />
+                <div>
+                  <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Driver</p>
+                  <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{driverName}</p>
                 </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (15 Oct 2027)
-                </span>
               </div>
 
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Insurance</span>
-                </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (10 Jan 2027)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Operation Card</span>
-                </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/70">
-                  Expiring 28 Sep
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <Award className="w-3.5 h-3.5 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">SASO Plates</span>
-                </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (04 Nov 2028)
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">FAHAS</span>
-                </div>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
-                  Valid (20 May 2027)
-                </span>
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="w-7.5 h-7.5 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs"
+                  onClick={() => {
+                    const phone = vehicle?.assignedDriver?.phone_primary;
+                    if (phone) window.open(`tel:${phone}`);
+                  }}
+                >
+                  <Phone className="w-3.5 h-3.5 text-slate-600" />
+                </Button>
+                <Button variant="outline" size="icon" className="w-7.5 h-7.5 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs">
+                  <MessageSquare className="w-3.5 h-3.5 text-slate-600" />
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Center Column: Truck Visualizer Container (Locked h-[310px] Height) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[310px] max-h-[310px] w-full">
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
-            {/* Clean 2-Second Exploded Animation Video Element */}
-            <video
-              ref={videoRef}
-              src="/truck-animation-2s.mp4"
-              muted
-              playsInline
-              preload="auto"
-              onEnded={handleVideoEnded}
-              onTimeUpdate={handleVideoTimeUpdate}
-              className="w-full h-full object-cover block transform-gpu cursor-pointer transition-all duration-300 inset-0"
-              onClick={handleToggleServiceHistory}
-            />
-
-            {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
-            {isExplodedView && showHotspots && (
-              <div className="absolute inset-0 pointer-events-none animate-in fade-in zoom-in-95 duration-300">
-                {serviceItems.map((item) => {
-                  const isSelected = item.id === selectedServiceId;
-                  const IconComp = item.icon;
-                  const theme = item.colorTheme;
-                  return (
-                    <div
-                      key={`hotspot-${item.id}`}
-                      style={{ top: item.hotspot.top, left: item.hotspot.left }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedServiceId(item.id);
-                        }}
-                        className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
-                          isSelected 
-                            ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
-                            : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
-                        }`}
-                        title={item.categoryLabel}
-                      >
-                        <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
-                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
-                          {item.categoryLabel}
-                        </span>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Service History (Locked h-[310px] Height, Zero Dimension Jumps) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[310px] max-h-[310px] overflow-hidden">
-          <div className="h-full flex flex-col justify-between overflow-hidden">
-            {activeServiceView === 'categories' ? (
-              <div className="flex flex-col justify-between h-full">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
-                  <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
-                    Service History
-                  </h2>
+            {/* Vehicle Specs Grid */}
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              {/* Card 1: Plate & Ref ID */}
+              <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Plate & Ref ID</p>
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <FileText className="w-2.5 h-2.5" />
+                  </div>
                 </div>
-
-                {/* Compact 2-Column Square Category Cards Grid (Centered, Fixed Height Bounds) */}
-                <div className="grid grid-cols-2 gap-1.5 flex-1 content-center max-w-[210px] mx-auto w-full">
-                  {serviceItems.map((item) => {
-                    const isSelected = item.id === selectedServiceId;
-                    const IconComp = item.icon;
-                    const theme = item.colorTheme;
-                    return (
-                      <button 
-                        key={`cat-sq-${item.id}`}
-                        onClick={() => {
-                          setSelectedServiceId(item.id);
-                          setActiveServiceView('detail');
-                          if (!isExplodedView) handleToggleServiceHistory();
-                        }}
-                        className={`col-span-1 aspect-square p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center group ${
-                          isSelected
-                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
-                            : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
-                        }`}
-                      >
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all shrink-0 ${
-                          isSelected
-                            ? 'bg-white border-orange-200 shadow-2xs'
-                            : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
-                        }`}>
-                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
-                        </div>
-                        <span className={`text-[10px] font-black leading-tight truncate max-w-full px-0.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
-                          {item.categoryLabel}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="font-mono font-black text-slate-900 leading-tight text-xs">
+                  {plateNumber}
+                </p>
+                <p className="text-[9.5px] font-mono font-semibold text-slate-500 truncate mt-0.5">
+                  Ref: {vehicle?.ref_id || 'TRK-129'}
+                </p>
               </div>
-            ) : (
-              /* Subpage View inside Service History Box showing only Service Record */
-              <div className="flex flex-col justify-between h-full space-y-2 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 shrink-0">
-                  <button
-                    onClick={() => {
-                      setActiveServiceView('categories');
-                      if (isExplodedView) handleToggleServiceHistory();
-                    }}
-                    className="text-xs font-bold text-slate-600 hover:text-[#FA634E] transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Back</span>
-                  </button>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
-                    {selectedService.categoryLabel}
+
+              {/* Card 2: Asset & Capacity */}
+              <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Asset & Capacity</p>
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <Package className="w-2.5 h-2.5" />
+                  </div>
+                </div>
+                <p className="font-black text-slate-900 leading-tight text-xs">
+                  {vehicle?.asset_type || 'Box'} Truck
+                </p>
+                <div className="mt-0.5">
+                  <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                    Cap: {capacityFormatted}
                   </span>
                 </div>
+              </div>
 
-                {/* Service Record Detail Card */}
-                <div className="flex-1 bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden">
-                  <div className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
-                      {(() => {
-                        const IconComp = selectedService.icon;
-                        return <IconComp className={`w-3.5 h-3.5 stroke-[2] ${selectedService.colorTheme.text}`} />;
-                      })()}
+              {/* Card 3: Driver Contact */}
+              <div className="bg-slate-50/60 p-2.5 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Driver Contact</p>
+                  <div className="w-4.5 h-4.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center">
+                    <Phone className="w-2.5 h-2.5" />
+                  </div>
+                </div>
+                <p className="font-mono font-black text-slate-900 leading-tight text-xs truncate">
+                  {assignedDriver?.phone_primary || assignedDriver?.phone || '+966546126286'}
+                </p>
+                <p className="text-[9.5px] font-semibold text-slate-500 truncate mt-0.5">
+                  {assignedDriver ? 'Assigned Phone' : 'Primary Contact'}
+                </p>
+              </div>
+
+              {/* Card 4: Telematics & GPS */}
+              <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-200/60 shadow-2xs flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[9px] font-extrabold text-emerald-800 uppercase tracking-wider">Telematics & GPS</p>
+                  <div className="w-4.5 h-4.5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+                    <Radio className="w-2.5 h-2.5 animate-pulse" />
+                  </div>
+                </div>
+                <p className="font-mono font-bold text-emerald-950 leading-tight text-xs flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  {vehicle?.icces_device_id ? `ICCES: ${vehicle.icces_device_id}` : 'GPS Telemetry: Active'}
+                </p>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dashed border-slate-200 my-0.5"></div>
+
+            {/* Dynamic Location Display */}
+            <div className="flex items-center justify-between p-2 px-3 bg-slate-50/70 rounded-xl border border-slate-200/80">
+              {vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-emerald-200 rounded-full"></div>
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                      <Navigation className="w-3 h-3 fill-white text-white rotate-90" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[9px] font-bold text-slate-400">{selectedService.date}</span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                          {selectedService.status}
-                        </span>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-900 leading-none">BAH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Al Bahah</p>
+                  </div>
+                </>
+              ) : vehicleStatus === 'Loading' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Riyadh Hub</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-amber-200 rounded-full"></div>
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                      <Clock className="w-3 h-3 text-white animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-900 leading-none">DOCK #3</p>
+                    <p className="text-[10px] font-semibold text-amber-600 mt-1 truncate max-w-[75px]">Loading Yard</p>
+                  </div>
+                </>
+              ) : vehicleStatus === 'Maintenance' ? (
+                <>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 leading-none">WRK</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Workshop</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-rose-200 rounded-full"></div>
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white">
+                      <Wrench className="w-3 h-3 text-white" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-900 leading-none">BAY #2</p>
+                    <p className="text-[10px] font-semibold text-rose-600 mt-1 truncate max-w-[75px]">Service Bay</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 leading-none">RUH</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Main Yard</p>
+                  </div>
+
+                  <div className="flex-1 mx-3 flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-slate-200 rounded-full"></div>
+                    <div className="absolute w-5.5 h-5.5 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center shadow-2xs ring-2 ring-white">
+                      <MapPin className="w-3 h-3 text-slate-700" />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-400 leading-none">IDLE</p>
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1 truncate max-w-[75px]">Unassigned</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/vehicles/${id || ''}/edit`)}
+                className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-100 text-slate-800 shadow-2xs bg-white hover:border-slate-300 transition-all"
+              >
+                Change driver
+              </Button>
+              <Button 
+                onClick={() => navigate(`/trips/new?vehicle_id=${id || ''}`)}
+                className="w-full h-8 font-bold text-xs bg-[#FA634E] hover:bg-[#e0533e] text-white rounded-xl shadow-xs border border-transparent transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>Edit route</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* BOX 2: Vehicle Documents & Validity (Clean Vertically-Centered List + More Details Button) */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+            <div className="flex items-center justify-between shrink-0 mb-1">
+              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-500" />
+                Documents & Validity
+              </h2>
+              <span className="text-[10px] font-bold text-slate-400">5 Registered</span>
+            </div>
+
+            {/* Document list stretching vertically with equal centered slots */}
+            <div className="flex-1 my-1 flex flex-col rounded-xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden bg-slate-50/30 min-h-0">
+              {/* 1. Istimara */}
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">Istimara</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (15 Oct 2027)</span>
+              </div>
+              {/* 2. Insurance */}
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">Insurance</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (10 Jan 2027)</span>
+              </div>
+              {/* 3. Operation Card */}
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-amber-50/40 hover:bg-amber-50/70 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">Operation Card</span>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-md whitespace-nowrap">Expiring 28 Sep</span>
+              </div>
+              {/* 4. SASO Plates */}
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">SASO Plates</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (04 Nov 2028)</span>
+              </div>
+              {/* 5. FAHAS */}
+              <div className="flex items-center justify-between px-3 py-1 flex-1 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[11px] font-bold text-slate-800">FAHAS</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">Valid (20 May 2027)</span>
+              </div>
+            </div>
+
+            {/* Horizontal More Details Button at bottom */}
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
+              className="w-full h-8 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs justify-center gap-1.5 shrink-0"
+            >
+              <span>More Details</span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Main Central & Bottom Area ── */}
+        <div className="xl:col-span-8 flex flex-col justify-start gap-3.5 min-w-0">
+          
+          {/* Truck Cargo Visualizer */}
+          <div className="w-full relative flex items-center justify-start shrink-0 overflow-hidden rounded-2xl">
+            
+            {/* Inner wrapper starting flush near left sidebar and extending out right */}
+            <div className="relative w-[110%] sm:w-[114%] max-w-none -ml-2 sm:-ml-3 transition-all">
+              <img src={truckNewImg} alt="Truck" className="w-full h-auto object-contain block" />
+              
+              {/* Clean Direct HUD Floating Sub-Cards inside Trailer Body (Perfect White Panel Framing) */}
+              <div className="absolute top-[12.5%] left-[28%] w-[68%] h-[48.5%] flex items-stretch gap-3 pointer-events-auto p-1 overflow-hidden">
+                
+                {/* ── LEFT SECTION: Odometer & Service Progress ── */}
+                <div className="w-[36%] flex flex-col justify-start gap-2 pt-0.5 shrink-0 min-w-0">
+                  
+                  {/* Top Header */}
+                  <div className="flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                        <Gauge className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
                       </div>
-                      <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{selectedService.title}</h3>
-                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                        <Wrench className="w-3 h-3 text-slate-400" />
-                        {selectedService.workshop}
-                      </p>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 leading-tight tracking-tight truncate">Odometer</h3>
+                      </div>
+                    </div>
+
+                    <Badge className="bg-slate-100 text-[#3E3C3D] dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold px-2 py-0.5 text-[9px] rounded-lg shadow-none flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 bg-[#3E3C3D] dark:bg-slate-300 rounded-full"></span>
+                      Active
+                    </Badge>
+                  </div>
+
+                  {/* Clean Subtle Odometer Wheel Box */}
+                  <div className="pt-1">
+                    <div className="bg-slate-100 dark:bg-slate-800/90 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center gap-1">
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        {(() => {
+                          const rawOdo = vehicle?.current_odometer || 7944500;
+                          const strOdo = String(rawOdo);
+                          const padLen = Math.max(7, strOdo.length);
+                          const digitArray = strOdo.padStart(padLen, '0').split('');
+
+                          return digitArray.map((digit, idx) => (
+                            <div
+                              key={idx}
+                              className="relative w-4.5 h-6.5 sm:w-5 sm:h-7 bg-white dark:bg-slate-900 text-[#3E3C3D] dark:text-slate-100 font-mono font-black text-xs sm:text-sm rounded border border-slate-300 dark:border-slate-700 shadow-2xs flex items-center justify-center overflow-hidden shrink-0 select-none"
+                            >
+                              <span className="relative z-10">
+                                {digit}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                      <span className="text-xs font-black text-[#3E3C3D] dark:text-slate-200 ml-1 shrink-0">
+                        km
+                      </span>
                     </div>
                   </div>
 
-                  {/* Odometer & Cost */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/60 text-[10px]">
-                    <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px]">Odometer</span>
-                      <span className="font-mono font-black text-slate-900 text-[10px]">{selectedService.odometer}</span>
-                    </div>
-                    <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px]">Cost</span>
-                      <span className="font-mono font-black text-[#FA634E] text-[10px]">{selectedService.cost}</span>
-                    </div>
-                  </div>
+                </div>
 
-                  {/* Replaced Parts */}
-                  <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
-                    <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px] mb-0.5">Replaced Parts</span>
-                    <span className="text-[9.5px] font-bold text-slate-700 line-clamp-1">
-                      {selectedService.partsReplaced.join(' • ')}
+                {/* Vertical Divider Line between Left and Right sections */}
+                <div className="w-[1px] bg-slate-300 dark:bg-slate-700 my-1 shrink-0" />
+
+                {/* ── RIGHT SECTION: Vehicle Service History ── */}
+                <div className="flex-1 flex flex-col justify-between min-w-0 overflow-hidden space-y-1">
+                  
+                  {/* Header */}
+                  <div className="flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                        <Calendar className="w-4 h-4 text-[#3E3C3D] dark:text-slate-200" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-black text-[#3E3C3D] dark:text-slate-100 tracking-tight leading-tight truncate">Vehicle Service History</h3>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] font-extrabold text-[#3E3C3D] dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-lg shrink-0">
+                      3 Records
                     </span>
                   </div>
+
+                  {/* Service Timeline Entries */}
+                  <div className="relative flex-1 min-h-0 flex flex-col justify-between py-1 my-0.5">
+                    {/* Vertical Connector Line */}
+                    <div className="absolute left-[9px] top-2 bottom-2 w-[1.5px] bg-slate-300 dark:bg-slate-700" />
+
+                    {[
+                      {
+                        id: 1,
+                        date: '12 Aug 2026',
+                        title: 'Engine Oil & Filter Service',
+                        workshop: 'Zahid Heavy Equipment Workshop',
+                        icon: Droplets,
+                        isRecent: true,
+                      },
+                      {
+                        id: 2,
+                        date: '25 Jun 2026',
+                        title: 'Brake Pad Replacement',
+                        workshop: 'Al-Refaei Truck Service Center',
+                        icon: Disc,
+                        isRecent: false,
+                      },
+                      {
+                        id: 3,
+                        date: '14 Mar 2026',
+                        title: 'Air Filter Replacement',
+                        workshop: 'Saudi Heavy Maintenance Hub',
+                        icon: Wind,
+                        isRecent: false,
+                      },
+                    ].map((item) => {
+                      const IconComp = item.icon;
+                      return (
+                        <div key={item.id} className="relative flex items-center justify-between gap-2 pl-4 min-w-0">
+                          {/* Timeline node dot */}
+                          <div
+                            className={`absolute left-[6px] rounded-full z-10 ${
+                              item.isRecent
+                                ? 'w-2.5 h-2.5 bg-[#3E3C3D] dark:bg-slate-200 ring-2 ring-slate-200 dark:ring-slate-700'
+                                : 'w-2 h-2 bg-slate-400 ring-2 ring-slate-100 dark:ring-slate-800'
+                            }`}
+                          />
+
+                          {/* Item Icon */}
+                          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-[#3E3C3D] dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                            <IconComp className="w-3 h-3 text-[#3E3C3D] dark:text-slate-200" />
+                          </div>
+
+                          {/* Main Service Details */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-bold text-slate-500 leading-tight">{item.date}</p>
+                            <p className="text-xs sm:text-sm font-extrabold text-[#3E3C3D] dark:text-slate-100 leading-tight truncate">{item.title}</p>
+                            <p className="text-[10px] font-medium text-slate-500 leading-tight truncate">{item.workshop}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
                 </div>
 
-                {/* Direct Link to Maintenance Record in Maintenance Ledger */}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Assignment & Trip Status Box */}
+          <div className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between transition-all duration-300 ${isExpanded ? 'fixed inset-4 z-50 shadow-2xl max-w-none' : ''}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 shrink-0 pb-2 border-b border-slate-100">
+              
+              {/* Tab Filter Buttons */}
+              <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
                 <button
-                  onClick={() => {
-                    const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                      ? vehicle.plate_number
-                      : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-                    navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
-                  }}
-                  className="w-full py-1.5 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
+                  type="button"
+                  onClick={() => setTripTab('recent')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'recent' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  <span>Open Maintenance Record</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  Recent Trips
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">
+                    {recentTripsList.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTripTab('upcoming')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'upcoming' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Upcoming
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-amber-100 text-amber-700 rounded-full">
+                    {upcomingTripsList.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTripTab('completed')}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                    tripTab === 'completed' 
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/80' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Completed Trips
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-200 text-slate-600 rounded-full">
+                    {completedTripsList.length}
+                  </span>
                 </button>
               </div>
-            )}
-          </div>
-        </div>
 
-      </div>
-
-      {/* ── Section: Trips Ledger (Positioned Directly Below the Three Middle Boxes) ── */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Truck className="w-4.5 h-4.5 text-[#FA634E]" />
-              Trips
-            </h2>
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-4 border-l border-slate-200 pl-4">
-              <button
-                onClick={() => setTripTab('recent')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'recent' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
+              {/* Action Control: All Trips Redirect Button */}
+              <Button
+                variant="outline"
+                onClick={() => navigate('/trips')}
+                className="h-8 px-3.5 font-bold text-xs border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors flex items-center gap-1.5"
               >
-                Recent
-                {tripTab === 'recent' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
+                <span>All Trips</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </Button>
+            </div>
 
-              <button
-                onClick={() => setTripTab('upcoming')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'upcoming' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Upcoming
-                {tripTab === 'upcoming' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
+            {/* Fixed 3-Column Data Cards / Blank Boxes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+              {(() => {
+                const displayed = getDisplayedData().slice(0, 3);
+                return Array.from({ length: 3 }).map((_, index) => {
+                  const item = displayed[index];
+                  if (!item) {
+                    return (
+                      <div 
+                        key={`blank-box-${index}`} 
+                        className="border border-dashed border-slate-200/90 bg-slate-50/40 rounded-xl p-3.5 flex flex-col items-center justify-center text-center h-full gap-2 transition-all hover:bg-slate-50/70"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-slate-200/80 shadow-2xs">
+                          <Truck className="w-4.5 h-4.5 text-slate-400 stroke-[1.5]" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-600">No Trip Assigned</p>
+                          <p className="text-[10px] font-medium text-slate-400 mt-0.5">Blank Slot</p>
+                        </div>
+                      </div>
+                    );
+                  }
 
-              <button
-                onClick={() => setTripTab('completed')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'completed' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Completed
-                {tripTab === 'completed' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => item.rawId && navigate(`/trips/${item.rawId}`)}
+                      className={`border rounded-xl p-3 sm:p-3.5 flex flex-col justify-between h-full bg-white shadow-2xs transition-all ${
+                        item.rawId ? 'cursor-pointer hover:border-slate-300 hover:shadow-xs' : ''
+                      } ${
+                        index === 0 && tripTab === 'recent' 
+                          ? 'border-emerald-200 bg-emerald-50/20 ring-1 ring-emerald-200/50' 
+                          : 'border-slate-200/90'
+                      }`}
+                    >
+                      {/* Card Header: Ref ID & Status */}
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100/90">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center border border-slate-200/80 shrink-0">
+                            <MapPin className="w-3 h-3 text-slate-500" />
+                          </div>
+                          <span className="font-black text-xs text-slate-900 truncate tracking-tight">{item.id}</span>
+                          {index === 0 && tripTab === 'recent' && (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-bold px-1.5 py-0 rounded-full shadow-none shrink-0">
+                              Latest
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="shrink-0">
+                          {renderTripCardBadge(item.status)}
+                        </div>
+                      </div>
+
+                      {/* Route Bar */}
+                      <div className="py-2 flex items-center justify-between gap-2 border-b border-slate-100/60">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Route</p>
+                          <p className="text-xs font-black text-slate-900 truncate leading-tight">{item.route}</p>
+                        </div>
+                      </div>
+
+                      {/* 3-Column Key Data Metrics */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 text-[10px]">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-400 truncate">Customer</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.customerName}>{item.customerName}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-400 truncate">Cargo Type</p>
+                          <p className="font-bold text-slate-800 truncate" title={item.cargoType}>{item.cargoType}</p>
+                        </div>
+                        <div className="min-w-0 text-right">
+                          <p className="font-semibold text-slate-400 truncate">Weight</p>
+                          <p className="font-bold text-slate-800 truncate">{item.totalWeight}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 
-          <button 
-            onClick={() => {
-              const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                ? vehicle.plate_number
-                : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-              navigate(`/trips?search=${encodeURIComponent(targetSearch)}`);
-            }}
-            className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>All Trips</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-          </button>
-        </div>
-
-        {/* Dynamic Vehicle Trips Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {activeDataset.length === 0 ? (
-            <div className="col-span-full p-6 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50">
-              <Truck className="w-6 h-6 text-slate-400 mx-auto mb-1.5 stroke-[1.5]" />
-              <p className="text-xs font-bold text-slate-600">No Trips Found</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">No {tripTab} trip records for this vehicle.</p>
-            </div>
-          ) : (
-            activeDataset.slice(0, 4).map((trip) => (
-              <div 
-                key={trip.id}
-                onClick={() => trip.rawId && navigate(`/trips/${trip.rawId}`)}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-2xs transition-all cursor-pointer"
-              >
-                <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs sm:text-sm font-black text-slate-900 truncate">{trip.route}</p>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{trip.id} • {trip.customerName}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {renderTripCardBadge(trip.status)}
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
-            ))
-          )}
         </div>
       </div>
     </div>

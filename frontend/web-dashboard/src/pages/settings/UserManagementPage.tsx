@@ -31,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { authStore } from '@/store/authStore';
 import { userService, UserDTO } from '@/services/userService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import UserModal from './components/UserModal';
 import DriverPasswordModal from './components/DriverPasswordModal';
 
@@ -109,20 +110,23 @@ export default function UserManagementPage() {
       originalUser: u,
     }));
 
-    const driverItems: UnifiedUser[] = driversList.map((d, idx) => ({
-      id: d.id || `driver-${idx}`,
-      name: `${d.first_name || ''} ${d.last_name || ''}`.trim() || 'Driver Account',
-      username: d.ref_id || d.phone_primary || 'driver',
-      avatarUrl: d.avatar_url || undefined,
-      phone: d.phone_primary || 'No phone',
-      email: d.ref_id ? `${d.ref_id}@mercon.app` : 'driver@mercon.app',
-      role: 'Operator',
-      accountType: 'Driver App',
-      status: d.status === 'Inactive' || !d.isActive ? 'Inactive' : 'Active',
-      lastLogin: d.hasAccountPassword ? '12 Sep 2026 04:20 PM' : 'Pending Password Setup',
-      hasAccountPassword: Boolean(d.hasAccountPassword),
-      originalDriver: d,
-    }));
+    const driverItems: UnifiedUser[] = driversList.map((d, idx) => {
+      const dName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || 'Driver Account';
+      return {
+        id: d.id || `driver-${idx}`,
+        name: dName,
+        username: d.ref_id || d.phone_primary || 'driver',
+        avatarUrl: getDriverAvatar(d.avatar_url, dName),
+        phone: d.phone_primary || 'No phone',
+        email: d.ref_id ? `${d.ref_id}@mercon.app` : 'driver@mercon.app',
+        role: 'Operator',
+        accountType: 'Driver App',
+        status: d.status === 'Inactive' || !d.isActive ? 'Inactive' : 'Active',
+        lastLogin: d.hasAccountPassword ? '12 Sep 2026 04:20 PM' : 'Pending Password Setup',
+        hasAccountPassword: Boolean(d.hasAccountPassword),
+        originalDriver: d,
+      };
+    });
 
     return [...webItems, ...driverItems];
   }, [users, driversList]);

@@ -31,6 +31,8 @@ const STATUS_DOT_COLORS: Record<DriverStatus, string> = {
   Inactive: 'bg-slate-400 ring-white dark:ring-slate-900',
 };
 
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
+
 export default function DriverAvatar({
   src,
   firstName = '',
@@ -43,6 +45,7 @@ export default function DriverAvatar({
   onPreview,
 }: DriverAvatarProps) {
   const [imageError, setImageError] = React.useState(false);
+  const fullName = `${firstName} ${lastName}`.trim();
   const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'DR';
 
   const sizeClass = SIZE_MAP[size] || SIZE_MAP.md;
@@ -55,8 +58,7 @@ export default function DriverAvatar({
     }
   };
 
-  const isAbdulMalik = `${firstName} ${lastName}`.toUpperCase().includes('ABDUL MALIK');
-  const avatarSrc = isAbdulMalik ? '/driver-assets/abdul_malik.jpg' : src;
+  const avatarSrc = getDriverAvatar(src, fullName);
 
   return (
     <div
