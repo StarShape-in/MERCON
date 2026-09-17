@@ -681,11 +681,11 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Main Columns Grid - Original h-[360px] Height) ── */}
+      {/* ── Middle Section (3 Main Columns Grid - Clean Height h-[410px]) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
           <div>
             <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
               <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -694,7 +694,7 @@ export default function CargoLoadingView() {
               </h2>
               <button 
                 onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-                className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               >
                 View All
               </button>
@@ -765,8 +765,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Original h-[360px] Height) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[360px] max-h-[360px] w-full">
+        {/* Center Column: Truck Visualizer Container (Clean h-[410px] Height) */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
             {/* Clean 2-Second Exploded Animation Video Element */}
             <video
@@ -819,9 +819,9 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Original h-[360px] Height, Locked Bounds) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
-          <div className="h-full flex flex-col justify-between overflow-hidden">
+        {/* Right Column: Service History (Clean h-[410px] Height, All Cards Fit Cleanly) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
+          <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
                 <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
@@ -831,8 +831,8 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* 2-Column Square Category Cards Grid */}
-                <div className="grid grid-cols-2 gap-2 flex-1 content-center max-w-[220px] mx-auto w-full">
+                {/* 2-Column Square Category Cards Grid (All 7 Fit Cleanly) */}
+                <div className="grid grid-cols-2 gap-2 flex-1 content-center max-w-[240px] mx-auto w-full">
                   {serviceItems.map((item) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
@@ -851,14 +851,14 @@ export default function CargoLoadingView() {
                             : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                        <div className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
-                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
+                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
                         </div>
-                        <span className={`text-[10.5px] font-black leading-tight truncate max-w-full px-0.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                        <span className={`text-[11px] font-black leading-tight truncate max-w-full px-0.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                           {item.categoryLabel}
                         </span>
                       </button>
@@ -868,7 +868,7 @@ export default function CargoLoadingView() {
               </div>
             ) : (
               /* Subpage View inside Service History Box showing only Service Record */
-              <div className="flex flex-col justify-between h-full space-y-2.5 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+              <div className="flex flex-col justify-between h-full space-y-3 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
                   <button
                     onClick={() => {
@@ -886,7 +886,7 @@ export default function CargoLoadingView() {
                 </div>
 
                 {/* Service Record Detail Card */}
-                <div className="flex-1 bg-slate-50/90 rounded-xl p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2 overflow-hidden">
+                <div className="flex-1 bg-slate-50/90 rounded-xl p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
                   <div className="flex items-start gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
                       {(() => {
