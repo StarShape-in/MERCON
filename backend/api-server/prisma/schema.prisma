@@ -861,6 +861,7 @@ model MaintenanceRecord {
   workshopId       String?        @db.Uuid
   workshop         SavedWorkshop? @relation(fields: [workshopId], references: [id])
   maintenance_type String
+  system           String?        @default("others")
 
   start_date       DateTime  @default(now()) @db.Timestamptz
   end_date         DateTime? @db.Timestamptz

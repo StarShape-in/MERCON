@@ -137,6 +137,7 @@ export default function CargoLoadingView() {
 
   const getCategoryDetails = (key: string, defaultTitle: string, defaultWorkshop: string, defaultParts: string[]) => {
     const item = maintenanceData?.data?.find((m: any) => {
+      if (m.system && m.system.toLowerCase() === key.toLowerCase()) return true;
       const text = `${m.work_done || ''} ${m.maintenance_type || ''} ${m.system || ''}`.toLowerCase();
       if (key === 'engine') return text.includes('engine') || text.includes('oil');
       if (key === 'axles') return text.includes('axle') || text.includes('bearing') || text.includes('suspension');
@@ -144,6 +145,7 @@ export default function CargoLoadingView() {
       if (key === 'brakes') return text.includes('brake') || text.includes('pad') || text.includes('drum');
       if (key === 'tires') return text.includes('tire') || text.includes('wheel') || text.includes('alignment');
       if (key === 'electrical') return text.includes('electric') || text.includes('battery') || text.includes('fuse');
+      if (key === 'others') return true;
       return false;
     });
 

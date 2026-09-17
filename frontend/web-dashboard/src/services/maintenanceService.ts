@@ -6,6 +6,7 @@ export const MAINTENANCE_ENTITY_TYPE = 'MaintenanceRecord';
 
 export type MaintenanceType = 'Routine' | 'Repair' | 'Inspection' | 'Renewal' | 'Emergency';
 export type MaintenanceStatus = 'Scheduled' | 'In_Progress' | 'Completed' | 'Cancelled';
+export type VehicleSystemCategory = 'engine' | 'axles' | 'air_system' | 'brakes' | 'tires' | 'electrical' | 'others';
 
 export interface MaintenanceRecord {
   id: string;
@@ -15,6 +16,7 @@ export interface MaintenanceRecord {
   workshop_name: string;
   workshop_contact?: string | null;
   maintenance_type: MaintenanceType;
+  system?: VehicleSystemCategory | string | null;
   status: MaintenanceStatus;
   start_date: string;
   end_date?: string | null;
@@ -47,6 +49,7 @@ export interface CreateMaintenancePayload {
   workshop_name: string;
   workshop_contact?: string;
   maintenance_type: MaintenanceType;
+  system?: VehicleSystemCategory | string;
   status?: MaintenanceStatus;
   start_date?: string;
   end_date?: string;

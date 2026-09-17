@@ -50,7 +50,7 @@ const toDate = (value?: string | Date | null): Date | null => {
 
 export const getMaintenanceRecords = async (req: Request, res: Response) => {
   try {
-    const { vehicle_id, status, maintenance_type, search, page = '1', per_page = '50' } = req.query;
+    const { vehicle_id, status, maintenance_type, system, search, page = '1', per_page = '50' } = req.query;
 
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
@@ -71,6 +71,10 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
 
     if (maintenance_type && maintenance_type !== 'all') {
       whereClause.maintenance_type = maintenance_type as string;
+    }
+
+    if (system && system !== 'all') {
+      whereClause.system = system as string;
     }
 
     const searchAnd = buildSearchAnd(search, MAINTENANCE_SEARCH_FIELDS);
@@ -426,6 +430,7 @@ const maintenanceSchema = z.object({
   workshop_name: z.string().min(1, 'Workshop name is required'),
   workshop_contact: z.string().optional().nullable(),
   maintenance_type: z.enum(['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency']),
+  system: z.enum(['engine', 'axles', 'air_system', 'brakes', 'tires', 'electrical', 'others']).optional().nullable().default('others'),
   status: z.enum(['Scheduled', 'In_Progress', 'Completed', 'Cancelled']).default('Completed'),
   start_date: z.string().or(z.date()).optional(),
   end_date: z.string().or(z.date()).optional().nullable(),
@@ -497,6 +502,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
       workshop_name,
       workshop_contact,
       maintenance_type,
+      system,
       status,
       start_date,
       end_date,
@@ -550,6 +556,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
             workshop_name,
             workshop_contact: workshop_contact || null,
             maintenance_type,
+            system: system || 'others',
             status: status || 'Completed',
             start_date: startDateVal,
             end_date: endDateVal,
