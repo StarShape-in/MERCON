@@ -681,11 +681,11 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Large Main Columns Grid - Locked h-[360px] Height) ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 flex-1 items-stretch">
+      {/* ── Middle Section (3 Large Main Columns Grid - Free Shape & Auto Adjustable) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[350px] h-full">
           <div>
             <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
               <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -765,8 +765,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Locked h-[360px] Height) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[360px] max-h-[360px] w-full">
+        {/* Center Column: Truck Visualizer Container */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden min-h-[350px] w-full h-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
             {/* Clean 2-Second Exploded Animation Video Element */}
             <video
@@ -819,8 +819,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Locked h-[360px] Height, Compact Square Grid) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
+        {/* Right Column: Service History (Uniform Square Cards Grid) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[350px] h-full">
           <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
@@ -831,13 +831,12 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* Compact 2-Column Square Category Cards Grid */}
+                {/* Uniform 2-Column Square Category Cards Grid */}
                 <div className="grid grid-cols-2 gap-2 flex-1 content-center">
-                  {serviceItems.map((item, idx) => {
+                  {serviceItems.map((item) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
                     const theme = item.colorTheme;
-                    const isLastOdd = serviceItems.length % 2 !== 0 && idx === serviceItems.length - 1;
                     return (
                       <button 
                         key={`cat-sq-${item.id}`}
@@ -846,20 +845,20 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           if (!isExplodedView) handleToggleServiceHistory();
                         }}
-                        className={`${isLastOdd ? 'col-span-2 h-[42px] flex-row gap-2 px-3' : 'col-span-1 aspect-square max-h-[60px] flex-col gap-1 p-1.5'} rounded-xl border flex items-center justify-center transition-all cursor-pointer text-center group ${
+                        className={`col-span-1 aspect-square rounded-xl border flex flex-col items-center justify-center gap-1.5 p-2 transition-all cursor-pointer text-center group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
                             : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all shrink-0 ${
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
                           <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
                         </div>
-                        <span className={`text-[10px] sm:text-[11px] font-black leading-none truncate max-w-full ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                        <span className={`text-[11px] font-black leading-tight truncate max-w-full px-0.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                           {item.categoryLabel}
                         </span>
                       </button>
@@ -951,8 +950,8 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Bottom Section: Trips (Recent / Upcoming / Completed Dispatches) ── */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0 mt-4 sm:mt-5">
+      {/* ── Section: Trips Ledger (Positioned Directly Below the Three Middle Boxes) ── */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0">
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
           <div className="flex items-center gap-4">
             <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
