@@ -133,20 +133,20 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
                   }
                 `}
               >
-                {/* SVG Background Path & Extended Vertical Guide Lines */}
+                {/* SVG Background Path & Continuous Vertical Side Lines */}
                 <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 58" preserveAspectRatio="none">
-                  {/* Pure white fill in all states (no gray tint) */}
+                  {/* Side borders extend down to y=66 so they touch and connect to the card below in resting state */}
                   <path 
-                    d="M0,58 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,58" 
+                    d="M0,66 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,66" 
                     fill="#FFFFFF"
                     stroke={isHovered ? "#64748B" : doc.strokeColor}
                     strokeWidth="1.2"
                   />
                   {isHovered && (
                     <>
-                      {/* Extended vertical side guide lines extending down from lifted card */}
-                      <line x1="0" y1="58" x2="0" y2="94" stroke="#475569" strokeWidth="1.2" />
-                      <line x1="400" y1="58" x2="400" y2="94" stroke="#475569" strokeWidth="1.2" />
+                      {/* Vertical side guide lines extending down to touch card below during hover */}
+                      <line x1="0" y1="66" x2="0" y2="78" stroke="#475569" strokeWidth="1.2" />
+                      <line x1="400" y1="66" x2="400" y2="78" stroke="#475569" strokeWidth="1.2" />
                     </>
                   )}
                 </svg>
