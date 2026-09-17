@@ -296,30 +296,30 @@ export async function exportExcelTable(
       switch (kind) {
         case 'currency':
           cell.numFmt = '#,##0.00 "SAR"';
-          cell.alignment = { horizontal: 'right' };
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
           break;
         case 'number':
           cell.numFmt = '#,##0';
-          cell.alignment = { horizontal: 'right' };
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
           break;
         case 'date':
-          cell.alignment = { horizontal: 'center' };
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
           break;
         case 'status-good':
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.good } };
           cell.font = { bold: true, color: { argb: BRAND.goodText } };
-          cell.alignment = { horizontal: 'center' };
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
           break;
         case 'status-bad':
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.bad } };
           cell.font = { bold: true, color: { argb: BRAND.badText } };
-          cell.alignment = { horizontal: 'center' };
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
           break;
         case 'center':
-          cell.alignment = { horizontal: 'center' };
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
           break;
         default:
-          cell.alignment = { horizontal: 'left' };
+          cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
       }
 
       cell.border = {

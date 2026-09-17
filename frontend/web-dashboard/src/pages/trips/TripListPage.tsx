@@ -197,11 +197,11 @@ const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
   { id: 'customer', label: 'Customer', accessor: (t) => t.customer?.name || 'Unassigned' },
   { id: 'pickup', label: 'Pickup Location', accessor: (t) => {
       const p = getPickupInfo(t);
-      return p.name !== '—' ? (p.address ? `${p.name} (${p.address})` : p.name) : '—';
+      return p.name !== '—' ? p.name : '—';
   } },
   { id: 'dropoff', label: 'Dropoff Location', accessor: (t) => {
       const d = getDropoffInfo(t);
-      return d.name !== '—' ? (d.address ? `${d.name} (${d.address})` : d.name) : '—';
+      return d.name !== '—' ? d.name : '—';
   } },
   { id: 'driver', label: 'Driver', accessor: (t) => t.is_third_party
       ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
