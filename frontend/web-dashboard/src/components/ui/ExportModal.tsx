@@ -56,6 +56,8 @@ export interface ExportModalProps<T = any> {
   filters?: ExportFilter<T>[];
   // Formats supported (default: xlsx & csv)
   formats?: ('xlsx' | 'csv' | 'pdf')[];
+  // Themes supported for Excel export
+  themes?: { id: string; label: string }[];
   // Optional date filtering
   rowDateAccessor?: (row: T) => string | Date | null | undefined;
   dateRangeLabel?: string;
@@ -76,12 +78,14 @@ export default function ExportModal<T = any>({
   columns,
   filters = [],
   formats = ['xlsx', 'pdf'],
+  themes = [],
   rowDateAccessor,
   dateRangeLabel = 'Date Range',
 }: ExportModalProps<T>) {
   const allowedFormats = (formats || []).filter((f) => f !== 'csv');
   const [scope, setScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
   const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx');
+  const [theme, setTheme] = useState<string>(themes[0]?.id || 'standard');
   const [selectedColumns, setSelectedColumns] = useState<Record<string, boolean>>({});
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [isExporting, setIsExporting] = useState(false);
@@ -198,10 +202,8 @@ export default function ExportModal<T = any>({
       const exportTitle = title.replace(/^Export\s+/i, 'MERCON ').trim();
 
       if (format === 'xlsx') {
-        await exportExcelTable(exportTitle, headers, dataRows, fileName, {
-          sheetName: sheetName || fileNamePrefix,
-          subtitle,
-        });
+        const headerStrings = headers.map(h => typeof h === 'string' ? h : h);
+        await exportExcelTable(exportTitle, headerStrings, dataRows, fileName, { subtitle, sheetName, theme: theme as any });
       } else if (format === 'csv') {
         downloadCSVTable(headers, dataRows, fileName);
       } else if (format === 'pdf') {
@@ -325,6 +327,24 @@ export default function ExportModal<T = any>({
               )}
             </div>
           </div>
+
+          {themes && themes.length > 0 && format === 'xlsx' && (
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 dark:text-slate-300">Excel Theme Template</label>
+              <Select value={theme} onValueChange={setTheme}>
+                <SelectTrigger className="h-9 w-full rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  <SelectValue placeholder="Select theme..." />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden text-xs z-[9999]">
+                  {themes.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="cursor-pointer focus:bg-slate-50 dark:focus:bg-slate-800/50 py-2 font-medium">
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Time / Date Range Filter */}
           {scope !== 'selected' && rowDateAccessor && (
