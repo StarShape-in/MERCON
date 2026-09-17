@@ -681,11 +681,11 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Main Columns Grid - Real Video Size & Compact Category Squares) ── */}
+      {/* ── Middle Section (3 Main Columns Grid - Fixed Locked h-[310px] Height) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[300px] h-full">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[310px] max-h-[310px] overflow-hidden">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
               <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -765,8 +765,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Real Video Size Adjustment) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden min-h-[300px] w-full h-full">
+        {/* Center Column: Truck Visualizer Container (Locked h-[310px] Height) */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[310px] max-h-[310px] w-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
             {/* Clean 2-Second Exploded Animation Video Element */}
             <video
@@ -819,9 +819,9 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Compact Category Squares <-> Subpage Detail View) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[300px] h-full">
-          <div className="h-full flex flex-col justify-between">
+        {/* Right Column: Service History (Locked h-[310px] Height, Zero Dimension Jumps) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[310px] max-h-[310px] overflow-hidden">
+          <div className="h-full flex flex-col justify-between overflow-hidden">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
                 <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
@@ -831,7 +831,7 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* Compact 2-Column Square Category Cards Grid (Centered, Smaller Squares) */}
+                {/* Compact 2-Column Square Category Cards Grid (Centered, Fixed Height Bounds) */}
                 <div className="grid grid-cols-2 gap-1.5 flex-1 content-center max-w-[210px] mx-auto w-full">
                   {serviceItems.map((item) => {
                     const isSelected = item.id === selectedServiceId;
@@ -868,8 +868,8 @@ export default function CargoLoadingView() {
               </div>
             ) : (
               /* Subpage View inside Service History Box showing only Service Record */
-              <div className="flex flex-col justify-between h-full space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+              <div className="flex flex-col justify-between h-full space-y-2 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 shrink-0">
                   <button
                     onClick={() => {
                       setActiveServiceView('categories');
@@ -886,22 +886,22 @@ export default function CargoLoadingView() {
                 </div>
 
                 {/* Service Record Detail Card */}
-                <div className="flex-1 bg-slate-50/90 rounded-xl p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
+                <div className="flex-1 bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden">
+                  <div className="flex items-start gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
                       {(() => {
                         const IconComp = selectedService.icon;
-                        return <IconComp className={`w-4 h-4 stroke-[2] ${selectedService.colorTheme.text}`} />;
+                        return <IconComp className={`w-3.5 h-3.5 stroke-[2] ${selectedService.colorTheme.text}`} />;
                       })()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-[9px] font-bold text-slate-400">{selectedService.date}</span>
-                        <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
                           {selectedService.status}
                         </span>
                       </div>
-                      <h3 className="text-xs font-black text-slate-900 leading-tight">{selectedService.title}</h3>
+                      <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{selectedService.title}</h3>
                       <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
                         <Wrench className="w-3 h-3 text-slate-400" />
                         {selectedService.workshop}
@@ -910,21 +910,21 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Odometer & Cost */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[10px]">
-                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Odometer</span>
-                      <span className="font-mono font-black text-slate-900">{selectedService.odometer}</span>
+                  <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/60 text-[10px]">
+                    <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
+                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px]">Odometer</span>
+                      <span className="font-mono font-black text-slate-900 text-[10px]">{selectedService.odometer}</span>
                     </div>
-                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Cost</span>
-                      <span className="font-mono font-black text-[#FA634E]">{selectedService.cost}</span>
+                    <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
+                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px]">Cost</span>
+                      <span className="font-mono font-black text-[#FA634E] text-[10px]">{selectedService.cost}</span>
                     </div>
                   </div>
 
                   {/* Replaced Parts */}
-                  <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                    <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px] mb-0.5">Replaced Parts</span>
-                    <span className="text-[10px] font-bold text-slate-700 line-clamp-2">
+                  <div className="bg-white p-1.5 rounded-lg border border-slate-200/80">
+                    <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8px] mb-0.5">Replaced Parts</span>
+                    <span className="text-[9.5px] font-bold text-slate-700 line-clamp-1">
                       {selectedService.partsReplaced.join(' • ')}
                     </span>
                   </div>
@@ -938,7 +938,7 @@ export default function CargoLoadingView() {
                       : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
                     navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
                   }}
-                  className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
+                  className="w-full py-1.5 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
                 >
                   <span>Open Maintenance Record</span>
                   <ChevronRight className="w-3.5 h-3.5" />
