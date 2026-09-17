@@ -137,9 +137,9 @@ export default function ExportModal<T = any>({
     setTheme(newTheme);
     if (newTheme === 'jd-monthly') {
       const jdColumns = [
-        'sl', 'planned_start', 'ref_id', 'driver', 'vehicle', 'category', 'driver_phone', 
-        'provider_type', 'customer', 'receiver', 'additional_charge', 'stops', 
-        'billing_amount', 'total_amount', 'driver_payout', 'balance_amount', 'company_name'
+        'jd_sl', 'jd_date', 'jd_job', 'jd_driver', 'jd_vehicle', 'jd_vehicle_type', 'jd_mobile', 
+        'jd_provider', 'jd_customer', 'jd_receiver', 'jd_waiting', 'jd_stops', 
+        'jd_billing', 'jd_total', 'jd_trip_charge', 'jd_balance', 'jd_company'
       ];
       const updated: Record<string, boolean> = {};
       columns.forEach((col) => {

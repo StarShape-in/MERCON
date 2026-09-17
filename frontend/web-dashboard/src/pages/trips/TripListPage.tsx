@@ -193,54 +193,77 @@ const getDropoffInfo = (trip: Trip) => {
 };
 
 const TRIP_EXPORT_COLUMNS: ExportColumn<Trip>[] = [
-  { id: 'sl', label: 'S/L', accessor: (_, index) => index + 1 },
-  { id: 'planned_start', label: 'Date', accessor: (t) => formatExportDate(t.planned_start) },
-  { id: 'ref_id', label: 'Job #', accessor: (t) => t.ref_id || '' },
-  { id: 'driver', label: 'Driver Name', accessor: (t) => t.is_third_party
-      ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
-      : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned')
-  },
-  { id: 'vehicle', label: 'Vehicle No:', accessor: (t) => t.is_third_party
-      ? (t.third_party_vehicle_plate || '3PL Vehicle')
-      : (t.vehicle?.plate_number || 'Unassigned')
-  },
-  { id: 'category', label: 'Vehicle Type', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t) },
-  { id: 'driver_phone', label: 'Mobile Number', accessor: (t) => t.driver?.phone_number || t.driver?.phone || t.third_party_driver_phone || '—' },
-  { id: 'provider_type', label: 'Mercon or 3rd Party', accessor: (t) => t.is_third_party ? '3rd Party' : 'MERCON' },
-  { id: 'customer', label: 'Sender/Customer', accessor: (t) => t.customer?.name || 'Unassigned' },
-  { id: 'receiver', label: 'Receiver', accessor: (t) => {
+  // --- STANDARD COLUMNS (defaultSelected: true) ---
+  { id: 'ref_id', label: 'Job / Ref ID', accessor: (t) => t.ref_id || '' },
+  { id: 'status', label: 'Status', accessor: (t) => t.status || '' },
+  { id: 'customer', label: 'Customer', accessor: (t) => t.customer?.name || 'Unassigned' },
+  { id: 'pickup', label: 'Pickup Location', accessor: (t) => {
+      const p = getPickupInfo(t);
+      return p.name !== '—' ? p.name.split(/[\[(]/)[0].trim() : '—';
+  } },
+  { id: 'stops', label: 'Stops', accessor: (t) => (t.stops || []).filter(s => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff').map(s => (s.location_name || s.location?.name || '').split(/[\[(]/)[0].trim() || '—').filter(s => s !== '—').join(', ') || '—' },
+  { id: 'dropoff', label: 'Dropoff Location', accessor: (t) => {
       const d = getDropoffInfo(t);
       return d.name !== '—' ? d.name.split(/[\[(]/)[0].trim() : '—';
   } },
-  { id: 'additional_charge', label: 'Waiting/Labor Charges', accessor: (t) => Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)) },
-  { id: 'stops', label: 'Additional Stops', accessor: (t) => (t.stops || []).filter(s => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff').map(s => (s.location_name || s.location?.name || '').split(/[\[(]/)[0].trim() || '—').filter(s => s !== '—').join(', ') || '—' },
+  { id: 'driver', label: 'Driver', accessor: (t) => t.is_third_party
+      ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
+      : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned')
+  },
+  { id: 'vehicle', label: 'Vehicle', accessor: (t) => t.is_third_party
+      ? (t.third_party_vehicle_plate || '3PL Vehicle')
+      : (t.vehicle?.plate_number || 'Unassigned')
+  },
+  { id: 'line_type', label: 'Line Type', accessor: (t) => getTripRateCategory(t) },
+  { id: 'category', label: 'Vehicle Type', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t) },
+  { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
+  { id: 'planned_start', label: 'Planned Start', accessor: (t) => formatExportDate(t.planned_start) },
+  { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
+  { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
+  { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
+  { id: 'driver_payout', label: 'Trip Charge Per Day', accessor: (t) => Number(t.driver_payout || t.trip_charges || 0) },
+  { id: 'additional_charge', label: 'Additional Charge', accessor: (t) => Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)) },
   { id: 'billing_amount', label: 'Billing Amount', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0) },
-  { id: 'total_amount', label: 'Total Amount', accessor: (t) => {
+  { id: 'carrier', label: 'Carrier / Provider', accessor: (t) => t.is_third_party
+      ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
+      : (t.carrier_name || 'MERCON LOGISTICS')
+  },
+
+  // --- JD MONTHLY SPECIFIC COLUMNS (defaultSelected: false) ---
+  { id: 'jd_sl', label: 'S/L', accessor: (_, index) => index + 1, defaultSelected: false },
+  { id: 'jd_date', label: 'DATE', accessor: (t) => formatExportDate(t.planned_start), defaultSelected: false },
+  { id: 'jd_job', label: 'JOB #', accessor: (t) => t.ref_id || '', defaultSelected: false },
+  { id: 'jd_driver', label: 'DRIVER NAME', accessor: (t) => t.is_third_party
+      ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
+      : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'), defaultSelected: false },
+  { id: 'jd_vehicle', label: 'VEHICLE NO:', accessor: (t) => t.is_third_party
+      ? (t.third_party_vehicle_plate || '3PL Vehicle')
+      : (t.vehicle?.plate_number || 'Unassigned'), defaultSelected: false },
+  { id: 'jd_vehicle_type', label: 'VEHICLE TYPE', accessor: (t) => t.quotation_vehicle_class || t.financials?.quotation_vehicle_class || t.vehicle_type || getTripPayloadCapacity(t), defaultSelected: false },
+  { id: 'jd_mobile', label: 'MOBILE NUMBER', accessor: (t) => t.driver?.phone_number || t.driver?.phone || t.third_party_driver_phone || '—', defaultSelected: false },
+  { id: 'jd_provider', label: 'MERCON OR 3RD PARTY', accessor: (t) => t.is_third_party ? '3rd Party' : 'MERCON', defaultSelected: false },
+  { id: 'jd_customer', label: 'SENDER/CUSTOMER', accessor: (t) => t.customer?.name || 'Unassigned', defaultSelected: false },
+  { id: 'jd_receiver', label: 'RECEIVER', accessor: (t) => {
+      const d = getDropoffInfo(t);
+      return d.name !== '—' ? d.name.split(/[\[(]/)[0].trim() : '—';
+  }, defaultSelected: false },
+  { id: 'jd_waiting', label: 'WAITING/LABOR CHARGES', accessor: (t) => Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)), defaultSelected: false },
+  { id: 'jd_stops', label: 'ADDITIONAL STOPS', accessor: (t) => (t.stops || []).filter(s => s.stop_type !== 'Pickup' && s.stop_type !== 'Dropoff').map(s => (s.location_name || s.location?.name || '').split(/[\[(]/)[0].trim() || '—').filter(s => s !== '—').join(', ') || '—', defaultSelected: false },
+  { id: 'jd_billing', label: 'BILLING AMOUNT', accessor: (t) => Number(t.billing_amount || t.rateCard?.base_price || 0), defaultSelected: false },
+  { id: 'jd_total', label: 'TOTAL AMOUNT', accessor: (t) => {
       const base = Number(t.billing_amount || t.rateCard?.base_price || 0);
       const additional = Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0));
       return base + additional;
-  } },
-  { id: 'driver_payout', label: 'Trip Charges', accessor: (t) => Number(t.driver_payout || t.trip_charges || 0) },
-  { id: 'balance_amount', label: 'Balance Amount', accessor: (t) => {
+  }, defaultSelected: false },
+  { id: 'jd_trip_charge', label: 'TRIP CHARGES', accessor: (t) => Number(t.driver_payout || t.trip_charges || 0), defaultSelected: false },
+  { id: 'jd_balance', label: 'BALANCE AMOUNT', accessor: (t) => {
       const base = Number(t.billing_amount || t.rateCard?.base_price || 0);
       const additional = Number((t.charges || []).reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0));
       const total = base + additional;
       const tripCharge = Number(t.driver_payout || t.trip_charges || 0);
       return total - tripCharge;
-  } },
-  { id: 'company_name', label: 'Company Name', accessor: (t) => t.carrier_name || 'MERCON LOGISTICS' },
-  
-  // Other standard columns available for custom selection
-  { id: 'status', label: 'Status', accessor: (t) => t.status || '' },
-  { id: 'pickup', label: 'Pickup Location', accessor: (t) => {
-      const p = getPickupInfo(t);
-      return p.name !== '—' ? p.name.split(/[\[(]/)[0].trim() : '—';
-  } },
-  { id: 'line_type', label: 'Line Type', accessor: (t) => getTripRateCategory(t) },
-  { id: 'rate_card', label: 'Rate Card', accessor: (t) => t.rateCard?.name || 'Manual Rate' },
-  { id: 'actual_start', label: 'Actual Start', accessor: (t) => formatExportDate(t.actual_start) },
-  { id: 'planned_end', label: 'Planned End', accessor: (t) => formatExportDate(t.planned_end) },
-  { id: 'actual_end', label: 'Actual End', accessor: (t) => formatExportDate(t.actual_end) },
+  }, defaultSelected: false },
+  { id: 'jd_company', label: 'COMPANY NAME', accessor: (t) => t.carrier_name || 'MERCON LOGISTICS', defaultSelected: false },
 ];
 
 
