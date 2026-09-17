@@ -15,7 +15,7 @@ import {
   Clock, MapPin, Truck, FileText, ShieldCheck, 
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
   History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
-  RotateCcw, Sparkles, ChevronRight, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu
+  RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu
 } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
@@ -134,6 +134,7 @@ export default function CargoLoadingView() {
   const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
   const [showHotspots, setShowHotspots] = useState<boolean>(false);
   const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
+  const [activeServiceView, setActiveServiceView] = useState<'categories' | 'detail'>('categories');
 
   const getCategoryDetails = (key: string, defaultTitle: string, defaultWorkshop: string, defaultParts: string[]) => {
     const item = maintenanceData?.data?.find((m: any) => {
@@ -818,84 +819,132 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Stacked Category Buttons + Active Detail View) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[360px] h-full">
-          <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
-                Service History
-              </h2>
-            </div>
+        {/* Right Column: Service History (Square Category Cards Grid <-> Subpage Detail View) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[360px] h-full overflow-hidden">
+          <div className="h-full flex flex-col justify-between">
+            {activeServiceView === 'categories' ? (
+              <div className="flex flex-col justify-between h-full">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
+                  <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
+                    Service History
+                  </h2>
+                </div>
 
-            {/* 7 Compact Stacked System Category Buttons */}
-            <div className="space-y-1 mb-3">
-              {serviceItems.map((item) => {
-                const isSelected = item.id === selectedServiceId;
-                const IconComp = item.icon;
-                const theme = item.colorTheme;
-                return (
-                  <button 
-                    key={`cat-btn-${item.id}`}
+                {/* 2-Column Square Category Cards Grid (2 below 2 below 2) */}
+                <div className="grid grid-cols-2 gap-2 flex-1 items-center">
+                  {serviceItems.map((item) => {
+                    const isSelected = item.id === selectedServiceId;
+                    const IconComp = item.icon;
+                    const theme = item.colorTheme;
+                    return (
+                      <button 
+                        key={`cat-sq-${item.id}`}
+                        onClick={() => {
+                          setSelectedServiceId(item.id);
+                          setActiveServiceView('detail');
+                          if (!isExplodedView) handleToggleServiceHistory();
+                        }}
+                        className={`aspect-square p-2 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center group ${
+                          isSelected
+                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
+                            : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
+                          isSelected
+                            ? 'bg-white border-orange-200 shadow-2xs'
+                            : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
+                        }`}>
+                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
+                        </div>
+                        <span className={`text-[11px] font-black leading-tight ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                          {item.categoryLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Subpage View inside Service History Box showing only Service Record */
+              <div className="flex flex-col justify-between h-full space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+                  <button
                     onClick={() => {
-                      setSelectedServiceId(item.id);
-                      if (!isExplodedView) handleToggleServiceHistory();
+                      setActiveServiceView('categories');
+                      if (isExplodedView) handleToggleServiceHistory();
                     }}
-                    className={`w-full px-2.5 py-1.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
-                      isSelected
-                        ? `bg-orange-50/80 border-[#FA634E] ring-1 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
-                        : `bg-white border-slate-200/80 hover:bg-slate-50/80 hover:border-slate-300 shadow-2xs`
-                    }`}
+                    className="text-xs font-bold text-slate-600 hover:text-[#FA634E] transition-colors flex items-center gap-1 cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
-                        isSelected
-                          ? 'bg-white border-orange-200 shadow-2xs'
-                          : 'bg-slate-50 border-slate-100 shadow-2xs'
-                      }`}>
-                        <IconComp className={`w-3 h-3 stroke-[2] ${theme.text}`} />
-                      </div>
-                      <span className={`text-[11px] font-black ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
-                        {item.categoryLabel}
-                      </span>
-                    </div>
-                    <ChevronRight className={`w-3.5 h-3.5 ${isSelected ? 'text-[#FA634E]' : 'text-slate-400'}`} />
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Back</span>
                   </button>
-                );
-              })}
-            </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
+                    {selectedService.categoryLabel}
+                  </span>
+                </div>
 
-            {/* Selected Service Detail Card (Clickable -> Navigates to Maintenance History) */}
-            <div 
-              onClick={() => {
-                const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                  ? vehicle.plate_number
-                  : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-                navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
-              }}
-              className="p-3 rounded-xl bg-slate-50/90 border border-slate-200/90 hover:border-[#FA634E]/50 hover:bg-orange-50/30 transition-all cursor-pointer shadow-2xs flex flex-col justify-between gap-1.5"
-              title="Click to view in Maintenance History"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
-                  {selectedService.system}
-                </span>
-                <span className="text-[10px] font-bold text-slate-400">
-                  {selectedService.date}
-                </span>
+                {/* Service Record Detail Card */}
+                <div className="flex-1 bg-slate-50/90 rounded-xl p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
+                      {(() => {
+                        const IconComp = selectedService.icon;
+                        return <IconComp className={`w-4 h-4 stroke-[2] ${selectedService.colorTheme.text}`} />;
+                      })()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[9px] font-bold text-slate-400">{selectedService.date}</span>
+                        <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                          {selectedService.status}
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-black text-slate-900 leading-tight">{selectedService.title}</h3>
+                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                        <Wrench className="w-3 h-3 text-slate-400" />
+                        {selectedService.workshop}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Odometer & Cost */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[10px]">
+                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Odometer</span>
+                      <span className="font-mono font-black text-slate-900">{selectedService.odometer}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Cost</span>
+                      <span className="font-mono font-black text-[#FA634E]">{selectedService.cost}</span>
+                    </div>
+                  </div>
+
+                  {/* Replaced Parts */}
+                  <div className="bg-white p-2 rounded-lg border border-slate-200/80">
+                    <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px] mb-0.5">Replaced Parts</span>
+                    <span className="text-[10px] font-bold text-slate-700 line-clamp-2">
+                      {selectedService.partsReplaced.join(' • ')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Direct Link to Maintenance Record in Maintenance Ledger */}
+                <button
+                  onClick={() => {
+                    const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                      ? vehicle.plate_number
+                      : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                    navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
+                >
+                  <span>Open Maintenance Record</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <div>
-                <p className="text-xs font-black text-slate-900 leading-snug truncate">{selectedService.title}</p>
-                <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate flex items-center gap-1">
-                  <Wrench className="w-3 h-3 text-slate-400" />
-                  {selectedService.workshop}
-                </p>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
-                <span className="font-mono font-bold text-slate-600">{selectedService.odometer}</span>
-                <span className="font-mono font-black text-[#FA634E]">{selectedService.cost}</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
