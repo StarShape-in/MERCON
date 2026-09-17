@@ -19,6 +19,10 @@ export const DRIVER_AVATAR_MAP: DriverAvatarMapping[] = [
     avatarUrl: '/driver-assets/mohammed_faizan_faiz_ahmed.png',
   },
   {
+    keywords: ['IQBAL', 'MOHAMMED IQBAL', 'MOHAMMED IQBAL HOSSAIN', 'IQBAL HOSSAIN'],
+    avatarUrl: '/driver-assets/mohammed_iqbal_hossain.png',
+  },
+  {
     keywords: ['YASIN KHAIR', 'MUHAMMAD YASIN KHAIR DIN', 'KHAIR DIN', 'MUHAMMAD YASIN'],
     avatarUrl: '/driver-assets/muhammad_yasin_khair_din.png',
   },
@@ -27,12 +31,20 @@ export const DRIVER_AVATAR_MAP: DriverAvatarMapping[] = [
     avatarUrl: '/driver-assets/muhammed_abrar_abdul_kareem.png',
   },
   {
+    keywords: ['RIZWAN', 'MUHAMMED RIZWAN', 'MUHAMMED RIZWAN MAQSOOD AHMAD', 'MAQSOOD AHMAD'],
+    avatarUrl: '/driver-assets/muhammed_rizwan_maqsood_ahmad.png',
+  },
+  {
     keywords: ['SHAHBAZ', 'MUHAMMED SHAHBAZ MUHAMMAD TAZ', 'MUHAMMAD TAZ', 'MUHAMMED SHAHBAZ'],
     avatarUrl: '/driver-assets/muhammed_shahbaz_muhammad_taz.png',
   },
   {
     keywords: ['SHAHZAD', 'MUHAMMED SHAHZAD MUHAMMED AYUB BAIG', 'AYUB BAIG', 'MUHAMMED SHAHZAD'],
     avatarUrl: '/driver-assets/muhammed_shahzad_muhammed_ayub_baig.png',
+  },
+  {
+    keywords: ['UMAIR', 'MUHAMMED UMAIR', 'MUHAMMED UMAIR MUHAMMED ALI', 'MUHAMMED ALI'],
+    avatarUrl: '/driver-assets/muhammed_umair_muhammed_ali.png',
   },
   {
     keywords: ['NADAR KHAN', 'NADAR KHAN GUL SHAHZADA', 'GUL SHAHZADA'],
@@ -61,6 +73,10 @@ export const DRIVER_AVATAR_MAP: DriverAvatarMapping[] = [
   {
     keywords: ['SAWAB KHAN', 'SAWAB KHAN TAJ MANI KHAN'],
     avatarUrl: '/driver-assets/sawab_khan_taj_mani_khan.png',
+  },
+  {
+    keywords: ['UMAR FAROOQ', 'UMAR FAROOQ MUHAMMED BASHIR', 'MUHAMMED BASHIR'],
+    avatarUrl: '/driver-assets/umar_farooq_muhammed_bashir.png',
   },
   {
     keywords: ['USMAN HABIB', 'USMAN HABIB HABIB KHAN', 'HABIB KHAN'],
