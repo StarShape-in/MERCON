@@ -80,6 +80,7 @@ interface VehicleTripDisplay {
   customerName: string;
   cargoType: string;
   totalWeight: string;
+  date: string;
 }
 
 export default function CargoLoadingView() {
@@ -476,8 +477,10 @@ export default function CargoLoadingView() {
       : '10,000 Kg';
 
     const customerName = t.customer?.name || t.customer_name || 'Aprodac';
-    const rawType = t.cargo_type || t.rate_category || t.billing_type || t.line_type || 'Single Trip';
-    const cargoType = formatText(rawType);
+    const rawDate = t.scheduled_date || t.dispatch_date || t.created_at || t.createdAt || t.start_date || t.date;
+    const formattedDate = rawDate 
+      ? new Date(rawDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '17 Sep 2026';
 
     return {
       id: t.ref_id || (t.id ? `TRP-${t.id.slice(0, 6)}` : 'TRP-001'),
@@ -487,6 +490,7 @@ export default function CargoLoadingView() {
       customerName,
       cargoType,
       totalWeight: weightStr,
+      date: formattedDate,
     };
   };
 
@@ -602,99 +606,99 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full h-full bg-[#F5F7FA] text-slate-900 font-sans p-3 sm:p-4 flex flex-col justify-between gap-3 overflow-hidden max-w-[1800px] mx-auto">
+    <div className="w-full bg-[#F5F7FA] text-slate-900 font-sans p-4 sm:p-5 lg:p-6 flex flex-col justify-between gap-3 sm:gap-3.5 max-w-[1800px] mx-auto h-screen max-h-screen overflow-y-auto xl:overflow-hidden">
       
       {/* ── Top Header Bar ── */}
-      <div className="flex items-center justify-between shrink-0 h-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100/90 text-emerald-700 border border-emerald-200/60 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3.5">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">{plateNumber}</h1>
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-emerald-100/90 text-emerald-700 border border-emerald-200/60 shadow-2xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
             Available
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Button 
             onClick={() => navigate(`/vehicles/${vehicle?.id || id}/edit`)}
-            className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-1.5 h-8 text-xs shadow-xs rounded-xl px-4 transition-colors cursor-pointer"
+            className="font-bold bg-[#3E3C3D] hover:bg-slate-900 text-white gap-2 h-10 text-xs sm:text-sm shadow-xs rounded-xl px-5 transition-colors cursor-pointer"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit2 className="w-4 h-4" />
             Edit
           </Button>
         </div>
       </div>
 
-      {/* ── Top Metrics Grid (4 Compact Proportional Cards) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 shrink-0 h-[76px]">
+      {/* ── Top Metrics Grid (4 Large Proportional Cards) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 shrink-0">
         
         {/* Card 1: DRIVER */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-3 px-3.5 shadow-2xs flex items-center justify-between h-full">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px]">
+          <div className="flex items-center gap-3.5 min-w-0">
             <DriverAvatar
               src={driverAvatar}
               firstName={driverFirstName}
               lastName={driverLastName}
               size="lg"
-              className="w-10 h-10 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
+              className="w-12 h-12 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
             />
             <div className="min-w-0">
-              <p className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1">DRIVER</p>
-              <p className="text-xs font-black text-slate-900 truncate leading-snug">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER</p>
+              <p className="text-xs sm:text-sm font-black text-slate-900 truncate leading-snug">
                 {assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() : 'ABDUL MALIK HABIB UR RAHMAN KHAN'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2">
             <button 
               onClick={() => {
                 const phone = vehicle?.assignedDriver?.phone_primary;
                 if (phone) window.open(`tel:${phone}`);
               }}
-              className="w-8 h-8 rounded-lg border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
             >
-              <Phone className="w-3.5 h-3.5 text-blue-600" />
+              <Phone className="w-4 h-4 text-blue-600" />
             </button>
-            <button className="w-8 h-8 rounded-lg border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs">
-              <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+            <button className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs">
+              <MessageSquare className="w-4 h-4 text-indigo-600" />
             </button>
           </div>
         </div>
 
         {/* Card 2: ASSET & CAPACITY */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-3 px-3.5 shadow-2xs flex items-center gap-3 h-full">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Truck className="w-5 h-5 text-[#FA634E] stroke-[1.75]" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
+            <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1">ASSET &amp; CAPACITY</p>
-            <p className="text-xs font-black text-slate-900 leading-snug">{vehicle?.asset_type || 'Box'} Truck</p>
-            <span className="inline-block mt-0.5 text-[9px] font-extrabold text-slate-700 bg-slate-100 px-2 py-0.2 rounded border border-slate-200/80">
+            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">ASSET &amp; CAPACITY</p>
+            <p className="text-xs sm:text-sm font-black text-slate-900 leading-snug">{vehicle?.asset_type || 'Box'} Truck</p>
+            <span className="inline-block mt-1 text-[10px] font-extrabold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/80">
               Cap: {capacityFormatted}
             </span>
           </div>
         </div>
 
         {/* Card 3: DRIVER CONTACT */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-3 px-3.5 shadow-2xs flex items-center gap-3 h-full">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Phone className="w-5 h-5 text-blue-600 stroke-[1.75]" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
+            <Phone className="w-6 h-6 text-blue-600 stroke-[1.75]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1">DRIVER CONTACT</p>
-            <p className="text-xs font-mono font-black text-slate-900 leading-snug">{assignedDriver?.phone_primary || assignedDriver?.phone || '—'}</p>
-            <p className="text-[9px] font-semibold text-slate-400 leading-none mt-0.5">Assigned Phone</p>
+            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER CONTACT</p>
+            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug">{assignedDriver?.phone_primary || assignedDriver?.phone || '—'}</p>
+            <p className="text-[10px] font-semibold text-slate-400 leading-none mt-1">Assigned Phone</p>
           </div>
         </div>
 
         {/* Card 4: GPS */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-3 px-3.5 shadow-2xs flex items-center gap-3 h-full">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Navigation className="w-5 h-5 text-emerald-600 stroke-[1.75]" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
+            <Navigation className="w-6 h-6 text-emerald-600 stroke-[1.75]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1">GPS</p>
-            <p className="text-xs font-mono font-black text-slate-900 leading-snug flex items-center gap-1.5 truncate">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GPS</p>
+            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug flex items-center gap-2 truncate">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
               ICCES: {vehicle?.icces_device_id || '—'}
             </p>
           </div>
@@ -702,83 +706,83 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Main Columns Grid - Proportional Flex Height) ── */}
-      <div className="flex-1 min-h-[300px] max-h-[380px] grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 items-stretch overflow-hidden">
+      {/* ── Middle Section (3 Main Columns Grid - Clean Height h-[410px]) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between h-full overflow-hidden">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
           <div>
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-              <h2 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
+              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <FileText className="w-4.5 h-4.5 text-blue-600" />
                 Documents &amp; Validity
               </h2>
               <button 
                 onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-                className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               >
                 View All
               </button>
             </div>
 
             {/* 5 Document Cards List */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <FileText className="w-3 h-3 text-blue-600" />
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Istimara</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
                   Valid (15 Oct 2027)
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <ShieldCheck className="w-3 h-3 text-indigo-600" />
+              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Insurance</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
                   Valid (10 Jan 2027)
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Operation Card</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/70">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/70">
                   Expiring 28 Sep
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <Award className="w-3 h-3 text-purple-600" />
+              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <Award className="w-3.5 h-3.5 text-purple-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">SASO Plates</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
                   Valid (04 Nov 2028)
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <CheckCircle2 className="w-3 h-3 text-teal-600" />
+              <div className="flex items-center justify-between p-2.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">FAHAS</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200/60">
                   Valid (20 May 2027)
                 </span>
               </div>
@@ -786,8 +790,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Flex Proportional Height) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-full w-full">
+        {/* Center Column: Truck Visualizer Container (Clean h-[410px] Height) */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
             {/* Clean 2-Second Exploded Animation Video Element */}
             <video
@@ -847,8 +851,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Flex Proportional Height) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between h-full overflow-hidden">
+        {/* Right Column: Service History (Clean h-[410px] Height, All Cards Fit Cleanly) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
           <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
@@ -1114,10 +1118,14 @@ export default function CargoLoadingView() {
                     {renderTripCardBadge(trip.status)}
                   </div>
 
-                  {/* Middle Row: Route */}
+                  {/* Middle Row: Route & Date */}
                   <div>
                     <p className="text-xs font-black text-slate-900 leading-snug truncate group-hover:text-[#FA634E] transition-colors">
                       {trip.route}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                      {trip.date}
                     </p>
                   </div>
 
