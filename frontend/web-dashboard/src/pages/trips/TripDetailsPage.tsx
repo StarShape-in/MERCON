@@ -5,7 +5,8 @@ import {
   ChevronDown, Copy, Check, RefreshCcw,
   Navigation, CheckCircle2, XCircle, AlertTriangle,
   User as UserIcon, Truck, UploadCloud, SquarePen,
-  X, Eye, Maximize2, Coins, ListOrdered, Map as MapIcon
+  X, Eye, Maximize2, Coins, ListOrdered, Map as MapIcon,
+  MapPin, Repeat, Calendar, Clock, Building2, ArrowRight
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -285,6 +286,35 @@ export default function TripDetailsPage() {
     ? `${pickupCityName} → ${dropoffCityName} · Round Trip`
     : `${pickupCityName} → ${dropoffCityName}`;
 
+  // Derived Billing & Vehicle details for section-wise tag badges
+  const rawBillingType = (trip as any).quotation?.pricing_basis || (trip as any).pricing_basis || (trip as any).billing_type;
+  let billingTypeLabel = 'Single Trip Rate';
+  if (fin.isMonthly) {
+    billingTypeLabel = 'Monthly Contract';
+  } else if (rawBillingType === 'Extra') {
+    billingTypeLabel = 'Extra Trip Billing';
+  } else if (trip.quotationId) {
+    billingTypeLabel = 'Quotation Rate';
+  }
+
+  const truckPlate = trip.is_third_party
+    ? trip.third_party_vehicle_plate
+    : trip.vehicle?.plate_number;
+  const rawTonClass = (trip as any).financials?.quotation_vehicle_class
+    || (trip as any).quotation_vehicle_class
+    || (trip.vehicle?.capacity_kg ? `${Math.round(trip.vehicle.capacity_kg / 1000)} TON` : null)
+    || trip.rateCard?.vehicle_type
+    || trip.vehicle_type;
+
+  let truckDisplayLabel = 'Unassigned Vehicle';
+  if (trip.is_third_party) {
+    truckDisplayLabel = `3PL: ${truckPlate || 'Subcontractor'}`;
+  } else if (truckPlate) {
+    truckDisplayLabel = rawTonClass ? `${truckPlate} (${rawTonClass})` : truckPlate;
+  } else if (rawTonClass) {
+    truckDisplayLabel = `Class: ${rawTonClass}`;
+  }
+
   // Status Badge Helper
   const getStatusBadgeProps = (statusRaw: string) => {
     const s = (statusRaw || '').trim().toLowerCase();
@@ -510,21 +540,41 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* Subtitle: Route, Scheduled Date & Created Date */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#6B7280]">
-              <span className="font-black text-[#111827] dark:text-slate-100 text-sm sm:text-base tracking-tight">{routeLabel}</span>
-              <span className="text-[#D1D5DB]">•</span>
-              <span className="font-semibold text-[#374151] dark:text-slate-300">
-                Scheduled for <span className="font-extrabold text-[#111827] dark:text-white">{fullScheduledDateText}</span> <span className="text-[#D1D5DB]">|</span> {scheduledTimeStr}
-              </span>
-              {createdDateRaw && (
-                <>
-                  <span className="text-[#D1D5DB]">•</span>
-                  <span className="font-medium text-[#6B7280]">
-                    Created on <span className="font-semibold text-[#374151] dark:text-slate-300">{fullCreatedDateText}</span> <span className="text-[#D1D5DB]">|</span> {createdTimeStr}
-                  </span>
-                </>
-              )}
+            {/* 4 Tags under Trip ID Header — Light background colors & bold characters */}
+            <div className="flex flex-col gap-2 pt-2.5">
+              {/* Row 1: 📍 Route & 🔄 Line Type */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 1. 📍 Route Tag (Light Coral surface + bold dark text) */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-[#FA634E]/10 dark:bg-[#FA634E]/20 text-[#0F172A] dark:text-white border border-[#FA634E]/30">
+                  <MapPin size={13} className="text-[#FA634E] shrink-0" />
+                  <span>{pickupCityName}</span>
+                  <ArrowRight size={11} className="text-slate-500 dark:text-slate-400" />
+                  <span>{dropoffCityName}</span>
+                </div>
+
+                {/* 2. 🔄 Line Type Tag (Light Purple surface + bold text) */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-purple-50 dark:bg-purple-950/60 text-purple-950 dark:text-purple-200 border border-purple-200/90 dark:border-purple-800/90">
+                  <Repeat size={12} className="text-purple-600 dark:text-purple-400 shrink-0 stroke-[2.5]" />
+                  <span>Line Type: {tripType}</span>
+                </div>
+              </div>
+
+              {/* Row 2: 📅 Scheduled & 🕒 Created */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 3. 📅 Scheduled Date Tag (Light Blue surface + bold text) */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-950/60 text-blue-950 dark:text-blue-200 border border-blue-200/90 dark:border-blue-800/90">
+                  <Calendar size={12} className="text-blue-600 dark:text-blue-400 shrink-0 stroke-[2.5]" />
+                  <span>Scheduled: {fullScheduledDateText} ({scheduledTimeStr})</span>
+                </div>
+
+                {/* 4. 🕒 Created Date Tag (Light Slate surface + bold text) */}
+                {createdDateRaw && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">
+                    <Clock size={12} className="text-slate-500 dark:text-slate-400 shrink-0 stroke-[2.5]" />
+                    <span>Created: {fullCreatedDateText} {createdTimeStr ? `(${createdTimeStr})` : ''}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
