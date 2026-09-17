@@ -223,6 +223,13 @@ export function useEditTripForm() {
     const rawDate = (tripData as any).pickup_date || (tripData as any).scheduled_date || (tripData as any).date;
     const dateStr = rawDate ? String(rawDate).slice(0, 10) : new Date().toISOString().slice(0, 10);
 
+    const driverPayoutVal =
+      (tripData as any).driver_payout != null
+        ? String((tripData as any).driver_payout)
+        : tripData.trip_charges != null
+        ? String(tripData.trip_charges)
+        : '';
+
     const slotObj: TripSlot = {
       id: 'slot-1',
       origin: pickupStop?.location_name || pickupStop?.location_address || '',
@@ -232,7 +239,8 @@ export function useEditTripForm() {
       intermediateLocations: intermediates.map((s) => s.location_name || s.location_address || ''),
       intermediateLocationIds: intermediates.map((s) => (s as any)?.location_id || (s as any)?.locationId || null),
       billingAmount: tripData.billing_amount !== undefined && tripData.billing_amount !== null ? String(tripData.billing_amount) : '',
-      tripCharges: tripData.trip_charges !== undefined && tripData.trip_charges !== null ? String(tripData.trip_charges) : '',
+      tripCharges: driverPayoutVal,
+      driverPayout: driverPayoutVal,
       date: dateStr,
       dropoffDate: dateStr,
       pickupTime: '08:00',
@@ -251,7 +259,7 @@ export function useEditTripForm() {
   // Edit Rules based on Trip Status
   const isRouteLocked = ['Dispatched', 'AtPickup', 'InTransit', 'Completed', 'Invoiced', 'Cancelled'].includes(status);
   const isAssignmentLocked = ['Completed', 'Invoiced', 'Cancelled'].includes(status);
-  const isFinancialsLocked = ['Completed', 'Invoiced', 'Cancelled'].includes(status);
+  const isFinancialsLocked = ['Invoiced', 'Cancelled'].includes(status);
   const isStopsFrozen = STOPS_FROZEN_IN.includes(status);
 
   // Mutations
@@ -264,7 +272,7 @@ export function useEditTripForm() {
   });
 
   const updateFinancialsMutation = useMutation({
-    mutationFn: (payload: { billing_amount?: number; trip_charges?: number }) => tripService.updateFinancials(id!, payload),
+    mutationFn: (payload: { billing_amount?: number; trip_charges?: number; driver_payout?: number; update_quotation_driver_payout?: boolean }) => tripService.updateFinancials(id!, payload),
   });
 
   const isSubmitting = updateStatusMutation.isPending || dispatchMutation.isPending || updateFinancialsMutation.isPending;
@@ -301,14 +309,24 @@ export function useEditTripForm() {
       if (!isFinancialsLocked) {
         const currentSlot = contractSlots[0] || {};
         const parsedBilling = parseFloat(currentSlot.billingAmount || '0');
-        const parsedCharges = parseFloat(currentSlot.tripCharges || '0');
+        const rawPayout = currentSlot.driverPayout !== undefined && currentSlot.driverPayout !== '' ? currentSlot.driverPayout : currentSlot.tripCharges;
+        const parsedCharges = parseFloat(rawPayout || '0');
         const newBilling = isNaN(parsedBilling) ? undefined : parsedBilling;
         const newCharges = isNaN(parsedCharges) ? undefined : parsedCharges;
 
-        if (newBilling !== trip.billing_amount || newCharges !== trip.trip_charges) {
+        const currentDbPayout = (trip as any).driver_payout != null ? Number((trip as any).driver_payout) : (trip.trip_charges != null ? Number(trip.trip_charges) : undefined);
+        const currentDbBilling = trip.billing_amount != null ? Number(trip.billing_amount) : undefined;
+
+        if (
+          (newBilling !== undefined && newBilling !== currentDbBilling) ||
+          (newCharges !== undefined && newCharges !== currentDbPayout) ||
+          currentSlot.driverPayoutModified
+        ) {
           await updateFinancialsMutation.mutateAsync({
             billing_amount: newBilling,
+            driver_payout: newCharges,
             trip_charges: newCharges,
+            update_quotation_driver_payout: Boolean(currentSlot.driverPayoutModified || currentSlot.updateQuotationPayout),
           });
         }
       }
