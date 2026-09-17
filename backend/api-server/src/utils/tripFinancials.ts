@@ -26,6 +26,7 @@ export interface BackendTripFinancialInputs {
   quotation?: { rate?: Money; driver_payout?: Money; pricing_basis?: string };
 
   driver_payout?: Money;
+  co_driver_payout?: Money;
   driver_charge?: Money;
   trip_charges?: Money;
   extra_driver_payment?: Money;
@@ -90,8 +91,10 @@ export function computeTripDriverPayout(trip: BackendTripFinancialInputs): numbe
     const cost = trip.subcontract?.cost ?? trip.third_party_cost;
     return Math.max(0, (asNumber(cost) * multiplier) + extraDriver);
   }
-  const payout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
-  return Math.max(0, (asNumber(payout) * multiplier) + extraDriver);
+  const primaryPayout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
+  const coDriverPayout = trip.co_driver_payout ?? 0;
+  const totalPayout = asNumber(primaryPayout) + asNumber(coDriverPayout);
+  return Math.max(0, (totalPayout * multiplier) + extraDriver);
 }
 
 /** Balance profit kept by MERCON: customer total minus driver payout. */
