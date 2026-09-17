@@ -198,12 +198,14 @@ export default function DriverListPage() {
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  // Fetch drivers using React Query
+  // Fetch drivers using React Query with server-side filtering and sorting
   const { data: driversRes, isLoading, isError, error } = useQuery({
-    queryKey: ['drivers', selectedStatus, debouncedSearch, currentPage, pageSize],
+    queryKey: ['drivers', selectedStatus, debouncedSearch, licenseFilter, sortOrder, currentPage, pageSize],
     queryFn: () => driverService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
+      license_status: licenseFilter,
+      sort_by: sortOrder,
       page: currentPage,
       per_page: pageSize,
     }),
@@ -235,38 +237,8 @@ export default function DriverListPage() {
   const totalDrivers = driversRes?.meta?.total ?? drivers.length;
   const totalPages = driversRes?.meta?.total_pages || Math.ceil(totalDrivers / pageSize) || 1;
 
-  // Filter local data based on License filter and Sort
-  const filteredDrivers = useMemo(() => {
-    return drivers
-      .filter(d => {
-        if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
-        if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortOrder === 'name_asc') {
-          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
-          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
-          return nameA.localeCompare(nameB);
-        }
-        if (sortOrder === 'name_desc') {
-          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
-          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
-          return nameB.localeCompare(nameA);
-        }
-        if (sortOrder === 'license_asc') {
-          const dA = new Date(a.license_expiry || '9999-12-31').getTime();
-          const dB = new Date(b.license_expiry || '9999-12-31').getTime();
-          return dA - dB;
-        }
-        if (sortOrder === 'status') {
-          return (a.status || '').localeCompare(b.status || '');
-        }
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
-      });
-  }, [drivers, licenseFilter, sortOrder]);
+  // Driver dataset comes pre-filtered and pre-sorted from PostgreSQL across the entire fleet
+  const filteredDrivers = drivers;
 
   // Filter the full roster for export purposes to bypass pagination
   // while preserving active search, status, and sort filters
@@ -808,7 +780,12 @@ export default function DriverListPage() {
 
       <Select
         value={licenseFilter}
-        onValueChange={(val) => { if (val) setLicenseFilter(val as any); }}
+        onValueChange={(val) => {
+          if (val) {
+            setLicenseFilter(val as any);
+            setCurrentPage(1);
+          }
+        }}
       >
         <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
           <div className="flex items-center gap-2">
@@ -830,7 +807,10 @@ export default function DriverListPage() {
 
       <SortDropdown
         value={sortOrder}
-        onChange={setSortOrder}
+        onChange={(val) => {
+          setSortOrder(val);
+          setCurrentPage(1);
+        }}
         options={DRIVER_SORT_OPTIONS}
       />
     </div>

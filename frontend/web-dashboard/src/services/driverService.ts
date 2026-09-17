@@ -47,6 +47,9 @@ export interface DriverFilters {
   page?: number;
   per_page?: number;
   mode?: 'lookup';
+  license_status?: 'All' | 'Valid' | 'Expired';
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 /** Roster KPI counts, computed in the database — see `getDriverStats`. */

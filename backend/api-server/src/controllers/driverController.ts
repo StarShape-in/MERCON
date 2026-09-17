@@ -28,19 +28,56 @@ const DRIVER_SEARCH_FIELDS = [
 
 export const getDrivers = async (req: Request, res: Response) => {
   try {
-    const { status, search, page = '1', per_page = '20' } = req.query;
+    const {
+      status,
+      search,
+      page = '1',
+      per_page = '20',
+      license_status,
+      license_filter,
+      sort_by,
+      sort_order,
+    } = req.query;
     
     const pageNumber = Math.max(1, parseInt(page as string) || 1);
     const limit = Math.max(1, Math.min(5000, parseInt(per_page as string) || 20));
     const skip = (pageNumber - 1) * limit;
 
     const whereClause: any = { deletedAt: null };
-    if (status) {
+    if (status && status !== 'All') {
       whereClause.status = status as DriverStatus;
     }
+
+    // License expiry filtering across full database dataset before pagination
+    const activeLicenseFilter = (license_status || license_filter) as string | undefined;
+    if (activeLicenseFilter === 'Expired') {
+      whereClause.license_expiry = { lt: new Date() };
+    } else if (activeLicenseFilter === 'Valid') {
+      whereClause.license_expiry = { gte: new Date() };
+    }
+
     const searchAnd = buildSearchAnd(search, DRIVER_SEARCH_FIELDS);
     if (searchAnd.length > 0) {
       whereClause.AND = searchAnd;
+    }
+
+    // Server-side sorting allowlist mapping
+    const sortVal = (sort_by as string) || 'latest';
+    const sortDir = (sort_order as string) === 'asc' ? 'asc' : 'desc';
+
+    let orderBy: any = { createdAt: 'desc' };
+    if (sortVal === 'latest' || sortVal === 'newest') {
+      orderBy = { createdAt: 'desc' };
+    } else if (sortVal === 'oldest') {
+      orderBy = { createdAt: 'asc' };
+    } else if (sortVal === 'name_asc') {
+      orderBy = [{ first_name: 'asc' }, { last_name: 'asc' }];
+    } else if (sortVal === 'name_desc') {
+      orderBy = [{ first_name: 'desc' }, { last_name: 'desc' }];
+    } else if (sortVal === 'license_asc') {
+      orderBy = { license_expiry: 'asc' };
+    } else if (sortVal === 'status') {
+      orderBy = { status: sortDir };
     }
 
     if (req.query.mode === 'lookup') {
@@ -49,7 +86,7 @@ export const getDrivers = async (req: Request, res: Response) => {
           where: whereClause,
           skip,
           take: limit,
-          orderBy: { first_name: 'asc' },
+          orderBy,
           // Picker shape: every scalar a dropdown / export column reads, plus a
           // shallow assigned-vehicle join. Deliberately no `trips` — that
           // include is what makes the default shape too slow to load a
@@ -106,7 +143,7 @@ export const getDrivers = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: { first_name: 'asc' },
+        orderBy,
         include: {
           user: {
             select: { id: true, username: true, phone: true, password_hash: true }
