@@ -137,7 +137,10 @@ export const listQuery = z.object({
   search: z.string().trim().optional(),
   sort_by: z.string().trim().optional(),
   sort_dir: z.enum(['asc', 'desc']).default('desc'),
+  sort_order: z.enum(['asc', 'desc']).optional(),
   status: z.string().trim().optional(),
+  license_status: z.enum(['All', 'Valid', 'Expired']).optional(),
+  license_filter: z.enum(['All', 'Valid', 'Expired']).optional(),
   customer_id: z.string().uuid().optional(),
 }).passthrough();
 

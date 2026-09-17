@@ -28,19 +28,56 @@ const DRIVER_SEARCH_FIELDS = [
 
 export const getDrivers = async (req: Request, res: Response) => {
   try {
-    const { status, search, page = '1', per_page = '20' } = req.query;
+    const {
+      status,
+      search,
+      page = '1',
+      per_page = '20',
+      license_status,
+      license_filter,
+      sort_by,
+      sort_order,
+    } = req.query;
     
     const pageNumber = Math.max(1, parseInt(page as string) || 1);
     const limit = Math.max(1, Math.min(5000, parseInt(per_page as string) || 20));
     const skip = (pageNumber - 1) * limit;
 
     const whereClause: any = { deletedAt: null };
-    if (status) {
+    if (status && status !== 'All') {
       whereClause.status = status as DriverStatus;
     }
+
+    // License expiry filtering across full database dataset before pagination
+    const activeLicenseFilter = (license_status || license_filter) as string | undefined;
+    if (activeLicenseFilter === 'Expired') {
+      whereClause.license_expiry = { lt: new Date() };
+    } else if (activeLicenseFilter === 'Valid') {
+      whereClause.license_expiry = { gte: new Date() };
+    }
+
     const searchAnd = buildSearchAnd(search, DRIVER_SEARCH_FIELDS);
     if (searchAnd.length > 0) {
       whereClause.AND = searchAnd;
+    }
+
+    // Server-side sorting allowlist mapping
+    const sortVal = (sort_by as string) || 'latest';
+    const sortDir = (sort_order as string) === 'asc' ? 'asc' : 'desc';
+
+    let orderBy: any = { createdAt: 'desc' };
+    if (sortVal === 'latest' || sortVal === 'newest') {
+      orderBy = { createdAt: 'desc' };
+    } else if (sortVal === 'oldest') {
+      orderBy = { createdAt: 'asc' };
+    } else if (sortVal === 'name_asc') {
+      orderBy = [{ first_name: 'asc' }, { last_name: 'asc' }];
+    } else if (sortVal === 'name_desc') {
+      orderBy = [{ first_name: 'desc' }, { last_name: 'desc' }];
+    } else if (sortVal === 'license_asc') {
+      orderBy = { license_expiry: 'asc' };
+    } else if (sortVal === 'status') {
+      orderBy = { status: sortDir };
     }
 
     if (req.query.mode === 'lookup') {
@@ -49,7 +86,7 @@ export const getDrivers = async (req: Request, res: Response) => {
           where: whereClause,
           skip,
           take: limit,
-          orderBy: { first_name: 'asc' },
+          orderBy,
           // Picker shape: every scalar a dropdown / export column reads, plus a
           // shallow assigned-vehicle join. Deliberately no `trips` — that
           // include is what makes the default shape too slow to load a
@@ -106,7 +143,7 @@ export const getDrivers = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: { first_name: 'asc' },
+        orderBy,
         include: {
           user: {
             select: { id: true, username: true, phone: true, password_hash: true }
@@ -131,18 +168,48 @@ export const getDrivers = async (req: Request, res: Response) => {
       prisma.driver.count({ where: whereClause })
     ]);
 
-    // Lifetime driver payout for the roster's Total Trip Charge column — the
-    // `trips` include above only carries in-progress trips (see the note on
-    // it), which would undercount anyone whose trips are mostly Completed. A
-    // separate sum avoids pulling every trip row just to add one number.
-    const tripChargeSums = await prisma.trip.groupBy({
-      by: ['driverId'],
-      where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
-      _sum: { driver_payout: true },
-    });
-    const tripChargeByDriver = new Map(
-      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_payout) || 0])
-    );
+    // Lifetime driver payout for the roster's Total Trip Charge column.
+    // Aggregates eligible (Completed or Invoiced) non-deleted trips for both
+    // primary drivers (driver_payout) and co-drivers (co_driver_payout).
+    const driverIds = drivers.map((d) => d.id);
+    const ELIGIBLE_TRIP_STATUSES = ['Completed', 'Invoiced'];
+
+    const [primarySums, coDriverSums] = await Promise.all([
+      prisma.trip.groupBy({
+        by: ['driverId'],
+        where: {
+          driverId: { in: driverIds },
+          deletedAt: null,
+          status: { in: ELIGIBLE_TRIP_STATUSES as any },
+        },
+        _sum: { driver_payout: true },
+      }),
+      prisma.trip.groupBy({
+        by: ['co_driver_id'],
+        where: {
+          co_driver_id: { in: driverIds },
+          deletedAt: null,
+          status: { in: ELIGIBLE_TRIP_STATUSES as any },
+        },
+        _sum: { co_driver_payout: true },
+      }),
+    ]);
+
+    const tripChargeByDriver = new Map<string, number>();
+
+    for (const s of primarySums) {
+      if (s.driverId) {
+        const val = s._sum.driver_payout ? Number(s._sum.driver_payout) : 0;
+        tripChargeByDriver.set(s.driverId, (tripChargeByDriver.get(s.driverId) || 0) + val);
+      }
+    }
+
+    for (const s of coDriverSums) {
+      if (s.co_driver_id) {
+        const val = s._sum.co_driver_payout ? Number(s._sum.co_driver_payout) : 0;
+        tripChargeByDriver.set(s.co_driver_id, (tripChargeByDriver.get(s.co_driver_id) || 0) + val);
+      }
+    }
 
     const formatted = drivers.map(d => ({
       ...d,
@@ -438,11 +505,24 @@ export const deleteDriver = async (req: Request, res: Response) => {
 
     const driverId = req.params.id as string;
 
-    // A driver mid-trip can't be pulled out from under it — the trip would
-    // keep resolving the driver (soft delete), but dispatch would have no
-    // signal the driver is gone.
+    const driver = await prisma.driver.findFirst({
+      where: { id: driverId, deletedAt: null }
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Driver not found' } });
+    }
+
+    // A driver mid-trip (primary or co-driver) can't be pulled out from under it
     const activeTrips = await prisma.trip.count({
-      where: { driverId, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } }
+      where: {
+        OR: [
+          { driverId },
+          { co_driver_id: driverId }
+        ],
+        deletedAt: null,
+        status: { in: ACTIVE_TRIP_STATUSES as any }
+      }
     });
     if (activeTrips > 0) {
       return res.status(409).json({
@@ -454,15 +534,43 @@ export const deleteDriver = async (req: Request, res: Response) => {
       });
     }
 
-    // Hard delete driver: unlink optional historical trip/expense pointers, clear vehicle assignment, then delete record
-    await prisma.$transaction([
-      prisma.trip.updateMany({ where: { driverId }, data: { driverId: null } }),
-      prisma.expense.updateMany({ where: { driverId }, data: { driverId: null } }),
-      prisma.driverVehicleAssignment.deleteMany({ where: { driverId } }),
-      prisma.driver.delete({ where: { id: driverId } })
-    ]);
-    res.json({ success: true, data: { message: 'Driver permanently deleted successfully' } });
+    // Soft delete driver transactionally while preserving historical Trip and Expense linkages:
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      // Mark active vehicle assignment entries as inactive
+      await tx.driverVehicleAssignment.updateMany({
+        where: { driverId, isActive: true },
+        data: { isActive: false, effectiveTo: now }
+      });
+
+      // Deactivate associated user account if linked
+      if (driver.userId) {
+        await tx.user.update({
+          where: { id: driver.userId },
+          data: {
+            isActive: false,
+            deletedAt: now,
+            deleted_by: userId
+          }
+        });
+      }
+
+      // Soft delete driver record and unassign current vehicle
+      await tx.driver.update({
+        where: { id: driverId },
+        data: {
+          deletedAt: now,
+          deleted_by: userId,
+          status: 'Inactive',
+          isActive: false,
+          assignedVehicleId: null
+        }
+      });
+    });
+
+    res.json({ success: true, data: { message: 'Driver deleted successfully' } });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to delete driver');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
   }
 };
@@ -520,32 +628,83 @@ export const getDriverUsage = async (req: Request, res: Response) => {
 
 export const bulkDeleteDrivers = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).user?.id;
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    const inUse = await prisma.trip.findMany({
-      where: { driverId: { in: ids }, status: { in: ACTIVE_TRIP_STATUSES as any } },
-      select: { driverId: true },
-      distinct: ['driverId']
+    // Find active (non-soft-deleted) drivers requested
+    const driversToProcess = await prisma.driver.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true, userId: true }
     });
-    const inUseIds = new Set(inUse.map((t) => t.driverId));
-    const deletableIds = ids.filter((id: string) => !inUseIds.has(id));
+
+    const activeIds = driversToProcess.map((d) => d.id);
+
+    // Identify drivers with active trips in progress (primary or co-driver)
+    const inUseTrips = await prisma.trip.findMany({
+      where: {
+        OR: [
+          { driverId: { in: activeIds } },
+          { co_driver_id: { in: activeIds } }
+        ],
+        status: { in: ACTIVE_TRIP_STATUSES as any },
+        deletedAt: null
+      },
+      select: { driverId: true, co_driver_id: true }
+    });
+
+    const inUseIds = new Set<string>();
+    inUseTrips.forEach((t) => {
+      if (t.driverId && activeIds.includes(t.driverId)) inUseIds.add(t.driverId);
+      if (t.co_driver_id && activeIds.includes(t.co_driver_id)) inUseIds.add(t.co_driver_id);
+    });
+
+    const deletableDrivers = driversToProcess.filter((d) => !inUseIds.has(d.id));
+    const deletableIds = deletableDrivers.map((d) => d.id);
 
     if (deletableIds.length > 0) {
+      const now = new Date();
+      const userIdsToDeactivate = deletableDrivers.map((d) => d.userId).filter((u): u is string => Boolean(u));
+
       await prisma.$transaction([
-        prisma.trip.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
-        prisma.expense.updateMany({ where: { driverId: { in: deletableIds } }, data: { driverId: null } }),
-        prisma.driverVehicleAssignment.deleteMany({ where: { driverId: { in: deletableIds } } }),
-        prisma.driver.deleteMany({ where: { id: { in: deletableIds } } })
+        // Deactivate active vehicle assignments
+        prisma.driverVehicleAssignment.updateMany({
+          where: { driverId: { in: deletableIds }, isActive: true },
+          data: { isActive: false, effectiveTo: now }
+        }),
+
+        // Deactivate linked user accounts
+        ...(userIdsToDeactivate.length > 0
+          ? [
+              prisma.user.updateMany({
+                where: { id: { in: userIdsToDeactivate } },
+                data: { isActive: false, deletedAt: now, deleted_by: userId }
+              })
+            ]
+          : []),
+
+        // Soft delete drivers and unassign assigned vehicles
+        prisma.driver.updateMany({
+          where: { id: { in: deletableIds } },
+          data: {
+            deletedAt: now,
+            deleted_by: userId,
+            status: 'Inactive',
+            isActive: false,
+            assignedVehicleId: null
+          }
+        })
       ]);
     }
 
-    const skippedMessage = inUseIds.size > 0 ? ` ${inUseIds.size} skipped (active trip in progress).` : '';
-    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} drivers.${skippedMessage}` } });
+    const skippedCount = ids.length - deletableIds.length;
+    const skippedMessage = skippedCount > 0 ? ` ${skippedCount} skipped (active trip in progress or already deleted).` : '';
+    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} driver${deletableIds.length === 1 ? '' : 's'}.${skippedMessage}` } });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to bulk delete drivers');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete drivers` } });
   }
 };

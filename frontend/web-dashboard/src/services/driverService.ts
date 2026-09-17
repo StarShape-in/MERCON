@@ -47,6 +47,9 @@ export interface DriverFilters {
   page?: number;
   per_page?: number;
   mode?: 'lookup';
+  license_status?: 'All' | 'Valid' | 'Expired';
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 /** Roster KPI counts, computed in the database — see `getDriverStats`. */
@@ -69,6 +72,49 @@ export const driverService = {
   async getAll(filters: DriverFilters = {}): Promise<ApiResponse<Driver[]>> {
     const res = await api.get<ApiResponse<Driver[]>>('/drivers', { params: filters });
     return res.data;
+  },
+
+  /**
+   * Scalable driver export fetcher: retrieves all matching records across all pages
+   * from the backend using active filters and pagination metadata.
+   */
+  async getAllForExport(filters: Omit<DriverFilters, 'page' | 'per_page'> = {}): Promise<Driver[]> {
+    const BATCH_SIZE = 1000;
+    const firstPageRes = await this.getAll({
+      ...filters,
+      page: 1,
+      per_page: BATCH_SIZE,
+      mode: 'lookup',
+    });
+
+    const allData: Driver[] = [...(firstPageRes.data || [])];
+    const totalPages = firstPageRes.meta?.total_pages || 1;
+    const totalRecords = firstPageRes.meta?.total;
+
+    if (totalPages <= 1) {
+      return allData;
+    }
+
+    for (let p = 2; p <= totalPages; p++) {
+      const pageRes = await this.getAll({
+        ...filters,
+        page: p,
+        per_page: BATCH_SIZE,
+        mode: 'lookup',
+      });
+
+      if (!pageRes.data || pageRes.data.length === 0) {
+        throw new Error(`Export interrupted: page ${p} of ${totalPages} returned empty data`);
+      }
+
+      allData.push(...pageRes.data);
+    }
+
+    if (typeof totalRecords === 'number' && allData.length < totalRecords) {
+      throw new Error(`Export incomplete: expected ${totalRecords} records, but retrieved ${allData.length}`);
+    }
+
+    return allData;
   },
 
   /**
