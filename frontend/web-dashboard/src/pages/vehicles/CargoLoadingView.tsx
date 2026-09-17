@@ -681,11 +681,11 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Large Main Columns Grid - Natural Real Size & Compact Cards) ── */}
+      {/* ── Middle Section (3 Main Columns Grid - Real Video Size & Compact Category Squares) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[280px] h-full">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[300px] h-full">
           <div>
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
               <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -700,12 +700,12 @@ export default function CargoLoadingView() {
               </button>
             </div>
 
-            {/* 5 Document Cards List */}
+            {/* 5 Document Cards List (Compact Padding) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <FileText className="w-3 h-3 text-blue-600" />
+                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-blue-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Istimara</span>
                 </div>
@@ -716,8 +716,8 @@ export default function CargoLoadingView() {
 
               <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <ShieldCheck className="w-3 h-3 text-indigo-600" />
+                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-indigo-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Insurance</span>
                 </div>
@@ -728,8 +728,8 @@ export default function CargoLoadingView() {
 
               <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-amber-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">Operation Card</span>
                 </div>
@@ -740,8 +740,8 @@ export default function CargoLoadingView() {
 
               <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <Award className="w-3 h-3 text-purple-600" />
+                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-purple-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <Award className="w-3.5 h-3.5 text-purple-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">SASO Plates</span>
                 </div>
@@ -752,8 +752,8 @@ export default function CargoLoadingView() {
 
               <div className="flex items-center justify-between p-2 px-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
-                    <CheckCircle2 className="w-3 h-3 text-teal-600" />
+                  <div className="w-6.5 h-6.5 rounded-lg bg-white text-teal-600 flex items-center justify-center border border-slate-200/80 shrink-0 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
                   </div>
                   <span className="text-xs font-bold text-slate-800">FAHAS</span>
                 </div>
@@ -765,10 +765,10 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Real Uncropped Video Size) */}
-        <div className="xl:col-span-6 bg-slate-950 border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden min-h-[280px] w-full h-full">
+        {/* Center Column: Truck Visualizer Container (Real Video Size Adjustment) */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden min-h-[300px] w-full h-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
-            {/* Clean 2-Second Exploded Animation Video Element (Real Size object-contain) */}
+            {/* Clean 2-Second Exploded Animation Video Element */}
             <video
               ref={videoRef}
               src="/truck-animation-2s.mp4"
@@ -777,7 +777,7 @@ export default function CargoLoadingView() {
               preload="auto"
               onEnded={handleVideoEnded}
               onTimeUpdate={handleVideoTimeUpdate}
-              className="w-full h-full object-contain block transform-gpu cursor-pointer transition-all duration-300 inset-0"
+              className="w-full h-full object-cover block transform-gpu cursor-pointer transition-all duration-300 inset-0"
               onClick={handleToggleServiceHistory}
             />
 
@@ -819,8 +819,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Smaller Compact Square Category Cards) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[280px] h-full">
+        {/* Right Column: Service History (Compact Category Squares <-> Subpage Detail View) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[300px] h-full">
           <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
@@ -831,8 +831,8 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* Compact Smaller 2-Column Square Category Cards Grid */}
-                <div className="grid grid-cols-2 gap-1.5 flex-1 content-center">
+                {/* Compact 2-Column Square Category Cards Grid (Centered, Smaller Squares) */}
+                <div className="grid grid-cols-2 gap-1.5 flex-1 content-center max-w-[210px] mx-auto w-full">
                   {serviceItems.map((item) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
@@ -845,7 +845,7 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           if (!isExplodedView) handleToggleServiceHistory();
                         }}
-                        className={`col-span-1 aspect-square rounded-lg sm:rounded-xl border flex flex-col items-center justify-center gap-1 p-1 transition-all cursor-pointer text-center group ${
+                        className={`col-span-1 aspect-square p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
                             : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
