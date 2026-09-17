@@ -25,6 +25,8 @@ export interface ModernFinancialsCardProps {
   pricingBasis?: 'Per Trip' | 'Per Month';
   onAddCharge: () => void;
   onViewBreakdown?: () => void;
+  coDriverPayout?: number;
+  coDriverName?: string | null;
 }
 
 export default function ModernFinancialsCard({
@@ -46,6 +48,8 @@ export default function ModernFinancialsCard({
   monthlyContractRate,
   pricingBasis,
   onAddCharge,
+  coDriverPayout = 0,
+  coDriverName,
 }: ModernFinancialsCardProps) {
   const fin = computeTripFinancials({
     customerBilling,
@@ -68,6 +72,7 @@ export default function ModernFinancialsCard({
   const effectiveMonthlyRate = fin.monthlyRate ?? 0;
 
   const driverPayoutLabel = is3PL ? '3PL Payout' : 'Driver Payout';
+  const hasCoDriver = !is3PL && coDriverPayout > 0;
 
   return (
     <div className="w-full h-full bg-white dark:bg-slate-900 rounded-2xl border border-[#E5E7EB] dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4.5 py-4 flex flex-col justify-between gap-3 text-[#3E3C3D] dark:text-slate-100">
@@ -146,6 +151,25 @@ export default function ModernFinancialsCard({
                 : 'SAR 0.00'}
             </span>
           </div>
+
+          {/* ROW 3b: CO-DRIVER PAYOUT (only when co-driver is assigned) */}
+          {hasCoDriver && (
+            <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 gap-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                  Co-Driver Payout
+                </span>
+                {coDriverName && (
+                  <span className="text-[9px] font-semibold text-emerald-600/80 dark:text-emerald-400/70 truncate max-w-[110px]">
+                    {coDriverName}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-black font-mono text-rose-600 dark:text-rose-400">
+                {`- SAR ${coDriverPayout.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+              </span>
+            </div>
+          )}
 
           {/* ROW 4: ADDITIONAL CHARGES */}
           <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">

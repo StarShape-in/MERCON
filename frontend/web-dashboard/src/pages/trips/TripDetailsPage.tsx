@@ -262,6 +262,10 @@ export default function TripDetailsPage() {
 
   const customerBilling = fin.resolvedBilling;
   const driverPayout = fin.resolvedDriverPayout;
+  const coDriverPayoutRaw = Number(tAny.co_driver_payout ?? 0);
+  const coDriverName = tAny.coDriver
+    ? `${tAny.coDriver.first_name || ''} ${tAny.coDriver.last_name || ''}`.trim() || null
+    : null;
   const extraDriverPayment = Number(tAny.extra_driver_payment ?? 0);
   const totalAmount = fin.totalCustomerBilling;
   const paidAmount = Number(tAny.paid_amount ?? 0);
@@ -687,6 +691,8 @@ export default function TripDetailsPage() {
               customerBilling={customerBilling}
               baseRate={customerBilling}
               driverPayout={driverPayout}
+              coDriverPayout={coDriverPayoutRaw}
+              coDriverName={coDriverName}
               is3PL={is3PL}
               additionalCharges={chargesTotal}
               additionalChargesCount={chargesList.length}

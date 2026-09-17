@@ -1810,6 +1810,23 @@ export default function TripListPage() {
           );
         };
 
+        const renderCoDriver = () => {
+          if (row.is_third_party || !(row as any).coDriver) return null;
+          const coDriver = (row as any).coDriver;
+          const coName = `${coDriver.first_name || ''} ${coDriver.last_name || ''}`.trim();
+          if (!coName) return null;
+          return (
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0 mt-0.5">
+              <div className="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-[7px] flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+                CO
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 truncate">
+                {coName}
+              </span>
+            </div>
+          );
+        };
+
         const renderVehicle = () => {
           if (row.is_third_party) {
             const plate = row.third_party_vehicle_plate || '3PL Truck';
@@ -1851,8 +1868,9 @@ export default function TripListPage() {
         };
 
         return (
-          <div className="flex flex-col space-y-1 py-0.5">
+          <div className="flex flex-col space-y-0.5 py-0.5">
             {renderDriver()}
+            {renderCoDriver()}
             {renderVehicle()}
           </div>
         );
@@ -1898,14 +1916,23 @@ export default function TripListPage() {
       className: 'w-[110px] shrink-0',
       mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
-        const charge = row.driver_payout ?? row.driver_charge ?? row.trip_charges ?? row.third_party_cost;
+        const primaryCharge = row.driver_payout ?? row.driver_charge ?? row.trip_charges ?? row.third_party_cost;
+        const coDriverPayout = Number((row as any).co_driver_payout ?? 0);
+        const combinedCharge = (primaryCharge !== undefined && primaryCharge !== null)
+          ? Number(primaryCharge) + coDriverPayout
+          : undefined;
         return (
-          <div className="flex items-center font-mono text-xs" title="What MERCON pays the driver/subcontractor — not the customer-billed amount">
+          <div className="flex flex-col font-mono text-xs" title="What MERCON pays the driver(s) — not the customer-billed amount">
             <span className="font-bold text-slate-500 dark:text-slate-400">
-              {charge !== undefined && charge !== null && Number(charge) > 0
-                ? `SAR ${Number(charge).toLocaleString('en-US')}`
+              {combinedCharge !== undefined && combinedCharge > 0
+                ? `SAR ${combinedCharge.toLocaleString('en-US')}`
                 : '—'}
             </span>
+            {coDriverPayout > 0 && (
+              <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {`${Number(primaryCharge).toLocaleString('en-US')} + ${coDriverPayout.toLocaleString('en-US')}`}
+              </span>
+            )}
           </div>
         );
       },

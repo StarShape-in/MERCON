@@ -344,6 +344,15 @@ export const getTrips = async (req: Request, res: Response) => {
               deletedAt: true,
             }
           },
+          coDriver: {
+            select: {
+              id: true,
+              ref_id: true,
+              first_name: true,
+              last_name: true,
+              deletedAt: true,
+            }
+          },
           vehicle: {
             select: {
               id: true,
