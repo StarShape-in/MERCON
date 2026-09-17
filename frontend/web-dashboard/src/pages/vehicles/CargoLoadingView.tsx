@@ -906,7 +906,7 @@ export default function CargoLoadingView() {
                 const recOdometer = currentRec?.odometer_reading ? `${Number(currentRec.odometer_reading).toLocaleString()} km` : selectedService.odometer;
                 const recCost = currentRec?.cost ? `SAR ${Number(currentRec.cost).toLocaleString()}` : selectedService.cost;
                 const recStatus = currentRec?.status || selectedService.status;
-                const rawP = currentRec?.parts_replaced || currentRec?.replaced_parts;
+                const rawP = (currentRec as any)?.parts_replaced || (currentRec as any)?.replaced_parts;
                 const recParts = rawP ? (Array.isArray(rawP) ? rawP : [String(rawP)]) : selectedService.partsReplaced;
 
                 return (
