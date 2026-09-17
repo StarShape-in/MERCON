@@ -669,15 +669,24 @@ export default function CargoLoadingView() {
         </div>
 
         {/* Card 2: ASSET & CAPACITY */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-4 min-h-[96px]">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0">
-            <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75]" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50/70 border border-orange-200/80 shadow-2xs flex items-center justify-center shrink-0">
+              <Truck className="w-6 h-6 text-[#FA634E] stroke-[1.75]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">ASSET TYPE</p>
+              <p className="text-xs sm:text-sm font-black text-slate-900 leading-snug truncate">
+                {vehicle?.asset_type || 'Box'} Truck
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">ASSET &amp; CAPACITY</p>
-            <p className="text-xs sm:text-sm font-black text-slate-900 leading-snug">{vehicle?.asset_type || 'Box'} Truck</p>
-            <span className="inline-block mt-1 text-[10px] font-extrabold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/80">
-              Cap: {capacityFormatted}
+
+          {/* Highlighted Capacity Ton Badge on Right Side */}
+          <div className="shrink-0 text-right">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-[#FA634E] border border-orange-200/90 text-xs sm:text-sm font-black shadow-2xs">
+              <Gauge className="w-3.5 h-3.5 text-[#FA634E] shrink-0" />
+              <span>{capacityFormatted}</span>
             </span>
           </div>
         </div>
