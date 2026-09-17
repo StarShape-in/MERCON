@@ -768,7 +768,7 @@ export default function CargoLoadingView() {
         {/* Center Column: Truck Visualizer Container (Clean h-[410px] Height) */}
         <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
-            {/* Clean 2-Second Exploded Animation Video Element */}
+            {/* Clean Static 2-Second Visualizer Video Element (Does not animate on click) */}
             <video
               ref={videoRef}
               src="/truck-animation-2s.mp4"
@@ -777,8 +777,7 @@ export default function CargoLoadingView() {
               preload="auto"
               onEnded={handleVideoEnded}
               onTimeUpdate={handleVideoTimeUpdate}
-              className="w-full h-full object-cover block transform-gpu cursor-pointer transition-all duration-300 inset-0"
-              onClick={handleToggleServiceHistory}
+              className="w-full h-full object-cover block transform-gpu cursor-default inset-0"
             />
 
             {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
@@ -819,135 +818,67 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Clean h-[410px] Height, All Cards Fit Cleanly) */}
+        {/* Right Column: Service History (Maintenance Records List / Empty State) */}
         <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
-          <div className="h-full flex flex-col justify-between">
-            {activeServiceView === 'categories' ? (
-              <div className="flex flex-col justify-between h-full">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
-                  <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
-                    Service History
-                  </h2>
-                </div>
+          <div className="h-full flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
+              <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
+                Service History
+              </h2>
+              {serviceRecords.length > 0 && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  {serviceRecords.length} Record{serviceRecords.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
 
-                {/* Category Cards Grid (Free Mode - Fills Box Height & Width Completely) */}
-                <div className="grid grid-cols-2 gap-2 flex-1 h-full items-stretch w-full py-0.5">
-                  {serviceItems.map((item, idx) => {
-                    const isSelected = item.id === selectedServiceId;
-                    const IconComp = item.icon;
-                    const theme = item.colorTheme;
-                    const isLastOdd = serviceItems.length % 2 !== 0 && idx === serviceItems.length - 1;
-                    return (
-                      <button 
-                        key={`cat-rec-${item.id}`}
-                        onClick={() => {
-                          setSelectedServiceId(item.id);
-                          setActiveServiceView('detail');
-                          if (!isExplodedView) handleToggleServiceHistory();
-                        }}
-                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-3 px-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[58px] group ${
-                          isSelected
-                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
-                            : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
-                        }`}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
-                          isSelected
-                            ? 'bg-white border-orange-200 shadow-2xs'
-                            : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
-                        }`}>
-                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
-                            {item.categoryLabel}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
+            {/* Maintenance Records List / Clean Empty State */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5">
+              {serviceRecords.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50">
+                  <Wrench className="w-8 h-8 text-slate-300 mb-2 stroke-[1.5]" />
+                  <p className="text-xs font-bold text-slate-700">No Maintenance Records</p>
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-[180px]">No service or maintenance history logged for this vehicle.</p>
                 </div>
-              </div>
-            ) : (
-              /* Subpage View inside Service History Box showing only Service Record */
-              <div className="flex flex-col justify-between h-full space-y-3 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
-                  <button
+              ) : (
+                serviceRecords.map((record) => (
+                  <div 
+                    key={record.id}
                     onClick={() => {
-                      setActiveServiceView('categories');
-                      if (isExplodedView) handleToggleServiceHistory();
+                      const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                        ? vehicle.plate_number
+                        : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                      navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
                     }}
-                    className="text-xs font-bold text-slate-600 hover:text-[#FA634E] transition-colors flex items-center gap-1 cursor-pointer"
+                    className="p-3 rounded-xl border border-slate-200/90 bg-slate-50/60 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all cursor-pointer flex flex-col gap-2"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Back</span>
-                  </button>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
-                    {selectedService.categoryLabel}
-                  </span>
-                </div>
-
-                {/* Service Record Detail Card */}
-                <div className="flex-1 bg-slate-50/90 rounded-xl p-3 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0 mt-0.5">
-                      {(() => {
-                        const IconComp = selectedService.icon;
-                        return <IconComp className={`w-4 h-4 stroke-[2] ${selectedService.colorTheme.text}`} />;
-                      })()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[9px] font-bold text-slate-400">{selectedService.date}</span>
-                        <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                          {selectedService.status}
-                        </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[9px] font-mono font-bold text-slate-400 block">{record.ref_id}</span>
+                        <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{record.work_done}</h3>
                       </div>
-                      <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{selectedService.title}</h3>
-                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                        <Wrench className="w-3 h-3 text-slate-400" />
-                        {selectedService.workshop}
-                      </p>
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none font-bold px-2 py-0.2 text-[9px] rounded-full shrink-0">
+                        {record.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold pt-1.5 border-t border-slate-200/60">
+                      <span className="flex items-center gap-1 truncate">
+                        <Wrench className="w-3 h-3 text-slate-400 shrink-0" />
+                        {record.workshop_name}
+                      </span>
+                      <span className="font-mono font-bold text-slate-700 shrink-0">{record.service_date}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] pt-1">
+                      <span className="font-mono font-semibold text-slate-500">Odo: {record.odometer_reading}</span>
+                      <span className="font-mono font-black text-[#FA634E]">{record.cost}</span>
                     </div>
                   </div>
-
-                  {/* Odometer & Cost */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[10px]">
-                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Odometer</span>
-                      <span className="font-mono font-black text-slate-900">{selectedService.odometer}</span>
-                    </div>
-                    <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                      <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Cost</span>
-                      <span className="font-mono font-black text-[#FA634E]">{selectedService.cost}</span>
-                    </div>
-                  </div>
-
-                  {/* Replaced Parts */}
-                  <div className="bg-white p-2 rounded-lg border border-slate-200/80">
-                    <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px] mb-0.5">Replaced Parts</span>
-                    <span className="text-[10px] font-bold text-slate-700 line-clamp-2">
-                      {selectedService.partsReplaced.join(' • ')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Direct Link to Maintenance Record in Maintenance Ledger */}
-                <button
-                  onClick={() => {
-                    const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                      ? vehicle.plate_number
-                      : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-                    navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
-                  }}
-                  className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
-                >
-                  <span>Open Maintenance Record</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
 
